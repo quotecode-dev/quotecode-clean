@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function QuoteForm({
   editingQuoteId,
@@ -36,6 +36,45 @@ export default function QuoteForm({
   handleItemChange,
   handleAddFromCatalog
 }) {
+  // פירוק כתובת הלקוח לשדות נפרדים
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [stateProv, setStateProv] = useState('');
+  const [zipCode, setZipCode] = useState('');
+
+  // עדכון ה-clientAddress המאוחד בכל שינוי בשדות הכתובת
+  const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
+    setStreet(newStreet);
+    setCity(newCity);
+    setStateProv(newState);
+    setZipCode(newZip);
+    const combined = `${newStreet}|${newCity}|${newState}|${newZip}`;
+    setClientAddress(combined);
+  };
+
+  // בעת בחירת לקוח קיים או טעינת עריכה, נפרק את הכתובת לשדות
+  useEffect(() => {
+    if (clientAddress) {
+      const parts = clientAddress.split('|');
+      if (parts.length >= 4) {
+        setStreet(parts[0] || '');
+        setCity(parts[1] || '');
+        setStateProv(parts[2] || '');
+        setZipCode(parts[3] || '');
+      } else {
+        setStreet(clientAddress);
+        setCity('');
+        setStateProv('');
+        setZipCode('');
+      }
+    } else {
+      setStreet('');
+      setCity('');
+      setStateProv('');
+      setZipCode('');
+    }
+  }, [clientAddress]);
+
   const handleClientSelect = (e) => {
     const val = e.target.value;
     setClientName(val);
@@ -111,9 +150,26 @@ export default function QuoteForm({
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
             <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת' : 'Address'}</label>
-            <input type="text" value={clientAddress} onChange={(e) => setClientAddress(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+        </div>
+
+        {/* שדות כתובת מפורטים הכוללים מיקוד ללקוח בהצעת המחיר */}
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
+            {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'רחוב ומספר' : 'Street Address'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isHebrew ? 'מיקוד (ZIP)' : 'ZIP / Postal'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
+            </div>
           </div>
         </div>
 
@@ -168,7 +224,6 @@ export default function QuoteForm({
             </div>
         </div>
 
-        {/* כותרות עמודות פריטי ההצעה */}
         <div style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '4px', padding: '0 6px', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b' }}>
           <span>{t.description}</span>
           <span>{t.quantity}</span>
