@@ -38,14 +38,22 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
-// פונקציית עזר חכמה לזיהוי מטבע מיידי לפי הדפדפן והאזור
+// פונקציית זיהוי מטבע מדויקת המותאמת גם ל-DevTools Sensors (Timezone)
 function getDetectedCurrency() {
   try {
     if (typeof window !== 'undefined') {
-      const userLang = (navigator.language || '').toLowerCase();
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      if (userLang.includes('en-gb') || timeZone.includes('London')) return 'GBP';
-      if (userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it') || timeZone.includes('Europe')) return 'EUR';
+      const userLang = (navigator.language || '').toLowerCase();
+      
+      if (timeZone.includes('London') || userLang.includes('en-gb')) {
+        return 'GBP';
+      }
+      if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it')) {
+        return 'EUR';
+      }
+      if (timeZone.includes('Australia')) {
+        return 'AUD';
+      }
     }
   } catch (e) {}
   return 'USD';
@@ -120,7 +128,7 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  // אתחול מטבע מיידי למניעת ריצוד
+  // אתחול מיידי מבוסס על הזיהוי החדש והמדויק
   const [currency, setCurrency] = useState(() => getDetectedCurrency());
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
@@ -428,7 +436,7 @@ export default function Dashboard() {
     else setServices(data || []);
   }
 
-  async function fetchExpenses(userId) {
+  async function fetchExpenses(userId)  {
     const { data, error } = await supabase
       .from('expenses')
       .select('*')
@@ -509,7 +517,7 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // סינכרון חכם: לקיחת מטבע מזוהה מעודכן אם במסד היה שמור USD גנרי
+      // התאמה חכמה: אם במסד הנתונים היה שמור USD ישן אבל הדפדפן מזהה אזור אחר (כמו פאונד או אירו), נעדכן בהתאם לזיהוי המקומי
       const detected = getDetectedCurrency();
       let userCurr = countryVal === 'Local' ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : detected);
       
