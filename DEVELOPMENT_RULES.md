@@ -30,6 +30,12 @@ Please always remember and strictly apply the following ironclad rules in the Pr
 7. **Project File Map & Technical Glossary:**
    * `src/App.jsx` - Main router, initial language detection, and global modals (recovery/auth state).
    * `src/pages/Dashboard.jsx` - Central business management orchestrator (state management, Supabase queries, cached region).
+   * `src/pages/LandingGlobal.jsx` - International landing page (strictly English, foreign currencies).
+   * `src/pages/LandingLocal.jsx` - Local Israeli landing page (strictly Hebrew, ILS currency, 18% VAT).
+   * `src/pages/PublicQuote.jsx` - Public quote view, digital client approval, and signature screen.
+   * `src/pages/Contact.jsx` - Contact page component.
+   * `src/pages/Privacy.jsx` - Privacy policy page component.
+   * `src/pages/Terms.jsx` - Terms of service page component.
    * `src/components/ClientsTab.jsx` - CRM and clients management tab component.
    * `src/components/FinancesTab.jsx` - Finances, expenses management, and Recharts reports tab component.
    * `src/components/QuotesTab.jsx` - Central quotes history table and action dropdowns component with modern SVG icons.
@@ -41,11 +47,8 @@ Please always remember and strictly apply the following ironclad rules in the Pr
    * `src/components/RegionConfirmModal.jsx` - Region/country change confirmation modal.
    * `src/components/UserDetailsModal.jsx` - Full user details review modal for super admins.
    * `src/components/EmailConfirmModal.jsx` - Quote email dispatch confirmation modal.
-   * `src/pages/LandingGlobal.jsx` - International landing page (strictly English, foreign currencies).
-   * `src/pages/LandingLocal.jsx` - Local Israeli landing page (strictly Hebrew, ILS currency, 18% VAT).
-   * `src/pages/PublicQuote.jsx` - Public quote view, digital client approval, and signature screen.
    * `src/components/ProFlowLogo.jsx` - Responsive logo component with directional support (RTL/LTR).
-   * `src/components/PublicQuoteHeader.jsx` - Business header component for public quote views.
-   * `src/components/AccessibilityModal.jsx` - Accessibility controls modal.
-   * `src/AIChatWidget.jsx` - AI assistant widget for user support.
-   * `src/supabase.js` - Supabase client configuration and cloud connection.
+  <u>* `src/components/PublicQuoteHeader.jsx` - Business header component for public quote views.</u>
+  <u>* `src/components/AccessibilityModal.jsx` - Accessibility controls modal.</u>
+  <u>* `src/AIChatWidget.jsx` - AI assistant widget for user support.</u>
+  <u>* `src/supabase.js` - Supabase client configuration and cloud connection.</u>
