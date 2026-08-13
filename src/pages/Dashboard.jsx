@@ -992,13 +992,22 @@ export default function Dashboard() {
   };
 
   const executeEmailSend = async (quote) => {
+    const clientEmailVal = quote.clients?.email || quote.client_email || '';
+    
+    // בדיקת תקינות מקיפה לכל סיומות האימייל הקיימות בעולם
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailEmailValidation(clientEmailVal)) {
+      setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
+      setStatusMsg({ text: isHebrew ? '❌ כתובת האימייל של הלקוח אינה תקינה!' : '❌ Invalid client email address!', type: 'error' });
+      return;
+    }
+
     setStatusMsg({ text: 'Sending email via cloud...', type: 'success' });
 
     try {
       const quoteSym = getCurrencySymbol(quote.currency);
       const quoteLink = `${window.location.origin}/public-quote/${quote.id}`;
       
-      const clientEmailVal = quote.clients?.email || quote.client_email || '';
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';
 
       const payload = {
@@ -1030,6 +1039,15 @@ export default function Dashboard() {
       setStatusMsg({ text: '❌ שליחת האימייל נכשלה: ' + (err.message || 'Unknown server error') + '. אנא שלח שוב.', type: 'error' });
     }
   };
+
+  // פונקציית עזר לבדיקת תקינות אימייל המכסה את כל הסיומות בעולם
+  function emailEmailValidation(email) {
+    if (!email || typeof email !== 'string') return false;
+    const trimmed = email.trim();
+    // בדיקת מבנה: משהו @ משהו . סיומת באורך 2 תווים לפחות
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(trimmed);
+  }
 
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
@@ -2543,7 +2561,7 @@ export default function Dashboard() {
                               </div>
                             </td>
                             <td style={{ padding: '10px 6px', fontSize: '0.75rem', color: '#475569', direction: 'ltr', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span title={isRecentActive ? 'Active recently' : 'Inactive'} style={{ fontSize: '0.6rem' }}>
+                              <span title={isRecentActive ? 'Active recently' : 'Inactive'} style={{ fontSize: '0.60rem' }}>
                                 <span style={{display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444'}}></span>
                               </span>
                               <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
