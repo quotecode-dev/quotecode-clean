@@ -658,6 +658,29 @@ export default function Dashboard() {
     setAdminActionModal({ isOpen: false, type: null, account: null });
   }
 
+  // פונקציית עזר לבדיקת תקינות אימייל מחמירה נגד ספאם והקלדות שגויות
+  function emailEmailValidation(email) {
+    if (!email || typeof email !== 'string') return false;
+    const trimmed = email.trim();
+    
+    // 1. בדיקת מבנה בסיסי תקין
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!re.test(trimmed)) return false;
+
+    // 2. חילוץ הדומיין והסיומת
+    const domainPart = trimmed.split('@')[1];
+    const tld = domainPart.split('.').pop().toLowerCase();
+
+    // 3. חסימת סיומות פיקטיביות וטסטים נפוצים
+    const fakeTlds = ['pww', 'uuu', 'test', 'fake', 'example', 'invalid', 'localhost'];
+    if (fakeTlds.includes(tld)) return false;
+
+    // 4. אנטי ספאם/מקלדת: חסימת דומיינים עם 3 אותיות זהות ברצף (לדוגמה: uuususu, aaax)
+    if (/([a-z])\1{2,}/i.test(domainPart)) return false;
+
+    return true;
+  }
+
   async function handleSaveSettings(e) {
     e.preventDefault();
     if (!session?.user?.id) return;
@@ -694,6 +717,11 @@ export default function Dashboard() {
   }
 
   async function handleSaveUpdatedClient(updatedClient) {
+    if (updatedClient.email && !emailEmailValidation(updatedClient.email)) {
+      setStatusMsg({ text: isHebrew ? '❌ אימייל לא חוקי! אי אפשר לשמור לקוח עם אימייל שגוי.' : '❌ Invalid email address!', type: 'error' });
+      return;
+    }
+
     const { error } = await supabase
       .from('clients')
       .update({
@@ -838,6 +866,11 @@ export default function Dashboard() {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
+
+    if (!emailEmailValidation(emailInput)) {
+      setAuthError(isHebrew ? 'כתובת האימייל אינה תקינה או פיקטיבית.' : 'Invalid email address.');
+      return;
+    }
 
     if (isSignUp) {
       const { data: existingBiz, error: checkErr } = await supabase
@@ -994,11 +1027,9 @@ export default function Dashboard() {
   const executeEmailSend = async (quote) => {
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
-    // בדיקת תקינות מקיפה לכל סיומות האימייל
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: isHebrew ? '❌ כתובת האימייל של הלקוח אינה תקינה!' : '❌ Invalid client email address!', type: 'error' });
+      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או פיקטיבית!' : '❌ Invalid client email address!', type: 'error' });
       return;
     }
 
@@ -1032,29 +1063,19 @@ export default function Dashboard() {
         throw error;
       }
       
-      // אם Edge Function החזירה שגיאה בתוך אובייקט התשובה
+      // וידוא שהשרת באמת הצליח לשלוח ללא חריגות
       if (data && data.error) {
         throw new Error(data.error);
       }
 
-      // אם הגענו לכאן - השליחה הצליחה בוודאות בשרת
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       console.error("Email send error:", err);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: ' + (err.message || 'כתובת דוא"ל שגויה או דומיין לא קיים.'), type: 'error' });
+      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: הדומיין אינו חוקי, כתובת לא קיימת או שנדחתה ע"י השרת.', type: 'error' });
     }
   };
-
-  // פונקציית עזר לבדיקת תקינות אימייל המכסה את כל הסיומות בעולם
-  function emailEmailValidation(email) {
-    if (!email || typeof email !== 'string') return false;
-    const trimmed = email.trim();
-    // בדיקת מבנה: משהו @ משהו . סיומת באורך 2 תווים לפחות
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return re.test(trimmed);
-  }
 
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
@@ -1308,6 +1329,11 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
 
+    if (clientEmail && !emailEmailValidation(clientEmail)) {
+      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה תקינה ולכן אי אפשר להפיק הצעה.' : '❌ Invalid email address!', type: 'error' });
+      return;
+    }
+
     try {
       if (editingQuoteId) {
         const originalQuote = quotes.find(q => q.id === editingQuoteId);
@@ -1530,7 +1556,7 @@ export default function Dashboard() {
 
   if (isInitializing) {
     return (
-      <div style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f8fafc' }}>
+      <div style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f8fafc' }}>
         <div style={{ textAlign: 'center' }}>
           <ProFlowLogo size={48} rtl={false} />
           <div style={{ marginTop: '20px', fontSize: '1rem', color: '#94a3b8', fontWeight: 'bold' }}>טוען את המערכת...</div>
@@ -1541,13 +1567,13 @@ export default function Dashboard() {
 
   if (isPasswordRecoveryMode) {
     return (
-      <div style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir="rtl">
+      <div style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir="rtl">
         <div style={{ background: 'white', padding: '30px', borderRadius: '14px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px', textAlign: 'center' }}>
-          <h2 style={{ color: '#0f172a', marginBottom: '12px', fontWeight: '800' }}>הגדרת סיסמה חדשה</h2>
+          <h2 style={{ color: '#0f172a', marginBottom: '12px', fontWeight: '700' }}>הגדרת סיסמה חדשה</h2>
           <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '18px' }}>הזן את הסיסמה החדשה לחשבון שלך</p>
           
           {recoveryUpdateMsg && (
-            <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: recoveryUpdateMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'bold' }}>
+            <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: recoveryUpdateMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'normal' }}>
               {recoveryUpdateMsg}
             </div>
           )}
@@ -1561,7 +1587,7 @@ export default function Dashboard() {
               required 
               style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: 'rtl', textAlign: 'right' }} 
             />
-            <button type="submit" disabled={recoveryUpdateLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}>
+            <button type="submit" disabled={recoveryUpdateLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.9rem', cursor: 'pointer' }}>
               {recoveryUpdateLoading ? 'מעדכן...' : 'עדכן סיסמה ושמור'}
             </button>
           </form>
@@ -1572,7 +1598,7 @@ export default function Dashboard() {
 
   if (!session) {
     return (
-      <div dir="rtl" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+      <div dir="rtl" style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
         <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', width: '100%', maxWidth: '380px', textAlign: 'right' }}>
           
           <div style={{ textAlign: 'center', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1592,25 +1618,25 @@ export default function Dashboard() {
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
+              <span style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', fontFamily: '"Assistant", "Rubik", "Segoe UI", sans-serif' }}>
                 <span style={{ color: '#0f172a' }}>Pro</span>
                 <span style={{ color: '#4f46e5', marginRight: '2px' }}>Flow</span>
               </span>
             </div>
             
             {isSignUp ? (
-              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.82rem', fontWeight: '500', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.4' }}>
+              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 'normal', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.5' }}>
                 כדי להירשם ולקבל את תקופת הניסיון החינמית למשך 14 יום במסלול PRO, אנא הזן את האימייל והסיסמה שלך.
               </div>
             ) : (
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px', fontWeight: '400' }}>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '10px', fontWeight: 'normal' }}>
                 התחבר למערכת הניהול שלך
               </p>
             )}
           </div>
 
-          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right', fontWeight: '500' }}>{authSuccess}</div>}
-          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right', fontWeight: '500' }}>{authError}</div>}
+          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right', fontWeight: 'normal' }}>{authSuccess}</div>}
+          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right', fontWeight: 'normal' }}>{authError}</div>}
 
           <form onSubmit={handleAuth} autoComplete="off" data-lpignore="true">
             <input type="text" name="fake_user_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
@@ -1624,7 +1650,7 @@ export default function Dashboard() {
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>סיסמה</label>
               <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#eff6ff', fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
             </div>
-            <button type="submit" style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
+            <button type="submit" style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
               {isSignUp ? 'הרשמה למערכת' : 'התחבר'}
             </button>
           </form>
@@ -1633,7 +1659,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', fontWeight: '600', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', fontWeight: '500', padding: 0 }}
             >
               {isSignUp ? 'כבר יש לך חשבון? התחבר' : 'אין לך חשבון? הירשם עכשיו!'}
             </button>
@@ -1653,11 +1679,11 @@ export default function Dashboard() {
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir="rtl">
             <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: 'right', position: 'relative' }}>
               <button onClick={() => setForgotOpen(false)} style={{ position: 'absolute', top: '14px', left: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
-              <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>שחזור סיסמה</h3>
+              <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '700' }}>שחזור סיסמה</h3>
               <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px' }}>הזן את כתובת האימייל שלך לקבלת קישור איפוס</p>
               
               {resetMsg && (
-                <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: resetMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'bold' }}>
+                <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: resetMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'normal' }}>
                   {resetMsg}
                 </div>
               )}
@@ -1671,7 +1697,7 @@ export default function Dashboard() {
                   required 
                   style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', direction: 'ltr', textAlign: 'left', fontSize: '0.9rem' }} 
                 />
-                <button type="submit" disabled={resetLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}>
+                <button type="submit" disabled={resetLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.9rem', cursor: 'pointer' }}>
                   {resetLoading ? 'שולח...' : 'שלח קישור לשחזור'}
                 </button>
               </form>
@@ -1686,7 +1712,7 @@ export default function Dashboard() {
   const currentHotClientName = hotQuotesList.length > 0 ? (hotQuotesList[hotQuoteIndex % hotQuotesList.length]?.clients?.company_name || 'Client') : '';
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       <style>{`
         @keyframes popupBounce {
@@ -1732,13 +1758,13 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 onClick={() => setAdminActionModal({ isOpen: false, type: null, account: null })}
-                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '6px', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 {isHebrew ? 'ביטול' : 'Cancel'}
               </button>
               <button 
                 onClick={executeAdminAction}
-                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 {isHebrew ? 'אישור פעולה' : 'Confirm Action'}
               </button>
@@ -1826,7 +1852,7 @@ export default function Dashboard() {
               {!isPro && !isSuperAdmin && (
                 <button
                   onClick={() => setShowPricingModal(true)}
-                  style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '500', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                   <span>Upgrade Plan</span>
@@ -1847,14 +1873,14 @@ export default function Dashboard() {
           </div>
 
           {statusMsg.text && statusMsg.text !== 'System connected to Supabase.' && (
-            <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2', color: statusMsg.type === 'success' ? '#166534' : '#991b1b', fontWeight: 'bold', textAlign: 'center', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2', color: statusMsg.type === 'success' ? '#166534' : '#991b1b', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {statusMsg.type !== 'success' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
               <span>{statusMsg.text}</span>
             </div>
           )}
 
           {isExpiringSoon && (
-            <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: 'bold', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </span>
@@ -1863,7 +1889,7 @@ export default function Dashboard() {
           )}
 
           {trialEndsAt && !isTrialExpired && !isSuperAdmin && !isExpiringSoon && (
-            <div style={{ background: '#eff6ff', border: '1px solid #3b82f6', color: '#1d4ed8', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '500', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.8rem' }}>
+            <div style={{ background: '#eff6ff', border: '1px solid #3b82f6', color: '#1d4ed8', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
                 Active Trial Period (Full PRO Access)
@@ -1873,7 +1899,7 @@ export default function Dashboard() {
           )}
 
           {isTrialExpired && !isSuperAdmin && (
-            <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontWeight: '500', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontWeight: 'normal', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>Your trial has expired and you have been moved to the FREE tier. Please upgrade.</span>
             </div>
@@ -1971,7 +1997,7 @@ export default function Dashboard() {
 
               {hotQuotesList.length > 0 && (
                 <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '10px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
                     </span>
@@ -2015,7 +2041,7 @@ export default function Dashboard() {
               />
 
               <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-                <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0, marginBottom: '12px' }}>{t.servicesCatalog}</h2>
+                <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '700', margin: 0, marginBottom: '12px' }}>{t.servicesCatalog}</h2>
                 
                 <form onSubmit={handleAddService} style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexDirection: 'row', flexWrap: 'wrap' }}>
                   <input 
@@ -2191,7 +2217,7 @@ export default function Dashboard() {
 
           {activeTab === 'settings' && (
             <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-              <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', marginTop: 0, marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '700', marginTop: 0, marginBottom: '16px' }}>
                 {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
               </h2>
               <form onSubmit={handleSaveSettings}>
@@ -2264,7 +2290,7 @@ export default function Dashboard() {
               </form>
 
               <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: '800', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h3 style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
                 </h3>
@@ -2611,7 +2637,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </span>
           {t.settingsNav}
         </button>
