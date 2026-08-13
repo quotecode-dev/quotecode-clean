@@ -89,7 +89,7 @@ export default function QuoteForm({
 
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
-      <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} />
+      <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <div>
@@ -153,7 +153,6 @@ export default function QuoteForm({
           </div>
         </div>
 
-        {/* שדות כתובת מפורטים הכוללים מיקוד ללקוח בהצעת המחיר */}
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
             {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
@@ -217,12 +216,14 @@ export default function QuoteForm({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: '800', margin: 0 }}>{t.quoteItems}</h3>
             <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap' }}>
+              {/* כפתור אייקון מחשבון נקי ויוקרתי עם Tooltip */}
               <button 
                 type="button" 
                 onClick={() => setIsCalcOpen(true)} 
-                style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.75rem', color: '#4f46e5', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title={isHebrew ? 'מחשבון' : 'Calculator'}
+                style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}
               >
-                {isHebrew ? 'מחשבון' : 'Calc'}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
               </button>
               <select onChange={handleAddFromCatalog} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.75rem' }}>
                 <option value="">{t.quickAdd}</option>

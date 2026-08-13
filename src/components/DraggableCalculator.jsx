@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
+export default function DraggableCalculator({ isOpen, onClose, isHebrew, currency }) {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -15,8 +15,18 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
   const [rates, setRates] = useState({ USD: 3.75, EUR: 4.05, GBP: 4.80 });
   const [lastUpdated, setLastUpdated] = useState('');
   const [calcAmount, setCalcAmount] = useState('100');
-  const [fromCurr, setFromCurr] = useState('USD');
+  
+  // חוק ברזל: אם העסק בינלאומי, ברירת המחדל תהיה מטבע העסק ולא ILS
+  const defaultCurr = (currency && currency !== 'ILS') ? currency : 'USD';
+  const [fromCurr, setFromCurr] = useState(defaultCurr);
   const [toCurr, setToCurr] = useState('ILS');
+
+  // עדכון מטבע התחלתי כאשר ה-currency משתנה
+  useEffect(() => {
+    if (currency && currency !== 'ILS') {
+      setFromCurr(currency);
+    }
+  }, [currency]);
 
   // משיכת שערי מטבע אמיתיים ועדכון כל 10 דקות
   useEffect(() => {
@@ -34,14 +44,13 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
           setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (e) {
-        // גיבוי במקרה של שגיאת רשת
         setRates({ USD: 3.75, EUR: 4.05, GBP: 4.80 });
         setLastUpdated('Live (Cached)');
       }
     };
 
     fetchRates();
-    const interval = setInterval(fetchRates, 10 * 60 * 1000); // כל 10 דקות בדיוק
+    const interval = setInterval(fetchRates, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -85,7 +94,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
 
   if (!isOpen) return null;
 
-  // לוגיקת מחשבון מתקדמת
   const inputDigit = (digit) => {
     if (waitingForOperand) {
       setDisplay(String(digit));
@@ -155,7 +163,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
     setWaitingForOperand(true);
   };
 
-  // חישוב המרת מטבעות חיה
   const getRateValue = (curr) => {
     if (curr === 'ILS') return 1;
     return rates[curr] || 1;
@@ -184,7 +191,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
         direction: 'ltr'
       }}
     >
-      {/* כותרת נגררת */}
       <div
         onMouseDown={handleMouseDown}
         style={{
@@ -213,10 +219,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
         </button>
       </div>
 
-      {/* גוף המחשבון */}
       <div style={{ padding: '12px' }}>
-        
-        {/* שערי מטבע מעודכנים אוטומטית */}
         <div style={{ background: 'white', borderRadius: '10px', padding: '10px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>
@@ -240,7 +243,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
           </div>
         </div>
 
-        {/* מחשבון המרה קטן */}
         <div style={{ background: 'white', borderRadius: '10px', padding: '10px', border: '1px solid #e2e8f0', marginBottom: '10px', display: 'flex', gap: '6px', alignItems: 'center' }}>
           <input 
             type="number" 
@@ -266,12 +268,10 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew }) {
           </select>
         </div>
 
-        {/* צג ראשי למחשבון */}
         <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', textAlign: 'right', fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', border: '1px solid #cbd5e1', marginBottom: '8px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
           {display}
         </div>
 
-        {/* מקשי מחשבון מלאים */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px' }}>
           <button onClick={clearAll} style={btnStyle('#ef4444', '#fee2e2')}>C</button>
           <button onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))} style={btnStyle('#10b981', '#d1fae5')}>√</button>
