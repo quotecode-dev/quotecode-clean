@@ -60,20 +60,28 @@ export const getRegionTaxRate = (country) => {
   return effectiveCountry !== REGION_RULES.INTERNATIONAL.countryCode ? REGION_RULES.LOCAL.vatRate : REGION_RULES.INTERNATIONAL.vatRate;
 };
 
-// פונקציות חדשות לפירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
+// פונקציות פירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
 export const formatDateLocal = (dateString, isHebrew) => {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
+    // למשתמשי עברית - פורמט ישראלי: DD/MM/YYYY
     if (isHebrew) {
-      // פורמט ישראלי תקני: DD/MM/YYYY
       return date.toLocaleDateString('he-IL');
-    } else {
-      // פורמט אמריקאי בינלאומי: MM/DD/YYYY
+    }
+
+    // בדיקת הגדרת שפת הדפדפן של המשתמש
+    const userLang = typeof window !== 'undefined' ? (navigator.language || '').toLowerCase() : '';
+
+    // עבור משתמשים בארה"ב בלבד - פורמט: MM/DD/YYYY
+    if (userLang.startsWith('en-us')) {
       return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     }
+
+    // עבור שאר העולם (בריטניה, אירופה וכו') - פורמט: DD/MM/YYYY
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch (e) {
     return dateString;
   }
