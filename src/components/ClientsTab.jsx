@@ -1,8 +1,8 @@
 import React from 'react';
 
 export default function ClientsTab({
-  filteredClients,
-  clientSearchTerm,
+  filteredClients = [],
+  clientSearchTerm = '',
   setClientSearchTerm,
   clientSortField,
   clientSortDirection,
@@ -12,16 +12,18 @@ export default function ClientsTab({
   isHebrew,
   t
 }) {
+  const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
+
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
-        <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h2 style={{ fontSize: '1.0rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           {isHebrew ? 'ניהול ספר לקוחות (CRM)' : 'Clients Management'}
         </h2>
       </div>
       <p style={{ color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>
-        {isHebrew ? `סה"כ ${filteredClients.length} לקוחות רשומים במערכת` : `${filteredClients.length} total clients registered in the system`}
+        {isHebrew ? `סה"כ ${safeClients.length} לקוחות רשומים במערכת` : `${safeClients.length} total clients registered in the system`}
       </p>
 
       <div style={{ marginBottom: '12px' }}>
@@ -63,14 +65,14 @@ export default function ClientsTab({
             </tr>
           </thead>
           <tbody>
-            {filteredClients.length === 0 ? (
+            {safeClients.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
                   {isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.'}
                 </td>
               </tr>
             ) : (
-              filteredClients.map((client) => (
+              safeClients.map((client) => (
                 <tr key={client.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
                   <td style={{ padding: '8px 6px', fontWeight: '500', color: '#1e293b' }}>{client.company_name}</td>
                   <td style={{ padding: '8px 6px', color: '#475569' }}><span dir="ltr">{client.tax_id || '-'}</span></td>

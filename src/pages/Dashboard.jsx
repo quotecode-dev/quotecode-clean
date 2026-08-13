@@ -103,7 +103,6 @@ export default function Dashboard() {
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
 
-  // רענון חי אוטומטי כל 10 דקות עבור חיווי ה-Last Sign In
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveTick(prev => prev + 1);
@@ -351,7 +350,7 @@ export default function Dashboard() {
     delete: isHebrew ? 'מחק' : 'Delete',
     clientsManagement: isHebrew ? 'ניהול לקוחות' : 'Clients Management',
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
-    settingsNav: isHebrew ? 'הגדרות עסק' : 'Business Settings',
+    settingsNav: isHebrew ? 'הגדרות עסק' : (isHebrew ? 'הגדרות עסק' : 'Business Settings'),
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
     financesNav: isHebrew ? 'פיננסים' : 'Finances',
     usersAdminNav: isHebrew ? 'ניהול משתמשים' : 'Users Admin',
@@ -762,6 +761,17 @@ export default function Dashboard() {
     } else {
       setStatusMsg({ text: 'Quote deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchQuotes(session.user.id);
+    }
+  }
+
+  async function handleDeleteClient(clientId) {
+    if (!window.confirm(isHebrew ? 'האם למחוק לקוח זה לצמיתות?' : 'Delete this client permanently?')) return;
+    const { error } = await supabase.from('clients').delete().eq('id', clientId);
+    if (error) {
+      setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
+    } else {
+      setStatusMsg({ text: 'Client deleted successfully!', type: 'success' });
+      if (session?.user?.id) fetchClients(session.user.id);
     }
   }
 
@@ -1434,7 +1444,6 @@ export default function Dashboard() {
     const isOnlineB = b.last_sign_in ? (nowMs - new Date(b.last_sign_in).getTime() < 10 * 60 * 1000) : false;
 
     if (sortField === 'default_online') {
-      // ברירת מחדל: אונליין קודם, ואז לפי זמן כניסה אחרון (מהחדש לישן)
       if (isOnlineA && !isOnlineB) return -1;
       if (!isOnlineA && isOnlineB) return 1;
 
@@ -2140,30 +2149,30 @@ export default function Dashboard() {
           {activeTab === 'settings' && (
             <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
               <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', marginTop: 0, marginBottom: '16px' }}>
-                Business Settings
+                {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
               </h2>
               <form onSubmit={handleSaveSettings}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Business Name</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'שם העסק' : 'Business Name'}</label>
                     <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Tax ID / Lic No</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
                     <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Business Email</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
                     <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Business Phone</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
                     <input type="text" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="050-0000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
-                      Business Currency
+                      {isHebrew ? 'מטבע העסק' : 'Business Currency'}
                     </label>
                     <select 
                       value={currency} 
@@ -2186,18 +2195,18 @@ export default function Dashboard() {
                   </div>
 
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Business Address</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת העסק' : 'Business Address'}</label>
                     <input type="text" value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} placeholder="e.g. Main St 10, City" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Logo Image URL {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת תמונת לוגו (URL)' : 'Logo Image URL'} {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}</label>
                   <input type="url" value={bizLogoUrl} onChange={(e) => setBizLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" disabled={bizPlan !== 'pro'} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: bizPlan !== 'pro' ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem' }} />
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>Default Terms & Conditions for New Quotes</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
                   <textarea 
                     value={defaultTerms} 
                     onChange={(e) => setDefaultTerms(e.target.value)} 
@@ -2207,7 +2216,7 @@ export default function Dashboard() {
                 </div>
 
                 <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-                  Save Business Settings
+                  {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
                 </button>
               </form>
 
@@ -2283,7 +2292,6 @@ export default function Dashboard() {
           {isSuperAdmin && activeTab === 'admin_clients' && (
             <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }}>
               
-              {/* סטטיסטיקת משתמשים בזמן אמת - ממורכזת */}
               {(() => {
                 const totalU = allAccounts.length;
                 const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
@@ -2292,13 +2300,13 @@ export default function Dashboard() {
                 const activeRecent = allAccounts.filter(a => {
                   if (!a.last_sign_in) return false;
                   const diff = Date.now() - new Date(a.last_sign_in).getTime();
-                  return diff < 10 * 60 * 1000; // 10 דקות אחרונות
+                  return diff < 10 * 60 * 1000;
                 }).length;
 
                 const newUsersList = allAccounts.filter(a => {
                   if (!a.created_at) return false;
                   const diff = Date.now() - new Date(a.created_at).getTime();
-                  return diff < 24 * 60 * 60 * 1000; // 24 שעות אחרונות
+                  return diff < 24 * 60 * 60 * 1000;
                 });
 
                 return (
@@ -2404,7 +2412,6 @@ export default function Dashboard() {
                         const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
                         const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
 
-                        // 10 דקות אחרונות (מתעדכן אוטומטית לפי liveTick)
                         let isRecentActive = false;
                         if (acc.last_sign_in) {
                           const diffMs = Date.now() - new Date(acc.last_sign_in).getTime();
@@ -2554,9 +2561,14 @@ export default function Dashboard() {
           </span>
           {t.clientsNav}
         </button>
-        <button onClick={() => setActiveTab('settings')}>הגדרות</button>
+        <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          {t.settingsNav}
+        </button>
         <button onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'finances' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ isHebrew: '1.2rem', marginBottom: '1px' }}>
+          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </span>
           {t.financesNav}
