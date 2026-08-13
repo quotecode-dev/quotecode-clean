@@ -13,6 +13,7 @@ import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
 import RegionConfirmModal from '../components/RegionConfirmModal';
 import UserDetailsModal from '../components/UserDetailsModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
+import SignOutModal from '../components/SignOutModal';
 import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
@@ -100,6 +101,7 @@ export default function Dashboard() {
 
   const [editingClient, setEditingClient] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [showSignOutModal, setShowSignOutModal] = useState(false); // סטייט לפתיחת מודל ההתנתקות
   
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editServiceName, setEditServiceName] = useState('');
@@ -664,12 +666,9 @@ export default function Dashboard() {
     setAdminActionModal({ isOpen: false, type: null, account: null });
   }
 
-  // פונקציית בדיקת תקינות אימייל מחמירה נגד ספאם והקלדות שגויות (מעודכנת)
   function emailEmailValidation(email) {
     if (!email || typeof email !== 'string') return false;
     const trimmed = email.trim();
-    
-    // בדיקה מחמירה מול רשימת סיומות חוקיות נפוצות בלבד
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
     return re.test(trimmed);
   }
@@ -1020,7 +1019,6 @@ export default function Dashboard() {
   const executeEmailSend = async (quote) => {
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
-    // חסימה מוחלטת של שליחת אימייל אם הוא שגוי (הדלקת נורית אדומה והצגת שגיאה)
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
       setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה! אנא ערוך את פרטי הלקוח.' : '❌ Invalid client email address!', type: 'error' });
@@ -1612,6 +1610,16 @@ export default function Dashboard() {
         userId={session?.user?.id}
         onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
       />
+
+      <SignOutModal 
+        isOpen={showSignOutModal} 
+        onClose={() => setShowSignOutModal(false)} 
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          handleSignOut();
+        }}
+        isHebrew={isHebrew}
+      />
       
       {adminActionModal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
@@ -1737,7 +1745,7 @@ export default function Dashboard() {
                 </span>
               )}
               <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{session.user.email}</span>
-              <button onClick={handleSignOut} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>Sign Out</button>
+              <button onClick={() => setShowSignOutModal(true)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>Sign Out</button>
             </div>
           </div>
 
