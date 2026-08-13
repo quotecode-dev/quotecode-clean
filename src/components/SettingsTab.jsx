@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export default function SettingsTab({
   t,
@@ -26,6 +26,22 @@ export default function SettingsTab({
   trialDaysLeft,
   setShowPricingModal
 }) {
+
+  // זיהוי מטבע אוטומטי לפי מיקום/אזור אם טרם הוגדר מטבע בינלאומי
+  useEffect(() => {
+    if (!isLocalIsraeliBusiness && (!currency || currency === 'USD')) {
+      try {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const userLang = navigator.language || '';
+        if (timeZone.includes('London') || userLang.includes('en-GB')) {
+          setCurrency('GBP');
+        } else if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr')) {
+          setCurrency('EUR');
+        }
+      } catch (e) {}
+    }
+  }, [isLocalIsraeliBusiness, currency, setCurrency]);
+
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
       <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '700', marginTop: 0, marginBottom: '16px' }}>
