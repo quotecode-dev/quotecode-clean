@@ -26,17 +26,18 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   if (!isOpen || !client) return null;
 
   const validateEmail = (emailVal) => {
-    // בדיקה מחמירה: חייב להכיל שטרודל, נקודה, ובלי שגיאות הקלדה בסיומת כמו comj / comuuj
+    if (!emailVal || typeof emailVal !== 'string') return false;
     const cleanEmail = emailVal.trim();
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz)$/i;
+    // רשימה סגורה ומחמירה של סיומות - לא מאפשר שגיאות הקלדה כמו comuuj או comj
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
     return re.test(cleanEmail);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // חסימה מוחלטת אם האימייל לא ריק והוא לא עובר את הסינון המחמיר
-    if (email && !validateEmail(email)) {
+    // חסימה מוחלטת אם האימייל לא עומד בתבנית המדויקת
+    if (email && email.trim() !== '' && !validateEmail(email)) {
       setErrorMsg(isHebrew ? 'שגיאה: כתובת אימייל אינה תקינה (בדוק סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
     }
@@ -78,7 +79,6 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
-              {/* שונה מ-type="email" ל-type="text" כדי למנוע מהדפדפן לעקוף את החסימה שלנו */}
               <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>

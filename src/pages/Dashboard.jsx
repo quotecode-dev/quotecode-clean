@@ -18,7 +18,7 @@ import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
 import QuotesTab from '../components/QuotesTab';
 
-// ייבוא הקומפוננטות החדשות שיצרנו הרגע:
+// ייבוא הקומפוננטות החדשות:
 import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
@@ -664,27 +664,14 @@ export default function Dashboard() {
     setAdminActionModal({ isOpen: false, type: null, account: null });
   }
 
-  // פונקציית עזר לבדיקת תקינות אימייל מחמירה נגד ספאם והקלדות שגויות
+  // פונקציית בדיקת תקינות אימייל מחמירה נגד ספאם והקלדות שגויות (מעודכנת)
   function emailEmailValidation(email) {
     if (!email || typeof email !== 'string') return false;
     const trimmed = email.trim();
     
-    // 1. בדיקת מבנה בסיסי תקין
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!re.test(trimmed)) return false;
-
-    // 2. חילוץ הדומיין והסיומת
-    const domainPart = trimmed.split('@')[1];
-    const tld = domainPart.split('.').pop().toLowerCase();
-
-    // 3. חסימת סיומות פיקטיביות וטסטים נפוצים
-    const fakeTlds = ['pww', 'uuu', 'test', 'fake', 'example', 'invalid', 'localhost'];
-    if (fakeTlds.includes(tld)) return false;
-
-    // 4. אנטי ספאם/מקלדת: חסימת דומיינים עם 3 אותיות זהות ברצף (לדוגמה: uuususu, aaax)
-    if (/([a-z])\1{2,}/i.test(domainPart)) return false;
-
-    return true;
+    // בדיקה מחמירה מול רשימת סיומות חוקיות נפוצות בלבד
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
+    return re.test(trimmed);
   }
 
   async function handleSaveSettings(e) {
@@ -723,7 +710,7 @@ export default function Dashboard() {
   }
 
   async function handleSaveUpdatedClient(updatedClient) {
-    if (updatedClient.email && !emailEmailValidation(updatedClient.email)) {
+    if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
       setStatusMsg({ text: isHebrew ? '❌ אימייל לא חוקי! אי אפשר לשמור לקוח עם אימייל שגוי.' : '❌ Invalid email address!', type: 'error' });
       return;
     }
@@ -732,7 +719,7 @@ export default function Dashboard() {
       .from('clients')
       .update({
         company_name: updatedClient.company_name,
-        email: updatedClient.email,
+        email: updatedClient.email ? updatedClient.email.trim() : '',
         phone: updatedClient.phone,
         client_type: updatedClient.client_type,
         tax_id: updatedClient.tax_id,
@@ -1033,9 +1020,10 @@ export default function Dashboard() {
   const executeEmailSend = async (quote) => {
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
-    if (!emailEmailValidation(clientEmailVal)) {
+    // חסימה מוחלטת של שליחת אימייל אם הוא שגוי (הדלקת נורית אדומה והצגת שגיאה)
+    if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או פיקטיבית!' : '❌ Invalid client email address!', type: 'error' });
+      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה! אנא ערוך את פרטי הלקוח.' : '❌ Invalid client email address!', type: 'error' });
       return;
     }
 
@@ -1334,8 +1322,8 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    if (clientEmail && !emailEmailValidation(clientEmail)) {
-      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה תקינה ולכן אי אפשר להפיק הצעה.' : '❌ Invalid email address!', type: 'error' });
+    if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
+      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!', type: 'error' });
       return;
     }
 
@@ -1364,7 +1352,7 @@ export default function Dashboard() {
       
       const clientPayload = {
         company_name: clientName,
-        email: clientEmail,
+        email: clientEmail ? clientEmail.trim() : '',
         phone: clientPhone,
         client_type: clientType,
         tax_id: clientTaxId,
@@ -2102,7 +2090,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </span>
           {t.settingsNav}
         </button>
