@@ -59,3 +59,32 @@ export const getRegionTaxRate = (country) => {
   
   return effectiveCountry !== REGION_RULES.INTERNATIONAL.countryCode ? REGION_RULES.LOCAL.vatRate : REGION_RULES.INTERNATIONAL.vatRate;
 };
+
+// פונקציות חדשות לפירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
+export const formatDateLocal = (dateString, isHebrew) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    if (isHebrew) {
+      // פורמט ישראלי תקני: DD/MM/YYYY
+      return date.toLocaleDateString('he-IL');
+    } else {
+      // פורמט אמריקאי בינלאומי: MM/DD/YYYY
+      return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    }
+  } catch (e) {
+    return dateString;
+  }
+};
+
+export const formatNumberLocal = (val, isHebrew) => {
+  const num = Number(val || 0);
+  try {
+    const locale = isHebrew ? 'he-IL' : 'en-US';
+    return num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } catch (e) {
+    return num.toFixed(2);
+  }
+};
