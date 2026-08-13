@@ -107,6 +107,7 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
+  // זיהוי מטבע מיידי למניעת ריצוד ברגע טעינת הקומפוננטה
   const [currency, setCurrency] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -505,7 +506,8 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      const userCurr = countryVal === 'Local' ? 'ILS' : (data.currency || 'USD');
+      // שמירת המטבע הקיים במסד הנתונים, אלא אם הוא חסר ואז נשען על הזיהוי המקומי
+      const userCurr = countryVal === 'Local' ? 'ILS' : (data.currency || currency);
       setCurrency(userCurr);
       setTerms(defTerms);
 
@@ -525,14 +527,7 @@ export default function Dashboard() {
       const detectedCountry = isHebURL ? 'Local' : 'International';
       const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
       
-      let detectedCurr = 'USD';
-      try {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-        const userLang = navigator.language || '';
-        if (timeZone.includes('London') || userLang.includes('en-GB')) detectedCurr = 'GBP';
-        else if (timeZone.includes('Europe')) detectedCurr = 'EUR';
-      } catch (e) {}
-
+      let detectedCurr = currency; // משתמש במטבע שזוהה מיד בסטייט ההתחלתי
       if (isHebrew) detectedCurr = 'ILS';
 
       const defaultPayload = {
