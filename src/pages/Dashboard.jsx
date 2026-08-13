@@ -994,7 +994,7 @@ export default function Dashboard() {
   const executeEmailSend = async (quote) => {
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
-    // בדיקת תקינות מקיפה לכל סיומות האימייל הקיימות בעולם
+    // בדיקת תקינות מקיפה לכל סיומות האימייל
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
@@ -1028,15 +1028,22 @@ export default function Dashboard() {
         body: payload
       });
 
-      if (error) throw error;
-      if (data && data.error) throw new Error(data.error);
+      if (error) {
+        throw error;
+      }
+      
+      // אם Edge Function החזירה שגיאה בתוך אובייקט התשובה
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
 
+      // אם הגענו לכאן - השליחה הצליחה בוודאות בשרת
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       console.error("Email send error:", err);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: ' + (err.message || 'Unknown server error') + '. אנא שלח שוב.', type: 'error' });
+      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: ' + (err.message || 'כתובת דוא"ל שגויה או דומיין לא קיים.'), type: 'error' });
     }
   };
 
@@ -1592,18 +1599,18 @@ export default function Dashboard() {
             </div>
             
             {isSignUp ? (
-              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.82rem', fontWeight: '700', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.4' }}>
+              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.82rem', fontWeight: '500', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.4' }}>
                 כדי להירשם ולקבל את תקופת הניסיון החינמית למשך 14 יום במסלול PRO, אנא הזן את האימייל והסיסמה שלך.
               </div>
             ) : (
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px' }}>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px', fontWeight: '400' }}>
                 התחבר למערכת הניהול שלך
               </p>
             )}
           </div>
 
-          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right' }}>{authSuccess}</div>}
-          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right' }}>{authError}</div>}
+          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right', fontWeight: '500' }}>{authSuccess}</div>}
+          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right', fontWeight: '500' }}>{authError}</div>}
 
           <form onSubmit={handleAuth} autoComplete="off" data-lpignore="true">
             <input type="text" name="fake_user_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
@@ -2604,7 +2611,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </span>
           {t.settingsNav}
         </button>
