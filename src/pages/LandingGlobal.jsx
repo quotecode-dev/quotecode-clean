@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
@@ -7,6 +7,25 @@ export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
+  const [currencySymbol, setCurrencySymbol] = useState('$');
+
+  // זיהוי מטבע דינמי לפי אזור/שפה בכניסה לדף הנחיתה
+  useEffect(() => {
+    try {
+      const userLang = navigator.language || navigator.userLanguage || '';
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      
+      if (timeZone.includes('London') || userLang.includes('en-GB')) {
+        setCurrencySymbol('£');
+      } else if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr') || userLang.includes('es')) {
+        setCurrencySymbol('€');
+      } else {
+        setCurrencySymbol('$');
+      }
+    } catch (e) {
+      setCurrencySymbol('$');
+    }
+  }, []);
 
   const faqs = [
     {
@@ -91,7 +110,6 @@ export default function LandingGlobal({ onForgotPassword }) {
           color: #ffffff;
         }
         
-        /* Desktop Header Layout */
         .header-container {
           display: flex;
           justify-content: center;
@@ -111,7 +129,6 @@ export default function LandingGlobal({ onForgotPassword }) {
           display: none;
         }
 
-        /* Mobile Header Layout Adjustments */
         @media (max-width: 768px) {
           .header-container {
             display: flex;
@@ -150,7 +167,6 @@ export default function LandingGlobal({ onForgotPassword }) {
           }
         }
         
-        /* Small Mobile Adjustments */
         @media (max-width: 480px) {
           .nav-btn {
             padding: 7px 12px !important;
@@ -235,7 +251,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             Over 500 businesses already generate quotes with ease
           </div>
 
-          {/* AI Video Demo Showcase (English) */}
+          {/* AI Video Demo Showcase */}
           <div style={{ margin: '0 auto 40px auto', maxWidth: '400px' }}>
             <video 
               autoPlay 
@@ -249,7 +265,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             </video>
           </div>
 
-          {/* Pain-Point Section with AI Image */}
+          {/* Pain-Point Section */}
           <div className="pain-box" style={{ background: '#111827', borderRadius: '14px', overflow: 'hidden', maxWidth: '800px', margin: '0 auto 40px auto', padding: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', padding: '5px 14px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '700' }}>
@@ -294,7 +310,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               </div>
               <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Monthly Revenue</div>
-                <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 'bold', marginTop: '4px' }}>$ 12,400</div>
+                <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 'bold', marginTop: '4px' }}>{currencySymbol} 12,400</div>
               </div>
               <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Active Clients</div>
@@ -358,7 +374,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Free Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>Ideal for getting started.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>$0 <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span></div>
+                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>{currencySymbol}0 <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span></div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
                   <li>✓ Up to 5 quotes per month</li>
                   <li>✓ Basic client management</li>
@@ -374,7 +390,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Basic Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For small businesses needing robust tools.</p>
                 <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? '$15' : '$12'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
+                  {currencySymbol}{billingCycle === 'monthly' ? '15' : '12'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
                   <li>✓ Up to 20 quotes per month</li>
@@ -385,7 +401,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 </button>
               </div>
 
-              {/* Pro / Business Plan (Highlighted) */}
+              {/* Pro / Business Plan */}
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '14px', border: '2px solid #6366f1', boxShadow: '0 12px 25px rgba(99, 102, 241, 0.15)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-12px', right: '16px', background: '#6366f1', color: 'white', padding: '3px 10px', borderRadius: '16px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   Most Popular
@@ -394,7 +410,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Pro Business Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For growing agencies and businesses with no limits.</p>
                 <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#818cf8', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? '$29' : '$23'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
+                  {currencySymbol}{billingCycle === 'monthly' ? '29' : '23'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
                   <li>✓ Unlimited quotes</li>
@@ -447,7 +463,6 @@ export default function LandingGlobal({ onForgotPassword }) {
         </div>
       </footer>
 
-      {/* Global AI Chat Widget - Fixed to bottom corner */}
       <AIChatWidget isHebrew={false} isDashboard={false} />
 
     </div>

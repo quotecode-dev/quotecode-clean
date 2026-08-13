@@ -81,13 +81,13 @@ export default function Dashboard() {
   const [bizRole, setBizRole] = useState('user');
   
   const [bizCountry, setBizCountry] = useState(() => {
-    if (typeof window === 'undefined') return 'Local';
+    if (typeof window === 'undefined') return 'International';
     const cached = localStorage.getItem('proflow_cached_country');
     if (cached) return cached;
-    return 'Local';
+    return 'International';
   });
 
-  const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_HEB);
+  const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_ENG);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
@@ -107,7 +107,17 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  const [currency, setCurrency] = useState('ILS');
+  const [currency, setCurrency] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const userLang = navigator.language || '';
+        if (timeZone.includes('London') || userLang.includes('en-GB')) return 'GBP';
+        if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr')) return 'EUR';
+      }
+    } catch (e) {}
+    return 'USD';
+  });
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
@@ -184,7 +194,7 @@ export default function Dashboard() {
         setServices([]);
         setExpenses([]);
         setSettingId(null);
-        setBizCountry('Local');
+        setBizCountry('International');
         localStorage.removeItem('proflow_cached_country');
         setIsInitializing(false);
       } else if (event === 'PASSWORD_RECOVERY') {
@@ -289,7 +299,7 @@ export default function Dashboard() {
   const [quoteStatus, setQuoteStatus] = useState('Draft');
   const [validUntil, setValidUntil] = useState('');
   const [discount, setDiscount] = useState('');
-  const [terms, setTerms] = useState(DEFAULT_TERMS_HEB); 
+  const [terms, setTerms] = useState(DEFAULT_TERMS_ENG); 
   const [notes, setNotes] = useState('');
   
   const [items, setItems] = useState([{ description: '', quantity: '1', unit_price: '' }]);
@@ -477,7 +487,7 @@ export default function Dashboard() {
       setBizLogoUrl(data.logo_url || '');
       setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
-      const countryVal = data.country || 'Local';
+      const countryVal = data.country || 'International';
       setBizCountry(countryVal);
       localStorage.setItem('proflow_cached_country', countryVal);
       
@@ -514,7 +524,16 @@ export default function Dashboard() {
       const isHebURL = window.location.pathname.startsWith('/he') || window.location.search.includes('lang=he') || localStorage.getItem('proflow_lang') === 'he';
       const detectedCountry = isHebURL ? 'Local' : 'International';
       const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = isHebrew ? 'ILS' : 'USD';
+      
+      let detectedCurr = 'USD';
+      try {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const userLang = navigator.language || '';
+        if (timeZone.includes('London') || userLang.includes('en-GB')) detectedCurr = 'GBP';
+        else if (timeZone.includes('Europe')) detectedCurr = 'EUR';
+      } catch (e) {}
+
+      if (isHebrew) detectedCurr = 'ILS';
 
       const defaultPayload = {
         user_id: userId,
