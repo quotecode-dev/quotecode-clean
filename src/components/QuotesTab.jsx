@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateLocal } from '../utils/regionConfig';
 
 export default function QuotesTab({
   quotes,
@@ -110,7 +111,6 @@ export default function QuotesTab({
               <th style={{ padding: '8px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '60px' }} onClick={() => handleQuoteSort('views')} title={isHebrew ? 'מיון לפי צפיות' : 'Sort by views'}>
                 {isHebrew ? 'צפיות' : 'Views'} {quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              {/* נורית חיווי מייל ממוקמת בדיוק בין צפיות לפעולות בגודל קטן */}
               <th style={{ padding: '8px 6px', textAlign: 'center', width: '50px' }}>
                 {isHebrew ? 'מייל' : 'Email'}
               </th>
@@ -164,7 +164,7 @@ export default function QuotesTab({
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', color: '#64748b', fontSize: '0.75rem', direction: 'ltr' }}>
-                      {quote.created_at ? quote.created_at.split('T')[0].split('-').reverse().join('/') : '-'}
+                      {formatDateLocal(quote.created_at, isHebrew)}
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
                       <span style={{ background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'inline-block' }}>
@@ -178,7 +178,6 @@ export default function QuotesTab({
                       </span>
                     </td>
                     
-                    {/* נורית חיווי מייל (ירוק להצלחה, אדום לכישלון) */}
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
                       {emailStatus && (
                         <span 
