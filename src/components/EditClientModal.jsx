@@ -25,17 +25,18 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
 
   if (!isOpen || !client) return null;
 
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+  const validateEmail = (emailVal) => {
+    // בדיקה מחמירה שמוודאת מבנה אלקטרוני תקין וסיומת אמיתית
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(emailVal);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // בדיקת תקינות אימייל רק אם הוקלד משהו
+    // חסימה מוחלטת אם האימייל לא תקין
     if (email && !validateEmail(email)) {
-      setErrorMsg(isHebrew ? 'כתובת אימייל לא תקינה!' : 'Invalid email address!');
+      setErrorMsg(isHebrew ? 'שגיאה: כתובת אימייל אינה תקינה (בדוק סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
     }
 
@@ -63,7 +64,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
         </h3>
 
         {errorMsg && (
-          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', fontWeight: 'bold', textAlign: 'center' }}>
+          <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '14px', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
             {errorMsg}
           </div>
         )}
@@ -76,7 +77,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
-              <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
+              <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
