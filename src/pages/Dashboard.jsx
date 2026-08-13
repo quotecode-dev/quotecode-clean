@@ -1020,10 +1020,16 @@ export default function Dashboard() {
       });
 
       if (error) throw error;
+
+      // בדיקה האם השרת החיצוני או ה-Edge Function החזירו שגיאה פנימית בתשובה
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
+
       setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       console.error("Email send error:", err);
-      setStatusMsg({ text: 'Error sending email: ' + err.message, type: 'error' });
+      setStatusMsg({ text: 'Error sending email: ' + (err.message || 'Unknown server error'), type: 'error' });
     }
   };
 
@@ -1408,7 +1414,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
@@ -1480,7 +1486,7 @@ export default function Dashboard() {
     if (sortField === 'trial_ends_at_status') {
       const statusA = (a.trial_ends_at === null || a.trial_ends_at === undefined) ? '1' : '0';
       const statusB = (b.trial_ends_at === null || b.trial_ends_at === undefined) ? '1' : '0';
-      return sortDirection === 'asc' ? statusA.localeCompare(statusB) : statusB.localeCompare(statusA);
+      return sortDirection === 'asc' ? statusA.localeCompare(statusB) : statusB.localeCompare(aValStr);
     }
 
     if (sortField === 'country') {
