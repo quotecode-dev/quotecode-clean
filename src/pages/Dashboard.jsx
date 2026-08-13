@@ -18,6 +18,12 @@ import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
 import QuotesTab from '../components/QuotesTab';
 
+// ייבוא הקומפוננטות החדשות שיצרנו הרגע:
+import AuthScreen from '../components/AuthScreen';
+import ServicesCatalog from '../components/ServicesCatalog';
+import SettingsTab from '../components/SettingsTab';
+import AdminUsersTab from '../components/AdminUsersTab';
+
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const DEFAULT_TERMS_HEB = `תנאים כלליים:
@@ -1063,7 +1069,6 @@ export default function Dashboard() {
         throw error;
       }
       
-      // וידוא שהשרת באמת הצליח לשלוח ללא חריגות
       if (data && data.error) {
         throw new Error(data.error);
       }
@@ -1554,157 +1559,33 @@ export default function Dashboard() {
 
   const isExpiringSoon = trialDaysLeft !== null && trialDaysLeft <= 5 && trialDaysLeft > 0 && !isSuperAdmin;
 
-  if (isInitializing) {
+  if (isInitializing || isPasswordRecoveryMode || !session) {
     return (
-      <div style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f8fafc' }}>
-        <div style={{ textAlign: 'center' }}>
-          <ProFlowLogo size={48} rtl={false} />
-          <div style={{ marginTop: '20px', fontSize: '1rem', color: '#94a3b8', fontWeight: 'bold' }}>טוען את המערכת...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isPasswordRecoveryMode) {
-    return (
-      <div style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir="rtl">
-        <div style={{ background: 'white', padding: '30px', borderRadius: '14px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px', textAlign: 'center' }}>
-          <h2 style={{ color: '#0f172a', marginBottom: '12px', fontWeight: '700' }}>הגדרת סיסמה חדשה</h2>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '18px' }}>הזן את הסיסמה החדשה לחשבון שלך</p>
-          
-          {recoveryUpdateMsg && (
-            <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: recoveryUpdateMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'normal' }}>
-              {recoveryUpdateMsg}
-            </div>
-          )}
-
-          <form onSubmit={handleUpdatePasswordFromRecovery}>
-            <input 
-              type="password" 
-              value={newPasswordInput} 
-              onChange={(e) => setNewPasswordInput(e.target.value)} 
-              placeholder="סיסמה חדשה" 
-              required 
-              style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: 'rtl', textAlign: 'right' }} 
-            />
-            <button type="submit" disabled={recoveryUpdateLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.9rem', cursor: 'pointer' }}>
-              {recoveryUpdateLoading ? 'מעדכן...' : 'עדכן סיסמה ושמור'}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div dir="rtl" style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
-        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', width: '100%', maxWidth: '380px', textAlign: 'right' }}>
-          
-          <div style={{ textAlign: 'center', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ 
-                width: '36px', 
-                height: '36px', 
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
-                borderRadius: '8px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-                flexShrink: 0
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-              <span style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', fontFamily: '"Assistant", "Rubik", "Segoe UI", sans-serif' }}>
-                <span style={{ color: '#0f172a' }}>Pro</span>
-                <span style={{ color: '#4f46e5', marginRight: '2px' }}>Flow</span>
-              </span>
-            </div>
-            
-            {isSignUp ? (
-              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 'normal', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.5' }}>
-                כדי להירשם ולקבל את תקופת הניסיון החינמית למשך 14 יום במסלול PRO, אנא הזן את האימייל והסיסמה שלך.
-              </div>
-            ) : (
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '10px', fontWeight: 'normal' }}>
-                התחבר למערכת הניהול שלך
-              </p>
-            )}
-          </div>
-
-          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right', fontWeight: 'normal' }}>{authSuccess}</div>}
-          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right', fontWeight: 'normal' }}>{authError}</div>}
-
-          <form onSubmit={handleAuth} autoComplete="off" data-lpignore="true">
-            <input type="text" name="fake_user_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
-            <input type="password" name="fake_pass_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
-
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>כתובת אימייל</label>
-              <input type="email" name="user_email_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} required placeholder="user@example.com" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#eff6ff', fontSize: '0.9rem' }} />
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>סיסמה</label>
-              <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#eff6ff', fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
-            </div>
-            <button type="submit" style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-              {isSignUp ? 'הרשמה למערכת' : 'התחבר'}
-            </button>
-          </form>
-
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', fontWeight: '500', padding: 0 }}
-            >
-              {isSignUp ? 'כבר יש לך חשבון? התחבר' : 'אין לך חשבון? הירשם עכשיו!'}
-            </button>
-            {!isSignUp && (
-              <button
-                type="button"
-                onClick={() => setForgotOpen(true)}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-              >
-                שכחת סיסמה?
-              </button>
-            )}
-          </div>
-        </div>
-
-        {forgotOpen && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir="rtl">
-            <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: 'right', position: 'relative' }}>
-              <button onClick={() => setForgotOpen(false)} style={{ position: 'absolute', top: '14px', left: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
-              <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '700' }}>שחזור סיסמה</h3>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px' }}>הזן את כתובת האימייל שלך לקבלת קישור איפוס</p>
-              
-              {resetMsg && (
-                <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: resetMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'normal' }}>
-                  {resetMsg}
-                </div>
-              )}
-
-              <form onSubmit={handleResetSubmit}>
-                <input 
-                  type="email" 
-                  value={resetEmail} 
-                  onChange={(e) => setResetEmail(e.target.value)} 
-                  placeholder="user@example.com" 
-                  required 
-                  style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', direction: 'ltr', textAlign: 'left', fontSize: '0.9rem' }} 
-                />
-                <button type="submit" disabled={resetLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '500', fontSize: '0.9rem', cursor: 'pointer' }}>
-                  {resetLoading ? 'שולח...' : 'שלח קישור לשחזור'}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
+      <AuthScreen
+        isInitializing={isInitializing}
+        isPasswordRecoveryMode={isPasswordRecoveryMode}
+        newPasswordInput={newPasswordInput}
+        setNewPasswordInput={setNewPasswordInput}
+        handleUpdatePasswordFromRecovery={handleUpdatePasswordFromRecovery}
+        recoveryUpdateLoading={recoveryUpdateLoading}
+        recoveryUpdateMsg={recoveryUpdateMsg}
+        isSignUp={isSignUp}
+        setIsSignUp={setIsSignUp}
+        authSuccess={authSuccess}
+        authError={authError}
+        handleAuth={handleAuth}
+        emailInput={emailInput}
+        setEmailInput={setEmailInput}
+        passwordInput={passwordInput}
+        setPasswordInput={setPasswordInput}
+        forgotOpen={forgotOpen}
+        setForgotOpen={setForgotOpen}
+        resetMsg={resetMsg}
+        handleResetSubmit={handleResetSubmit}
+        resetEmail={resetEmail}
+        setResetEmail={setResetEmail}
+        resetLoading={resetLoading}
+      />
     );
   }
 
@@ -2040,124 +1921,26 @@ export default function Dashboard() {
                 emailStatuses={emailStatuses}
               />
 
-              <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-                <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '700', margin: 0, marginBottom: '12px' }}>{t.servicesCatalog}</h2>
-                
-                <form onSubmit={handleAddService} style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexDirection: 'row', flexWrap: 'wrap' }}>
-                  <input 
-                    type="text" 
-                    placeholder={t.serviceName} 
-                    value={newServiceName} 
-                    onChange={(e) => setNewServiceName(e.target.value)} 
-                    required 
-                    style={{ flex: '2 1 140px', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: '#f8fafc' }} 
-                  />
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder={t.defaultPrice} 
-                    value={newServicePrice} 
-                    onChange={(e) => setNewServicePrice(e.target.value)} 
-                    required 
-                    style={{ flex: '1 1 80px', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', fontSize: '0.8rem', background: '#f8fafc' }} 
-                  />
-                  <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '7px 14px', borderRadius: '6px', fontWeight: '600', fontSize: '0.8rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-                    {t.addService}
-                  </button>
-                </form>
-
-                <div style={{ overflowX: 'auto' }}>
-                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <th style={{ padding: '6px' }}>{t.description}</th>
-                        <th style={{ padding: '6px' }}>{t.defaultPrice}</th>
-                        <th style={{ padding: '6px' }}>{t.actions}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {services.length === 0 ? (
-                        <tr>
-                          <td colSpan="3" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '0.8rem' }}>
-                            Your catalog is empty. Add services above.
-                          </td>
-                        </tr>
-                      ) : (
-                        services.map((svc) => {
-                          const isEditingThisSvc = editingServiceId === svc.id;
-                          return (
-                            <tr key={svc.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
-                              <td style={{ padding: '8px 6px', fontWeight: '400', color: '#1e293b' }}>
-                                {isEditingThisSvc ? (
-                                  <input 
-                                    type="text" 
-                                    value={editServiceName} 
-                                    onChange={(e) => setEditServiceName(e.target.value)} 
-                                    style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', width: '100%', fontSize: '0.8rem' }} 
-                                  />
-                                ) : (
-                                  svc.name
-                                )}
-                              </td>
-                              <td style={{ padding: '8px 6px', color: '#4f46e5', fontWeight: '400' }}>
-                                {isEditingThisSvc ? (
-                                  <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    value={editServicePrice} 
-                                    onChange={(e) => setEditServicePrice(e.target.value)} 
-                                    style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', width: '100px', fontSize: '0.8rem' }} 
-                                  />
-                                ) : (
-                                  `${sym}${formatNum(svc.price)}`
-                                )}
-                              </td>
-                              <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                {isEditingThisSvc ? (
-                                  <>
-                                    <button 
-                                      onClick={() => handleSaveEditedService(svc.id)}
-                                      style={{ background: '#10b981', color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
-                                    >
-                                      Save
-                                    </button>
-                                    <button 
-                                      onClick={() => setEditingServiceId(null)}
-                                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button 
-                                      onClick={() => {
-                                        setEditingServiceId(svc.id);
-                                        setEditServiceName(svc.name);
-                                        setEditServicePrice(svc.price);
-                                      }}
-                                      style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button 
-                                      title={t.delete}
-                                      onClick={() => handleDeleteService(svc.id)}
-                                      style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem' }}
-                                    >
-                                      Delete
-                                    </button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                   </table>
-                </div>
-              </div>
+              <ServicesCatalog
+                t={t}
+                isHebrew={isHebrew}
+                newServiceName={newServiceName}
+                setNewServiceName={setNewServiceName}
+                newServicePrice={newServicePrice}
+                setNewServicePrice={setNewServicePrice}
+                handleAddService={handleAddService}
+                services={services}
+                editingServiceId={editingServiceId}
+                setEditingServiceId={setEditingServiceId}
+                editServiceName={editServiceName}
+                setEditServiceName={setEditServiceName}
+                editServicePrice={editServicePrice}
+                setEditServicePrice={setEditServicePrice}
+                handleSaveEditedService={handleSaveEditedService}
+                handleDeleteService={handleDeleteService}
+                sym={sym}
+                formatNum={formatNum}
+              />
             </>
           )}
 
@@ -2216,111 +1999,32 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'settings' && (
-            <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-              <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '700', marginTop: 0, marginBottom: '16px' }}>
-                {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
-              </h2>
-              <form onSubmit={handleSaveSettings}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'שם העסק' : 'Business Name'}</label>
-                    <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
-                    <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
-                    <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
-                    <input type="text" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="050-0000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
-                      {isHebrew ? 'מטבע העסק' : 'Business Currency'}
-                    </label>
-                    <select 
-                      value={currency} 
-                      onChange={(e) => setCurrency(e.target.value)}
-                      disabled={isLocalIsraeliBusiness}
-                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: isLocalIsraeliBusiness ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem', fontWeight: 'bold', color: '#4f46e5' }}
-                    >
-                      {isLocalIsraeliBusiness ? (
-                        <option value="ILS">ILS (₪)</option>
-                      ) : (
-                        <>
-                          <option value="USD">USD ($)</option>
-                          <option value="EUR">EUR (€)</option>
-                          <option value="GBP">GBP (£)</option>
-                          <option value="CAD">CAD ($)</option>
-                          <option value="AUD">AUD ($)</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת העסק' : 'Business Address'}</label>
-                    <input type="text" value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} placeholder="e.g. Main St 10, City" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת תמונת לוגו (URL)' : 'Logo Image URL'} {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}</label>
-                  <input type="url" value={bizLogoUrl} onChange={(e) => setBizLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" disabled={bizPlan !== 'pro'} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: bizPlan !== 'pro' ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem' }} />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
-                  <textarea 
-                    value={defaultTerms} 
-                    onChange={(e) => setDefaultTerms(e.target.value)} 
-                    rows="4"
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.85rem', fontFamily: 'inherit', lineHeight: '1.4' }} 
-                  />
-                </div>
-
-                <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-                  {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
-                </button>
-              </form>
-
-              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
-                </h3>
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                     <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '8px', borderRadius: '8px' }}>
-                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                     </div>
-                     <div>
-                       <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#0f172a', textTransform: 'uppercase' }}>{bizPlan} PLAN</div>
-                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                         {isTrialExpired ? (isHebrew ? 'תקופת הניסיון הסתיימה' : 'Trial Expired') : (trialDaysLeft ? (isHebrew ? `נותרו ${trialDaysLeft} ימי ניסיון` : `Trial ends in ${trialDaysLeft} days`) : (isHebrew ? 'מנוי פעיל' : 'Active Subscription'))}
-                       </div>
-                     </div>
-                   </div>
-                   <div style={{ display: 'flex', gap: '8px' }}>
-                     <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#4f46e5', color: 'white', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="m16 14-4-4-4 4"/><path d="M2 22h20"/></svg>
-                       {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
-                     </button>
-                     {effectivePlan !== 'free' && (
-                       <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                         {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
-                       </button>
-                     )}
-                   </div>
-                </div>
-              </div>
-            </div>
+            <SettingsTab
+              t={t}
+              isHebrew={isHebrew}
+              handleSaveSettings={handleSaveSettings}
+              bizName={bizName}
+              setBizName={setBizName}
+              bizTaxId={bizTaxId}
+              setBizTaxId={setBizTaxId}
+              bizEmail={bizEmail}
+              setBizEmail={setBizEmail}
+              bizPhone={bizPhone}
+              setBizPhone={setBizPhone}
+              currency={currency}
+              setCurrency={setCurrency}
+              isLocalIsraeliBusiness={isLocalIsraeliBusiness}
+              bizAddress={bizAddress}
+              setBizAddress={setBizAddress}
+              bizLogoUrl={bizLogoUrl}
+              setBizLogoUrl={setBizLogoUrl}
+              bizPlan={bizPlan}
+              defaultTerms={defaultTerms}
+              setDefaultTerms={setDefaultTerms}
+              isTrialExpired={isTrialExpired}
+              trialDaysLeft={trialDaysLeft}
+              setShowPricingModal={setShowPricingModal}
+            />
           )}
 
           {activeTab === 'finances' && (
@@ -2359,264 +2063,25 @@ export default function Dashboard() {
           )}
 
           {isSuperAdmin && activeTab === 'admin_clients' && (
-            <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }}>
-              
-              {(() => {
-                const totalU = allAccounts.length;
-                const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
-                const intlU = allAccounts.filter(a => a.country === 'International').length;
-                
-                const activeRecent = allAccounts.filter(a => {
-                  if (!a.last_sign_in) return false;
-                  const diff = Date.now() - new Date(a.last_sign_in).getTime();
-                  return diff < 10 * 60 * 1000;
-                }).length;
-
-                const newUsersList = allAccounts.filter(a => {
-                  if (!a.created_at) return false;
-                  const diff = Date.now() - new Date(a.created_at).getTime();
-                  return diff < 24 * 60 * 60 * 1000;
-                });
-
-                const unreadNewUsersCount = newUsersList.filter(a => {
-                  if (!a.created_at) return false;
-                  return new Date(a.created_at).getTime() > lastSeenNewUsersTime;
-                }).length;
-
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-                    <div 
-                      onClick={() => handleOpenNewUsersModal(newUsersList)}
-                      style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
-                      title="Click to view new users list"
-                    >
-                      <div style={{ fontSize: '0.65rem', color: '#4f46e5', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: 'middle', marginRight: '6px'}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                        NEW USERS (24H)
-                      </div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.65rem', color: '#166534', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE (10M)</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#166534'}}/></div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>LOCAL (LCL)</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.65rem', color: '#991b1b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>INTERNATIONAL</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>TOTAL USERS</div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z" /></svg>
-                </h2>
-              </div>
-              <p style={{ color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>
-                View all registered users and manage their subscription plans and regions.
-              </p>
-
-              <div style={{ marginBottom: '12px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Search user (email or business)..." 
-                  value={adminSearchTerm}
-                  onChange={(e) => setAdminSearchTerm(e.target.value)}
-                  style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '220px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: '#f8fafc' }}
-                />
-              </div>
-              
-              <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '700px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
-                        Email {sortField === 'email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
-                        Business Name {sortField === 'business_name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
-                        Plan {sortField === 'plan' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
-                        Region {sortField === 'country' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
-                        Role {sortField === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
-                        Trial / Lifetime Status {sortField === 'trial_ends_at_status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
-                        Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-                      </th>
-                      <th style={{ padding: '8px 6px', textAlign: 'center' }}>
-                        Details
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAdminAccounts.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
-                          No users found matching your search.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredAdminAccounts.map(acc => {
-                        const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
-                        const currentCountry = acc.country || 'Local';
-                        
-                        const planValue = acc.plan ? acc.plan.toLowerCase() : 'free';
-                        const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
-                        const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
-                        const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';
-
-                        const rBg = currentCountry === 'Local' ? '#dcfce7' : '#fee2e2';
-                        const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
-                        const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
-
-                        let isRecentActive = false;
-                        if (acc.last_sign_in) {
-                          const diffMs = Date.now() - new Date(acc.last_sign_in).getTime();
-                          isRecentActive = diffMs < 10 * 60 * 1000;
-                        }
-
-                        return (
-                          <tr key={acc.id + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
-                            <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>{acc.email || 'N/A'}</td>
-                            <td style={{ padding: '10px 6px', color: '#334155' }}>{acc.business_name || 'עסק חדש'}</td>
-                            <td style={{ padding: '10px 6px' }}>
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <select 
-                                  value={planValue} 
-                                  onChange={(e) => handleAdminPlanChange(acc.id, e.target.value)}
-                                  style={{ 
-                                    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-                                    padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
-                                    borderRadius: '8px', 
-                                    border: `1px solid ${pBorder}`, 
-                                    background: pBg, 
-                                    fontSize: '0.7rem', 
-                                    fontWeight: '800', 
-                                    color: pColor,
-                                    cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                  }}
-                                >
-                                  <option value="free">FREE</option>
-                                  <option value="basic">BASIC</option>
-                                  <option value="pro">PRO</option>
-                                </select>
-                                <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: pColor }}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 6px' }}>
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <select 
-                                  value={currentCountry} 
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setPendingRegionChange({ accountId: acc.id, newCountry: val, userEmail: acc.email });
-                                  }}
-                                  style={{ 
-                                    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-                                    padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
-                                    borderRadius: '8px', 
-                                    border: `1px solid ${rBorder}`, 
-                                    background: rBg, 
-                                    fontSize: '0.7rem', 
-                                    fontWeight: '800', 
-                                    color: rColor,
-                                    cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                  }}
-                                >
-                                  <option value="Local">LCL</option>
-                                  <option value="International">Intl</option>
-                                </select>
-                                <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: rColor }}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 6px', color: acc.role === 'super_admin' ? '#ef4444' : '#64748b', fontWeight: '600' }}>
-                              {acc.role || 'user'}
-                            </td>
-                            <td style={{ padding: '10px 6px', verticalAlign: 'middle' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-                                <button 
-                                  onClick={() => {
-                                    if (!isLifetime) {
-                                      setPendingLifetimeUser(acc);
-                                    } else {
-                                      handleToggleLifetime(acc.id, acc.trial_ends_at);
-                                    }
-                                  }}
-                                  style={{ 
-                                    background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
-                                    color: isLifetime ? '#6d28d9' : '#475569', 
-                                    border: '1px solid',
-                                    borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
-                                    padding: '4px 10px', 
-                                    borderRadius: '20px', 
-                                    cursor: 'pointer', 
-                                    display: 'inline-flex', 
-                                    alignItems: 'center', 
-                                    gap: '6px', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 'bold',
-                                    whiteSpace: 'nowrap',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                  }}
-                                  title={isLifetime ? 'Click to revoke lifetime' : 'Click to grant lifetime'}
-                                >
-                                  {isLifetime ? (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
-                                  ) : (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                  )}
-                                  <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
-                                </button>
-                                <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                                  {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
-                                </span>
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 6px', fontSize: '0.75rem', color: '#475569', direction: 'ltr', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span title={isRecentActive ? 'Active recently' : 'Inactive'} style={{ fontSize: '0.60rem' }}>
-                                <span style={{display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444'}}></span>
-                              </span>
-                              <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
-                            </td>
-                            <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                              <button
-                                onClick={() => setSelectedUserDetails(acc)}
-                                style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                title="View User Details"
-                              >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                                <span>Details</span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AdminUsersTab
+              t={t}
+              isHebrew={isHebrew}
+              allAccounts={allAccounts}
+              filteredAdminAccounts={filteredAdminAccounts}
+              adminSearchTerm={adminSearchTerm}
+              setAdminSearchTerm={setAdminSearchTerm}
+              handleSort={handleSort}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              liveTick={liveTick}
+              handleAdminPlanChange={handleAdminPlanChange}
+              setPendingRegionChange={setPendingRegionChange}
+              setPendingLifetimeUser={setPendingLifetimeUser}
+              handleToggleLifetime={handleToggleLifetime}
+              setSelectedUserDetails={setSelectedUserDetails}
+              handleOpenNewUsersModal={handleOpenNewUsersModal}
+              lastSeenNewUsersTime={lastSeenNewUsersTime}
+            />
           )}
 
         </div>
@@ -2637,7 +2102,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </span>
           {t.settingsNav}
         </button>
