@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from './supabase';
+import { supabase } from '../supabase';
 import ProFlowLogo from './components/ProFlowLogo';
 import AccessibilityModal from './components/AccessibilityModal';
 import AIChatWidget from './AIChatWidget';
@@ -1020,10 +1020,7 @@ export default function Dashboard() {
       });
 
       if (error) throw error;
-
-      if (data && data.error) {
-        throw new Error(data.error);
-      }
+      if (data && data.error) throw new Error(data.error);
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
@@ -1421,7 +1418,7 @@ export default function Dashboard() {
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = b.created_at || '';
+      bVal = a.created_at || '';
     }
 
     if (typeof aVal === 'string') {
