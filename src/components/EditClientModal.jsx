@@ -26,15 +26,16 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   if (!isOpen || !client) return null;
 
   const validateEmail = (emailVal) => {
-    // בדיקה מחמירה שמוודאת מבנה אלקטרוני תקין וסיומת אמיתית
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return re.test(emailVal);
+    // בדיקה מחמירה: חייב להכיל שטרודל, נקודה, ובלי שגיאות הקלדה בסיומת כמו comj / comuuj
+    const cleanEmail = emailVal.trim();
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz)$/i;
+    return re.test(cleanEmail);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // חסימה מוחלטת אם האימייל לא תקין
+    // חסימה מוחלטת אם האימייל לא ריק והוא לא עובר את הסינון המחמיר
     if (email && !validateEmail(email)) {
       setErrorMsg(isHebrew ? 'שגיאה: כתובת אימייל אינה תקינה (בדוק סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
@@ -43,7 +44,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
     onSave({
       ...client,
       company_name: companyName,
-      email,
+      email: email.trim(),
       phone,
       client_type: clientType,
       tax_id: taxId,
@@ -77,7 +78,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
-              <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
+              {/* שונה מ-type="email" ל-type="text" כדי למנוע מהדפדפן לעקוף את החסימה שלנו */}
+              <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
