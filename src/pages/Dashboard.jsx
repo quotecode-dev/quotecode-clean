@@ -2040,7 +2040,7 @@ export default function Dashboard() {
                                     style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', width: '100px', fontSize: '0.8rem' }} 
                                   />
                                 ) : (
-                                  formatNum(svc.price)
+                                  `${sym}${formatNum(svc.price)}`
                                 )}
                               </td>
                               <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
