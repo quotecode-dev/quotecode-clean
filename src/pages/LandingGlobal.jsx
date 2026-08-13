@@ -9,16 +9,17 @@ export default function LandingGlobal({ onForgotPassword }) {
   const [openFaq, setOpenFaq] = useState(null);
   const [currencySymbol, setCurrencySymbol] = useState('$');
 
-  // זיהוי מטבע דינמי לפי אזור/שפה בכניסה לדף הנחיתה
   useEffect(() => {
     try {
-      const userLang = navigator.language || navigator.userLanguage || '';
+      const userLang = (navigator.language || '').toLowerCase();
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
       
-      if (timeZone.includes('London') || userLang.includes('en-GB')) {
+      if (userLang.includes('en-gb') || timeZone.includes('London')) {
         setCurrencySymbol('£');
-      } else if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr') || userLang.includes('es')) {
+      } else if (userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it') || timeZone.includes('Europe')) {
         setCurrencySymbol('€');
+      } else if (userLang.includes('en-au')) {
+        setCurrencySymbol('A$');
       } else {
         setCurrencySymbol('$');
       }
