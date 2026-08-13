@@ -8,6 +8,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const [taxId, setTaxId] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (client) {
@@ -18,13 +19,26 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       setTaxId(client.tax_id || '');
       setAddress(client.address || '');
       setNotes(client.notes || '');
+      setErrorMsg('');
     }
   }, [client]);
 
   if (!isOpen || !client) return null;
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // בדיקת תקינות אימייל רק אם הוקלד משהו
+    if (email && !validateEmail(email)) {
+      setErrorMsg(isHebrew ? 'כתובת אימייל לא תקינה!' : 'Invalid email address!');
+      return;
+    }
+
     onSave({
       ...client,
       company_name: companyName,
@@ -48,6 +62,12 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
           {isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details'}
         </h3>
 
+        {errorMsg && (
+          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', fontWeight: 'bold', textAlign: 'center' }}>
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
             <div>
@@ -56,7 +76,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
+              <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
