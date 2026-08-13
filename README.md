@@ -1,3 +1,5 @@
+> **חוק ברזל מחייב:** כל פקודות ה-Git חייבות להינתן תמיד בשורה אחת מחוברת (מופרדות בנקודה-פסיק `;`) בתוך בלוק קוד ייעודי.
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
