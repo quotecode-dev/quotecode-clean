@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DraggableCalculator from './DraggableCalculator';
 
 export default function QuoteForm({
   editingQuoteId,
@@ -36,13 +37,12 @@ export default function QuoteForm({
   handleItemChange,
   handleAddFromCatalog
 }) {
-  // פירוק כתובת הלקוח לשדות נפרדים
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
 
-  // עדכון ה-clientAddress המאוחד בכל שינוי בשדות הכתובת
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
     setCity(newCity);
@@ -52,7 +52,6 @@ export default function QuoteForm({
     setClientAddress(combined);
   };
 
-  // בעת בחירת לקוח קיים או טעינת עריכה, נפרק את הכתובת לשדות
   useEffect(() => {
     if (clientAddress) {
       const parts = clientAddress.split('|');
@@ -90,6 +89,8 @@ export default function QuoteForm({
 
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
+      <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <div>
           <h2 style={{ color: '#1e293b', marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '3px' }}>
@@ -216,6 +217,13 @@ export default function QuoteForm({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: '800', margin: 0 }}>{t.quoteItems}</h3>
             <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                onClick={() => setIsCalcOpen(true)} 
+                style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontSize: '0.75rem', color: '#4f46e5', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {isHebrew ? 'מחשבון' : 'Calc'}
+              </button>
               <select onChange={handleAddFromCatalog} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.75rem' }}>
                 <option value="">{t.quickAdd}</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.name} - {sym}{formatNum(s.price)}</option>)}
