@@ -110,7 +110,8 @@ export default function QuotesTab({
               <th style={{ padding: '8px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '60px' }} onClick={() => handleQuoteSort('views')} title={isHebrew ? 'מיון לפי צפיות' : 'Sort by views'}>
                 {isHebrew ? 'צפיות' : 'Views'} {quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '8px 6px', textAlign: 'center' }}>
+              {/* נורית חיווי מייל ממוקמת בדיוק בין צפיות לפעולות בגודל קטן */}
+              <th style={{ padding: '8px 6px', textAlign: 'center', width: '50px' }}>
                 {isHebrew ? 'מייל' : 'Email'}
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'left' : 'right' }}>
@@ -130,7 +131,7 @@ export default function QuotesTab({
                 const currentStatus = quote.status ? quote.status.toLowerCase() : 'draft';
                 const isLocked = currentStatus === 'approved' || currentStatus === 'paid' || quote.signature;
                 const isDropdownOpen = openDropdownId === quote.id;
-                const emailStatus = emailStatuses[quote.id];
+                const emailStatus = emailStatuses ? emailStatuses[quote.id] : null;
 
                 const firstItemDesc = quote.quote_items && quote.quote_items.length > 0 ? quote.quote_items[0].description : '';
                 const rawSubtotal = quote.subtotal || 0;
@@ -177,16 +178,21 @@ export default function QuotesTab({
                       </span>
                     </td>
                     
-                    {/* נורית חיווי מייל */}
+                    {/* נורית חיווי מייל (ירוק להצלחה, אדום לכישלון) */}
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        {emailStatus && (
-                          <span title={emailStatus === 'success' ? 'Email sent successfully' : 'Email failed'} 
-                                style={{ 
-                                  display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', 
-                                  background: emailStatus === 'success' ? '#22c55e' : '#ef4444' 
-                                }} 
-                          />
-                        )}
+                      {emailStatus && (
+                        <span 
+                          title={emailStatus === 'success' ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully') : (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')} 
+                          style={{ 
+                            display: 'inline-block', 
+                            width: '10px', 
+                            height: '10px', 
+                            borderRadius: '50%', 
+                            background: emailStatus === 'success' ? '#10b981' : '#ef4444',
+                            boxShadow: emailStatus === 'success' ? '0 0 4px rgba(16, 185, 129, 0.4)' : '0 0 4px rgba(239, 68, 68, 0.4)'
+                          }} 
+                        />
+                      )}
                     </td>
 
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'left' : 'right', position: 'relative' }}>
