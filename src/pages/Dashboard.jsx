@@ -101,7 +101,7 @@ export default function Dashboard() {
 
   const [editingClient, setEditingClient] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [showSignOutModal, setShowSignOutModal] = useState(false); // סטייט לפתיחת מודל ההתנתקות
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editServiceName, setEditServiceName] = useState('');
@@ -135,7 +135,7 @@ export default function Dashboard() {
     if (bizCountry === 'International') {
       if (curr === 'EUR') return '€';
       if (curr === 'GBP') return '£';
-      if (curr === 'CAD' || curr === 'AUD') return '$';
+      if (curr === 'CAD' || curr === 'AUD') return 'A$';
       return '$';
     }
     return getCurrencySym(bizCountry, curr);
