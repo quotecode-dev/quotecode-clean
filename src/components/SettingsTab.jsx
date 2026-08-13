@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function SettingsTab({
   t,
@@ -26,6 +26,36 @@ export default function SettingsTab({
   trialDaysLeft,
   setShowPricingModal
 }) {
+  // פירוק כתובת העסק לשדות נפרדים לנוחות המשתמש הבינלאומי והמקומי
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [stateProv, setStateProv] = useState('');
+  const [zipCode, setZipCode] = useState('');
+
+  // טעינה ראשונית של הכתובת המפורקת מתוך bizAddress הקיים
+  useEffect(() => {
+    if (bizAddress) {
+      const parts = bizAddress.split('|');
+      if (parts.length >= 4) {
+        setStreet(parts[0] || '');
+        setCity(parts[1] || '');
+        setStateProv(parts[2] || '');
+        setZipCode(parts[3] || '');
+      } else {
+        setStreet(bizAddress);
+      }
+    }
+  }, []);
+
+  // עדכון ה-bizAddress המאוחד בכל שינוי של אחד השדות
+  const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
+    setStreet(newStreet);
+    setCity(newCity);
+    setStateProv(newState);
+    setZipCode(newZip);
+    const combined = `${newStreet}|${newCity}|${newState}|${newZip}`;
+    setBizAddress(combined);
+  };
 
   // זיהוי מטבע אוטומטי לפי מיקום/אזור אם טרם הוגדר מטבע בינלאומי
   useEffect(() => {
@@ -89,10 +119,30 @@ export default function SettingsTab({
               )}
             </select>
           </div>
+        </div>
 
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'כתובת העסק' : 'Business Address'}</label>
-            <input type="text" value={bizAddress} onChange={(e) => setBizAddress(e.target.value)} placeholder="e.g. Main St 10, City" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+        {/* שדות כתובת מעודכנים ומפורטים הכוללים מיקוד */}
+        <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '700', marginTop: 0, marginBottom: '10px' }}>
+            {isHebrew ? 'כתובת העסק' : 'Business Address Details'}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'רחוב ומספר' : 'Street Address'}</label>
+              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'הזן כתובת רחוב ומספר' : 'e.g. 123 Main St'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'עיר' : 'City'}</label>
+              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'מדינה / מחוז (State)' : 'State / Province'}</label>
+              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה/אזור' : 'State / Region'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'מיקוד (ZIP / Postal)' : 'ZIP / Postal Code'}</label>
+              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder="10001" style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
+            </div>
           </div>
         </div>
 
@@ -140,8 +190,8 @@ export default function SettingsTab({
              </button>
              {bizPlan !== 'free' && (
                <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                 {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
                </button>
              )}
            </div>
