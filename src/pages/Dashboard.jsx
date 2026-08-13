@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
-import ProFlowLogo from './components/ProFlowLogo';
-import AccessibilityModal from './components/AccessibilityModal';
-import AIChatWidget from './AIChatWidget';
-import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from './utils/regionConfig';
+import ProFlowLogo from '../components/ProFlowLogo';
+import AccessibilityModal from '../components/AccessibilityModal';
+import AIChatWidget from '../AIChatWidget';
+import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
 
-// ייבוא כל הרכיבים המודולריים הנקיים:
-import PricingModal from './components/PricingModal';
-import EditClientModal from './components/EditClientModal';
-import EditExpenseModal from './components/EditExpenseModal';
-import LifetimeConfirmModal from './components/LifetimeConfirmModal';
-import RegionConfirmModal from './components/RegionConfirmModal';
-import UserDetailsModal from './components/UserDetailsModal';
-import EmailConfirmModal from './components/EmailConfirmModal';
-import ClientsTab from './components/ClientsTab';
-import FinancesTab from './components/FinancesTab';
-import QuoteForm from './components/QuoteForm';
-import QuotesTab from './components/QuotesTab';
+// ייבוא רכיבים מתוך תיקיית components:
+import PricingModal from '../components/PricingModal';
+import EditClientModal from '../components/EditClientModal';
+import EditExpenseModal from '../components/EditExpenseModal';
+import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
+import RegionConfirmModal from '../components/RegionConfirmModal';
+import UserDetailsModal from '../components/UserDetailsModal';
+import EmailConfirmModal from '../components/EmailConfirmModal';
+import ClientsTab from '../components/ClientsTab';
+import FinancesTab from '../components/FinancesTab';
+import QuoteForm from '../components/QuoteForm';
+import QuotesTab from '../components/QuotesTab';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
