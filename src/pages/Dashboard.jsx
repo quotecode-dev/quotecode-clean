@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabase';
-import ProFlowLogo from '../components/ProFlowLogo';
-import AccessibilityModal from '../components/AccessibilityModal';
-import AIChatWidget from '../AIChatWidget';
-import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
+import { supabase } from './supabase';
+import ProFlowLogo from './components/ProFlowLogo';
+import AccessibilityModal from './components/AccessibilityModal';
+import AIChatWidget from './AIChatWidget';
+import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from './utils/regionConfig';
 
 // ייבוא כל הרכיבים המודולריים הנקיים:
-import PricingModal from '../components/PricingModal';
-import EditClientModal from '../components/EditClientModal';
-import EditExpenseModal from '../components/EditExpenseModal';
-import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
-import RegionConfirmModal from '../components/RegionConfirmModal';
-import UserDetailsModal from '../components/UserDetailsModal';
-import EmailConfirmModal from '../components/EmailConfirmModal';
-import ClientsTab from '../components/ClientsTab';
-import FinancesTab from '../components/FinancesTab';
-import QuoteForm from '../components/QuoteForm';
-import QuotesTab from '../components/QuotesTab';
+import PricingModal from './components/PricingModal';
+import EditClientModal from './components/EditClientModal';
+import EditExpenseModal from './components/EditExpenseModal';
+import LifetimeConfirmModal from './components/LifetimeConfirmModal';
+import RegionConfirmModal from './components/RegionConfirmModal';
+import UserDetailsModal from './components/UserDetailsModal';
+import EmailConfirmModal from './components/EmailConfirmModal';
+import ClientsTab from './components/ClientsTab';
+import FinancesTab from './components/FinancesTab';
+import QuoteForm from './components/QuoteForm';
+import QuotesTab from './components/QuotesTab';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -55,6 +55,7 @@ export default function Dashboard() {
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [statusMsg, setStatusMsg] = useState({ text: 'System connected to Supabase.', type: 'success' });
+  const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
   const [isCreatingQuote, setIsCreatingQuote] = useState(false);
@@ -103,7 +104,6 @@ export default function Dashboard() {
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
 
-  // מעקב אחר זמן הצפייה האחרון במשתמשים החדשים לצורך איפוס ה-Counter
   const [lastSeenNewUsersTime, setLastSeenNewUsersTime] = useState(() => {
     if (typeof window === 'undefined') return 0;
     return Number(localStorage.getItem('proflow_last_seen_new_users') || 0);
@@ -505,8 +505,8 @@ export default function Dashboard() {
 
       const isHebURL = window.location.pathname.startsWith('/he') || window.location.search.includes('lang=he') || localStorage.getItem('proflow_lang') === 'he';
       const detectedCountry = isHebURL ? 'Local' : 'International';
-      const detectedTerms = isHebURL ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = isHebURL ? 'ILS' : 'USD';
+      const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
+      const detectedCurr = isHebrew ? 'ILS' : 'USD';
 
       const defaultPayload = {
         user_id: userId,
@@ -1021,15 +1021,16 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // בדיקה האם השרת החיצוני או ה-Edge Function החזירו שגיאה פנימית בתשובה
       if (data && data.error) {
         throw new Error(data.error);
       }
 
+      setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       console.error("Email send error:", err);
-      setStatusMsg({ text: 'Error sending email: ' + (err.message || 'Unknown server error'), type: 'error' });
+      setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
+      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: ' + (err.message || 'Unknown server error') + '. אנא שלח שוב.', type: 'error' });
     }
   };
 
@@ -1414,7 +1415,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
@@ -1486,7 +1487,7 @@ export default function Dashboard() {
     if (sortField === 'trial_ends_at_status') {
       const statusA = (a.trial_ends_at === null || a.trial_ends_at === undefined) ? '1' : '0';
       const statusB = (b.trial_ends_at === null || b.trial_ends_at === undefined) ? '1' : '0';
-      return sortDirection === 'asc' ? statusA.localeCompare(statusB) : statusB.localeCompare(aValStr);
+      return sortDirection === 'asc' ? statusA.localeCompare(statusB) : statusB.localeCompare(statusA);
     }
 
     if (sortField === 'country') {
@@ -1988,6 +1989,7 @@ export default function Dashboard() {
                 formatNum={formatNum}
                 t={t}
                 setPendingEmailQuote={setPendingEmailQuote}
+                emailStatuses={emailStatuses}
               />
 
               <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
@@ -2322,14 +2324,12 @@ export default function Dashboard() {
                   return diff < 10 * 60 * 1000;
                 }).length;
 
-                // רשימת כל המשתמשים החדשים ב-24 השעות האחרונות (לצורך הצגה במודל)
                 const newUsersList = allAccounts.filter(a => {
                   if (!a.created_at) return false;
                   const diff = Date.now() - new Date(a.created_at).getTime();
                   return diff < 24 * 60 * 60 * 1000;
                 });
 
-                // ה-Counter יציג רק כמה משתמשים נוספו מאז הצפייה האחרונה (lastSeenNewUsersTime)
                 const unreadNewUsersCount = newUsersList.filter(a => {
                   if (!a.created_at) return false;
                   return new Date(a.created_at).getTime() > lastSeenNewUsersTime;
