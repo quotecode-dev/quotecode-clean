@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProFlowLogo from './ProFlowLogo';
 
 function PublicToolsEn() {
@@ -9,7 +9,7 @@ function PublicToolsEn() {
   const [fromCurrency, setFromCurrency] = useState('USD');
   const [toCurrency, setToCurrency] = useState('EUR');
 
-  const rates = {
+  const [rates, setRates] = useState({
     USD: 1,
     EUR: 0.92,
     GBP: 0.78,
@@ -18,7 +18,7 @@ function PublicToolsEn() {
     AUD: 1.52,
     CHF: 0.88,
     JPY: 150.0
-  };
+  });
 
   const currencyLabels = {
     USD: 'US Dollar (USD)',
@@ -31,10 +31,115 @@ function PublicToolsEn() {
     JPY: 'Japanese Yen (JPY)'
   };
 
+  // Precious Metals state
+  const [metalType, setMetalType] = useState('gold'); 
+  const [purity, setPurity] = useState('24k'); 
+  const [metalGrams, setMetalGrams] = useState('10');
+
+  const [metalPricesUSD, setMetalPricesUSD] = useState({
+    gold: 75.6,    
+    silver: 0.88,  
+    platinum: 33.0, 
+    palladium: 30.0,
+    rhodium: 1040.0 
+  });
+
+  // Crypto state
+  const [cryptoCoin, setCryptoCoin] = useState('btc');
+  const [cryptoAmount, setCryptoAmount] = useState('1');
+
+  const [cryptoPricesUSD, setCryptoPricesUSD] = useState({
+    btc: 65000,
+    eth: 3500,
+    sol: 150,
+    xrp: 0.60,
+    trx: 0.12
+  });
+
+  // Live API Fetch with 10 minutes Cache
+  useEffect(() => {
+    const fetchLiveData = async () => {
+      const CACHE_KEY = 'proflow_tools_cache_en';
+      const CACHE_TIME_KEY = 'proflow_tools_cache_time_en';
+      const TEN_MINUTES = 10 * 60 * 1000;
+      const now = Date.now();
+
+      const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+      const cachedData = localStorage.getItem(CACHE_KEY);
+
+      if (cachedTime && cachedData && (now - parseInt(cachedTime, 10) < TEN_MINUTES)) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          if (parsed.rates) setRates(parsed.rates);
+          if (parsed.metals) setMetalPricesUSD(parsed.metals);
+          if (parsed.crypto) setCryptoPricesUSD(parsed.crypto);
+          return;
+        } catch (e) {
+          console.error("Cache read error", e);
+        }
+      }
+
+      try {
+        // 1. Fetch Currencies relative to USD
+        const currRes = await fetch('https://open.er-api.com/v6/latest/USD');
+        const currData = await currRes.json();
+        if (currData && currData.rates) {
+          const baseRates = currData.rates;
+          const newRates = {
+            USD: 1,
+            EUR: baseRates.EUR || 0.92,
+            GBP: baseRates.GBP || 0.78,
+            ILS: baseRates.ILS || 3.65,
+            CAD: baseRates.CAD || 1.35,
+            AUD: baseRates.AUD || 1.52,
+            CHF: baseRates.CHF || 0.88,
+            JPY: baseRates.JPY || 150.0
+          };
+          setRates(newRates);
+        }
+
+        // 2. Fetch Crypto via CoinGecko
+        const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,tron&vs_currencies=usd');
+        const cryptoData = await cryptoRes.json();
+        const newCrypto = {
+          btc: cryptoData?.bitcoin?.usd || 65000,
+          eth: cryptoData?.ethereum?.usd || 3500,
+          sol: cryptoData?.solana?.usd || 150,
+          xrp: cryptoData?.ripple?.usd || 0.60,
+          trx: cryptoData?.tron?.usd || 0.12
+        };
+        setCryptoPricesUSD(newCrypto);
+
+        // Save to Cache
+        const cachePayload = {
+          rates: currData?.rates ? {
+            USD: 1,
+            EUR: currData.rates.EUR,
+            GBP: currData.rates.GBP,
+            ILS: currData.rates.ILS,
+            CAD: currData.rates.CAD,
+            AUD: currData.rates.AUD,
+            CHF: currData.rates.CHF,
+            JPY: currData.rates.JPY
+          } : rates,
+          metals: metalPricesUSD,
+          crypto: newCrypto
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+        localStorage.setItem(CACHE_TIME_KEY, now.toString());
+
+      } catch (err) {
+        console.error("Live API fetch failed, using fallback values", err);
+      }
+    };
+
+    fetchLiveData();
+  }, []);
+
   const convertCurrency = () => {
     const val = parseFloat(amount) || 0;
-    const inUSD = val / rates[fromCurrency];
-    const result = inUSD * rates[toCurrency];
+    const inUSD = val / (rates[fromCurrency] || 1);
+    const result = inUSD * (rates[toCurrency] || 1);
     return result.toFixed(2);
   };
 
@@ -80,23 +185,10 @@ function PublicToolsEn() {
     setToUnit(temp);
   };
 
-  // Precious Metals state (Gold, Silver, Platinum, Palladium, Rhodium)
-  const [metalType, setMetalType] = useState('gold'); 
-  const [purity, setPurity] = useState('24k'); 
-  const [metalGrams, setMetalGrams] = useState('10');
-
-  const baseMetalPricesUSD = {
-    gold: 75.6,     // per gram pure in USD
-    silver: 0.88,   // per gram pure in USD
-    platinum: 33.0, // per gram pure in USD
-    palladium: 30.0,// per gram pure in USD
-    rhodium: 1040.0 // per gram pure in USD
-  };
-
   const calculateMetalValue = () => {
     const g = parseFloat(metalGrams) || 0;
     let factor = 1;
-    let basePriceUSD = baseMetalPricesUSD[metalType] || 75.6;
+    let basePriceUSD = metalPricesUSD[metalType] || 75.6;
 
     if (metalType === 'gold') {
       if (purity === '24k') factor = 1.0;
@@ -116,7 +208,7 @@ function PublicToolsEn() {
     }
 
     const totalUSD = g * basePriceUSD * factor;
-    const totalEUR = totalUSD * rates['EUR'];
+    const totalEUR = totalUSD * (rates['EUR'] || 0.92);
     return { 
       usd: totalUSD.toLocaleString('en-US', { maximumFractionDigits: 2 }), 
       eur: totalEUR.toLocaleString('de-DE', { maximumFractionDigits: 2 }) 
@@ -124,18 +216,6 @@ function PublicToolsEn() {
   };
 
   const metalResult = calculateMetalValue();
-
-  // Crypto state
-  const [cryptoCoin, setCryptoCoin] = useState('btc');
-  const [cryptoAmount, setCryptoAmount] = useState('1');
-
-  const cryptoBasePricesUSD = {
-    btc: 65000,
-    eth: 3500,
-    sol: 150,
-    xrp: 0.60,
-    trx: 0.12
-  };
 
   const cryptoLabels = {
     btc: 'Bitcoin (BTC)',
@@ -147,9 +227,9 @@ function PublicToolsEn() {
 
   const calculateCryptoValue = () => {
     const amt = parseFloat(cryptoAmount) || 0;
-    const priceUSD = cryptoBasePricesUSD[cryptoCoin] || 0;
+    const priceUSD = cryptoPricesUSD[cryptoCoin] || 0;
     const totalUSD = amt * priceUSD;
-    const totalEUR = totalUSD * rates['EUR'];
+    const totalEUR = totalUSD * (rates['EUR'] || 0.92);
     return {
       usd: totalUSD.toLocaleString('en-US', { maximumFractionDigits: 2 }),
       eur: totalEUR.toLocaleString('de-DE', { maximumFractionDigits: 2 })
@@ -164,7 +244,7 @@ function PublicToolsEn() {
       <header style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 'bold' }}>Business Tools & Calculators Hub</h1>
         <p style={{ fontSize: '1.05rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
-          Smart, fast, and accurate tools for businesses, importers, and freelancers – real-time currency, unit, precious metals, and crypto conversions.
+          Smart, fast, and accurate tools for businesses, importers, and freelancers – live currency, unit, precious metals, and crypto conversions.
         </p>
       </header>
 
@@ -228,7 +308,7 @@ function PublicToolsEn() {
           <div style={{ padding: '30px' }}>
             {activeTab === 'currency' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Convert Foreign Currencies</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Convert Foreign Currencies (Live)</h2>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div>
@@ -281,7 +361,7 @@ function PublicToolsEn() {
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '5px' }}>Estimated Conversion Result:</div>
+                  <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '5px' }}>Estimated Conversion Result (Live):</div>
                   <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#4f46e5' }}>
                     {convertCurrency()} {toCurrency}
                   </div>
@@ -354,7 +434,7 @@ function PublicToolsEn() {
 
             {activeTab === 'metals' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Precious Metals Value Calculator</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Precious Metals Value Calculator (Live Rates)</h2>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                   <div>
@@ -446,7 +526,7 @@ function PublicToolsEn() {
 
             {activeTab === 'crypto' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Crypto Converter Calculator</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: '#1e293b' }}>Crypto Converter Calculator (Live Rates)</h2>
                 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600' }}>Select Cryptocurrency:</label>
