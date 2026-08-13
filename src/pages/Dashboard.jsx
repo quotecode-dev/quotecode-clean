@@ -5,7 +5,7 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
 
-// ייבוא רכיבים מתוך תיקיית components:
+// ייבוא כל הרכיבים המודולריים הנקיים:
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
@@ -1508,7 +1508,7 @@ export default function Dashboard() {
       <div style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f8fafc' }}>
         <div style={{ textAlign: 'center' }}>
           <ProFlowLogo size={48} rtl={false} />
-          <div style={{ marginTop: '20px', fontSize: '1rem', color: '#94a3b8', fontWeight: 'bold' }}>Loading ProFlow...</div>
+          <div style={{ marginTop: '20px', fontSize: '1rem', color: '#94a3b8', fontWeight: 'bold' }}>טוען את המערכת...</div>
         </div>
       </div>
     );
@@ -1516,10 +1516,10 @@ export default function Dashboard() {
 
   if (isPasswordRecoveryMode) {
     return (
-      <div style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir="ltr">
+      <div style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir="rtl">
         <div style={{ background: 'white', padding: '30px', borderRadius: '14px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px', textAlign: 'center' }}>
-          <h2 style={{ color: '#0f172a', marginBottom: '12px', fontWeight: '800' }}>Set New Password</h2>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '18px' }}>Enter your new account password</p>
+          <h2 style={{ color: '#0f172a', marginBottom: '12px', fontWeight: '800' }}>הגדרת סיסמה חדשה</h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '18px' }}>הזן את הסיסמה החדשה לחשבון שלך</p>
           
           {recoveryUpdateMsg && (
             <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: recoveryUpdateMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'bold' }}>
@@ -1532,12 +1532,12 @@ export default function Dashboard() {
               type="password" 
               value={newPasswordInput} 
               onChange={(e) => setNewPasswordInput(e.target.value)} 
-              placeholder="New password" 
+              placeholder="סיסמה חדשה" 
               required 
-              style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: 'ltr', textAlign: 'left' }} 
+              style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: 'rtl', textAlign: 'right' }} 
             />
             <button type="submit" disabled={recoveryUpdateLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}>
-              {recoveryUpdateLoading ? 'Updating...' : 'Update Password & Save'}
+              {recoveryUpdateLoading ? 'מעדכן...' : 'עדכן סיסמה ושמור'}
             </button>
           </form>
         </div>
@@ -1547,8 +1547,8 @@ export default function Dashboard() {
 
   if (!session) {
     return (
-      <div dir="ltr" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
-        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', width: '100%', maxWidth: '380px', textAlign: 'left' }}>
+      <div dir="rtl" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', width: '100%', maxWidth: '380px', textAlign: 'right' }}>
           
           <div style={{ textAlign: 'center', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1569,38 +1569,38 @@ export default function Dashboard() {
               </div>
               <span style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
                 <span style={{ color: '#0f172a' }}>Pro</span>
-                <span style={{ color: '#4f46e5', marginLeft: '2px' }}>Flow</span>
+                <span style={{ color: '#4f46e5', marginRight: '2px' }}>Flow</span>
               </span>
             </div>
             
             {isSignUp ? (
-              <div dir="ltr" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.82rem', fontWeight: '700', textAlign: 'left', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.4' }}>
-                To register and claim your 14-day free PRO trial, please enter your email and password.
+              <div dir="rtl" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)', border: '1px solid #c7d2fe', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: '#4f46e5', fontSize: '0.82rem', fontWeight: '700', textAlign: 'right', width: '100%', boxSizing: 'border-box', boxShadow: '0 2px 4px -1px rgba(79, 70, 229, 0.1)', lineHeight: '1.4' }}>
+                כדי להירשם ולקבל את תקופת הניסיון החינמית למשך 14 יום במסלול PRO, אנא הזן את האימייל והסיסמה שלך.
               </div>
             ) : (
               <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '10px' }}>
-                Sign in to your dashboard
+                התחבר למערכת הניהול שלך
               </p>
             )}
           </div>
 
-          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534' }}>{authSuccess}</div>}
-          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b' }}>{authError}</div>}
+          {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#dcfce7', color: '#166534', textAlign: 'right' }}>{authSuccess}</div>}
+          {authError && <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', textAlign: 'right' }}>{authError}</div>}
 
           <form onSubmit={handleAuth} autoComplete="off" data-lpignore="true">
             <input type="text" name="fake_user_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
             <input type="password" name="fake_pass_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>כתובת אימייל</label>
               <input type="email" name="user_email_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} required placeholder="user@example.com" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#eff6ff', fontSize: '0.9rem' }} />
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Password</label>
-              <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#eff6ff', fontSize: '0.9rem' }} />
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>סיסמה</label>
+              <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#eff6ff', fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
             </div>
             <button type="submit" style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-              {isSignUp ? 'Sign Up' : 'Sign In'}
+              {isSignUp ? 'הרשמה למערכת' : 'התחבר'}
             </button>
           </form>
 
@@ -1610,7 +1610,7 @@ export default function Dashboard() {
               onClick={() => setIsSignUp(!isSignUp)}
               style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', fontWeight: '600', padding: 0 }}
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up!"}
+              {isSignUp ? 'כבר יש לך חשבון? התחבר' : 'אין לך חשבון? הירשם עכשיו!'}
             </button>
             {!isSignUp && (
               <button
@@ -1618,18 +1618,18 @@ export default function Dashboard() {
                 onClick={() => setForgotOpen(true)}
                 style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
               >
-                Forgot password?
+                שכחת סיסמה?
               </button>
             )}
           </div>
         </div>
 
         {forgotOpen && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir="ltr">
-            <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
-              <button onClick={() => setForgotOpen(false)} style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
-              <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>Password Recovery</h3>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px' }}>Enter your email address to recover your password</p>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir="rtl">
+            <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: 'right', position: 'relative' }}>
+              <button onClick={() => setForgotOpen(false)} style={{ position: 'absolute', top: '14px', left: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
+              <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>שחזור סיסמה</h3>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px' }}>הזן את כתובת האימייל שלך לקבלת קישור איפוס</p>
               
               {resetMsg && (
                 <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsg.includes('Error') ? '#fee2e2' : '#dcfce7', color: resetMsg.includes('Error') ? '#991b1b' : '#166534', fontWeight: 'bold' }}>
@@ -1647,7 +1647,7 @@ export default function Dashboard() {
                   style={{ width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '12px', direction: 'ltr', textAlign: 'left', fontSize: '0.9rem' }} 
                 />
                 <button type="submit" disabled={resetLoading} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}>
-                  {resetLoading ? 'Sending...' : 'Send Recovery Link'}
+                  {resetLoading ? 'שולח...' : 'שלח קישור לשחזור'}
                 </button>
               </form>
             </div>
