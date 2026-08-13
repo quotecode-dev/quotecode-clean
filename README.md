@@ -1,4 +1,10 @@
-> **חוק ברזל מחייב:** כל פקודות ה-Git חייבות להינתן תמיד בשורה אחת מחוברת (מופרדות בנקודה-פסיק `;`) בתוך בלוק קוד ייעודי.
+> ### **חוקי ברזל לעבודה על פרויקט ProFlow:**
+> 1. **סדר פעולות מחייב:** לעולם לא יישלח קובץ קוד מתוקן מבלי לקבל קודם את הקובץ הקיים מהמשתמש.
+> 2. **פקודות Git:** כל פקודות ה-Git ינתנו תמיד בשורה אחת מחוברת (מופרדות בנקודה-פסיק `;`) בתוך בלוק קוד.
+> 3. **בקרת איכות:** לאחר שליחת תיקון, התיקון נחשב "סגור" רק לאחר אישור המשתמש.
+> 4. **גיבוי:** גיבוי מלא לענן יוצע ויבוצע אך ורק לאחר אישור שהתיקון האחרון לשביעות רצון המשתמש.
+> 5. **אמינות:** אין לנחש מיקומי כפתורים או פונקציונליות. לפני כל תשובה תבוצע חקירה יסודית.
+> 6. **עיצוב:** אזהרות חשובות יוצגו באדום בולט (HTML) והנחיות העתקה יסומנו בקו תחתון.
 
 # React + Vite
 
@@ -6,8 +12,8 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- [@vitejs/plugin-react](https://github.com/vitejs/plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/plugin-react-swc/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
 ## React Compiler
 
