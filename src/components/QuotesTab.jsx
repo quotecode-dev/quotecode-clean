@@ -28,7 +28,8 @@ export default function QuotesTab({
   sym,
   formatNum,
   t,
-  setPendingEmailQuote
+  setPendingEmailQuote,
+  emailStatuses
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
@@ -109,6 +110,9 @@ export default function QuotesTab({
               <th style={{ padding: '8px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '60px' }} onClick={() => handleQuoteSort('views')} title={isHebrew ? 'מיון לפי צפיות' : 'Sort by views'}>
                 {isHebrew ? 'צפיות' : 'Views'} {quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
+              <th style={{ padding: '8px 6px', textAlign: 'center' }}>
+                {isHebrew ? 'מייל' : 'Email'}
+              </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'left' : 'right' }}>
                 {isHebrew ? 'פעולות' : 'Actions'}
               </th>
@@ -117,16 +121,16 @@ export default function QuotesTab({
           <tbody>
             {quotes.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.85rem' }}>
                   {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
                 </td>
               </tr>
             ) : (
               quotes.map((quote) => {
-                const quoteSym = sym;
                 const currentStatus = quote.status ? quote.status.toLowerCase() : 'draft';
                 const isLocked = currentStatus === 'approved' || currentStatus === 'paid' || quote.signature;
                 const isDropdownOpen = openDropdownId === quote.id;
+                const emailStatus = emailStatuses[quote.id];
 
                 const firstItemDesc = quote.quote_items && quote.quote_items.length > 0 ? quote.quote_items[0].description : '';
                 const rawSubtotal = quote.subtotal || 0;
@@ -150,7 +154,7 @@ export default function QuotesTab({
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left' }}>
                       <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>
-                        {quoteSym}{formatNum(quote.total)}
+                        {sym}{formatNum(quote.total)}
                       </div>
                       {isLocalIsraeliBusiness && isHebrew && (
                         <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '1px' }}>
@@ -172,6 +176,19 @@ export default function QuotesTab({
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </span>
                     </td>
+                    
+                    {/* נורית חיווי מייל */}
+                    <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
+                        {emailStatus && (
+                          <span title={emailStatus === 'success' ? 'Email sent successfully' : 'Email failed'} 
+                                style={{ 
+                                  display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', 
+                                  background: emailStatus === 'success' ? '#22c55e' : '#ef4444' 
+                                }} 
+                          />
+                        )}
+                    </td>
+
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'left' : 'right', position: 'relative' }}>
                       <div ref={dropdownRef} style={{ display: 'inline-block', position: 'relative' }}>
                         <button
@@ -305,7 +322,6 @@ export default function QuotesTab({
                                   <span>{t.delete}</span>
                                 </button>
                               </div>
-
                             </div>
                           </>
                         )}
