@@ -38,6 +38,19 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
+// פונקציית עזר חכמה לזיהוי מטבע מיידי לפי הדפדפן והאזור
+function getDetectedCurrency() {
+  try {
+    if (typeof window !== 'undefined') {
+      const userLang = (navigator.language || '').toLowerCase();
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      if (userLang.includes('en-gb') || timeZone.includes('London')) return 'GBP';
+      if (userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it') || timeZone.includes('Europe')) return 'EUR';
+    }
+  } catch (e) {}
+  return 'USD';
+}
+
 export default function Dashboard() {
   const [session, setSession] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -107,18 +120,8 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  // זיהוי מטבע מיידי למניעת ריצוד ברגע טעינת הקומפוננטה
-  const [currency, setCurrency] = useState(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-        const userLang = navigator.language || '';
-        if (timeZone.includes('London') || userLang.includes('en-GB')) return 'GBP';
-        if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr')) return 'EUR';
-      }
-    } catch (e) {}
-    return 'USD';
-  });
+  // אתחול מטבע מיידי למניעת ריצוד
+  const [currency, setCurrency] = useState(() => getDetectedCurrency());
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
@@ -506,8 +509,10 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // שמירת המטבע הקיים במסד הנתונים, אלא אם הוא חסר ואז נשען על הזיהוי המקומי
-      const userCurr = countryVal === 'Local' ? 'ILS' : (data.currency || currency);
+      // סינכרון חכם: לקיחת מטבע מזוהה מעודכן אם במסד היה שמור USD גנרי
+      const detected = getDetectedCurrency();
+      let userCurr = countryVal === 'Local' ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : detected);
+      
       setCurrency(userCurr);
       setTerms(defTerms);
 
@@ -527,7 +532,7 @@ export default function Dashboard() {
       const detectedCountry = isHebURL ? 'Local' : 'International';
       const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
       
-      let detectedCurr = currency; // משתמש במטבע שזוהה מיד בסטייט ההתחלתי
+      let detectedCurr = getDetectedCurrency();
       if (isHebrew) detectedCurr = 'ILS';
 
       const defaultPayload = {
