@@ -5,7 +5,6 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
 
-// ייבוא כל הרכיבים המודולריים הנקיים:
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
@@ -19,7 +18,6 @@ import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
 import QuotesTab from '../components/QuotesTab';
 
-// ייבוא הקומפוננטות החדשות:
 import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
@@ -38,7 +36,6 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
-// פונקציית זיהוי מטבע מדויקת לסינכרון מלא עם דף הנחיתה
 function getDetectedCurrency() {
   try {
     if (typeof window !== 'undefined') {
@@ -128,7 +125,6 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  // אתחול מטבע מיידי לפי אזור הדפדפן
   const [currency, setCurrency] = useState(() => getDetectedCurrency());
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
@@ -388,12 +384,12 @@ export default function Dashboard() {
     searchQuote: isHebrew ? 'חיפוש שם לקוח או מס׳ הצעה...' : 'Search client or quote #...',
     filterStatus: isHebrew ? 'כל הסטטוסים' : 'All Statuses',
     actions: isHebrew ? 'פעולות' : 'Actions',
-    edit: isHebrew ? 'ערוך מסמך' : 'Edit Document',
-    duplicate: isHebrew ? 'שכפל מסמך' : 'Duplicate Document',
-    delete: isHebrew ? 'מחק' : 'Delete',
+    edit: isHebrew ? 'ערוך הזמנה' : 'Edit Quote',
+    duplicate: isHebrew ? 'שכפל הזמנה' : 'Duplicate Quote',
+    delete: isHebrew ? 'מחק הזמנה' : 'Delete Quote',
     clientsManagement: isHebrew ? 'ניהול לקוחות' : 'Clients Management',
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
-    settingsNav: isHebrew ? 'הגדרות עסק' : (isHebrew ? 'הגדרות עסק' : 'Business Settings'),
+    settingsNav: isHebrew ? 'הגדרות עסק' : 'Business Settings',
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
     financesNav: isHebrew ? 'פיננסים' : 'Finances',
     usersAdminNav: isHebrew ? 'ניהול משתמשים' : 'Users Admin',
@@ -517,11 +513,9 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // התאמה חכמה המוודאת שהמטבע באפליקציה תמיד תואם לזיהוי המיקום העדכני (אם לא שונה ידנית באופן מפורש או אם היה שמור USD/EUR ישן שלא תואם)
       const detected = getDetectedCurrency();
       let userCurr = countryVal === 'Local' ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : detected);
       
-      // וידוא סנכרון עם הזיהוי החדש בסרטון (אם המשתמש בלונדון או ברלין)
       if (countryVal === 'International') {
         userCurr = detected;
       }
@@ -965,7 +959,14 @@ export default function Dashboard() {
     }
   };
 
-  const handleSignOut = async () => await supabase.auth.signOut();
+  // אבטחת כפתור האחורה לאחר התנתקות
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.history.pushState(null, '', window.location.href);
+    window.onpopstate = function () {
+      window.history.go(1);
+    };
+  };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -973,7 +974,7 @@ export default function Dashboard() {
     setItems(newItems);
   };
 
-  const addItem = () => setItems([...items, { description: '', quantity: '1', unit_price: '' }]);
+  const addItem = () => setItems([...items, { description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
 
   const handleAddFromCatalog = (e) => {
     const sId = e.target.value;
@@ -981,9 +982,9 @@ export default function Dashboard() {
     const svc = services.find(s => s.id.toString() === sId);
     if (svc) {
       if (items.length === 1 && items[0].description === '' && items[0].unit_price === '') {
-        setItems([{ description: svc.name, quantity: '1', unit_price: svc.price }]);
+        setItems([{ description: svc.name, quantity: '1', unit_price: svc.price, isFromCatalog: true }]);
       } else {
-        setItems([...items, { description: svc.name, quantity: '1', unit_price: svc.price }]);
+        setItems([...items, { description: svc.name, quantity: '1', unit_price: svc.price, isFromCatalog: true }]);
       }
     }
     e.target.value = ''; 
@@ -1273,9 +1274,9 @@ export default function Dashboard() {
     setNotes(editNotes);
     
     if (quote.quote_items && quote.quote_items.length > 0) {
-      setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price })));
+      setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price, isFromCatalog: false })));
     } else {
-      setItems([{ description: '', quantity: '1', unit_price: '' }]);
+      setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStatusMsg({ text: `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
@@ -1295,7 +1296,7 @@ export default function Dashboard() {
     setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
-    setItems([{ description: '', quantity: '1', unit_price: '' }]);
+    setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
   };
 
   const handleDuplicateQuote = (quote) => {
@@ -1322,9 +1323,9 @@ export default function Dashboard() {
     setNotes(dupNotes);
     
     if (quote.quote_items && quote.quote_items.length > 0) {
-      setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price })));
+      setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price, isFromCatalog: false })));
     } else {
-      setItems([{ description: '', quantity: '1', unit_price: '' }]);
+      setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStatusMsg({ text: 'Quote loaded for duplication.', type: 'success' });
@@ -1344,7 +1345,7 @@ export default function Dashboard() {
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
     setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
-    setItems([{ description: '', quantity: '1', unit_price: '' }]);
+    setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     setStatusMsg({ text: 'Action cancelled. Here are your quotes.', type: 'success' });
   };
 
@@ -1459,7 +1460,7 @@ export default function Dashboard() {
       setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
       setNotes('');
       setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
-      setItems([{ description: '', quantity: '1', unit_price: '' }]);
+      setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {

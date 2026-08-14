@@ -28,17 +28,14 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // רפרנס למיכל ההודעות הפנימי בלבד כדי למנוע קפיצת מסך
   const scrollContainerRef = useRef(null);
 
-  // האזנה לאירוע גלובלי לפתיחת הצ'אט מבחוץ
   useEffect(() => {
     const handleOpenExternalChat = () => setIsOpen(true);
     window.addEventListener('open-proflow-ai-chat', handleOpenExternalChat);
     return () => window.removeEventListener('open-proflow-ai-chat', handleOpenExternalChat);
   }, []);
 
-  // פונקציית הגלילה החדשה שגוללת רק את המיכל הפנימי ולא את כל האתר
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
@@ -303,7 +300,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
   };
 
   return (
-    <div className="no-print" style={{ 
+    <div className="no-print ai-chat-container" style={{ 
       position: 'fixed', 
       bottom: '24px', 
       left: 0, 
@@ -330,6 +327,9 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
           
           <style>{`
             @media (max-width: 768px) {
+              .ai-chat-container {
+                bottom: 85px !important;
+              }
               .ai-chat-popup {
                 position: fixed !important;
                 top: 0 !important;

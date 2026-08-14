@@ -10,7 +10,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   const [waitingForOperand, setWaitingForOperand] = useState(false);
   const [pendingOperator, setPendingOperator] = useState(null);
 
-  const [rates, setRates] = useState({ USD: 3.75, EUR: 4.05, GBP: 4.80 });
+  const [rates, setRates] = useState({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
   const [lastUpdated, setLastUpdated] = useState('');
   const [calcAmount, setCalcAmount] = useState('100');
   
@@ -35,17 +35,12 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
         const data = await res.json();
         if (data && data.rates) {
-          const ilsRate = data.rates.ILS || 3.75;
-          setRates({
-            USD: Number((ilsRate / data.rates.USD).toFixed(4)),
-            EUR: Number((ilsRate / data.rates.EUR).toFixed(4)),
-            GBP: Number((ilsRate / data.rates.GBP).toFixed(4)),
-          });
+          setRates(data.rates);
           const now = new Date();
           setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (e) {
-        setRates({ USD: 3.75, EUR: 4.05, GBP: 4.80 });
+        setRates({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
         setLastUpdated('Live (Cached)');
       }
     };
@@ -164,16 +159,9 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
     setWaitingForOperand(true);
   };
 
-  // חישוב המרה מבוסס מטבעות זרים בלבד אם מדובר בבינלאומי
-  const getRateValue = (curr) => {
-    if (!isGlobal && curr === 'ILS') return 1;
-    if (curr === 'USD') return rates.USD;
-    if (curr === 'EUR') return rates.EUR;
-    if (curr === 'GBP') return rates.GBP;
-    return 1;
-  };
-
-  const convertedValue = ((Number(calcAmount) || 0) * getRateValue(fromCurr)) / getRateValue(toCurr);
+  // פונקציית המרה אוניברסלית לפי מטבע הבסיס (USD = 1)
+  const getRateToUSD = (curr) => rates[curr] || 1;
+  const convertedValue = (Number(calcAmount) || 0) / getRateToUSD(fromCurr) * getRateToUSD(toCurr);
 
   return (
     <div
@@ -212,7 +200,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
           <span style={{ fontWeight: '700', fontSize: '0.85rem' }}>
-            {isHebrew ? 'מחשבון ושערי מטבע חיים' : 'Live Calculator & Rates'}
+            {isHebrew ? 'מחשבון פיננסי חכם' : 'Smart Financial Calculator'}
           </span>
         </div>
         <button
@@ -228,25 +216,46 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         <div style={{ background: 'white', borderRadius: '10px', padding: '10px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>
-              {isHebrew ? 'שערים חיים (מתעדכן כל 10 דקות)' : 'Live Rates (Updated every 10m)'}
+              {isGlobal 
+                ? (isHebrew ? 'שערים חיים מ-$ ל: (מתעדכן כל 10 דק\')' : 'Live rates from $ to: (updates every 10 min)')
+                : (isHebrew ? 'שערים יציגים מ-₪ ל: (מתעדכן כל 10 דק\')' : 'Live rates from ₪ to: (updates every 10 min)')}
             </span>
             <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
           </div>
+          
+          {/* חוק ברזל: תצוגת השערים מותאמת אישית למצב הבינלאומי (בלי ILS) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
-            {!isGlobal && (
-              <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>USD</div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{rates.USD}</div>
-              </div>
+            {isGlobal ? (
+              <>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>EUR</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{(rates.EUR || 0).toFixed(4)}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>GBP</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{(rates.GBP || 0).toFixed(4)}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>CAD</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{(rates.CAD || 0).toFixed(4)}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>USD</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{((rates.ILS || 0) / (rates.USD || 1)).toFixed(4)}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>EUR</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{((rates.ILS || 0) / (rates.EUR || 1)).toFixed(4)}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>GBP</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{((rates.ILS || 0) / (rates.GBP || 1)).toFixed(4)}</div>
+                </div>
+              </>
             )}
-            <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>EUR</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{isGlobal ? rates.EUR : `₪${rates.EUR}`}</div>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>GBP</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{isGlobal ? rates.GBP : `₪${rates.GBP}`}</div>
-            </div>
           </div>
         </div>
 

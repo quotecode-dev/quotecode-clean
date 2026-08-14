@@ -251,8 +251,10 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+                                    }
                                   }}
                                   disabled={isLocked}
                                   style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#d97706', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
@@ -264,7 +266,7 @@ export default function QuotesTab({
                                   ) : (
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                   )}
-                                  <span>{isLocked ? (isHebrew ? 'עריכה נעולה' : 'Locked') : t.edit}</span>
+                                  <span>{isLocked ? (isHebrew ? 'עריכה נעולה' : 'Locked') : (isHebrew ? 'ערוך הזמנה' : 'Edit Quote')}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
                                   <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
@@ -284,7 +286,7 @@ export default function QuotesTab({
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                  <span>{t.duplicate}</span>
+                                  <span>{isHebrew ? 'שכפל הזמנה' : 'Duplicate Quote'}</span>
                                 </button>
                               </div>
 
@@ -316,16 +318,28 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id));
+                                    }
                                   }}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                                  onMouseEnter={(e) => e.target.style.background = '#fee2e2'}
+                                  disabled={isLocked}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  onMouseEnter={(e) => { if(!isLocked) e.target.style.background = '#fee2e2'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                                  <span>{t.delete}</span>
+                                  {isLocked ? (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                  ) : (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                  )}
+                                  <span>{isLocked ? (isHebrew ? 'מחיקה נעולה' : 'Locked') : (isHebrew ? 'מחק הזמנה' : 'Delete Quote')}</span>
                                 </button>
+                                {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
+                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
+                                    {isHebrew ? '🚀 אופציה זו זמינה למנויי PRO' : '🚀 Available on PRO plan'}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </>

@@ -87,6 +87,20 @@ export default function QuoteForm({
     }
   };
 
+  const handleCatalogAdd = (e) => {
+    const sId = e.target.value;
+    if (!sId) return;
+    const svc = services.find(s => s.id.toString() === sId);
+    if (svc) {
+      if (items.length === 1 && items[0].description === '' && items[0].unit_price === '') {
+        setItems([{ description: svc.name, quantity: '1', unit_price: svc.price, isFromCatalog: true }]);
+      } else {
+        setItems([...items, { description: svc.name, quantity: '1', unit_price: svc.price, isFromCatalog: true }]);
+      }
+    }
+    e.target.value = ''; 
+  };
+
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
@@ -221,30 +235,34 @@ export default function QuoteForm({
                 onClick={() => setIsCalcOpen(true)} 
                 title={isHebrew ? 'מחשבון' : 'Calculator'}
                 style={{ 
-                  background: '#ffffff', 
-                  border: '1px solid #cbd5e1', 
-                  padding: '5px', 
+                  background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', 
+                  border: '1px solid #a5b4fc', 
+                  padding: '5px 8px', 
                   borderRadius: '6px', 
                   cursor: 'pointer', 
+                  color: '#4f46e5', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  boxShadow: '0 2px 4px rgba(79, 70, 229, 0.15)',
                   transition: 'all 0.2s ease'
                 }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="4" y="2" width="16" height="20" rx="3" fill="#ffffff" stroke="#4f46e5" strokeWidth="2"/>
-                  <rect x="7" y="5" width="10" height="4" rx="1" fill="#f1f5f9" stroke="#cbd5e1"/>
-                  <rect x="7" y="12" width="2" height="2" rx="0.5" fill="#4f46e5"/>
-                  <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#4f46e5"/>
-                  <rect x="15" y="12" width="2" height="2" rx="0.5" fill="#4f46e5"/>
-                  <rect x="7" y="16" width="2" height="2" rx="0.5" fill="#4f46e5"/>
-                  <rect x="11" y="16" width="2" height="2" rx="0.5" fill="#4f46e5"/>
-                  <rect x="15" y="16" width="2" height="2" rx="0.5" fill="#4f46e5"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2" fill="#ffffff"/>
+                  <rect x="4" y="2" width="16" height="20" rx="2"/>
+                  <line x1="8" y1="6" x2="16" y2="6"/>
+                  <line x1="8" y1="10" x2="10" y2="10"/>
+                  <line x1="12" y1="10" x2="14" y2="10"/>
+                  <line x1="16" y1="10" x2="16" y2="10"/>
+                  <line x1="8" y1="14" x2="10" y2="14"/>
+                  <line x1="12" y1="14" x2="14" y2="14"/>
+                  <line x1="16" y1="14" x2="16" y2="18"/>
+                  <line x1="8" y1="18" x2="10" y2="18"/>
+                  <line x1="12" y1="18" x2="14" y2="18"/>
                 </svg>
               </button>
-              <select onChange={handleAddFromCatalog} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.75rem' }}>
+              <select onChange={handleCatalogAdd} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.75rem' }}>
                 <option value="">{t.quickAdd}</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.name} - {sym}{formatNum(s.price)}</option>)}
               </select>
@@ -252,23 +270,36 @@ export default function QuoteForm({
             </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '4px', padding: '0 6px', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b' }}>
-          <span>{t.description}</span>
-          <span>{t.quantity}</span>
-          <span>{t.unitPrice}</span>
-          <span>{t.totalPrice}</span>
-          {items.length > 1 && <span></span>}
-        </div>
+        {/* מעטפת גלילה אופקית מותאמת אישית למובייל */}
+        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '5px' }}>
+          <div style={{ minWidth: '650px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '4px', padding: '0 6px', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b' }}>
+              <span>{t.description}</span>
+              <span>{t.quantity}</span>
+              <span>{t.unitPrice}</span>
+              <span>{t.totalPrice}</span>
+              {items.length > 1 && <span></span>}
+            </div>
 
-        {items.map((item, index) => (
-          <div key={index} style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '6px', background: '#f8fafc', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <input type="text" placeholder={t.description} value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
-            <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
-            <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
-            <div style={{ padding: '7px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '5px', textAlign: isHebrew ? 'left' : 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: isHebrew ? 'flex-start' : 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
-            {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: '#fee2e2', border: 'none', borderRadius: '5px', cursor: 'pointer', color: '#991b1b', fontWeight: 'bold' }}>✕</button>}
+            {items.map((item, index) => (
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '6px', background: '#f8fafc', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <input 
+                  type="text" 
+                  placeholder={t.description} 
+                  value={item.description} 
+                  onChange={(e) => !item.isFromCatalog && handleItemChange(index, 'description', e.target.value)} 
+                  readOnly={item.isFromCatalog}
+                  required 
+                  style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem', background: item.isFromCatalog ? '#f1f5f9' : 'white', cursor: item.isFromCatalog ? 'not-allowed' : 'text' }} 
+                />
+                <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
+                <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
+                <div style={{ padding: '7px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '5px', textAlign: isHebrew ? 'left' : 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: isHebrew ? 'flex-start' : 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
+                {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: '#fee2e2', border: 'none', borderRadius: '5px', cursor: 'pointer', color: '#991b1b', fontWeight: 'bold' }}>✕</button>}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
 
         <div style={{ borderTop: '2px solid #f1f5f9', marginTop: '12px', paddingTop: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
