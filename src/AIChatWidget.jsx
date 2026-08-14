@@ -69,6 +69,8 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
     if (isOpen) scrollToBottom();
   }, [messages, isOpen, isDashboard]);
 
+  const keywordsMatch = (str, words) => words.some(w => str.includes(w));
+
   const processUserQuery = (queryText) => {
     const lower = queryText.toLowerCase().trim();
     let reply = '';
@@ -76,47 +78,55 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
 
     if (isHebrew) {
       if (!isDashboard) {
-        if (lower.includes('מחיר') || lower.includes('עולה') || lower.includes('מסלול') || lower.includes('כמה')) {
+        if (keywordsMatch(lower, ['היי', 'שלום', 'הלו', 'בוקר טוב', 'ערב טוב', 'אהלן'])) {
+          reply = 'שלום גם לך! איך אוכל לעזור לך היום עם המערכת של ProFlow?';
+        } else if (keywordsMatch(lower, ['תודה', 'תודה רבה', 'מעולה', 'מצוין'])) {
+          reply = 'בשמחה רבה! אני כאן אם תצטרך משהו נוסף. 😊';
+        } else if (keywordsMatch(lower, ['מחיר', 'עולה', 'מסלול', 'כמה'])) {
           reply = 'אנחנו מציעים 3 מסלולים עיקריים: מסלול חינמי (Free) ב-0 ₪, מסלול בסיסי (Basic) החל מ-39 ₪ לחודש, ומסלול עסקי (Pro) הפופולרי ב-79 ₪ לחודש (בחיוב שנתי). ניתן לעבור בין המסלולים בכל עת!';
-        } else if (lower.includes('ניסיון') || lower.includes('חינם') || lower.includes('14')) {
+        } else if (keywordsMatch(lower, ['ניסיון', 'חינם', '14'])) {
           reply = 'תקופת הניסיון מעניקה לך 14 יום חינם לגמרי עם גישה מלאה לכל פיצ\'רי ה-PRO של המערכת (הצעות מחיר ללא הגבלה, שליחת וואטסאפ ועוד) ללא שום התחייבות!';
-        } else if (lower.includes('מע"מ') || lower.includes('מס') || lower.includes('vat')) {
+        } else if (keywordsMatch(lower, ['מע"מ', 'מס', 'vat'])) {
           reply = 'ללקוחות בארץ המחירים כוללים מע"מ 18% כחוק (עם פירוט סכום לפני מע"מ). ללקוחות מחו"ל (International) המע"מ מוגדר אוטומטית כ-0%.';
-        } else if (lower.includes('עובדים') || lower.includes('צוות') || lower.includes('הרשאות')) {
+        } else if (keywordsMatch(lower, ['עובדים', 'צוות', 'הרשאות'])) {
           reply = 'במסלול PRO ניתן לנהל גישות מתקדמות ולצרף משתמשים נוספים לעסק בהתאם לצורך ניהול המכירות והמשרד.';
-        } else if (lower.includes('לוגו') || lower.includes('מיתוג') || lower.includes('צבעים') || lower.includes('עיצוב')) {
+        } else if (keywordsMatch(lower, ['לוגו', 'מיתוג', 'צבעים', 'עיצוב'])) {
           reply = 'בהחלט! תוכל להעלות את לוגו העסק שלך בהגדרות המערכת, והוא יופיע באופן אוטומטי בראש כל הצעת מחיר שתפיק ללקוחותיך.';
-        } else if (lower.includes('חשבונית') || lower.includes('קבלה') || lower.includes('תשלום') || lower.includes('אשראי') || lower.includes('פייפאל')) {
+        } else if (keywordsMatch(lower, ['חשבונית', 'קבלה', 'תשלום', 'אשראי', 'פייפאל'])) {
           reply = 'המנוי נרכש בצורה מאובטחת באשראי או באמצעים דיגיטליים, והמערכת מספקת אסמכתאות וחשבונות מסודרים. ProFlow מתמקדת בהפקת הצעות מחיר חכמות, גבייה וחתימות דיגיטליות.';
-        } else if (lower.includes('ייבוא') || lower.includes('ייבא') || lower.includes('אקסל') || lower.includes('מיגרציה')) {
+        } else if (keywordsMatch(lower, ['ייבוא', 'ייבא', 'אקסל', 'מיגרציה'])) {
           reply = 'כן, ניתן לייבא נתונים ולקוחות בקלות אל תוך ספר הלקוחות (CRM) של ProFlow, וכן לייצא את כל הנתונים החוצה בפורמט CSV בכל עת.';
-        } else if (lower.includes('אינטגרציה') || lower.includes('api') || lower.includes('סליקה') || lower.includes('חיבור')) {
+        } else if (keywordsMatch(lower, ['אינטגרציה', 'api', 'סליקה', 'חיבור'])) {
           reply = 'ProFlow תומכת בחיבורים מתקדמים, שליחת הודעות וואטסאפ ישירות, וייצוא נתונים נוח למערכות חיצוניות ולאקסל.';
-        } else if (lower.includes('קשר') || lower.includes('תמיכה') || lower.includes('אימייל') || lower.includes('support')) {
+        } else if (keywordsMatch(lower, ['קשר', 'תמיכה', 'אימייל', 'support'])) {
           reply = 'ניתן לפנות אלינו בכל שאלה ישירות לכתובת האימייל של שירות הלקוחות: support@quotecodepro.com. אנו משתדלים להשיב בתוך 24 שעות בימי עסקים.';
-        } else if (lower.includes('ענן') || lower.includes('אבטחה') || lower.includes('בטוח')) {
+        } else if (keywordsMatch(lower, ['ענן', 'אבטחה', 'בטוח'])) {
           reply = 'בהחלט! ProFlow מבוססת על שרתי ענן מתקדמים ברמת אבטחה גבוהה ביותר, כולל הצפנת נתונים וגיבויים אוטומטיים שמבטיחים שהמידע שלך תמיד שמור.';
-        } else if (lower.includes('ביטול') || lower.includes('להקפיא') || lower.includes('לבטל')) {
+        } else if (keywordsMatch(lower, ['ביטול', 'להקפיא', 'לבטל'])) {
           reply = 'ניתן לבטל או להקפיא את המנוי בכל עת ללא התחייבות. בעת הביטול מתוך "הגדרות עסק" במערכת, תוכל לבחור אם למחוק את כל הנתונים שלך לצמיתות, או לשמור אותם בארכיון לצפייה עתידית.';
         } else {
           reply = 'ProFlow היא פלטפורמת SaaS עננית לניהול עסק, הפקת הצעות מחיר חכמות, חתימות דיגיטליות וניהול לקוחות. האם תרצה להתחיל 14 יום ניסיון חינם או לשאול על המסלולים והפיצ\'רים שלנו?';
         }
       } else {
-        if (lower === 'מייל' || lower === 'אימייל') {
+        if (keywordsMatch(lower, ['היי', 'שלום', 'הלו', 'בוקר טוב', 'ערב טוב', 'אהלן'])) {
+          reply = 'שלום גם לך! איך אוכל לעזור לך היום עם הניווט או הפעולות במערכת?';
+        } else if (keywordsMatch(lower, ['תודה', 'תודה רבה', 'מעולה', 'מצוין'])) {
+          reply = 'בשמחה רבה! אני כאן אם תצטרך משהו נוסף. 😊';
+        } else if (keywordsMatch(lower, ['מייל', 'אימייל']) && !keywordsMatch(lower, ['לשלוח', 'שלח'])) {
           reply = 'האם אתה מתכוון ליצירת קשר עם שירות הלקוחות, או לשליחת הצעת מחיר במייל ללקוח?';
           options = [
             { label: '📞 יצירת קשר עם שירות הלקוחות', action: 'contact_support' },
             { label: '📄 שליחת הצעת מחיר במייל', action: 'send_quote_email' }
           ];
-        } else if (lower === 'עריכה' || lower === 'לערוך' || lower === 'שינוי') {
-          reply = 'למה אתה מתכוון כשאתה אומר עריכה? בחר את האפשרות המתאימה:';
+        } else if (keywordsMatch(lower, ['עריכה', 'לערוך', 'לשנות', 'משנים', 'איך משנים'])) {
+          reply = 'מה בדיוק תרצה לערוך או לשנות? בחר את האפשרות המתאימה:';
           options = [
             { label: '✏️ עריכת הצעת מחיר קיימת', action: 'edit_quote' },
             { label: '👥 עריכת פרטי לקוח (CRM)', action: 'edit_client' },
             { label: '📦 עריכת שירות/מוצר בקטלוג', action: 'edit_catalog' },
-            { label: '⚙️ עריכת הגדרות עסק', action: 'edit_settings' }
+            { label: '⚙️ עריכת הגדרות עסק (כולל לוגו)', action: 'edit_settings' }
           ];
-        } else if (lower === 'מחיקה' || lower === 'למחוק') {
+        } else if (keywordsMatch(lower, ['מחיקה', 'למחוק', 'איך מוחקים'])) {
           reply = 'מה ברצונך למחוק? בחר את האפשרות הרצויה:';
           options = [
             { label: '🗑️ מחיקת הצעת מחיר', action: 'delete_quote' },
@@ -125,73 +135,81 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
             { label: '📊 מחיקת הוצאה מהדוחות', action: 'delete_expense' },
             { label: '🛑 ביטול / מחיקת מנוי', action: 'cancel_subscription' }
           ];
-        } else if (lower === 'לקוח' || lower === 'לקוחות') {
+        } else if (keywordsMatch(lower, ['לקוח', 'לקוחות']) && !keywordsMatch(lower, ['חדש', 'הצעה'])) {
           reply = 'האם אתה מתכוון לניהול ספר הלקוחות או ליצירת הצעה ללקוח חדש?';
           options = [
             { label: '👥 ניהול וצפייה בספר הלקוחות (CRM)', action: 'manage_clients' },
             { label: '➕ יצירת הצעת מחיר חדשה ללקוח', action: 'new_quote' }
           ];
-        } else if (lower.includes('שליחת הצעת מחיר במייל') || lower.includes('שולח') && lower.includes('הצעה') && lower.includes('מייל')) {
-          reply = 'כדי לשלוח הצעת מחיר במייל ללקוח: פתח את תפריט "פעולות ▼" בשורת ההצעה המבוקשת ובחר באפשרות "שלח במייל". המערכת תשלח את ההצעה אוטומטית לכתובת המייל של הלקוח דרך השרת שלנו (support@quotecodepro.com).';
-        } else if (lower.includes('קשר') || lower.includes('פנייה') || lower.includes('לפנות') || lower.includes('אימייל של שירות') || lower.includes('מייל של שירות') || lower.includes('מה האימייל') || lower.includes('כתובת מייל') || lower.includes('שירות לקוחות') || lower.includes('תמיכה') || lower.includes('support')) {
-          reply = 'ניתן ליצור איתנו קשר ישירות דרך כתובת האימייל של שירות הלקוחות: support@quotecodepro.com, או להמשיך לקבל מענה מיידי וזמין 24/7 כאן בעוזר ה-AI. לידיעתך, הפעילות שלנו מתנהלת באופן דיגיטלי בענן ללא קבלת קהל פיזית במשרדים.';
-        } else if (lower.includes('קטלוג') || lower.includes('מוצר') || lower.includes('שירות בקטלוג') || lower.includes('הוספת מוצר') || lower.includes('הוספת שירות')) {
-          reply = 'כדי להוסיף מוצר או שירות לקטלוג: גלול למטה בטאב "הצעות מחיר" הראשי אל טבלת "קטלוג שירותים ומוצרים". הזן בשדה הייעודי את שם השירות/המוצר ואת המחיר הקבוע שלו, ולחץ על כפתור "הוסף לקטלוג". לאחר מכן תוכל לבחור אותו בלחיצה מהירה מתוך רשימת הקטלוג בעת יצירת הצעת מחיר!';
-        } else if (lower.includes('פעולות') || lower.includes('תפריט') || lower.includes('כפתור') || lower.includes('צפה')) {
-          reply = 'בכל שורה של הצעת מחיר בטבלה ישנו כפתור "פעולות ▼" מצד שמאל. בלחיצה עליו נפתח תפריט המאפשר לך: לצפות במסמך (👁️), לערוך אותו (✏️), לשכפל (📋), לשלוח בוואטסאפ או במייל, או למחוק את ההצעה.';
-        } else if (lower.includes('סיכום') || lower.includes('הזמנות') || lower.includes('רשימה') || lower.includes('היסטוריה') || lower.includes('טבלה')) {
-          reply = 'את סיכום כל ההצעות וההזמנות ניתן לראות בטאב "הצעות מחיר" הראשי. הטבלה מציגה את מספר ההזמנה, שם הלקוח, תיאור הפריט הראשון, הסכום הכולל, תאריך היצירה, סטטוס העסק (טיוטה, נשלח, אושר, שולם) ומספר צפיות אמיתיות של לקוחות (👁️).';
-        } else if (lower.includes('הצעה') || lower.includes('חדשה') || lower.includes('ליצור') || lower.includes('הפקת')) {
-          reply = 'כדי ליצור הצעת מחיר חדשה לחץ על כפתור "➕ צור הצעת מחיר חדשה" בראש הדשבורד. מלא את פרטי הלקוח, בחר את סוג הלקוח (עסקי או פרטי), הוסף פריטים (ידנית או מהקטלוג) ולחיצה על "הפק ושמור בענן" תשמור את ההצעה.';
-        } else if (lower.includes('וואטסאפ') || lower.includes('whatsapp') || lower.includes('וואט סאפ'))  {
+        } else if (keywordsMatch(lower, ['הדפסה', 'להדפיס', 'pdf', 'פי די אף'])) {
+          reply = 'כדי להדפיס או לשמור כ-PDF: פתח את הצעת המחיר הרצויה בלחיצה על תפריט "פעולות ▼" -> "צפה במסמך". לאחר מכן, לחץ על אייקון ההדפסה בחלק העליון ושמור את המסמך כ-PDF דרך הדפדפן.';
+        } else if (keywordsMatch(lower, ['לשלוח הצעת מחיר במייל', 'לשלוח במייל', 'שולח'])) {
+          reply = 'כדי לשלוח הצעת מחיר במייל ללקוח: פתח את תפריט "פעולות ▼" בשורת ההצעה המבוקשת ובחר באפשרות "שלח במייל". המערכת תשלח את ההצעה אוטומטית לכתובת המייל של הלקוח דרך השרת שלנו.';
+        } else if (keywordsMatch(lower, ['קשר', 'פנייה', 'לפנות', 'שירות לקוחות', 'תמיכה'])) {
+          reply = 'ניתן ליצור איתנו קשר ישירות דרך כתובת האימייל של שירות הלקוחות: support@quotecodepro.com, או להמשיך לקבל מענה מיידי כאן ב-AI. הפעילות שלנו מתנהלת אונליין ללא קבלת קהל פרונטלית.';
+        } else if (keywordsMatch(lower, ['קטלוג', 'מוצר', 'שירות', 'להוסיף מוצר', 'להוסיף שירות'])) {
+          reply = 'כדי להוסיף מוצר או שירות לקטלוג: גלול למטה בטאב הראשי אל "קטלוג שירותים ומוצרים". הזן את שם הפריט ומחירו, ולחץ על "הוסף לקטלוג". לאחר מכן תוכל לבחור אותו בלחיצה אחת כשתיצור הצעות מחיר.';
+        } else if (keywordsMatch(lower, ['פעולות', 'תפריט', 'כפתור', 'צפה', 'איך עורכים', 'איך צופים'])) {
+          reply = 'בכל שורה של הצעת מחיר בטבלה ישנו כפתור "פעולות ▼". לחיצה עליו פותחת תפריט מתקדם המאפשר לך: לצפות במסמך, לערוך הזמנה, לשכפל, לשלוח בוואטסאפ או במייל, ולמחוק מסמך.';
+        } else if (keywordsMatch(lower, ['סיכום', 'הזמנות', 'רשימה', 'היסטוריה', 'טבלה'])) {
+          reply = 'את סיכום כל ההצעות וההזמנות ניתן לראות בטאב "הצעות מחיר" הראשי. הטבלה מציגה את כל המידע (מספר הזמנה, סכומים, סטטוס תשלום וכו\') כולל יכולת מיון וחיפוש מתקדמת.';
+        } else if (keywordsMatch(lower, ['הצעה', 'חדשה', 'ליצור', 'הפקת', 'איך יוצרים'])) {
+          reply = 'כדי ליצור הצעת מחיר חדשה לחץ על הכפתור "צור הצעת מחיר חדשה" (כפתור כחול בראש הדשבורד). מלא את פרטי הלקוח, בחר פריטים ולחץ "הפק ושמור בענן".';
+        } else if (keywordsMatch(lower, ['וואטסאפ', 'whatsapp', 'וואט סאפ']))  {
           reply = 'שליחת הצעת מחיר ישירות בוואטסאפ מתבצעת דרך תפריט "פעולות ▼" בשורת ההצעה (פיצ\'ר בלעדי למנויי PRO) המייצר הודעה מוכנה עם לינק ישיר ללקוח.';
-        } else if (lower.includes('מע"מ') || lower.includes('vat') || lower.includes('מס')) {
-          reply = 'המערכת מחשבת מע"מ אוטומטית בהתאם להגדרות העסק: 18% ללקוחות בארץ (עם אפשרות לחישוב כולל/לפני מע"מ לפי סוג הלקוח) ו-0% ללקוחות מחו"ל.';
-        } else if (lower.includes('פיזי') || lower.includes('משרד') || lower.includes('להגיע') || lower.includes('כתובת') || lower.includes('פגישה') || lower.includes('פרונטלית') || lower.includes('סניף')) {
-          reply = 'מערכת ProFlow הינה פלטפורמת SaaS עננית ודיגיטלית מלאה הפועלת אונליין, ולכן אינה מקבלת קהל באופן פיזי במשרדים. כל הפעולות, ניהול העסק, הפקת הצעות והתמיכה מתבצעות באופן דיגיטלי נוח ומהיר ישירות דרך המערכת או באמצעות יצירת קשר עמנו באימייל (support@quotecodepro.com) ובעוזר ה-AI כאן 24/7!';
-        } else if (lower.includes('מיון') || lower.includes('סדר') || lower.includes('למיין') || lower.includes('עמודות')) {
-          reply = 'ניתן למיין את טבלת ההצעות בקלות בלחיצה על כותרות העמודות בטבלה (מספר הזמנה, שם לקוח, סכום, תאריך, סטטוס או צפיות).';
-        } else if (lower.includes('הוצאות') || lower.includes('דוחות') || lower.includes('רווח') || lower.includes('הכנסות'))  {
-          reply = 'בטאב "הוצאות/הכנסות" (למנהלי מערכת) תוכל לנהל את הוצאות העסק השוטפות, לצפות בגרפים שנתיים של הכנסות מול הוצאות, ולייצא דוחות מרוכזים לאקסל (CSV).';
-        } else if (lower.includes('אזור') || lower.includes('lcl') || lower.includes('intl') || lower.includes('משתמשים') || lower.includes('אדמין')) {
-          reply = 'פאנל ה-Super Admin מאפשר לראות את כל משתמשי המערכת, לנהל את החבילות שלהם (Free, Basic, Pro), להעניק מנוי לכל החיים (Lifetime), ולשנות את אזור הפעילות (LCL לישראל בירוק, או Intl לחו"ל באדום עם התראת אישור).';
-        } else if (lower.includes('ביטול מנוי') || lower.includes('לבטל מנוי') || lower.includes('להקפיא') || lower.includes('הקפאה') || lower.includes('למחוק מנוי') || lower.includes('איך מבטלים')) {
-          reply = 'כדי לבטל או להקפיא את המנוי שלך: עבור לטאב "הגדרות עסק", גלול למטה לאזור "ניהול מנוי וחבילת שירות". לחץ על "ביטול מנוי" – במהלך תהליך העזיבה תוכל לבחור האם לשמור את כל הנתונים שלך בארכיון לצפייה עתידית (Read-only), או למחוק את כל הנתונים מהשרתים לצמיתות באופן מיידי.';
+        } else if (keywordsMatch(lower, ['מע"מ', 'vat', 'מס'])) {
+          reply = 'המערכת מחשבת מע"מ אוטומטית: 18% ללקוחות בארץ (עם הצגה מפורטת של הסכום לפני ואחרי מע"מ) ו-0% ללקוחות בינלאומיים בחו"ל.';
+        } else if (keywordsMatch(lower, ['מיון', 'סדר', 'למיין', 'עמודות'])) {
+          reply = 'ניתן למיין את טבלת ההצעות בקלות בלחיצה על כותרות העמודות בטבלה (מספר הזמנה, שם לקוח, סכום, תאריך, סטטוס או צפיות). קליק נוסף יהפוך את סדר המיון.';
+        } else if (keywordsMatch(lower, ['הוצאות', 'דוחות', 'רווח', 'הכנסות', 'פיננסים']))  {
+          reply = 'בטאב "פיננסים" שבתפריט התחתון, תוכל לנהל את כל הוצאות העסק השוטפות, לצפות בגרפים פיננסיים של הכנסות מול הוצאות, ולייצא דוחות מרוכזים לאקסל (CSV).';
+        } else if (keywordsMatch(lower, ['אזור', 'lcl', 'intl', 'משתמשים', 'אדמין'])) {
+          reply = 'פאנל ה-Super Admin מאפשר לראות את כל משתמשי המערכת, לנהל את החבילות שלהם (Free, Basic, Pro), להעניק מנוי לכל החיים (Lifetime), ולשנות את אזור הפעילות (LCL/Intl).';
+        } else if (keywordsMatch(lower, ['ביטול מנוי', 'לבטל מנוי', 'להקפיא', 'למחוק מנוי', 'איך מבטלים', 'התנתק'])) {
+          reply = 'כדי לבטל את המנוי או להקפיאו: עבור לטאב "הגדרות עסק", גלול לאזור "ניהול מנוי" ולחץ "ביטול מנוי". אם ברצונך רק להתנתק מהמשתמש שלך כרגע, יש ללחוץ על Sign Out בתפריט העליון.';
         } else {
-          reply = 'מערכת ProFlow מספקת ניהול עסק חכם, הצעות מחיר, קטלוג מוצרים ושירותים, חתימות דיגיטליות, ניהול אזורי פעילות LCL/Intl ודוחות פיננסיים. שאל אותי למשל על: הוספת מוצר לקטלוג, יצירת הצעת מחיר, ניהול לקוחות, ביטול מנוי, או יצירת קשר!';
+          reply = 'מערכת ProFlow כוללת כלים מתקדמים: הפקת הצעות מחיר, קטלוג שירותים, ניהול לקוחות (CRM), חתימות דיגיטליות ודוחות פיננסיים. שאל אותי ספציפית על: מחיקה, עריכה, הדפסה, וואטסאפ או הוספת מוצר לקטלוג!';
         }
       }
     } else {
       if (!isDashboard) {
-        if (lower.includes('price') || lower.includes('cost') || lower.includes('plan')) {
+        if (keywordsMatch(lower, ['hi', 'hello', 'hey', 'good morning'])) {
+          reply = 'Hello! How can I assist you with ProFlow today?';
+        } else if (keywordsMatch(lower, ['thanks', 'thank you', 'awesome', 'great'])) {
+          reply = 'You\'re very welcome! Let me know if you need anything else. 😊';
+        } else if (keywordsMatch(lower, ['price', 'cost', 'plan'])) {
           reply = 'We offer 3 main plans: Free ($0), Basic (starting at $12/mo billed annually), and our most popular Pro Business plan ($23/mo billed annually).';
-        } else if (lower.includes('trial') || lower.includes('free') || lower.includes('14')) {
+        } else if (keywordsMatch(lower, ['trial', 'free', '14'])) {
           reply = 'The 14-day free trial gives you full access to all PRO features with zero obligations!';
-        } else if (lower.includes('tax') || lower.includes('vat')) {
+        } else if (keywordsMatch(lower, ['tax', 'vat'])) {
           reply = 'Prices for Israeli clients include 18% VAT as required by law, while international clients are billed at 0% VAT automatically.';
-        } else if (lower.includes('team') || lower.includes('employees') || lower.includes('staff') || lower.includes('users')) {
+        } else if (keywordsMatch(lower, ['team', 'employees', 'staff', 'users'])) {
           reply = 'With the PRO plan, you can manage user access and add team members to handle sales and business operations efficiently.';
-        } else if (lower.includes('logo') || lower.includes('brand') || lower.includes('colors') || lower.includes('design')) {
+        } else if (keywordsMatch(lower, ['logo', 'brand', 'colors', 'design'])) {
           reply = 'Yes! You can upload your business logo in your settings, and it will automatically appear at the top of every price quote you send to clients.';
-        } else if (lower.includes('invoice') || lower.includes('payment') || lower.includes('credit card') || lower.includes('paypal')) {
+        } else if (keywordsMatch(lower, ['invoice', 'payment', 'credit card', 'paypal'])) {
           reply = 'Subscriptions are securely paid via credit card or digital methods with proper receipts provided. ProFlow focuses on smart price quoting, digital signatures, and client billing.';
-        } else if (lower.includes('import') || lower.includes('excel') || lower.includes('migrate')) {
+        } else if (keywordsMatch(lower, ['import', 'excel', 'migrate'])) {
           reply = 'Yes, you can easily import your client database into ProFlow CRM, and export all data to CSV format at any time.';
-        } else if (lower.includes('integration') || lower.includes('api') || lower.includes('connect')) {
+        } else if (keywordsMatch(lower, ['integration', 'api', 'connect'])) {
           reply = 'ProFlow supports seamless integrations, direct WhatsApp messaging, and easy data exporting to external tools and Excel.';
-        } else if (lower.includes('cancel') || lower.includes('freeze') || lower.includes('pause') || lower.includes('unsubscribe')) {
+        } else if (keywordsMatch(lower, ['cancel', 'freeze', 'pause', 'unsubscribe'])) {
           reply = 'You can cancel or freeze your subscription at any time with no commitments. During cancellation from the "Business Settings" screen, you can choose to permanently delete all your data or archive it for future read-only access.';
         } else {
           reply = 'ProFlow is a cloud-based SaaS platform for smart business management and price quoting. Feel free to ask about our pricing, free trial, or features!';
         }
       } else {
-        if (lower === 'email' || lower === 'mail' || lower === 'e-mail') {
+        if (keywordsMatch(lower, ['hi', 'hello', 'hey', 'good morning'])) {
+          reply = 'Hello! How can I assist you with navigating or using the ProFlow dashboard today?';
+        } else if (keywordsMatch(lower, ['thanks', 'thank you', 'awesome', 'great'])) {
+          reply = 'You\'re very welcome! Let me know if you need anything else. 😊';
+        } else if (keywordsMatch(lower, ['email', 'mail', 'e-mail']) && !keywordsMatch(lower, ['send'])) {
           reply = 'Are you referring to contacting customer support via email, or sending a quote via email to a client?';
           options = [
             { label: '📞 Contact Support', action: 'contact_support' },
             { label: '📄 Send Quote via Email', action: 'send_quote_email' }
           ];
-        } else if (lower === 'edit' || lower === 'change' || lower === 'modify') {
+        } else if (keywordsMatch(lower, ['edit', 'change', 'modify', 'how to edit'])) {
           reply = 'What would you like to edit? Please select an option:';
           options = [
             { label: '✏️ Edit an existing quote', action: 'edit_quote' },
@@ -199,7 +217,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
             { label: '📦 Edit catalog service/product', action: 'edit_catalog' },
             { label: '⚙️ Edit business settings', action: 'edit_settings' }
           ];
-        } else if (lower === 'delete' || lower === 'remove') {
+        } else if (keywordsMatch(lower, ['delete', 'remove', 'how to delete'])) {
           reply = 'What would you like to delete? Please select an option:';
           options = [
             { label: '🗑️ Delete a quote', action: 'delete_quote' },
@@ -208,34 +226,34 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
             { label: '📊 Delete an expense', action: 'delete_expense' },
             { label: '🛑 Cancel Subscription', action: 'cancel_subscription' }
           ];
-        } else if (lower === 'client' || lower === 'clients') {
+        } else if (keywordsMatch(lower, ['client', 'clients']) && !keywordsMatch(lower, ['new', 'quote'])) {
           reply = 'Are you referring to managing your client database or creating a new quote for a client?';
           options = [
             { label: '👥 Manage Clients Database (CRM)', action: 'manage_clients' },
             { label: '➕ Create New Quote for Client', action: 'new_quote' }
           ];
-        } else if (lower.includes('send') && lower.includes('quote') && lower.includes('email')) {
-          reply = 'To send a quote via email to your client, click the "Actions ▼" menu on the quote row and select "Send Email" (sent via support@quotecodepro.com).';
-        } else if (lower.includes('support') || lower.includes('email') || lower.includes('contact') || lower.includes('reach out') || lower.includes('customer service')) {
-          reply = 'You can contact our support team directly via email at support@quotecodepro.com, or continue getting immediate 24/7 assistance right here through the AI assistant. Please note that ProFlow operates as a fully digital cloud platform without public walk-in offices.';
-        } else if (lower.includes('catalog') || lower.includes('product') || lower.includes('add catalog') || lower.includes('catalog item')) {
-          reply = 'To add a product or service to the catalog: scroll down on the main "Quotes" tab to the "Services & Products Catalog" section. Enter the service name and fixed price, then click "Add to Catalog". You can then quickly select it when building quotes!';
-        } else if (lower.includes('action') || lower.includes('menu') || lower.includes('button') || lower.includes('view')) {
+        } else if (keywordsMatch(lower, ['print', 'pdf', 'download pdf'])) {
+          reply = 'To print or save a quote as PDF: Open the quote by clicking "Actions ▼" -> "View Quote". Then, click the printer icon at the top of the document to save it as a PDF using your browser\'s native print dialog.';
+        } else if (keywordsMatch(lower, ['send', 'quote', 'email'])) {
+          reply = 'To send a quote via email to your client, click the "Actions ▼" menu on the quote row and select "Send Email". The system will automatically dispatch it.';
+        } else if (keywordsMatch(lower, ['support', 'contact', 'reach out', 'customer service'])) {
+          reply = 'You can contact our support team directly via email at support@quotecodepro.com, or continue getting immediate 24/7 assistance right here through the AI assistant.';
+        } else if (keywordsMatch(lower, ['catalog', 'product', 'add catalog', 'catalog item'])) {
+          reply = 'To add a product or service to the catalog: scroll down on the main "Quotes" tab to the "Services & Products Catalog" section. Enter the service name and fixed price, then click "Add to Catalog".';
+        } else if (keywordsMatch(lower, ['action', 'menu', 'button', 'view'])) {
           reply = 'In the quotes table, click the "Actions ▼" button on any row to open a menu where you can view, edit, duplicate, WhatsApp/email, or delete the quote.';
-        } else if (lower.includes('quote') || lower.includes('create')) {
+        } else if (keywordsMatch(lower, ['quote', 'create', 'new quote', 'how to create'])) {
           reply = 'To create a new quote, click "Create New Quote" at the top of your dashboard, fill in client details, add items, and click generate.';
-        } else if (lower.includes('whatsapp')) {
+        } else if (keywordsMatch(lower, ['whatsapp'])) {
           reply = 'You can send quotes directly via WhatsApp using the actions menu in your quotes list (PRO feature).';
-        } else if (lower.includes('physical') || lower.includes('office') || lower.includes('address') || lower.includes('visit') || lower.includes('meeting') || lower.includes('location') || lower.includes('in-person')) {
-          reply = 'ProFlow is a fully cloud-based digital SaaS platform operating online, and therefore does not have a physical walk-in office or public reception. All business operations, quote generation, and support are managed seamlessly and securely online via the platform or through our digital support channels 24/7!';
-        } else if (lower.includes('sort') || lower.includes('column')) {
-          reply = 'You can sort the quotes table by clicking on any column header (Order #, Client Name, Amount, Date, Status, or Views).';
-        } else if (lower.includes('lcl') || lower.includes('intl') || lower.includes('region') || lower.includes('admin')) {
-          reply = 'In the Super Admin panel, you can manage user subscription plans, grant Lifetime access, and control business regions (LCL in green for Israel or Intl in red for international).';
-        } else if (lower.includes('cancel subscription') || lower.includes('unsubscribe') || lower.includes('freeze') || lower.includes('pause') || lower.includes('delete account')) {
-          reply = 'To cancel or freeze your subscription: go to the "Business Settings" tab and scroll down to "Subscription Management". Click "Cancel Subscription" – during the cancellation process, you can complete a quick exit survey and choose whether to archive your data for future read-only access or delete it permanently.';
+        } else if (keywordsMatch(lower, ['sort', 'column'])) {
+          reply = 'You can sort the quotes table by clicking on any column header (Order #, Client Name, Amount, Date, Status, or Views). Click again to reverse the order.';
+        } else if (keywordsMatch(lower, ['expenses', 'finances', 'profit', 'revenue'])) {
+          reply = 'In the "Finances" tab at the bottom, you can track business expenses, view yearly profit/revenue charts, and export detailed CSV reports.';
+        } else if (keywordsMatch(lower, ['cancel subscription', 'unsubscribe', 'freeze', 'pause', 'delete account'])) {
+          reply = 'To cancel or freeze your subscription: go to the "Business Settings" tab and scroll down to "Subscription Management". Click "Cancel Subscription".';
         } else {
-          reply = 'ProFlow provides smart business management, quotes, product catalog, digital signatures, region management (LCL/Intl), and financial reports. Feel free to ask about adding catalog items, creating quotes, managing clients, canceling subscriptions, or contacting support!';
+          reply = 'ProFlow provides smart business management, quotes, product catalog, digital signatures, region management (LCL/Intl), and financial reports. Feel free to ask about adding catalog items, creating quotes, managing clients, printing PDFs, or canceling subscriptions!';
         }
       }
     }
