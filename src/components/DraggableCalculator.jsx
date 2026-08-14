@@ -5,40 +5,41 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
 
-  // מצב המחשבון
   const [display, setDisplay] = useState('0');
   const [memory, setMemory] = useState(null);
   const [waitingForOperand, setWaitingForOperand] = useState(false);
   const [pendingOperator, setPendingOperator] = useState(null);
 
-  // שערי מטבע מעודכנים וזמן עדכון אחרון
   const [rates, setRates] = useState({ USD: 3.75, EUR: 4.05, GBP: 4.80 });
   const [lastUpdated, setLastUpdated] = useState('');
   const [calcAmount, setCalcAmount] = useState('100');
   
-  // חוק ברזל: אם העסק בינלאומי, ברירת המחדל תהיה מטבע העסק ולא ILS
-  const defaultCurr = (currency && currency !== 'ILS') ? currency : 'USD';
-  const [fromCurr, setFromCurr] = useState(defaultCurr);
-  const [toCurr, setToCurr] = useState('ILS');
+  // חוק ברזל: התאמה מוחלטת למטבע העסק בלבד (בלי ILS לבינלאומי)
+  const isGlobal = currency && currency !== 'ILS';
+  const defaultCurr = isGlobal ? currency : 'USD';
+  const secondaryCurr = isGlobal ? (currency === 'GBP' ? 'USD' : 'GBP') : 'EUR';
 
-  // עדכון מטבע התחלתי כאשר ה-currency משתנה
+  const [fromCurr, setFromCurr] = useState(defaultCurr);
+  const [toCurr, setToCurr] = useState(secondaryCurr);
+
   useEffect(() => {
     if (currency && currency !== 'ILS') {
       setFromCurr(currency);
+      setToCurr(currency === 'GBP' ? 'USD' : 'GBP');
     }
   }, [currency]);
 
-  // משיכת שערי מטבע אמיתיים ועדכון כל 10 דקות
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/ILS');
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
         const data = await res.json();
         if (data && data.rates) {
+          const ilsRate = data.rates.ILS || 3.75;
           setRates({
-            USD: Number((1 / data.rates.USD).toFixed(4)),
-            EUR: Number((1 / data.rates.EUR).toFixed(4)),
-            GBP: Number((1 / data.rates.GBP).toFixed(4)),
+            USD: Number((ilsRate / data.rates.USD).toFixed(4)),
+            EUR: Number((ilsRate / data.rates.EUR).toFixed(4)),
+            GBP: Number((ilsRate / data.rates.GBP).toFixed(4)),
           });
           const now = new Date();
           setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -163,9 +164,13 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
     setWaitingForOperand(true);
   };
 
+  // חישוב המרה מבוסס מטבעות זרים בלבד אם מדובר בבינלאומי
   const getRateValue = (curr) => {
-    if (curr === 'ILS') return 1;
-    return rates[curr] || 1;
+    if (!isGlobal && curr === 'ILS') return 1;
+    if (curr === 'USD') return rates.USD;
+    if (curr === 'EUR') return rates.EUR;
+    if (curr === 'GBP') return rates.GBP;
+    return 1;
   };
 
   const convertedValue = ((Number(calcAmount) || 0) * getRateValue(fromCurr)) / getRateValue(toCurr);
@@ -228,17 +233,19 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
             <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
-            <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>USD</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{rates.USD}</div>
-            </div>
+            {!isGlobal && (
+              <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>USD</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{rates.USD}</div>
+              </div>
+            )}
             <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>EUR</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{rates.EUR}</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{isGlobal ? rates.EUR : `₪${rates.EUR}`}</div>
             </div>
             <div style={{ background: '#f8fafc', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>GBP</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>₪{rates.GBP}</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0f172a' }}>{isGlobal ? rates.GBP : `₪${rates.GBP}`}</div>
             </div>
           </div>
         </div>
@@ -254,17 +261,17 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
             <option value="GBP">GBP</option>
-            <option value="ILS">ILS</option>
+            {!isGlobal && <option value="ILS">ILS</option>}
           </select>
           <span style={{ fontSize: '0.8rem', color: '#64748b' }}>=</span>
           <div style={{ flex: 1, padding: '6px', background: '#eef2ff', color: '#4f46e5', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'center' }}>
             {convertedValue.toFixed(2)} {toCurr}
           </div>
           <select value={toCurr} onChange={(e) => setToCurr(e.target.value)} style={{ padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', background: '#f1f5f9' }}>
-            <option value="ILS">ILS</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
             <option value="GBP">GBP</option>
+            {!isGlobal && <option value="ILS">ILS</option>}
           </select>
         </div>
 

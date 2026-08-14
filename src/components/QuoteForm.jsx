@@ -216,14 +216,38 @@ export default function QuoteForm({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: '800', margin: 0 }}>{t.quoteItems}</h3>
             <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap' }}>
-              {/* כפתור אייקון מחשבון נקי ויוקרתי עם Tooltip */}
+              {/* כפתור אייקון מחשבון צבעוני, מודרני וחד במיוחד עם Tooltip */}
               <button 
                 type="button" 
                 onClick={() => setIsCalcOpen(true)} 
                 title={isHebrew ? 'מחשבון' : 'Calculator'}
-                style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}
+                style={{ 
+                  background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', 
+                  border: '1px solid #a5b4fc', 
+                  padding: '5px 8px', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer', 
+                  color: '#4f46e5', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  boxShadow: '0 2px 4px rgba(79, 70, 229, 0.15)',
+                  transition: 'all 0.2s ease'
+                }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2" fill="#ffffff"/>
+                  <rect x="4" y="2" width="16" height="20" rx="2"/>
+                  <line x1="8" y1="6" x2="16" y2="6"/>
+                  <line x1="8" y1="10" x2="10" y2="10"/>
+                  <line x1="12" y1="10" x2="14" y2="10"/>
+                  <line x1="16" y1="10" x2="16" y2="10"/>
+                  <line x1="8" y1="14" x2="10" y2="14"/>
+                  <line x1="12" y1="14" x2="14" y2="14"/>
+                  <line x1="16" y1="14" x2="16" y2="18"/>
+                  <line x1="8" y1="18" x2="10" y2="18"/>
+                  <line x1="12" y1="18" x2="14" y2="18"/>
+                </svg>
               </button>
               <select onChange={handleAddFromCatalog} style={{ padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '0.75rem' }}>
                 <option value="">{t.quickAdd}</option>
