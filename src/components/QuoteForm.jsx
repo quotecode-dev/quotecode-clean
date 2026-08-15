@@ -217,18 +217,20 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="date" 
-                value={validUntil} 
-                onChange={(e) => setValidUntil(e.target.value)} 
-                style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', color: 'transparent', caretColor: 'black' }} 
-              />
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '7px 10px', boxSizing: 'border-box', background: '#f8fafc', borderRadius: '6px', pointerEvents: 'none', display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: validUntil ? '#1e293b' : '#94a3b8' }}>
-                {formatDisplayDate(validUntil)}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
+              {validUntil && (
+                <span style={{ fontSize: '0.7rem', color: '#4f46e5', fontWeight: 'bold' }}>
+                  {formatDisplayDate(validUntil)}
+                </span>
+              )}
             </div>
+            <input 
+              type="date" 
+              value={validUntil} 
+              onChange={(e) => setValidUntil(e.target.value)} 
+              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
+            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.discount}</label>
