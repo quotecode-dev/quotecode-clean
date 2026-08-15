@@ -35,7 +35,7 @@ export default function QuoteForm({
   addItem,
   removeItem,
   handleItemChange,
-  handleAddFromCatalog
+  handleAttributesFromCatalog
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -209,7 +209,12 @@ export default function QuoteForm({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
-            <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <input 
+              type="date" 
+              value={validUntil} 
+              onChange={(e) => setValidUntil(e.target.value)} 
+              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
+            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.discount}</label>
@@ -270,7 +275,6 @@ export default function QuoteForm({
             </div>
         </div>
 
-        {/* מעטפת גלילה אופקית מותאמת אישית למובייל */}
         <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '5px' }}>
           <div style={{ minWidth: '650px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '4px', padding: '0 6px', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b' }}>
