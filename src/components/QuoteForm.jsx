@@ -101,6 +101,15 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
@@ -208,13 +217,19 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil} (DD-MM-YYYY)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
+              {validUntil && (
+                <span style={{ fontSize: '0.7rem', color: '#4f46e5', fontWeight: 'bold' }}>
+                  ({formatDisplayDate(validUntil)})
+                </span>
+              )}
+            </div>
             <input 
-              type="text" 
+              type="date" 
               value={validUntil} 
               onChange={(e) => setValidUntil(e.target.value)} 
-              placeholder="DD-MM-YYYY" 
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} 
+              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
             />
           </div>
           <div>
