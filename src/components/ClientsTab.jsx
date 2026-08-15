@@ -16,12 +16,20 @@ export default function ClientsTab({
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
 
   const handleClientDeleteAttempt = (clientId) => {
-    // בדיקה מדויקת האם ללקוח יש הצעה קיימת או חתומה במערכת
+    // בדיקה מדויקת האם ללקוח יש הצעה פעילה או חתומה/מאושרת במערכת
     const clientHasQuotes = quotes.some(q => q.client_id === clientId);
-    if (clientHasQuotes) {
-      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר (או הצעה חתומה) במערכת!' : 'Error: Cannot delete a client with existing or signed quotes!');
+    const clientHasSignedQuotes = quotes.some(q => q.client_id === clientId && (q.status === 'approved' || q.status === 'paid' || q.signature));
+
+    if (clientHasSignedQuotes) {
+      alert(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
       return;
     }
+
+    if (clientHasQuotes) {
+      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      return;
+    }
+
     handleDeleteClient(clientId);
   };
 
