@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function ClientsTab({
   filteredClients = [],
@@ -14,9 +14,9 @@ export default function ClientsTab({
   t
 }) {
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
+  const [clientErrorMsg, setClientErrorMsg] = useState({ clientId: null, text: '' });
 
   const handleClientDeleteAttempt = (clientId) => {
-    // בדיקה מחמירה האם ללקוח יש הצעות מחיר כלשהן או הצעות חתומות/מאושרות
     const clientQuotes = quotes.filter(q => q.client_id === clientId);
     
     const hasSignedOrApprovedQuote = clientQuotes.some(q => {
@@ -25,15 +25,28 @@ export default function ClientsTab({
     });
 
     if (hasSignedOrApprovedQuote) {
-      alert(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
+      setClientErrorMsg({
+        clientId,
+        text: isHebrew 
+          ? '⚠️ לא ניתן למחוק לקוח עם הצעה חתומה/מאושרת. נא לארכב או למחוק את ההצעות תחילה.' 
+          : '⚠️ Cannot delete client with signed/approved quotes. Archive or delete quotes first.'
+      });
+      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 5000);
       return;
     }
 
     if (clientQuotes.length > 0) {
-      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      setClientErrorMsg({
+        clientId,
+        text: isHebrew 
+          ? '⚠️ לא ניתן למחוק לקוח עם הצעות פעילות. נא לארכב או למחוק את ההצעות תחילה.' 
+          : '⚠️ Cannot delete client with active quotes. Archive or delete quotes first.'
+      });
+      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 5000);
       return;
     }
 
+    setClientErrorMsg({ clientId: null, text: '' });
     handleDeleteClient(clientId);
   };
 
@@ -95,47 +108,62 @@ export default function ClientsTab({
                 </td>
               </tr>
             ) : (
-              safeClients.map((client) => (
-                <tr key={client.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
-                  <td style={{ padding: '8px 6px', fontWeight: '500', color: '#1e293b' }}>{client.company_name}</td>
-                  <td style={{ padding: '8px 6px', color: '#475569' }}><span dir="ltr">{client.tax_id || '-'}</span></td>
-                  <td style={{ padding: '8px 6px', color: '#475569', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.email || '-'}</td>
-                  <td style={{ padding: '8px 6px', color: '#475569', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.phone || '-'}</td>
-                  <td style={{ padding: '8px 6px', color: '#475569' }}>{client.address || '-'}</td>
-                  <td style={{ padding: '8px 6px' }}>
-                    <span style={{
-                      background: client.client_type === 'business' ? '#dbeafe' : '#f1f5f9',
-                      color: client.client_type === 'business' ? '#1e40af' : '#475569',
-                      padding: '3px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600'
-                    }}>
-                      {client.client_type === 'business' ? (isHebrew ? 'עסקי' : 'Business') : (isHebrew ? 'פרטי' : 'Private')}
-                    </span>
-                  </td>
-                  <td style={{ padding: '8px 6px', color: '#4f46e5', fontWeight: '400' }}>
-                    {client.notes ? (
-                      <span style={{ background: '#e0e7ff', padding: '2px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                        {client.notes}
-                      </span>
-                    ) : '-'}
-                  </td>
-                  <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <button 
-                      onClick={() => setEditingClient(client)}
-                      style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                      {isHebrew ? 'ערוך' : 'Edit'}
-                    </button>
-                    <button 
-                      onClick={() => handleClientDeleteAttempt(client.id)}
-                      style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                      {t.delete}
-                    </button>
-                  </td>
-                </tr>
-              ))
+              safeClients.map((client) => {
+                const clientQuotesCount = quotes.filter(q => q.client_id === client.id).length;
+                const hasError = clientErrorMsg.clientId === client.id;
+
+                return (
+                  <React.Fragment key={client.id}>
+                    <tr style={{ borderBottom: hasError ? 'none' : '1px solid #f1f5f9', fontSize: '0.8rem' }}>
+                      <td style={{ padding: '8px 6px', fontWeight: '500', color: '#1e293b' }}>{client.company_name}</td>
+                      <td style={{ padding: '8px 6px', color: '#475569' }}><span dir="ltr">{client.tax_id || '-'}</span></td>
+                      <td style={{ padding: '8px 6px', color: '#475569', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.email || '-'}</td>
+                      <td style={{ padding: '8px 6px', color: '#475569', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.phone || '-'}</td>
+                      <td style={{ padding: '8px 6px', color: '#475569' }}>{client.address || '-'}</td>
+                      <td style={{ padding: '8px 6px' }}>
+                        <span style={{
+                          background: client.client_type === 'business' ? '#dbeafe' : '#f1f5f9',
+                          color: client.client_type === 'business' ? '#1e40af' : '#475569',
+                          padding: '3px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600'
+                        }}>
+                          {client.client_type === 'business' ? (isHebrew ? 'עסקי' : 'Business') : (isHebrew ? 'פרטי' : 'Private')}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 6px', color: '#4f46e5', fontWeight: '400' }}>
+                        {client.notes ? (
+                          <span style={{ background: '#e0e7ff', padding: '2px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                            {client.notes}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => setEditingClient(client)}
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          {isHebrew ? 'ערוך' : 'Edit'}
+                        </button>
+                        <button 
+                          onClick={() => handleClientDeleteAttempt(client.id)}
+                          title={clientQuotesCount > 0 ? (isHebrew ? 'לא ניתן למחוק לקוח עם הצעות פעילות' : 'Cannot delete client with active quotes') : ''}
+                          style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                          {t.delete}
+                        </button>
+                      </td>
+                    </tr>
+                    {hasError && (
+                      <tr>
+                        <td colSpan="8" style={{ background: '#fef2f2', borderBottom: '1px solid #f87171', padding: '8px 12px', color: '#991b1b', fontSize: '0.8rem', fontWeight: '600', textAlign: isHebrew ? 'right' : 'left' }}>
+                          {clientErrorMsg.text}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
