@@ -837,20 +837,40 @@ export default function Dashboard() {
     }
   }
 
+  // --- תיקון קריטי: בדיקה מדויקת מול Supabase לחסימת מחיקת לקוח עם הצעה חתומה/מאושרת ---
   async function handleDeleteClient(clientId) {
-    const hasQuotes = quotes.some(q => q.client_id === clientId);
-    if (hasQuotes) {
-      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר (או הצעה חתומה) במערכת!' : 'Error: Cannot delete a client with existing or signed quotes!');
+    const { data: clientQuotes, error: fetchErr } = await supabase
+      .from('quotes')
+      .select('status, signature')
+      .eq('client_id', clientId);
+
+    if (fetchErr) {
+      setStatusMsg({ text: 'Error checking client quotes: ' + fetchErr.message, type: 'error' });
       return;
     }
-    
+
+    const hasSignedOrApproved = clientQuotes && clientQuotes.some(q => 
+      (q.status && (q.status.toLowerCase() === 'approved' || q.status.toLowerCase() === 'paid' || q.status.toLowerCase() === 'signed')) || 
+      (q.signature && q.signature.trim() !== '')
+    );
+
+    if (hasSignedOrApproved) {
+      alert(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
+      return;
+    }
+
+    if (clientQuotes && clientQuotes.length > 0) {
+      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      return;
+    }
+      
     if (!window.confirm(isHebrew ? 'האם למחוק לקוח זה לצמיתות?' : 'Delete this client permanently?')) return;
-    
+      
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
       setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Client updated successfully!', type: 'success' });
+      setStatusMsg({ text: 'Client deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
     }
   }

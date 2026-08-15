@@ -35,7 +35,7 @@ export default function QuoteForm({
   addItem,
   removeItem,
   handleItemChange,
-  handleAttributesFromCatalog
+  handleAddFromCatalog
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -99,6 +99,16 @@ export default function QuoteForm({
       }
     }
     e.target.value = ''; 
+  };
+
+  // פונקציית עזר להמרת תאריך לפורמט ישראלי תקני DD-MM-YYYY
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
   };
 
   return (
@@ -208,7 +218,14 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
+              {validUntil && (
+                <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 'bold', background: '#e0e7ff', padding: '1px 5px', borderRadius: '4px' }}>
+                  {formatDisplayDate(validUntil)}
+                </span>
+              )}
+            </div>
             <input 
               type="date" 
               value={validUntil} 

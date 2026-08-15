@@ -16,22 +16,20 @@ export default function ClientsTab({
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
 
   const handleClientDeleteAttempt = (clientId) => {
-    // בדיקה מדויקת האם ללקוח יש הצעה חתומה, מאושרת או שילמו עליה
-    const clientHasSignedOrApproved = quotes.some(q => 
-      q.client_id === clientId && 
-      ((q.status || '').toLowerCase() === 'approved' || 
-       (q.status || '').toLowerCase() === 'paid' || 
-       q.signature)
-    );
+    // בדיקה מחמירה האם ללקוח יש הצעות מחיר כלשהן או הצעות חתומות/מאושרות
+    const clientQuotes = quotes.filter(q => q.client_id === clientId);
+    
+    const hasSignedOrApprovedQuote = clientQuotes.some(q => {
+      const status = (q.status || '').toLowerCase();
+      return status === 'approved' || status === 'paid' || status === 'signed' || q.signature;
+    });
 
-    const clientHasQuotes = quotes.some(q => q.client_id === clientId);
-
-    if (clientHasSignedOrApproved) {
+    if (hasSignedOrApprovedQuote) {
       alert(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
       return;
     }
 
-    if (clientHasQuotes) {
+    if (clientQuotes.length > 0) {
       alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
       return;
     }
