@@ -101,15 +101,6 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dateStr;
-  };
-
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
@@ -217,14 +208,7 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
-              {validUntil && (
-                <span style={{ fontSize: '0.7rem', color: '#4f46e5', fontWeight: 'bold' }}>
-                  ({formatDisplayDate(validUntil)})
-                </span>
-              )}
-            </div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
             <input 
               type="date" 
               value={validUntil} 
