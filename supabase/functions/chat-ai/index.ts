@@ -64,7 +64,7 @@ Rules:
     // זיהוי השאלה האחרונה של המשתמש
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
 
-    // סיווג חכם של השאלה באמצעות AI נפרד ומהיר או ניתוח מילות מפתח
+    // סיווג חכם של השאלה
     let category = 'GENERAL';
     const lowerMsg = lastUserMessage.toLowerCase();
     if (lowerMsg.includes('ביטול') || lowerMsg.includes('cancel') || lowerMsg.includes('מנוי') || lowerMsg.includes('subscription')) {
@@ -75,26 +75,24 @@ Rules:
       category = 'HARD_QUESTION';
     }
 
-    // אם זו שאלה חריגה, נשמור אותה בטבלת הלוגים ב-Supabase
-    if (category !== 'GENERAL') {
-      try {
-        const supabaseAdmin = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
+    // שומרים מעתה את כל השאלות (הן הרגילות והן הקריטיות/חריגות)
+    try {
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
 
-        await supabaseAdmin.from('chat_logs').insert([
-          {
-            user_email: userEmail || 'anonymous_public_user',
-            user_question: lastUserMessage,
-            ai_response: aiReply,
-            category: category,
-            created_at: new Date().toISOString()
-          }
-        ]);
-      } catch (logErr) {
-        console.error("Failed to log chat question:", logErr);
-      }
+      await supabaseAdmin.from('chat_logs').insert([
+        {
+          user_email: userEmail || 'anonymous_public_user',
+          user_question: lastUserMessage,
+          ai_response: aiReply,
+          category: category,
+          created_at: new Date().toISOString()
+        }
+      ]);
+    } catch (logErr) {
+      console.error("Failed to log chat question:", logErr);
     }
 
     return new Response(JSON.stringify(data), {
