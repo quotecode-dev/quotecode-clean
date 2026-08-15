@@ -7,7 +7,7 @@ export default function AILogs() {
 
   useEffect(() => {
     async function fetchLogs() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('chat_logs')
         .select('*')
         .order('created_at', { ascending: false });

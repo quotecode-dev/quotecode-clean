@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
+import AILogsModal from '../components/AILogsModal';
 import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
 
 import PricingModal from '../components/PricingModal';
@@ -120,6 +121,7 @@ export default function Dashboard() {
   const [editingClient, setEditingClient] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showAILogsModal, setShowAILogsModal] = useState(false);
   
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editServiceName, setEditServiceName] = useState('');
@@ -840,7 +842,7 @@ export default function Dashboard() {
   async function handleDeleteClient(clientId) {
     const hasQuotes = quotes.some(q => q.client_id === clientId);
     if (hasQuotes) {
-      alert(isHebrew ? 'לא ניתן למחוק לקוח שיש לו הצעות מחיר במערכת.' : 'Cannot delete a client with existing quotes.');
+      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר (או הצעה חתומה) במערכת!' : 'Error: Cannot delete a client with existing or signed quotes!');
       return;
     }
     
@@ -850,7 +852,7 @@ export default function Dashboard() {
     if (error) {
       setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Client deleted successfully!', type: 'success' });
+      setStatusMsg({ text: 'Client updated successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
     }
   }
@@ -1660,6 +1662,12 @@ export default function Dashboard() {
         onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
       />
 
+      <AILogsModal 
+        isOpen={showAILogsModal} 
+        onClose={() => setShowAILogsModal(false)} 
+        isHebrew={isHebrew} 
+      />
+
       <SignOutModal 
         isOpen={showSignOutModal} 
         onClose={() => setShowSignOutModal(false)} 
@@ -1786,7 +1794,7 @@ export default function Dashboard() {
               )}
               {isSuperAdmin && (
                 <button
-                  onClick={() => { window.location.href = '/ai-logs'; }}
+                  onClick={() => setShowAILogsModal(true)}
                   style={{
                     padding: '6px 14px', borderRadius: '16px', 
                     border: '1px solid #ef4444', 
@@ -2053,6 +2061,7 @@ export default function Dashboard() {
               handleClientSort={handleClientSort}
               setEditingClient={setEditingClient}
               handleDeleteClient={handleDeleteClient}
+              quotes={quotes}
               isHebrew={isHebrew}
               t={t}
             />
