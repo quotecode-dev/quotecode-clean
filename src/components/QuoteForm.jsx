@@ -332,7 +332,7 @@ export default function QuoteForm({
           </div>
         </div>
 
-        <button type="submit" disabled={isTrialExpired && !isSuperAdmin} style={{ width: '100%', background: editingQuoteId ? '#10b981' : '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', marginTop: '16px' }}>
+        <button type="submit" disabled={isTrialExpired && !isSuperAdmin} style={{ width: '100%', background: editingQuoteId ? '#10b981' : '#4f46e5', color: 'white',, border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', marginTop: '16px' }}>
            {editingQuoteId ? t.updateQuote : t.generateSave}
         </button>
       </form>
