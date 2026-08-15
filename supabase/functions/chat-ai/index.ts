@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,15 +7,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // handling CORS for browser requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { messages, isHebrew, isDashboard } = await req.json();
+    const { messages, isHebrew, isDashboard, userEmail } = await req.json();
 
-    // The bot's "brain" - the rules and context we defined
     const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
 Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. Answer in the user's language.
 Context: The user is currently browsing the ${isHebrew ? 'Hebrew' : 'English'} version of the ${isDashboard ? 'internal app dashboard' : 'public landing page'}.
@@ -42,7 +41,6 @@ Rules:
 - Keep answers under 3-4 short paragraphs.
 - DO NOT make up features.`;
 
-    // send request to OpenAI's engine
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,7 +48,7 @@ Rules:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // most efficient, cost-effective model
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -61,6 +59,43 @@ Rules:
     });
 
     const data = await openAiResponse.json();
+    const aiReply = data.choices?.[0]?.message?.content || "";
+
+    // זיהוי השאלה האחרונה של המשתמש
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
+
+    // סיווג חכם של השאלה באמצעות AI נפרד ומהיר או ניתוח מילות מפתח
+    let category = 'GENERAL';
+    const lowerMsg = lastUserMessage.toLowerCase();
+    if (lowerMsg.includes('ביטול') || lowerMsg.includes('cancel') || lowerMsg.includes('מנוי') || lowerMsg.includes('subscription')) {
+      category = 'CANCELLATION';
+    } else if (lowerMsg.includes('אפשר להוסיף') || lowerMsg.includes('פיצ\'ר') || lowerMsg.includes('feature') || lowerMsg.includes('can you add')) {
+      category = 'FEATURE_REQUEST';
+    } else if (lowerMsg.includes('לא מבין') || lowerMsg.includes('בעיה') || lowerMsg.includes('שגיאה') || lowerMsg.includes('error') || lowerMsg.includes('bug')) {
+      category = 'HARD_QUESTION';
+    }
+
+    // אם זו שאלה חריגה, נשמור אותה בטבלת הלוגים ב-Supabase
+    if (category !== 'GENERAL') {
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        await supabaseAdmin.from('chat_logs').insert([
+          {
+            user_email: userEmail || 'anonymous_public_user',
+            user_question: lastUserMessage,
+            ai_response: aiReply,
+            category: category,
+            created_at: new Date().toISOString()
+          }
+        ]);
+      } catch (logErr) {
+        console.error("Failed to log chat question:", logErr);
+      }
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
