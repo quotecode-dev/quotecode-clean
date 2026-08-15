@@ -101,6 +101,10 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
+  // התאמת הפורמט לפי אזור/מטבע (ארה"ב USD מקבל MM-DD-YYYY, ישראל ILS ולונדון GBP מקבלים DD-MM-YYYY)
+  const isUS = currency === 'USD';
+  const dateFormatPlaceholder = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
+
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
@@ -208,12 +212,15 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
+              {t.validUntil} ({dateFormatPlaceholder})
+            </label>
             <input 
-              type="date" 
+              type="text" 
               value={validUntil} 
               onChange={(e) => setValidUntil(e.target.value)} 
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
+              placeholder={dateFormatPlaceholder}
+              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} 
             />
           </div>
           <div>
