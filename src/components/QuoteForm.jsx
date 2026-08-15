@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
 export default function QuoteForm({
@@ -42,6 +42,7 @@ export default function QuoteForm({
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const dateInputRef = useRef(null);
 
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
@@ -101,9 +102,45 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  // הגדרת תצוגת הפורמט לפי אזור בהתאם למטבע (USD לארה"ב מקבל MM-DD-YYYY, השאר DD-MM-YYYY)
+  // המרת תצוגת התאריך בהתאם לאזור/מטבע
   const isUS = currency === 'USD';
-  const dateFormatHint = isUS ? '(MM-DD-YYYY)' : '(DD-MM-YYYY)';
+  const dateFormatLabel = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
+
+  // המרת תאריך מ- YYYY-MM-DD לפורמט הנדרש להצגה
+  const getDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return isUS ? `${m}-${d}-${y}` : `${d}-${m}-${y}`;
+    }
+    return dateStr;
+  };
+
+  const handleDisplayDateChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 8) val = val.slice(0, 8);
+    let formatted = val;
+    if (val.length > 4) {
+      formatted = `${val.slice(0, 2)}-${val.slice(2, 4)}-${val.slice(4)}`;
+    } else if (val.length > 2) {
+      formatted = `${val.slice(0, 2)}-${val.slice(2)}`;
+    }
+    
+    // שמירה בפורמט פנימי תקני YYYY-MM-DD עבור ה-DB אם הושלם
+    if (val.length === 8) {
+      const p1 = val.slice(0, 2);
+      const p2 = val.slice(2, 4);
+      const p3 = val.slice(4, 8);
+      if (isUS) {
+        setValidUntil(`${p3}-${p1}-${p2}`); // MM-DD-YYYY -> YYYY-MM-DD
+      } else {
+        setValidUntil(`${p3}-${p2}-${p1}`); // DD-MM-YYYY -> YYYY-MM-DD
+      }
+    } else {
+      setValidUntil(e.target.value);
+    }
+  };
 
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
@@ -213,14 +250,44 @@ export default function QuoteForm({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
-              {t.validUntil} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>{dateFormatHint}</span>
+              {t.validUntil} <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>({dateFormatLabel})</span>
             </label>
-            <input 
-              type="date" 
-              value={validUntil} 
-              onChange={(e) => setValidUntil(e.target.value)} 
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                value={getDisplayDate(validUntil)} 
+                onChange={handleDisplayDateChange} 
+                placeholder={dateFormatLabel}
+                style={{ width: '100%', padding: '7px 32px 7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} 
+              />
+              {/* שדה תאריך נסתר שמתחתיו מופעל כפתור היומן האמיתי */}
+              <input 
+                type="date" 
+                ref={dateInputRef}
+                value={validUntil} 
+                onChange={(e) => setValidUntil(e.target.value)} 
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} 
+              />
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
+                    dateInputRef.current.showPicker();
+                  } else if (dateInputRef.current) {
+                    dateInputRef.current.click();
+                  }
+                }}
+                style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0, display: 'flex', alignItems: 'center' }}
+                title="Open calendar"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </button>
+            </div>
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.discount}</label>
