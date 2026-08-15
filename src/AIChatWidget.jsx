@@ -3,6 +3,23 @@ import { supabase } from './supabase';
 
 export default function AIChatWidget({ isHebrew, isDashboard = false }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+
+  // שליפת האימייל של המשתמש המחובר אם הוא נמצא בדשבורד
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          setUserEmail(session.user.email);
+        }
+      } catch (e) {
+        console.error("Error fetching user session:", e);
+      }
+    }
+    fetchUser();
+  }, []);
+
   const [messages, setMessages] = useState(() => {
     const defaultWelcome = isHebrew 
       ? (isDashboard ? 'שלום! אני עוזר ה-AI של ProFlow. איך אעזור לך בממשק המערכת היום?' : 'שלום! אני עוזר ה-AI של ProFlow. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?') 
@@ -61,25 +78,27 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
     const userMsg = input.trim();
     setInput('');
     
-    // מוסיפים את הודעת המשתמש ל-UI מיד
     const newMessages = [...messages, { role: 'user', content: userMsg }];
     setMessages(newMessages);
     setLoading(true);
 
     try {
-      // מסננים רק את התוכן והתפקיד כדי לשלוח ל-OpenAI (בלי תוספות של ה-UI)
       const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
 
-      // פנייה ל-Edge Function המאובטחת שהקמנו ב-Supabase
+      // שליחת פרטי המשתמש והשאלה ל-Edge Function
       const { data, error } = await supabase.functions.invoke('chat-ai', {
-        body: { messages: apiMessages, isHebrew, isDashboard }
+        body: { 
+          messages: apiMessages, 
+          isHebrew, 
+          isDashboard, 
+          userEmail: userEmail || (isDashboard ? 'logged_in_user_unknown' : 'anonymous_public_user') 
+        }
       });
 
       if (error) {
         throw error;
       }
 
-      // קבלת התשובה מה-AI והצגתה בצ'אט
       if (data && data.choices && data.choices.length > 0) {
         const aiReply = data.choices[0].message.content;
         setMessages(prev => [...prev, { role: 'assistant', content: aiReply }]);
