@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
 import LandingLocal from './pages/LandingLocal';
 import Dashboard from './pages/Dashboard';
+import AILogs from './pages/AILogs';
 import PublicQuote from './pages/PublicQuote';
 import PublicTools from './components/PublicTools';
 import PublicToolsEn from './components/PublicToolsEn';
@@ -46,7 +47,6 @@ function RootHandler() {
     }
   }, [navigate, hash, search, isEnglishQuery, isHebrewUser]);
 
-  // פתרון הברזל לריצוד: החלטה סינכרונית מיידית ברינדור הראשון
   if (isHebrewUser && !isEnglishQuery) {
     return <LandingLocal />;
   }
@@ -82,8 +82,6 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      // חוק הברזל: מעדכן את הסשן רק אם המשתמש התחבר/התנתק בפועל או ה-ID השתנה,
-      // כדי למנוע איפוס טפסים וריענוני סרק מיותרים כשחוזרים לטאב מהדפדפן.
       setSession((prevSession) => {
         if (prevSession?.user?.id !== newSession?.user?.id) {
           return newSession;
@@ -169,7 +167,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* חלון שחזור סיסמה */}
       {forgotPasswordOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -210,7 +207,6 @@ export default function App() {
         </div>
       )}
 
-      {/* חלון עדכון סיסמה חדשה */}
       {recoveryMode && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -256,17 +252,17 @@ export default function App() {
         <Route path="/he" element={<LandingLocal />} />
         <Route path="/en" element={<LandingGlobal />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         
-        {/* --- דפים משפטיים וצור קשר --- */}
         <Route path="/he/terms" element={<Terms isHebrew={true} />} />
         <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />
         <Route path="/he/contact" element={<Contact isHebrew={true} />} />
         
-        <Route path="/en/terms" element={<Terms isHebrew={false} />} />
+        <Route path="/en/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
