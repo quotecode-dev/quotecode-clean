@@ -142,7 +142,6 @@ export default function Dashboard() {
     setSelectedUserDetails({ isNewUsersListModal: true, users: newUsersList });
   };
 
-  // אבטחת חזור בדפדפן - פתיחת מודל יציאה לפני התנתקות
   useEffect(() => {
     if (session) {
       window.history.pushState({ dashboard: true }, '', window.location.href);
@@ -839,7 +838,14 @@ export default function Dashboard() {
   }
 
   async function handleDeleteClient(clientId) {
+    const hasQuotes = quotes.some(q => q.client_id === clientId);
+    if (hasQuotes) {
+      alert(isHebrew ? 'לא ניתן למחוק לקוח שיש לו הצעות מחיר במערכת.' : 'Cannot delete a client with existing quotes.');
+      return;
+    }
+    
     if (!window.confirm(isHebrew ? 'האם למחוק לקוח זה לצמיתות?' : 'Delete this client permanently?')) return;
+    
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
       setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
@@ -1776,6 +1782,21 @@ export default function Dashboard() {
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                   <span>Upgrade Plan</span>
+                </button>
+              )}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => { window.location.href = '/ai-logs'; }}
+                  style={{
+                    padding: '6px 14px', borderRadius: '16px', 
+                    border: '1px solid #ef4444', 
+                    fontWeight: '500', fontSize: '0.8rem', cursor: 'pointer', 
+                    background: '#fef2f2', 
+                    color: '#ef4444', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
+                  }}
+                >
+                  AI Support Logs
                 </button>
               )}
             </div>
