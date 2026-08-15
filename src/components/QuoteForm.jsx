@@ -101,8 +101,9 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
+  // הגדרת תצוגת הפורמט לפי אזור בהתאם למטבע (USD לארה"ב מקבל MM-DD-YYYY, השאר DD-MM-YYYY)
   const isUS = currency === 'USD';
-  const dateFormatLabel = isUS ? '(MM-DD-YYYY)' : '(DD-MM-YYYY)';
+  const dateFormatHint = isUS ? '(MM-DD-YYYY)' : '(DD-MM-YYYY)';
 
   return (
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
@@ -212,7 +213,7 @@ export default function QuoteForm({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
-              {t.validUntil} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>{dateFormatLabel}</span>
+              {t.validUntil} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>{dateFormatHint}</span>
             </label>
             <input 
               type="date" 
