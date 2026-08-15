@@ -28,10 +28,10 @@ export default function ClientsTab({
       setClientErrorMsg({
         clientId,
         text: isHebrew 
-          ? '⚠️ לא ניתן למחוק לקוח עם הצעה חתומה/מאושרת. נא לארכב או למחוק את ההצעות תחילה.' 
-          : '⚠️ Cannot delete client with signed/approved quotes. Archive or delete quotes first.'
+          ? '⚠️ לא ניתן למחוק לקוח עם הצעה חתומה או מאושרת. יש למחוק את הצעות המחיר של הלקוח תחילה.' 
+          : '⚠️ Cannot delete client with signed or approved quote. Delete client quotes first.'
       });
-      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 5000);
+      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 6000);
       return;
     }
 
@@ -39,10 +39,10 @@ export default function ClientsTab({
       setClientErrorMsg({
         clientId,
         text: isHebrew 
-          ? '⚠️ לא ניתן למחוק לקוח עם הצעות פעילות. נא לארכב או למחוק את ההצעות תחילה.' 
-          : '⚠️ Cannot delete client with active quotes. Archive or delete quotes first.'
+          ? '⚠️ לא ניתן למחוק לקוח עם הצעות מחיר פעילות. יש למחוק את הצעות המחיר של הלקוח תחילה.' 
+          : '⚠️ Cannot delete client with active quotes. Delete client quotes first.'
       });
-      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 5000);
+      setTimeout(() => setClientErrorMsg({ clientId: null, text: '' }), 6000);
       return;
     }
 

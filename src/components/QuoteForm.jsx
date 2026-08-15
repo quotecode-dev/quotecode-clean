@@ -101,9 +101,9 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  // פונקציית עזר להמרת תאריך לפורמט ישראלי תקני DD-MM-YYYY
+  // פונקציית המרה ישירה לפורמט תצוגה DD-MM-YYYY
   const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return '';
+    if (!dateStr) return 'dd-mm-yyyy';
     const parts = dateStr.split('-');
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -218,20 +218,18 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
-              {validUntil && (
-                <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 'bold', background: '#e0e7ff', padding: '1px 5px', borderRadius: '4px' }}>
-                  {formatDisplayDate(validUntil)}
-                </span>
-              )}
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="date" 
+                value={validUntil} 
+                onChange={(e) => setValidUntil(e.target.value)} 
+                style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', color: 'transparent', caretColor: 'black' }} 
+              />
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '7px 10px', boxSizing: 'border-box', background: '#f8fafc', borderRadius: '6px', pointerEvents: 'none', display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: validUntil ? '#1e293b' : '#94a3b8' }}>
+                {formatDisplayDate(validUntil)}
+              </div>
             </div>
-            <input 
-              type="date" 
-              value={validUntil} 
-              onChange={(e) => setValidUntil(e.target.value)} 
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
-            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.discount}</label>
