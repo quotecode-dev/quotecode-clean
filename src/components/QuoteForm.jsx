@@ -217,20 +217,20 @@ export default function QuoteForm({
             </select>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{t.validUntil}</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.validUntil}</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <input 
+                type="date" 
+                value={validUntil} 
+                onChange={(e) => setValidUntil(e.target.value)} 
+                style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
+              />
               {validUntil && (
-                <span style={{ fontSize: '0.7rem', color: '#4f46e5', fontWeight: 'bold' }}>
-                  {formatDisplayDate(validUntil)}
+                <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 'bold', background: '#e0e7ff', padding: '2px 6px', borderRadius: '4px', textAlign: 'center' }}>
+                  תאריך נבחר: {formatDisplayDate(validUntil)}
                 </span>
               )}
             </div>
-            <input 
-              type="date" 
-              value={validUntil} 
-              onChange={(e) => setValidUntil(e.target.value)} 
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr' }} 
-            />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.discount}</label>
