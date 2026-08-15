@@ -3,7 +3,6 @@ import { supabase } from '../supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
-import AILogsModal from '../components/AILogsModal';
 import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
 
 import PricingModal from '../components/PricingModal';
@@ -121,7 +120,6 @@ export default function Dashboard() {
   const [editingClient, setEditingClient] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [showAILogsModal, setShowAILogsModal] = useState(false);
   
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editServiceName, setEditServiceName] = useState('');
@@ -1662,12 +1660,6 @@ export default function Dashboard() {
         onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
       />
 
-      <AILogsModal 
-        isOpen={showAILogsModal} 
-        onClose={() => setShowAILogsModal(false)} 
-        isHebrew={isHebrew} 
-      />
-
       <SignOutModal 
         isOpen={showSignOutModal} 
         onClose={() => setShowSignOutModal(false)} 
@@ -1794,7 +1786,7 @@ export default function Dashboard() {
               )}
               {isSuperAdmin && (
                 <button
-                  onClick={() => setShowAILogsModal(true)}
+                  onClick={() => { window.location.href = '/ai-logs'; }}
                   style={{
                     padding: '6px 14px', borderRadius: '16px', 
                     border: '1px solid #ef4444', 
