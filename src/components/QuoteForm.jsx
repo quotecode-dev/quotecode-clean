@@ -101,9 +101,8 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  // פונקציית המרה ישירה לפורמט תצוגה DD-MM-YYYY
   const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return 'dd-mm-yyyy';
+    if (!dateStr) return '';
     const parts = dateStr.split('-');
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
