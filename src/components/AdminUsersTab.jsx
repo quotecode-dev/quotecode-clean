@@ -24,7 +24,7 @@ export default function AdminUsersTab({
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [successBanner, setSuccessBanner] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const totalU = allAccounts.length;
   const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
@@ -83,9 +83,7 @@ export default function AdminUsersTab({
 
       setResetModalUser(null);
       setAdminPasswordInput('');
-      setSuccessBanner(isHebrew ? '✅ נתוני המשתמש נמחקו ואופסו בהצלחה!' : '✅ User data successfully reset!');
-      setTimeout(() => setSuccessBanner(''), 4000);
-      window.location.reload();
+      setShowSuccessModal(true);
     } catch (err) {
       console.error("Reset error:", err);
       setResetError(err.message);
@@ -97,16 +95,34 @@ export default function AdminUsersTab({
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
-      {successBanner && (
-        <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#166534', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center' }}>
-          {successBanner}
+      {/* Modern Success Modal Popup */}
+      {showSuccessModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
+          <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+            <div style={{ width: '56px', height: '56px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#166534' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>
+              {isHebrew ? 'האיפוס בוצע בהצלחה!' : 'Reset Successful!'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.4' }}>
+              {isHebrew ? 'נתוני הצעות המחיר והלקוחות של המשתמש נמחקו ואופסו בהצלחה מלאה.' : 'The user quotes and client records have been fully reset.'}
+            </p>
+            <button
+              onClick={() => { setShowSuccessModal(false); window.location.reload(); }}
+              style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }}
+            >
+              {isHebrew ? 'אישור' : 'OK'}
+            </button>
+          </div>
         </div>
       )}
 
+      {/* Password Confirmation Modal for Reset */}
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
-          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left' }}>
-            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', marginBottom: '8px' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
+            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800' }}>
               {isHebrew ? '⚠️ אישור אבטחה: איפוס נתוני משתמש' : '⚠️ Security Confirmation: Reset User Data'}
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
@@ -121,7 +137,7 @@ export default function AdminUsersTab({
                 placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
                 value={adminPasswordInput}
                 onChange={(e) => setAdminPasswordInput(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }}
                 required
               />
 
@@ -135,14 +151,14 @@ export default function AdminUsersTab({
                 <button
                   type="button"
                   onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setResetError(''); }}
-                  style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={isResetting}
-                  style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)' }}
+                  style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)' }}
                 >
                   {isResetting ? (isHebrew ? 'מאפס...' : 'Resetting...') : (isHebrew ? 'אשר מחיקה סופית' : 'Confirm Deletion')}
                 </button>
