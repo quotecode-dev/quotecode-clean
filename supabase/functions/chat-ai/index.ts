@@ -20,9 +20,14 @@ serve(async (req) => {
 
     const supportEmail = isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com';
 
+    // הגדרת חוק שפה קשיח לפי דרישת המשתמש
+    const languageInstruction = isHebrew 
+      ? 'Language Rule: You may respond in Hebrew or English based on the user\'s input language.' 
+      : 'Language Rule: You MUST answer strictly in English at all times. Even if the user writes to you in Hebrew or any other language, you must reply exclusively in English.';
+
     const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
 Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. 
-Language Rule: You MUST answer strictly in ${isHebrew ? 'Hebrew' : 'English'}.
+${languageInstruction}
 
 SUPPORT EMAIL RULE:
 - For Hebrew users, use: support@quotecodepro.com
