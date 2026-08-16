@@ -60,7 +60,7 @@ export default function ServicesCatalog({
             {services.length === 0 ? (
               <tr>
                 <td colSpan="3" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '0.8rem' }}>
-                  Your catalog is empty. Add services above.
+                  {isHebrew ? 'הקטלוג ריק. הוסף שירותים למעלה.' : 'Your catalog is empty. Add services above.'}
                 </td>
               </tr>
             ) : (
@@ -100,13 +100,13 @@ export default function ServicesCatalog({
                             onClick={() => handleSaveEditedService(svc.id)}
                             style={{ background: '#10b981', color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            Save
+                            שמור
                           </button>
                           <button 
                             onClick={() => setEditingServiceId(null)}
                             style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            Cancel
+                            ביטול
                           </button>
                         </>
                       ) : (
@@ -119,14 +119,14 @@ export default function ServicesCatalog({
                             }}
                             style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            Edit
+                            ערוך
                           </button>
                           <button 
                             title={t.delete}
                             onClick={() => handleDeleteService(svc.id)}
                             style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem' }}
                           >
-                            Delete
+                            מחק
                           </button>
                         </>
                       )}
