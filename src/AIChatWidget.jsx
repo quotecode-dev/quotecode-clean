@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
 
-export default function AIChatWidget({ isHebrew, isDashboard = false }) {
+export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
-  // שליפת האימייל של המשתמש המחובר אם הוא נמצא בדשבורד
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -26,7 +25,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
       : (isDashboard ? 'Hello! I am ProFlow AI assistant. How can I help you with the interface today?' : 'Hello! I am ProFlow AI assistant. Have questions about our pricing, plans, or features?');
 
     try {
-      const storageKey = isDashboard ? 'proflow_ai_chat_app' : 'proflow_ai_chat_public';
+      const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
       const saved = sessionStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -65,11 +64,11 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
 
   useEffect(() => {
     try {
-      const storageKey = isDashboard ? 'proflow_ai_chat_app' : 'proflow_ai_chat_public';
+      const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
       sessionStorage.setItem(storageKey, JSON.stringify(messages));
     } catch (e) {}
     if (isOpen) scrollToBottom();
-  }, [messages, isOpen, isDashboard]);
+  }, [messages, isOpen, isDashboard, isHebrew]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -85,7 +84,6 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
     try {
       const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
 
-      // שליחת המשתנים בצורה מפורשת ל-Edge Function
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: { 
           messages: apiMessages, 
@@ -95,9 +93,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data && data.choices && data.choices.length > 0) {
         const aiReply = data.choices[0].message.content;
@@ -135,14 +131,14 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
         maxWidth: '1050px',
         padding: '0 20px',
         display: 'flex',
-        justifyContent: 'flex-start',
+        justifyContent: isHebrew ? 'flex-start' : 'flex-start',
       }}>
         <div style={{
           position: 'relative',
           pointerEvents: 'auto', 
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-start'
+          alignItems: isHebrew ? 'flex-start' : 'flex-start'
         }}>
           
           <style>{`
@@ -191,7 +187,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
               onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צאט AI' : 'AI Chat'}</span>
             </button>
           )}
