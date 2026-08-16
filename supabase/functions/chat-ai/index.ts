@@ -12,7 +12,15 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, isHebrew, isDashboard, userEmail } = await req.json();
+    const body = await req.json();
+    const messages = body.messages || [];
+    // וידוא חסין שגיאות של משתנה השפה
+    const isHebrew = body.isHebrew === true || body.isHebrew === 'true';
+    const isDashboard = body.isDashboard === true || body.isDashboard === 'true';
+    const userEmail = body.userEmail;
+
+    // בחירת כתובת המייל המדויקת לפי השפה
+    const supportEmail = isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com';
 
     const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
 Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. Answer in the user's language.
@@ -36,7 +44,7 @@ Pricing:
 Rules:
 - VAT: 18% automatically applied to Israeli clients, 0% to international.
 - Operations: 100% digital SaaS cloud, no physical office.
-- Support Email: ${isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com'}
+- Support Email: ${supportEmail}
 - Cancellation: Anytime from "Business Settings". Can archive data (read-only) or delete permanently.
 - Keep answers under 3-4 short paragraphs.
 - DO NOT make up features.`;
