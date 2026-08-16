@@ -85,12 +85,12 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
     try {
       const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
 
-      // שליחת פרטי המשתמש והשאלה ל-Edge Function
+      // שליחת המשתנים בצורה מפורשת ל-Edge Function
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: { 
           messages: apiMessages, 
-          isHebrew, 
-          isDashboard, 
+          isHebrew: Boolean(isHebrew), 
+          isDashboard: Boolean(isDashboard), 
           userEmail: userEmail || (isDashboard ? 'logged_in_user_unknown' : 'anonymous_public_user') 
         }
       });
@@ -225,7 +225,7 @@ export default function AIChatWidget({ isHebrew, isDashboard = false }) {
                   <span style={{ fontSize: '1.1rem' }}>✨</span>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{isHebrew ? 'שירות לקוחות ProFlow' : 'ProFlow Support'}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>{isHebrew ? '🟢 זמין 24/7' : '🟢 Available 24/7'}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.85 }}>🟢 {isHebrew ? 'זמין 24/7' : 'Available 24/7'}</div>
                   </div>
                 </div>
                 <button
