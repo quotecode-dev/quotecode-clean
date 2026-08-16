@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from './supabase';
+import { supabase } from './shared/supabase';
 
 export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
   const [isOpen, setIsOpen] = useState(false);
