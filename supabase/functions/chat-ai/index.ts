@@ -18,16 +18,15 @@ serve(async (req) => {
     const isDashboard = body.isDashboard === true || body.isDashboard === 'true';
     const userEmail = body.userEmail;
 
-    // קביעה קשיחה של המייל בהתאם לדגל השפה
     const supportEmail = isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com';
 
     const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
 Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. 
 Language Rule: You MUST answer strictly in ${isHebrew ? 'Hebrew' : 'English'}.
-Context: The user is currently browsing the ${isHebrew ? 'Hebrew' : 'English'} version of the ${isDashboard ? 'internal app dashboard' : 'public landing page'}.
 
-MANDATORY RULE FOR SUPPORT EMAIL:
-- When asked about support email, contact email, or customer service, you MUST reply EXCLUSIVELY with: ${supportEmail}. Never output any other email address.
+SUPPORT EMAIL RULE:
+- For Hebrew users, use: support@quotecodepro.com
+- For English users, use: info@quotecodepro.com
 
 Pricing:
 - Free: $0 / 0 NIS (5 quotes/mo).
@@ -56,12 +55,20 @@ Rules:
           ...messages
         ],
         max_tokens: 600,
-        temperature: 0.3, // טמפרטורה נמוכה למניעת הזיות של המודל
+        temperature: 0.2,
       }),
     });
 
     const data = await openAiResponse.json();
-    const aiReply = data.choices?.[0]?.message?.content || "";
+    let aiReply = data.choices?.[0]?.message?.content || "";
+
+    // אכיפה גורפת: אם זה לא בעברית והמודל בכל זאת דחף support, נחליף לו בכוח ל-info!
+    if (!isHebrew) {
+      aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+      if (data.choices?.[0]?.message) {
+        data.choices[0].message.content = aiReply;
+      }
+    }
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
 
