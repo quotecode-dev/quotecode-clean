@@ -80,7 +80,6 @@ export default function LandingLocal({ onForgotPassword }) {
           color: #ffffff;
         }
         
-        /* Desktop Header Layout */
         .header-container {
           display: flex;
           justify-content: center;
@@ -100,7 +99,6 @@ export default function LandingLocal({ onForgotPassword }) {
           display: none;
         }
 
-        /* Mobile Header Layout Adjustments */
         @media (max-width: 768px) {
           .header-container {
             display: flex;
@@ -417,7 +415,7 @@ export default function LandingLocal({ onForgotPassword }) {
             <span style={{ color: '#334155' }}>|</span>
             <a href="/he/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>מדיניות פרטיות</a>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/he/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>צור קשר</a>
+            <a href="/he/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>צור קשר (support@quotecodepro.com)</a>
             <span style={{ color: '#334155' }}>|</span>
             <a href="https://www.quotecodepro.com/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>כלים לעסקים</a>
           </div>
@@ -425,7 +423,6 @@ export default function LandingLocal({ onForgotPassword }) {
         </div>
       </footer>
 
-      {/* Global AI Chat Widget - Fixed to bottom corner */}
       <AIChatWidget isHebrew={true} isDashboard={false} />
 
     </div>

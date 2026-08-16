@@ -167,25 +167,6 @@ export default function LandingGlobal({ onForgotPassword }) {
             font-size: 2.2rem !important;
           }
         }
-        
-        @media (max-width: 480px) {
-          .nav-btn {
-            padding: 7px 12px !important;
-            font-size: 0.8rem !important;
-          }
-          .hero-title {
-            font-size: 2rem !important;
-          }
-          .pricing-toggle-container {
-            display: flex;
-            width: 100%;
-          }
-          .pricing-toggle-container button {
-            flex: 1;
-            text-align: center;
-            justify-content: center;
-          }
-        }
       `}</style>
 
       {/* Top Banner Launch Promotion */}
@@ -456,7 +437,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             <span style={{ color: '#334155' }}>|</span>
             <a href="/en/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Privacy Policy</a>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/en/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Contact Us</a>
+            <a href="/en/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Contact Us (info@quotecodepro.com)</a>
             <span style={{ color: '#334155' }}>|</span>
             <a href="https://www.quotecodepro.com/en/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>Business Tools</a>
           </div>
