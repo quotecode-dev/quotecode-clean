@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabase';
+import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
