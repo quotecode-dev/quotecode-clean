@@ -36,7 +36,7 @@ Pricing:
 Rules:
 - VAT: 18% automatically applied to Israeli clients, 0% to international.
 - Operations: 100% digital SaaS cloud, no physical office.
-- Support: support@quotecodepro.com
+- Support Email: ${isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com'}
 - Cancellation: Anytime from "Business Settings". Can archive data (read-only) or delete permanently.
 - Keep answers under 3-4 short paragraphs.
 - DO NOT make up features.`;
@@ -61,10 +61,8 @@ Rules:
     const data = await openAiResponse.json();
     const aiReply = data.choices?.[0]?.message?.content || "";
 
-    // זיהוי השאלה האחרונה של המשתמש
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
 
-    // סיווג חכם של השאלה
     let category = 'GENERAL';
     const lowerMsg = lastUserMessage.toLowerCase();
     if (lowerMsg.includes('ביטול') || lowerMsg.includes('cancel') || lowerMsg.includes('מנוי') || lowerMsg.includes('subscription')) {
@@ -75,7 +73,6 @@ Rules:
       category = 'HARD_QUESTION';
     }
 
-    // שומרים מעתה את כל השאלות (הן הרגילות והן הקריטיות/חריגות)
     try {
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
