@@ -631,11 +631,11 @@ export default function Dashboard() {
       .select();
     
     if (error) {
-      setStatusMsg({ text: 'Error updating user plan: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message, type: 'error' });
     } else if (!data || data.length === 0) {
-      setStatusMsg({ text: 'Error: RLS policy blocked update on business_settings.', type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.', type: 'error' });
     } else {
-      setStatusMsg({ text: 'User plan updated successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
       fetchAllAccounts();
     }
   }
@@ -659,7 +659,7 @@ export default function Dashboard() {
       .select();
     
     if (error) {
-      setStatusMsg({ text: 'Error updating user country: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message, type: 'error' });
     } else {
       setStatusMsg({ text: isHebrew ? 'אזור העסק עודכן בהצלחה!' : 'Business region updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -670,7 +670,7 @@ export default function Dashboard() {
     const newTrialEnds = currentTrialEnds === null ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
     const { error } = await supabase.from('business_settings').update({ trial_ends_at: newTrialEnds }).eq('id', accountId);
     if (error) {
-      setStatusMsg({ text: 'Error updating user access: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון גישת המשתמש: ' + error.message : 'Error updating user access: ' + error.message, type: 'error' });
     } else {
       setStatusMsg({ text: isHebrew ? 'סטטוס הגישה עודכן בהצלחה!' : 'Access status updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -683,7 +683,7 @@ export default function Dashboard() {
 
     if (adminActionModal.type === 'freeze') {
       const { error } = await supabase.from('business_settings').update({ plan: 'free', trial_ends_at: null }).eq('id', acc.id);
-      if (error) setStatusMsg({ text: 'Error freezing user account: ' + error.message, type: 'error' });
+      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בהקפאת החשבון: ' + error.message : 'Error freezing user account: ' + error.message, type: 'error' });
       else {
         setStatusMsg({ text: isHebrew ? 'המנוי הוקפא בהצלחה!' : 'Account frozen successfully!', type: 'success' });
         fetchAllAccounts();
@@ -697,7 +697,7 @@ export default function Dashboard() {
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
       const { error } = await supabase.from('business_settings').delete().eq('id', acc.id);
-      if (error) setStatusMsg({ text: 'Error deleting account data: ' + error.message, type: 'error' });
+      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת נתוני החשבון: ' + error.message : 'Error deleting account data: ' + error.message, type: 'error' });
       else {
         setStatusMsg({ text: isHebrew ? 'החשבון והנתונים נמחקו לצמיתות!' : 'Account and data deleted successfully!', type: 'success' });
         fetchAllAccounts();
@@ -732,14 +732,14 @@ export default function Dashboard() {
 
     if (settingId) {
       const { error } = await supabase.from('business_settings').update(payload).eq('id', settingId);
-      if (error) setStatusMsg({ text: 'Error updating settings: ' + error.message, type: 'error' });
+      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון ההגדרות: ' + error.message : 'Error updating settings: ' + error.message, type: 'error' });
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
       }
     } else {
       const { data, error } = await supabase.from('business_settings').insert([payload]).select();
-      if (error) setStatusMsg({ text: 'Error saving settings: ' + error.message, type: 'error' });
+      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בשמירת ההגדרות: ' + error.message : 'Error saving settings: ' + error.message, type: 'error' });
       else if (data && data[0]) {
         setSettingId(data[0].id);
         localStorage.setItem('proflow_cached_country', bizCountry);
@@ -768,9 +768,9 @@ export default function Dashboard() {
       .eq('id', updatedClient.id);
 
     if (error) {
-      setStatusMsg({ text: 'Error updating client: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Client updated successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
     }
   }
@@ -787,9 +787,9 @@ export default function Dashboard() {
       .eq('id', updatedExpense.id);
 
     if (error) {
-      setStatusMsg({ text: 'Error updating expense: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Expense updated successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
       if (session?.user?.id) fetchExpenses(session.user.id);
     }
   }
@@ -808,31 +808,31 @@ export default function Dashboard() {
     }]);
 
     if (error) {
-      setStatusMsg({ text: 'Error adding expense: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message, type: 'error' });
     } else {
       setExpenseDesc('');
       setExpenseAmount('');
       setIsRecurring(false);
       fetchExpenses(session.user.id);
-      setStatusMsg({ text: 'Expense added successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'ההוצאה נוספה בהצלחה!' : 'Expense added successfully!', type: 'success' });
     }
   }
 
   async function handleDeleteExpense(expenseId) {
-    if (!window.confirm('Delete this expense?')) return;
+    if (!window.confirm(isHebrew ? 'למחוק הוצאה זו?' : 'Delete this expense?')) return;
     const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
-    if (error) setStatusMsg({ text: 'Error deleting expense: ' + error.message, type: 'error' });
+    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message, type: 'error' });
     else fetchExpenses(session.user.id);
   }
 
   async function handleDeleteQuote(quoteId) {
-    if (!window.confirm('Delete this quote permanently?')) return;
+    if (!window.confirm(isHebrew ? 'למחוק הצעת מחיר זו לצמיתות?' : 'Delete this quote permanently?')) return;
     await supabase.from('quote_items').delete().eq('quote_id', quoteId);
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
     if (error) {
-      setStatusMsg({ text: 'Error deleting quote: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Quote deleted successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'הצעת המחיר נמחקה בהצלחה!' : 'Quote deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchQuotes(session.user.id);
     }
   }
@@ -844,7 +844,7 @@ export default function Dashboard() {
       .eq('client_id', clientId);
 
     if (fetchErr) {
-      setStatusMsg({ text: 'Error checking client quotes: ' + fetchErr.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בבדיקת הצעות הלקוח: ' + fetchErr.message : 'Error checking client quotes: ' + fetchErr.message, type: 'error' });
       return;
     }
 
@@ -867,16 +867,16 @@ export default function Dashboard() {
       
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
-      setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Client updated successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'הלקוח נמחק בהצלחה!' : 'Client deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
     }
   }
 
   const exportToCSV = (dataArray, filename) => {
     if (!dataArray || dataArray.length === 0) {
-      alert('No data to export.');
+      alert(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.');
       return;
     }
     const keys = Object.keys(dataArray[0]);
@@ -938,26 +938,26 @@ export default function Dashboard() {
         .maybeSingle();
 
       if (existingBiz) {
-        setAuthError('Email already registered! Please sign in or use password reset.');
+        setAuthError(isHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
         return;
       }
 
       const { data, error } = await supabase.auth.signUp({ email: emailInput, password: passwordInput });
       if (error) {
-        setAuthError('Email already registered! Please sign in or use password reset.');
+        setAuthError(isHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
       } else {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
-          setAuthError('Email already exists! Please sign in.');
+          setAuthError(isHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
         } else {
-          setAuthSuccess('Sign up successful! Initializing user profile with free trial...');
+          setAuthSuccess(isHebrew ? 'ההרשמה הצליחה! מאתחל פרופיל עם תקופת ניסיון...' : 'Sign up successful! Initializing user profile with free trial...');
         }
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput });
       if (error) {
-        setAuthError('Login error: check your credentials or reset password.');
+        setAuthError(isHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.');
       } else {
-        setStatusMsg({ text: 'Logged in successfully', type: 'success' });
+        setStatusMsg({ text: isHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
       }
     }
   };
@@ -971,9 +971,9 @@ export default function Dashboard() {
     });
     setResetLoading(false);
     if (error) {
-      setResetMsg('Error: ' + error.message);
+      setResetMsg((isHebrew ? 'שגיאה: ' : 'Error: ') + error.message);
     } else {
-      setResetMsg('Password recovery link sent successfully to your email!');
+      setResetMsg(isHebrew ? 'קישור לאיפוס סיסמה נשלח בהצלחה לאימייל שלך!' : 'Password recovery link sent successfully to your email!');
       setTimeout(() => {
         setForgotOpen(false);
         setResetMsg('');
@@ -989,9 +989,9 @@ export default function Dashboard() {
     const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
     setRecoveryUpdateLoading(false);
     if (error) {
-      setRecoveryUpdateMsg('Error updating password: ' + error.message);
+      setRecoveryUpdateMsg((isHebrew ? 'שגיאה בעדכון הסיסמה: ' : 'Error updating password: ') + error.message);
     } else {
-      setRecoveryUpdateMsg('Password updated successfully! Redirecting...');
+      setRecoveryUpdateMsg(isHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך...' : 'Password updated successfully! Redirecting...');
       setTimeout(() => {
         setIsPasswordRecoveryMode(false);
         window.location.href = window.location.origin;
@@ -1033,12 +1033,12 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
     const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
-    if (error) setStatusMsg({ text: 'Error adding service: ' + error.message, type: 'error' });
+    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message, type: 'error' });
     else {
       setNewServiceName('');
       setNewServicePrice('');
       fetchServices(session.user.id);
-      setStatusMsg({ text: 'Service added to catalog successfully', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
     }
   }
 
@@ -1050,20 +1050,20 @@ export default function Dashboard() {
       .eq('id', serviceId);
 
     if (error) {
-      setStatusMsg({ text: 'Error updating service: ' + error.message, type: 'error' });
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון השירות: ' + error.message : 'Error updating service: ' + error.message, type: 'error' });
     } else {
       setEditingServiceId(null);
       setEditServiceName('');
       setEditServicePrice('');
       fetchServices(session.user.id);
-      setStatusMsg({ text: 'Service updated successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'השירות עודכן בהצלחה!' : 'Service updated successfully!', type: 'success' });
     }
   }
 
   async function handleDeleteService(id) {
-    if (!window.confirm('Delete this service from catalog?')) return;
+    if (!window.confirm(isHebrew ? 'למחוק שירות זה מהקטלוג?' : 'Delete this service from catalog?')) return;
     const { error } = await supabase.from('services').delete().eq('id', id);
-    if (error) setStatusMsg({ text: 'Error deleting service: ' + error.message, type: 'error' });
+    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message, type: 'error' });
     else fetchServices(session.user.id);
   }
 
@@ -1083,7 +1083,9 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    const text = `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
+    const text = isHebrew 
+      ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${sym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
+      : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
     
     const url = phoneForUrl 
       ? `https://wa.me/${phoneForUrl}?text=${encodeURIComponent(text)}`
@@ -1101,7 +1103,7 @@ export default function Dashboard() {
       return;
     }
 
-    setStatusMsg({ text: 'Sending email via cloud...', type: 'success' });
+    setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן...' : 'Sending email via cloud...', type: 'success' });
 
     try {
       const quoteSym = getCurrencySymbol(quote.currency);
@@ -1136,11 +1138,11 @@ export default function Dashboard() {
       }
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
-      setStatusMsg({ text: '📧 Email sent successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       console.error("Email send error:", err);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: '❌ שליחת האימייל נכשלה: הדומיין אינו חוקי, כתובת לא קיימת או שנדחתה ע"י השרת.', type: 'error' });
+      setStatusMsg({ text: isHebrew ? '❌ שליחת האימייל נכשלה: הדומיין אינו חוקי, כתובת לא קיימת או שנדחתה ע"י השרת.' : '❌ Email sending failed.', type: 'error' });
     }
   };
 
@@ -1290,7 +1292,7 @@ export default function Dashboard() {
 
   const handleEditClick = (quote) => {
     if (quote.status?.toLowerCase() === 'approved' || quote.status?.toLowerCase() === 'paid' || quote.signature) {
-      alert('Cannot edit an approved/signed quote.');
+      alert(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
     }
 
@@ -1322,7 +1324,7 @@ export default function Dashboard() {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStatusMsg({ text: `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
+    setStatusMsg({ text: isHebrew ? `עורך הצעה #${quote.id.slice(0, 6)}...` : `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
   };
 
   const handleCreateNewQuoteClick = () => {
@@ -1371,7 +1373,7 @@ export default function Dashboard() {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStatusMsg({ text: 'Quote loaded for duplication.', type: 'success' });
+    setStatusMsg({ text: isHebrew ? 'ההצעה נטענה לשכפול.' : 'Quote loaded for duplication.', type: 'success' });
   };
 
   const handleCancelEdit = () => {
@@ -1389,7 +1391,7 @@ export default function Dashboard() {
     setNotes('');
     setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
-    setStatusMsg({ text: 'Action cancelled. Here are your quotes.', type: 'success' });
+    setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled. Here are your quotes.', type: 'success' });
   };
 
   async function handleSaveQuote(e) {
@@ -1405,7 +1407,7 @@ export default function Dashboard() {
       if (editingQuoteId) {
         const originalQuote = quotes.find(q => q.id === editingQuoteId);
         if (originalQuote && (originalQuote.status?.toLowerCase() === 'approved' || originalQuote.status?.toLowerCase() === 'paid' || originalQuote.signature)) {
-          setStatusMsg({ text: 'Cannot update approved/signed quote.', type: 'error' });
+          setStatusMsg({ text: isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot update approved/signed quote.', type: 'error' });
           return;
         }
       }
@@ -1414,7 +1416,7 @@ export default function Dashboard() {
         const limit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : Infinity;
         if (monthlyQuotesCount >= limit) {
           setStatusMsg({ 
-            text: `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`, 
+            text: isHebrew ? `הגעת למכסת ההצעות החודשית לחבילה שלך (${limit} הצעות). שדרג כדי ליצור עוד!` : `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`, 
             type: 'error' 
           });
           return;
@@ -1485,8 +1487,8 @@ export default function Dashboard() {
 
       setStatusMsg({ 
         text: editingQuoteId 
-          ? `Quote #${editingQuoteId.slice(0, 6)} successfully updated!` 
-          : `Quote successfully created and saved to cloud! Total: ${sym}${formatNum(totalAmount)}`, 
+          ? (isHebrew ? `הצעת מחיר #${editingQuoteId.slice(0, 6)} עודכנה בהצלחה!` : `Quote #${editingQuoteId.slice(0, 6)} successfully updated!`) 
+          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatNum(totalAmount)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatNum(totalAmount)}`), 
         type: 'success' 
       });
       
@@ -1508,7 +1510,7 @@ export default function Dashboard() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      setStatusMsg({ text: `Error saving quote: ${err.message}`, type: 'error' });
+      setStatusMsg({ text: (isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message, type: 'error' });
     }
   }
 
@@ -1808,7 +1810,7 @@ export default function Dashboard() {
                   style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '500', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                  <span>Upgrade Plan</span>
+                  <span>{isHebrew ? 'שדרג חבילה' : 'Upgrade Plan'}</span>
                 </button>
               )}
               {isSuperAdmin && (
@@ -1836,7 +1838,7 @@ export default function Dashboard() {
                 </span>
               )}
               <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{session.user.email}</span>
-              <button onClick={() => setShowSignOutModal(true)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>Sign Out</button>
+              <button onClick={() => setShowSignOutModal(true)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>{isHebrew ? 'התנתק' : 'Sign Out'}</button>
             </div>
           </div>
 
@@ -1852,7 +1854,7 @@ export default function Dashboard() {
               <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </span>
-              <span>Your trial period expires in {trialDaysLeft} days!</span>
+              <span>{isHebrew ? `תקופת הניסיון שלך מסתיימת בעוד ${trialDaysLeft} ימים!` : `Your trial period expires in ${trialDaysLeft} days!`}</span>
             </div>
           )}
 
@@ -1860,16 +1862,16 @@ export default function Dashboard() {
             <div style={{ background: '#eff6ff', border: '1px solid #3b82f6', color: '#1d4ed8', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
-                Active Trial Period (Full PRO Access)
+                {isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}
               </span>
-              <span>Your trial period expires in {trialDaysLeft} days</span>
+              <span>{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
             </div>
           )}
 
           {isTrialExpired && !isSuperAdmin && (
             <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontWeight: 'normal', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Your trial has expired and you have been moved to the FREE tier. Please upgrade.</span>
+              <span>{isHebrew ? 'תקופת הניסיון פגה והועברת למסלול החינמי. אנא שדרג.' : 'Your trial has expired and you have been moved to the FREE tier. Please upgrade.'}</span>
             </div>
           )}
 
@@ -1952,7 +1954,7 @@ export default function Dashboard() {
                     <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{totalQuotesCount}</div>
                     {!isPro && (
                       <div style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 'bold' }}>
-                        This month: {monthlyQuotesCount} / {planLimit}
+                        {isHebrew ? `החודש: ${monthlyQuotesCount} / ${planLimit}` : `This month: ${monthlyQuotesCount} / ${planLimit}`}
                       </div>
                     )}
                   </div>
