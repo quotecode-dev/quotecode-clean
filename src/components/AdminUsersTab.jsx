@@ -24,6 +24,7 @@ export default function AdminUsersTab({
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [successBanner, setSuccessBanner] = useState('');
 
   const totalU = allAccounts.length;
   const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
@@ -53,13 +54,11 @@ export default function AdminUsersTab({
     setIsResetting(true);
 
     try {
-      // Get current logged in admin user email
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !user.email) {
         throw new Error('Admin session not found.');
       }
 
-      // Verify admin password by attempting sign in
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: adminPasswordInput
@@ -82,9 +81,10 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      alert(isHebrew ? 'נתוני המשתמש נמחקו ואופסו בהצלחה!' : 'User data successfully reset!');
       setResetModalUser(null);
       setAdminPasswordInput('');
+      setSuccessBanner(isHebrew ? '✅ נתוני המשתמש נמחקו ואופסו בהצלחה!' : '✅ User data successfully reset!');
+      setTimeout(() => setSuccessBanner(''), 4000);
       window.location.reload();
     } catch (err) {
       console.error("Reset error:", err);
@@ -97,7 +97,12 @@ export default function AdminUsersTab({
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
-      {/* Password Confirmation Modal for Reset */}
+      {successBanner && (
+        <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#166534', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center' }}>
+          {successBanner}
+        </div>
+      )}
+
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -136,7 +141,7 @@ export default function AdminUsersTab({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting => isResetting}
+                  disabled={isResetting}
                   style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)' }}
                 >
                   {isResetting ? (isHebrew ? 'מאפס...' : 'Resetting...') : (isHebrew ? 'אשר מחיקה סופית' : 'Confirm Deletion')}
