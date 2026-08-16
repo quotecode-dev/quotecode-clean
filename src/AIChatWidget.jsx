@@ -33,7 +33,17 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
           if (parsed[0].role === 'assistant') {
             parsed[0].content = defaultWelcome;
           }
-          return parsed;
+          // ניקוי מוחלט של היסטוריית שיחות ישנה מקאש מקומי
+          return parsed.map(msg => {
+            if (msg.role === 'assistant') {
+              if (!isHebrew) {
+                msg.content = msg.content.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+              } else {
+                msg.content = msg.content.replace(/info@quotecodepro\.com/gi, 'support@quotecodepro.com');
+              }
+            }
+            return msg;
+          });
         }
       }
     } catch (e) {}
@@ -96,7 +106,15 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
       if (error) throw error;
 
       if (data && data.choices && data.choices.length > 0) {
-        const aiReply = data.choices[0].message.content;
+        let aiReply = data.choices[0].message.content;
+        
+        // 🚨 נשק יום הדין: דורסים את התשובה בכוח בפרונטאנד! 🚨
+        if (!isHebrew) {
+          aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+        } else {
+          aiReply = aiReply.replace(/info@quotecodepro\.com/gi, 'support@quotecodepro.com');
+        }
+
         setMessages(prev => [...prev, { role: 'assistant', content: aiReply }]);
       } else {
         throw new Error('Invalid response format from AI');
