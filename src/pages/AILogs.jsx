@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabase';
+import { supabase } from '../shared/supabase';
 
 export default function AILogs() {
   const [logs, setLogs] = useState([]);
