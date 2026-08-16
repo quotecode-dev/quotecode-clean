@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { supabase } from '../shared/supabase';
 
 export default function AdminUsersTab({
   t,
@@ -19,6 +20,11 @@ export default function AdminUsersTab({
   handleOpenNewUsersModal,
   lastSeenNewUsersTime
 }) {
+  const [resetModalUser, setResetModalUser] = useState(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
   const totalU = allAccounts.length;
   const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
   const intlU = allAccounts.filter(a => a.country === 'International').length;
@@ -40,9 +46,107 @@ export default function AdminUsersTab({
     return new Date(a.created_at).getTime() > lastSeenNewUsersTime;
   }).length;
 
+  const handleExecuteDataReset = async (e) => {
+    e.preventDefault();
+    if (!resetModalUser) return;
+    setResetError('');
+    setIsResetting(true);
+
+    try {
+      // Get current logged in admin user email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !user.email) {
+        throw new Error('Admin session not found.');
+      }
+
+      // Verify admin password by attempting sign in
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: adminPasswordInput
+      });
+
+      if (authError) {
+        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
+        setIsResetting(false);
+        return;
+      }
+
+      const targetUserId = resetModalUser.user_id;
+      if (targetUserId) {
+        await supabase.from('quote_items').delete().in('quote_id', (
+          await supabase.from('quotes').select('id').eq('user_id', targetUserId)
+        ).data?.map(q => q.id) || []);
+        
+        await supabase.from('quotes').delete().eq('user_id', targetUserId);
+        await supabase.from('clients').delete().eq('user_id', targetUserId);
+        await supabase.from('expenses').delete().eq('user_id', targetUserId);
+      }
+
+      alert(isHebrew ? 'נתוני המשתמש נמחקו ואופסו בהצלחה!' : 'User data successfully reset!');
+      setResetModalUser(null);
+      setAdminPasswordInput('');
+      window.location.reload();
+    } catch (err) {
+      console.error("Reset error:", err);
+      setResetError(err.message);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }}>
+    <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
+      {/* Password Confirmation Modal for Reset */}
+      {resetModalUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left' }}>
+            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', marginBottom: '8px' }}>
+              {isHebrew ? '⚠️ אישור אבטחה: איפוס נתוני משתמש' : '⚠️ Security Confirmation: Reset User Data'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
+              {isHebrew 
+                ? `פעולה זו תמחק לצמיתות את כל ההצעות והלקוחות של המשתמש: ${resetModalUser.email}. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
+                : `This will permanently delete all quotes and clients for: ${resetModalUser.email}. Please enter your Super Admin password to confirm:`}
+            </p>
+            
+            <form onSubmit={handleExecuteDataReset}>
+              <input
+                type="password"
+                placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }}
+                required
+              />
+
+              {resetError && (
+                <div style={{ color: '#ef4444', fontSize: '0.78rem', marginBottom: '10px', fontWeight: 'bold' }}>
+                  {resetError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                  style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  {isHebrew ? 'ביטול' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting => isResetting}
+                  style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)' }}
+                >
+                  {isResetting ? (isHebrew ? 'מאפס...' : 'Resetting...') : (isHebrew ? 'אשר מחיקה סופית' : 'Confirm Deletion')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
         <div 
           onClick={() => handleOpenNewUsersModal(newUsersList)}
@@ -93,7 +197,7 @@ export default function AdminUsersTab({
       </div>
       
       <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '700px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '780px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
@@ -118,7 +222,7 @@ export default function AdminUsersTab({
                 Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th style={{ padding: '8px 6px', textAlign: 'center' }}>
-                Details
+                Actions
               </th>
             </tr>
           </thead>
@@ -257,14 +361,24 @@ export default function AdminUsersTab({
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => setSelectedUserDetails(acc)}
-                        style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        title="View User Details"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <span>Details</span>
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <button
+                          onClick={() => setSelectedUserDetails(acc)}
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title="View User Details"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          <span>Details</span>
+                        </button>
+                        <button
+                          onClick={() => setResetModalUser(acc)}
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                          title="Reset User Data"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          <span>Reset</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
