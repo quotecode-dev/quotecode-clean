@@ -837,7 +837,6 @@ export default function Dashboard() {
     }
   }
 
-  // --- תיקון קריטי: בדיקה מדויקת מול Supabase לחסימת מחיקת לקוח עם הצעה חתומה/מאושרת ---
   async function handleDeleteClient(clientId) {
     const { data: clientQuotes, error: fetchErr } = await supabase
       .from('quotes')
@@ -1070,16 +1069,24 @@ export default function Dashboard() {
 
   const sendWhatsApp = (proposal) => {
     const clientNameVal = proposal.clients?.company_name || 'Client';
-    let clientPhoneVal = proposal.clients?.phone ? proposal.clients.phone.replace(/\D/g, '') : '';
+    let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
-    if (clientPhoneVal.startsWith('0')) {
-      clientPhoneVal = '1' + clientPhoneVal.slice(1);
+    // ניקוי כל התווים שאינם ספרות או פלוס בהתחלה
+    let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+
+    // טיפול חכם במספרים מקומיים ובינלאומיים
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '972' + cleanPhone.slice(1);
+    } else if (cleanPhone.startsWith('+')) {
+      cleanPhone = cleanPhone.slice(1);
+    } else if (cleanPhone.length === 10 && !cleanPhone.startsWith('972')) {
+      cleanPhone = '972' + cleanPhone;
     }
 
     const text = `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
     
-    const url = clientPhoneVal 
-      ? `https://wa.me/${clientPhoneVal}?text=${encodeURIComponent(text)}`
+    const url = cleanPhone 
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
       
     window.open(url, '_blank');
