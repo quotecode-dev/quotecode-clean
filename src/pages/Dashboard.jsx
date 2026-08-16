@@ -79,7 +79,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [statusMsg, setStatusMsg] = useState({ text: 'System connected to Supabase.', type: 'success' });
+  const [statusMsg, setStatusMsg] = useState({ text: 'המערכת מחוברת בהצלחה.', type: 'success' });
   const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
@@ -105,7 +105,7 @@ export default function Dashboard() {
     return 'International';
   });
 
-  const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_ENG);
+  const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_HEB);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
@@ -321,7 +321,7 @@ export default function Dashboard() {
   const [quoteStatus, setQuoteStatus] = useState('Draft');
   const [validUntil, setValidUntil] = useState('');
   const [discount, setDiscount] = useState('');
-  const [terms, setTerms] = useState(DEFAULT_TERMS_ENG); 
+  const [terms, setTerms] = useState(DEFAULT_TERMS_HEB); 
   const [notes, setNotes] = useState('');
   
   const [items, setItems] = useState([{ description: '', quantity: '1', unit_price: '' }]);
@@ -330,7 +330,7 @@ export default function Dashboard() {
 
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('Hosting / Cloud');
+  const [expenseCategory, setExpenseCategory] = useState('ענן / תשתית');
   const [isRecurring, setIsRecurring] = useState(false);
 
   const [pendingEmailQuote, setPendingEmailQuote] = useState(null);
@@ -356,7 +356,7 @@ export default function Dashboard() {
 
   const t = {
     appName: bizName || 'ProFlow',
-    appSub: isHebrew ? 'מערכת ניהול עסק והצעות מחיר גלובלית' : 'Global SaaS Business & Quoting Platform',
+    appSub: isHebrew ? 'מערכת ניהול עסק והצעות מחיר' : 'Global SaaS Business & Quoting Platform',
     totalQuotes: isHebrew ? 'סך הכל הצעות' : 'TOTAL QUOTES',
     approvedPaid: isHebrew ? 'אושר / שולם' : 'APPROVED / PAID',
     totalRevenue: isHebrew ? 'סך הכנסות' : 'TOTAL REVENUE',
@@ -390,7 +390,7 @@ export default function Dashboard() {
     businessSettings: isHebrew ? 'הגדרות עסק וחבילה' : 'Business Settings',
     saveSettings: isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings',
     businessNameLabel: isHebrew ? 'שם העסק' : 'Business Name',
-    taxIdLabel: isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No',
+    taxIdLabel: isHebrew ? 'ח.פ / עוסק מורשה' : 'Tax ID',
     logoUrlLabel: isHebrew ? 'כתובת תמונת לוגו (URL)' : 'Logo Image URL',
     addService: isHebrew ? 'הוסף לקטלוג' : 'Add to Catalog',
     serviceName: isHebrew ? 'שם השירות / המוצר' : 'Service Name',
@@ -398,9 +398,9 @@ export default function Dashboard() {
     searchQuote: isHebrew ? 'חיפוש שם לקוח או מס׳ הצעה...' : 'Search client or quote #...',
     filterStatus: isHebrew ? 'כל הסטטוסים' : 'All Statuses',
     actions: isHebrew ? 'פעולות' : 'Actions',
-    edit: isHebrew ? 'ערוך במסמך' : 'Edit Quote',
-    duplicate: isHebrew ? 'שכפל במסמך' : 'Duplicate Quote',
-    delete: isHebrew ? 'מחק מסמך' : 'Delete Quote',
+    edit: isHebrew ? 'ערוך הצעה' : 'Edit Quote',
+    duplicate: isHebrew ? 'שכפל הצעה' : 'Duplicate Quote',
+    delete: isHebrew ? 'מחק הצעה' : 'Delete Quote',
     clientsManagement: isHebrew ? 'ניהול לקוחות' : 'Clients Management',
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
     settingsNav: isHebrew ? 'הגדרות עסק' : 'Business Settings',
@@ -1407,7 +1407,7 @@ export default function Dashboard() {
       if (editingQuoteId) {
         const originalQuote = quotes.find(q => q.id === editingQuoteId);
         if (originalQuote && (originalQuote.status?.toLowerCase() === 'approved' || originalQuote.status?.toLowerCase() === 'paid' || originalQuote.signature)) {
-          setStatusMsg({ text: isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot update approved/signed quote.', type: 'error' });
+          setStatusMsg({ text: isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.', type: 'error' });
           return;
         }
       }
@@ -1532,7 +1532,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
@@ -2212,11 +2212,11 @@ export default function Dashboard() {
 
       <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
-          Powered by <strong>ProFlow</strong> - Business Management & Quoting System
+          מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר
         </div>
         <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: '#4f46e5', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px', verticalAlign: 'middle'}}><circle cx="12" cy="5" r="2"/><path d="m5 10 7-1 7 1"/><path d="m12 10v7"/><path d="m12 17-4 5"/><path d="m12 17 4 5"/></svg>
-          Accessibility Statement
+          הצהרת נגישות
         </button>
       </footer>
     </div>
