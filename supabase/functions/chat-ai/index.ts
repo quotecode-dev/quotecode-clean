@@ -62,7 +62,7 @@ Rules:
     const data = await openAiResponse.json();
     let aiReply = data.choices?.[0]?.message?.content || "";
 
-    // אכיפה גורפת: אם זה לא בעברית והמודל בכל זאת דחף support, נחליף לו בכוח ל-info!
+    // אכיפה גורפת ומדויקת שמחליפה את support ל-info בכל צורה שלא תהיה באנגלית
     if (!isHebrew) {
       aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
       if (data.choices?.[0]?.message) {
