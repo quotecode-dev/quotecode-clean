@@ -869,7 +869,7 @@ export default function Dashboard() {
     if (error) {
       setStatusMsg({ text: 'Error deleting client: ' + error.message, type: 'error' });
     } else {
-      setStatusMsg({ text: 'Client deleted successfully!', type: 'success' });
+      setStatusMsg({ text: 'Client updated successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
     }
   }
@@ -1071,22 +1071,22 @@ export default function Dashboard() {
     const clientNameVal = proposal.clients?.company_name || 'Client';
     let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
-    // ניקוי כל התווים שאינם ספרות או פלוס בהתחלה
     let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
 
-    // טיפול חכם במספרים מקומיים ובינלאומיים
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '972' + cleanPhone.slice(1);
-    } else if (cleanPhone.startsWith('+')) {
-      cleanPhone = cleanPhone.slice(1);
-    } else if (cleanPhone.length === 10 && !cleanPhone.startsWith('972')) {
-      cleanPhone = '972' + cleanPhone;
+    if (cleanPhone.startsWith('00')) {
+      cleanPhone = '+' + cleanPhone.slice(2);
+    } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
+      cleanPhone = '+972' + cleanPhone.slice(1);
+    } else if (/^\d{9,15}$/.test(cleanPhone)) {
+      cleanPhone = '+' + cleanPhone;
     }
+    
+    const phoneForUrl = cleanPhone.replace('+', '');
 
     const text = `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
     
-    const url = cleanPhone 
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+    const url = phoneForUrl 
+      ? `https://wa.me/${phoneForUrl}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`;
       
     window.open(url, '_blank');
