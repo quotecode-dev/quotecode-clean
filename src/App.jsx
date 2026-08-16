@@ -69,9 +69,12 @@ export default function App() {
   const queryParams = new URLSearchParams(window.location.search);
   
   const currentCountry = session?.user?.user_metadata?.country || (window.location.pathname.startsWith('/he') ? 'Local' : 'International');
-  const isHebrew = isHebrewEnv(currentCountry, session) || 
-                   window.location.pathname.startsWith('/he') || 
-                   queryParams.get('lang') === 'he';
+  
+  // תיקון קריטי: אכיפה מוחלטת של זיהוי השפה לפי הנתיב בפועל (Pathname) כדי למנוע התנגשות עם אזור הזמן של ישראל
+  const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
+  const isHebrew = isExplicitEnglishPath ? false : (isHebrewEnv(currentCountry, session) || 
+                    window.location.pathname.startsWith('/he') || 
+                    queryParams.get('lang') === 'he');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -262,7 +265,7 @@ export default function App() {
         <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />
         <Route path="/he/contact" element={<Contact isHebrew={true} />} />
         
-        <Route path="/en/terms" element={<Terms isHebrew={isHebrew} />} />
+        <Route path="/en/terms" element={<Terms isHebrew={false} />} />
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
