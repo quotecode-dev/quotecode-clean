@@ -24,7 +24,8 @@ function RootHandler() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = navigator.language || navigator.userLanguage || '';
   
-  const isHebrewUser = storedLang === 'he' || (!storedLang && (timeZone === 'Asia/Jerusalem' || browserLang.toLowerCase().startsWith('he')));
+  // זיהוי חד-משמעי של משתמש ישראלי/עברית (ברירת מחדל לישראל היא עברית)
+  const isHebrewUser = storedLang !== 'en' && (storedLang === 'he' || timeZone === 'Asia/Jerusalem' || browserLang.toLowerCase().startsWith('he') || !storedLang);
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
@@ -39,11 +40,9 @@ function RootHandler() {
 
     if (isHebrewUser) {
       localStorage.setItem('proflow_lang', 'he');
-      if (window.location.pathname === '/') {
+      if (window.location.pathname === '/' || window.location.pathname === '') {
         navigate('/he', { replace: true });
       }
-    } else {
-      localStorage.setItem('proflow_lang', 'en');
     }
   }, [navigate, hash, search, isEnglishQuery, isHebrewUser]);
 
