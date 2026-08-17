@@ -242,7 +242,7 @@ export default function LandingLocal({ onForgotPassword }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#34d399', fontWeight: 'bold', fontSize: '1rem' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-              יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך עם ProFlow!
+              יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך με ProFlow!
             </div>
           </div>
 
@@ -413,15 +413,15 @@ export default function LandingLocal({ onForgotPassword }) {
       <footer style={{ background: '#05070a', color: '#64748b', padding: '40px 16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px' }}>
-            <a href="/he/terms" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>תנאי שימוש</a>
+            <button onClick={() => navigate('/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>תנאי שימוש</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/he/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>מדיניות פרטיות</a>
+            <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>מדיניות פרטיות</button>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>נגישות</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/he/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>צור קשר (support@quotecodepro.com)</a>
+            <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>צור קשר (support@quotecodepro.com)</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="https://www.quotecodepro.com/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>כלים לעסקים</a>
+            <button onClick={() => navigate('/public-tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>כלים לעסקים</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Israel. כל הזכויות שמורות.</p>
         </div>
