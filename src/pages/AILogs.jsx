@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
+import { formatDateLocal } from '../utils/regionConfig';
 
 export default function AILogs() {
   const [logs, setLogs] = useState([]);
@@ -80,11 +81,11 @@ export default function AILogs() {
             </div>
             <div style={{ marginBottom: '14px' }}>
               <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>זמן:</strong>
-              <span style={{ color: '#1e293b', fontSize: '0.95rem' }}>{new Date(selectedLog.created_at).toLocaleString()}</span>
+              <span style={{ color: '#1e293b', fontSize: '0.95rem' }} dir="ltr">{selectedLog.created_at ? formatDateLocal(selectedLog.created_at, true) : ''}</span>
             </div>
             <div style={{ marginBottom: '14px' }}>
               <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>אימייל משתמש:</strong>
-              <span style={{ color: '#1e293b', fontSize: '0.95rem' }}>{selectedLog.user_email}</span>
+              <span style={{ color: '#1e293b', fontSize: '0.95rem' }} dir="ltr">{selectedLog.user_email}</span>
             </div>
             <div style={{ marginBottom: '14px' }}>
               <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>קטגוריה:</strong>
@@ -180,10 +181,10 @@ export default function AILogs() {
                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <td style={{ padding: '12px', color: '#64748b', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                          {log.created_at ? new Date(log.created_at).toLocaleString() : ''}
+                        <td style={{ padding: '12px', color: '#64748b', fontSize: '0.8rem', whiteSpace: 'nowrap', direction: 'ltr', textAlign: 'right' }}>
+                          {log.created_at ? formatDateLocal(log.created_at, true) : ''}
                         </td>
-                        <td style={{ padding: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} dir="ltr">
                           {log.user_email || '-'}
                         </td>
                         <td style={{ padding: '12px', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
