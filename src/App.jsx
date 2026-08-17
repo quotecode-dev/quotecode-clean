@@ -260,7 +260,7 @@ export default function App() {
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         
-        {/* הוספת נתיבים נקיים (כפי שגוגל סורק) */}
+        {/* נתיבים נקיים שמתאימים את עצמם אוטומטית לשפת המשתמש */}
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
         <Route path="/contact" element={<Contact isHebrew={isHebrew} />} />
