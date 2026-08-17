@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
 import LandingLocal from './pages/LandingLocal';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +11,52 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Contact from './pages/Contact';
 import { supabase } from './supabase';
+import { isHebrewEnv } from './utils/regionConfig';
+
+function RootHandler() {
+  const navigate = useNavigate();
+  const search = window.location.search;
+  const hash = window.location.hash;
+  const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
+  const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
+
+  const storedLang = localStorage.getItem('proflow_lang');
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+
+  const isUserHebrew = storedLang !== 'en' && (
+    storedLang === 'he' || 
+    isHebrewQuery || 
+    timeZone === 'Asia/Jerusalem' || 
+    browserLang.startsWith('he') || 
+    !storedLang
+  );
+
+  useEffect(() => {
+    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+      navigate('/dashboard' + hash + search, { replace: true });
+      return;
+    }
+
+    if (isEnglishQuery) {
+      localStorage.setItem('proflow_lang', 'en');
+      return;
+    }
+
+    if (isUserHebrew) {
+      localStorage.setItem('proflow_lang', 'he');
+      if (window.location.pathname === '/' || window.location.pathname === '') {
+        navigate('/he', { replace: true });
+      }
+    }
+  }, [navigate, hash, search, isEnglishQuery, isUserHebrew]);
+
+  if (isEnglishQuery) {
+    return <LandingGlobal />;
+  }
+
+  return <LandingLocal />;
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -25,8 +71,20 @@ export default function App() {
   const [updateMessage, setUpdateMessage] = useState('');
 
   const queryParams = new URLSearchParams(window.location.search);
+  const currentCountry = session?.user?.user_metadata?.country || (window.location.pathname.startsWith('/he') ? 'Local' : 'International');
+  
   const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
-  const isHebrew = !isExplicitEnglishPath;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  
+  const isHebrew = isExplicitEnglishPath ? false : (
+    isHebrewEnv(currentCountry, session) || 
+    window.location.pathname.startsWith('/he') || 
+    queryParams.get('lang') === 'he' ||
+    timeZone === 'Asia/Jerusalem' || 
+    browserLang.startsWith('he') ||
+    !queryParams.has('lang')
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,7 +95,13 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      setSession(newSession);
+      setSession((prevSession) => {
+        if (prevSession?.user?.id !== newSession?.user?.id) {
+          return newSession;
+        }
+        return prevSession;
+      });
+
       if (newSession?.user?.email) {
         setRecoveryEmail(newSession.user.email);
       }
@@ -92,6 +156,20 @@ export default function App() {
     if (error) {
       setUpdateMessage(!isHebrew ? 'Error updating password: ' + error.message : 'שגיאה בעדכון הסיסמה: ' + error.message);
     } else {
+      if (window.PasswordCredential) {
+        try {
+          const userEmail = recoveryEmail || data?.user?.email;
+          if (userEmail) {
+            navigator.credentials.store(new PasswordCredential({
+              id: userEmail,
+              password: newPassword
+            }));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
       setUpdateMessage(!isHebrew ? 'Password updated successfully! Redirecting...' : 'הסיסמה עודכנה בהצלחה! מעביר אותך למערכת...');
       setTimeout(() => {
         setRecoveryMode(false);
@@ -183,7 +261,7 @@ export default function App() {
       )}
 
       <Routes>
-        <Route path="/" element={<LandingLocal />} />
+        <Route path="/" element={<RootHandler />} />
         <Route path="/he" element={<LandingLocal />} />
         <Route path="/en" element={<LandingGlobal />} />
         <Route path="/dashboard" element={<Dashboard />} />
