@@ -15,17 +15,19 @@ import { isHebrewEnv } from './utils/regionConfig';
 
 function RootHandler() {
   const navigate = useNavigate();
-
   const search = window.location.search;
   const hash = window.location.hash;
   const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
+  const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
 
   const storedLang = localStorage.getItem('proflow_lang');
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const browserLang = navigator.language || navigator.userLanguage || '';
-  
-  // זיהוי חד-משמעי של משתמש ישראלי/עברית (ברירת מחדל לישראל היא עברית)
-  const isHebrewUser = storedLang !== 'en' && (storedLang === 'he' || timeZone === 'Asia/Jerusalem' || browserLang.toLowerCase().startsWith('he') || !storedLang);
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+
+  // זיהוי ברזל: האם מדובר במשתמש ישראלי/עברי (לפי אזור זמן, שפת דפדפן או בחירה קודמת)
+  const isUserHebrew = storedLang === 'he' || 
+    isHebrewQuery || 
+    (!storedLang && !isEnglishQuery && (timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')));
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
@@ -38,15 +40,17 @@ function RootHandler() {
       return;
     }
 
-    if (isHebrewUser) {
+    if (isHebrewQuery || isUserHebrew) {
       localStorage.setItem('proflow_lang', 'he');
       if (window.location.pathname === '/' || window.location.pathname === '') {
         navigate('/he', { replace: true });
       }
+    } else {
+      localStorage.setItem('proflow_lang', 'en');
     }
-  }, [navigate, hash, search, isEnglishQuery, isHebrewUser]);
+  }, [navigate, hash, search, isEnglishQuery, isHebrewQuery, isUserHebrew]);
 
-  if (isHebrewUser && !isEnglishQuery) {
+  if (isUserHebrew && !isEnglishQuery) {
     return <LandingLocal />;
   }
 
@@ -66,14 +70,18 @@ export default function App() {
   const [updateMessage, setUpdateMessage] = useState('');
 
   const queryParams = new URLSearchParams(window.location.search);
-  
   const currentCountry = session?.user?.user_metadata?.country || (window.location.pathname.startsWith('/he') ? 'Local' : 'International');
   
   const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
-  const isHebrew = isExplicitEnglishPath ? false : (isHebrewEnv(currentCountry, session) || 
-                    window.location.pathname.startsWith('/he') || 
-                    queryParams.get('lang') === 'he' ||
-                    (!queryParams.has('lang') && !window.location.pathname.startsWith('/en') && (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Jerusalem' || (navigator.language || '').toLowerCase().startsWith('he'))));
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  
+  const isHebrew = isExplicitEnglishPath ? false : (
+    isHebrewEnv(currentCountry, session) || 
+    window.location.pathname.startsWith('/he') || 
+    queryParams.get('lang') === 'he' ||
+    (!queryParams.has('lang') && !window.location.pathname.startsWith('/en') && (timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')))
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -260,7 +268,6 @@ export default function App() {
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         
-        {/* נתיבים נקיים שמתאימים את עצמם אוטומטית לשפת המשתמש */}
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
         <Route path="/contact" element={<Contact isHebrew={isHebrew} />} />
