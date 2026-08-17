@@ -18,38 +18,13 @@ function RootHandler() {
   const search = window.location.search;
   const hash = window.location.hash;
   const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
-  const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
-
-  const storedLang = localStorage.getItem('proflow_lang');
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
-
-  const isUserHebrew = storedLang !== 'en' && (
-    storedLang === 'he' || 
-    isHebrewQuery || 
-    timeZone === 'Asia/Jerusalem' || 
-    browserLang.startsWith('he') || 
-    !storedLang
-  );
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
       navigate('/dashboard' + hash + search, { replace: true });
       return;
     }
-
-    if (isEnglishQuery) {
-      localStorage.setItem('proflow_lang', 'en');
-      return;
-    }
-
-    if (isUserHebrew) {
-      localStorage.setItem('proflow_lang', 'he');
-      if (window.location.pathname === '/' || window.location.pathname === '') {
-        navigate('/he', { replace: true });
-      }
-    }
-  }, [navigate, hash, search, isEnglishQuery, isUserHebrew]);
+  }, [navigate, hash, search]);
 
   if (isEnglishQuery) {
     return <LandingGlobal />;
