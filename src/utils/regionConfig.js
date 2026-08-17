@@ -15,7 +15,6 @@ export const REGION_RULES = Object.freeze({
 });
 
 export const isHebrewEnv = (country, session) => {
-  // אם אין משתמש מחובר (מסך כניסה / התחברות / אורח), נציג תמיד באנגלית בינלאומית נקייה ויציבה
   if (!session || !session.user) {
     return false;
   }
@@ -61,7 +60,8 @@ export const getRegionTaxRate = (country) => {
 };
 
 // פונקציות פירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
-export const formatDateLocal = (dateString, isHebrew) => {
+// נוסיף כאן בדיקה מבוססת מטבע כדי להבטיח יציבות (USD = US Date, אחרת = International Date)
+export const formatDateLocal = (dateString, isHebrew, currency = 'USD') => {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
@@ -72,15 +72,12 @@ export const formatDateLocal = (dateString, isHebrew) => {
       return date.toLocaleDateString('he-IL');
     }
 
-    // בדיקת הגדרת שפת הדפדפן של המשתמש
-    const userLang = typeof window !== 'undefined' ? (navigator.language || '').toLowerCase() : '';
-
-    // עבור משתמשים בארה"ב בלבד - פורמט: MM/DD/YYYY
-    if (userLang.startsWith('en-us')) {
+    // עבור משתמשים המשתמשים בדולר (ארה"ב) - פורמט: MM/DD/YYYY
+    if (currency === 'USD') {
       return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     }
 
-    // עבור שאר העולם (בריטניה, אירופה וכו') - פורמט: DD/MM/YYYY
+    // עבור שאר המטבעות (בריטניה, אירופה וכו') - פורמט: DD/MM/YYYY
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch (e) {
     return dateString;
