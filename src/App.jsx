@@ -24,17 +24,13 @@ function RootHandler() {
       navigate('/dashboard' + hash + search, { replace: true });
       return;
     }
-
-    // אם לא ביקשו במפורש אנגלית, מפנים מיד ובאופן אוטומטי לכתובת /he
-    if (!isEnglishQuery) {
-      window.location.replace('/he' + search + hash);
-    }
-  }, [navigate, hash, search, isEnglishQuery]);
+  }, [navigate, hash, search]);
 
   if (isEnglishQuery) {
     return <LandingGlobal />;
   }
 
+  // ברירת מחדל מוחלטת: הדומיין הראשי מציג ישירות את העברית
   return <LandingLocal />;
 }
 
