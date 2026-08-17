@@ -5,26 +5,34 @@ export default function ProFlowLogo({ size = 48, rtl = false, darkText = false, 
   const isDashboard = typeof window !== 'undefined' && window.location.pathname.includes('/dashboard');
   const shouldUseDarkText = darkText || isDashboard;
 
-  // 1. אם יש לוגו תקין שהוגדר לעסק
-  if (logoUrl && logoUrl.trim() !== '') {
+  // מצב שגיאה בטעינת התמונה מנוהל באמצעות State נקי ובטוח לריאקט
+  const [imgError, setImgError] = React.useState(false);
+
+  // איפוס שגיאת התמונה ברגע שהכתובת משתנה
+  React.useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
+
+  // 1. אם יש לוגו תקין ואין שגיאת טעינה
+  if (logoUrl && logoUrl.trim() !== '' && !imgError) {
     return (
       <div dir="ltr" style={{ display: 'flex', alignItems: 'center' }}>
         <img 
           src={logoUrl} 
           alt="Business Logo" 
-          onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = bizName || 'ProFlow'; }}
+          onError={() => setImgError(true)}
           style={{ height: `${size}px`, width: 'auto', objectFit: 'contain', maxWidth: '180px' }} 
         />
       </div>
     );
   }
 
-  // 2. אם אין לוגו, נציג את שם העסק אם קיים
+  // 2. אם אין לוגו או שהתמונה נכשלה בטעינה, נציג את שם העסק ב-BOLD אם קיים
   if (bizName && bizName.trim() !== '') {
     return (
       <span style={{ 
         fontSize: `${size * 0.6}px`, 
-        fontWeight: '700', 
+        fontWeight: 'bold', 
         color: shouldUseDarkText ? '#0f172a' : '#ffffff',
         fontFamily: 'Inter, Segoe UI, sans-serif'
       }}>
