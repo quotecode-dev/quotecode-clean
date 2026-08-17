@@ -271,6 +271,7 @@ export default function App() {
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         
+        {/* Dynamic language-aware routes */}
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
         <Route path="/contact" element={<Contact isHebrew={isHebrew} />} />
@@ -278,10 +279,12 @@ export default function App() {
         <Route path="/he/terms" element={<Terms isHebrew={true} />} />
         <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />
         <Route path="/he/contact" element={<Contact isHebrew={true} />} />
+        <Route path="/he/tools" element={<PublicTools />} />
         
         <Route path="/en/terms" element={<Terms isHebrew={false} />} />
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
+        <Route path="/en/tools" element={<PublicToolsEn />} />
 
         <Route path="*" element={<LandingLocal />} />
       </Routes>
