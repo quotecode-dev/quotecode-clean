@@ -2011,6 +2011,7 @@ export default function Dashboard() {
                 t={t}
                 setPendingEmailQuote={setPendingEmailQuote}
                 emailStatuses={emailStatuses}
+                currency={currency}
               />
 
               <ServicesCatalog
