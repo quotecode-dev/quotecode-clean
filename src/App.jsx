@@ -55,7 +55,7 @@ export default function App() {
   const isHebrew = isExplicitEnglishPath ? false : (
     isHebrewEnv(currentCountry, session) || 
     window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang') === 'he' ||
+    queryParams.get('lang'] === 'he' ||
     timeZone === 'Asia/Jerusalem' || 
     browserLang.startsWith('he') ||
     !queryParams.has('lang')
