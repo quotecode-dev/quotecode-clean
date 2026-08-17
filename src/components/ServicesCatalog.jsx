@@ -100,13 +100,13 @@ export default function ServicesCatalog({
                             onClick={() => handleSaveEditedService(svc.id)}
                             style={{ background: '#10b981', color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            שמור
+                            {isHebrew ? 'שמור' : 'Save'}
                           </button>
                           <button 
                             onClick={() => setEditingServiceId(null)}
                             style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            ביטול
+                            {isHebrew ? 'ביטול' : 'Cancel'}
                           </button>
                         </>
                       ) : (
@@ -119,14 +119,14 @@ export default function ServicesCatalog({
                             }}
                             style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem' }}
                           >
-                            ערוך
+                            {isHebrew ? 'ערוך' : 'Edit'}
                           </button>
                           <button 
                             title={t.delete}
                             onClick={() => handleDeleteService(svc.id)}
                             style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem' }}
                           >
-                            מחק
+                            {isHebrew ? 'מחק' : 'Delete'}
                           </button>
                         </>
                       )}
