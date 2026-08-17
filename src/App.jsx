@@ -24,7 +24,12 @@ function RootHandler() {
       navigate('/dashboard' + hash + search, { replace: true });
       return;
     }
-  }, [navigate, hash, search]);
+
+    // הפניה מיידית ואבסולוטית לעברית כברירת מחדל מוחלטת לכל מי שנכנס לדומיין הראשי
+    if (!isEnglishQuery) {
+      window.location.replace('/he' + search + hash);
+    }
+  }, [navigate, hash, search, isEnglishQuery]);
 
   if (isEnglishQuery) {
     return <LandingGlobal />;
@@ -236,7 +241,7 @@ export default function App() {
       )}
 
       <Routes>
-        <Route path="/" element={<LandingLocal />} />
+        <Route path="/" element={<RootHandler />} />
         <Route path="/he" element={<LandingLocal />} />
         <Route path="/en" element={<LandingGlobal />} />
         <Route path="/dashboard" element={<Dashboard />} />
