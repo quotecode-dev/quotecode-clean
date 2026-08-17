@@ -1541,7 +1541,7 @@ export default function Dashboard() {
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = a.created_at || '';
+      bVal = b.created_at || '';
     }
 
     if (typeof aVal === 'string') {
@@ -1798,11 +1798,7 @@ export default function Dashboard() {
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '10px 16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {(bizLogoUrl && bizLogoUrl.trim() !== '' && bizPlan === 'pro') ? (
-                <img src={bizLogoUrl} alt="" style={{ height: '28px', maxWidth: '120px', objectFit: 'contain' }} />
-              ) : (
-                <ProFlowLogo size={24} />
-              )}
+              <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
             </div>
 
             <div style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}>
