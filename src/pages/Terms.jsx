@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service';
+  }, [isHebrew]);
 
   // מילון תרגומים מלא לתנאי השימוש
   const t = isHebrew ? {

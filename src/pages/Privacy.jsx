@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy';
+  }, [isHebrew]);
 
   // מילון תרגומים מלא למדיניות פרטיות
   const t = isHebrew ? {

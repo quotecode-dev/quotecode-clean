@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = isHebrew ? 'ProFlow - צור קשר ותמיכה' : 'ProFlow - Contact Us & Support';
+  }, [isHebrew]);
 
   const t = isHebrew ? {
     title: 'צור קשר',
