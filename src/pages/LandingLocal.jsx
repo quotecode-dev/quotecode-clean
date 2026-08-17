@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
+import AccessibilityModal from '../components/AccessibilityModal';
 
 export default function LandingLocal({ onForgotPassword }) {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
+  const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   const faqs = [
     {
@@ -415,6 +417,8 @@ export default function LandingLocal({ onForgotPassword }) {
             <span style={{ color: '#334155' }}>|</span>
             <a href="/he/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>מדיניות פרטיות</a>
             <span style={{ color: '#334155' }}>|</span>
+            <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>נגישות</button>
+            <span style={{ color: '#334155' }}>|</span>
             <a href="/he/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>צור קשר (support@quotecodepro.com)</a>
             <span style={{ color: '#334155' }}>|</span>
             <a href="https://www.quotecodepro.com/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>כלים לעסקים</a>
@@ -424,6 +428,7 @@ export default function LandingLocal({ onForgotPassword }) {
       </footer>
 
       <AIChatWidget isHebrew={true} isDashboard={false} />
+      <AccessibilityModal isOpen={accessibilityOpen} onClose={() => setAccessibilityOpen(false)} isHebrew={true} />
 
     </div>
   );

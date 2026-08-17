@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
+import AccessibilityModal from '../components/AccessibilityModal';
 
 export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
   const [currencySymbol, setCurrencySymbol] = useState('$');
+  const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -224,6 +226,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '700' }}>
               14 days completely free for all PRO features!
             </span>
+
           </div>
 
           <div style={{ marginBottom: '50px', color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -271,7 +274,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#34d399', fontWeight: '700', fontSize: '1rem' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
               There is a much easier, smarter, and professional way to run your business with ProFlow!
             </div>
           </div>
@@ -437,6 +440,8 @@ export default function LandingGlobal({ onForgotPassword }) {
             <span style={{ color: '#334155' }}>|</span>
             <a href="/en/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Privacy Policy</a>
             <span style={{ color: '#334155' }}>|</span>
+            <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
+            <span style={{ color: '#334155' }}>|</span>
             <a href="/en/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Contact Us (info@quotecodepro.com)</a>
             <span style={{ color: '#334155' }}>|</span>
             <a href="https://www.quotecodepro.com/en/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>Business Tools</a>
@@ -446,6 +451,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       </footer>
 
       <AIChatWidget isHebrew={false} isDashboard={false} />
+      <AccessibilityModal isOpen={accessibilityOpen} onClose={() => setAccessibilityOpen(false)} isHebrew={false} />
 
     </div>
   );
