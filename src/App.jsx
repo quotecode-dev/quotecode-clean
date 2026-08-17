@@ -73,7 +73,8 @@ export default function App() {
   const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
   const isHebrew = isExplicitEnglishPath ? false : (isHebrewEnv(currentCountry, session) || 
                     window.location.pathname.startsWith('/he') || 
-                    queryParams.get('lang') === 'he');
+                    queryParams.get('lang') === 'he' ||
+                    (!queryParams.has('lang') && !window.location.pathname.startsWith('/en') && (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Jerusalem' || (navigator.language || '').toLowerCase().startsWith('he'))));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -273,7 +274,7 @@ export default function App() {
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
-        <Route path="*" element={<LandingGlobal />} />
+        <Route path="*" element={isHebrew ? <LandingLocal /> : <LandingGlobal />} />
       </Routes>
     </BrowserRouter>
   );
