@@ -124,7 +124,7 @@ export default function App() {
     }
   };
 
-  const handleUpdatePassword = async (e) => {
+    const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setUpdateLoading(true);
     setUpdateMessage('');
