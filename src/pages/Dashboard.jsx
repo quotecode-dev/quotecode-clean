@@ -1797,7 +1797,7 @@ export default function Dashboard() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '10px 16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', order: isHebrew ? 2 : 1 }}>
               {bizLogoUrl && bizLogoUrl.trim() !== '' ? (
                 <img src={bizLogoUrl} alt="Business Logo" style={{ height: '32px', maxWidth: '140px', objectFit: 'contain' }} />
               ) : (
@@ -1805,7 +1805,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px', order: 2 }}>
               <AIChatWidget isHebrew={isHebrew} isDashboard={true} />
               {!isPro && !isSuperAdmin && (
                 <button
@@ -1833,7 +1833,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', order: isHebrew ? 1 : 2 }}>
               {isSuperAdmin && (
                 <span style={{ background: '#fef08a', color: '#854d0e', fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z"/></svg>
