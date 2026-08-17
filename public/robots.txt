@@ -1,6 +1,19 @@
 User-agent: *
 Allow: /
+Allow: /he
+Allow: /en
+Allow: /tools
+Allow: /en/tools
+Allow: /contact
+Allow: /he/contact
+Allow: /en/contact
+Allow: /privacy
+Allow: /he/privacy
+Allow: /en/privacy
+Allow: /terms
+Allow: /he/terms
+Allow: /en/terms
+
 Disallow: /dashboard
-Disallow: /settings
 
 Sitemap: https://www.quotecodepro.com/sitemap.xml
