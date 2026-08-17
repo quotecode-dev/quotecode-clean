@@ -70,7 +70,6 @@ export default function App() {
   
   const currentCountry = session?.user?.user_metadata?.country || (window.location.pathname.startsWith('/he') ? 'Local' : 'International');
   
-  // תיקון קריטי: אכיפה מוחלטת של זיהוי השפה לפי הנתיב בפועל (Pathname) כדי למנוע התנגשות עם אזור הזמן של ישראל
   const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
   const isHebrew = isExplicitEnglishPath ? false : (isHebrewEnv(currentCountry, session) || 
                     window.location.pathname.startsWith('/he') || 
