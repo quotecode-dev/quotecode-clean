@@ -24,10 +24,14 @@ function RootHandler() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
 
-  // זיהוי ברזל: האם מדובר במשתמש ישראלי/עברי (לפי אזור זמן, שפת דפדפן או בחירה קודמת)
-  const isUserHebrew = storedLang === 'he' || 
+  // פתרון ברזל: אם המשתמש לא ביקש במפורש אנגלית, ובאזור זמן של ישראל או דפדפן בעברית או ברירת מחדל - נגדיר כעברית
+  const isUserHebrew = storedLang !== 'en' && (
+    storedLang === 'he' || 
     isHebrewQuery || 
-    (!storedLang && !isEnglishQuery && (timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')));
+    timeZone === 'Asia/Jerusalem' || 
+    browserLang.startsWith('he') || 
+    !storedLang
+  );
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
@@ -40,21 +44,19 @@ function RootHandler() {
       return;
     }
 
-    if (isHebrewQuery || isUserHebrew) {
+    if (isUserHebrew) {
       localStorage.setItem('proflow_lang', 'he');
       if (window.location.pathname === '/' || window.location.pathname === '') {
         navigate('/he', { replace: true });
       }
-    } else {
-      localStorage.setItem('proflow_lang', 'en');
     }
-  }, [navigate, hash, search, isEnglishQuery, isHebrewQuery, isUserHebrew]);
+  }, [navigate, hash, search, isEnglishQuery, isUserHebrew]);
 
-  if (isUserHebrew && !isEnglishQuery) {
-    return <LandingLocal />;
+  if (isEnglishQuery) {
+    return <LandingGlobal />;
   }
 
-  return <LandingGlobal />;
+  return <LandingLocal />;
 }
 
 export default function App() {
@@ -79,8 +81,10 @@ export default function App() {
   const isHebrew = isExplicitEnglishPath ? false : (
     isHebrewEnv(currentCountry, session) || 
     window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang') === 'he' ||
-    (!queryParams.has('lang') && !window.location.pathname.startsWith('/en') && (timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')))
+    queryParams.get('lang'] === 'he' ||
+    timeZone === 'Asia/Jerusalem' || 
+    browserLang.startsWith('he') ||
+    !queryParams.has('lang')
   );
 
   useEffect(() => {
@@ -280,7 +284,7 @@ export default function App() {
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
-        <Route path="*" element={isHebrew ? <LandingLocal /> : <LandingGlobal />} />
+        <Route path="*" element={<LandingLocal />} />
       </Routes>
     </BrowserRouter>
   );
