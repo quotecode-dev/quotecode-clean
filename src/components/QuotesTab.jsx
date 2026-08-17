@@ -30,7 +30,8 @@ export default function QuotesTab({
   formatNum,
   t,
   setPendingEmailQuote,
-  emailStatuses
+  emailStatuses,
+  currency
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
@@ -164,7 +165,7 @@ export default function QuotesTab({
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', color: '#64748b', fontSize: '0.75rem', direction: 'ltr' }}>
-                      {formatDateLocal(quote.created_at, isHebrew)}
+                      {formatDateLocal(quote.created_at, isHebrew, currency)}
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
                       <span style={{ background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'inline-block' }}>
@@ -238,7 +239,6 @@ export default function QuotesTab({
                                 textAlign: isHebrew ? 'right' : 'left'
                               }}
                             >
-                              {/* 1. View Quote */}
                               <button
                                 onClick={() => { setOpenDropdownId(null); window.open(`/public-quote/${quote.id}`, '_blank'); }}
                                 style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#3730a3', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
@@ -249,7 +249,6 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'צפה במסמך' : 'View Quote'}</span>
                               </button>
 
-                              {/* 2. Edit Quote */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -277,7 +276,6 @@ export default function QuotesTab({
                                 )}
                               </div>
 
-                              {/* 3. Duplicate Quote */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -318,7 +316,6 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'שלח במייל' : 'Send Email'}</span>
                               </button>
 
-                              {/* 4. Delete Quote - With Lock Protection */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
