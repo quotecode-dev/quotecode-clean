@@ -24,7 +24,6 @@ function RootHandler() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
 
-  // פתרון ברזל: אם המשתמש לא ביקש במפורש אנגלית, ובאזור זמן של ישראל או דפדפן בעברית או ברירת מחדל - נגדיר כעברית
   const isUserHebrew = storedLang !== 'en' && (
     storedLang === 'he' || 
     isHebrewQuery || 
@@ -81,7 +80,7 @@ export default function App() {
   const isHebrew = isExplicitEnglishPath ? false : (
     isHebrewEnv(currentCountry, session) || 
     window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang'] === 'he' ||
+    queryParams.get('lang') === 'he' ||
     timeZone === 'Asia/Jerusalem' || 
     browserLang.startsWith('he') ||
     !queryParams.has('lang')
