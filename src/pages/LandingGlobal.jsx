@@ -226,7 +226,6 @@ export default function LandingGlobal({ onForgotPassword }) {
             <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '700' }}>
               14 days completely free for all PRO features!
             </span>
-
           </div>
 
           <div style={{ marginBottom: '50px', color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -433,18 +432,18 @@ export default function LandingGlobal({ onForgotPassword }) {
       </main>
 
       {/* Footer */}
-      <footer style={{ background: '#05070a', color: '#64748b', padding: '40px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <footer style={{ background: '#05070a', color: '#64748b', padding: '40px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px' }}>
-            <a href="/en/terms" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Terms of Service</a>
+            <button onClick={() => navigate('/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Terms of Service</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/en/privacy" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Privacy Policy</a>
+            <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="/en/contact" className="footer-link" style={{ textDecoration: 'none', padding: 0 }}>Contact Us (info@quotecodepro.com)</a>
+            <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Contact Us (info@quotecodepro.com)</button>
             <span style={{ color: '#334155' }}>|</span>
-            <a href="https://www.quotecodepro.com/en/tools" className="footer-link" style={{ textDecoration: 'none', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>Business Tools</a>
+            <button onClick={() => navigate('/public-tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#818cf8', fontWeight: 'bold' }}>Business Tools</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Global. All rights reserved.</p>
         </div>
