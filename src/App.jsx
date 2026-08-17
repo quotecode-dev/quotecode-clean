@@ -24,7 +24,12 @@ function RootHandler() {
       navigate('/dashboard' + hash + search, { replace: true });
       return;
     }
-  }, [navigate, hash, search]);
+
+    // אם לא ביקשו במפורש אנגלית, מפנים מיד ובאופן אוטומטי לכתובת /he
+    if (!isEnglishQuery) {
+      window.location.replace('/he' + search + hash);
+    }
+  }, [navigate, hash, search, isEnglishQuery]);
 
   if (isEnglishQuery) {
     return <LandingGlobal />;
@@ -55,7 +60,7 @@ export default function App() {
   const isHebrew = isExplicitEnglishPath ? false : (
     isHebrewEnv(currentCountry, session) || 
     window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang'] === 'he' ||
+    queryParams.get('lang') === 'he' ||
     timeZone === 'Asia/Jerusalem' || 
     browserLang.startsWith('he') ||
     !queryParams.has('lang')
