@@ -79,7 +79,10 @@ export default function Dashboard() {
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [statusMsg, setStatusMsg] = useState({ text: 'המערכת מחוברת בהצלחה.', type: 'success' });
+  const [statusMsg, setStatusMsg] = useState({ 
+    text: (window.location.pathname.startsWith('/en') || window.location.search.includes('lang=en')) ? 'System connected successfully.' : 'המערכת מחוברת בהצלחה.', 
+    type: 'success' 
+  });
   const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
@@ -330,7 +333,7 @@ export default function Dashboard() {
 
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('ענן / תשתית');
+  const [expenseCategory, setExpenseCategory] = useState(isHebrew ? 'ענן / תשתית' : 'Cloud / Infrastructure');
   const [isRecurring, setIsRecurring] = useState(false);
 
   const [pendingEmailQuote, setPendingEmailQuote] = useState(null);
@@ -559,7 +562,7 @@ export default function Dashboard() {
       const defaultPayload = {
         user_id: userId,
         email: userEmail,
-        business_name: 'עסק חדש',
+        business_name: isHebrew ? 'עסק חדש' : 'New Business',
         country: detectedCountry,
         currency: detectedCurr,
         plan: 'pro',
@@ -2212,11 +2215,11 @@ export default function Dashboard() {
 
       <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
-          מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר
+          {isHebrew ? <>מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר</> : <><strong>ProFlow</strong> - Business & Quoting SaaS Platform</>}
         </div>
         <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: '#4f46e5', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px', verticalAlign: 'middle'}}><circle cx="12" cy="5" r="2"/><path d="m5 10 7-1 7 1"/><path d="m12 10v7"/><path d="m12 17-4 5"/><path d="m12 17 4 5"/></svg>
-          הצהרת נגישות
+          {isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}
         </button>
       </footer>
     </div>
