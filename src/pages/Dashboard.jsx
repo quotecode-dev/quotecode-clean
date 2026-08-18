@@ -36,26 +36,6 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
-function getDetectedCurrency() {
-  try {
-    if (typeof window !== 'undefined') {
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      const userLang = (navigator.language || '').toLowerCase();
-      
-      if (userLang.includes('en-gb') || timeZone.includes('London')) {
-        return 'GBP';
-      }
-      if (userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it') || timeZone.includes('Europe')) {
-        return 'EUR';
-      }
-      if (userLang.includes('en-au')) {
-        return 'AUD';
-      }
-    }
-  } catch (e) {}
-  return 'USD';
-}
-
 export default function Dashboard() {
   const [session, setSession] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -148,6 +128,11 @@ export default function Dashboard() {
 
   const [quoteSubject, setQuoteSubject] = useState('');
 
+  const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
+
+  // תיקון סמלי מטבע אחיד ומוחלט שמונע את תקלות השקלים/דולרים/פאונד בדשבורד
+  const sym = isLocalIsraeliBusiness ? '₪' : (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
+
   const handleOpenNewUsersModal = (newUsersList) => {
     const nowTime = Date.now();
     localStorage.setItem('proflow_last_seen_new_users', nowTime.toString());
@@ -175,16 +160,6 @@ export default function Dashboard() {
     }, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
-
-  function getCurrencySymbol(curr) {
-    if (bizCountry === 'International') {
-      if (curr === 'EUR') return '€';
-      if (curr === 'GBP') return '£';
-      if (curr === 'CAD' || curr === 'AUD') return 'A$';
-      return '$';
-    }
-    return getCurrencySym(bizCountry, curr);
-  }
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -346,8 +321,6 @@ export default function Dashboard() {
 
   const [pendingEmailQuote, setPendingEmailQuote] = useState(null);
 
-  const isInternationalAccount = bizCountry === 'International';
-
   let trialDaysLeft = null;
   let isTrialExpired = false;
   if (trialEndsAt) {
@@ -363,7 +336,6 @@ export default function Dashboard() {
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';
   const isBasicOrAbove = isPro || effectivePlan === 'basic';
-  const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL';
 
   const t = {
     appName: bizName || 'ProFlow',
@@ -674,7 +646,7 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    const enforcedCurrency = (bizCountry === 'Local' || bizCountry === 'LCL') ? 'ILS' : currency;
+    const enforcedCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;
 
     const payload = {
       business_name: bizName,
@@ -1042,7 +1014,7 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    const proposalSym = (isLocalIsraeliBusiness || proposal.currency === 'ILS') ? '₪' : getCurrencySymbol(proposal.currency);
+    const proposalSym = isLocalIsraeliBusiness ? '₪' : (proposal.currency === 'EUR' ? '€' : proposal.currency === 'GBP' ? '£' : '$');
     const text = isHebrew 
       ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
       : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
@@ -1066,7 +1038,7 @@ export default function Dashboard() {
     setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן...' : 'Sending email via cloud...', type: 'success' });
 
     try {
-      const quoteSym = getCurrencySymbol(quote.currency);
+      const quoteSym = isLocalIsraeliBusiness ? '₪' : (quote.currency === 'EUR' ? '€' : quote.currency === 'GBP' ? '£' : '$');
       const quoteLink = `${window.location.origin}/public-quote/${quote.id}`;
       
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';
@@ -1146,7 +1118,6 @@ export default function Dashboard() {
   const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';
 
   const totalQuotesCount = quotes.length;
-  // חישוב סך ההכנסות מתבסס על ההצעות המאושרות/שולמות
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
@@ -1247,8 +1218,6 @@ export default function Dashboard() {
     return { name, Income: income, Expenses: expense };
   });
 
-  
-  const sym = (isLocalIsraeliBusiness || currency === 'ILS') ? '₪' : getCurrencySymbol(currency);
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
   const handleEditClick = (quote) => {
