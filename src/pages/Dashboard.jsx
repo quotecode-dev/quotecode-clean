@@ -130,7 +130,6 @@ export default function Dashboard() {
 
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
 
-  // תיקון מוגן למטבע בדשבורד (תומך לחלוטין ב-USD, GBP, EUR)
   const upperCurr = (currency || '').toUpperCase();
   const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
 
