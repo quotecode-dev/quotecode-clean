@@ -174,10 +174,15 @@ export default function SettingsTab({
               disabled={isLocalIsraeliBusiness}
               style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: isLocalIsraeliBusiness ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem', fontWeight: '400', color: '#4f46e5' }}
             >
-              <option value="ILS">ILS (₪)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
+              {isLocalIsraeliBusiness ? (
+                <option value="ILS">ILS (₪)</option>
+              ) : (
+                <>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                </>
+              )}
             </select>
           </div>
         </div>
