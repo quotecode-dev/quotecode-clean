@@ -1245,7 +1245,7 @@ export default function Dashboard() {
     return { name, Income: income, Expenses: expense };
   });
 
-  const sym = getCurrencySymbol(currency);
+  const sym = isLocalIsraeliBusiness ? '₪' : getCurrencySymbol(currency);
 
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
