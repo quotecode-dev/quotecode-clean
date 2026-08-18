@@ -130,8 +130,9 @@ export default function Dashboard() {
 
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
 
-  // תיקון סמלי מטבע מדויק לדשבורד (תומך לחלוטין ב-GBP, EUR, USD בדשבורד האנגלי)
-  const sym = !isHebrew ? (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$') : '₪';
+  // תיקון מוגן למטבע בדשבורד (תומך לחלוטין ב-USD, GBP, EUR)
+  const upperCurr = (currency || '').toUpperCase();
+  const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
 
   const handleOpenNewUsersModal = (newUsersList) => {
     const nowTime = Date.now();
@@ -1014,7 +1015,8 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    const proposalSym = isLocalIsraeliBusiness ? '₪' : (proposal.currency === 'EUR' ? '€' : proposal.currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
+    const proposalCurr = (proposal.currency || currency || 'USD').toUpperCase();
+    const proposalSym = isLocalIsraeliBusiness && proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
     const text = isHebrew 
       ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
       : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
@@ -1038,7 +1040,8 @@ export default function Dashboard() {
     setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן...' : 'Sending email via cloud...', type: 'success' });
 
     try {
-      const quoteSym = isLocalIsraeliBusiness ? '₪' : (quote.currency === 'EUR' ? '€' : quote.currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
+      const quoteCurr = (quote.currency || currency || 'USD').toUpperCase();
+      const quoteSym = isLocalIsraeliBusiness && quoteCurr === 'ILS' ? '₪' : (quoteCurr === 'EUR' ? '€' : quoteCurr === 'GBP' ? '£' : '$');
       const quoteLink = `${window.location.origin}/public-quote/${quote.id}`;
       
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';
@@ -1118,7 +1121,6 @@ export default function Dashboard() {
   const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';
 
   const totalQuotesCount = quotes.length;
-  // תיקון קריטי: סך כל ההכנסות מחשב את הסכומים במדויק מתוך ההצעות המאושרות/שולמות ללא תלות בשינויי הגדרות ענן מאוחרים
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
