@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
+const COUNTRIES = [
+  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
+  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
+  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
+  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
+];
+
 export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
@@ -10,16 +20,38 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // ניהול שדה טלפון מעוצב
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [localPhone, setLocalPhone] = useState('');
+
+  const handlePhoneCountryChange = (newCountry) => {
+    setSelectedCountry(newCountry);
+    setPhone(`${newCountry.dial} ${localPhone}`);
+  };
+
+  const handleLocalPhoneChange = (numVal) => {
+    setLocalPhone(numVal);
+    setPhone(`${selectedCountry.dial} ${numVal}`);
+  };
+
   useEffect(() => {
     if (client) {
       setCompanyName(client.company_name || '');
       setEmail(client.email || '');
-      setPhone(client.phone || '');
       setClientType(client.client_type || 'business');
       setTaxId(client.tax_id || '');
       setAddress(client.address || '');
       setNotes(client.notes || '');
       setErrorMsg('');
+
+      const rawPhone = client.phone || '';
+      const foundCountry = COUNTRIES.find(c => rawPhone.startsWith(c.dial));
+      if (foundCountry) {
+        setSelectedCountry(foundCountry);
+        setLocalPhone(rawPhone.replace(foundCountry.dial, '').trim());
+      } else {
+        setLocalPhone(rawPhone);
+      }
     }
   }, [client]);
 
@@ -28,7 +60,6 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const validateEmail = (emailVal) => {
     if (!emailVal || typeof emailVal !== 'string') return false;
     const cleanEmail = emailVal.trim();
-    // רשימה סגורה ומחמירה של סיומות - לא מאפשר שגיאות הקלדה כמו comuuj או comj
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
     return re.test(cleanEmail);
   };
@@ -36,7 +67,6 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // חסימה מוחלטת אם האימייל לא עומד בתבנית המדויקת
     if (email && email.trim() !== '' && !validateEmail(email)) {
       setErrorMsg(isHebrew ? 'שגיאה: כתובת אימייל אינה תקינה (בדוק סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
@@ -81,10 +111,35 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
               <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
+            
+            {/* שדה טלפון מעוצב מחדש עם דגל וקידומת */}
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
-              <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
+              <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
+                <select 
+                  value={selectedCountry.code}
+                  onChange={(e) => {
+                    const found = COUNTRIES.find(c => c.code === e.target.value);
+                    if (found) handlePhoneCountryChange(found);
+                  }}
+                  style={{ border: 'none', background: '#f1f5f9', padding: '8px 6px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
+                >
+                  {COUNTRIES.map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag} {c.dial}
+                    </option>
+                  ))}
+                </select>
+                <input 
+                  type="text" 
+                  value={localPhone} 
+                  onChange={(e) => handleLocalPhoneChange(e.target.value)} 
+                  placeholder="502345678" 
+                  style={{ flex: 1, padding: '8px 10px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
+                />
+              </div>
             </div>
+
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'סוג לקוח' : 'Client Type'}</label>
               <select value={clientType} onChange={(e) => setClientType(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}>

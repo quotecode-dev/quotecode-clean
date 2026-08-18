@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
+const COUNTRIES = [
+  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
+  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
+  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
+  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
+];
+
 export default function SettingsTab({
   t,
   isHebrew,
@@ -26,14 +36,38 @@ export default function SettingsTab({
   trialDaysLeft,
   setShowPricingModal
 }) {
-  // פירוק כתובת העסק לשדות נפרדים לנוחות המשתמש הבינלאומי והמקומי
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
-  // טעינה ראשונית של הכתובת המפורקת מתוך bizAddress הקיים
+  // ניהול טלפון עסק מעוצב עם דגל וקידומת
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [localPhone, setLocalPhone] = useState('');
+
+  const handlePhoneCountryChange = (newCountry) => {
+    setSelectedCountry(newCountry);
+    setBizPhone(`${newCountry.dial} ${localPhone}`);
+  };
+
+  const handleLocalPhoneChange = (numVal) => {
+    setLocalPhone(numVal);
+    setBizPhone(`${selectedCountry.dial} ${numVal}`);
+  };
+
+  useEffect(() => {
+    if (bizPhone) {
+      const foundCountry = COUNTRIES.find(c => bizPhone.startsWith(c.dial));
+      if (foundCountry) {
+        setSelectedCountry(foundCountry);
+        setLocalPhone(bizPhone.replace(foundCountry.dial, '').trim());
+      } else {
+        setLocalPhone(bizPhone);
+      }
+    }
+  }, [bizPhone]);
+
   useEffect(() => {
     if (bizAddress) {
       const parts = bizAddress.split('|');
@@ -48,7 +82,6 @@ export default function SettingsTab({
     }
   }, []);
 
-  // עדכון ה-bizAddress המאוחד בכל שינוי של אחד השדות
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
     setCity(newCity);
@@ -58,27 +91,23 @@ export default function SettingsTab({
     setBizAddress(combined);
   };
 
-  // טיפול בהעלאת קובץ מקומי ללוגו עם בדיקת משקל ופורמטים
   const handleLogoFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setLogoError('');
 
-    // בדיקת גודל - עד 500KB
     if (file.size > 500 * 1024) {
       setLogoError(isHebrew ? 'הקובץ חורג ממשקל 500KB. אנא בחר קובץ קטן יותר.' : 'File exceeds 500KB. Please choose a smaller file.');
       return;
     }
 
-    // בדיקת סוג קובץ (SVG, PNG, JPG/JPEG)
     const validTypes = ['image/svg+xml', 'image/png', 'image/jpeg', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       setLogoError(isHebrew ? 'ניתן להעלות קבצי SVG, JPG או PNG בלבד.' : 'Only SVG, JPG or PNG files are allowed.');
       return;
     }
 
-    // המרת הקובץ ל-Data URL לצורך שמירה והצגה מיידית
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
       setBizLogoUrl(uploadEvent.target.result);
@@ -86,7 +115,6 @@ export default function SettingsTab({
     reader.readAsDataURL(file);
   };
 
-  // זיהוי מטבע אוטומטי לפי מיקום/אזור אם טרם הוגדר מטבע בינלאומי
   useEffect(() => {
     if (!isLocalIsraeliBusiness && (!currency || currency === 'USD')) {
       try {
@@ -120,9 +148,33 @@ export default function SettingsTab({
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
             <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
+          
+          {/* טלפון עסק מעוצב עם דגל וקידומת */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
-            <input type="text" value={bizPhone} onChange={(e) => setBizPhone(e.target.value)} placeholder="050-0000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <select 
+                value={selectedCountry.code}
+                onChange={(e) => {
+                  const found = COUNTRIES.find(c => c.code === e.target.value);
+                  if (found) handlePhoneCountryChange(found);
+                }}
+                style={{ border: 'none', background: '#f1f5f9', padding: '6px 4px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
+              >
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.dial}
+                  </option>
+                ))}
+              </select>
+              <input 
+                type="text" 
+                value={localPhone} 
+                onChange={(e) => handleLocalPhoneChange(e.target.value)} 
+                placeholder="500000000" 
+                style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
+              />
+            </div>
           </div>
 
           <div>
@@ -150,7 +202,6 @@ export default function SettingsTab({
           </div>
         </div>
 
-        {/* שדות כתובת מעודכנים ומפורטים הכוללים מיקוד */}
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '500', marginTop: 0, marginBottom: '10px' }}>
             {isHebrew ? 'כתובת העסק' : 'Business Address Details'}

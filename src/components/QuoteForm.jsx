@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
+const COUNTRIES = [
+  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
+  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
+  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
+  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
+];
+
 export default function QuoteForm({
   editingQuoteId,
   onSave,
@@ -43,6 +53,36 @@ export default function QuoteForm({
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
+
+  // ניהול מודול בחירת טלפון מתקדם
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [localPhone, setLocalPhone] = useState('');
+
+  // עדכון טלפון מאוחד בעת שינוי הקידומת או המספר המקומי
+  const handlePhoneCountryChange = (newCountry) => {
+    setSelectedCountry(newCountry);
+    setClientPhone(`${newCountry.dial} ${localPhone}`);
+  };
+
+  const handleLocalPhoneChange = (numVal) => {
+    setLocalPhone(numVal);
+    setClientPhone(`${selectedCountry.dial} ${numVal}`);
+  };
+
+  // פירسור ראשוני של הטלפון הקיים בעת טעינת הלקוח
+  useEffect(() => {
+    if (clientPhone) {
+      const foundCountry = COUNTRIES.find(c => clientPhone.startsWith(c.dial));
+      if (foundCountry) {
+        setSelectedCountry(foundCountry);
+        setLocalPhone(clientPhone.replace(foundCountry.dial, '').trim());
+      } else {
+        setLocalPhone(clientPhone);
+      }
+    } else {
+      setLocalPhone('');
+    }
+  }, [clientPhone]);
 
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
@@ -102,11 +142,9 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  // המרת תצוגת התאריך בהתאם לאזור/מטבע
   const isUS = currency === 'USD';
   const dateFormatLabel = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
 
-  // המרת תאריך מ- YYYY-MM-DD לפורמט הנדרש להצגה
   const getDisplayDate = (dateStr) => {
     if (!dateStr) return '';
     const parts = dateStr.split('-');
@@ -127,15 +165,14 @@ export default function QuoteForm({
       formatted = `${val.slice(0, 2)}-${val.slice(2)}`;
     }
     
-    // שמירה בפורמט פנימי תקני YYYY-MM-DD עבור ה-DB אם הושלם
     if (val.length === 8) {
       const p1 = val.slice(0, 2);
       const p2 = val.slice(2, 4);
       const p3 = val.slice(4, 8);
       if (isUS) {
-        setValidUntil(`${p3}-${p1}-${p2}`); // MM-DD-YYYY -> YYYY-MM-DD
+        setValidUntil(`${p3}-${p1}-${p2}`);
       } else {
-        setValidUntil(`${p3}-${p2}-${p1}`); // DD-MM-YYYY -> YYYY-MM-DD
+        setValidUntil(`${p3}-${p2}-${p1}`);
       }
     } else {
       setValidUntil(e.target.value);
@@ -198,10 +235,35 @@ export default function QuoteForm({
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.clientEmail}</label>
             <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
+          
+          {/* שדה טלפון מעוצב עם דגל וקידומת */}
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.clientPhone}</label>
-            <input type="text" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <select 
+                value={selectedCountry.code}
+                onChange={(e) => {
+                  const found = COUNTRIES.find(c => c.code === e.target.value);
+                  if (found) handlePhoneCountryChange(found);
+                }}
+                style={{ border: 'none', background: '#f1f5f9', padding: '6px 4px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
+              >
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.dial}
+                  </option>
+                ))}
+              </select>
+              <input 
+                type="text" 
+                value={localPhone} 
+                onChange={(e) => handleLocalPhoneChange(e.target.value)} 
+                placeholder="502345678" 
+                style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
+              />
+            </div>
           </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
             <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
@@ -260,7 +322,6 @@ export default function QuoteForm({
                 placeholder={dateFormatLabel}
                 style={{ width: '100%', padding: '7px 32px 7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} 
               />
-              {/* שדה תאריך נסתר שמתחתיו מופעל כפתור היומן האמיתי */}
               <input 
                 type="date" 
                 ref={dateInputRef}
