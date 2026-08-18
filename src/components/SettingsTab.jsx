@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
-const getDialByCurrency = (curr) => {
+const getDialByCurrency = (curr, isLocal) => {
+  if (isLocal || curr === 'ILS') return { dial: '+972', label: 'IL (+972)' };
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
   if (curr === 'EUR') return { dial: '+49', label: 'DE (+49)' };
   if (curr === 'CAD') return { dial: '+1', label: 'CA (+1)' };
@@ -42,17 +43,18 @@ export default function SettingsTab({
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
-  // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע תמיד נקבע ל-ILS
+  // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע חייב להיות תמיד ILS ברזל
   useEffect(() => {
     if (isLocalIsraeliBusiness && currency !== 'ILS') {
       setCurrency('ILS');
     }
   }, [isLocalIsraeliBusiness, currency, setCurrency]);
 
-  // גזירת הקידומת האוטומטית לפי מטבע העסק בפועל
-  const currencyPhoneConfig = getDialByCurrency(isLocalIsraeliBusiness ? 'ILS' : currency);
-  const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
-  const defaultLabel = isLocalIsraeliBusiness ? 'IL (+972)' : currencyPhoneConfig.label;
+  // גזירת הקידומת האוטומטית עם אכיפה מלאה למקומיים
+  const effectiveCurr = isLocalIsraeliBusiness ? 'ILS' : currency;
+  const currencyPhoneConfig = getDialByCurrency(effectiveCurr, isLocalIsraeliBusiness);
+  const defaultDial = currencyPhoneConfig.dial;
+  const defaultLabel = currencyPhoneConfig.label;
 
   const [localPhone, setLocalPhone] = useState('');
 

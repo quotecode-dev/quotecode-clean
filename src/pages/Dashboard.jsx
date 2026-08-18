@@ -363,7 +363,7 @@ export default function Dashboard() {
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';
   const isBasicOrAbove = isPro || effectivePlan === 'basic';
-  const isLocalIsraeliBusiness = bizCountry === 'Local';
+  const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL';
 
   const t = {
     appName: bizName || 'ProFlow',
@@ -493,14 +493,14 @@ export default function Dashboard() {
         localStorage.setItem('proflow_cached_country', countryVal);
       }
       
-      const defaultFallbackTerms = countryVal === 'International' ? DEFAULT_TERMS_ENG : DEFAULT_TERMS_HEB;
+      const defaultFallbackTerms = (countryVal === 'International') ? DEFAULT_TERMS_ENG : DEFAULT_TERMS_HEB;
       let defTerms = data.default_terms && data.default_terms.trim() !== '' ? data.default_terms : defaultFallbackTerms;
       
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // אכיפה מוחלטת: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS, בלי שום קשר למה ששמור בענן
-      let userCurr = (countryVal === 'Local' || countryVal === 'LCL') ? 'ILS' : (data.currency || 'USD');
+      // אכיפה מלאה: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS באופן קשיח!
+      let userCurr = (countryVal === 'Local' || countryVal === 'LCL' || isHebrew) ? 'ILS' : (data.currency || 'USD');
 
       setCurrency(userCurr);
       setTerms(defTerms);
@@ -520,7 +520,7 @@ export default function Dashboard() {
       const isHebURL = window.location.pathname.startsWith('/he') || window.location.search.includes('lang=he') || localStorage.getItem('proflow_lang') === 'he';
       const detectedCountry = isHebURL ? 'Local' : 'International';
       const detectedTerms = detectedCountry === 'Local' ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = detectedCountry === 'Local' ? 'ILS' : 'USD';
+      const detectedCurr = (detectedCountry === 'Local' || isHebrew) ? 'ILS' : 'USD';
 
       const defaultPayload = {
         user_id: userId,
@@ -557,7 +557,7 @@ export default function Dashboard() {
         }
         setDefaultTerms(newData.default_terms || detectedTerms);
         setTrialEndsAt(newData.trial_ends_at);
-        setCurrency(newData.country === 'Local' ? 'ILS' : (newData.currency || detectedCurr));
+        setCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
         setTerms(newData.default_terms || detectedTerms);
       }
     }
