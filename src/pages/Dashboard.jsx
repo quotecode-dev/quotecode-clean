@@ -1071,7 +1071,7 @@ export default function Dashboard() {
   }
 
   const sendWhatsApp = (proposal) => {
-    const clientNameVal = proposal.clients?.company_name || 'Client';
+    const clientNameVal = proposal.clients?.company_name || (isHebrew ? 'לקוח' : 'Client');
     let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
     let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
