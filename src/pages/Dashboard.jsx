@@ -1246,7 +1246,7 @@ export default function Dashboard() {
   });
 
   
-const sym = (businessSettings?.country === 'Local' || currency === 'ILS') ? '₪' : (currency === 'USD' ? '$' : (currency === 'EUR' ? '€' : (currency === 'GBP' ? '£' : '₪')));
+  const sym = (isLocalIsraeliBusiness || currency === 'ILS') ? '₪' : getCurrencySymbol(currency);
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
   const handleEditClick = (quote) => {
@@ -1498,7 +1498,7 @@ const sym = (businessSettings?.country === 'Local' || currency === 'ILS') ? '₪
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
