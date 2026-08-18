@@ -87,7 +87,12 @@ export default function Dashboard() {
     return 'International';
   });
 
-  const isHebrew = isHebrewEnv(bizCountry, session);
+  // בדיקת כתובת מפורשת ב-URL (כמו ?lang=en או /en) שגוברת תמיד על מסד הנתונים
+  const queryParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const isExplicitEnglish = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) || queryParams.get('lang') === 'en';
+  const isExplicitHebrew = (typeof window !== 'undefined' && window.location.pathname.startsWith('/he')) || queryParams.get('lang') === 'he';
+
+  const isHebrew = isExplicitEnglish ? false : (isExplicitHebrew ? true : isHebrewEnv(bizCountry, session));
 
   const [statusMsg, setStatusMsg] = useState({ 
     text: isHebrew ? 'המערכת מחוברת בהצלחה.' : 'System connected successfully.', 
@@ -112,7 +117,7 @@ export default function Dashboard() {
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
 
-  const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_HEB);
+  const [defaultTerms, setDefaultTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
@@ -514,21 +519,17 @@ export default function Dashboard() {
       setBizLogoUrl(data.logo_url || '');
       setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
+      
+      // שמירה על האזור המקורי במסד הנתונים מבלי לדרוס את בחירת ה-URL של המשתמש
       const countryVal = data.country || 'International';
-      setBizCountry(countryVal);
-      localStorage.setItem('proflow_cached_country', countryVal);
+      if (!isExplicitEnglish && !isExplicitHebrew) {
+        setBizCountry(countryVal);
+        localStorage.setItem('proflow_cached_country', countryVal);
+      }
       
       const defaultFallbackTerms = countryVal === 'International' ? DEFAULT_TERMS_ENG : DEFAULT_TERMS_HEB;
       let defTerms = data.default_terms && data.default_terms.trim() !== '' ? data.default_terms : defaultFallbackTerms;
       
-      if (countryVal === 'International' && defTerms.trim() === DEFAULT_TERMS_HEB.trim()) {
-        defTerms = DEFAULT_TERMS_ENG;
-        supabase.from('business_settings').update({ default_terms: DEFAULT_TERMS_ENG }).eq('id', data.id).then();
-      } else if (countryVal === 'Local' && defTerms.trim() === DEFAULT_TERMS_ENG.trim()) {
-        defTerms = DEFAULT_TERMS_HEB;
-        supabase.from('business_settings').update({ default_terms: DEFAULT_TERMS_HEB }).eq('id', data.id).then();
-      }
-
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
@@ -590,8 +591,10 @@ export default function Dashboard() {
         setBizAddress(newData.address || '');
         setBizPlan(newData.plan);
         setBizRole(newData.role);
-        setBizCountry(newData.country || detectedCountry);
-        localStorage.setItem('proflow_cached_country', newData.country || detectedCountry);
+        if (!isExplicitEnglish && !isExplicitHebrew) {
+          setBizCountry(newData.country || detectedCountry);
+          localStorage.setItem('proflow_cached_country', newData.country || detectedCountry);
+        }
         setDefaultTerms(newData.default_terms || detectedTerms);
         setTrialEndsAt(newData.trial_ends_at);
         setCurrency(newData.currency || detectedCurr);
@@ -600,8 +603,10 @@ export default function Dashboard() {
         setSettingId(null);
         setBizPlan('pro');
         setBizRole('user');
-        setBizCountry(detectedCountry);
-        localStorage.setItem('proflow_cached_country', detectedCountry);
+        if (!isExplicitEnglish && !isExplicitHebrew) {
+          setBizCountry(detectedCountry);
+          localStorage.setItem('proflow_cached_country', detectedCountry);
+        }
         setDefaultTerms(detectedTerms);
         setTrialEndsAt(trialEndDate.toISOString());
         setCurrency(detectedCurr);
