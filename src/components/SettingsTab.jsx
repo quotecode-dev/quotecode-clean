@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-const COUNTRIES = [
-  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
-  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
-  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
-  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
-  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
-  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
-  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
-];
-
 export default function SettingsTab({
   t,
   isHebrew,
@@ -42,31 +32,27 @@ export default function SettingsTab({
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
-  // ניהול טלפון עסק מעוצב עם דגל וקידומת
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const defaultDial = isHebrew ? '+972' : '+1';
+  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
   const [localPhone, setLocalPhone] = useState('');
-
-  const handlePhoneCountryChange = (newCountry) => {
-    setSelectedCountry(newCountry);
-    setBizPhone(`${newCountry.dial} ${localPhone}`);
-  };
 
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setBizPhone(`${selectedCountry.dial} ${numVal}`);
+    setBizPhone(`${defaultDial} ${numVal}`);
   };
 
   useEffect(() => {
     if (bizPhone) {
-      const foundCountry = COUNTRIES.find(c => bizPhone.startsWith(c.dial));
-      if (foundCountry) {
-        setSelectedCountry(foundCountry);
-        setLocalPhone(bizPhone.replace(foundCountry.dial, '').trim());
+      if (bizPhone.startsWith(defaultDial)) {
+        setLocalPhone(bizPhone.replace(defaultDial, '').trim());
       } else {
-        setLocalPhone(bizPhone);
+        const clean = bizPhone.replace(/^\+\d+/, '').trim();
+        setLocalPhone(clean || bizPhone);
       }
+    } else {
+      setLocalPhone('');
     }
-  }, [bizPhone]);
+  }, [bizPhone, defaultDial]);
 
   useEffect(() => {
     if (bizAddress) {
@@ -149,24 +135,12 @@ export default function SettingsTab({
             <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           
-          {/* טלפון עסק מעוצב עם דגל וקידומת */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
-            <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
-              <select 
-                value={selectedCountry.code}
-                onChange={(e) => {
-                  const found = COUNTRIES.find(c => c.code === e.target.value);
-                  if (found) handlePhoneCountryChange(found);
-                }}
-                style={{ border: 'none', background: '#f1f5f9', padding: '6px 4px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
-              >
-                {COUNTRIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.dial}
-                  </option>
-                ))}
-              </select>
+            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ background: '#f1f5f9', padding: '7px 10px', fontSize: '0.8rem', color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>
+                {defaultLabel}
+              </div>
               <input 
                 type="text" 
                 value={localPhone} 
