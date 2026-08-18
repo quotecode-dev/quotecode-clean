@@ -24,7 +24,6 @@ function RootHandler() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
 
-  // בדיקה מעודכנת שמתחשבת גם בבקשת אנגלית מפורשת או בנתיב בינלאומי
   const isUserHebrew = storedLang === 'he' || (!storedLang && (isHebrewQuery || timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')));
 
   useEffect(() => {
@@ -69,15 +68,19 @@ export default function App() {
   const currentCountry = session?.user?.user_metadata?.country || (window.location.pathname.startsWith('/he') ? 'Local' : 'International');
   
   const isExplicitEnglishPath = window.location.pathname.startsWith('/en') || queryParams.get('lang') === 'en';
+  const isExplicitHebrewPath = window.location.pathname.startsWith('/he') || queryParams.get('lang') === 'he';
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
   
+  // תיקון חכם: אם המשתמש ביקש במפורש אנגלית ב-URL או בחר אנגלית, זה תמיד גובר
   const isHebrew = isExplicitEnglishPath ? false : (
-    isHebrewEnv(currentCountry, session) || 
-    window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang'] === 'he' ||
-    (timeZone === 'Asia/Jerusalem' && !queryParams.has('lang')) || 
-    (browserLang.startsWith('he') && !queryParams.has('lang'))
+    isExplicitHebrewPath ? true : (
+      isHebrewEnv(currentCountry, session) || 
+      window.location.pathname.startsWith('/he') || 
+      queryParams.get('lang') === 'he' ||
+      (timeZone === 'Asia/Jerusalem' && !queryParams.has('lang')) || 
+      (browserLang.startsWith('he') && !queryParams.has('lang'))
+    )
   );
 
   useEffect(() => {
