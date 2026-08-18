@@ -136,7 +136,7 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  const [currency, setCurrency] = useState(() => getDetectedCurrency());
+  const [currency, setCurrency] = useState(() => (bizCountry === 'Local' ? 'ILS' : getDetectedCurrency()));
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
@@ -470,45 +470,12 @@ export default function Dashboard() {
   async function fetchSettings(userId, userEmail) {
     const nowIso = new Date().toISOString();
 
+    // שליפה ישירה והרמטית אך ורק לפי user_id של המשתמש הנוכחי (ללא שום מיזוג אימיילים מסוכן)
     let { data, error } = await supabase
       .from('business_settings')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-    
-    if (!data && userEmail) {
-      const { data: emailData } = await supabase
-        .from('business_settings')
-        .select('*')
-        .eq('email', userEmail)
-        .maybeSingle();
-
-      if (emailData) {
-        const oldUserId = emailData.user_id;
-
-        const { data: updatedData } = await supabase
-          .from('business_settings')
-          .update({ user_id: userId, last_sign_in: nowIso })
-          .eq('id', emailData.id)
-          .select()
-          .maybeSingle();
-
-        if (updatedData) {
-          data = updatedData;
-
-          if (oldUserId && oldUserId !== userId) {
-            await supabase.from('services').update({ user_id: userId }).eq('user_id', oldUserId);
-            await supabase.from('clients').update({ user_id: userId }).eq('user_id', oldUserId);
-            await supabase.from('quotes').update({ user_id: userId }).eq('user_id', oldUserId);
-            await supabase.from('expenses').update({ user_id: userId }).eq('user_id', oldUserId);
-          }
-        }
-      } else if (data) {
-        if (!data.email && userEmail) {
-          await supabase.from('business_settings').update({ email: userEmail }).eq('id', data.id);
-        }
-      }
-    }
 
     if (data) {
       setSettingId(data.id);
@@ -533,10 +500,10 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // אכיפה קשיחה עיוורת: אם המדינה היא Local או Local Israeli Business, המטבע חייב להיות ILS נקודה!
+      // אכיפה עיוורת מוחלטת: אם המדינה היא Local, המטבע חייב להיות ILS נקודה!
       let userCurr = (countryVal === 'Local') ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : getDetectedCurrency());
       if (countryVal === 'International') {
-        userCurr = getDetectedCurrency();
+        userCurr = (data.currency && data.currency !== 'ILS') ? data.currency : getDetectedCurrency();
       }
 
       setCurrency(userCurr);
@@ -559,7 +526,7 @@ export default function Dashboard() {
       const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
       
       let detectedCurr = getDetectedCurrency();
-      if (isHebrew) detectedCurr = 'ILS';
+      if (detectedCountry === 'Local') detectedCurr = 'ILS';
 
       const defaultPayload = {
         user_id: userId,

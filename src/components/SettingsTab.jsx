@@ -42,7 +42,7 @@ export default function SettingsTab({
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
-  // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע חייב להיות תמיד ILS!
+  // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע תמיד נקבע ל-ILS
   useEffect(() => {
     if (isLocalIsraeliBusiness && currency !== 'ILS') {
       setCurrency('ILS');
@@ -50,7 +50,7 @@ export default function SettingsTab({
   }, [isLocalIsraeliBusiness, currency, setCurrency]);
 
   // גזירת הקידומת האוטומטית לפי מטבע העסק בפועל
-  const currencyPhoneConfig = getDialByCurrency(currency);
+  const currencyPhoneConfig = getDialByCurrency(isLocalIsraeliBusiness ? 'ILS' : currency);
   const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
   const defaultLabel = isLocalIsraeliBusiness ? 'IL (+972)' : currencyPhoneConfig.label;
 
@@ -120,8 +120,6 @@ export default function SettingsTab({
     };
     reader.readAsDataURL(file);
   };
-
-  // הוסר לחלוטין ה-useEffect הבינלאומי שגרם לדריסת המטבע אצל משתמשים מקומיים בישראל!
 
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
