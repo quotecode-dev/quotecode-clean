@@ -1,6 +1,16 @@
 import React from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
 
+// פונקציית עזר בטוחה להמרת קוד מטבע לסימולו המקורי עבור כל הצעה בנפרד
+const getQuoteCurrencySymbol = (curr, isLocal) => {
+  if (isLocal || curr === 'ILS') return '₪';
+  if (curr === 'USD') return '$';
+  if (curr === 'EUR') return '€';
+  if (curr === 'GBP') return '£';
+  if (curr === 'CAD' || curr === 'AUD') return 'A$';
+  return '$';
+};
+
 export default function QuotesTab({
   quotes,
   searchTerm,
@@ -34,9 +44,6 @@ export default function QuotesTab({
   currency
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
-
-  // אכיפה קשיחה: למנוע הצגת דולר עבור עסק מקומי בישראל
-  const effectiveSym = isLocalIsraeliBusiness ? '₪' : sym;
 
   const getStatusBadge = (st) => {
     switch(st) {
@@ -144,6 +151,8 @@ export default function QuotesTab({
                 const isBizClient = (quote.client_type || quote.clients?.client_type) === 'business';
                 const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
 
+                // שימוש במטבע השמור ספציפי להצעה זו
+                const quoteSym = getQuoteCurrencySymbol(quote.currency, isLocalIsraeliBusiness);
                 const badge = getStatusBadge(currentStatus);
 
                 return (
@@ -159,11 +168,11 @@ export default function QuotesTab({
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left' }}>
                       <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>
-                        {effectiveSym}{formatNum(quote.total)}
+                        {quoteSym}{formatNum(quote.total)}
                       </div>
                       {isLocalIsraeliBusiness && isHebrew && (
                         <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '1px' }}>
-                          {isHebrew ? `לפני מע"מ: ${effectiveSym}${formatNum(beforeVatAmount)}` : `Before VAT: ${effectiveSym}${formatNum(beforeVatAmount)}`}
+                          {isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(beforeVatAmount)}` : `Before VAT: ${quoteSym}${formatNum(beforeVatAmount)}`}
                         </div>
                       )}
                     </td>

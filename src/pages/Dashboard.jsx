@@ -1042,9 +1042,10 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
+    const proposalSym = (isLocalIsraeliBusiness || proposal.currency === 'ILS') ? '₪' : getCurrencySymbol(proposal.currency);
     const text = isHebrew 
-      ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${sym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
-      : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
+      ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
+      : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
     
     const url = phoneForUrl 
       ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
@@ -1145,6 +1146,7 @@ export default function Dashboard() {
   const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';
 
   const totalQuotesCount = quotes.length;
+  // שימוש במטבע השמור בכל הצעה לחישוב סך ההכנסות בצורה מבודדת ומדויקת
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
@@ -1498,7 +1500,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
