@@ -185,7 +185,6 @@ export default function PublicQuote() {
     );
   }
 
-  // עסק מקומי תמיד עובד בשקלים
   const isHebrew = true;
   const currencySymbol = '₪';
   const vatRate = 0.18;
@@ -293,4 +292,100 @@ export default function PublicQuote() {
               <span>סיכום ביניים:</span>
               <span>{currencySymbol}{formatNum(subtotal)}</span>
             </div>
-            {quote.discount >
+            {quote.discount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#ef4444', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+                <span>הנחה ({quote.discount}%):</span>
+                <span>-{currencySymbol}{formatNum((subtotal * quote.discount) / 100)}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+              <span>מע"מ (18%):</span>
+              <span>{currencySymbol}{formatNum(vatAmount)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', borderTop: '2px solid #cbd5e1', paddingTop: '10px', marginTop: '5px', flexDirection: 'row-reverse' }}>
+              <span>סה"כ לתשלום:</span>
+              <span style={{ color: '#4f46e5' }}>{currencySymbol}{formatNum(total)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Terms & Notes */}
+        {displayTerms && (
+          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>תקנון ותנאים:</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{displayTerms}</div>
+          </div>
+        )}
+
+        {quote.notes && (
+          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>הערות נוספות:</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{quote.notes}</div>
+          </div>
+        )}
+
+        {/* Signature */}
+        <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: '25px', textAlign: 'center' }}>
+          {approved ? (
+            <div style={{ background: '#dcfce7', color: '#166534', padding: '20px', borderRadius: '12px', fontWeight: 'bold' }}>
+              <div style={{ fontSize: '1.1rem', marginBottom: '5px' }}>✓ הצעת מחיר זו אושרה ונחתמה בהצלחה!</div>
+              <div style={{ fontSize: '0.9rem', color: '#15803d', marginTop: '10px' }}>
+                {quote.signature && quote.signature.startsWith('data:image') ? (
+                  <div>
+                    <div style={{ marginBottom: '5px' }}>חתימה דיגיטלית:</div>
+                    <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                  </div>
+                ) : 'חתימה דיגיטלית התקבלה בהצלחה'}
+              </div>
+            </div>
+          ) : isOwnerViewing ? (
+            <div style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe' }}>
+              ℹ️ תצוגת מנהל: אזור החתימה מוצג ללקוח בלבד.
+            </div>
+          ) : (
+            <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>חתימת לקוח לאישור ההצעה:</h4>
+              <div style={{ display: 'inline-block', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', cursor: 'crosshair', marginBottom: '10px', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+                <canvas
+                  ref={canvasRef}
+                  width={350}
+                  height={150}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  style={{ display: 'block', touchAction: 'none', maxWidth: '100%', height: 'auto' }}
+                />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                  נקה חתימה
+                </button>
+              </div>
+              <div>
+                <button onClick={handleApprove} style={{ background: hasSigned ? '#10b981' : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
+                  אשר וחתום על הצעת המחיר ✓
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
+          <span>
+            מסמך זה נערך ע"י{' '}
+            <span onClick={() => navigate('/he')} style={{ color: '#4f46e5', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}>
+              ProFlow
+            </span>
+            {' '}– התוכנה שעושה לעסקים את החיים קלים.
+          </span>
+        </div>
+
+      </div>
+    </div>
+  );
+}
