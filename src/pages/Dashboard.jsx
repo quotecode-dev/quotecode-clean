@@ -130,7 +130,7 @@ export default function Dashboard() {
 
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
 
-  // תיקון סמלי מטבע אחיד ומוחלט שמונע את תקלות השקלים/דולרים/פאונד בדשבורד
+  // תיקון סמלי מטבע דינמי לחלוטין: אם העסק מקומי -> ₪. אם בינלאומי -> לפי מטבע העסק (EUR/GBP/USD).
   const sym = isLocalIsraeliBusiness ? '₪' : (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
 
   const handleOpenNewUsersModal = (newUsersList) => {
@@ -1014,7 +1014,7 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    const proposalSym = isLocalIsraeliBusiness ? '₪' : (proposal.currency === 'EUR' ? '€' : proposal.currency === 'GBP' ? '£' : '$');
+    const proposalSym = isLocalIsraeliBusiness ? '₪' : (proposal.currency === 'EUR' ? '€' : proposal.currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
     const text = isHebrew 
       ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
       : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
@@ -1038,7 +1038,7 @@ export default function Dashboard() {
     setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן...' : 'Sending email via cloud...', type: 'success' });
 
     try {
-      const quoteSym = isLocalIsraeliBusiness ? '₪' : (quote.currency === 'EUR' ? '€' : quote.currency === 'GBP' ? '£' : '$');
+      const quoteSym = isLocalIsraeliBusiness ? '₪' : (quote.currency === 'EUR' ? '€' : quote.currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
       const quoteLink = `${window.location.origin}/public-quote/${quote.id}`;
       
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';

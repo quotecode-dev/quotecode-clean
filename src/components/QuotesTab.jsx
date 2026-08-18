@@ -35,14 +35,13 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // שליפת סימול המטבע המדויק מתוך ההצעה עצמה לפי שדה ה-currency שלה
   const getQuoteCurrencySymbol = (quoteCurr) => {
     if (quoteCurr === 'ILS') return '₪';
     if (quoteCurr === 'EUR') return '€';
     if (quoteCurr === 'GBP') return '£';
     if (quoteCurr === 'CAD' || quoteCurr === 'AUD') return 'A$';
     if (quoteCurr === 'USD') return '$';
-    return isLocalIsraeliBusiness ? '₪' : '$';
+    return isLocalIsraeliBusiness ? '₪' : (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
   };
 
   const getStatusBadge = (st) => {
@@ -151,8 +150,7 @@ export default function QuotesTab({
                 const isBizClient = (quote.client_type || quote.clients?.client_type) === 'business';
                 const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
 
-                // שימוש במטבע השמור ספציפי להצעה זו
-                const quoteSym = getQuoteCurrencySymbol(quote.currency);
+                const quoteSym = getQuoteCurrencySymbol(quote.currency || currency);
                 const badge = getStatusBadge(currentStatus);
 
                 return (
