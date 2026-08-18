@@ -121,19 +121,7 @@ export default function SettingsTab({
     reader.readAsDataURL(file);
   };
 
-  useEffect(() => {
-    if (!isLocalIsraeliBusiness && (!currency || currency === 'USD')) {
-      try {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-        const userLang = navigator.language || '';
-        if (timeZone.includes('London') || userLang.includes('en-GB')) {
-          setCurrency('GBP');
-        } else if (timeZone.includes('Europe') || userLang.includes('de') || userLang.includes('fr')) {
-          setCurrency('EUR');
-        }
-      } catch (e) {}
-    }
-  }, [isLocalIsraeliBusiness, currency, setCurrency]);
+  // הוסר לחלוטין ה-useEffect הבינלאומי שגרם לדריסת המטבע אצל משתמשים מקומיים בישראל!
 
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
