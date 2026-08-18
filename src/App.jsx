@@ -72,7 +72,6 @@ export default function App() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
   
-  // תיקון חכם: אם המשתמש ביקש במפורש אנגלית ב-URL או בחר אנגלית, זה תמיד גובר
   const isHebrew = isExplicitEnglishPath ? false : (
     isExplicitHebrewPath ? true : (
       isHebrewEnv(currentCountry, session) || 
@@ -268,7 +267,6 @@ export default function App() {
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         
-        {/* Dynamic language-aware routes */}
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
         <Route path="/contact" element={<Contact isHebrew={isHebrew} />} />
