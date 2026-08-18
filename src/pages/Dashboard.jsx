@@ -79,10 +79,21 @@ export default function Dashboard() {
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  
+  const [bizCountry, setBizCountry] = useState(() => {
+    if (typeof window === 'undefined') return 'International';
+    const cached = localStorage.getItem('proflow_cached_country');
+    if (cached) return cached;
+    return 'International';
+  });
+
+  const isHebrew = isHebrewEnv(bizCountry, session);
+
   const [statusMsg, setStatusMsg] = useState({ 
-    text: (window.location.pathname.startsWith('/en') || window.location.search.includes('lang=en')) ? 'System connected successfully.' : 'המערכת מחוברת בהצלחה.', 
+    text: isHebrew ? 'המערכת מחוברת בהצלחה.' : 'System connected successfully.', 
     type: 'success' 
   });
+  
   const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
@@ -100,13 +111,6 @@ export default function Dashboard() {
   const [bizLogoUrl, setBizLogoUrl] = useState('');
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
-  
-  const [bizCountry, setBizCountry] = useState(() => {
-    if (typeof window === 'undefined') return 'International';
-    const cached = localStorage.getItem('proflow_cached_country');
-    if (cached) return cached;
-    return 'International';
-  });
 
   const [defaultTerms, setDefaultTerms] = useState(DEFAULT_TERMS_HEB);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
@@ -240,8 +244,6 @@ export default function Dashboard() {
     }
   }, [quotes]);
 
-  const isHebrew = isHebrewEnv(bizCountry, session);
-
   const handleToggleDropdown = (e, quoteId) => {
     e.stopPropagation();
     if (openDropdownId === quoteId) {
@@ -324,7 +326,7 @@ export default function Dashboard() {
   const [quoteStatus, setQuoteStatus] = useState('Draft');
   const [validUntil, setValidUntil] = useState('');
   const [discount, setDiscount] = useState('');
-  const [terms, setTerms] = useState(DEFAULT_TERMS_HEB); 
+  const [terms, setTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG); 
   const [notes, setNotes] = useState('');
   
   const [items, setItems] = useState([{ description: '', quantity: '1', unit_price: '' }]);
@@ -1841,7 +1843,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {statusMsg.text && statusMsg.text !== 'System connected to Supabase.' && (
+          {statusMsg.text && (
             <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2', color: statusMsg.type === 'success' ? '#166534' : '#991b1b', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {statusMsg.type !== 'success' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
               <span>{statusMsg.text}</span>
