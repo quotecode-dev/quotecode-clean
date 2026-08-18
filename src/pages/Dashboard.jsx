@@ -136,7 +136,7 @@ export default function Dashboard() {
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  const [currency, setCurrency] = useState(() => (bizCountry === 'Local' ? 'ILS' : getDetectedCurrency()));
+  const [currency, setCurrency] = useState('ILS');
 
   const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
@@ -470,7 +470,7 @@ export default function Dashboard() {
   async function fetchSettings(userId, userEmail) {
     const nowIso = new Date().toISOString();
 
-    // שליפה ישירה והרמטית אך ורק לפי user_id של המשתמש הנוכחי (ללא שום מיזוג אימיילים מסוכן)
+    // שליפה ישירה הרמטית אך ורק לפי user_id נוכחי (ללא שום מיזוג אימיילים שגורם לדריסת נתונים)
     let { data, error } = await supabase
       .from('business_settings')
       .select('*')
@@ -500,11 +500,8 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // אכיפה עיוורת מוחלטת: אם המדינה היא Local, המטבע חייב להיות ILS נקודה!
-      let userCurr = (countryVal === 'Local') ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : getDetectedCurrency());
-      if (countryVal === 'International') {
-        userCurr = (data.currency && data.currency !== 'ILS') ? data.currency : getDetectedCurrency();
-      }
+      // אכיפה עיוורת מוחלטת: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS
+      let userCurr = (countryVal === 'Local' || countryVal === 'LCL') ? 'ILS' : (data.currency || 'USD');
 
       setCurrency(userCurr);
       setTerms(defTerms);
@@ -523,15 +520,13 @@ export default function Dashboard() {
 
       const isHebURL = window.location.pathname.startsWith('/he') || window.location.search.includes('lang=he') || localStorage.getItem('proflow_lang') === 'he';
       const detectedCountry = isHebURL ? 'Local' : 'International';
-      const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      
-      let detectedCurr = getDetectedCurrency();
-      if (detectedCountry === 'Local') detectedCurr = 'ILS';
+      const detectedTerms = detectedCountry === 'Local' ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
+      const detectedCurr = detectedCountry === 'Local' ? 'ILS' : 'USD';
 
       const defaultPayload = {
         user_id: userId,
         email: userEmail,
-        business_name: isHebrew ? 'עסק חדש' : 'New Business',
+        business_name: detectedCountry === 'Local' ? 'עסק חדש' : 'New Business',
         country: detectedCountry,
         currency: detectedCurr,
         plan: 'pro',
@@ -563,20 +558,8 @@ export default function Dashboard() {
         }
         setDefaultTerms(newData.default_terms || detectedTerms);
         setTrialEndsAt(newData.trial_ends_at);
-        setCurrency(newData.currency || detectedCurr);
+        setCurrency(newData.country === 'Local' ? 'ILS' : (newData.currency || detectedCurr));
         setTerms(newData.default_terms || detectedTerms);
-      } else {
-        setSettingId(null);
-        setBizPlan('pro');
-        setBizRole('user');
-        if (!isExplicitEnglish && !isExplicitHebrew) {
-          setBizCountry(detectedCountry);
-          localStorage.setItem('proflow_cached_country', detectedCountry);
-        }
-        setDefaultTerms(detectedTerms);
-        setTrialEndsAt(trialEndDate.toISOString());
-        setCurrency(detectedCurr);
-        setTerms(detectedTerms);
       }
     }
   }
@@ -693,6 +676,9 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
 
+    // אכיפה מוחלטת לפני שמירה לענן: אם העסק מקומי, המטבע נשמר תמיד כ-ILS
+    const enforcedCurrency = (bizCountry === 'Local' || bizCountry === 'LCL') ? 'ILS' : currency;
+
     const payload = {
       business_name: bizName,
       tax_id: bizTaxId,
@@ -702,7 +688,7 @@ export default function Dashboard() {
       logo_url: bizLogoUrl,
       default_terms: defaultTerms,
       country: bizCountry,
-      currency: isLocalIsraeliBusiness ? 'ILS' : currency,
+      currency: enforcedCurrency,
       user_id: session.user.id
     };
 
@@ -1282,7 +1268,7 @@ export default function Dashboard() {
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || '');
     
-    const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
+    const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
     setCurrency(quoteCurr);
 
     setQuoteStatus(quote.status ? quote.status.charAt(0).toUpperCase() + quote.status.slice(1) : 'Draft');
@@ -1316,7 +1302,7 @@ export default function Dashboard() {
     setQuoteSubject('');
     setValidUntil('');
     setDiscount('');
-    setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
+    setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
@@ -1333,7 +1319,7 @@ export default function Dashboard() {
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || '');
     
-    const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
+    const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
     setCurrency(quoteCurr);
 
     setQuoteStatus('Draft');
@@ -1369,7 +1355,7 @@ export default function Dashboard() {
     setDiscount('');
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
-    setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
+    setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled. Here are your quotes.', type: 'success' });
   };
@@ -1429,7 +1415,7 @@ export default function Dashboard() {
       const quotePayload = {
         client_id: clientId,
         client_type: clientType,
-        currency: currency,
+        currency: isLocalIsraeliBusiness ? 'ILS' : currency,
         subtotal: subtotal,
         tax_rate: taxRate,
         total: totalAmount,
@@ -1486,7 +1472,7 @@ export default function Dashboard() {
       setDiscount('');
       setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
       setNotes('');
-      setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
+      setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2184,7 +2170,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </span>
           {isHebrew ? 'חדש' : 'New'}
         </button>
