@@ -1263,7 +1263,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
-    setQuoteSubject(quote.subject || '');
+    setQuoteSubject(quote.subject || quote.quote_subject || '');
     
     const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
     setCurrency(quoteCurr);
@@ -1314,7 +1314,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
-    setQuoteSubject(quote.subject || '');
+    setQuoteSubject(quote.subject || quote.quote_subject || '');
     
     const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
     setCurrency(quoteCurr);
@@ -1421,7 +1421,8 @@ export default function Dashboard() {
         discount: Number(discount || 0),
         terms: terms,
         notes: notes,
-        subject: quoteSubject,
+        subject: quoteSubject || '',
+        quote_subject: quoteSubject || '',
         user_id: session.user.id
       };
 
