@@ -35,13 +35,16 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
+  // פונקציה חכמה שמתאימה את סמל המטבע תמיד לשפת הממשק ומטבע העסק
   const getQuoteCurrencySymbol = (quoteCurr) => {
-    if (quoteCurr === 'ILS') return '₪';
-    if (quoteCurr === 'EUR') return '€';
-    if (quoteCurr === 'GBP') return '£';
-    if (quoteCurr === 'CAD' || quoteCurr === 'AUD') return 'A$';
-    if (quoteCurr === 'USD') return '$';
-    return isLocalIsraeliBusiness ? '₪' : (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
+    if (!isHebrew) {
+      // אם אנחנו בדשבורד האנגלי/בינלאומי, נשתמש אך ורק במטבע הבינלאומי (כגון GBP, USD, EUR) ולא בשקל לעולם!
+      if (currency === 'EUR' || quoteCurr === 'EUR') return '€';
+      if (currency === 'GBP' || quoteCurr === 'GBP') return '£';
+      return '$';
+    }
+    // בדשבורד העברי - לפי שקל
+    return '₪';
   };
 
   const getStatusBadge = (st) => {
@@ -150,7 +153,7 @@ export default function QuotesTab({
                 const isBizClient = (quote.client_type || quote.clients?.client_type) === 'business';
                 const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
 
-                const quoteSym = getQuoteCurrencySymbol(quote.currency || currency);
+                const quoteSym = getQuoteCurrencySymbol(quote.currency);
                 const badge = getStatusBadge(currentStatus);
 
                 return (
