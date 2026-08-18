@@ -35,6 +35,9 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
+  // אכיפה קשיחה: למנוע הצגת דולר עבור עסק מקומי בישראל
+  const effectiveSym = isLocalIsraeliBusiness ? '₪' : sym;
+
   const getStatusBadge = (st) => {
     switch(st) {
       case 'approved': return { bg: '#dcfce7', color: '#166534', text: isHebrew ? 'אושר' : 'Approved' };
@@ -156,11 +159,11 @@ export default function QuotesTab({
                     </td>
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left' }}>
                       <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.85rem' }}>
-                        {sym}{formatNum(quote.total)}
+                        {effectiveSym}{formatNum(quote.total)}
                       </div>
                       {isLocalIsraeliBusiness && isHebrew && (
                         <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '1px' }}>
-                          {isHebrew ? `לפני מע"מ: ${sym}${formatNum(beforeVatAmount)}` : `Before VAT: ${sym}${formatNum(beforeVatAmount)}`}
+                          {isHebrew ? `לפני מע"מ: ${effectiveSym}${formatNum(beforeVatAmount)}` : `Before VAT: ${effectiveSym}${formatNum(beforeVatAmount)}`}
                         </div>
                       )}
                     </td>
