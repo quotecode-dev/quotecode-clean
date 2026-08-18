@@ -146,7 +146,6 @@ export default function Dashboard() {
     return Number(localStorage.getItem('proflow_last_seen_new_users') || 0);
   });
 
-  // State עבור נושא ההצעה
   const [quoteSubject, setQuoteSubject] = useState('');
 
   const handleOpenNewUsersModal = (newUsersList) => {
@@ -364,7 +363,7 @@ export default function Dashboard() {
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';
   const isBasicOrAbove = isPro || effectivePlan === 'basic';
-  const isLocalIsraeliBusiness = !isInternationalAccount;
+  const isLocalIsraeliBusiness = bizCountry === 'Local';
 
   const t = {
     appName: bizName || 'ProFlow',
@@ -534,11 +533,10 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      const detected = getDetectedCurrency();
-      let userCurr = countryVal === 'Local' ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : detected);
-      
+      // אכיפה קשיחה עיוורת: אם המדינה היא Local או Local Israeli Business, המטבע חייב להיות ILS נקודה!
+      let userCurr = (countryVal === 'Local') ? 'ILS' : (data.currency && data.currency !== 'USD' ? data.currency : getDetectedCurrency());
       if (countryVal === 'International') {
-        userCurr = detected;
+        userCurr = getDetectedCurrency();
       }
 
       setCurrency(userCurr);
@@ -1094,7 +1092,6 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    // אכיפת שפה מלאה ומדויקת בוואטסאפ לפי מצב ה-isHebrew של המשתמש
     const text = isHebrew 
       ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${sym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
       : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
@@ -1316,7 +1313,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
-    setQuoteSubject(quote.subject || ''); // טעינת נושא ההצעה בעריכה
+    setQuoteSubject(quote.subject || '');
     
     const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
     setCurrency(quoteCurr);
@@ -1349,7 +1346,7 @@ export default function Dashboard() {
     setClientType('');
     setClientTaxId('');
     setClientAddress('');
-    setQuoteSubject(''); // איפוס נושא ההצעה
+    setQuoteSubject('');
     setValidUntil('');
     setDiscount('');
     setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
@@ -1367,7 +1364,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
-    setQuoteSubject(quote.subject || ''); // שכפול נושא ההצעה
+    setQuoteSubject(quote.subject || '');
     
     const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
     setCurrency(quoteCurr);
@@ -1462,7 +1459,6 @@ export default function Dashboard() {
         clientId = newClientData[0].id;
       }
 
-      // שמירת שדה subject במסד הנתונים
       const quotePayload = {
         client_id: clientId,
         client_type: clientType,
