@@ -499,7 +499,6 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // אכיפה מלאה: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS באופן קשיח!
       let userCurr = (countryVal === 'Local' || countryVal === 'LCL' || isHebrew) ? 'ILS' : (data.currency || 'USD');
 
       setCurrency(userCurr);
@@ -1498,7 +1497,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);

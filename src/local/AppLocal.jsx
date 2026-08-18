@@ -88,7 +88,7 @@ export default function AppLocal() {
     setUpdateLoading(true);
     setUpdateMessage('');
 
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     setUpdateLoading(false);
 
     if (error) {
