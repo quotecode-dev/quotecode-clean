@@ -1,0 +1,205 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../shared/supabase';
+import PublicQuoteHeader from '../components/PublicQuoteHeader';
+
+const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const formatDisplayPhone = (phone) => {
+  if (!phone) return '';
+  return phone.trim();
+};
+
+export default function PublicQuoteEn() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [quote, setQuote] = useState(null);
+  const [businessSettings, setBusinessSettings] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [approved, setApproved] = useState(false);
+
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSigned, setHasSigned] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchQuoteAndIncrementView();
+    }
+  }, [id]);
+
+  const fetchQuoteAndIncrementView = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      setCurrentUserId(userId);
+
+      const { data, error } = await supabase
+        .from('quotes')
+        .select(`*, clients (*), quote_items (*)`)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setQuote(data);
+
+      if (data?.user_id) {
+        const { data: bData } = await supabase
+          .from('business_settings')
+          .select('*')
+          .eq('user_id', data.user_id)
+          .maybeSingle();
+        if (bData) setBusinessSettings(bData);
+      }
+
+      const isOwner = userId && data.user_id && userId === data.user_id;
+      if (!isOwner) {
+        await supabase.from('quotes').update({ view_count: (data.view_count || 0) + 1 }).eq('id', id);
+      }
+
+      if (data?.status === 'approved' || data?.signature) setApproved(true);
+    } catch (err) {
+      console.error('Error fetching quote:', err);
+      setError('Quote not found or expired.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startDrawing = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    setHasSigned(true);
+  };
+
+  const stopDrawing = () => setIsDrawing(false);
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    setHasSigned(false);
+  };
+
+  const handleApprove = async () => {
+    if (!hasSigned) { alert('Please sign the quote before approval'); return; }
+    try {
+      const signatureDataUrl = canvasRef.current ? canvasRef.current.toDataURL('image/png') : null;
+      const { error } = await supabase.from('quotes').update({ status: 'approved', signature: signatureDataUrl }).eq('id', id);
+      if (error) throw error;
+      setApproved(true);
+    } catch (err) { alert(`Error: ${err.message}`); }
+  };
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading...</h2></div>;
+  if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
+
+  // לוגיקה בינלאומית: מטבע לפי ההצעה או דולר, מע"מ 0
+  const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
+  const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
+  
+  let parsedItems = [];
+  try { parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items) : (Array.isArray(quote.items) ? quote.items : []); } catch (e) { parsedItems = []; }
+
+  const subtotal = quote.subtotal ? Number(quote.subtotal) : parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
+  const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal;
+
+  const bizName = businessSettings?.business_name || 'ProFlow Business';
+  const bizLogo = businessSettings?.logo_url;
+  const bizTaxId = businessSettings?.tax_id;
+  const bizEmail = businessSettings?.email;
+  const bizPhone = formatDisplayPhone(businessSettings?.phone);
+  const bizAddress = businessSettings?.address;
+  const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
+
+  return (
+    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px' }}>
+        <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
+        
+        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Client:</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{quote.clients?.company_name || quote.client_name || 'Valued Client'}</div>
+          {quote.subject && <div style={{ marginTop: '10px', fontWeight: 'bold' }}>Subject: <span style={{ fontWeight: 'normal' }}>{quote.subject}</span></div>}
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', color: '#475569' }}>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Description</th>
+              <th style={{ padding: '10px', textAlign: 'center' }}>Qty</th>
+              <th style={{ padding: '10px', textAlign: 'right' }}>Unit Price</th>
+              <th style={{ padding: '10px', textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quote.quote_items?.map((item, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '12px 10px' }}>{item.description || 'Item'}</td>
+                <td style={{ padding: '12px 10px', textAlign: 'center' }}>{item.quantity}</td>
+                <td style={{ padding: '12px 10px', textAlign: 'right' }}>{currencySymbol}{formatNum(item.price)}</td>
+                <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}>{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
+          <div style={{ width: '300px', background: '#f8fafc', padding: '20px', borderRadius: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}><span>Subtotal:</span><span>{currencySymbol}{formatNum(subtotal)}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '2px solid #cbd5e1', paddingTop: '10px' }}>
+              <span>Total:</span><span style={{ color: '#4f46e5' }}>{currencySymbol}{formatNum(total)}</span>
+            </div>
+          </div>
+        </div>
+
+        {approved ? (
+          <div style={{ background: '#dcfce7', color: '#166534', padding: '20px', borderRadius: '12px', fontWeight: 'bold', textAlign: 'center' }}>
+            ✓ This quote has been successfully approved and signed!
+          </div>
+        ) : !isOwnerViewing && (
+          <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h4>Client Signature:</h4>
+            <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ border: '1px dashed #94a3b8', borderRadius: '8px', cursor: 'crosshair', background: 'white' }} />
+            <div style={{ marginTop: '10px' }}>
+              <button type="button" onClick={clearSignature} style={{ padding: '5px 15px', marginRight: '10px' }}>Clear</button>
+              <button onClick={handleApprove} style={{ padding: '5px 15px', background: '#10b981', color: 'white', border: 'none' }}>Approve</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

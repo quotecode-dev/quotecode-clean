@@ -5,6 +5,7 @@ import LandingLocal from './pages/LandingLocal';
 import Dashboard from './pages/Dashboard';
 import AILogs from './pages/AILogs';
 import PublicQuote from './pages/PublicQuote';
+import PublicQuoteEn from './pages/PublicQuoteEn';
 import PublicTools from './components/PublicTools';
 import PublicToolsEn from './components/PublicToolsEn';
 import Terms from './pages/Terms';
@@ -264,8 +265,11 @@ export default function App() {
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
+        
+        {/* הפרדה מלאה: הצעות מחיר בעברית תמיד ב-PublicQuote, באנגלית ב-PublicQuoteEn */}
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
+        <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
