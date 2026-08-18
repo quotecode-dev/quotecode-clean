@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
+const getDialByCurrency = (curr) => {
+  if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
+  if (curr === 'EUR') return { dial: '+49', label: 'DE (+49)' };
+  if (curr === 'CAD') return { dial: '+1', label: 'CA (+1)' };
+  if (curr === 'AUD') return { dial: '+61', label: 'AU (+61)' };
+  if (curr === 'USD') return { dial: '+1', label: 'US (+1)' };
+  return { dial: '+972', label: 'IL (+972)' };
+};
+
 export default function QuoteForm({
   editingQuoteId,
   onSave,
@@ -44,8 +53,9 @@ export default function QuoteForm({
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
 
-  const defaultDial = isHebrew ? '+972' : '+1';
-  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
+  const currencyPhoneConfig = getDialByCurrency(currency);
+  const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
+  const defaultLabel = isLocalIsraeliBusiness ? 'IL (+972)' : currencyPhoneConfig.label;
   const [localPhone, setLocalPhone] = useState('');
 
   const handleLocalPhoneChange = (numVal) => {
@@ -401,7 +411,7 @@ export default function QuoteForm({
                   style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem', background: item.isFromCatalog ? '#f1f5f9' : 'white', cursor: item.isFromCatalog ? 'not-allowed' : 'text' }} 
                 />
                 <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
-                <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
+                <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }} />
                 <div style={{ padding: '7px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '5px', textAlign: isHebrew ? 'left' : 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: isHebrew ? 'flex-start' : 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
                 {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: '#fee2e2', border: 'none', borderRadius: '5px', cursor: 'pointer', color: '#991b1b', fontWeight: 'bold' }}>✕</button>}
               </div>

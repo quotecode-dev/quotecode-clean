@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
+// פונקציית עזר לזיהוי קידומת לפי מטבע עסק
+const getDialByCurrency = (curr) => {
+  if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
+  if (curr === 'EUR') return { dial: '+49', label: 'DE (+49)' };
+  if (curr === 'CAD') return { dial: '+1', label: 'CA (+1)' };
+  if (curr === 'AUD') return { dial: '+61', label: 'AU (+61)' };
+  if (curr === 'USD') return { dial: '+1', label: 'US (+1)' };
+  return { dial: '+972', label: 'IL (+972)' };
+};
+
 export default function SettingsTab({
   t,
   isHebrew,
@@ -32,8 +42,11 @@ export default function SettingsTab({
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
-  const defaultDial = isHebrew ? '+972' : '+1';
-  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
+  // גזירת הקידומת האוטומטית לפי מטבע העסק בפועל
+  const currencyPhoneConfig = getDialByCurrency(currency);
+  const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
+  const defaultLabel = isLocalIsraeliBusiness ? 'IL (+972)' : currencyPhoneConfig.label;
+
   const [localPhone, setLocalPhone] = useState('');
 
   const handleLocalPhoneChange = (numVal) => {
