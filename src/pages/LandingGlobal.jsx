@@ -12,6 +12,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   useEffect(() => {
+    document.title = "ProFlow - Business & Quoting SaaS Platform";
     try {
       const userLang = (navigator.language || '').toLowerCase();
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -181,7 +182,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       <header style={{ background: 'rgba(9, 13, 22, 0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', position: 'sticky', top: 0, zIndex: 1000 }}>
         <div className="header-container">
           
-          <div className="header-logo" style={{ cursor: 'pointer', background: 'rgba(255, 255, 255, 0.04)', padding: '5px 10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center' }} onClick={() => navigate('/global')}>
+          <div className="header-logo" style={{ cursor: 'pointer', background: 'rgba(255, 255, 255, 0.04)', padding: '5px 10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center' }} onClick={() => navigate('/en')}>
             <ProFlowLogo size={32} rtl={false} />
           </div>
           

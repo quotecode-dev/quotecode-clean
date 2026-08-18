@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
@@ -9,6 +9,10 @@ export default function LandingLocal({ onForgotPassword }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות";
+  }, []);
 
   const faqs = [
     {
@@ -242,7 +246,7 @@ export default function LandingLocal({ onForgotPassword }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#34d399', fontWeight: 'bold', fontSize: '1rem' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-              יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך με ProFlow!
+              יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך עם ProFlow!
             </div>
           </div>
 
