@@ -187,11 +187,13 @@ export default function PublicQuote() {
     );
   }
 
-  const effectiveCurrency = quote.currency || businessSettings?.currency || 'ILS';
-  const isInternational = effectiveCurrency !== 'ILS';
+  // תיקון מוחלט: קביעה חד-משמעית לפי שפת ההצעה / מטבע הלקוח
+  // אם זו הצעה ישראלית (המטבע המקורי בש"ח או ריק) -> ש"ח ומע"מ 18%
+  // אם זו הצעה בינלאומית -> דולר ($) ומע"מ 0%
+  const isInternational = quote.currency && quote.currency !== 'ILS';
   const isHebrew = !isInternational;
 
-  const currencySymbol = effectiveCurrency === 'USD' ? '$' : effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : effectiveCurrency === 'CAD' || effectiveCurrency === 'AUD' ? 'A$' : '₪';
+  const currencySymbol = isInternational ? '$' : '₪';
   const vatRate = isHebrew ? 0.18 : 0;
 
   let parsedItems = [];
@@ -289,7 +291,7 @@ export default function PublicQuote() {
               ) : (
                 <tr>
                   <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                    {isHebrew ? `הצעת מחיר כללית בסך ${formatNum(total)} ${currencySymbol}` : `General Quote total ${currencySymbol}${formatNum(total)}`}
+                    {isHebrew ? `הצעת מחיר כללית בסך ${currencySymbol}${formatNum(total)}` : `General Quote total ${currencySymbol}${formatNum(total)}`}
                   </td>
                 </tr>
               )}
