@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
 const COUNTRIES = [
-  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
-  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
-  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
-  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
-  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
-  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
-  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
+  { code: 'IL', name: 'Israel', dial: '+972', label: 'IL (+972)' },
+  { code: 'US', name: 'United States', dial: '+1', label: 'US (+1)' },
+  { code: 'GB', name: 'United Kingdom', dial: '+44', label: 'GB (+44)' },
+  { code: 'CA', name: 'Canada', dial: '+1', label: 'CA (+1)' },
+  { code: 'FR', name: 'France', dial: '+33', label: 'FR (+33)' },
+  { code: 'DE', name: 'Germany', dial: '+49', label: 'DE (+49)' },
+  { code: 'AU', name: 'Australia', dial: '+61', label: 'AU (+61)' },
 ];
 
 export default function QuoteForm({
@@ -54,11 +54,9 @@ export default function QuoteForm({
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
 
-  // ניהול מודול בחירת טלפון מתקדם
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [localPhone, setLocalPhone] = useState('');
 
-  // עדכון טלפון מאוחד בעת שינוי הקידומת או המספר המקומי
   const handlePhoneCountryChange = (newCountry) => {
     setSelectedCountry(newCountry);
     setClientPhone(`${newCountry.dial} ${localPhone}`);
@@ -69,7 +67,6 @@ export default function QuoteForm({
     setClientPhone(`${selectedCountry.dial} ${numVal}`);
   };
 
-  // פירسור ראשוני של הטלפון הקיים בעת טעינת הלקוח
   useEffect(() => {
     if (clientPhone) {
       const foundCountry = COUNTRIES.find(c => clientPhone.startsWith(c.dial));
@@ -236,7 +233,7 @@ export default function QuoteForm({
             <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           
-          {/* שדה טלפון מעוצב עם דגל וקידומת */}
+          {/* שדה טלפון מעוצב נקי ללא דגלים */}
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.clientPhone}</label>
             <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -246,11 +243,11 @@ export default function QuoteForm({
                   const found = COUNTRIES.find(c => c.code === e.target.value);
                   if (found) handlePhoneCountryChange(found);
                 }}
-                style={{ border: 'none', background: '#f1f5f9', padding: '6px 4px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
+                style={{ border: 'none', background: '#f1f5f9', padding: '6px 8px', fontSize: '0.8rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1', color: '#0f172a', fontWeight: '500' }}
               >
                 {COUNTRIES.map(c => (
                   <option key={c.code} value={c.code}>
-                    {c.flag} {c.dial}
+                    {c.label}
                   </option>
                 ))}
               </select>

@@ -24,13 +24,8 @@ function RootHandler() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
 
-  const isUserHebrew = storedLang !== 'en' && (
-    storedLang === 'he' || 
-    isHebrewQuery || 
-    timeZone === 'Asia/Jerusalem' || 
-    browserLang.startsWith('he') || 
-    !storedLang
-  );
+  // בדיקה מעודכנת שמתחשבת גם בבקשת אנגלית מפורשת או בנתיב בינלאומי
+  const isUserHebrew = storedLang === 'he' || (!storedLang && (isHebrewQuery || timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')));
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
@@ -38,7 +33,7 @@ function RootHandler() {
       return;
     }
 
-    if (isEnglishQuery) {
+    if (isEnglishQuery || storedLang === 'en') {
       localStorage.setItem('proflow_lang', 'en');
       return;
     }
@@ -49,9 +44,9 @@ function RootHandler() {
         navigate('/he', { replace: true });
       }
     }
-  }, [navigate, hash, search, isEnglishQuery, isUserHebrew]);
+  }, [navigate, hash, search, isEnglishQuery, storedLang, isUserHebrew]);
 
-  if (isEnglishQuery) {
+  if (isEnglishQuery || storedLang === 'en') {
     return <LandingGlobal />;
   }
 
@@ -80,10 +75,9 @@ export default function App() {
   const isHebrew = isExplicitEnglishPath ? false : (
     isHebrewEnv(currentCountry, session) || 
     window.location.pathname.startsWith('/he') || 
-    queryParams.get('lang') === 'he' ||
-    timeZone === 'Asia/Jerusalem' || 
-    browserLang.startsWith('he') ||
-    !queryParams.has('lang')
+    queryParams.get('lang'] === 'he' ||
+    (timeZone === 'Asia/Jerusalem' && !queryParams.has('lang')) || 
+    (browserLang.startsWith('he') && !queryParams.has('lang'))
   );
 
   useEffect(() => {
