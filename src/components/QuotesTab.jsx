@@ -35,7 +35,6 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // הצגת סמל המטבע המקורי של כל הצעה ספציפית מתוך מסד הנתונים
   const getQuoteCurrencySymbol = (quoteCurr) => {
     const curr = (quoteCurr || '').toUpperCase();
     if (curr === 'EUR') return '€';
@@ -43,7 +42,7 @@ export default function QuotesTab({
     if (curr === 'USD' || curr === '$') return '$';
     if (curr === 'ILS' || curr === '₪') return '₪';
     
-    // גיבוי מוחלט במידה ושדה המטבע בהצעה הישנה לא מולא
+    // תיקון מנדטורי: אם ההצעה הישנה ריקה ממטבע, בדשבורד אנגלי היא תציג דולר ולא שקל!
     if (!isHebrew) {
       return currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
     }
