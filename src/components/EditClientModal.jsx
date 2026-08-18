@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-const COUNTRIES = [
-  { code: 'IL', name: 'Israel', dial: '+972', flag: '🇮🇱' },
-  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
-  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
-  { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦' },
-  { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷' },
-  { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪' },
-  { code: 'AU', name: 'Australia', dial: '+61', flag: '🇦🇺' },
-];
-
 export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,18 +10,13 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // ניהול שדה טלפון מעוצב
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const defaultDial = isHebrew ? '+972' : '+1';
+  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
   const [localPhone, setLocalPhone] = useState('');
-
-  const handlePhoneCountryChange = (newCountry) => {
-    setSelectedCountry(newCountry);
-    setPhone(`${newCountry.dial} ${localPhone}`);
-  };
 
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setPhone(`${selectedCountry.dial} ${numVal}`);
+    setPhone(`${defaultDial} ${numVal}`);
   };
 
   useEffect(() => {
@@ -45,15 +30,14 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       setErrorMsg('');
 
       const rawPhone = client.phone || '';
-      const foundCountry = COUNTRIES.find(c => rawPhone.startsWith(c.dial));
-      if (foundCountry) {
-        setSelectedCountry(foundCountry);
-        setLocalPhone(rawPhone.replace(foundCountry.dial, '').trim());
+      if (rawPhone.startsWith(defaultDial)) {
+        setLocalPhone(rawPhone.replace(defaultDial, '').trim());
       } else {
-        setLocalPhone(rawPhone);
+        const clean = rawPhone.replace(/^\+\d+/, '').trim();
+        setLocalPhone(clean || rawPhone);
       }
     }
-  }, [client]);
+  }, [client, defaultDial]);
 
   if (!isOpen || !client) return null;
 
@@ -112,24 +96,12 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             
-            {/* שדה טלפון מעוצב מחדש עם דגל וקידומת */}
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
-              <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <select 
-                  value={selectedCountry.code}
-                  onChange={(e) => {
-                    const found = COUNTRIES.find(c => c.code === e.target.value);
-                    if (found) handlePhoneCountryChange(found);
-                  }}
-                  style={{ border: 'none', background: '#f1f5f9', padding: '8px 6px', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1' }}
-                >
-                  {COUNTRIES.map(c => (
-                    <option key={c.code} value={c.code}>
-                      {c.flag} {c.dial}
-                    </option>
-                  ))}
-                </select>
+              <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
+                <div style={{ background: '#f1f5f9', padding: '8px 10px', fontSize: '0.85rem', color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>
+                  {defaultLabel}
+                </div>
                 <input 
                   type="text" 
                   value={localPhone} 

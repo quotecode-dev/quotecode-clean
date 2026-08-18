@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
-const COUNTRIES = [
-  { code: 'IL', name: 'Israel', dial: '+972', label: 'IL (+972)' },
-  { code: 'US', name: 'United States', dial: '+1', label: 'US (+1)' },
-  { code: 'GB', name: 'United Kingdom', dial: '+44', label: 'GB (+44)' },
-  { code: 'CA', name: 'Canada', dial: '+1', label: 'CA (+1)' },
-  { code: 'FR', name: 'France', dial: '+33', label: 'FR (+33)' },
-  { code: 'DE', name: 'Germany', dial: '+49', label: 'DE (+49)' },
-  { code: 'AU', name: 'Australia', dial: '+61', label: 'AU (+61)' },
-];
-
 export default function QuoteForm({
   editingQuoteId,
   onSave,
@@ -54,32 +44,27 @@ export default function QuoteForm({
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
 
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const defaultDial = isHebrew ? '+972' : '+1';
+  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
   const [localPhone, setLocalPhone] = useState('');
-
-  const handlePhoneCountryChange = (newCountry) => {
-    setSelectedCountry(newCountry);
-    setClientPhone(`${newCountry.dial} ${localPhone}`);
-  };
 
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setClientPhone(`${selectedCountry.dial} ${numVal}`);
+    setClientPhone(`${defaultDial} ${numVal}`);
   };
 
   useEffect(() => {
     if (clientPhone) {
-      const foundCountry = COUNTRIES.find(c => clientPhone.startsWith(c.dial));
-      if (foundCountry) {
-        setSelectedCountry(foundCountry);
-        setLocalPhone(clientPhone.replace(foundCountry.dial, '').trim());
+      if (clientPhone.startsWith(defaultDial)) {
+        setLocalPhone(clientPhone.replace(defaultDial, '').trim());
       } else {
-        setLocalPhone(clientPhone);
+        const clean = clientPhone.replace(/^\+\d+/, '').trim();
+        setLocalPhone(clean || clientPhone);
       }
     } else {
       setLocalPhone('');
     }
-  }, [clientPhone]);
+  }, [clientPhone, defaultDial]);
 
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
@@ -233,30 +218,18 @@ export default function QuoteForm({
             <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           
-          {/* שדה טלפון מעוצב נקי ללא דגלים */}
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>{t.clientPhone}</label>
-            <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
-              <select 
-                value={selectedCountry.code}
-                onChange={(e) => {
-                  const found = COUNTRIES.find(c => c.code === e.target.value);
-                  if (found) handlePhoneCountryChange(found);
-                }}
-                style={{ border: 'none', background: '#f1f5f9', padding: '6px 8px', fontSize: '0.8rem', cursor: 'pointer', outline: 'none', borderRight: '1px solid #cbd5e1', color: '#0f172a', fontWeight: '500' }}
-              >
-                {COUNTRIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ background: '#f1f5f9', padding: '7px 10px', fontSize: '0.8rem', color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>
+                {defaultLabel}
+              </div>
               <input 
                 type="text" 
                 value={localPhone} 
                 onChange={(e) => handleLocalPhoneChange(e.target.value)} 
                 placeholder="502345678" 
-                style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
+                style={{ flex: 1, padding: '7px 10px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
               />
             </div>
           </div>
