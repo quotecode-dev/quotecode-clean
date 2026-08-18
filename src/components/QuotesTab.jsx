@@ -35,15 +35,16 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה חכמה שמתאימה את סמל המטבע תמיד לשפת הממשק ומטבע העסק
   const getQuoteCurrencySymbol = (quoteCurr) => {
     if (!isHebrew) {
-      // אם אנחנו בדשבורד האנגלי/בינלאומי, נשתמש אך ורק במטבע הבינלאומי (כגון GBP, USD, EUR) ולא בשקל לעולם!
-      if (currency === 'EUR' || quoteCurr === 'EUR') return '€';
-      if (currency === 'GBP' || quoteCurr === 'GBP') return '£';
-      return '$';
+      if (quoteCurr === 'EUR' || currency === 'EUR') return '€';
+      if (quoteCurr === 'GBP' || currency === 'GBP') return '£';
+      if (quoteCurr === 'USD' || currency === 'USD') return '$';
+      return sym;
     }
-    // בדשבורד העברי - לפי שקל
+    if (quoteCurr === 'EUR') return '€';
+    if (quoteCurr === 'GBP') return '£';
+    if (quoteCurr === 'USD') return '$';
     return '₪';
   };
 

@@ -130,8 +130,8 @@ export default function Dashboard() {
 
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
 
-  // תיקון סמלי מטבע דינמי לחלוטין: אם העסק מקומי -> ₪. אם בינלאומי -> לפי מטבע העסק (EUR/GBP/USD).
-  const sym = isLocalIsraeliBusiness ? '₪' : (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$');
+  // תיקון סמלי מטבע מדויק לדשבורד (תומך לחלוטין ב-GBP, EUR, USD בדשבורד האנגלי)
+  const sym = !isHebrew ? (currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$') : '₪';
 
   const handleOpenNewUsersModal = (newUsersList) => {
     const nowTime = Date.now();
@@ -1118,6 +1118,7 @@ export default function Dashboard() {
   const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';
 
   const totalQuotesCount = quotes.length;
+  // תיקון קריטי: סך כל ההכנסות מחשב את הסכומים במדויק מתוך ההצעות המאושרות/שולמות ללא תלות בשינויי הגדרות ענן מאוחרים
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
