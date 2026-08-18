@@ -121,7 +121,6 @@ export default function SettingsTab({
     reader.readAsDataURL(file);
   };
 
-  // מניעת דורסנות מטבע מיותרת לעסקים מקומיים
   useEffect(() => {
     if (!isLocalIsraeliBusiness && (!currency || currency === 'USD')) {
       try {
@@ -293,7 +292,7 @@ export default function SettingsTab({
                {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
              </button>
              {bizPlan !== 'free' && (
-               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex': alignItems: 'center', gap: '5px' }}>
+               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                   {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
                </button>
