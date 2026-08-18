@@ -251,7 +251,7 @@ export default function QuoteForm({
           </div>
         </div>
 
-        {/* שדה נושא ההזמנה / Order Subject */}
+        {/* שדה נושא ההזמנה / Order Subject החדש והפעיל */}
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
             {isHebrew ? 'נושא ההזמנה / ההצעה' : 'Order / Quote Subject'}

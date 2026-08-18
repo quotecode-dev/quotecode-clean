@@ -87,7 +87,6 @@ export default function Dashboard() {
     return 'International';
   });
 
-  // בדיקת כתובת מפורשת ב-URL (כמו ?lang=en או /en) שגוברת תמיד על מסד הנתונים
   const queryParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const isExplicitEnglish = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) || queryParams.get('lang') === 'en';
   const isExplicitHebrew = (typeof window !== 'undefined' && window.location.pathname.startsWith('/he')) || queryParams.get('lang') === 'he';
@@ -146,6 +145,9 @@ export default function Dashboard() {
     if (typeof window === 'undefined') return 0;
     return Number(localStorage.getItem('proflow_last_seen_new_users') || 0);
   });
+
+  // State עבור נושא ההצעה
+  const [quoteSubject, setQuoteSubject] = useState('');
 
   const handleOpenNewUsersModal = (newUsersList) => {
     const nowTime = Date.now();
@@ -520,7 +522,6 @@ export default function Dashboard() {
       setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
       
-      // שמירה על האזור המקורי במסד הנתונים מבלי לדרוס את בחירת ה-URL של המשתמש
       const countryVal = data.country || 'International';
       if (!isExplicitEnglish && !isExplicitHebrew) {
         setBizCountry(countryVal);
@@ -1093,6 +1094,7 @@ export default function Dashboard() {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
+    // אכיפת שפה מלאה ומדויקת בוואטסאפ לפי מצב ה-isHebrew של המשתמש
     const text = isHebrew 
       ? `הי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${sym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
       : `Hi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${sym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
@@ -1314,6 +1316,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
+    setQuoteSubject(quote.subject || ''); // טעינת נושא ההצעה בעריכה
     
     const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
     setCurrency(quoteCurr);
@@ -1346,6 +1349,7 @@ export default function Dashboard() {
     setClientType('');
     setClientTaxId('');
     setClientAddress('');
+    setQuoteSubject(''); // איפוס נושא ההצעה
     setValidUntil('');
     setDiscount('');
     setCurrency(currency || (isHebrew ? 'ILS' : 'USD'));
@@ -1363,6 +1367,7 @@ export default function Dashboard() {
     setClientType(quote.client_type || quote.clients?.client_type || '');
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
+    setQuoteSubject(quote.subject || ''); // שכפול נושא ההצעה
     
     const quoteCurr = currency || (isHebrew ? 'ILS' : 'USD');
     setCurrency(quoteCurr);
@@ -1395,6 +1400,7 @@ export default function Dashboard() {
     setClientType('');
     setClientTaxId('');
     setClientAddress('');
+    setQuoteSubject('');
     setValidUntil('');
     setDiscount('');
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
@@ -1456,6 +1462,7 @@ export default function Dashboard() {
         clientId = newClientData[0].id;
       }
 
+      // שמירת שדה subject במסד הנתונים
       const quotePayload = {
         client_id: clientId,
         client_type: clientType,
@@ -1468,6 +1475,7 @@ export default function Dashboard() {
         discount: Number(discount || 0),
         terms: terms,
         notes: notes,
+        subject: quoteSubject,
         user_id: session.user.id
       };
 
@@ -1510,6 +1518,7 @@ export default function Dashboard() {
       setClientType('');
       setClientTaxId('');
       setClientAddress('');
+      setQuoteSubject('');
       setValidUntil('');
       setDiscount('');
       setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
@@ -2051,6 +2060,7 @@ export default function Dashboard() {
               clientType={clientType} setClientType={setClientType}
               clientTaxId={clientTaxId} setClientTaxId={setClientTaxId}
               clientAddress={clientAddress} setClientAddress={setClientAddress}
+              quoteSubject={quoteSubject} setQuoteSubject={setQuoteSubject}
               currency={currency} setCurrency={setCurrency}
               quoteStatus={quoteStatus} setQuoteStatus={setQuoteStatus}
               validUntil={validUntil} setValidUntil={setValidUntil}
