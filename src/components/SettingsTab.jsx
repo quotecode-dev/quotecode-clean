@@ -42,6 +42,13 @@ export default function SettingsTab({
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
 
+  // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע חייב להיות תמיד ILS!
+  useEffect(() => {
+    if (isLocalIsraeliBusiness && currency !== 'ILS') {
+      setCurrency('ILS');
+    }
+  }, [isLocalIsraeliBusiness, currency, setCurrency]);
+
   // גזירת הקידומת האוטומטית לפי מטבע העסק בפועל
   const currencyPhoneConfig = getDialByCurrency(currency);
   const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
@@ -114,6 +121,7 @@ export default function SettingsTab({
     reader.readAsDataURL(file);
   };
 
+  // מניעת דורסנות מטבע מיותרת לעסקים מקומיים
   useEffect(() => {
     if (!isLocalIsraeliBusiness && (!currency || currency === 'USD')) {
       try {
@@ -169,8 +177,8 @@ export default function SettingsTab({
               {isHebrew ? 'מטבע העסק' : 'Business Currency'}
             </label>
             <select 
-              value={currency} 
-              onChange={(e) => setCurrency(e.target.value)}
+              value={isLocalIsraeliBusiness ? 'ILS' : currency} 
+              onChange={(e) => !isLocalIsraeliBusiness && setCurrency(e.target.value)}
               disabled={isLocalIsraeliBusiness}
               style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: isLocalIsraeliBusiness ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem', fontWeight: '400', color: '#4f46e5' }}
             >
@@ -285,7 +293,7 @@ export default function SettingsTab({
                {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
              </button>
              {bizPlan !== 'free' && (
-               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
+               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex': alignItems: 'center', gap: '5px' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                   {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
                </button>
