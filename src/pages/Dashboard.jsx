@@ -470,7 +470,6 @@ export default function Dashboard() {
   async function fetchSettings(userId, userEmail) {
     const nowIso = new Date().toISOString();
 
-    // שליפה ישירה הרמטית אך ורק לפי user_id נוכחי (ללא שום מיזוג אימיילים שגורם לדריסת נתונים)
     let { data, error } = await supabase
       .from('business_settings')
       .select('*')
@@ -500,7 +499,7 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      // אכיפה עיוורת מוחלטת: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS
+      // אכיפה מוחלטת: אם המדינה היא Local או LCL, המטבע הוא אך ורק ILS, בלי שום קשר למה ששמור בענן
       let userCurr = (countryVal === 'Local' || countryVal === 'LCL') ? 'ILS' : (data.currency || 'USD');
 
       setCurrency(userCurr);
@@ -676,7 +675,6 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    // אכיפה מוחלטת לפני שמירה לענן: אם העסק מקומי, המטבע נשמר תמיד כ-ILS
     const enforcedCurrency = (bizCountry === 'Local' || bizCountry === 'LCL') ? 'ILS' : currency;
 
     const payload = {
@@ -1506,7 +1504,7 @@ export default function Dashboard() {
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = b.created_at || '';
+      bVal = a.created_at || '';
     }
 
     if (typeof aVal === 'string') {
