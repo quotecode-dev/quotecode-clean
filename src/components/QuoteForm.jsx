@@ -20,6 +20,7 @@ export default function QuoteForm({
   clientType, setClientType,
   clientTaxId, setClientTaxId,
   clientAddress, setClientAddress,
+  quoteSubject, setQuoteSubject,
   currency, setCurrency,
   quoteStatus, setQuoteStatus,
   validUntil, setValidUntil,
@@ -250,6 +251,20 @@ export default function QuoteForm({
           </div>
         </div>
 
+        {/* שדה נושא ההזמנה / Order Subject */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
+            {isHebrew ? 'נושא ההזמנה / ההצעה' : 'Order / Quote Subject'}
+          </label>
+          <input 
+            type="text" 
+            value={quoteSubject} 
+            onChange={(e) => setQuoteSubject(e.target.value)} 
+            placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומניום לפרויקט' : 'e.g. Aluminum & Network Supply'} 
+            style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} 
+          />
+        </div>
+
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
             {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
@@ -411,7 +426,7 @@ export default function QuoteForm({
                   style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem', background: item.isFromCatalog ? '#f1f5f9' : 'white', cursor: item.isFromCatalog ? 'not-allowed' : 'text' }} 
                 />
                 <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
-                <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }} />
+                <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: '1px solid #cbd5e1', borderRadius: '5px', fontSize: '0.8rem' }} />
                 <div style={{ padding: '7px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '5px', textAlign: isHebrew ? 'left' : 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: isHebrew ? 'flex-start' : 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
                 {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: '#fee2e2', border: 'none', borderRadius: '5px', cursor: 'pointer', color: '#991b1b', fontWeight: 'bold' }}>✕</button>}
               </div>

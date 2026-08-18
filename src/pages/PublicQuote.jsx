@@ -77,7 +77,6 @@ export default function PublicQuote() {
         }
       }
 
-      // Increment view count only if viewer is NOT the quote owner
       const isOwner = userId && data.user_id && userId === data.user_id;
       if (!isOwner) {
         const newViewCount = (data.view_count || 0) + 1;
@@ -164,11 +163,7 @@ export default function PublicQuote() {
         })
         .eq('id', id);
 
-      if (error) {
-        console.error("Supabase direct update error:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       setApproved(true);
     } catch (err) {
       console.error('Error approving quote:', err);
@@ -224,10 +219,8 @@ export default function PublicQuote() {
   const bizAddress = businessSettings?.address || quote.businessSettings?.address;
 
   const clientPhoneFormatted = formatDisplayPhone(quote.clients?.phone, isInternationalBiz);
-
   const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
 
-  // Strict International Terms & Conditions Override Fallback
   let displayTerms = quote.terms;
   if (!isHebrew && displayTerms && /[א-ת]/.test(displayTerms)) {
     displayTerms = `General Terms:
@@ -240,7 +233,6 @@ export default function PublicQuote() {
     <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
         
-        {/* Isolated Header Component */}
         <PublicQuoteHeader 
           isHebrew={isHebrew}
           bizLogo={bizLogo}
@@ -259,6 +251,14 @@ export default function PublicQuote() {
           {quote.clients?.email && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{quote.clients.email}</div>}
           {clientPhoneFormatted && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{clientPhoneFormatted}</div>}
           {quote.clients?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.address}</div>}
+
+          {/* שדה נושא ההצעה המוצג מתחת לפרטי הלקוח */}
+          {quote.subject && (
+            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', fontSize: '0.95rem', color: '#0f172a', fontWeight: 'bold' }}>
+              <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>{isHebrew ? 'נושא ההצעה: ' : 'Subject: '}</span>
+              <span style={{ fontWeight: 'normal' }}>{quote.subject}</span>
+            </div>
+          )}
         </div>
 
         {/* Items Table */}
@@ -405,7 +405,7 @@ export default function PublicQuote() {
           )}
         </div>
 
-        {/* Footer with dynamic ProFlow link */}
+        {/* Footer */}
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
           {isHebrew ? (
             <span>
