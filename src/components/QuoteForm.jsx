@@ -251,14 +251,14 @@ export default function QuoteForm({
           </div>
         </div>
 
-        {/* שדה נושא ההזמנה / Order Subject החדש והפעיל */}
+        {/* שדה נושא ההזמנה / Order Subject המחובר ל-State */}
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '3px' }}>
             {isHebrew ? 'נושא ההזמנה / ההצעה' : 'Order / Quote Subject'}
           </label>
           <input 
             type="text" 
-            value={quoteSubject} 
+            value={quoteSubject || ''} 
             onChange={(e) => setQuoteSubject(e.target.value)} 
             placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומניום לפרויקט' : 'e.g. Aluminum & Network Supply'} 
             style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} 
