@@ -1,16 +1,6 @@
 import React from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
 
-// פונקציית עזר בטוחה להמרת קוד מטבע לסימולו המקורי עבור כל הצעה בנפרד
-const getQuoteCurrencySymbol = (curr, isLocal) => {
-  if (isLocal || curr === 'ILS') return '₪';
-  if (curr === 'USD') return '$';
-  if (curr === 'EUR') return '€';
-  if (curr === 'GBP') return '£';
-  if (curr === 'CAD' || curr === 'AUD') return 'A$';
-  return '$';
-};
-
 export default function QuotesTab({
   quotes,
   searchTerm,
@@ -44,6 +34,16 @@ export default function QuotesTab({
   currency
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
+
+  // שליפת סימול המטבע המדויק מתוך ההצעה עצמה לפי שדה ה-currency שלה
+  const getQuoteCurrencySymbol = (quoteCurr) => {
+    if (quoteCurr === 'ILS') return '₪';
+    if (quoteCurr === 'EUR') return '€';
+    if (quoteCurr === 'GBP') return '£';
+    if (quoteCurr === 'CAD' || quoteCurr === 'AUD') return 'A$';
+    if (quoteCurr === 'USD') return '$';
+    return isLocalIsraeliBusiness ? '₪' : '$';
+  };
 
   const getStatusBadge = (st) => {
     switch(st) {
@@ -152,7 +152,7 @@ export default function QuotesTab({
                 const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
 
                 // שימוש במטבע השמור ספציפי להצעה זו
-                const quoteSym = getQuoteCurrencySymbol(quote.currency, isLocalIsraeliBusiness);
+                const quoteSym = getQuoteCurrencySymbol(quote.currency);
                 const badge = getStatusBadge(currentStatus);
 
                 return (
@@ -283,7 +283,7 @@ export default function QuotesTab({
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
                                   <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
-                                    {isHebrew ? '🚀 אופציה זו זמינה ממנויי Basic ומעלה' : '🚀 Available on Basic plan+'}
+                                    {isHebrew ? '🚀 אופציה זו זמינה למנויי Basic ומעלה' : '🚀 Available on Basic plan+'}
                                   </div>
                                 )}
                               </div>

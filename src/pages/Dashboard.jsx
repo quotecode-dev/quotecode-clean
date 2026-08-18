@@ -1146,7 +1146,7 @@ export default function Dashboard() {
   const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';
 
   const totalQuotesCount = quotes.length;
-  // שימוש במטבע השמור בכל הצעה לחישוב סך ההכנסות בצורה מבודדת ומדויקת
+  // חישוב סך ההכנסות מתבסס על ההצעות המאושרות/שולמות
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
