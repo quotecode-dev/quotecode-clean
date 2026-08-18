@@ -43,10 +43,13 @@ export const getCurrencySym = (country, currency) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
   const effectiveCountry = country || cachedCountry;
 
+  const currUpper = (currency || '').toUpperCase();
+
   if (effectiveCountry === REGION_RULES.INTERNATIONAL.countryCode) {
-    if (currency === 'EUR') return '€';
-    if (currency === 'GBP') return '£';
-    if (currency === 'ILS') return REGION_RULES.LOCAL.currencySymbol;
+    if (currUpper === 'EUR') return '€';
+    if (currUpper === 'GBP') return '£';
+    if (currUpper === 'USD' || currUpper === '$') return '$';
+    if (currUpper === 'ILS') return REGION_RULES.LOCAL.currencySymbol;
     return REGION_RULES.INTERNATIONAL.defaultCurrencySymbol;
   }
   return REGION_RULES.LOCAL.currencySymbol;
