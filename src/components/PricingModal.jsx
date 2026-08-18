@@ -27,23 +27,18 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     try {
       const finalReason = cancelReason === 'other' ? `Other: ${cancelOtherText}` : cancelReason;
 
-      // Update business_settings in Supabase to free plan / canceled status
       if (userId) {
         const { error } = await supabase
           .from('business_settings')
           .update({
             plan: 'free',
             trial_ends_at: null,
-            // If user chose to delete data immediately or mark data preference:
-            // We can store cancellation metadata if needed, or handle data deletion logic here
           })
           .eq('user_id', userId);
 
         if (error) throw error;
 
-        // If user chose data deletion:
         if (dataPreference === 'delete') {
-          // Optional: clear quotes, clients, services, expenses for this user
           await supabase.from('quotes').delete().eq('user_id', userId);
           await supabase.from('clients').delete().eq('user_id', userId);
           await supabase.from('services').delete().eq('user_id', userId);
@@ -158,7 +153,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
             </div>
 
-            {/* Cancel Subscription Option Button */}
             {currentPlan && currentPlan !== 'free' && (
               <div style={{ textAlign: 'center', marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
                 <button
@@ -175,7 +169,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             </div>
           </>
         ) : (
-          /* Cancellation Exit Survey Flow */
           <form onSubmit={handleConfirmCancellation}>
             <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px' }}>
               {isHebrew ? '💔 מצטערים לשמוע שאתה עוזב' : '💔 We are sorry to see you go'}

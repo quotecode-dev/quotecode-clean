@@ -252,7 +252,6 @@ export default function PublicQuote() {
           {clientPhoneFormatted && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{clientPhoneFormatted}</div>}
           {quote.clients?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.address}</div>}
 
-          {/* שדה נושא ההצעה המוצג מתחת לפרטי הלקוח */}
           {quote.subject && (
             <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', fontSize: '0.95rem', color: '#0f172a', fontWeight: 'bold' }}>
               <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>{isHebrew ? 'נושא ההצעה: ' : 'Subject: '}</span>

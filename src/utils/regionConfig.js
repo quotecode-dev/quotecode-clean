@@ -60,24 +60,20 @@ export const getRegionTaxRate = (country) => {
 };
 
 // פונקציות פירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
-// נוסיף כאן בדיקה מבוססת מטבע כדי להבטיח יציבות (USD = US Date, אחרת = International Date)
 export const formatDateLocal = (dateString, isHebrew, currency = 'USD') => {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    // למשתמשי עברית - פורמט ישראלי: DD/MM/YYYY
     if (isHebrew) {
       return date.toLocaleDateString('he-IL');
     }
 
-    // עבור משתמשים המשתמשים בדולר (ארה"ב) - פורמט: MM/DD/YYYY
     if (currency === 'USD') {
       return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     }
 
-    // עבור שאר המטבעות (בריטניה, אירופה וכו') - פורמט: DD/MM/YYYY
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch (e) {
     return dateString;
