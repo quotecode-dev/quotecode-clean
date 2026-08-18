@@ -87,8 +87,13 @@ export default function SettingsTab({
       } else {
         setStreet(bizAddress);
       }
+    } else {
+      setStreet('');
+      setCity('');
+      setStateProv('');
+      setZipCode('');
     }
-  }, []);
+  }, [bizAddress]);
 
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);
