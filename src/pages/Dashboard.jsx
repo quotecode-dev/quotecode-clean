@@ -1245,8 +1245,8 @@ export default function Dashboard() {
     return { name, Income: income, Expenses: expense };
   });
 
-  const sym = businessSettings?.country === 'Local' || currency === 'ILS' ? '₪' : getCurrencySymbol(currency);
-
+  
+const sym = (businessSettings?.country === 'Local' || currency === 'ILS') ? '₪' : (currency === 'USD' ? '$' : (currency === 'EUR' ? '€' : (currency === 'GBP' ? '£' : '₪')));
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
   const handleEditClick = (quote) => {
