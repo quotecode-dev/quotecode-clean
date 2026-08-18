@@ -35,16 +35,18 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
+  // הצגת סמל המטבע המקורי של כל הצעה ספציפית מתוך מסד הנתונים
   const getQuoteCurrencySymbol = (quoteCurr) => {
+    const curr = (quoteCurr || '').toUpperCase();
+    if (curr === 'EUR') return '€';
+    if (curr === 'GBP') return '£';
+    if (curr === 'USD' || curr === '$') return '$';
+    if (curr === 'ILS' || curr === '₪') return '₪';
+    
+    // גיבוי מוחלט במידה ושדה המטבע בהצעה הישנה לא מולא
     if (!isHebrew) {
-      if (quoteCurr === 'EUR' || currency === 'EUR') return '€';
-      if (quoteCurr === 'GBP' || currency === 'GBP') return '£';
-      if (quoteCurr === 'USD' || currency === 'USD') return '$';
-      return sym;
+      return currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
     }
-    if (quoteCurr === 'EUR') return '€';
-    if (quoteCurr === 'GBP') return '£';
-    if (quoteCurr === 'USD') return '$';
     return '₪';
   };
 
