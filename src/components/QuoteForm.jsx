@@ -341,18 +341,17 @@ export default function QuoteForm({
           />
         </div>
 
-        {/* אזור צירוף קבצים ושיווי מכסה */}
+        {/* אזור צירוף קבצים ושיווי מכסה (החיווי הועבר מתחת לכותרת) */}
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>
-              {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
-            </label>
-            {(userPlan === 'pro' || isSuperAdmin) && (
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>
-                {isHebrew ? `נשארו לך ${remainingMb} מגה להעלאת קבצים` : `Remaining: ${remainingMb}MB`}
-              </span>
-            )}
-          </div>
+          <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
+            {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
+          </label>
+          
+          {(userPlan === 'pro' || isSuperAdmin) && (
+            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '8px' }}>
+              {isHebrew ? `נשארו לך ${remainingMb} מגה להעלאת קבצים` : `Remaining: ${remainingMb}MB`}
+            </div>
+          )}
           
           <button
             type="button"
@@ -367,7 +366,7 @@ export default function QuoteForm({
               {quoteFiles.map((file, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
                   <span style={{ color: '#1e293b' }}>{file.name} ({(file.size / (1024*1024)).toFixed(2)} MB)</span>
-                  <button type="button" onClick={() => removeFile(idx)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem' }}>הסר</button>
+                  <button type="button" onClick={() => removeFile(idx)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold' }}>✕</button>
                 </div>
               ))}
             </div>

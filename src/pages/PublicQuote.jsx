@@ -34,7 +34,7 @@ export default function PublicQuote() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(false);
-  const [attachments, setAttachments] = useState([]); // הוספת state לקבצים
+  const [attachments, setAttachments] = useState([]);
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -63,7 +63,6 @@ export default function PublicQuote() {
       if (error) throw error;
       setQuote(data);
 
-      // שליפת קבצים מצורפים
       const { data: attData } = await supabase
         .from('quote_attachments')
         .select('*')
@@ -258,42 +257,39 @@ export default function PublicQuote() {
           )}
         </div>
 
-        <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.85rem' }}>
-                <th style={{ padding: '10px', textAlign: 'right', borderRadius: '0 8px 8px 0' }}>תיאור פריט</th>
-                <th style={{ padding: '10px', textAlign: 'center' }}>כמות</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>מחיר יחידה</th>
-                <th style={{ padding: '10px', textAlign: 'left', borderRadius: '8px 0 0 8px' }}>סה"כ</th>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.85rem' }}>
+              <th style={{ padding: '10px', textAlign: 'right', borderRadius: '0 8px 8px 0' }}>תיאור פריט</th>
+              <th style={{ padding: '10px', textAlign: 'center' }}>כמות</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>מחיר יחידה</th>
+              <th style={{ padding: '10px', textAlign: 'left', borderRadius: '8px 0 0 8px' }}>סה"כ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quote.quote_items && quote.quote_items.length > 0 ? (
+              quote.quote_items.map((item, index) => {
+                const itemPrice = Number(item.price || item.unit_price || 0);
+                const itemQty = Number(item.quantity || 1);
+                return (
+                  <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>{item.description || item.name || 'פריט'}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{itemQty}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'left', color: '#475569' }}>{currencySymbol}{formatNum(itemPrice)}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 'bold', color: '#1e293b' }}>{currencySymbol}{formatNum(item.total_price || (itemQty * itemPrice))}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                  הצעת מחיר כללית בסך {formatNum(total)} {currencySymbol}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {quote.quote_items && quote.quote_items.length > 0 ? (
-                quote.quote_items.map((item, index) => {
-                  const itemPrice = Number(item.price || item.unit_price || 0);
-                  const itemQty = Number(item.quantity || 1);
-                  return (
-                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
-                      <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>{item.description || item.name || 'פריט'}</td>
-                      <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{itemQty}</td>
-                      <td style={{ padding: '12px 10px', textAlign: 'left', color: '#475569' }}>{currencySymbol}{formatNum(itemPrice)}</td>
-                      <td style={{ padding: '12px 10px', textAlign: 'left', fontWeight: 'bold', color: '#1e293b' }}>{currencySymbol}{formatNum(item.total_price || (itemQty * itemPrice))}</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                    הצעת מחיר כללית בסך {formatNum(total)} {currencySymbol}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            )}
+          </tbody>
+        </table>
 
-        {/* הצגת קבצים מצורפים */}
         {attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>

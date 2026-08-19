@@ -48,7 +48,6 @@ export default function PublicQuoteEn() {
       if (error) throw error;
       setQuote(data);
 
-      // שליפת קבצים מצורפים להצעה במידה וקיימים
       const { data: attData } = await supabase
         .from('quote_attachments')
         .select('*')
