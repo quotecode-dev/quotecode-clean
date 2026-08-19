@@ -444,7 +444,6 @@ export default function Dashboard() {
   }
 
   async function fetchAllUserAttachments(userId) {
-    // שליפת כל הקבצים המצורפים של כל ההצעות של המשתמש הנוכחי לצורך חישוב מכסת ה-30MB הכללית
     const { data: quotesData } = await supabase.from('quotes').select('id').eq('user_id', userId);
     if (quotesData && quotesData.length > 0) {
       const quoteIds = quotesData.map(q => q.id);
@@ -2102,13 +2101,9 @@ export default function Dashboard() {
               handleAddFromCatalog={handleAddFromCatalog}
               userPlan={bizPlan}
               onOpenPricingModal={() => setShowPricingModal(true)}
-              quoteFiles={[
-                ...(quoteFiles || []),
-                ...(allUserAttachments || []).filter(
-                  att => att.quote_id !== editingQuoteId && !((quoteFiles || []).some(f => f.id === att.id))
-                )
-              ]}
+              quoteFiles={quoteFiles}
               setQuoteFiles={setQuoteFiles}
+              allUserAttachments={allUserAttachments}
             />
           )}
 
