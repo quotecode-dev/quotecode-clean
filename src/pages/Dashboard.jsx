@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [allUserAttachments, setAllUserAttachments] = useState([]);
   
   const [bizCountry, setBizCountry] = useState(() => {
     if (typeof window === 'undefined') return 'International';
@@ -204,6 +205,7 @@ export default function Dashboard() {
         setClients([]);
         setServices([]);
         setExpenses([]);
+        setAllUserAttachments([]);
         setSettingId(null);
         setBizCountry('International');
         localStorage.removeItem('proflow_cached_country');
@@ -399,6 +401,7 @@ export default function Dashboard() {
     await fetchClients(userId);
     await fetchServices(userId);
     await fetchExpenses(userId);
+    await fetchAllUserAttachments(userId);
     await fetchSettings(userId, userEmail);
   }
 
@@ -438,6 +441,18 @@ export default function Dashboard() {
       .order('expense_date', { ascending: false });
     if (error) console.error('Error fetching expenses:', error.message);
     else setExpenses(data || []);
+  }
+
+  async function fetchAllUserAttachments(userId) {
+    // שליפת כל הקבצים המצורפים של כל ההצעות של המשתמש הנוכחי לצורך חישוב מכסת ה-30MB הכללית
+    const { data: quotesData } = await supabase.from('quotes').select('id').eq('user_id', userId);
+    if (quotesData && quotesData.length > 0) {
+      const quoteIds = quotesData.map(q => q.id);
+      const { data: attData } = await supabase.from('quote_attachments').select('*').in('quote_id', quoteIds);
+      setAllUserAttachments(attData || []);
+    } else {
+      setAllUserAttachments([]);
+    }
   }
 
   async function fetchSettings(userId, userEmail) {
@@ -812,7 +827,10 @@ export default function Dashboard() {
       setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message, type: 'error' });
     } else {
       setStatusMsg({ text: isHebrew ? 'הצעת המחיר נמחקה בהצלחה!' : 'Quote deleted successfully!', type: 'success' });
-      if (session?.user?.id) fetchQuotes(session.user.id);
+      if (session?.user?.id) {
+        fetchQuotes(session.user.id);
+        fetchAllUserAttachments(session.user.id);
+      }
     }
   }
 
@@ -1307,7 +1325,6 @@ export default function Dashboard() {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
 
-    // שליפה מלאה של הקבצים המצורפים של ההצעה מטבלת quote_attachments כולל המרת file_size ל-size
     const { data: attData } = await supabase.from('quote_attachments').select('*').eq('quote_id', quote.id);
     setQuoteFiles(attData ? attData.map(f => ({ ...f, size: f.file_size })) : []);
 
@@ -1481,7 +1498,6 @@ export default function Dashboard() {
       const { error: itemsError } = await supabase.from('quote_items').insert(quoteItemsToInsert);
       if (itemsError) throw itemsError;
 
-      // העלאת קבצים חדשים ושמירתם ל-Storage ולטבלת quote_attachments
       for (let file of quoteFiles) {
         if (!file.id) {
           const fileExt = file.name.split('.').pop();
@@ -2086,7 +2102,12 @@ export default function Dashboard() {
               handleAddFromCatalog={handleAddFromCatalog}
               userPlan={bizPlan}
               onOpenPricingModal={() => setShowPricingModal(true)}
-              quoteFiles={quoteFiles}
+              quoteFiles={[
+                ...(quoteFiles || []),
+                ...(allUserAttachments || []).filter(
+                  att => att.quote_id !== editingQuoteId && !((quoteFiles || []).some(f => f.id === att.id))
+                )
+              ]}
               setQuoteFiles={setQuoteFiles}
             />
           )}
