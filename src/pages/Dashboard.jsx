@@ -553,11 +553,24 @@ export default function Dashboard() {
       updatePayload.trial_ends_at = null;
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('business_settings')
       .update(updatePayload)
       .eq('id', accountId)
       .select();
+
+    if ((error || !data || data.length === 0) && accountId) {
+      const targetAcc = allAccounts.find(a => a.id === accountId);
+      if (targetAcc && targetAcc.user_id) {
+        const res = await supabase
+          .from('business_settings')
+          .update(updatePayload)
+          .eq('user_id', targetAcc.user_id)
+          .select();
+        data = res.data;
+        error = res.error;
+      }
+    }
     
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message, type: 'error' });
@@ -610,7 +623,27 @@ export default function Dashboard() {
 
   async function handleToggleLifetime(accountId, currentTrialEnds) {
     const newTrialEnds = currentTrialEnds === null ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-    const { error } = await supabase.from('business_settings').update({ trial_ends_at: newTrialEnds }).eq('id', accountId);
+    const updatePayload = { trial_ends_at: newTrialEnds };
+
+    let { data, error } = await supabase
+      .from('business_settings')
+      .update(updatePayload)
+      .eq('id', accountId)
+      .select();
+
+    if ((error || !data || data.length === 0) && accountId) {
+      const targetAcc = allAccounts.find(a => a.id === accountId);
+      if (targetAcc && targetAcc.user_id) {
+        const res = await supabase
+          .from('business_settings')
+          .update(updatePayload)
+          .eq('user_id', targetAcc.user_id)
+          .select();
+        data = res.data;
+        error = res.error;
+      }
+    }
+
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון גישת המשתמש: ' + error.message : 'Error updating user access: ' + error.message, type: 'error' });
     } else {
@@ -1484,7 +1517,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
