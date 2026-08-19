@@ -8,7 +8,6 @@ export default function Privacy({ isHebrew }) {
     document.title = isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy';
   }, [isHebrew]);
 
-  // מילון תרגומים מלא למדיניות פרטיות
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
     lastUpdated: 'עדכון אחרון: אוגוסט 2026',

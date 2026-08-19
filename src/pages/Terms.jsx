@@ -8,7 +8,6 @@ export default function Terms({ isHebrew }) {
     document.title = isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service';
   }, [isHebrew]);
 
-  // מילון תרגומים מלא לתנאי השימוש
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
     lastUpdated: 'עדכון אחרון: אוגוסט 2026',

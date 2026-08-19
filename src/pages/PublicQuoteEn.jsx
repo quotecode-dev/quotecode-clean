@@ -25,6 +25,7 @@ export default function PublicQuoteEn() {
   const [hasSigned, setHasSigned] = useState(false);
 
   useEffect(() => {
+    document.title = "ProFlow - Digital Price Quote";
     if (id) {
       fetchQuoteAndIncrementView();
     }
@@ -126,7 +127,6 @@ export default function PublicQuoteEn() {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading...</h2></div>;
   if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
 
-  // לוגיקה בינלאומית: מטבע לפי ההצעה או דולר, מע"מ 0
   const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
   

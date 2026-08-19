@@ -40,6 +40,7 @@ export default function PublicQuote() {
   const [hasSigned, setHasSigned] = useState(false);
 
   useEffect(() => {
+    document.title = "ProFlow - הצעת מחיר דיגיטלית";
     if (id) {
       fetchQuoteAndIncrementView();
     }
@@ -185,7 +186,6 @@ export default function PublicQuote() {
     );
   }
 
-  // תמיד עברית ושקלים עבור PublicQuote הישראלי
   const isHebrew = true;
   const currencySymbol = '₪';
   const vatRate = 0.18;

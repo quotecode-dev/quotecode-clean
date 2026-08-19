@@ -4,6 +4,10 @@ import ProFlowLogo from './ProFlowLogo';
 function PublicToolsEn() {
   const [activeTab, setActiveTab] = useState('currency');
 
+  useEffect(() => {
+    document.title = "ProFlow - Business Tools & Calculators Hub";
+  }, []);
+
   // Currency state with Swap support
   const [amount, setAmount] = useState('100');
   const [fromCurrency, setFromCurrency] = useState('USD');

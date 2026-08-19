@@ -4,6 +4,10 @@ import ProFlowLogo from './ProFlowLogo';
 function PublicTools() {
   const [activeTab, setActiveTab] = useState('currency');
 
+  useEffect(() => {
+    document.title = "ProFlow - מרכז הכלים והמחשבונים העסקיים";
+  }, []);
+
   // Currency state with Swap support
   const [amount, setAmount] = useState('100');
   const [fromCurrency, setFromCurrency] = useState('USD');
@@ -37,7 +41,7 @@ function PublicTools() {
   const [metalGrams, setMetalGrams] = useState('10');
 
   const [metalPricesILS, setMetalPricesILS] = useState({
-    gold: 276,     
+    gold: 276,    
     silver: 3.2,   
     platinum: 120, 
     palladium: 110,
@@ -84,10 +88,7 @@ function PublicTools() {
         const currRes = await fetch('https://open.er-api.com/v6/latest/ILS');
         const currData = await currRes.json();
         if (currData && currData.rates) {
-          // currData.rates gives how much foreign currency per 1 ILS, or we invert for ILS base
-          // er-api gives base ILS if requested with /latest/ILS
           const baseRates = currData.rates;
-          // We need rates relative to ILS (ILS = 1)
           const newRates = {
             ILS: 1,
             USD: 1 / (baseRates.USD || 3.65),
@@ -116,7 +117,6 @@ function PublicTools() {
         setCryptoPricesUSD(newCrypto);
 
         // 3. Approximate Metals based on USD rates & current USD/ILS
-        // Gold approx ~75.6 USD per gram pure, Silver ~0.88, etc.
         const goldUsdPerGram = 75.6;
         const silverUsdPerGram = 0.88;
         const platUsdPerGram = 33.0;
@@ -268,7 +268,7 @@ function PublicTools() {
       <header style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 'bold' }}>מרכז הכלים והמחשבונים העסקיים</h1>
         <p style={{ fontSize: '1.05rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
-          כלים חכמים, מהירים ומדויקים לעסקים, יבואנים ופרילנסרים – המרות מטבעות, מידות, מתכות יקרות וקריפטו בזמן אמת.
+          כלים חכמים, מהירים ומدויקים לעסקים, יבואנים ופרילנסרים – המרות מטבעות, מידות, מתכות יקרות וקריפטו בזמן אמת.
         </p>
       </header>
 
@@ -610,7 +610,7 @@ function PublicTools() {
           <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 'bold' }}>רוצה לנהל את העסק שלך ברמה הבאה?</h3>
           <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>הפק הצעות מחיר חכמות, נהל לקוחות ופתח את העסק לעולם עם ProFlow.</p>
           <a
-            href="/"
+            href="/he"
             style={{ background: 'white', color: '#4f46e5', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
           >
             התחל עכשיו בחינם
