@@ -31,6 +31,10 @@ export default function LandingGlobal({ onForgotPassword }) {
     }
   }, []);
 
+  const getGlobalPriceId = (planType) => {
+    return billingCycle === 'monthly' ? `price_${planType}_global_monthly` : `price_${planType}_global_yearly`;
+  };
+
   const faqs = [
     {
       q: 'Do the displayed prices include taxes?',
@@ -359,13 +363,18 @@ export default function LandingGlobal({ onForgotPassword }) {
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Free Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>Ideal for getting started.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>{currencySymbol}0 <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span></div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '2px' }}>{currencySymbol}0 <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span></div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>Total {currencySymbol}0/year</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Up to 5 quotes per month</li>
                   <li>✓ Basic client management</li>
                   <li>✓ Email support</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <button 
+                  data-price-id={getGlobalPriceId('free')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=en')} 
+                  style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
                   Start for Free
                 </button>
               </div>
@@ -374,14 +383,21 @@ export default function LandingGlobal({ onForgotPassword }) {
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Basic Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For small businesses needing robust tools.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '16px' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '2px' }}>
                   {currencySymbol}{billingCycle === 'monthly' ? '15' : '12'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
+                  {billingCycle === 'monthly' ? `Total ${currencySymbol}180/year` : `Total ${currencySymbol}144/year (Billed annually)`}
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Up to 20 quotes per month</li>
                   <li>✓ Digital signatures & client management</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <button 
+                  data-price-id={getGlobalPriceId('basic')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=en')} 
+                  style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
                   Select Basic Plan
                 </button>
               </div>
@@ -394,14 +410,21 @@ export default function LandingGlobal({ onForgotPassword }) {
                 </div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Pro Business Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For growing agencies and businesses with no limits.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#818cf8', marginBottom: '16px' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#818cf8', marginBottom: '2px' }}>
                   {currencySymbol}{billingCycle === 'monthly' ? '29' : '23'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
+                  {billingCycle === 'monthly' ? `Total ${currencySymbol}348/year` : `Total ${currencySymbol}276/year (Billed annually)`}
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Unlimited quotes</li>
                   <li>✓ Full income & expense tracking</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ marginTop: 'auto', background: '#6366f1', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 3px 10px rgba(99,102,241,0.3)' }}>
+                <button 
+                  data-price-id={getGlobalPriceId('pro')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=en')} 
+                  style={{ marginTop: 'auto', background: '#6366f1', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 3px 10px rgba(99,102,241,0.3)' }}
+                >
                   Select PRO Plan
                 </button>
               </div>

@@ -1,11 +1,11 @@
-# ProFlow - סיכום פיתוח, ארכיטקטורה ופיצ'רים (מעודכן לגרסה v14.2 - אוגוסט 2026)
+# ProFlow - סיכום פיתוח, ארכיטקטורה ופיצ'רים (מעודכן לגרסה v14.3 - אוגוסט 2026)
 מסמך תיעוד טכני ועסקי למערכת ProFlow לצורך רפרנס עתידי והמשך פיתוח רציף.
 
 ### 0. פרופיל הפרויקט וסביבת עבודה
 * **שם הפרויקט:** ProFlow (מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות).
 * **דומיין הייצור:** https://www.quotecodepro.com/
 * **סטאק טכנולוגי:** React (Vite), Supabase (Auth, Database, Edge Functions), Vercel (Hosting), GitHub (Version Control).
-* **סביבת פיתוח:** ענן בלבד (אין Localhost). כל השינויים מנוהלים בענן וב-GitHub תחת תגיות גיבוי מסודרות (הגרסה הנוכחית מעודכנת ל- `v14.2`).
+* **סביבת פיתוח:** ענן בלבד (אין Localhost). כל השינויים מנוהלים בענן וב-GitHub תחת תגיות גיבוי מסודרות (הגרסה הנוכחית מעודכנת ל- `v14.3`).
 * **ארכיטקטורה מודולרית (Modular Component Design):** פיצול קבצים גדולים לרכיבים קטנים ועצמאיים (כגון `AuthScreen`, `QuotesTab`, `SettingsTab`, `QuoteForm`) לתחזוקה קלה, קריאות קוד וביצועים מהירים.
 
 ---
@@ -13,8 +13,7 @@
 ### 1. מערכת דיוור וניהול תיבות (Email Integration, Supabase, Resend & Gmail)
 * **ענן בלבד:** ביטול מלא של פרוטוקול `mailto:` המקומי למניעת קפיצת חלונות אזהרה של Windows. השליחה מבוצעת דרך Supabase Edge Functions תחת הפונקציה `send-quote-email`.
 * **אימות דומיין (Verified Domain):** השליחה מבוצעת דרך דומיין הבית (`@quotecodepro.com`) דרך ה-API של Resend, מה שמבטיח עבירות (Deliverability) מקסימלית ומונע שגיאות 403/400.
-* **ניהול תיבות דואר (Namecheap & Gmail Sync):** 
-    * הגדרה מלאה של תיבות השרת (`info@quotecodepro.com` ו-`support@quotecodepro.com`) ב-Namecheap (`mail.privateemail.com`, פורט `995` ב-SSL).
+* **ניהול תיבות דואר (Namecheap & Gmail Sync):** * הגדרה מלאה של תיבות השרת (`info@quotecodepro.com` ו-`support@quotecodepro.com`) ב-Namecheap (`mail.privateemail.com`, פורט `995` ב-SSL).
     * סנכרון ומשיכת הודעות (POP3) ישירות אל תוך חשבון ה-Gmail המרכזי לריכוז פניות הלקוחות והתמיכה במקום אחד עם תגיות ייעודיות.
 * **תמיכה דינמית בשפות ולוגו:** הפונקציה מקבלת מה-Client פרמטרים (`isHebrew`, `logoUrl`) ומייצרת תבנית HTML רספונסיבית (RTL בעברית ללקוחות מקומיים, LTR באנגלית לבינלאומיים, והזרקת לוגו העסק).
 * **מערכת חיווי סטטוס (Email Status Indicator):** נורית חיווי ויזואלית (ירוק להצלחה, אדום לכישלון) בעמודת "מייל" בטבלת הצעות המחיר (`QuotesTab`), המתעדכנת בזמן אמת.
@@ -38,6 +37,9 @@
 * **שדה תאריך מותאם אזורית (Smart Date Picker):**
     * תצוגת פורמט מדויקת המותאמת למדינה ולאזור המטבע: ישראל, לונדון וברלין (`ILS`, `GBP`, `EUR`) בפורמט התקני **`DD-MM-YYYY`**; ארה"ב (`USD`) בפורמט האמריקאי **`MM-DD-YYYY`**.
     * שילוב אייקון יוחסין ויומן מובנה (`showPicker()`) המאפשר בחירת תאריך נוחה מתוך לוח שנה דיגיטלי מבלי לפגוע בפורמט התצוגה המקומי.
+* **מערכת ריבוי מטבעות עמידה (Multi-Currency & Historical Stability):**
+    * כל הצעת מחיר שומרת באופן קשיח את המטבע המקורי שלה במסד הנתונים (`quote.currency`).
+    * מנגנון גיבוי חכם ברכיב `QuotesTab.jsx` המבטיח שהצעות הישנות (שבהן שדה המטבע לא הוגדר במפורש) והחדשות כאחד שומרות על מטבע העסק המקורי שלהן בלבד, ואינן נדרשות או משתנות אוטומטית לשקל (₪) בעת שינוי הגדרות גלובליות.
 * **חוקיות מע"מ (VAT Rules):**
     * 18% מע"מ מחושב ונגבה אך ורק מלקוחות מקומיים בארץ.
     * 0% מע"מ מחושב עבור לקוחות בינלאומיים.
@@ -74,5 +76,5 @@
 
 <span style="color:red; font-weight:bold;">אזהרה קריטית: חובה לבצע גיבוי מלא לענן כעת!</span>
 
-```bash
-git add . ; git commit -m "v14.2-update-architecture-and-documentation" ; git push origin main --force
+```powershell
+git add . ; git commit -m "v14.3-update-architecture-multi-currency-fix" ; git tag v14.3 ; git push origin main --tags

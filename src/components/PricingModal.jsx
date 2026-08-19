@@ -11,10 +11,33 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
   if (!isOpen) return null;
 
-  const basicMonthly = isLocalIsraeliBusiness ? '₪49' : '$39';
-  const basicYearly = isLocalIsraeliBusiness ? '₪39' : '$29';
-  const proMonthly = isLocalIsraeliBusiness ? '₪99' : '$89';
-  const proYearly = isLocalIsraeliBusiness ? '₪79' : '$69';
+  // מחירים חודשיים ושנתיים עם הגדרת מזהי SKU למערכת הסליקה
+  const basicMonthlyPrice = isLocalIsraeliBusiness ? '₪49' : '$39';
+  const basicYearlyMonthlyPrice = isLocalIsraeliBusiness ? '₪39' : '$29';
+  const basicYearlyTotal = isLocalIsraeliBusiness ? '₪468' : '$348'; // 39*12 או 29*12
+  const basicMonthlyTotalYear = isLocalIsraeliBusiness ? '₪588' : '$468'; // 49*12 או 39*12
+
+  const proMonthlyPrice = isLocalIsraeliBusiness ? '₪99' : '$89';
+  const proYearlyMonthlyPrice = isLocalIsraeliBusiness ? '₪79' : '$69';
+  const proYearlyTotal = isLocalIsraeliBusiness ? '₪948' : '$828'; // 79*12 או 69*12
+  const proMonthlyTotalYear = isLocalIsraeliBusiness ? '₪1,188' : '$1,068'; // 99*12 או 89*12
+
+  // מזהי תוכנית למערכת הסליקה (Billing Price IDs / SKUs)
+  const getSelectedPriceId = (planType) => {
+    const region = isLocalIsraeliBusiness ? 'il' : 'global';
+    if (planType === 'basic') {
+      return billingCycle === 'monthly' ? `price_basic_${region}_monthly` : `price_basic_${region}_yearly`;
+    } else {
+      return billingCycle === 'monthly' ? `price_pro_${region}_monthly` : `price_pro_${region}_yearly`;
+    }
+  };
+
+  const handleSelectPlan = (planType) => {
+    const priceId = getSelectedPriceId(planType);
+    // כאן מערכת הסליקה שולפת את ה-priceId שנבחר
+    alert(isHebrew ? `נבחר מסלול: ${planType.toUpperCase()} (${billingCycle}). מזהה סליקה: ${priceId}` : `Selected plan: ${planType.toUpperCase()} (${billingCycle}). Price ID: ${priceId}`);
+    onClose();
+  };
 
   const handleConfirmCancellation = async (e) => {
     e.preventDefault();
@@ -100,18 +123,23 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               
+              {/* Basic Plan */}
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
                 <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מנוי בסיסי (Basic)' : 'Basic Plan'}</h3>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '4px' }}>
-                  {billingCycle === 'monthly' ? basicMonthly : basicYearly} 
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
+                  {billingCycle === 'monthly' ? basicMonthlyPrice : basicYearlyMonthlyPrice} 
                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'normal' }}>{isHebrew ? '/ חודש' : '/ month'}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '10px' }}>
+                  {billingCycle === 'monthly' 
+                    ? (isHebrew ? `סה"כ ${basicMonthlyTotalYear} לשנה` : `Total ${basicMonthlyTotalYear}/year`) 
+                    : (isHebrew ? `סה"כ ${basicYearlyTotal} לשנה (בחיוב שנתי)` : `Total ${basicYearlyTotal}/year (Billed annually)`)}
                 </div>
                 {billingCycle === 'yearly' && (
                   <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '700', marginBottom: '10px' }}>
                     {isHebrew ? 'חיוב שנתי (חסוך 20% בשנה)' : 'Billed annually (Save 20%)'}
                   </div>
                 )}
-                {billingCycle === 'monthly' && <div style={{ height: '16px', marginBottom: '10px' }}></div>}
                 
                 <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
                   <li>{isHebrew ? 'עד 20 הצעות מחיר בחודש' : 'Up to 20 quotes/month'}</li>
@@ -120,24 +148,33 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   <li>{isHebrew ? 'הפקת קובצי PDF רשמיים' : 'Official PDF exports'}</li>
                   <li style={{ color: '#ef4444' }}>{isHebrew ? '✗ ללא שליחה ישירה בווצאפ' : '✗ No WhatsApp sending'}</li>
                 </ul>
-                <button onClick={() => { alert(isHebrew ? `לשדרוג מיידי למסלול Basic (${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}), פנה לתמיכה.` : 'Please contact support to upgrade.'); onClose(); }} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>
+                <button 
+                  data-price-id={getSelectedPriceId('basic')}
+                  onClick={() => handleSelectPlan('basic')} 
+                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
                   {isHebrew ? 'בחר מסלול Basic' : 'Select Basic'}
                 </button>
               </div>
 
+              {/* PRO Plan */}
               <div style={{ border: '2px solid #4f46e5', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: 'white', boxShadow: '0 8px 12px -2px rgba(79, 70, 229, 0.1)' }}>
                 <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>POPULAR</div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מנוי PRO (מומלץ)' : 'PRO Plan (Recommended)'}</h3>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '4px' }}>
-                  {billingCycle === 'monthly' ? proMonthly : proYearly} 
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
+                  {billingCycle === 'monthly' ? proMonthlyPrice : proYearlyMonthlyPrice} 
                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'normal' }}>{isHebrew ? '/ חודש' : '/ month'}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '10px' }}>
+                  {billingCycle === 'monthly' 
+                    ? (isHebrew ? `סה"כ ${proMonthlyTotalYear} לשנה` : `Total ${proMonthlyTotalYear}/year`) 
+                    : (isHebrew ? `סה"כ ${proYearlyTotal} לשנה (בחיוב שנתי)` : `Total ${proYearlyTotal}/year (Billed annually)`)}
                 </div>
                 {billingCycle === 'yearly' && (
                   <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '700', marginBottom: '10px' }}>
                     {isHebrew ? 'חיוב שנתי (חסוך 20% בשנה)' : 'Billed annually (Save 20%)'}
                   </div>
                 )}
-                {billingCycle === 'monthly' && <div style={{ height: '16px', marginBottom: '10px' }}></div>}
 
                 <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
                   <li>{isHebrew ? 'הצעות מחיר ללא הגבלה (∞)' : 'Unlimited quotes (∞)'}</li>
@@ -146,7 +183,11 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   <li>{isHebrew ? 'מחיקה וניהול מתקדם של הצעות' : 'Advanced quote management & deletion'}</li>
                   <li>{isHebrew ? 'מעקב צפיות חכם (הצעות חמות)' : 'Smart view tracking (Hot quotes)'}</li>
                 </ul>
-                <button onClick={() => { alert(isHebrew ? `לשדרוג מיידי למסלול PRO (${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}), פנה לתמיכה.` : 'Please contact support to upgrade.'); onClose(); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}>
+                <button 
+                  data-price-id={getSelectedPriceId('pro')}
+                  onClick={() => handleSelectPlan('pro')} 
+                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
+                >
                   {isHebrew ? 'בחר מסלול PRO' : 'Select PRO'}
                 </button>
               </div>

@@ -14,6 +14,10 @@ export default function LandingLocal({ onForgotPassword }) {
     document.title = "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות";
   }, []);
 
+  const getLocalPriceId = (planType) => {
+    return billingCycle === 'monthly' ? `price_${planType}_il_monthly` : `price_${planType}_il_yearly`;
+  };
+
   const faqs = [
     {
       q: 'האם המחירים המוצגים כוללים מע"מ?',
@@ -330,13 +334,18 @@ export default function LandingLocal({ onForgotPassword }) {
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול חינמי</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>מתאים לעסקים בתחילת הדרך.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '16px' }}>0 ₪ <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ חודש</span></div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '2px' }}>0 ₪ <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ חודש</span></div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>סה"כ 0 ₪ לשנה</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ עד 5 הצעות מחיר בחודש</li>
                   <li>✓ ניהול לקוחות בסיסי</li>
                   <li>✓ תמיכה במייל</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=he')} style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <button 
+                  data-price-id={getLocalPriceId('free')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=he')} 
+                  style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
                   התחל בחינם
                 </button>
               </div>
@@ -345,18 +354,25 @@ export default function LandingLocal({ onForgotPassword }) {
               <div className="hover-card" style={{ background: '#111827', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול בסיסי (Basic)</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>לעסקים קטנים שצריכים פתרון מושלם.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '16px' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? '49 ₪' : '39 ₪'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ חודש</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
+                  {billingCycle === 'monthly' ? 'סה"כ 588 ₪ לשנה' : 'סה"כ 468 ₪ לשנה (בחיוב שנתי)'}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '-12px', marginBottom: '12px' }}>
                   {billingCycle === 'monthly' ? '* כולל מע"מ 18% (41.53 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (33.05 ₪ לפני מע"מ)'}
                 </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ עד 20 הצעות מחיר בחודש</li>
                   <li>✓ חתימה דיגיטלית וניהול לקוחות</li>
                   <li style={{ color: '#ef4444' }}>✗ ללא שליחה ישירה בווצאפ</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=he')} style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <button 
+                  data-price-id={getLocalPriceId('basic')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=he')} 
+                  style={{ marginTop: 'auto', background: '#1f2937', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
                   בחר מסלול Basic
                 </button>
               </div>
@@ -369,18 +385,25 @@ export default function LandingLocal({ onForgotPassword }) {
                 </div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול עסקי (Pro)</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>לסוכנויות ועסקים צומחים ללא מגבלות.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#818cf8', marginBottom: '16px' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#818cf8', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? '99 ₪' : '79 ₪'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ חודש</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
+                  {billingCycle === 'monthly' ? 'סה"כ 1,188 ₪ לשנה' : 'סה"כ 948 ₪ לשנה (בחיוב שנתי)'}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '-12px', marginBottom: '12px' }}>
                   {billingCycle === 'monthly' ? '* כולל מע"מ 18% (83.90 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (66.95 ₪ לפני מע"מ)'}
                 </p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2' }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ הצעות מחיר ללא הגבלה כלל</li>
                   <li>✓ שליחה ישירה בווצאפ (WhatsApp)</li>
                   <li>✓ ניהול הכנסות והוצאות מלא</li>
                 </ul>
-                <button onClick={() => navigate('/dashboard?signup=true&lang=he')} style={{ marginTop: 'auto', background: '#6366f1', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
+                <button 
+                  data-price-id={getLocalPriceId('pro')}
+                  onClick={() => navigate('/dashboard?signup=true&lang=he')} 
+                  style={{ marginTop: 'auto', background: '#6366f1', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}
+                >
                   בחר מסלול PRO
                 </button>
               </div>
