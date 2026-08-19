@@ -1307,7 +1307,7 @@ export default function Dashboard() {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
 
-    // שליפה נכונה של הקבצים המצורפים של ההצעה לתוך הסטייט עם שמירת file_size
+    // שליפה מלאה של הקבצים המצורפים של ההצעה מטבלת quote_attachments כולל המרת file_size ל-size
     const { data: attData } = await supabase.from('quote_attachments').select('*').eq('quote_id', quote.id);
     setQuoteFiles(attData ? attData.map(f => ({ ...f, size: f.file_size })) : []);
 
@@ -1549,13 +1549,13 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = b.created_at || '';
+      bVal = a.created_at || '';
     }
 
     if (typeof aVal === 'string') {

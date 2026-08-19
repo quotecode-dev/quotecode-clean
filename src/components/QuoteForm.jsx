@@ -59,6 +59,7 @@ export default function QuoteForm({
   const dateInputRef = useRef(null);
 
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const currencyPhoneConfig = getDialByCurrency(currency);
   const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
@@ -157,14 +158,15 @@ export default function QuoteForm({
 
         for (let file of files) {
           if (file.size > MAX_FILE_SIZE) {
-            alert(isHebrew ? `הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
+            setErrorMessage(isHebrew ? `הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
             return;
           }
           if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
-            alert(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת להצעה (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for this quote.`);
+            setErrorMessage(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת להצעה (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for this quote.`);
             return;
           }
         }
+        setErrorMessage('');
         setQuoteFiles(prev => [...(prev || []), ...files]);
       };
       fileInput.click();
@@ -224,7 +226,7 @@ export default function QuoteForm({
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
-      {/* מודל שדרוג PRO מעוצב ומותאם לשפה */}
+      {/* מודל שדרוג PRO מעוצב */}
       {showUpgradeConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
@@ -255,6 +257,27 @@ export default function QuoteForm({
                 {isHebrew ? 'לא תודה' : 'No Thanks'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* מודל שגיאות עיצובי נקי במקום alert */}
+      {errorMessage && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ margin: '0 0 12px 0', color: '#ef4444' }}>
+              {isHebrew ? 'שגיאה בהעלאת קובץ' : 'File Upload Error'}
+            </h3>
+            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '20px', lineHeight: '1.5' }}>
+              {errorMessage}
+            </p>
+            <button 
+              type="button" 
+              onClick={() => setErrorMessage('')}
+              style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              {isHebrew ? 'אישור' : 'OK'}
+            </button>
           </div>
         </div>
       )}
