@@ -1307,9 +1307,9 @@ export default function Dashboard() {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
 
-    // שליפת הקבצים המצורפים של ההצעה לתוך הסטייט של הטופס בעת עריכה
+    // שליפה נכונה של הקבצים המצורפים של ההצעה לתוך הסטייט עם שמירת file_size
     const { data: attData } = await supabase.from('quote_attachments').select('*').eq('quote_id', quote.id);
-    setQuoteFiles(attData || []);
+    setQuoteFiles(attData ? attData.map(f => ({ ...f, size: f.file_size })) : []);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStatusMsg({ text: isHebrew ? `עורך הצעה #${quote.id.slice(0, 6)}...` : `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
@@ -1549,13 +1549,13 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = a.created_at || '';
+      bVal = b.created_at || '';
     }
 
     if (typeof aVal === 'string') {
