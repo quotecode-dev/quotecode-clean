@@ -49,7 +49,8 @@ export default function QuoteForm({
   userPlan,
   onOpenPricingModal,
   quoteFiles,
-  setQuoteFiles
+  setQuoteFiles,
+  allUserAttachments
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -153,7 +154,11 @@ export default function QuoteForm({
       fileInput.onchange = (e) => {
         const files = Array.from(e.target.files);
         const MAX_FILE_SIZE = 3 * 1024 * 1024;
-        const CURRENT_TOTAL_SIZE = (quoteFiles || []).reduce((acc, f) => acc + (f.size || f.file_size || 0), 0);
+        
+        // חישוב גלובלי של כל הקבצים בענן + קבצי הטיוטה הנוכחיים בטופס
+        const existingGlobalBytes = (allUserAttachments || []).reduce((acc, f) => acc + (Number(f.file_size || f.size || 0)), 0);
+        const currentDraftBytes = (quoteFiles || []).filter(f => !f.id).reduce((acc, f) => acc + (Number(f.size || f.file_size || 0)), 0);
+        const CURRENT_TOTAL_SIZE = existingGlobalBytes + currentDraftBytes;
         const MAX_TOTAL_SIZE = 30 * 1024 * 1024;
 
         for (let file of files) {
@@ -162,7 +167,7 @@ export default function QuoteForm({
             return;
           }
           if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
-            setErrorMessage(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת להצעה (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for this quote.`);
+            setErrorMessage(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת לעסק (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for your business.`);
             return;
           }
         }
@@ -182,8 +187,11 @@ export default function QuoteForm({
     setQuoteFiles(prev => (prev || []).filter((_, i) => i !== index));
   };
 
-  const totalUploadedBytes = (quoteFiles || []).reduce((acc, f) => acc + (Number(f.size || f.file_size || 0)), 0);
-  const remainingMb = Math.max(0, (30 - (totalUploadedBytes / (1024 * 1024)))).toFixed(1);
+  // חישוב גלובלי אמיתי של הנפח שנותר מתוך 30 מגה לכלל העסק
+  const globalAttachmentsBytes = (allUserAttachments || []).reduce((acc, f) => acc + (Number(f.file_size || f.size || 0)), 0);
+  const draftAttachmentsBytes = (quoteFiles || []).filter(f => !f.id).reduce((acc, f) => acc + (Number(f.size || f.file_size || 0)), 0);
+  const totalGlobalBytes = globalAttachmentsBytes + draftAttachmentsBytes;
+  const remainingMb = Math.max(0, (30 - (totalGlobalBytes / (1024 * 1024)))).toFixed(1);
 
   const isUS = currency === 'USD';
   const dateFormatLabel = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
