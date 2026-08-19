@@ -31,7 +31,6 @@ export default function LandingGlobal({ onForgotPassword }) {
     }
   }, []);
 
-  // מחירים דינמיים מותאמים לפי סמל המטבע המקומי (דולר, יורו, פאונד)
   const getPricing = () => {
     if (currencySymbol === '£') {
       return {
@@ -70,7 +69,7 @@ export default function LandingGlobal({ onForgotPassword }) {
     },
     {
       q: 'What is included in the 14-day free trial?',
-      a: 'The trial gives you full and unrestricted access to all PRO features (unlimited quotes, digital client approvals, and more) for 14 days with no obligations.'
+      a: 'The trial gives you full and unrestricted access to all PRO features (unlimited quotes, digital client approvals, file attachments, and more) for 14 days with no obligations.'
     },
     {
       q: 'What happens after the 14-day trial if I do not subscribe?',
@@ -447,6 +446,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Unlimited quotes</li>
                   <li>✓ Full income & expense tracking</li>
+                  <li>✓ File & drawing attachments (up to 30MB)</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('pro')}
@@ -492,6 +492,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
+            <span style={{ color: '#334155' >>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Contact Us (info@quotecodepro.com)</button>
             <span style={{ color: '#334155' }}>|</span>
