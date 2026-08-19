@@ -31,6 +31,34 @@ export default function LandingGlobal({ onForgotPassword }) {
     }
   }, []);
 
+  // מחירים דינמיים מותאמים לפי סמל המטבע המקומי (דולר, יורו, פאונד)
+  const getPricing = () => {
+    if (currencySymbol === '£') {
+      return {
+        basicMonthly: 12, basicYearly: 10,
+        proMonthly: 24, proYearly: 19
+      };
+    } else if (currencySymbol === '€') {
+      return {
+        basicMonthly: 14, basicYearly: 11,
+        proMonthly: 27, proYearly: 22
+      };
+    } else {
+      return {
+        basicMonthly: 15, basicYearly: 12,
+        proMonthly: 29, proYearly: 23
+      };
+    }
+  };
+
+  const prices = getPricing();
+
+  const basicPrice = billingCycle === 'monthly' ? prices.basicMonthly : prices.basicYearly;
+  const basicYearlyTotal = billingCycle === 'monthly' ? prices.basicMonthly * 12 : prices.basicYearly * 12;
+
+  const proPrice = billingCycle === 'monthly' ? prices.proMonthly : prices.proYearly;
+  const proYearlyTotal = billingCycle === 'monthly' ? prices.proMonthly * 12 : prices.proYearly * 12;
+
   const getGlobalPriceId = (planType) => {
     return billingCycle === 'monthly' ? `price_${planType}_global_monthly` : `price_${planType}_global_yearly`;
   };
@@ -384,10 +412,10 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Basic Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For small businesses needing robust tools.</p>
                 <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '2px' }}>
-                  {currencySymbol}{billingCycle === 'monthly' ? '15' : '12'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
+                  {currencySymbol}{basicPrice} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? `Total ${currencySymbol}180/year` : `Total ${currencySymbol}144/year (Billed annually)`}
+                  {billingCycle === 'monthly' ? `Total ${currencySymbol}${basicYearlyTotal}/year` : `Total ${currencySymbol}${basicYearlyTotal}/year (Billed annually)`}
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Up to 20 quotes per month</li>
@@ -411,10 +439,10 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Pro Business Plan</h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px' }}>For growing agencies and businesses with no limits.</p>
                 <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#818cf8', marginBottom: '2px' }}>
-                  {currencySymbol}{billingCycle === 'monthly' ? '29' : '23'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
+                  {currencySymbol}{proPrice} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? `Total ${currencySymbol}348/year` : `Total ${currencySymbol}276/year (Billed annually)`}
+                  {billingCycle === 'monthly' ? `Total ${currencySymbol}${proYearlyTotal}/year` : `Total ${currencySymbol}${proYearlyTotal}/year (Billed annually)`}
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Unlimited quotes</li>
