@@ -34,6 +34,7 @@ export default function PublicQuote() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(false);
+  const [attachments, setAttachments] = useState([]); // הוספת state לקבצים
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -61,6 +62,14 @@ export default function PublicQuote() {
 
       if (error) throw error;
       setQuote(data);
+
+      // שליפת קבצים מצורפים
+      const { data: attData } = await supabase
+        .from('quote_attachments')
+        .select('*')
+        .eq('quote_id', id);
+      
+      if (attData) setAttachments(attData);
 
       let bizData = null;
       if (data?.user_id) {
@@ -234,7 +243,6 @@ export default function PublicQuote() {
           quote={quote}
         />
 
-        {/* Client & Business Info */}
         <div style={{ background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>לכבוד:</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b' }}>{quote.clients?.company_name || quote.client_name || 'לקוח נכבד'}</div>
@@ -250,7 +258,6 @@ export default function PublicQuote() {
           )}
         </div>
 
-        {/* Items Table */}
         <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
             <thead>
@@ -286,7 +293,20 @@ export default function PublicQuote() {
           </table>
         </div>
 
-        {/* Totals */}
+        {/* הצגת קבצים מצורפים */}
+        {attachments.length > 0 && (
+          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {attachments.map((att, idx) => (
+                <a key={idx} href={att.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                  📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '30px' }}>
           <div style={{ width: '300px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
@@ -310,7 +330,6 @@ export default function PublicQuote() {
           </div>
         </div>
 
-        {/* Terms & Notes */}
         {displayTerms && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>תקנון ותנאים:</div>
@@ -325,19 +344,10 @@ export default function PublicQuote() {
           </div>
         )}
 
-        {/* Signature */}
         <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: '25px', textAlign: 'center' }}>
           {approved ? (
             <div style={{ background: '#dcfce7', color: '#166534', padding: '20px', borderRadius: '12px', fontWeight: 'bold' }}>
               <div style={{ fontSize: '1.1rem', marginBottom: '5px' }}>✓ הצעת מחיר זו אושרה ונחתמה בהצלחה!</div>
-              <div style={{ fontSize: '0.9rem', color: '#15803d', marginTop: '10px' }}>
-                {quote.signature && quote.signature.startsWith('data:image') ? (
-                  <div>
-                    <div style={{ marginBottom: '5px' }}>חתימה דיגיטלית:</div>
-                    <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
-                  </div>
-                ) : 'חתימה דיגיטלית התקבלה בהצלחה'}
-              </div>
             </div>
           ) : isOwnerViewing ? (
             <div style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe' }}>
@@ -375,7 +385,6 @@ export default function PublicQuote() {
           )}
         </div>
 
-        {/* Footer */}
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
           <span>
             מסמך זה נערך ע"י{' '}
@@ -385,7 +394,6 @@ export default function PublicQuote() {
             {' '}– התוכנה שעושה לעסקים את החיים קלים.
           </span>
         </div>
-
       </div>
     </div>
   );
