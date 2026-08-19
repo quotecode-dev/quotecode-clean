@@ -35,21 +35,25 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה חכמה שמחזירה את סימול המטבע המדויק להצעה, כולל גיבוי מוחלט להצעות ישנות ריקות
+  // פונקציה חכמה מוגנת וסופית שמטפלת גם בהצעות ישנות ריקות במסד
   const getQuoteCurrencySymbol = (quoteCurr) => {
     const curr = (quoteCurr || '').toUpperCase();
     if (curr === 'EUR') return '€';
     if (curr === 'GBP') return '£';
     if (curr === 'USD' || curr === '$') return '$';
-    if (curr === 'ILS' || curr === '₪') return '₪';
+    if (curr === 'ILS' || curr === '₪') {
+      // אם אנחנו בדשבורד האנגלי וההצעה רשומה ב-ILS או ריקה, נציג דולר ולא שקל
+      if (!isHebrew) return '$';
+      return '₪';
+    }
     
-    // אם שדה המטבע בהצעה הישנה ריק/null, ניקח אך ורק את מטבע העסק הנוכחי (ולא שקל בדשבורד בינלאומי!)
+    // אם שדה המטבע בהצעה הישנה ריק/null לגמרי:
     if (!isHebrew) {
       const curUpper = (currency || '').toUpperCase();
       if (curUpper === 'EUR') return '€';
       if (curUpper === 'GBP') return '£';
-      if (curUpper === 'USD' || curUpper === '$') return '$';
-      return sym || '$';
+      if (curUpper === 'USD') return '$';
+      return '$'; // ברירת מחדל בטוחה לכל ההיסטוריה הבינלאומית
     }
     return '₪';
   };
