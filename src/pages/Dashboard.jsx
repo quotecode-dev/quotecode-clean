@@ -581,11 +581,24 @@ export default function Dashboard() {
       updatePayload.currency = 'ILS';
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('business_settings')
       .update(updatePayload)
       .eq('id', accountId)
       .select();
+
+    if ((error || !data || data.length === 0) && accountId) {
+      const targetAcc = allAccounts.find(a => a.id === accountId);
+      if (targetAcc && targetAcc.user_id) {
+        const res = await supabase
+          .from('business_settings')
+          .update(updatePayload)
+          .eq('user_id', targetAcc.user_id)
+          .select();
+        data = res.data;
+        error = res.error;
+      }
+    }
     
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message, type: 'error' });
