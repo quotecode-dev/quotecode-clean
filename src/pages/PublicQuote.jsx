@@ -70,7 +70,6 @@ export default function PublicQuote() {
       
       if (attData) setAttachments(attData);
 
-      let bizData = null;
       if (data?.user_id) {
         const { data: bData } = await supabase
           .from('business_settings')
@@ -79,7 +78,6 @@ export default function PublicQuote() {
           .maybeSingle();
 
         if (bData) {
-          bizData = bData;
           setBusinessSettings(bData);
         }
       }

@@ -186,7 +186,6 @@ export default function PublicQuoteEn() {
           </tbody>
         </table>
 
-        {/* Attachments Section for Global Clients */}
         {attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Attached Files & Documents:</div>

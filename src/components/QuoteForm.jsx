@@ -46,8 +46,10 @@ export default function QuoteForm({
   removeItem,
   handleItemChange,
   handleAddFromCatalog,
-  userPlan, // תמיכה בבדיקת מסלול המשתמש
-  onOpenPricingModal // פונקציה לפתיחת חלון השדרוג
+  userPlan,
+  onOpenPricingModal,
+  quoteFiles,
+  setQuoteFiles
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -56,8 +58,6 @@ export default function QuoteForm({
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
 
-  // ניהול קבצים מצורפים והודעת שדרוג
-  const [quoteFiles, setQuoteFiles] = useState([]);
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
 
   const currencyPhoneConfig = getDialByCurrency(currency);
@@ -141,44 +141,46 @@ export default function QuoteForm({
     e.target.value = ''; 
   };
 
-  // בדיקת לחיצה על כפתור צירוף קבצים בהתאם למסלול
   const handleAttachmentClick = () => {
     const isProOrAdmin = userPlan === 'pro' || isSuperAdmin;
     if (!isProOrAdmin) {
       setShowUpgradeConfirm(true);
     } else {
-      // פתיחת בורר קבצים למנויי PRO
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.multiple = true;
       fileInput.onchange = (e) => {
         const files = Array.from(e.target.files);
-        const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB לקובץ
-        const CURRENT_TOTAL_SIZE = quoteFiles.reduce((acc, f) => acc + (f.size || 0), 0);
-        const MAX_TOTAL_SIZE = 30 * 1024 * 1024; // 30MB סך הכל
+        const MAX_FILE_SIZE = 3 * 1024 * 1024;
+        const CURRENT_TOTAL_SIZE = (quoteFiles || []).reduce((acc, f) => acc + (f.size || f.file_size || 0), 0);
+        const MAX_TOTAL_SIZE = 30 * 1024 * 1024;
 
         for (let file of files) {
           if (file.size > MAX_FILE_SIZE) {
-            alert(`הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).`);
+            alert(isHebrew ? `הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
             return;
           }
           if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
-            alert(`העלאת קובץ זה תעבור את מכסת הנפח הכוללת להצעה (30MB).`);
+            alert(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת להצעה (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for this quote.`);
             return;
           }
         }
-        setQuoteFiles(prev => [...prev, ...files]);
+        setQuoteFiles(prev => [...(prev || []), ...files]);
       };
       fileInput.click();
     }
   };
 
-  const removeFile = (index) => {
-    setQuoteFiles(prev => prev.filter((_, i) => i !== index));
+  const removeFile = async (index) => {
+    const targetFile = (quoteFiles || [])[index];
+    if (targetFile && targetFile.id) {
+      const { supabase } = await import('../shared/supabase');
+      await supabase.from('quote_attachments').delete().eq('id', targetFile.id);
+    }
+    setQuoteFiles(prev => (prev || []).filter((_, i) => i !== index));
   };
 
-  // חישוב הנפח שנותר להעלאה
-  const totalUploadedBytes = quoteFiles.reduce((acc, f) => acc + (f.size || 0), 0);
+  const totalUploadedBytes = (quoteFiles || []).reduce((acc, f) => acc + (Number(f.size || f.file_size || 0)), 0);
   const remainingMb = Math.max(0, (30 - (totalUploadedBytes / (1024 * 1024)))).toFixed(1);
 
   const isUS = currency === 'USD';
@@ -197,13 +199,6 @@ export default function QuoteForm({
   const handleDisplayDateChange = (e) => {
     let val = e.target.value.replace(/\D/g, '');
     if (val.length > 8) val = val.slice(0, 8);
-    let formatted = val;
-    if (val.length > 4) {
-      formatted = `${val.slice(0, 2)}-${val.slice(2, 4)}-${val.slice(4)}`;
-    } else if (val.length > 2) {
-      formatted = `${val.slice(0, 2)}-${val.slice(2)}`;
-    }
-    
     if (val.length === 8) {
       const p1 = val.slice(0, 2);
       const p2 = val.slice(2, 4);
@@ -222,13 +217,17 @@ export default function QuoteForm({
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
-      {/* חלון הודעת שדרוג עם שאלת כן/לא */}
+      {/* מודל שדרוג מקצועי, נקי ותומך שפה מלאה */}
       {showUpgradeConfirm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-            <h3 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>שדרוג למסלול PRO</h3>
+            <h3 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>
+              {isHebrew ? 'שדרוג למסלול PRO' : 'Upgrade to PRO Plan'}
+            </h3>
             <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '20px', lineHeight: '1.5' }}>
-              אופציה זו הינה למשתמש מסלול הפרו בלבד - האם תרצה לשדרג למסלול הפרו?
+              {isHebrew 
+                ? 'אופציה זו הינה למשתמשי מסלול PRO בלבד. האם תרצה לשדרג את חשבונך כעת?' 
+                : 'This option is for PRO plan users only. Would you like to upgrade your account now?'}
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button 
@@ -239,14 +238,14 @@ export default function QuoteForm({
                 }}
                 style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                כן, שדרג עכשיו
+                {isHebrew ? 'כן, שדרג עכשיו' : 'Yes, Upgrade Now'}
               </button>
               <button 
                 type="button" 
                 onClick={() => setShowUpgradeConfirm(false)}
                 style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                לא תודה
+                {isHebrew ? 'לא תודה' : 'No Thanks'}
               </button>
             </div>
           </div>
@@ -341,7 +340,7 @@ export default function QuoteForm({
           />
         </div>
 
-        {/* אזור צירוף קבצים ושיווי מכסה (החיווי הועבר מתחת לכותרת) */}
+        {/* אזור קבצים מצורפים נקי */}
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
             {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
@@ -356,19 +355,25 @@ export default function QuoteForm({
           <button
             type="button"
             onClick={handleAttachmentClick}
-            style={{ background: '#e0e7ff', color: '#4f46e5', border: '1px solid #a5b4fc', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: quoteFiles.length > 0 ? '8px' : '0' }}
+            style={{ background: '#e0e7ff', color: '#4f46e5', border: '1px solid #a5b4fc', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0' }}
           >
             {isHebrew ? '📎 צרף קובץ (עד 3MB)' : '📎 Attach File (Max 3MB)'}
           </button>
 
-          {quoteFiles.length > 0 && (
+          {(quoteFiles || []).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-              {quoteFiles.map((file, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#1e293b' }}>{file.name} ({(file.size / (1024*1024)).toFixed(2)} MB)</span>
-                  <button type="button" onClick={() => removeFile(idx)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold' }}>✕</button>
-                </div>
-              ))}
+              {(quoteFiles || []).map((file, idx) => {
+                const displayName = file.name || file.file_name || `File #${idx + 1}`;
+                const displaySize = file.size ? (file.size / (1024 * 1024)).toFixed(2) : (file.file_size ? (file.file_size / (1024 * 1024)).toFixed(2) : '0.00');
+                return (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
+                    <a href={file.file_url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: '#1e293b', textDecoration: 'underline' }}>
+                      {displayName} ({displaySize} MB)
+                    </a>
+                    <button type="button" onClick={() => removeFile(idx)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold' }}>✕</button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
