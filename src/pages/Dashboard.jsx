@@ -127,6 +127,7 @@ export default function Dashboard() {
   });
 
   const [quoteSubject, setQuoteSubject] = useState('');
+  const [quoteFiles, setQuoteFiles] = useState([]);
 
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
 
@@ -805,6 +806,7 @@ export default function Dashboard() {
   async function handleDeleteQuote(quoteId) {
     if (!window.confirm(isHebrew ? 'למחוק הצעת מחיר זו לצמיתות?' : 'Delete this quote permanently?')) return;
     await supabase.from('quote_items').delete().eq('quote_id', quoteId);
+    await supabase.from('quote_attachments').delete().eq('quote_id', quoteId);
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message, type: 'error' });
@@ -1270,7 +1272,7 @@ export default function Dashboard() {
 
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
-  const handleEditClick = (quote) => {
+  const handleEditClick = async (quote) => {
     if (quote.status?.toLowerCase() === 'approved' || quote.status?.toLowerCase() === 'paid' || quote.signature) {
       alert(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
@@ -1304,6 +1306,11 @@ export default function Dashboard() {
     } else {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
+
+    // שליפת הקבצים המצורפים של ההצעה לתוך הסטייט של הטופס בעת עריכה
+    const { data: attData } = await supabase.from('quote_attachments').select('*').eq('quote_id', quote.id);
+    setQuoteFiles(attData || []);
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStatusMsg({ text: isHebrew ? `עורך הצעה #${quote.id.slice(0, 6)}...` : `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
   };
@@ -1323,10 +1330,11 @@ export default function Dashboard() {
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
+    setQuoteFiles([]);
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
   };
 
-  const handleDuplicateQuote = (quote) => {
+  const handleDuplicateQuote = async (quote) => {
     setEditingQuoteId(null); 
     setIsCreatingQuote(true);
     setClientName(quote.clients?.company_name || '');
@@ -1349,6 +1357,7 @@ export default function Dashboard() {
 
     setTerms(dupTerms);
     setNotes(dupNotes);
+    setQuoteFiles([]);
     
     if (quote.quote_items && quote.quote_items.length > 0) {
       setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price, isFromCatalog: false })));
@@ -1373,6 +1382,7 @@ export default function Dashboard() {
     setDiscount('');
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     setNotes('');
+    setQuoteFiles([]);
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled. Here are your quotes.', type: 'success' });
@@ -1471,6 +1481,25 @@ export default function Dashboard() {
       const { error: itemsError } = await supabase.from('quote_items').insert(quoteItemsToInsert);
       if (itemsError) throw itemsError;
 
+      // העלאת קבצים חדשים ושמירתם ל-Storage ולטבלת quote_attachments
+      for (let file of quoteFiles) {
+        if (!file.id) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${quoteId}_${Date.now()}.${fileExt}`;
+          const filePath = `${session.user.id}/${fileName}`;
+          const { error: uploadErr } = await supabase.storage.from('quote-files').upload(filePath, file);
+          if (!uploadErr) {
+            const { data: { publicUrl } } = supabase.storage.from('quote-files').getPublicUrl(filePath);
+            await supabase.from('quote_attachments').insert([{
+              quote_id: quoteId,
+              file_name: file.name,
+              file_url: publicUrl,
+              file_size: file.size
+            }]);
+          }
+        }
+      }
+
       setStatusMsg({ 
         text: editingQuoteId 
           ? (isHebrew ? `הצעת מחיר #${editingQuoteId.slice(0, 6)} עודכנה בהצלחה!` : `Quote #${editingQuoteId.slice(0, 6)} successfully updated!`) 
@@ -1491,6 +1520,7 @@ export default function Dashboard() {
       setDiscount('');
       setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
       setNotes('');
+      setQuoteFiles([]);
       setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
       loadData(session.user.id, session.user.email);
@@ -2054,6 +2084,10 @@ export default function Dashboard() {
               removeItem={removeItem}
               handleItemChange={handleItemChange}
               handleAddFromCatalog={handleAddFromCatalog}
+              userPlan={bizPlan}
+              onOpenPricingModal={() => setShowPricingModal(true)}
+              quoteFiles={quoteFiles}
+              setQuoteFiles={setQuoteFiles}
             />
           )}
 

@@ -34,6 +34,7 @@ export default function PublicQuote() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(false);
+  const [attachments, setAttachments] = useState([]);
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -61,6 +62,16 @@ export default function PublicQuote() {
 
       if (error) throw error;
       setQuote(data);
+
+      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
+      const { data: attData } = await supabase
+        .from('quote_attachments')
+        .select('*')
+        .eq('quote_id', id);
+      
+      if (attData) {
+        setAttachments(attData);
+      }
 
       let bizData = null;
       if (data?.user_id) {
@@ -285,6 +296,20 @@ export default function PublicQuote() {
             </tbody>
           </table>
         </div>
+
+        {/* Attachments Section for Israeli Clients */}
+        {attachments.length > 0 && (
+          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {attachments.map((att, idx) => (
+                <a key={idx} href={att.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                  📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '30px' }}>
