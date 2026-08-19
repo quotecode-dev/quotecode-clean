@@ -180,6 +180,7 @@ export default function QuoteForm({
     setQuoteFiles(prev => (prev || []).filter((_, i) => i !== index));
   };
 
+  // תיקון חישוב הנפח המצטבר כך שיתמוך גם ב-size וגם ב-file_size המגיע מהשרת
   const totalUploadedBytes = (quoteFiles || []).reduce((acc, f) => acc + (Number(f.size || f.file_size || 0)), 0);
   const remainingMb = Math.max(0, (30 - (totalUploadedBytes / (1024 * 1024)))).toFixed(1);
 
@@ -217,7 +218,7 @@ export default function QuoteForm({
     <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', marginBottom: '20px', border: editingQuoteId ? '2px solid #4f46e5' : '1px solid #f1f5f9' }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
-      {/* מודל שדרוג מקצועי, נקי ותומך שפה מלאה */}
+      {/* מודל שדרוג מקצועי מותאם שפה */}
       {showUpgradeConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
@@ -340,7 +341,7 @@ export default function QuoteForm({
           />
         </div>
 
-        {/* אזור קבצים מצורפים נקי */}
+        {/* אזור קבצים מצורפים מעודכן עם תמיכה בשם קובץ וגודל נכון מקבצי השרת */}
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
             {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
@@ -364,7 +365,8 @@ export default function QuoteForm({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
               {(quoteFiles || []).map((file, idx) => {
                 const displayName = file.name || file.file_name || `File #${idx + 1}`;
-                const displaySize = file.size ? (file.size / (1024 * 1024)).toFixed(2) : (file.file_size ? (file.file_size / (1024 * 1024)).toFixed(2) : '0.00');
+                const rawBytes = file.size || file.file_size || 0;
+                const displaySize = (rawBytes / (1024 * 1024)).toFixed(2);
                 return (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
                     <a href={file.file_url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: '#1e293b', textDecoration: 'underline' }}>
