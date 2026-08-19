@@ -368,7 +368,7 @@ export default function LandingGlobal({ onForgotPassword }) {
           {/* Pricing Section - Global */}
           <div style={{ marginBottom: '60px' }}>
             <h2 style={{ fontSize: '2.2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>Plans & Pricing</h2>
-            <p style={{ color: '#94a3b8', marginBottom: '24px', fontSize: '1rem' }}>Choose the best plan for your business.</p>
+            <p style={{ color: '#94a3b8', marginBottom: '24px', fontSize: '1.05rem' }}>Choose the best plan for your business.</p>
             
             <div className="pricing-toggle-container">
               <button 
@@ -467,7 +467,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             
             {faqs.map((faq, idx) => (
               <div key={idx} className="faq-item" style={{ padding: '16px', cursor: 'pointer' }} onClick={() => setOpenFaq(openFaq === idx ? null : idx)}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '600', fontSize: '1rem', color: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: '600', fontSize: '1.0rem', color: '#ffffff' }}>
                   <span>{faq.q}</span>
                   <span style={{ color: '#818cf8', fontSize: '1.1rem' }}>{openFaq === idx ? '−' : '+'}</span>
                 </div>
@@ -492,7 +492,6 @@ export default function LandingGlobal({ onForgotPassword }) {
             <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
-            <span style={{ color: '#334155' >>
             <span style={{ color: '#334155' }}>|</span>
             <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Contact Us (info@quotecodepro.com)</button>
             <span style={{ color: '#334155' }}>|</span>
