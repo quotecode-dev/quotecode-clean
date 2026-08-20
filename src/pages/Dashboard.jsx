@@ -1,8 +1,3 @@
-// ==========================================
-// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Dashboard.jsx).
-// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
-// ==========================================
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -561,6 +556,22 @@ export default function Dashboard() {
     }
   }
 
+  // הפונקציה המתוקנת והמבודדת - מעדכנת אך ורק את ה-plan
+  async function handleUpdatePlanOnly(accountId, newPlan) {
+    if (!newPlan) return;
+    const { error } = await supabase
+      .from('business_settings')
+      .update({ plan: newPlan })
+      .eq('id', accountId);
+
+    if (error) {
+      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון החבילה: ' + error.message : 'Error updating plan: ' + error.message, type: 'error' });
+    } else {
+      setStatusMsg({ text: isHebrew ? 'החבילה עודכנה בהצלחה!' : 'Plan updated successfully!', type: 'success' });
+      fetchAllAccounts();
+    }
+  }
+
   async function handleAdminPlanChange(accountId, newPlan) {
     if (!newPlan) return;
     const updatePayload = { plan: newPlan };
@@ -672,6 +683,25 @@ export default function Dashboard() {
     }
   }
 
+  async function handleExtendTrial14Days(accountId) {
+    const acc = allAccounts.find(a => a.id === accountId);
+    if (!acc) return;
+    
+    const currentEnd = acc.trial_ends_at ? new Date(acc.trial_ends_at) : new Date();
+    const newEnd = new Date(currentEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    const { error } = await supabase
+      .from('business_settings')
+      .update({ trial_ends_at: newEnd.toISOString() })
+      .eq('id', accountId);
+
+    if (error) setStatusMsg({ text: 'Error extending trial: ' + error.message, type: 'error' });
+    else {
+      setStatusMsg({ text: 'Trial extended by 14 days!', type: 'success' });
+      fetchAllAccounts();
+    }
+  }
+
   async function executeAdminAction() {
     if (!adminActionModal.account) return;
     const acc = adminActionModal.account;
@@ -736,7 +766,7 @@ export default function Dashboard() {
       }
     } else {
       const { data, error } = await supabase.from('business_settings').insert([payload]).select();
-      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בשמירת ההגדרות: ' + error.message : 'Error saving settings: ' + error.message, type: 'error' });
+      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בשמירת ההגדרות: ' : 'Error saving settings: ', type: 'error' });
       else if (data && data[0]) {
         setSettingId(data[0].id);
         localStorage.setItem('proflow_cached_country', bizCountry);
@@ -747,7 +777,7 @@ export default function Dashboard() {
 
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
-      setStatusMsg({ text: isHebrew ? '❌ אימייל לא חוקי! אי אפשר לשמור לקוח עם אימייל שגוי.' : '❌ Invalid email address!', type: 'error' });
+      setStatusMsg({ text: isHebrew ? '❌ אימייל לא חוקי!' : '❌ Invalid email address!', type: 'error' });
       return;
     }
 
@@ -1152,7 +1182,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🚨 פונקציית הגנת המנויים המעודכנת: מסירה לחלוטין את ה-alert הגנרי ומקפיצה ישירות את PricingModal
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!isBasicOrAbove) {
@@ -2204,7 +2233,9 @@ export default function Dashboard() {
               sortField={sortField}
               sortDirection={sortDirection}
               liveTick={liveTick}
+              handleUpdatePlanOnly={handleUpdatePlanOnly} // הוספנו את הפונקציה המבודדת
               handleAdminPlanChange={handleAdminPlanChange}
+              handleExtendTrial14Days={handleExtendTrial14Days}
               setPendingRegionChange={setPendingRegionChange}
               setPendingLifetimeUser={setPendingLifetimeUser}
               handleToggleLifetime={handleToggleLifetime}

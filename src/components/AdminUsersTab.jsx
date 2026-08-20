@@ -19,7 +19,7 @@ export default function AdminUsersTab({
   setSelectedUserDetails,
   handleOpenNewUsersModal,
   lastSeenNewUsersTime,
-  handleExtendTrial14Days // נוסף כתמיכה להארכת 14 יום
+  handleExtendTrial14Days
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -294,6 +294,7 @@ export default function AdminUsersTab({
                     <td style={{ padding: '10px 6px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
+                          disabled={isPayingCustomer}
                           value={planValue} 
                           onChange={(e) => {
                             const val = e.target.value;
@@ -312,7 +313,9 @@ export default function AdminUsersTab({
                             fontSize: '0.7rem', 
                             fontWeight: '800', 
                             color: pColor,
-                            cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            cursor: isPayingCustomer ? 'not-allowed' : 'pointer', 
+                            opacity: isPayingCustomer ? 0.6 : 1,
+                            outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
                         >
                           <option value="free">FREE</option>
