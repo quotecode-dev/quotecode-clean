@@ -267,15 +267,11 @@ export default function AdminUsersTab({
                 const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
                 const planValue = isLifetime ? 'pro' : (isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free'));
 
-                // זיהוי מדויק: האם המשתמש נמצא בסטטוס Free או שהניסיון שלו הסתיים/לא הוארך
-                const isFreeOrExpired = planValue === 'free' || isExpiredTrial;
-                
-                // זיהוי האם מדובר בהארכה יזומית (רק אם החבילה היא PRO ויש לו תאריך תפוגה עתידי שרחוק יותר מ-14 יום מתאריך היצירה)
-                const createdAtMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
-                const trialEndsMs = acc.trial_ends_at ? new Date(acc.trial_ends_at).getTime() : 0;
-                const diffDays = (trialEndsMs - createdAtMs) / (1000 * 60 * 60 * 24);
-                
-                const isExtendedTrial = !isLifetime && !isFreeOrExpired && diffDays > 14.5;
+                // זיהוי האם מדובר בלקוח משלם (למשל דוד אלומיניום או מי שמוגדר במפורש)
+                const isPaidCustomer = acc.email === 'davidalumini@gmail.com' || acc.is_paid === true;
+
+                // זיהוי האם מדובר בהארכה יזומית אמיתית (רק אם המשתמש קיבל פקודת extend_14d או סומן כך)
+                const isExtendedTrial = !isLifetime && !isExpiredTrial && planValue !== 'free' && (acc.is_extended === true || (acc.trial_ends_at && new Date(acc.trial_ends_at).getTime() > new Date(acc.created_at || 0).getTime() + 15 * 24 * 60 * 60 * 1000));
 
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
@@ -292,14 +288,26 @@ export default function AdminUsersTab({
                 }
 
                 return (
-                  <tr key={acc.id + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
-                    <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>{acc.email || 'N/A'}</td>
+                  <tr key={acc.id + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem', background: isPaidCustomer ? '#fffbeb' : 'white' }}>
+                    <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>
+                      {acc.email || 'N/A'}
+                      {isPaidCustomer && (
+                        <span style={{ display: 'inline-block', marginRight: '6px', marginLeft: '6px', background: '#d97706', color: 'white', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                          PAID CUSTOMER 🛡️
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: '10px 6px', color: '#334155' }}>{acc.business_name || 'עסק חדש'}</td>
                     <td style={{ padding: '10px 6px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
                           value={planValue} 
-                          onChange={(e) => handleAdminPlanChange(acc.id, e.target.value)}
+                          onChange={(e) => {
+                            if (isPaidCustomer && !window.confirm(isHebrew ? '⚠️ זהו לקוח משלם! האם אתה בטוח שברצונך לשנות לו חבילה?' : '⚠️ This is a paid customer! Are you sure you want to change plan?')) {
+                              return;
+                            }
+                            handleAdminPlanChange(acc.id, e.target.value);
+                          }}
                           style={{ 
                             appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
                             padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
@@ -410,7 +418,12 @@ export default function AdminUsersTab({
                           <span>Details</span>
                         </button>
                         <button
-                          onClick={() => setResetModalUser(acc)}
+                          onClick={() => {
+                            if (isPaidCustomer && !window.confirm(isHebrew ? '⚠️ זהו לקוח משלם! האם אתה בטוח שברצונך לאפס לו את הנתונים?' : '⚠️ This is a paid customer! Are you sure you want to reset their data?')) {
+                              return;
+                            }
+                            setResetModalUser(acc);
+                          }}
                           style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                           title="Reset User Data"
                         >

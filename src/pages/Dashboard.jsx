@@ -587,7 +587,6 @@ export default function Dashboard() {
       baseDate.setDate(baseDate.getDate() + 14);
       updatePayload = { trial_ends_at: baseDate.toISOString(), plan: 'pro' };
     } else if (newPlan === 'free') {
-      // תיקון קריטי: הגדרת חבילת free עם תאריך תפוגה שחלף (או תאריך יצירה), ולא null כדי שלא יהפוך ל-Lifetime
       const expiredDate = new Date();
       expiredDate.setDate(expiredDate.getDate() - 1);
       updatePayload = { plan: 'free', trial_ends_at: expiredDate.toISOString() };
@@ -1669,6 +1668,26 @@ export default function Dashboard() {
       return sortDirection === 'asc' ? rA - rB : rB - rA;
     }
 
+    // תוקן: מיון מדויק ואיכותי לפי סטטוס הניסיון/Lifetime/Extended
+    if (sortField === 'trial_ends_at_status') {
+      const getStatusRank = (accObj) => {
+        const isLife = accObj.trial_ends_at === null || accObj.trial_ends_at === undefined;
+        if (isLife) return 3; // Lifetime ראשון
+        const isExp = new Date(accObj.trial_ends_at) < new Date();
+        if (isExp) return 1; // פג תוקף / Free אחרון
+        const cAt = accObj.created_at ? new Date(accObj.created_at).getTime() : 0;
+        const tEnd = new Date(accObj.trial_ends_at).getTime();
+        const isExt = (tEnd - cAt) > 15 * 24 * 60 * 60 * 1000;
+        if (isExt) return 2; // Extended באמצע
+        return 1.5; // Trial רגיל
+      };
+
+      const rankA = getStatusRank(a);
+      const rankB = getStatusRank(b);
+
+      return sortDirection === 'asc' ? rankA - rankB : rankB - rankA;
+    }
+
     let aVal = a[sortField];
     let bVal = b[sortField];
 
@@ -1679,12 +1698,6 @@ export default function Dashboard() {
       const timeA = aVal ? new Date(aVal).getTime() : 0;
       const timeB = bVal ? new Date(bVal).getTime() : 0;
       return sortDirection === 'asc' ? timeA - timeB : timeB - timeA;
-    }
-
-    if (sortField === 'trial_ends_at_status') {
-      const statusA = (a.trial_ends_at === null || a.trial_ends_at === undefined) ? '1' : '0';
-      const statusB = (b.trial_ends_at === null || b.trial_ends_at === undefined) ? '1' : '0';
-      return sortDirection === 'asc' ? statusA.localeCompare(statusB) : statusB.localeCompare(statusA);
     }
 
     if (sortField === 'country') {
