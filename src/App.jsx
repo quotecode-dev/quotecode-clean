@@ -58,10 +58,10 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם ובטוח שמונע שגיאות 404 ומציג את PublicQuoteEn כאשר מוגדר lang=en או דרך השאילתה האנגלית
+// רכיב עזר חכם ובטוח המזהה במדויק האם לטעון PublicQuote (ישראלי) או PublicQuoteEn (אנגלי)
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
-  const isEn = searchParams.get('lang') === 'en' || localStorage.getItem('proflow_lang') === 'en';
+  const isEn = searchParams.get('lang') === 'en' || localStorage.getItem('proflow_lang') === 'en' || window.location.pathname.startsWith('/en');
   return isEn ? <PublicQuoteEn /> : <PublicQuote />;
 }
 
@@ -278,7 +278,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* ניתוב הצעות מחיר חכם המזהה אוטומטית שפה ומונע שגיאות שרת */}
+        {/* ניתוב הצעות מחיר חכם המזהה שפה ומפנה ל-PublicQuote המתאים */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />

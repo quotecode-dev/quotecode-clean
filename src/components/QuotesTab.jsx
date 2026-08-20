@@ -40,7 +40,7 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציית ניתוב יציבה המכוונת לקובץ המתאים לפי השפה ללא שגיאות שרת
+  // פונקציית ניתוב חכמה המוסיפה פרמטר שפה בהתאם לדשבורד הפעיל
   const getQuoteViewLink = (quoteId) => {
     const langParam = isHebrew ? '' : '?lang=en';
     return `${window.location.origin}/public-quote/${quoteId}${langParam}`;
