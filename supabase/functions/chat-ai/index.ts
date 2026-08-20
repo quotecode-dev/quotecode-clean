@@ -80,10 +80,10 @@ Rules:
       }
     }
 
-    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
+    const lastUserMessage = messages.filter((m: Record<string, unknown>) => m.role === 'user').pop()?.content || "";
 
     let category = 'GENERAL';
-    const lowerMsg = lastUserMessage.toLowerCase();
+    const lowerMsg = String(lastUserMessage).toLowerCase();
     if (lowerMsg.includes('ביטול') || lowerMsg.includes('cancel') || lowerMsg.includes('מנוי') || lowerMsg.includes('subscription')) {
       category = 'CANCELLATION';
     } else if (lowerMsg.includes('אפשר להוסיף') || lowerMsg.includes('פיצ\'ר') || lowerMsg.includes('feature') || lowerMsg.includes('can you add')) {
@@ -114,8 +114,9 @@ Rules:
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
