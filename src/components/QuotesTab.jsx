@@ -40,10 +40,10 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציית ניתוב יציבה לחלוטין המונעת נפילה לדף הנחיתה בעזרת שאילתת שפה מדויקת
+  // פונקציית ניתוב סופית ומדויקת המפנה אך ורק לניתוב האנגלי הנכון PublicQuoteEn
   const getQuoteViewLink = (quoteId) => {
-    const langParam = isHebrew ? '' : '?lang=en';
-    return `${window.location.origin}/public-quote/${quoteId}${langParam}`;
+    const relativePath = isHebrew ? `/public-quote/${quoteId}` : `/en/public-quote/${quoteId}`;
+    return `${window.location.origin}${relativePath}`;
   };
 
   const getQuoteCurrencySymbol = (quoteCurr) => {
