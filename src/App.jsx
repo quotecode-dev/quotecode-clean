@@ -59,7 +59,7 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם וישיר שמזהה לחלוטין איזה עמוד ציבורי להציג בהתאם לשפה
+// רכיב עזר חכם ומוחלט שמתאים את השפה ומחייב פתיחה באנגלית מלאה כשצריך
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
   const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
@@ -279,7 +279,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים מרכזיים כולל גיבוי מלא לכל מבנה כתובת אפשרי */}
+        {/* כפייה מוחלטת של PublicQuoteEn בכל נתיב ציבורי באנגלית או עם פרמטר lang=en */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
