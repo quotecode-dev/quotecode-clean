@@ -1152,7 +1152,7 @@ export default function Dashboard() {
     }
   };
 
-  // 🚨 פונקציית ההגנה המרכזית למנויים: מקפיצה את חלונית השדרוג לפי דרישת המשתמש
+  // 🚨 פונקציית הגנת המנויים המעודכנת: מסירה לחלוטין את ה-alert הגנרי ומקפיצה ישירות את PricingModal
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!isBasicOrAbove) {
@@ -1162,11 +1162,6 @@ export default function Dashboard() {
     }
     if (actionType === 'whatsapp' || actionType === 'delete') {
       if (!isPro) {
-        if (effectivePlan === 'basic') {
-          alert(isHebrew 
-            ? 'פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד!'
-            : 'This function (WhatsApp sending & file attachments) is for Pro plan only!');
-        }
         setShowPricingModal(true);
         return;
       }
@@ -1728,6 +1723,7 @@ export default function Dashboard() {
         currentPlan={bizPlan}
         userId={session?.user?.id}
         onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
+        currency={currency}
       />
 
       <SignOutModal 

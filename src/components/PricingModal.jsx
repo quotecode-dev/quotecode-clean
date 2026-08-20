@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../shared/supabase';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -16,16 +16,26 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
   if (!isOpen) return null;
 
-  // מחירים חודשיים ושנתיים עם הגדרת מזהי SKU למערכת הסליקה
-  const basicMonthlyPrice = isLocalIsraeliBusiness ? '₪49' : '$39';
-  const basicYearlyMonthlyPrice = isLocalIsraeliBusiness ? '₪39' : '$29';
-  const basicYearlyTotal = isLocalIsraeliBusiness ? '₪468' : '$348'; // 39*12 או 29*12
-  const basicMonthlyTotalYear = isLocalIsraeliBusiness ? '₪588' : '$468'; // 49*12 או 39*12
+  // הגדרת סימול המטבע הנכון לפי המשתמש (₪, £, €, $)
+  const upperCurr = (currency || '').toUpperCase();
+  const planSym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
 
-  const proMonthlyPrice = isLocalIsraeliBusiness ? '₪99' : '$89';
-  const proYearlyMonthlyPrice = isLocalIsraeliBusiness ? '₪79' : '$69';
-  const proYearlyTotal = isLocalIsraeliBusiness ? '₪948' : '$828'; // 79*12 או 69*12
-  const proMonthlyTotalYear = isLocalIsraeliBusiness ? '₪1,188' : '$1,068'; // 99*12 או 89*12
+  // חישוב מחירים דינמי לפי המטבע בפועל
+  const basicMonthlyNum = isLocalIsraeliBusiness ? 49 : (upperCurr === 'EUR' ? 35 : upperCurr === 'GBP' ? 30 : 39);
+  const basicYearlyMonthlyNum = isLocalIsraeliBusiness ? 39 : (upperCurr === 'EUR' ? 28 : upperCurr === 'GBP' ? 24 : 29);
+  
+  const proMonthlyNum = isLocalIsraeliBusiness ? 99 : (upperCurr === 'EUR' ? 79 : upperCurr === 'GBP' ? 69 : 89);
+  const proYearlyMonthlyNum = isLocalIsraeliBusiness ? 79 : (upperCurr === 'EUR' ? 62 : upperCurr === 'GBP' ? 55 : 69);
+
+  const basicMonthlyPrice = `${planSym}${basicMonthlyNum}`;
+  const basicYearlyMonthlyPrice = `${planSym}${basicYearlyMonthlyNum}`;
+  const basicYearlyTotal = `${planSym}${basicYearlyMonthlyNum * 12}`;
+  const basicMonthlyTotalYear = `${planSym}${basicMonthlyNum * 12}`;
+
+  const proMonthlyPrice = `${planSym}${proMonthlyNum}`;
+  const proYearlyMonthlyPrice = `${planSym}${proYearlyMonthlyNum}`;
+  const proYearlyTotal = `${planSym}${proYearlyMonthlyNum * 12}`;
+  const proMonthlyTotalYear = `${planSym}${proMonthlyNum * 12}`;
 
   // מזהי תוכנית למערכת הסליקה (Billing Price IDs / SKUs)
   const getSelectedPriceId = (planType) => {
@@ -39,7 +49,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
   const handleSelectPlan = (planType) => {
     const priceId = getSelectedPriceId(planType);
-    // כאן מערכת הסליקה שולפת את ה-priceId שנבחר
     alert(isHebrew ? `נבחר מסלול: ${planType.toUpperCase()} (${billingCycle}). מזהה סליקה: ${priceId}` : `Selected plan: ${planType.toUpperCase()} (${billingCycle}). Price ID: ${priceId}`);
     onClose();
   };
@@ -161,7 +170,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
               {/* PRO Plan */}
               <div style={{ border: '2px solid #4f46e5', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: 'white', boxShadow: '0 8px 12px -2px rgba(79, 70, 229, 0.1)' }}>
-                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>הפופולרי ביותר ⭐</div>
+                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>{isHebrew ? 'הפופולרי ביותר ⭐' : 'POPULAR ⭐'}</div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מסלול עסקי (Pro)' : 'PRO Plan'}</h3>
                 <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? proMonthlyPrice : proYearlyMonthlyPrice} 
@@ -187,7 +196,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 <button 
                   data-price-id={getSelectedPriceId('pro')}
                   onClick={() => handleSelectPlan('pro')} 
-                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}
+                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
                 >
                   {isHebrew ? 'בחר מסלול PRO' : 'Select PRO'}
                 </button>
