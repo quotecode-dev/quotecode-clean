@@ -40,7 +40,7 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה מתוקנת ומוחלטת שמכוונת את הקישור לניתוב האנגלי הנכון PublicQuoteEn
+  // פונקציית ברזל מדויקת לחלוטין שמבטיחה ניתוב ישיר אל /en/ באנגלית מבלי ליפול לדף הנחיתה
   const getQuoteViewLink = (quoteId) => {
     const relativePath = isHebrew ? `/public-quote/${quoteId}` : `/en/public-quote/${quoteId}?lang=en`;
     return `${window.location.origin}${relativePath}`;
