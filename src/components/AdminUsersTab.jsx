@@ -264,7 +264,6 @@ export default function AdminUsersTab({
                 const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
-                // חישוב מדויק של תוקף הניסיון כדי להציג FREE באדמין אם פג התוקף
                 const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
                 const planValue = isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free');
 
