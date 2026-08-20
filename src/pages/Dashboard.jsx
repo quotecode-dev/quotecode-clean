@@ -341,7 +341,6 @@ export default function Dashboard() {
 
   const effectivePlan = isTrialExpired ? 'free' : bizPlan.toLowerCase();
 
-  // סנכרון אוטומטי של מסד הנתונים כאשר תקופת הניסיון פגה
   useEffect(() => {
     if (isTrialExpired && bizPlan.toLowerCase() !== 'free' && session?.user?.id && settingId) {
       supabase
@@ -1637,6 +1636,12 @@ export default function Dashboard() {
       const timeA = a.last_sign_in ? new Date(a.last_sign_in).getTime() : 0;
       const timeB = b.last_sign_in ? new Date(b.last_sign_in).getTime() : 0;
       return timeB - timeA;
+    }
+
+    if (sortField === 'plan') {
+      const planA = (a.plan || 'free').toLowerCase();
+      const planB = (b.plan || 'free').toLowerCase();
+      return sortDirection === 'asc' ? planA.localeCompare(planB) : planB.localeCompare(planA);
     }
 
     let aVal = a[sortField];

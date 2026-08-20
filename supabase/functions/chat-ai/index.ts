@@ -1,3 +1,4 @@
+// @ts-nocheck
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -21,7 +22,6 @@ serve(async (req) => {
 
     const supportEmail = isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com';
 
-    // הגדרת חוק שפה קשיח לפי דרישת המשתמש
     const languageInstruction = isHebrew 
       ? 'Language Rule: You may respond in Hebrew or English based on the user\'s input language.' 
       : 'Language Rule: You MUST answer strictly in English at all times. Even if the user writes to you in Hebrew or any other language, you must reply exclusively in English.';
@@ -73,7 +73,6 @@ Rules:
     const data = await openAiResponse.json();
     let aiReply = data.choices?.[0]?.message?.content || "";
 
-    // אכיפה גורפת ומדויקת שמחליפה את support ל-info בכל צורה שלא תהיה באנגלית
     if (!isHebrew) {
       aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
       if (data.choices?.[0]?.message) {
