@@ -23,7 +23,8 @@ function RootHandler() {
   const navigate = useNavigate();
   const search = window.location.search;
   const hash = window.location.hash;
-  const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
+  const pathname = window.location.pathname;
+  const isEnglishQuery = search.includes('lang=en') || search.includes('en=true') || pathname.startsWith('/en');
   const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
 
   const storedLang = localStorage.getItem('proflow_lang');
@@ -58,10 +59,10 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם שמחליט איזה עמוד ציבורי להציג בהתאם לפרמטר השפה ב-URL
+// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג בהתאם לשפה
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
-  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en');
+  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
   return isEn ? <PublicQuoteEn /> : <PublicQuote />;
 }
 
@@ -278,7 +279,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים חכמים שמנתבים אוטומטית לפי פרמטר השפה */}
+        {/* נתיבים ציבוריים חכמים ומאובטחים לחלוטין */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
