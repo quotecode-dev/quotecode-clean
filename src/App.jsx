@@ -59,10 +59,10 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם וישיר שמבטיח תצוגה מוחלטת של הצעת המחיר באנגלית בהתאם לשפת האפליקציה או לשאילתה
+// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
-  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en' || !document.cookie.includes('he');
+  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
   return isEn ? <PublicQuoteEn /> : <PublicQuote />;
 }
 
@@ -279,7 +279,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים חכמים ועוקפים לופ */}
+        {/* נתיבים ציבוריים מותאמים מלאים */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
