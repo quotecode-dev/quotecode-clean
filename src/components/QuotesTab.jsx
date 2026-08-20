@@ -1,6 +1,6 @@
 // ==========================================
-// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי וסטריקט (QuotesTab.jsx).
-// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה.
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (QuotesTab.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
 import React from 'react';
@@ -41,8 +41,9 @@ export default function QuotesTab({
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
   const getQuoteViewLink = (quoteId) => {
-    // באזור הגלובלי נשלח את הנתיב המפורש PublicQuoteEn או עם פרמטר אנגלי מובהק
-    return `${window.location.origin}/en/public-quote/${quoteId}?lang=en`;
+    return isHebrew 
+      ? `${window.location.origin}/public-quote/${quoteId}`
+      : `${window.location.origin}/en/public-quote/${quoteId}?lang=en`;
   };
 
   const getQuoteCurrencySymbol = (quoteCurr) => {
@@ -279,6 +280,7 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'צפה במסמך' : 'View Quote'}</span>
                               </button>
 
+                              {/* עריכת מסמך - דורש Basic ומעלה */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -293,12 +295,13 @@ export default function QuotesTab({
                                   <span>{isHebrew ? 'ערוך במסמך' : 'Edit Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
-                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
-                                    {isHebrew ? '🚀 אופציה זו זמינה למנויי Basic ומעלה' : '🚀 Available on Basic plan+'}
+                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                                    {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
                                   </div>
                                 )}
                               </div>
 
+                              {/* שכפול מסמך - דורש Basic ומעלה */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -312,8 +315,14 @@ export default function QuotesTab({
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                                   <span>{isHebrew ? 'שכפל במסמך' : 'Duplicate Quote'}</span>
                                 </button>
+                                {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
+                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                                    {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
+                                  </div>
+                                )}
                               </div>
 
+                              {/* שליחה בוואטסאפ - דורש PRO (כולל צירוף קבצים) */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -327,6 +336,11 @@ export default function QuotesTab({
                                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                                   <span>{isHebrew ? 'שלח בוואטסאפ' : 'Send WhatsApp'}</span>
                                 </button>
+                                {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
+                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                                    {isHebrew ? '🚀 פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (WhatsApp sending & file attachments) is for Pro plan only'}
+                                  </div>
+                                )}
                               </div>
 
                               <button
@@ -339,6 +353,7 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'שלח במייל' : 'Send Email'}</span>
                               </button>
 
+                              {/* מחיקת מסמך - דורש PRO */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -353,8 +368,8 @@ export default function QuotesTab({
                                   <span>{isHebrew ? 'מחק מסמך' : 'Delete Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
-                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
-                                    {isHebrew ? '🚀 אופציה זו זמינה למנויי PRO' : '🚀 Available on PRO plan'}
+                                  <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                                    {isHebrew ? '🚀 פונקציה זו (מחיקה וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (Deletion & file attachments) is for Pro plan only'}
                                   </div>
                                 )}
                               </div>
