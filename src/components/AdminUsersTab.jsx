@@ -267,11 +267,15 @@ export default function AdminUsersTab({
                 const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
                 const planValue = isLifetime ? 'pro' : (isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free'));
 
-                // זיהוי האם מדובר בהארכה יזומית (למשל תאריך סיום הניסיון רחוק יותר מ-14 יום מתאריך היצירה)
+                // זיהוי מדויק: האם המשתמש נמצא בסטטוס Free או שהניסיון שלו הסתיים/לא הוארך
+                const isFreeOrExpired = planValue === 'free' || isExpiredTrial;
+                
+                // זיהוי האם מדובר בהארכה יזומית (רק אם החבילה היא PRO ויש לו תאריך תפוגה עתידי שרחוק יותר מ-14 יום מתאריך היצירה)
                 const createdAtMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
                 const trialEndsMs = acc.trial_ends_at ? new Date(acc.trial_ends_at).getTime() : 0;
                 const diffDays = (trialEndsMs - createdAtMs) / (1000 * 60 * 60 * 24);
-                const isExtendedTrial = !isLifetime && diffDays > 14.5; // אם הטווח גדול מ-14 יום, סימן שהוא הוארך יזמית
+                
+                const isExtendedTrial = !isLifetime && !isFreeOrExpired && diffDays > 14.5;
 
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
