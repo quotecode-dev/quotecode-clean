@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: קובץ זה מיועד אך ורק לעברית (PublicQuote.jsx). 
+// חל איסור מוחלט לשנות את השפה לאנגלית או לרנדר טקסטים באנגלית בקובץ זה.
+// ==========================================
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
@@ -63,7 +68,6 @@ export default function PublicQuote() {
       if (error) throw error;
       setQuote(data);
 
-      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
       const { data: attData } = await supabase
         .from('quote_attachments')
         .select('*')
@@ -197,6 +201,7 @@ export default function PublicQuote() {
     );
   }
 
+  // אכיפה גורפת לשפה העברית בלבד בקובץ זה
   const isHebrew = true;
   const currencySymbol = '₪';
   const vatRate = 0.18;
@@ -297,7 +302,7 @@ export default function PublicQuote() {
           </table>
         </div>
 
-        {/* Attachments Section for Israeli Clients */}
+        {/* Attachments Section */}
         {attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>
@@ -335,7 +340,6 @@ export default function PublicQuote() {
           </div>
         </div>
 
-        {/* Terms & Notes */}
         {displayTerms && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>תקנון ותנאים:</div>

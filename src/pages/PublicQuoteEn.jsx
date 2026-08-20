@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: קובץ זה מיועד אך ורק לאנגלית (PublicQuoteEn.jsx). 
+// חל איסור מוחלט לשנות את השפה לעברית או לרנדר טקסטים בעברית בקובץ זה.
+// ==========================================
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
@@ -48,7 +53,6 @@ export default function PublicQuoteEn() {
       if (error) throw error;
       setQuote(data);
 
-      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
       const { data: attData } = await supabase
         .from('quote_attachments')
         .select('*')
@@ -138,6 +142,8 @@ export default function PublicQuoteEn() {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading...</h2></div>;
   if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
 
+  // אכיפה גורפת לשפה האנגלית בלבד בקובץ זה
+  const isHebrew = false;
   const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
   
@@ -187,7 +193,7 @@ export default function PublicQuoteEn() {
           </tbody>
         </table>
 
-        {/* Attachments Section for International Clients */}
+        {/* Attachments Section */}
         {attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Attached Files & Documents:</div>

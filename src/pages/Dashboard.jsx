@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: אכיפת שפה קשיחה ובדיקת סטטוס מנוי (Dashboard.jsx).
+// חל איסור מוחלט לשנות את ניהול השפות או לאפשר פעולות PRO במסלול חינמי ללא התראה.
+// ==========================================
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -97,7 +102,7 @@ export default function Dashboard() {
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
 
-  const [defaultTerms, setDefaultTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+  const [defaultTerms, setDefaultTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG); 
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
@@ -1147,9 +1152,11 @@ export default function Dashboard() {
     }
   };
 
+  // אכיפת חסימת פרו לדרישת המשתמש עם התרעה ויזואלית על הצורך בשדרוג
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!isBasicOrAbove) {
+        setShowPricingModal(true);
         setActiveTooltip({ quoteId, action: actionType });
         setTimeout(() => setActiveTooltip({ quoteId: null, action: null }), 2500);
         return;
@@ -1157,6 +1164,7 @@ export default function Dashboard() {
     }
     if (actionType === 'whatsapp' || actionType === 'delete') {
       if (!isPro) {
+        setShowPricingModal(true);
         setActiveTooltip({ quoteId, action: actionType });
         setTimeout(() => setActiveTooltip({ quoteId: null, action: null }), 2500);
         return;
@@ -1889,7 +1897,7 @@ export default function Dashboard() {
           {trialEndsAt && !isTrialExpired && !isSuperAdmin && !isExpiringSoon && (
             <div style={{ background: '#eff6ff', border: '1px solid #3b82f6', color: '#1d4ed8', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3z"/></svg>
                 {isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}
               </span>
               <span>{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
