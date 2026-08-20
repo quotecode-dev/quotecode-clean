@@ -366,6 +366,7 @@ export default function LandingLocal({ onForgotPassword }) {
                   <li>✓ עד 5 הצעות מחיר בחודש</li>
                   <li>✓ ניהול לקוחות בסיסי</li>
                   <li>✓ תמיכה במייל</li>
+                  <li style={{ color: '#ef4444' }}>✗ ללא שליחה ישירה בווצאפ</li>
                   <li style={{ color: '#ef4444' }}>✗ ללא צירוף קבצים ושרטוטים להזמנות</li>
                 </ul>
                 <button 

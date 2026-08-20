@@ -423,6 +423,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                   <li>✓ Up to 5 quotes per month</li>
                   <li>✓ Basic client management</li>
                   <li>✓ Email support</li>
+                  <li style={{ color: '#ef4444' }}>✗ No direct WhatsApp sending</li>
                   <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
                 </ul>
                 <button 
@@ -447,6 +448,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Up to 20 quotes per month</li>
                   <li>✓ Digital signatures & client management</li>
+                  <li style={{ color: '#ef4444' }}>✗ No direct WhatsApp sending</li>
                   <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
                 </ul>
                 <button 
