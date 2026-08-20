@@ -1,9 +1,14 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: ניהול ניתוב ושפות סטריקט (AppGlobal.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
+// ==========================================
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
 import Dashboard from '../pages/Dashboard';
 import AILogs from '../pages/AILogs';
-import PublicQuote from '../pages/PublicQuote';
+import PublicQuoteEn from '../pages/PublicQuoteEn';
 import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
@@ -189,8 +194,10 @@ export default function AppGlobal() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
-        <Route path="/public-quote/:id" element={<PublicQuote />} />
-        <Route path="/quote/:id" element={<PublicQuote />} />
+        {/* אכיפה מוחלטת ל-PublicQuoteEn באזור הבינלאומי */}
+        <Route path="/public-quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={false} />} />
         <Route path="/privacy" element={<Privacy isHebrew={false} />} />
