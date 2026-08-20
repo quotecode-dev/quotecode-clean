@@ -1,8 +1,3 @@
-// ==========================================
-// 🚨 חוק ברזל קשיח: ניהול ניתוב ושפות סטריקט (App.jsx).
-// חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
-// ==========================================
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
@@ -23,8 +18,7 @@ function RootHandler() {
   const navigate = useNavigate();
   const search = window.location.search;
   const hash = window.location.hash;
-  const pathname = window.location.pathname;
-  const isEnglishQuery = search.includes('lang=en') || search.includes('en=true') || pathname.startsWith('/en');
+  const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
   const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
 
   const storedLang = localStorage.getItem('proflow_lang');
@@ -57,13 +51,6 @@ function RootHandler() {
   }
 
   return <LandingLocal />;
-}
-
-// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג בהתאם לשפה
-function SmartPublicQuote() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
-  return isEn ? <PublicQuoteEn /> : <PublicQuote />;
 }
 
 export default function App() {
@@ -279,11 +266,10 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים מותאמים מלאים */}
-        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/quote/:id" element={<SmartPublicQuote />} />
+        {/* הפרדה מלאה: הצעות מחיר בעברית תמיד ב-PublicQuote, באנגלית ב-PublicQuoteEn */}
+        <Route path="/public-quote/:id" element={<PublicQuote />} />
+        <Route path="/quote/:id" element={<PublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
-        <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
@@ -299,7 +285,7 @@ export default function App() {
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
 
-        <Route path="*" element={isHebrew ? <LandingLocal /> : <LandingGlobal />} />
+        <Route path="*" element={<LandingLocal />} />
       </Routes>
     </BrowserRouter>
   );

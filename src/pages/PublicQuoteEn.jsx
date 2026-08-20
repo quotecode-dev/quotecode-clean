@@ -1,8 +1,3 @@
-// ==========================================
-// 🚨 חוק ברזל קשיח: קובץ זה מיועד אך ורק לאנגלית (PublicQuoteEn.jsx). 
-// חל איסור מוחלט לשנות את השפה לעברית או לרנדר טקסטים בעברית בקובץ זה.
-// ==========================================
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
@@ -53,6 +48,7 @@ export default function PublicQuoteEn() {
       if (error) throw error;
       setQuote(data);
 
+      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
       const { data: attData } = await supabase
         .from('quote_attachments')
         .select('*')
@@ -136,14 +132,12 @@ export default function PublicQuoteEn() {
       const { error } = await supabase.from('quotes').update({ status: 'approved', signature: signatureDataUrl }).eq('id', id);
       if (error) throw error;
       setApproved(true);
-    } catch (err) { alert(`Error approving quote: ${err.message}`); }
+    } catch (err) { alert(`Error: ${err.message}`); }
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading quote...</h2></div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading...</h2></div>;
   if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
 
-  // אכיפה גורפת לשפה האנגלית בלבד בקובץ זה
-  const isHebrew = false;
   const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
   
@@ -166,14 +160,10 @@ export default function PublicQuoteEn() {
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
         
-        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
+        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Client:</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{quote.clients?.company_name || quote.client_name || 'Valued Client'}</div>
-          {quote.clients?.email && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.email}</div>}
-          {quote.clients?.phone && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.phone}</div>}
-          {quote.clients?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.address}</div>}
-
-          {quote.subject && <div style={{ marginTop: '10px', fontWeight: 'bold', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>Subject: <span style={{ fontWeight: 'normal' }}>{quote.subject}</span></div>}
+          {quote.subject && <div style={{ marginTop: '10px', fontWeight: 'bold' }}>Subject: <span style={{ fontWeight: 'normal' }}>{quote.subject}</span></div>}
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
@@ -188,7 +178,7 @@ export default function PublicQuoteEn() {
           <tbody>
             {quote.quote_items?.map((item, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '12px 10px', textAlign: 'left' }}>{item.description || 'Item'}</td>
+                <td style={{ padding: '12px 10px' }}>{item.description || 'Item'}</td>
                 <td style={{ padding: '12px 10px', textAlign: 'center' }}>{item.quantity}</td>
                 <td style={{ padding: '12px 10px', textAlign: 'right' }}>{currencySymbol}{formatNum(item.price)}</td>
                 <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}>{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</td>
@@ -197,9 +187,9 @@ export default function PublicQuoteEn() {
           </tbody>
         </table>
 
-        {/* Attachments Section */}
+        {/* Attachments Section for International Clients */}
         {attachments.length > 0 && (
-          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
+          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Attached Files & Documents:</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {attachments.map((att, idx) => (
