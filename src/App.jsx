@@ -92,7 +92,7 @@ export default function App() {
       window.location.pathname.startsWith('/he') || 
       queryParams.get('lang') === 'he' ||
       (timeZone === 'Asia/Jerusalem' && !queryParams.has('lang')) || 
-      (browserLang.startsWith('he'] && !queryParams.has('lang'))
+      (browserLang.startsWith('he') && !queryParams.has('lang'))
     )
   );
 
@@ -279,11 +279,13 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים מרכזיים המנוהלים ישירות דרך הרכיב החכם */}
+        {/* נתיבים ציבוריים מרכזיים כולל גיבוי מלא לכל מבנה כתובת אפשרי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/en/public-quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/en/quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/public/quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/en/public/quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
