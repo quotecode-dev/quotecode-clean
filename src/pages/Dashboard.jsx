@@ -586,14 +586,17 @@ export default function Dashboard() {
       const baseDate = currentEnd > new Date() ? currentEnd : new Date();
       baseDate.setDate(baseDate.getDate() + 14);
       updatePayload = { trial_ends_at: baseDate.toISOString(), plan: 'pro' };
+    } else if (newPlan === 'free') {
+      // תיקון קריטי: הגדרת חבילת free עם תאריך תפוגה שחלף (או תאריך יצירה), ולא null כדי שלא יהפוך ל-Lifetime
+      const expiredDate = new Date();
+      expiredDate.setDate(expiredDate.getDate() - 1);
+      updatePayload = { plan: 'free', trial_ends_at: expiredDate.toISOString() };
     } else {
       updatePayload.plan = newPlan;
       if (newPlan !== 'free') {
         const trialEndDate = new Date();
         trialEndDate.setDate(trialEndDate.getDate() + 14);
         updatePayload.trial_ends_at = trialEndDate.toISOString();
-      } else {
-        updatePayload.trial_ends_at = null;
       }
     }
 

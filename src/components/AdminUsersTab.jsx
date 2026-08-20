@@ -267,6 +267,12 @@ export default function AdminUsersTab({
                 const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
                 const planValue = isLifetime ? 'pro' : (isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free'));
 
+                // זיהוי האם מדובר בהארכה יזומית (למשל תאריך סיום הניסיון רחוק יותר מ-14 יום מתאריך היצירה)
+                const createdAtMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
+                const trialEndsMs = acc.trial_ends_at ? new Date(acc.trial_ends_at).getTime() : 0;
+                const diffDays = (trialEndsMs - createdAtMs) / (1000 * 60 * 60 * 24);
+                const isExtendedTrial = !isLifetime && diffDays > 14.5; // אם הטווח גדול מ-14 יום, סימן שהוא הוארך יזמית
+
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
                 const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';
@@ -354,10 +360,10 @@ export default function AdminUsersTab({
                             }
                           }}
                           style={{ 
-                            background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
-                            color: isLifetime ? '#6d28d9' : '#475569', 
+                            background: isLifetime ? '#f3e8ff' : (isExtendedTrial ? '#fef3c7' : '#f1f5f9'), 
+                            color: isLifetime ? '#6d28d9' : (isExtendedTrial ? '#d97706' : '#475569'), 
                             border: '1px solid',
-                            borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
+                            borderColor: isLifetime ? '#e9d5ff' : (isExtendedTrial ? '#fde68a' : '#cbd5e1'),
                             padding: '4px 10px', 
                             borderRadius: '20px', 
                             cursor: 'pointer', 
@@ -376,7 +382,7 @@ export default function AdminUsersTab({
                           ) : (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                           )}
-                          <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
+                          <span>{isLifetime ? 'Lifetime' : (isExtendedTrial ? 'Extended (+14d)' : 'Trial')}</span>
                         </button>
                         <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                           {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
