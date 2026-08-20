@@ -1,6 +1,6 @@
 // ==========================================
-// 🚨 חוק ברזל קשיח: ניהול ניתוב ושפות סטריקט (AppGlobal.jsx).
-// חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי וסטריקט (AppGlobal.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה.
 // ==========================================
 
 import React, { useState, useEffect } from 'react';
@@ -194,7 +194,7 @@ export default function AppGlobal() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
-        {/* אכיפה מוחלטת ל-PublicQuoteEn באזור הבינלאומי */}
+        {/* אכיפה מלאה וסטריקט של PublicQuoteEn באזור הглобаלי */}
         <Route path="/public-quote/:id" element={<PublicQuoteEn />} />
         <Route path="/quote/:id" element={<PublicQuoteEn />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />

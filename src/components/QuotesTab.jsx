@@ -282,15 +282,22 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+                                    }
                                   }}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                                  onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
+                                  disabled={isLocked}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#d97706', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  onMouseEnter={(e) => { if(!isLocked) e.target.style.background = '#f1f5f9'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L19.5 9.5z"/></svg>
-                                  <span>{isHebrew ? 'ערוך במסמך' : 'Edit Quote'}</span>
+                                  {isLocked ? (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                  ) : (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L19.5 9.5z"/></svg>
+                                  )}
+                                  <span>{isLocked ? (isHebrew ? 'עריכה נעולה' : 'Locked') : (isHebrew ? 'ערוך במסמך' : 'Edit Quote')}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
                                   <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
@@ -317,9 +324,12 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote));
+                                    }
                                   }}
+                                  disabled={isLocked}
                                   style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                   onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
@@ -342,15 +352,22 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id));
+                                    }
                                   }}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                                  onMouseEnter={(e) => e.target.style.background = '#fee2e2'}
+                                  disabled={isLocked}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  onMouseEnter={(e) => { if(!isLocked) e.target.style.background = '#fee2e2'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                                  <span>{isHebrew ? 'מחק מסמך' : 'Delete Quote'}</span>
+                                  {isLocked ? (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                  ) : (
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                  )}
+                                  <span>{isLocked ? (isHebrew ? 'מחיקה נעולה' : 'Locked') : (isHebrew ? 'מחק מסמך' : 'Delete Quote')}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
                                   <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '5px', fontSize: '0.7rem', whiteSpace: 'nowrap', zIndex: 999999 }}>
