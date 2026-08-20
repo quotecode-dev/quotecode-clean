@@ -13,6 +13,33 @@ export default function LandingGlobal({ onForgotPassword }) {
 
   useEffect(() => {
     document.title = "ProFlow - Business & Quoting SaaS Platform";
+
+    let canonicalLink = document.querySelector("link[rel='canonical']");
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.rel = 'canonical';
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.href = 'https://www.quotecodepro.com/en';
+
+    let hreflangEn = document.querySelector("link[hreflang='en']");
+    if (!hreflangEn) {
+      hreflangEn = document.createElement('link');
+      hreflangEn.rel = 'alternate';
+      hreflangEn.hreflang = 'en';
+      document.head.appendChild(hreflangEn);
+    }
+    hreflangEn.href = 'https://www.quotecodepro.com/en';
+
+    let hreflangHe = document.querySelector("link[hreflang='he']");
+    if (!hreflangHe) {
+      hreflangHe = document.createElement('link');
+      hreflangHe.rel = 'alternate';
+      hreflangHe.hreflang = 'he';
+      document.head.appendChild(hreflangHe);
+    }
+    hreflangHe.href = 'https://www.quotecodepro.com/';
+
     try {
       const userLang = (navigator.language || '').toLowerCase();
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -253,7 +280,7 @@ export default function LandingGlobal({ onForgotPassword }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
             <button onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '12px 28px', borderRadius: '8px', fontSize: '1rem', fontWeight: '700', cursor: 'pointer', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Start 14-Day Free PRO Trial Now
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
             </button>
             <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '700' }}>
               14 days completely free for all PRO features!
@@ -305,7 +332,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#34d399', fontWeight: '700', fontSize: '1rem' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
               There is a much easier, smarter, and professional way to run your business with ProFlow!
             </div>
           </div>
