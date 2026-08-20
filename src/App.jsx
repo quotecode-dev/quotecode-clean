@@ -59,7 +59,7 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם וישיר שמזהה לחלוטין איזה עמוד ציבורי להציג בהתאם לשאילתה או לנתיב
+// רכיב עזר חכם וישיר שמזהה לחלוטין איזה עמוד ציבורי להציג בהתאם לשפה
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
   const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
@@ -92,7 +92,7 @@ export default function App() {
       window.location.pathname.startsWith('/he') || 
       queryParams.get('lang') === 'he' ||
       (timeZone === 'Asia/Jerusalem' && !queryParams.has('lang')) || 
-      (browserLang.startsWith('he') && !queryParams.has('lang'))
+      (browserLang.startsWith('he'] && !queryParams.has('lang'))
     )
   );
 
@@ -279,11 +279,11 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים חכמים ומאובטחים לחלוטין */}
+        {/* נתיבים ציבוריים מרכזיים המנוהלים ישירות דרך הרכיב החכם */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
-        <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/en/public-quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/en/quote/:id" element={<SmartPublicQuote />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
