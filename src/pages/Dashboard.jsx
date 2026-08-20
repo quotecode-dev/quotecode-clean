@@ -341,6 +341,21 @@ export default function Dashboard() {
 
   const effectivePlan = isTrialExpired ? 'free' : bizPlan.toLowerCase();
 
+  // סנכרון אוטומטי של מסד הנתונים כאשר תקופת הניסיון פגה
+  useEffect(() => {
+    if (isTrialExpired && bizPlan.toLowerCase() !== 'free' && session?.user?.id && settingId) {
+      supabase
+        .from('business_settings')
+        .update({ plan: 'free' })
+        .eq('id', settingId)
+        .then(({ error }) => {
+          if (!error) {
+            setBizPlan('free');
+          }
+        });
+    }
+  }, [isTrialExpired, bizPlan, session, settingId]);
+
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';
   const isBasicOrAbove = isPro || effectivePlan === 'basic';
@@ -1152,7 +1167,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🚨 פונקציית הגנת המנויים המעודכנת: מסירה לחלוטין את ה-alert הגנרי ומקפיצה ישירות את PricingModal
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!isBasicOrAbove) {

@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (AdminUsersTab.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
+// ==========================================
+
 import React, { useState } from 'react';
 import { supabase } from '../shared/supabase';
 
@@ -259,7 +264,10 @@ export default function AdminUsersTab({
                 const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
-                const planValue = acc.plan ? acc.plan.toLowerCase() : 'free';
+                // חישוב מדויק של תוקף הניסיון כדי להציג FREE באדמין אם פג התוקף
+                const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
+                const planValue = isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free');
+
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
                 const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';
