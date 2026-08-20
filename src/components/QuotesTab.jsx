@@ -40,10 +40,10 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה מתוקנת לחלוטין שמונעת הפניה לדף הנחיתה על ידי שימוש בנתיב הציבורי הישיר בתוספת פרמטר השפה
+  // פונקציה מתוקנת ומוחלטת שמכוונת את הקישור לניתוב האנגלי הנכון PublicQuoteEn
   const getQuoteViewLink = (quoteId) => {
-    const langParam = isHebrew ? '' : '?lang=en';
-    return `${window.location.origin}/public-quote/${quoteId}${langParam}`;
+    const relativePath = isHebrew ? `/public-quote/${quoteId}` : `/en/public-quote/${quoteId}?lang=en`;
+    return `${window.location.origin}${relativePath}`;
   };
 
   const getQuoteCurrencySymbol = (quoteCurr) => {
@@ -359,7 +359,7 @@ export default function QuotesTab({
                                     }
                                   }}
                                   disabled={isLocked}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? '#94a3b8' : '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                   onMouseEnter={(e) => { if(!isLocked) e.target.style.background = '#fee2e2'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
