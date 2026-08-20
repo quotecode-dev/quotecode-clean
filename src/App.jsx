@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: ניהול ניתוב ושפות סטריקט (App.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
+// ==========================================
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
@@ -51,6 +56,13 @@ function RootHandler() {
   }
 
   return <LandingLocal />;
+}
+
+// רכיב עזר חכם ובטוח שמונע שגיאות 404 ומציג את PublicQuoteEn כאשר מוגדר lang=en או דרך השאילתה האנגלית
+function SmartPublicQuote() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const isEn = searchParams.get('lang') === 'en' || localStorage.getItem('proflow_lang') === 'en';
+  return isEn ? <PublicQuoteEn /> : <PublicQuote />;
 }
 
 export default function App() {
@@ -266,9 +278,9 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* הפרדה מלאה: הצעות מחיר בעברית תמיד ב-PublicQuote, באנגלית ב-PublicQuoteEn */}
-        <Route path="/public-quote/:id" element={<PublicQuote />} />
-        <Route path="/quote/:id" element={<PublicQuote />} />
+        {/* ניתוב הצעות מחיר חכם המזהה אוטומטית שפה ומונע שגיאות שרת */}
+        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />

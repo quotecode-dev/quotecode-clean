@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי וסטריקט (QuotesTab.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה.
+// ==========================================
+
 import React from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
 
@@ -35,25 +40,27 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה חכמה מוגנת וסופית שמטפלת גם בהצעות ישנות ריקות במסד
+  // פונקציית ניתוב יציבה המכוונת לקובץ המתאים לפי השפה ללא שגיאות שרת
+  const getQuoteViewLink = (quoteId) => {
+    const langParam = isHebrew ? '' : '?lang=en';
+    return `${window.location.origin}/public-quote/${quoteId}${langParam}`;
+  };
+
   const getQuoteCurrencySymbol = (quoteCurr) => {
     const curr = (quoteCurr || '').toUpperCase();
     if (curr === 'EUR') return '€';
     if (curr === 'GBP') return '£';
     if (curr === 'USD' || curr === '$') return '$';
     if (curr === 'ILS' || curr === '₪') {
-      // אם אנחנו בדשבורד האנגלי וההצעה רשומה ב-ILS או ריקה, נציג דולר ולא שקל
       if (!isHebrew) return '$';
       return '₪';
     }
-    
-    // אם שדה המטבע בהצעה הישנה ריק/null לגמרי:
     if (!isHebrew) {
       const curUpper = (currency || '').toUpperCase();
       if (curUpper === 'EUR') return '€';
       if (curUpper === 'GBP') return '£';
       if (curUpper === 'USD') return '$';
-      return '$'; // ברירת מחדל בטוחה לכל ההיסטוריה הבינלאומית
+      return '$';
     }
     return '₪';
   };
@@ -264,7 +271,7 @@ export default function QuotesTab({
                               }}
                             >
                               <button
-                                onClick={() => { setOpenDropdownId(null); window.open(`/public-quote/${quote.id}`, '_blank'); }}
+                                onClick={() => { setOpenDropdownId(null); window.open(getQuoteViewLink(quote.id), '_blank'); }}
                                 style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#3730a3', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                 onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                 onMouseLeave={(e) => e.target.style.background = 'none'}
@@ -289,7 +296,7 @@ export default function QuotesTab({
                                   {isLocked ? (
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                   ) : (
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L19.5 9.5z"/></svg>
                                   )}
                                   <span>{isLocked ? (isHebrew ? 'עריכה נעולה' : 'Locked') : (isHebrew ? 'ערוך במסמך' : 'Edit Quote')}</span>
                                 </button>
@@ -318,9 +325,12 @@ export default function QuotesTab({
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
-                                    setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote));
+                                    if (!isLocked) {
+                                      setOpenDropdownId(null);
+                                      handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote));
+                                    }
                                   }}
+                                  disabled={isLocked}
                                   style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                   onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
