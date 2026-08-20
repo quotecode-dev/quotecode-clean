@@ -271,7 +271,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* הפרדה מלאה: הצעות מחיר בעברית תמיד ב-PublicQuote, באנגלית ב-PublicQuoteEn */}
+        {/* נתיבים ציבוריים מוגנים ומפולגים לפי שפה לחלוטין */}
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
@@ -291,7 +291,7 @@ export default function App() {
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
 
-        <Route path="*" element={<LandingLocal />} />
+        <Route path="*" element={<RootHandler />} />
       </Routes>
     </BrowserRouter>
   );
