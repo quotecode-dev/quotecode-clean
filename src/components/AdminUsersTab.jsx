@@ -18,7 +18,8 @@ export default function AdminUsersTab({
   handleToggleLifetime,
   setSelectedUserDetails,
   handleOpenNewUsersModal,
-  lastSeenNewUsersTime
+  lastSeenNewUsersTime,
+  handleExtendTrial14Days // נוסף כתמיכה להארכת 14 יום
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -268,6 +269,9 @@ export default function AdminUsersTab({
                 const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
                 const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
 
+                // זיהוי משתמש משלם (Paying Customer / Pro / Lifetime אמיתי או מסומן)
+                const isPayingCustomer = planValue === 'pro' || planValue === 'basic' || isLifetime || acc.is_paying;
+
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
                   const diffMs = Date.now() - new Date(acc.last_sign_in).getTime();
@@ -276,13 +280,29 @@ export default function AdminUsersTab({
 
                 return (
                   <tr key={acc.id + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
-                    <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>{acc.email || 'N/A'}</td>
+                    <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>{acc.email || 'N/A'}</span>
+                        {isPayingCustomer && (
+                          <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '800' }} title="Paying Customer Protected">
+                            PAYING CUSTOMER
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: '10px 6px', color: '#334155' }}>{acc.business_name || 'עסק חדש'}</td>
                     <td style={{ padding: '10px 6px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
                           value={planValue} 
-                          onChange={(e) => handleAdminPlanChange(acc.id, e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'ext_14') {
+                              if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
+                            } else {
+                              handleAdminPlanChange(acc.id, val);
+                            }
+                          }}
                           style={{ 
                             appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
                             padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
@@ -298,6 +318,7 @@ export default function AdminUsersTab({
                           <option value="free">FREE</option>
                           <option value="basic">BASIC</option>
                           <option value="pro">PRO</option>
+                          <option value="ext_14">+14d EXT</option>
                         </select>
                         <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: pColor }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
