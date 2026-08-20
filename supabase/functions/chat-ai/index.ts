@@ -36,8 +36,13 @@ SUPPORT EMAIL RULE:
 Pricing:
 - Free: $0 / 0 NIS (5 quotes/mo).
 - Basic: $12/mo / 39 NIS/mo (20 quotes/mo).
-- Pro: $23/mo / 79 NIS/mo (Unlimited quotes, WhatsApp).
+- Pro: $23/mo / 79 NIS/mo (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to 30MB total, max 3MB per file).
 - 14-day free trial gives full PRO access.
+
+FILE ATTACHMENTS FEATURE (PRO ONLY):
+- Yes, users can attach files and drawings to quotes on the PRO plan.
+- Limits: Max 3MB per individual file, up to 30MB total business capacity for attachments.
+- How to do it: When creating or editing a quote in the dashboard, scroll down to the "Attachments / Drawings" section and click the "Attach File" button to upload documents or blueprints.
 
 Rules:
 - VAT: 18% automatically applied to Israeli clients, 0% to international.
