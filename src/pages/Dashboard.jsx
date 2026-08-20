@@ -577,14 +577,24 @@ export default function Dashboard() {
 
   async function handleAdminPlanChange(accountId, newPlan) {
     if (!newPlan) return;
-    const updatePayload = { plan: newPlan };
     
-    if (newPlan !== 'free') {
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 14);
-      updatePayload.trial_ends_at = trialEndDate.toISOString();
+    let updatePayload = {};
+
+    if (newPlan === 'extend_14d') {
+      const targetAcc = allAccounts.find(a => a.id === accountId);
+      const currentEnd = targetAcc?.trial_ends_at ? new Date(targetAcc.trial_ends_at) : new Date();
+      const baseDate = currentEnd > new Date() ? currentEnd : new Date();
+      baseDate.setDate(baseDate.getDate() + 14);
+      updatePayload = { trial_ends_at: baseDate.toISOString(), plan: 'pro' };
     } else {
-      updatePayload.trial_ends_at = null;
+      updatePayload.plan = newPlan;
+      if (newPlan !== 'free') {
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 14);
+        updatePayload.trial_ends_at = trialEndDate.toISOString();
+      } else {
+        updatePayload.trial_ends_at = null;
+      }
     }
 
     let { data, error } = await supabase
@@ -657,7 +667,7 @@ export default function Dashboard() {
 
   async function handleToggleLifetime(accountId, currentTrialEnds) {
     const newTrialEnds = currentTrialEnds === null ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-    const updatePayload = { trial_ends_at: newTrialEnds };
+    const updatePayload = { trial_ends_at: newTrialEnds, plan: newTrialEnds === null ? 'pro' : 'free' };
 
     let { data, error } = await supabase
       .from('business_settings')
@@ -1639,18 +1649,21 @@ export default function Dashboard() {
     }
 
     if (sortField === 'plan') {
-      const getPlanRank = (accObj) => {
+      const getEffectivePlan = (accObj) => {
         const isLifetime = accObj.trial_ends_at === null || accObj.trial_ends_at === undefined;
+        if (isLifetime) return 'pro';
         const isExp = accObj.trial_ends_at && new Date(accObj.trial_ends_at) < new Date();
-        // אם למשתמש יש Lifetime, הוא נחשב אוטומטית ל-PRO מבחינת חבילה פעילה
-        const p = isLifetime ? 'pro' : (isExp ? 'free' : (accObj.plan ? accObj.plan.toLowerCase() : 'free'));
-        if (p === 'pro') return 3;
-        if (p === 'basic') return 2;
-        return 1; // free
+        return isExp ? 'free' : (accObj.plan ? accObj.plan.toLowerCase() : 'free');
       };
-      const rankA = getPlanRank(a);
-      const rankB = getPlanRank(b);
-      return sortDirection === 'asc' ? rankA - rankB : rankB - rankA;
+
+      const planA = getEffectivePlan(a);
+      const planB = getEffectivePlan(b);
+
+      const rank = { pro: 3, basic: 2, free: 1 };
+      const rA = rank[planA] || 1;
+      const rB = rank[planB] || 1;
+
+      return sortDirection === 'asc' ? rA - rB : rB - rA;
     }
 
     let aVal = a[sortField];

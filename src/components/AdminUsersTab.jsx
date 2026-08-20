@@ -265,7 +265,7 @@ export default function AdminUsersTab({
                 const currentCountry = acc.country || 'Local';
                 
                 const isExpiredTrial = acc.trial_ends_at && new Date(acc.trial_ends_at) < new Date();
-                const planValue = isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free');
+                const planValue = isLifetime ? 'pro' : (isExpiredTrial ? 'free' : (acc.plan ? acc.plan.toLowerCase() : 'free'));
 
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
@@ -305,6 +305,7 @@ export default function AdminUsersTab({
                           <option value="free">FREE</option>
                           <option value="basic">BASIC</option>
                           <option value="pro">PRO</option>
+                          <option value="extend_14d" style={{ fontWeight: 'bold', color: '#4f46e5' }}>+ 14d</option>
                         </select>
                         <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: pColor }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
