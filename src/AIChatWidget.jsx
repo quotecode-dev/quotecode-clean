@@ -24,6 +24,29 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
       ? (isDashboard ? 'שלום! אני עוזר ה-AI של ProFlow. איך אעזור לך בממשק המערכת היום?' : 'שלום! אני עוזר ה-AI של ProFlow. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?') 
       : (isDashboard ? 'Hello! I am ProFlow AI assistant. How can I help you with the interface today?' : 'Hello! I am ProFlow AI assistant. Have questions about our pricing, plans, or features?');
 
+    try {
+      const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) {
+          if (parsed[0].role === 'assistant') {
+            parsed[0].content = defaultWelcome;
+          }
+          // ניקוי מוחלט של היסטוריית שיחות ישנה מקאש מקומי
+          return parsed.map(msg => {
+            if (msg.role === 'assistant') {
+              if (!isHebrew) {
+                msg.content = msg.content.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+              } else {
+                msg.content = msg.content.replace(/info@quotecodepro\.com/gi, 'support@quotecodepro.com');
+              }
+            }
+            return msg;
+          });
+        }
+      }
+    } catch (e) {}
     return [
       { role: 'assistant', content: defaultWelcome }
     ];
@@ -50,8 +73,12 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
   };
 
   useEffect(() => {
+    try {
+      const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
+      sessionStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch (e) {}
     if (isOpen) scrollToBottom();
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isDashboard, isHebrew]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -81,6 +108,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
       if (data && data.choices && data.choices.length > 0) {
         let aiReply = data.choices[0].message.content;
         
+        // 🚨 נשק יום הדין: דורסים את התשובה בכוח בפרונטאנד! 🚨
         if (!isHebrew) {
           aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
         } else {
