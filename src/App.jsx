@@ -59,13 +59,6 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם ומוחלט שמתאים את השפה ומחייב פתיחה באנגלית מלאה כשצריך
-function SmartPublicQuote() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
-  return isEn ? <PublicQuoteEn /> : <PublicQuote />;
-}
-
 export default function App() {
   const [session, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
@@ -279,12 +272,12 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* כפייה מוחלטת של PublicQuoteEn בכל נתיב ציבורי באנגלית או עם פרמטר lang=en */}
-        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/quote/:id" element={<SmartPublicQuote />} />
+        {/* הפניה ישירה ומוחלטת מבלי לעבור דרך רכיבי ביניים עבריים */}
+        <Route path="/public-quote/:id" element={<PublicQuote />} />
+        <Route path="/quote/:id" element={<PublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
-        <Route path="/public/quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/public/quote/:id" element={<PublicQuote />} />
         <Route path="/en/public/quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
