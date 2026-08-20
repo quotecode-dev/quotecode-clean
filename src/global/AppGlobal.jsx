@@ -194,7 +194,7 @@ export default function AppGlobal() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
-        {/* אכיפה מלאה וסטריקט של PublicQuoteEn באזור הглобаלי */}
+        {/* אכיפה מוחלטת ל-PublicQuoteEn באזור הגלובלי */}
         <Route path="/public-quote/:id" element={<PublicQuoteEn />} />
         <Route path="/quote/:id" element={<PublicQuoteEn />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
