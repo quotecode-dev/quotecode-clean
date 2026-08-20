@@ -280,7 +280,7 @@ export default function LandingGlobal({ onForgotPassword }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
             <button onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '12px 28px', borderRadius: '8px', fontSize: '1rem', fontWeight: '700', cursor: 'pointer', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Start 14-Day Free PRO Trial Now
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3z"/></svg>
             </button>
             <span style={{ color: '#34d399', fontSize: '0.9rem', fontWeight: '700' }}>
               14 days completely free for all PRO features!
@@ -423,6 +423,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                   <li>✓ Up to 5 quotes per month</li>
                   <li>✓ Basic client management</li>
                   <li>✓ Email support</li>
+                  <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('free')}
@@ -446,6 +447,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li>✓ Up to 20 quotes per month</li>
                   <li>✓ Digital signatures & client management</li>
+                  <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('basic')}
