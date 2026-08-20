@@ -58,6 +58,13 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
+// רכיב עזר חכם שמחליט איזה עמוד ציבורי להציג בהתאם לפרמטר השפה ב-URL
+function SmartPublicQuote() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en');
+  return isEn ? <PublicQuoteEn /> : <PublicQuote />;
+}
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
@@ -271,9 +278,9 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים מוגנים ומפולגים לפי שפה לחלוטין */}
-        <Route path="/public-quote/:id" element={<PublicQuote />} />
-        <Route path="/quote/:id" element={<PublicQuote />} />
+        {/* נתיבים ציבוריים חכמים שמנתבים אוטומטית לפי פרמטר השפה */}
+        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
         
@@ -291,7 +298,6 @@ export default function App() {
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
 
-        {/* תיקון קריטי: נתיב כללי שלא זורק החוצה אלא מזהה האם מדובר באנגלית או עברית */}
         <Route path="*" element={isHebrew ? <LandingLocal /> : <LandingGlobal />} />
       </Routes>
     </BrowserRouter>
