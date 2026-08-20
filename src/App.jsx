@@ -59,7 +59,7 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג
+// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג בהתאם לשפה
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
   const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
