@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (PricingModal.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
+// ==========================================
+
 import React, { useState } from 'react';
 import { supabase } from '../shared/supabase';
 
@@ -48,8 +53,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
     setIsSubmittingCancel(true);
     try {
-      const finalReason = cancelReason === 'other' ? `Other: ${cancelOtherText}` : cancelReason;
-
       if (userId) {
         const { error } = await supabase
           .from('business_settings')
@@ -143,10 +146,9 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 
                 <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
                   <li>{isHebrew ? 'עד 20 הצעות מחיר בחודש' : 'Up to 20 quotes/month'}</li>
-                  <li>{isHebrew ? 'עריכה ושכפול הצעות מחיר' : 'Edit & duplicate quotes'}</li>
-                  <li>{isHebrew ? 'קטלוג מוצרים אישי' : 'Personal product catalog'}</li>
-                  <li>{isHebrew ? 'הפקת קובצי PDF רשמיים' : 'Official PDF exports'}</li>
+                  <li>{isHebrew ? 'חתימה דיגיטלית וניהול לקוחות' : 'Digital signature & client management'}</li>
                   <li style={{ color: '#ef4444' }}>{isHebrew ? '✗ ללא שליחה ישירה בווצאפ' : '✗ No WhatsApp sending'}</li>
+                  <li style={{ color: '#ef4444' }}>{isHebrew ? '✗ ללא צירוף קבצים ושרטוטים להצעות' : '✗ No file attachments or drawings'}</li>
                 </ul>
                 <button 
                   data-price-id={getSelectedPriceId('basic')}
@@ -159,8 +161,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
               {/* PRO Plan */}
               <div style={{ border: '2px solid #4f46e5', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: 'white', boxShadow: '0 8px 12px -2px rgba(79, 70, 229, 0.1)' }}>
-                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>POPULAR</div>
-                <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מנוי PRO (מומלץ)' : 'PRO Plan (Recommended)'}</h3>
+                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>הפופולרי ביותר ⭐</div>
+                <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מסלול עסקי (Pro)' : 'PRO Plan'}</h3>
                 <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? proMonthlyPrice : proYearlyMonthlyPrice} 
                   <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'normal' }}>{isHebrew ? '/ חודש' : '/ month'}</span>
@@ -177,16 +179,15 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 )}
 
                 <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
-                  <li>{isHebrew ? 'הצעות מחיר ללא הגבלה (∞)' : 'Unlimited quotes (∞)'}</li>
-                  <li>{isHebrew ? 'שליחת הצעות מחיר ישירות בוואטסאפ' : 'Send quotes directly via WhatsApp'}</li>
-                  <li>{isHebrew ? 'הוספת לוגו עסקי מותאם אישית' : 'Custom business logo upload'}</li>
-                  <li>{isHebrew ? 'מחיקה וניהול מתקדם של הצעות' : 'Advanced quote management & deletion'}</li>
-                  <li>{isHebrew ? 'מעקב צפיות חכם (הצעות חמות)' : 'Smart view tracking (Hot quotes)'}</li>
+                  <li>{isHebrew ? 'הצעות מחיר ללא הגבלה כלל' : 'Unlimited quotes without restrictions'}</li>
+                  <li>{isHebrew ? 'שליחה ישירה בוואטסאפ (WhatsApp)' : 'Direct WhatsApp sending'}</li>
+                  <li>{isHebrew ? 'ניהול הכנסות והוצאות מלא' : 'Full income and expense management'}</li>
+                  <li>{isHebrew ? '✓ צירוף קבצים ושרטוטים להצעות (עד 30MB)' : '✓ File attachments & drawings to quotes (up to 30MB)'}</li>
                 </ul>
                 <button 
                   data-price-id={getSelectedPriceId('pro')}
                   onClick={() => handleSelectPlan('pro')} 
-                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
+                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}
                 >
                   {isHebrew ? 'בחר מסלול PRO' : 'Select PRO'}
                 </button>

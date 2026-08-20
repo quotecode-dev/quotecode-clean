@@ -280,7 +280,6 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'צפה במסמך' : 'View Quote'}</span>
                               </button>
 
-                              {/* עריכת מסמך - דורש Basic ומעלה */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -301,7 +300,6 @@ export default function QuotesTab({
                                 )}
                               </div>
 
-                              {/* שכפול מסמך - דורש Basic ומעלה */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -322,7 +320,6 @@ export default function QuotesTab({
                                 )}
                               </div>
 
-                              {/* שליחה בוואטסאפ - דורש PRO (כולל צירוף קבצים) */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {
@@ -353,7 +350,6 @@ export default function QuotesTab({
                                 <span>{isHebrew ? 'שלח במייל' : 'Send Email'}</span>
                               </button>
 
-                              {/* מחיקת מסמך - דורש PRO */}
                               <div style={{ position: 'relative' }}>
                                 <button
                                   onClick={() => {

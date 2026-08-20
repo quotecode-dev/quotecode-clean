@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Dashboard.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
+// ==========================================
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -1147,18 +1152,22 @@ export default function Dashboard() {
     }
   };
 
+  // 🚨 פונקציית ההגנה המרכזית למנויים: מקפיצה את חלונית השדרוג לפי דרישת המשתמש
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!isBasicOrAbove) {
-        setActiveTooltip({ quoteId, action: actionType });
-        setTimeout(() => setActiveTooltip({ quoteId: null, action: null }), 2500);
+        setShowPricingModal(true);
         return;
       }
     }
     if (actionType === 'whatsapp' || actionType === 'delete') {
       if (!isPro) {
-        setActiveTooltip({ quoteId, action: actionType });
-        setTimeout(() => setActiveTooltip({ quoteId: null, action: null }), 2500);
+        if (effectivePlan === 'basic') {
+          alert(isHebrew 
+            ? 'פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד!'
+            : 'This function (WhatsApp sending & file attachments) is for Pro plan only!');
+        }
+        setShowPricingModal(true);
         return;
       }
     }
