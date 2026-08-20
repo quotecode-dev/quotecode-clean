@@ -40,9 +40,9 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  // פונקציה חכמה ומדויקת המבטיחה ניתוב מלא לעמוד הציבורי הנכון בהתאם לשפת הממשק (עברית או אנגלית) עם דומיין מלא
+  // פונקציה מתוקנת לחלוטין שמבטיחה הוספת פרמטר השפה כך שה-RootHandler לא יזרוק לדף הנחיתה
   const getQuoteViewLink = (quoteId) => {
-    const relativePath = isHebrew ? `/public-quote/${quoteId}` : `/en/public-quote/${quoteId}`;
+    const relativePath = isHebrew ? `/public-quote/${quoteId}` : `/en/public-quote/${quoteId}?lang=en`;
     return `${window.location.origin}${relativePath}`;
   };
 
