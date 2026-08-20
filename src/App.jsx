@@ -291,7 +291,8 @@ export default function App() {
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
 
-        <Route path="*" element={<RootHandler />} />
+        {/* תיקון קריטי: נתיב כללי שלא זורק החוצה אלא מזהה האם מדובר באנגלית או עברית */}
+        <Route path="*" element={isHebrew ? <LandingLocal /> : <LandingGlobal />} />
       </Routes>
     </BrowserRouter>
   );
