@@ -59,7 +59,7 @@ function RootHandler() {
   return <LandingLocal />;
 }
 
-// רכיב עזר חכם שמזהה באופן מוחלט איזה עמוד ציבורי להציג בהתאם לשפה
+// רכיב עזר חכם וישיר שמזהה לחלוטין איזה עמוד ציבורי להציג בהתאם לשאילתה או לנתיב
 function SmartPublicQuote() {
   const searchParams = new URLSearchParams(window.location.search);
   const isEn = searchParams.get('lang') === 'en' || window.location.pathname.startsWith('/en') || localStorage.getItem('proflow_lang') === 'en';
@@ -279,7 +279,7 @@ export default function App() {
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
         
-        {/* נתיבים ציבוריים מותאמים מלאים */}
+        {/* נתיבים ציבוריים חכמים ומאובטחים לחלוטין */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
