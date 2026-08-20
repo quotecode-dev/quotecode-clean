@@ -1,3 +1,8 @@
+// ==========================================
+// 🚨 חוק ברזל קשיח: ניהול ניתוב ושפות סטריקט (App.jsx).
+// חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
+// ==========================================
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
@@ -270,6 +275,7 @@ export default function App() {
         <Route path="/public-quote/:id" element={<PublicQuote />} />
         <Route path="/quote/:id" element={<PublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/en/quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
