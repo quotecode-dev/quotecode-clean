@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (Dashboard.jsx): אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Free/Basic/PRO). חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי.
+// 🚨 חוק ברזל קשוח (Dashboard.jsx): הודעות צפות מודרניות במרכז המסך ושמירה על יציבות.
 // ==============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -41,7 +41,7 @@ const DEFAULT_TERMS_ENG = `General Terms:
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
 export default function Dashboard() {
-  const now = new Date(); // ⬅️ הוגדר מראש בראש הקומפוננטה כדי למנוע ReferenceError לחלוטין!
+  const now = new Date();
 
   const [session, setSession] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -80,10 +80,8 @@ export default function Dashboard() {
 
   const isHebrew = isExplicitEnglish ? false : (isExplicitHebrew ? true : isHebrewEnv(bizCountry, session));
 
-  const [statusMsg, setStatusMsg] = useState({ 
-    text: isHebrew ? 'המערכת מחוברת בהצלחה.' : 'System connected successfully.', 
-    type: 'success' 
-  });
+  const [statusMsg, setStatusMsg] = useState({ text: '', type: 'success' });
+  const [alertModalMsg, setAlertModalMsg] = useState(null); // חלון צף מודרני במרכז המסך עבור הודעות שגיאה/התרעה
   
   const [emailStatuses, setEmailStatuses] = useState({});
 
@@ -569,7 +567,7 @@ export default function Dashboard() {
       .eq('id', accountId);
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון החבילה: ' + error.message : 'Error updating plan: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון החבילה: ' + error.message : 'Error updating plan: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'החבילה עודכנה בהצלחה!' : 'Plan updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -608,9 +606,9 @@ export default function Dashboard() {
     }
     
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message);
     } else if (!data || data.length === 0) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.', type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.');
     } else {
       setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -649,7 +647,7 @@ export default function Dashboard() {
     }
     
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'אזור העסק עודכן בהצלחה!' : 'Business region updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -680,7 +678,7 @@ export default function Dashboard() {
     }
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון גישת המשתמש: ' + error.message : 'Error updating user access: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון גישת המשתמש: ' + error.message : 'Error updating user access: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'סטטוס הגישה עודכן בהצלחה!' : 'Access status updated successfully!', type: 'success' });
       fetchAllAccounts();
@@ -693,17 +691,16 @@ export default function Dashboard() {
     
     const plan = (acc.plan || 'free').toLowerCase();
     if (plan === 'basic' || plan === 'pro') {
-      setStatusMsg({ text: isHebrew ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!', type: 'error' });
+      setAlertModalMsg(isHebrew ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!');
       return;
     }
 
     const trialNow = new Date();
     if (acc.trial_ends_at && new Date(acc.trial_ends_at) > trialNow) {
       const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - trialNow) / (1000 * 60 * 60 * 24));
-      setStatusMsg({ 
-        text: isHebrew ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.` : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`, 
-        type: 'error' 
-      });
+      setAlertModalMsg(
+        isHebrew ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.` : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`
+      );
       return;
     }
     
@@ -714,7 +711,7 @@ export default function Dashboard() {
       .update({ trial_ends_at: newEnd.toISOString() })
       .eq('id', accountId);
 
-    if (error) setStatusMsg({ text: 'Error extending trial: ' + error.message, type: 'error' });
+    if (error) setAlertModalMsg('Error extending trial: ' + error.message);
     else {
       setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום בהצלחה!' : 'Trial extended by 14 days successfully!', type: 'success' });
       fetchAllAccounts();
@@ -727,7 +724,7 @@ export default function Dashboard() {
 
     if (adminActionModal.type === 'freeze') {
       const { error } = await supabase.from('business_settings').update({ plan: 'free', trial_ends_at: null }).eq('id', acc.id);
-      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בהקפאת החשבון: ' + error.message : 'Error freezing user account: ' + error.message, type: 'error' });
+      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בהקפאת החשבון: ' + error.message : 'Error freezing user account: ' + error.message);
       else {
         setStatusMsg({ text: isHebrew ? 'המנוי הוקפא בהצלחה!' : 'Account frozen successfully!', type: 'success' });
         fetchAllAccounts();
@@ -741,7 +738,7 @@ export default function Dashboard() {
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
       const { error } = await supabase.from('business_settings').delete().eq('id', acc.id);
-      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת נתוני החשבון: ' + error.message : 'Error deleting account data: ' + error.message, type: 'error' });
+      if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת נתוני החשבון: ' + error.message : 'Error deleting account data: ' + error.message);
       else {
         setStatusMsg({ text: isHebrew ? 'החשבון והנתונים נמחקו לצמיתות!' : 'Account and data deleted successfully!', type: 'success' });
         fetchAllAccounts();
@@ -778,14 +775,14 @@ export default function Dashboard() {
 
     if (settingId) {
       const { error } = await supabase.from('business_settings').update(payload).eq('id', settingId);
-      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון ההגדרות: ' + error.message : 'Error updating settings: ' + error.message, type: 'error' });
+      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בעדכון ההגדרות: ' + error.message : 'Error updating settings: ' + error.message);
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
       }
     } else {
       const { data, error } = await supabase.from('business_settings').insert([payload]).select();
-      if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בשמירת ההגדרות: ' : 'Error saving settings: ', type: 'error' });
+      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בשמירת ההגדרות' : 'Error saving settings');
       else if (data && data[0]) {
         setSettingId(data[0].id);
         localStorage.setItem('proflow_cached_country', bizCountry);
@@ -796,7 +793,7 @@ export default function Dashboard() {
 
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
-      setStatusMsg({ text: isHebrew ? '❌ אימייל לא חוקי!' : '❌ Invalid email address!', type: 'error' });
+      setAlertModalMsg(isHebrew ? '❌ אימייל לא חוקי!' : '❌ Invalid email address!');
       return;
     }
 
@@ -814,7 +811,7 @@ export default function Dashboard() {
       .eq('id', updatedClient.id);
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
@@ -833,7 +830,7 @@ export default function Dashboard() {
       .eq('id', updatedExpense.id);
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
       if (session?.user?.id) fetchExpenses(session.user.id);
@@ -854,7 +851,7 @@ export default function Dashboard() {
     }]);
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message);
     } else {
       setExpenseDesc('');
       setExpenseAmount('');
@@ -867,7 +864,7 @@ export default function Dashboard() {
   async function handleDeleteExpense(expenseId) {
     if (!window.confirm(isHebrew ? 'למחוק הוצאה זו?' : 'Delete this expense?')) return;
     const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
-    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message, type: 'error' });
+    if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message);
     else fetchExpenses(session.user.id);
   }
 
@@ -877,7 +874,7 @@ export default function Dashboard() {
     await supabase.from('quote_attachments').delete().eq('quote_id', quoteId);
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הצעת המחיר נמחקה בהצלחה!' : 'Quote deleted successfully!', type: 'success' });
       if (session?.user?.id) {
@@ -894,7 +891,7 @@ export default function Dashboard() {
       .eq('client_id', clientId);
 
     if (fetchErr) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בבדיקת הצעות הלקוח: ' + fetchErr.message : 'Error checking client quotes: ' + fetchErr.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בבדיקת הצעות הלקוח: ' + fetchErr.message : 'Error checking client quotes: ' + fetchErr.message);
       return;
     }
 
@@ -904,12 +901,12 @@ export default function Dashboard() {
     );
 
     if (hasSignedOrApproved) {
-      alert(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
+      setAlertModalMsg(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
       return;
     }
 
     if (clientQuotes && clientQuotes.length > 0) {
-      alert(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      setAlertModalMsg(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
       return;
     }
       
@@ -917,7 +914,7 @@ export default function Dashboard() {
       
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח נמחק בהצלחה!' : 'Client deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
@@ -926,7 +923,7 @@ export default function Dashboard() {
 
   const exportToCSV = (dataArray, filename) => {
     if (!dataArray || dataArray.length === 0) {
-      alert(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.');
+      setAlertModalMsg(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.');
       return;
     }
     const keys = Object.keys(dataArray[0]);
@@ -1083,7 +1080,7 @@ export default function Dashboard() {
     e.preventDefault();
     if (!session?.user?.id) return;
     const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
-    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message, type: 'error' });
+    if (error) setAlertModalMsg(isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
     else {
       setNewServiceName('');
       setNewServicePrice('');
@@ -1100,7 +1097,7 @@ export default function Dashboard() {
       .eq('id', serviceId);
 
     if (error) {
-      setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון השירות: ' + error.message : 'Error updating service: ' + error.message, type: 'error' });
+      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון השירות: ' + error.message : 'Error updating service: ' + error.message);
     } else {
       setEditingServiceId(null);
       setEditServiceName('');
@@ -1113,7 +1110,7 @@ export default function Dashboard() {
   async function handleDeleteService(id) {
     if (!window.confirm(isHebrew ? 'למחוק שירות זה מהקטלוג?' : 'Delete this service from catalog?')) return;
     const { error } = await supabase.from('services').delete().eq('id', id);
-    if (error) setStatusMsg({ text: isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message, type: 'error' });
+    if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message);
     else fetchServices(session.user.id);
   }
 
@@ -1153,7 +1150,7 @@ export default function Dashboard() {
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה! אנא ערוך את פרטי הלקוח.' : '❌ Invalid client email address!', type: 'error' });
+      setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה!' : '❌ Invalid client email address!');
       return;
     }
 
@@ -1197,7 +1194,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Email send error:", err);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setStatusMsg({ text: isHebrew ? '❌ שליחת האימייל נכשלה: הדומיין אינו חוקי, כתובת לא קיימת או שנדחתה ע"י השרת.' : '❌ Email sending failed.', type: 'error' });
+      setAlertModalMsg(isHebrew ? '❌ שליחת האימייל נכשלה.' : '❌ Email sending failed.');
     }
   };
 
@@ -1342,7 +1339,7 @@ export default function Dashboard() {
 
   const handleEditClick = async (quote) => {
     if (quote.status?.toLowerCase() === 'approved' || quote.status?.toLowerCase() === 'paid' || quote.signature) {
-      alert(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
+      setAlertModalMsg(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
     }
 
@@ -1452,7 +1449,7 @@ export default function Dashboard() {
     setQuoteFiles([]);
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
-    setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled. Here are your quotes.', type: 'success' });
+    setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled.', type: 'success' });
   };
 
   async function handleSaveQuote(e) {
@@ -1460,7 +1457,7 @@ export default function Dashboard() {
     if (!session?.user?.id) return;
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
-      setStatusMsg({ text: isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!', type: 'error' });
+      setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
       return;
     }
 
@@ -1468,7 +1465,7 @@ export default function Dashboard() {
       if (editingQuoteId) {
         const originalQuote = quotes.find(q => q.id === editingQuoteId);
         if (originalQuote && (originalQuote.status?.toLowerCase() === 'approved' || originalQuote.status?.toLowerCase() === 'paid' || originalQuote.signature)) {
-          setStatusMsg({ text: isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.', type: 'error' });
+          setAlertModalMsg(isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
           return;
         }
       }
@@ -1476,10 +1473,9 @@ export default function Dashboard() {
       if (!editingQuoteId && !isSuperAdmin) {
         const limit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : Infinity;
         if (monthlyQuotesCount >= limit) {
-          setStatusMsg({ 
-            text: isHebrew ? `הגעת למכסת ההצעות החודשית לחבילה שלך (${limit} הצעות). שדרג כדי ליצור עוד!` : `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`, 
-            type: 'error' 
-          });
+          setAlertModalMsg(
+            isHebrew ? `הגעת למכסת ההצעות החודשית לחבילה שלך (${limit} הצעות). שדרג כדי ליצור עוד!` : `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`
+          );
           return;
         }
       }
@@ -1593,7 +1589,7 @@ export default function Dashboard() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      setStatusMsg({ text: (isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message, type: 'error' });
+      setAlertModalMsg((isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message);
     }
   }
 
@@ -1760,6 +1756,29 @@ export default function Dashboard() {
           }
         }
       `}</style>
+
+      {/* חלון צף מודרני (Modal) עבור כל הודעות השגיאה והאזהרות */}
+      {alertModalMsg && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+          <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', animation: 'popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+            <div style={{ width: '48px', height: '48px', background: '#fef2f2', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
+              {isHebrew ? 'שים לב' : 'Attention'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.4' }}>
+              {alertModalMsg}
+            </p>
+            <button
+              onClick={() => setAlertModalMsg(null)}
+              style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }}
+            >
+              {isHebrew ? 'הבנתי, סגור' : 'OK'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
       <PricingModal 

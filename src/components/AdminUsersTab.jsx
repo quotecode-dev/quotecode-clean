@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקת טסטים בטוחה.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקה מאובטחת בסיסמת אדמין.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -27,14 +27,11 @@ export default function AdminUsersTab({
   handleExtendTrial14Days
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
+  const [deleteModalUser, setDeleteModalUser] = useState(null); // מצב חדש למחיקת משתמש מלאה
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  const [showTestDeleteModal, setShowTestDeleteModal] = useState(false);
-  const [testUsersToDelete, setTestUsersToDelete] = useState([]);
-  const [isDeletingTests, setIsDeletingTests] = useState(false);
 
   const totalU = Array.isArray(allAccounts) ? allAccounts.length : 0;
   const localU = Array.isArray(allAccounts) ? allAccounts.filter(a => (a?.country || 'Local') === 'Local').length : 0;
@@ -67,9 +64,7 @@ export default function AdminUsersTab({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !user.email) {
-        throw new Error('Admin session not found.');
-      }
+      if (!user || !user.email) throw new Error('Admin session not found.');
 
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user.email,
@@ -97,46 +92,59 @@ export default function AdminUsersTab({
       setAdminPasswordInput('');
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Reset error:", err);
       setResetError(err.message);
     } finally {
       setIsResetting(false);
     }
   };
 
-  const prepareTestUsersDeletion = () => {
-    const tests = allAccounts.filter(acc => {
-      if (!acc || acc.role === 'super_admin') return false;
-      const email = (acc.email || '').toLowerCase();
-      const bizName = (acc.business_name || '').toLowerCase();
-      return email.includes('test') || bizName.includes('test');
-    });
-    setTestUsersToDelete(tests);
-    setShowTestDeleteModal(true);
-  };
+  // פונקציה חדשה למחיקת משתמש קומפלט (דורשת סיסמת אדמין)
+  const handleExecuteUserDelete = async (e) => {
+    e.preventDefault();
+    if (!deleteModalUser) return;
+    setResetError('');
+    setIsResetting(true);
 
-  const executeBulkDeleteTests = async () => {
-    setIsDeletingTests(true);
     try {
-      for (const userAcc of testUsersToDelete) {
-        const targetUserId = userAcc.user_id;
-        if (targetUserId) {
-          await supabase.from('quote_items').delete().in('quote_id', (
-            await supabase.from('quotes').select('id').eq('user_id', targetUserId)
-          ).data?.map(q => q.id) || []);
-          await supabase.from('quotes').delete().eq('user_id', targetUserId);
-          await supabase.from('clients').delete().eq('user_id', targetUserId);
-          await supabase.from('expenses').delete().eq('user_id', targetUserId);
-        }
-        await supabase.from('business_settings').delete().eq('id', userAcc.id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !user.email) throw new Error('Admin session not found.');
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: adminPasswordInput
+      });
+
+      if (authError) {
+        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
+        setIsResetting(false);
+        return;
       }
-      setShowTestDeleteModal(false);
-      setTestUsersToDelete([]);
+
+      if (deleteModalUser.role === 'super_admin') {
+        throw new Error(isHebrew ? 'לא ניתן למחוק משתמש Super Admin!' : 'Cannot delete Super Admin!');
+      }
+
+      const targetUserId = deleteModalUser.user_id;
+      if (targetUserId) {
+        await supabase.from('quote_items').delete().in('quote_id', (
+          await supabase.from('quotes').select('id').eq('user_id', targetUserId)
+        ).data?.map(q => q.id) || []);
+        
+        await supabase.from('quotes').delete().eq('user_id', targetUserId);
+        await supabase.from('clients').delete().eq('user_id', targetUserId);
+        await supabase.from('services').delete().eq('user_id', targetUserId);
+        await supabase.from('expenses').delete().eq('user_id', targetUserId);
+      }
+
+      await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+
+      setDeleteModalUser(null);
+      setAdminPasswordInput('');
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Error deleting test users:", err);
+      setResetError(err.message);
     } finally {
-      setIsDeletingTests(false);
+      setIsResetting(false);
     }
   };
 
@@ -170,43 +178,6 @@ export default function AdminUsersTab({
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
-      {showTestDeleteModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
-          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '440px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
-            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
-              {isHebrew ? '🧹 מחיקת משתמשי טסט בלבד' : '🧹 Delete Test Users Only'}
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '12px' }}>
-              {isHebrew 
-                ? `זוהו ${testUsersToDelete.length} משתמשי טסט במערכת. פעולה זו תמחק אותם ואת הנתונים שלהם לצמיתות:` 
-                : `Detected ${testUsersToDelete.length} test users. This will permanently delete them:`}
-            </p>
-            <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '8px', borderRadius: '6px', marginBottom: '16px', fontSize: '0.75rem', border: '1px solid #e2e8f0' }}>
-              {testUsersToDelete.length === 0 ? (
-                <span style={{ color: '#94a3b8' }}>{isHebrew ? 'לא נמצאו משתמשי טסט.' : 'No test users found.'}</span>
-              ) : (
-                testUsersToDelete.map(u => <div key={u.id} style={{ color: '#334155', padding: '2px 0' }}>• {u.email}</div>)
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setShowTestDeleteModal(false)}
-                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isHebrew ? 'ביטול' : 'Cancel'}
-              </button>
-              <button
-                onClick={executeBulkDeleteTests}
-                disabled={isDeletingTests || testUsersToDelete.length === 0}
-                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isDeletingTests ? (isHebrew ? 'מוחק...' : 'Deleting...') : (isHebrew ? 'אשר מחיקת טסטים' : 'Confirm Delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center' }}>
@@ -222,6 +193,56 @@ export default function AdminUsersTab({
             >
               {isHebrew ? 'אישור' : 'OK'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* מודל אבטחה למחיקת משתמש קומפלט בסיסמת אדמין */}
+      {deleteModalUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
+            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800' }}>
+              {isHebrew ? '⚠️ אזהרה: מחיקת משתמש לצמיתות' : '⚠️ Warning: Permanent User Deletion'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
+              {isHebrew 
+                ? `פעולה זו תמחק לחלוטין את המשתמש ${deleteModalUser?.email || ''} ואת כל נתוניו מהמערכת. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
+                : `This will permanently delete user ${deleteModalUser?.email || ''}. Enter your Super Admin password to confirm:`}
+            </p>
+            
+            <form onSubmit={handleExecuteUserDelete}>
+              <input
+                type="password"
+                placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }}
+                required
+              />
+
+              {resetError && (
+                <div style={{ color: '#ef4444', fontSize: '0.78rem', marginBottom: '10px', fontWeight: 'bold' }}>
+                  {resetError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setDeleteModalUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                  style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  {isHebrew ? 'ביטול' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResetting}
+                  style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)' }}
+                >
+                  {isResetting ? (isHebrew ? 'מוחק...' : 'Deleting...') : (isHebrew ? 'מחק משתמש' : 'Delete User')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -305,7 +326,7 @@ export default function AdminUsersTab({
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ marginBottom: '12px' }}>
         <input 
           type="text" 
           placeholder="Search user (email or business)..." 
@@ -313,12 +334,6 @@ export default function AdminUsersTab({
           onChange={(e) => setAdminSearchTerm(e.target.value)}
           style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '220px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: '#f8fafc' }}
         />
-        <button
-          onClick={prepareTestUsersDeletion}
-          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #f87171', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          🧹 {isHebrew ? 'מחק משתמשי טסט בלבד' : 'Delete Test Users Only'}
-        </button>
       </div>
       
       <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
@@ -519,23 +534,30 @@ export default function AdminUsersTab({
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          title="View User Details"
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                          title="View Details"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                          <span>Details</span>
+                          Details
                         </button>
                         <button
                           onClick={() => setResetModalUser(acc)}
-                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
-                          title="Reset User Data"
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                          title="Reset Data"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                          <span>Reset</span>
+                          Reset
                         </button>
+                        {!isSuperAdminUser && (
+                          <button
+                            onClick={() => setDeleteModalUser(acc)}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                            title="Delete User"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
