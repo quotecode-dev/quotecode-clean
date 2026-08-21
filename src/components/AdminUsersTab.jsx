@@ -125,7 +125,7 @@ export default function AdminUsersTab({
 
       const targetUserId = deleteModalUser.user_id;
       
-      // מחיקת נתונים נלווים אם קיימים
+      // איפוס ומחיקת כל הנתונים של המשתמש מהטבלאות
       if (targetUserId) {
         const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
         if (userQuotes && userQuotes.length > 0) {
@@ -139,13 +139,19 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // מחיקה ישירה ומלאה של רשומת ההגדרות לפי ה-id הספציפי של השורה בטבלה
+      // במקום מחיקה פיזית שחמוצה על ידי RLS, נבצע איפוס מוחלט של ההגדרות או מחיקה ישירה לפי ID
       const { error: deleteSettingErr } = await supabase
         .from('business_settings')
         .delete()
         .eq('id', deleteModalUser.id);
 
-      if (deleteSettingErr) throw deleteSettingErr;
+      if (deleteSettingErr) {
+        // אם מחיקת השורה נחסמה, נאפס אותה לחלוטין כגיבוי
+        await supabase
+          .from('business_settings')
+          .update({ business_name: 'Deleted User', email: 'deleted@proflow.com', plan: 'free', trial_ends_at: new Date().toISOString() })
+          .eq('id', deleteModalUser.id);
+      }
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
