@@ -324,32 +324,29 @@ export default function AdminUsersTab({
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <div 
           onClick={() => handleOpenNewUsersModal(newUsersList)}
-          style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
-          title="Click to view new users list"
+          style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
         >
-          <div style={{ fontSize: '0.65rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>
-            NEW USERS (24H)
-          </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
+          <div style={{ fontSize: '0.6rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>NEW USERS (24H)</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
         </div>
-        <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.65rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>ACTIVE (10M)</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
+        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.6rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE (10M)</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
         </div>
-        <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>LOCAL (LCL)</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
+        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>LOCAL (LCL)</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
         </div>
-        <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.65rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>INTERNATIONAL</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
+        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.6rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>INTERNATIONAL</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
         </div>
-        <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>TOTAL USERS</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
+        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>TOTAL USERS</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
         </div>
       </div>
 
@@ -359,40 +356,40 @@ export default function AdminUsersTab({
           placeholder="Search user (email or business)..." 
           value={adminSearchTerm}
           onChange={(e) => setAdminSearchTerm(e.target.value)}
-          style={{ padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', width: '280px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.85rem', background: 'white', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+          style={{ padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '260px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.82rem', background: 'white', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
         />
       </div>
       
-      {/* Modern Clean Table */}
+      {/* Modern Clean Table with Text Ellipsis */}
       <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '950px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed', minWidth: '950px' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
+            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <th style={{ padding: '10px 8px', width: '180px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
                 Email {sortField === 'email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
+              <th style={{ padding: '10px 8px', width: '130px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
                 Business Name {sortField === 'business_name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
+              <th style={{ padding: '10px 8px', width: '80px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
                 Plan {sortField === 'plan' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
+              <th style={{ padding: '10px 8px', width: '80px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
                 Region {sortField === 'country' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
+              <th style={{ padding: '10px 8px', width: '90px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
                 Role {sortField === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
-                Lifetime Status {sortField === 'trial_ends_at_status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 8px', width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
+                Lifetime {sortField === 'trial_ends_at_status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_extension')}>
-                Trial Extension {sortField === 'trial_extension' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 8px', width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_extension')}>
+                Trial Ext {sortField === 'trial_extension' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
+              <th style={{ padding: '10px 8px', width: '130px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
                 Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '12px 10px', textAlign: 'center', width: '160px' }}>
+              <th style={{ padding: '10px 8px', textAlign: 'center', width: '110px' }}>
                 Actions
               </th>
             </tr>
@@ -400,7 +397,7 @@ export default function AdminUsersTab({
           <tbody>
             {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
                   No users found matching your search.
                 </td>
               </tr>
@@ -429,17 +426,25 @@ export default function AdminUsersTab({
                 }
 
                 return (
-                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.82rem', transition: 'background 0.15s' }}>
-                    <td style={{ padding: '12px 10px', fontWeight: '500', color: '#1e293b' }}>
+                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
+                    
+                    {/* Email עם חיתוך טקסט אוטומטי ו-Tooltip */}
+                    <td style={{ padding: '10px 8px', fontWeight: '500', color: '#1e293b', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
                       {acc.email || 'N/A'}
                     </td>
-                    <td style={{ padding: '12px 10px', color: '#334155', fontWeight: '500' }}>{acc.business_name || 'עסק חדש'}</td>
-                    <td style={{ padding: '12px 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '8px', background: pBg, color: pColor, fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
+
+                    {/* Business Name עם חיתוך טקסט אוטומטי ו-Tooltip */}
+                    <td style={{ padding: '10px 8px', color: '#334155', fontWeight: '500', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.business_name || 'עסק חדש'}>
+                      {acc.business_name || 'עסק חדש'}
+                    </td>
+
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', background: pBg, color: pColor, fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase' }}>
                         {planValue}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 10px' }}>
+
+                    <td style={{ padding: '10px 8px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
                           value={currentCountry} 
@@ -449,11 +454,11 @@ export default function AdminUsersTab({
                           }}
                           style={{ 
                             appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-                            padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
-                            borderRadius: '8px', 
+                            padding: isHebrew ? '3px 8px 3px 20px' : '3px 20px 3px 8px', 
+                            borderRadius: '6px', 
                             border: `1px solid ${rBorder}`, 
                             background: rBg, 
-                            fontSize: '0.7rem', 
+                            fontSize: '0.68rem', 
                             fontWeight: '800', 
                             color: rColor,
                             cursor: 'pointer', outline: 'none'
@@ -462,18 +467,16 @@ export default function AdminUsersTab({
                           <option value="Local">LCL</option>
                           <option value="International">Intl</option>
                         </select>
-                        <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: rColor }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 10px', color: acc.role === 'super_admin' ? '#ef4444' : '#64748b', fontWeight: '600' }}>
+
+                    <td style={{ padding: '10px 8px', color: acc.role === 'super_admin' ? '#ef4444' : '#64748b', fontWeight: '600', fontSize: '0.75rem' }}>
                       {acc.role || 'user'}
                     </td>
 
-                    {/* עמודה 1: Lifetime Status */}
-                    <td style={{ padding: '12px 10px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Lifetime Status Column */}
+                    <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button 
                           onClick={() => {
                             if (!isLifetime) {
@@ -487,30 +490,29 @@ export default function AdminUsersTab({
                             color: isLifetime ? '#7c3aed' : '#94a3b8', 
                             border: '1px solid',
                             borderColor: isLifetime ? '#d8b4fe' : '#e2e8f0',
-                            width: '32px', height: '32px',
+                            width: '28px', height: '28px',
                             borderRadius: '50%', 
                             cursor: 'pointer', 
                             display: 'inline-flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                            transition: 'all 0.2s'
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                           }}
                           title={isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime'}
                         >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </button>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: isLifetime ? '#7c3aed' : '#64748b' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: isLifetime ? '#7c3aed' : '#64748b' }}>
                           {isLifetime ? 'Lifetime' : 'Standard'}
                         </span>
                       </div>
                     </td>
 
-                    {/* עמודה 2: Trial Extension */}
-                    <td style={{ padding: '12px 10px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Trial Extension Column */}
+                    <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {isPaidSubscriber && !isSuperAdminUser ? (
-                          <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '4px 10px', borderRadius: '12px' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '3px 8px', borderRadius: '10px' }}>
                             {isHebrew ? 'מנוי פעיל' : 'Active'}
                           </span>
                         ) : (
@@ -524,26 +526,25 @@ export default function AdminUsersTab({
                                   background: '#e0f2fe',
                                   color: '#0284c7',
                                   border: '1px solid #bae6fd',
-                                  width: '32px', height: '32px',
+                                  width: '28px', height: '28px',
                                   borderRadius: '50%',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                  transition: 'all 0.2s'
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                                 }}
                                 title="Extend Trial by 14 Days"
                               >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                               </button>
                             )}
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                                 {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
                               </span>
                               {!isLifetime && (
-                                <span style={{ fontSize: '0.62rem', color: '#0284c7', fontWeight: 'bold' }}>
+                                <span style={{ fontSize: '0.58rem', color: '#0284c7', fontWeight: 'bold' }}>
                                   ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
                                 </span>
                               )}
@@ -553,41 +554,47 @@ export default function AdminUsersTab({
                       </div>
                     </td>
 
-                    <td style={{ padding: '12px 10px', fontSize: '0.75rem', color: '#475569', direction: 'ltr', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444', marginRight: '6px', verticalAlign: 'middle' }}></span>
+                    <td style={{ padding: '10px 8px', fontSize: '0.7rem', color: '#475569', direction: 'ltr', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                      <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444', marginRight: '4px', verticalAlign: 'middle' }}></span>
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
 
-                    <td style={{ padding: '12px 10px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                    {/* Actions Column with Sharp Minimalist Icon Buttons */}
+                    <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                        
+                        {/* Details Icon Button */}
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                           title="View Details"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                          <span>Details</span>
                         </button>
+
+                        {/* Reset Icon Button */}
                         <button
                           onClick={() => setResetModalUser(acc)}
-                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                           title="Reset Data"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.23-5.19"/></svg>
-                          <span>Reset</span>
                         </button>
+
+                        {/* Delete Icon Button */}
                         {!isSuperAdminUser && (
                           <button
                             onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                             title="Delete User"
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            <span>Delete</span>
                           </button>
                         )}
+
                       </div>
                     </td>
+
                   </tr>
                 );
               })
