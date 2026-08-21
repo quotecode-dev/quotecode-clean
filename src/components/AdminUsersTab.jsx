@@ -200,7 +200,7 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל אבטחה למחיקת משתמש בסיסמת אדמין עם מניעת שמירה בדפדפן */}
+      {/* מודל מחיקת משתמש עם חסימה מוחלטת לשמירת סיסמה בדפדפן */}
       {deleteModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -216,9 +216,10 @@ export default function AdminUsersTab({
             <form onSubmit={handleExecuteUserDelete} autoComplete="off">
               <input
                 type="password"
-                name="admin_delete_password_field_secure"
-                autoComplete="new-password"
+                name="admin_delete_pwd_unique"
+                autoComplete="one-time-code"
                 data-lpignore="true"
+                data-form-type="other"
                 placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
                 value={adminPasswordInput}
                 onChange={(e) => setAdminPasswordInput(e.target.value)}
@@ -253,7 +254,7 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל איפוס נתונים עם מניעת שמירה בדפדפן */}
+      {/* מודל איפוס נתונים עם חסימת שמירת סיסמה בדפדפן */}
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -269,9 +270,10 @@ export default function AdminUsersTab({
             <form onSubmit={handleExecuteDataReset} autoComplete="off">
               <input
                 type="password"
-                name="admin_reset_password_field_secure"
-                autoComplete="new-password"
+                name="admin_reset_pwd_unique"
+                autoComplete="one-time-code"
                 data-lpignore="true"
+                data-form-type="other"
                 placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
                 value={adminPasswordInput}
                 onChange={(e) => setAdminPasswordInput(e.target.value)}
