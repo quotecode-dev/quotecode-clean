@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. הסרת תיוגי Paid אוטומטיים והגנה על משתמשי Lifetime.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקת טסטים בטוחה.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -31,6 +31,10 @@ export default function AdminUsersTab({
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  const [showTestDeleteModal, setShowTestDeleteModal] = useState(false);
+  const [testUsersToDelete, setTestUsersToDelete] = useState([]);
+  const [isDeletingTests, setIsDeletingTests] = useState(false);
 
   const totalU = Array.isArray(allAccounts) ? allAccounts.length : 0;
   const localU = Array.isArray(allAccounts) ? allAccounts.filter(a => (a?.country || 'Local') === 'Local').length : 0;
@@ -100,6 +104,42 @@ export default function AdminUsersTab({
     }
   };
 
+  const prepareTestUsersDeletion = () => {
+    const tests = allAccounts.filter(acc => {
+      if (!acc || acc.role === 'super_admin') return false;
+      const email = (acc.email || '').toLowerCase();
+      const bizName = (acc.business_name || '').toLowerCase();
+      return email.includes('test') || bizName.includes('test');
+    });
+    setTestUsersToDelete(tests);
+    setShowTestDeleteModal(true);
+  };
+
+  const executeBulkDeleteTests = async () => {
+    setIsDeletingTests(true);
+    try {
+      for (const userAcc of testUsersToDelete) {
+        const targetUserId = userAcc.user_id;
+        if (targetUserId) {
+          await supabase.from('quote_items').delete().in('quote_id', (
+            await supabase.from('quotes').select('id').eq('user_id', targetUserId)
+          ).data?.map(q => q.id) || []);
+          await supabase.from('quotes').delete().eq('user_id', targetUserId);
+          await supabase.from('clients').delete().eq('user_id', targetUserId);
+          await supabase.from('expenses').delete().eq('user_id', targetUserId);
+        }
+        await supabase.from('business_settings').delete().eq('id', userAcc.id);
+      }
+      setShowTestDeleteModal(false);
+      setTestUsersToDelete([]);
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error("Error deleting test users:", err);
+    } finally {
+      setIsDeletingTests(false);
+    }
+  };
+
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     try {
       const now = Date.now();
@@ -130,6 +170,43 @@ export default function AdminUsersTab({
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
+      {showTestDeleteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '440px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
+            <h3 style={{ marginTop: 0, color: '#991b1b', fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
+              {isHebrew ? '🧹 מחיקת משתמשי טסט בלבד' : '🧹 Delete Test Users Only'}
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '12px' }}>
+              {isHebrew 
+                ? `זוהו ${testUsersToDelete.length} משתמשי טסט במערכת. פעולה זו תמחק אותם ואת הנתונים שלהם לצמיתות:` 
+                : `Detected ${testUsersToDelete.length} test users. This will permanently delete them:`}
+            </p>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f8fafc', padding: '8px', borderRadius: '6px', marginBottom: '16px', fontSize: '0.75rem', border: '1px solid #e2e8f0' }}>
+              {testUsersToDelete.length === 0 ? (
+                <span style={{ color: '#94a3b8' }}>{isHebrew ? 'לא נמצאו משתמשי טסט.' : 'No test users found.'}</span>
+              ) : (
+                testUsersToDelete.map(u => <div key={u.id} style={{ color: '#334155', padding: '2px 0' }}>• {u.email}</div>)
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowTestDeleteModal(false)}
+                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                {isHebrew ? 'ביטול' : 'Cancel'}
+              </button>
+              <button
+                onClick={executeBulkDeleteTests}
+                disabled={isDeletingTests || testUsersToDelete.length === 0}
+                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                {isDeletingTests ? (isHebrew ? 'מוחק...' : 'Deleting...') : (isHebrew ? 'אשר מחיקת טסטים' : 'Confirm Delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center' }}>
@@ -137,11 +214,8 @@ export default function AdminUsersTab({
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>
-              {isHebrew ? 'האיפוס בוצע בהצלחה!' : 'Reset Successful!'}
+              {isHebrew ? 'הפעולה בוצעה בהצלחה!' : 'Action Successful!'}
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.4' }}>
-              {isHebrew ? 'נתוני הצעות המחיר והלקוחות של המשתמש נמחקו ואופסו בהצלחה מלאה.' : 'The user quotes and client records have been fully reset.'}
-            </p>
             <button
               onClick={() => { setShowSuccessModal(false); window.location.reload(); }}
               style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }}
@@ -232,15 +306,6 @@ export default function AdminUsersTab({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-        <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z" /></svg>
-        </h2>
-      </div>
-      <p style={{ color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>
-        View all registered users and manage their subscription plans and regions.
-      </p>
-
-      <div style={{ marginBottom: '12px' }}>
         <input 
           type="text" 
           placeholder="Search user (email or business)..." 
@@ -248,6 +313,12 @@ export default function AdminUsersTab({
           onChange={(e) => setAdminSearchTerm(e.target.value)}
           style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '220px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: '#f8fafc' }}
         />
+        <button
+          onClick={prepareTestUsersDeletion}
+          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #f87171', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          🧹 {isHebrew ? 'מחק משתמשי טסט בלבד' : 'Delete Test Users Only'}
+        </button>
       </div>
       
       <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
