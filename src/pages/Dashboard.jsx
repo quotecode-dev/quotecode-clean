@@ -2301,7 +2301,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0',, color: '#64748b', fontSize: '0.8rem' }}>
+      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
           {isHebrew ? <>מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר</> : <><strong>ProFlow</strong> - Business & Quoting SaaS Platform</>}
         </div>
