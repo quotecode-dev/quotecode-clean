@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (Dashboard.jsx): ניהול בטוח של לשוניות ורכיבי אדמין עם הגנה מלאה נגד מסך לבן.
+// 🚨 חוק ברזל קשוח (Dashboard.jsx): אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Free/Basic/PRO). חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי.
 // ==============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -1242,7 +1242,6 @@ export default function Dashboard() {
   const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
 
-  const now = new Date();
   const reportYear = now.getFullYear();
   const reportMonth = now.getMonth();
 
@@ -2307,14 +2306,13 @@ export default function Dashboard() {
         </div>
         <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: '#4f46e5', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px', verticalAlign: 'middle'}}><circle cx="12" cy="5" r="2"/><path d="m5 10 7-1 7 1"/><path d="m12 10v7"/><path d="m12 17-4 5"/><path d="m12 17 4 5"/></svg>
-          {isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}
+          {isHebrew ? 'הצהרת נגישות' : 'Assignment Statement'}
         </button>
       </footer>
     </div>
   );
 }
 
-// קומפוננטת הגנה פנימית למניעת מסך לבן בזמן שגיאות רינדור
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
