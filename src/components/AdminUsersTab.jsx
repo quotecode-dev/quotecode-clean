@@ -94,6 +94,22 @@ export default function AdminUsersTab({
     }
   };
 
+  // פונקציית עזר לחישוב הזמן הנותר (שעון ספירה לאחור)
+  const getRemainingTimeFormatted = (trialEndsAt) => {
+    if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+    const diffMs = new Date(trialEndsAt).getTime() - Date.now();
+    if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
+
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) {
+      return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
+    }
+    return isHebrew ? `${hours} שע' ו-${minutes} דק'` : `${hours}h ${minutes}m left`;
+  };
+
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
@@ -259,7 +275,6 @@ export default function AdminUsersTab({
                 const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
-                // תיקון: Super Admin תמיד יוצג כ-PRO מבחינת חבילה
                 const planValue = acc.role === 'super_admin' ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
@@ -383,9 +398,16 @@ export default function AdminUsersTab({
                           )}
                           <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
                         </button>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                          {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                            {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
+                          </span>
+                          {!isLifetime && (
+                            <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
+                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '10px 6px', fontSize: '0.75rem', color: '#475569', direction: 'ltr', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}>
