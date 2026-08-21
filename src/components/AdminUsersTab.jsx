@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): מחיקת משתמש ישירה.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקה מאובטחת.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -32,6 +32,14 @@ export default function AdminUsersTab({
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // סינון החוצה של משתמשים שנמחקו/אופסו כדי שלא יוצגו בטבלה
+  const activeAccountsList = (filteredAdminAccounts || []).filter(acc => {
+    if (!acc) return false;
+    const email = (acc.email || '').toLowerCase();
+    const biz = (acc.business_name || '').toLowerCase();
+    return !email.startsWith('deleted_') && biz !== 'deleted';
+  });
 
   const totalU = Array.isArray(allAccounts) ? allAccounts.length : 0;
   const localU = Array.isArray(allAccounts) ? allAccounts.filter(a => (a?.country || 'Local') === 'Local').length : 0;
@@ -138,25 +146,17 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // מחיקה עוקפת RLS באמצעות RPC או עדכון שדה המזהה למצב מבוטל
-      const { error: rpcErr } = await supabase.rpc('admin_delete_user_account', { target_id: deleteModalUser.id });
-      
-      if (rpcErr) {
-        // אם אין RPC מוגדר, נאפס לחלוטין את הרשומה כך שתתרוקן ותיעלם מהסינון
-        await supabase
-          .from('business_settings')
-          .update({ 
-            business_name: 'DELETED', 
-            email: `deleted_${Date.now()}@proflow.com`, 
-            tax_id: '', 
-            phone: '', 
-            plan: 'free', 
-            trial_ends_at: new Date(0).toISOString() 
-          })
-          .eq('id', deleteModalUser.id);
-
-        await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
-      }
+      await supabase
+        .from('business_settings')
+        .update({ 
+          business_name: 'DELETED', 
+          email: `deleted_${Date.now()}@proflow.com`, 
+          tax_id: '', 
+          phone: '', 
+          plan: 'free', 
+          trial_ends_at: new Date(0).toISOString() 
+        })
+        .eq('id', deleteModalUser.id);
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
@@ -395,14 +395,14 @@ export default function AdminUsersTab({
             </tr>
           </thead>
           <tbody>
-            {!Array.isArray(filteredAdminAccounts) || filteredAdminAccounts.length === 0 ? (
+            {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
                   No users found matching your search.
                 </td>
               </tr>
             ) : (
-              filteredAdminAccounts.map(acc => {
+              activeAccountsList.map(acc => {
                 if (!acc) return null;
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
