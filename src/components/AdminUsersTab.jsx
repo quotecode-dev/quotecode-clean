@@ -124,6 +124,8 @@ export default function AdminUsersTab({
       }
 
       const targetUserId = deleteModalUser.user_id;
+      
+      // מחיקת כל הנתונים של המשתמש מהטבלאות השונות
       if (targetUserId) {
         const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
         if (userQuotes && userQuotes.length > 0) {
@@ -137,18 +139,13 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // מחיקה לפי גם לפי ID וגם לפי user_id כדי לעקוף חסימות RLS במידת הצורך
-      let deleteSettingErr = null;
+      // מחיקה מוחלטת של רשומת ה-business_settings גם לפי id וגם לפי user_id
+      if (deleteModalUser.id) {
+        await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+      }
       if (targetUserId) {
-        const res = await supabase.from('business_settings').delete().eq('user_id', targetUserId);
-        deleteSettingErr = res.error;
+        await supabase.from('business_settings').delete().eq('user_id', targetUserId);
       }
-      if (!targetUserId || deleteSettingErr) {
-        const res2 = await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
-        deleteSettingErr = res2.error;
-      }
-
-      if (deleteSettingErr) throw deleteSettingErr;
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
