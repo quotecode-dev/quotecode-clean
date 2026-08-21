@@ -687,7 +687,7 @@ export default function Dashboard() {
     }
   }
 
-  // הגנה ומניעת הארכות כפולות במחזור הניסיון עם הודעה מודרנית וחדה
+  // הגנה ומניעת הארכות כפולות עם הודעת סטטוס מעוצבת
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
@@ -2295,13 +2295,13 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="12" y1="12" x2="19" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </span>
           {isHebrew ? 'חדש' : 'New'}
         </button>
       </div>
 
-      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
+      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0',, color: '#64748b', fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
           {isHebrew ? <>מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר</> : <><strong>ProFlow</strong> - Business & Quoting SaaS Platform</>}
         </div>
