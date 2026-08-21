@@ -687,13 +687,21 @@ export default function Dashboard() {
     }
   }
 
-  // תיקון סופי: מעניק בדיוק 14 יום חד-פעמיים מהיום או מתאריך הסיום הנוכחי מבלי להצטבר אין-סופית
+  // הגנה: בדיקה האם למשתמש יש כבר תקופת ניסיון פעילה שטרם פגה. אם כן – מונעים כפל הארכות ומציגים התראה.
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
     const now = new Date();
-    // קובעים תאריך סיום חדש בדיוק 14 יום מהיום (או תאריך עתידי קיים)
+    if (acc.trial_ends_at && new Date(acc.trial_ends_at) > now) {
+      const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - now) / (1000 * 60 * 60 * 24));
+      alert(isHebrew 
+        ? `⚠️ לא ניתן להאריך! למשתמש זה יש עוד ${daysLeft} ימים בתקופת הניסיון/ההארכה הפעילה שלו.` 
+        : `⚠️ Cannot extend! This user still has ${daysLeft} days remaining in their active trial.`);
+      return;
+    }
+    
+    // מעניק בדיוק 14 יום נטו מעכשיו
     const newEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase
@@ -703,7 +711,7 @@ export default function Dashboard() {
 
     if (error) setStatusMsg({ text: 'Error extending trial: ' + error.message, type: 'error' });
     else {
-      setStatusMsg({ text: 'Trial extended by 14 days!', type: 'success' });
+      setStatusMsg({ text: 'Trial extended by 14 days successfully!', type: 'success' });
       fetchAllAccounts();
     }
   }
@@ -1603,7 +1611,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = b.status || '';
+      bVal = a.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);

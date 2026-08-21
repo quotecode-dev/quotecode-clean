@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם טיפול נכון בסטטוס Super Admin ושעון ספירה לאחור מדויק.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם טיפול ב-Super Admin, שעון מדויק ומניעת הארכות כפולות בזמן מחזור ניסיון.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -98,7 +98,7 @@ export default function AdminUsersTab({
     }
   };
 
-  // שעון ספירה לאחור מותאם ומדויק
+  // שעון ספירה לאחור מעודכן ומדויק
   const getRemainingTimeFormatted = (trialEndsAt, role) => {
     if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
