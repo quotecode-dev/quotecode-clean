@@ -96,7 +96,6 @@ export default function AdminUsersTab({
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
-      {/* Modern Success Modal Popup */}
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center' }}>
@@ -119,7 +118,6 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* Password Confirmation Modal for Reset */}
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -269,8 +267,8 @@ export default function AdminUsersTab({
                 const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
                 const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
 
-                // זיהוי משתמש משלם (Paying Customer / Pro / Lifetime אמיתי או מסומן)
-                const isPayingCustomer = planValue === 'pro' || planValue === 'basic' || isLifetime || acc.is_paying;
+                // תיקון קריטי: מציג PAYING CUSTOMER אך ורק אם המשתמש סומן במפורש כמשלם אמיתי (acc.is_paying)
+                const isPayingCustomer = acc.is_paying === true;
 
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
@@ -284,7 +282,7 @@ export default function AdminUsersTab({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <span>{acc.email || 'N/A'}</span>
                         {isPayingCustomer && (
-                          <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '800' }} title="Paying Customer Protected">
+                          <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '800' }} title="Verified Paying Customer">
                             PAYING CUSTOMER
                           </span>
                         )}
@@ -294,7 +292,6 @@ export default function AdminUsersTab({
                     <td style={{ padding: '10px 6px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
-                          disabled={isPayingCustomer}
                           value={planValue} 
                           onChange={(e) => {
                             const val = e.target.value;
@@ -313,8 +310,7 @@ export default function AdminUsersTab({
                             fontSize: '0.7rem', 
                             fontWeight: '800', 
                             color: pColor,
-                            cursor: isPayingCustomer ? 'not-allowed' : 'pointer', 
-                            opacity: isPayingCustomer ? 0.6 : 1,
+                            cursor: 'pointer', 
                             outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
                         >
