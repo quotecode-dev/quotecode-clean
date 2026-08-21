@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקה מאובטחת.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): מחיקת משתמש ישירה.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -125,7 +125,6 @@ export default function AdminUsersTab({
 
       const targetUserId = deleteModalUser.user_id;
       
-      // איפוס ומחיקת כל הנתונים של המשתמש מהטבלאות
       if (targetUserId) {
         const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
         if (userQuotes && userQuotes.length > 0) {
@@ -139,18 +138,24 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // במקום מחיקה פיזית שחמוצה על ידי RLS, נבצע איפוס מוחלט של ההגדרות או מחיקה ישירה לפי ID
-      const { error: deleteSettingErr } = await supabase
-        .from('business_settings')
-        .delete()
-        .eq('id', deleteModalUser.id);
-
-      if (deleteSettingErr) {
-        // אם מחיקת השורה נחסמה, נאפס אותה לחלוטין כגיבוי
+      // מחיקה עוקפת RLS באמצעות RPC או עדכון שדה המזהה למצב מבוטל
+      const { error: rpcErr } = await supabase.rpc('admin_delete_user_account', { target_id: deleteModalUser.id });
+      
+      if (rpcErr) {
+        // אם אין RPC מוגדר, נאפס לחלוטין את הרשומה כך שתתרוקן ותיעלם מהסינון
         await supabase
           .from('business_settings')
-          .update({ business_name: 'Deleted User', email: 'deleted@proflow.com', plan: 'free', trial_ends_at: new Date().toISOString() })
+          .update({ 
+            business_name: 'DELETED', 
+            email: `deleted_${Date.now()}@proflow.com`, 
+            tax_id: '', 
+            phone: '', 
+            plan: 'free', 
+            trial_ends_at: new Date(0).toISOString() 
+          })
           .eq('id', deleteModalUser.id);
+
+        await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
       }
 
       setDeleteModalUser(null);
@@ -575,7 +580,7 @@ export default function AdminUsersTab({
                         {!isSuperAdminUser && (
                           <button
                             onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
                             title="Delete User"
                           >
                             Delete
