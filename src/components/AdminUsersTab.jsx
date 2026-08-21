@@ -259,7 +259,8 @@ export default function AdminUsersTab({
                 const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
-                const planValue = acc.plan ? acc.plan.toLowerCase() : 'free';
+                // תיקון: Super Admin תמיד יוצג כ-PRO מבחינת חבילה
+                const planValue = acc.role === 'super_admin' ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
                 const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';

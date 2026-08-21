@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 חוק ברזל קשוח (Dashboard.jsx): אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Free/Basic/PRO). חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי.
+// ==============================================================================
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -687,8 +691,8 @@ export default function Dashboard() {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
-    const currentEnd = acc.trial_ends_at ? new Date(acc.trial_ends_at) : new Date();
-    const newEnd = new Date(currentEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const baseDate = acc.trial_ends_at && new Date(acc.trial_ends_at) > new Date() ? new Date(acc.trial_ends_at) : new Date();
+    const newEnd = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase
       .from('business_settings')
