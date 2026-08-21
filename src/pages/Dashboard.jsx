@@ -609,7 +609,7 @@ export default function Dashboard() {
     
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message, type: 'error' });
-    } else if (!data || data.length === 0)  {
+    } else if (!data || data.length === 0) {
       setStatusMsg({ text: isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.', type: 'error' });
     } else {
       setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
@@ -687,14 +687,14 @@ export default function Dashboard() {
     }
   }
 
-  // הגנה: מניעת הארכה למשתמש שיש לו עדיין ימים פעילים בניסיון
+  // הגנה ומניעת הארכות כפולות במחזור הניסיון עם הודעה מודרנית וחדה
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
     const plan = (acc.plan || 'free').toLowerCase();
     if (plan === 'basic' || plan === 'pro') {
-      setStatusMsg({ text: isHebrew ? '⚠️ לא ניתן להאריך ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!', type: 'error' });
+      setStatusMsg({ text: isHebrew ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!', type: 'error' });
       return;
     }
 
@@ -702,7 +702,7 @@ export default function Dashboard() {
     if (acc.trial_ends_at && new Date(acc.trial_ends_at) > now) {
       const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - now) / (1000 * 60 * 60 * 24));
       setStatusMsg({ 
-        text: isHebrew ? `⚠️ לא ניתן להאריך! למשתמש זה יש עוד ${daysLeft} ימים פעילים.` : `⚠️ Cannot extend! User has ${daysLeft} active days left.`, 
+        text: isHebrew ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.` : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`, 
         type: 'error' 
       });
       return;
@@ -717,7 +717,7 @@ export default function Dashboard() {
 
     if (error) setStatusMsg({ text: 'Error extending trial: ' + error.message, type: 'error' });
     else {
-      setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום!' : 'Trial extended by 14 days successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום בהצלחה!' : 'Trial extended by 14 days successfully!', type: 'success' });
       fetchAllAccounts();
     }
   }
@@ -2295,7 +2295,7 @@ export default function Dashboard() {
         </button>
         <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="12" y1="12" x2="19" y2="12"/></svg>
           </span>
           {isHebrew ? 'חדש' : 'New'}
         </button>

@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. סטטוס Paid ניתן אך ורק למנויים ששולמו בפועל, ואין שעון ניסיון למנויים משלמים.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. סטטוס Paid קיים אך ורק למנויים אמיתיים, ללא תיוגים אוטומטיים מיותרים.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -98,13 +98,9 @@ export default function AdminUsersTab({
     }
   };
 
-  // שעון ספירה לאחור: מוצג אך ורק למשתמשים שאינם משלמים (כלומר, חבילתם אינה Basic או Pro משלמות)
-  const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
+  // שעון ספירה לאחור מעודכן
+  const getRemainingTimeFormatted = (trialEndsAt, role) => {
     if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-    const normalizedPlan = (plan || 'free').toLowerCase();
-    if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
-      return isHebrew ? 'מנוי משלם (Paid)' : 'Paid Subscriber';
-    }
     if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     
     const diffMs = new Date(trialEndsAt).getTime() - Date.now();
@@ -283,7 +279,7 @@ export default function AdminUsersTab({
               filteredAdminAccounts.map(acc => {
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
-                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
+                // Lifetime מותר אך ורק ל-Super Admin או למי שהוגדר ידנית כ-Lifetime (כאשר trial_ends_at הוא null במפורש)
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
@@ -416,7 +412,7 @@ export default function AdminUsersTab({
                           </span>
                           {!isLifetime && (
                             <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
-                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role)}
                             </span>
                           )}
                         </div>
