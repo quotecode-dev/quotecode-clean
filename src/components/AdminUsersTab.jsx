@@ -12,6 +12,7 @@ export default function AdminUsersTab({
   sortField,
   sortDirection,
   liveTick,
+  handleUpdatePlanOnly,
   handleAdminPlanChange,
   setPendingRegionChange,
   setPendingLifetimeUser,
@@ -267,9 +268,6 @@ export default function AdminUsersTab({
                 const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
                 const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
 
-                // תיקון קריטי: מציג PAYING CUSTOMER אך ורק אם המשתמש סומן במפורש כמשלם אמיתי (acc.is_paying)
-                const isPayingCustomer = acc.is_paying === true;
-
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
                   const diffMs = Date.now() - new Date(acc.last_sign_in).getTime();
@@ -281,11 +279,6 @@ export default function AdminUsersTab({
                     <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <span>{acc.email || 'N/A'}</span>
-                        {isPayingCustomer && (
-                          <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '800' }} title="Verified Paying Customer">
-                            PAYING CUSTOMER
-                          </span>
-                        )}
                       </div>
                     </td>
                     <td style={{ padding: '10px 6px', color: '#334155' }}>{acc.business_name || 'עסק חדש'}</td>
@@ -298,7 +291,7 @@ export default function AdminUsersTab({
                             if (val === 'ext_14') {
                               if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
                             } else {
-                              handleAdminPlanChange(acc.id, val);
+                              handleUpdatePlanOnly(acc.id, val);
                             }
                           }}
                           style={{ 
@@ -310,8 +303,7 @@ export default function AdminUsersTab({
                             fontSize: '0.7rem', 
                             fontWeight: '800', 
                             color: pColor,
-                            cursor: 'pointer', 
-                            outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
                         >
                           <option value="free">FREE</option>

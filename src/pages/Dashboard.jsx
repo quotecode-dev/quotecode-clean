@@ -556,9 +556,9 @@ export default function Dashboard() {
     }
   }
 
-  // הפונקציה המתוקנת והמבודדת - מעדכנת אך ורק את ה-plan
+  // פונקציית עדכון Plan נקייה ומבודדת שאינה נוגעת בטיימר או ב-Lifetime
   async function handleUpdatePlanOnly(accountId, newPlan) {
-    if (!newPlan) return;
+    if (!accountId || !newPlan) return;
     const { error } = await supabase
       .from('business_settings')
       .update({ plan: newPlan })
@@ -1597,7 +1597,7 @@ export default function Dashboard() {
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
@@ -2233,7 +2233,7 @@ export default function Dashboard() {
               sortField={sortField}
               sortDirection={sortDirection}
               liveTick={liveTick}
-              handleUpdatePlanOnly={handleUpdatePlanOnly} // הוספנו את הפונקציה המבודדת
+              handleUpdatePlanOnly={handleUpdatePlanOnly}
               handleAdminPlanChange={handleAdminPlanChange}
               handleExtendTrial14Days={handleExtendTrial14Days}
               setPendingRegionChange={setPendingRegionChange}
