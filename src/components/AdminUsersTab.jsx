@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם שעון ספירה לאחור ומניעת כפל הארכות.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם טיפול נכון בסטטוס Super Admin ושעון ספירה לאחור מדויק.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -99,8 +99,10 @@ export default function AdminUsersTab({
   };
 
   // שעון ספירה לאחור מותאם ומדויק
-  const getRemainingTimeFormatted = (trialEndsAt) => {
+  const getRemainingTimeFormatted = (trialEndsAt, role) => {
+    if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+    
     const diffMs = new Date(trialEndsAt).getTime() - Date.now();
     if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
 
@@ -275,10 +277,11 @@ export default function AdminUsersTab({
               </tr>
             ) : (
               filteredAdminAccounts.map(acc => {
-                const isLifetime = acc.trial_ends_at === null || acc.trial_ends_at === undefined;
+                const isSuperAdminUser = acc.role === 'super_admin';
+                const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
-                const planValue = acc.role === 'super_admin' ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
+                const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
                 const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';
@@ -309,7 +312,6 @@ export default function AdminUsersTab({
                             const val = e.target.value;
                             if (val === 'ext_14') {
                               if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
-                              // מחזיר את ה-select מיד לערך האמיתי כדי שלא יישאר על ext_14
                               e.target.value = planValue;
                             } else {
                               handleUpdatePlanOnly(acc.id, val);
@@ -409,7 +411,7 @@ export default function AdminUsersTab({
                           </span>
                           {!isLifetime && (
                             <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
-                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at)}
+                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role)}
                             </span>
                           )}
                         </div>
