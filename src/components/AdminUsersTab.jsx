@@ -125,7 +125,7 @@ export default function AdminUsersTab({
 
       const targetUserId = deleteModalUser.user_id;
       
-      // מחיקת כל הנתונים של המשתמש מהטבלאות השונות
+      // מחיקת נתונים נלווים אם קיימים
       if (targetUserId) {
         const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
         if (userQuotes && userQuotes.length > 0) {
@@ -139,13 +139,13 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // מחיקה מוחלטת של רשומת ה-business_settings גם לפי id וגם לפי user_id
-      if (deleteModalUser.id) {
-        await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
-      }
-      if (targetUserId) {
-        await supabase.from('business_settings').delete().eq('user_id', targetUserId);
-      }
+      // מחיקה ישירה ומלאה של רשומת ההגדרות לפי ה-id הספציפי של השורה בטבלה
+      const { error: deleteSettingErr } = await supabase
+        .from('business_settings')
+        .delete()
+        .eq('id', deleteModalUser.id);
+
+      if (deleteSettingErr) throw deleteSettingErr;
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
@@ -215,8 +215,8 @@ export default function AdminUsersTab({
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
               {isHebrew 
-                ? `פעולה זו תמחק לחלוטין את המשתמש ${deleteModalUser?.email || ''} ואת כל נתוניו מהמערכת. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
-                : `This will permanently delete user ${deleteModalUser?.email || ''}. Enter your Super Admin password to confirm:`}
+                ? `פעולה זו תמחק לחלוטין את הרשומה ${deleteModalUser?.email || 'N/A'} ואת כל נתוניו מהמערכת. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
+                : `This will permanently delete record ${deleteModalUser?.email || 'N/A'}. Enter your Super Admin password to confirm:`}
             </p>
             
             <form onSubmit={handleExecuteUserDelete} autoComplete="off">
