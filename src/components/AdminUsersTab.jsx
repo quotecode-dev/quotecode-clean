@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. שעון הניסיון והסטטוס מופרדים בצורה נקייה בין מנויים פעילים למשתמשי Trial.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם הגנות מלאות נגד מסך לבן וקריסות רנדור.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -8,9 +8,9 @@ import { supabase } from '../shared/supabase';
 export default function AdminUsersTab({
   t,
   isHebrew,
-  allAccounts,
-  filteredAdminAccounts,
-  adminSearchTerm,
+  allAccounts = [],
+  filteredAdminAccounts = [],
+  adminSearchTerm = '',
   setAdminSearchTerm,
   handleSort,
   sortField,
@@ -32,24 +32,24 @@ export default function AdminUsersTab({
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const totalU = allAccounts.length;
-  const localU = allAccounts.filter(a => (a.country || 'Local') === 'Local').length;
-  const intlU = allAccounts.filter(a => a.country === 'International').length;
+  const totalU = Array.isArray(allAccounts) ? allAccounts.length : 0;
+  const localU = Array.isArray(allAccounts) ? allAccounts.filter(a => (a?.country || 'Local') === 'Local').length : 0;
+  const intlU = Array.isArray(allAccounts) ? allAccounts.filter(a => a?.country === 'International').length : 0;
   
-  const activeRecent = allAccounts.filter(a => {
-    if (!a.last_sign_in) return false;
+  const activeRecent = Array.isArray(allAccounts) ? allAccounts.filter(a => {
+    if (!a?.last_sign_in) return false;
     const diff = Date.now() - new Date(a.last_sign_in).getTime();
     return diff < 10 * 60 * 1000;
-  }).length;
+  }).length : 0;
 
-  const newUsersList = allAccounts.filter(a => {
-    if (!a.created_at) return false;
+  const newUsersList = Array.isArray(allAccounts) ? allAccounts.filter(a => {
+    if (!a?.created_at) return false;
     const diff = Date.now() - new Date(a.created_at).getTime();
     return diff < 24 * 60 * 60 * 1000;
-  });
+  }) : [];
 
   const unreadNewUsersCount = newUsersList.filter(a => {
-    if (!a.created_at) return false;
+    if (!a?.created_at) return false;
     return new Date(a.created_at).getTime() > lastSeenNewUsersTime;
   }).length;
 
@@ -98,25 +98,29 @@ export default function AdminUsersTab({
     }
   };
 
-  // שעון ספירה לאחור: מתוקן כך שיקבל את כל הפרמטרים בצורה בטוחה לחלוטין
+  // שעון ספירה לאחור מוגן לחלוטין משגיאות
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
-    if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-    const normalizedPlan = (plan || 'free').toLowerCase();
-    if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
-      return isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan';
-    }
-    if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-    
-    const diffMs = new Date(trialEndsAt).getTime() - Date.now();
-    if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
+    try {
+      if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+      const normalizedPlan = (plan || 'free').toLowerCase();
+      if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
+        return isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan';
+      }
+      if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+      
+      const diffMs = new Date(trialEndsAt).getTime() - Date.now();
+      if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
 
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-    if (days > 0) {
-      return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
+      if (days > 0) {
+        return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
+      }
+      return isHebrew ? `${hours} שע'` : `${hours}h left`;
+    } catch (err) {
+      return isHebrew ? 'לא ידוע' : 'N/A';
     }
-    return isHebrew ? `${hours} שע'` : `${hours}h left`;
   };
 
   return (
@@ -152,8 +156,8 @@ export default function AdminUsersTab({
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
               {isHebrew 
-                ? `פעולה זו תמחק לצמיתות את כל ההצעות והלקוחות של המשתמש: ${resetModalUser.email}. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
-                : `This will permanently delete all quotes and clients for: ${resetModalUser.email}. Please enter your Super Admin password to confirm:`}
+                ? `פעולה זו תמחק לצמיתות את כל ההצעות והלקוחות של המשתמש: ${resetModalUser?.email || ''}. נא הקלד את סיסמת ה-Super Admin שלך לאישור:` 
+                : `This will permanently delete all quotes and clients for: ${resetModalUser?.email || ''}. Please enter your Super Admin password to confirm:`}
             </p>
             
             <form onSubmit={handleExecuteDataReset}>
@@ -273,7 +277,7 @@ export default function AdminUsersTab({
             </tr>
           </thead>
           <tbody>
-            {filteredAdminAccounts.length === 0 ? (
+            {!Array.isArray(filteredAdminAccounts) || filteredAdminAccounts.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
                   No users found matching your search.
@@ -281,11 +285,11 @@ export default function AdminUsersTab({
               </tr>
             ) : (
               filteredAdminAccounts.map(acc => {
+                if (!acc) return null;
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 
-                // Lifetime מותר אך ורק אם המשתמש הוא Super Admin או אם הוגדר במפורש כ-Lifetime (trial_ends_at === null במסד)
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
@@ -304,7 +308,7 @@ export default function AdminUsersTab({
                 }
 
                 return (
-                  <tr key={acc.id + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
+                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
                     <td style={{ padding: '10px 6px', fontWeight: '500', color: '#1e293b' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <span>{acc.email || 'N/A'}</span>
@@ -420,7 +424,7 @@ export default function AdminUsersTab({
                             </button>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                                {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
+                                {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
                               </span>
                               {!isLifetime && (
                                 <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
