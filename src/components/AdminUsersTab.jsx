@@ -388,7 +388,7 @@ export default function AdminUsersTab({
               <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
                 Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '8px 6px', textAlign: 'center', width: '130px' }}>
+              <th style={{ padding: '8px 6px', textAlign: 'center', width: '150px' }}>
                 Actions
               </th>
             </tr>
@@ -412,7 +412,6 @@ export default function AdminUsersTab({
                 
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
                 const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
-                const pBorder = planValue === 'pro' ? '#c7d2fe' : planValue === 'basic' ? '#bae6fd' : '#e2e8f0';
 
                 const rBg = currentCountry === 'Local' ? '#dcfce7' : '#fee2e2';
                 const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
@@ -434,43 +433,9 @@ export default function AdminUsersTab({
                     </td>
                     <td style={{ padding: '10px 6px', color: '#334155' }}>{acc.business_name || 'עסק חדש'}</td>
                     <td style={{ padding: '10px 6px' }}>
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <select 
-                          value={planValue} 
-                          disabled={isPaidSubscriber && !isSuperAdminUser}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'ext_14') {
-                              if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
-                              e.target.value = planValue;
-                            } else {
-                              handleUpdatePlanOnly(acc.id, val);
-                            }
-                          }}
-                          style={{ 
-                            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-                            padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
-                            borderRadius: '8px', 
-                            border: `1px solid ${pBorder}`, 
-                            background: isPaidSubscriber && !isSuperAdminUser ? '#f8fafc' : pBg, 
-                            fontSize: '0.7rem', 
-                            fontWeight: '800', 
-                            color: isPaidSubscriber && !isSuperAdminUser ? '#94a3b8' : pColor,
-                            cursor: isPaidSubscriber && !isSuperAdminUser ? 'not-allowed' : 'pointer', 
-                            outline: 'none', 
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                          }}
-                          title={isPaidSubscriber && !isSuperAdminUser ? 'Paid subscriber plan cannot be changed manually' : ''}
-                        >
-                          <option value="free">FREE</option>
-                          <option value="basic">BASIC</option>
-                          <option value="pro">PRO</option>
-                          <option value="ext_14">+14d EXT</option>
-                        </select>
-                        <div style={{ position: 'absolute', [isHebrew ? 'left' : 'right']: '6px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: pColor }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                      </div>
+                      <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '8px', background: pBg, color: pColor, fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                        {planValue}
+                      </span>
                     </td>
                     <td style={{ padding: '10px 6px' }}>
                       <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -511,45 +476,70 @@ export default function AdminUsersTab({
                           </span>
                         ) : (
                           <>
-                            <button 
-                              onClick={() => {
-                                if (!isLifetime) {
-                                  setPendingLifetimeUser(acc);
-                                } else {
-                                  handleToggleLifetime(acc.id, acc.trial_ends_at);
-                                }
-                              }}
-                              style={{ 
-                                background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
-                                color: isLifetime ? '#6d28d9' : '#475569', 
-                                border: '1px solid',
-                                borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
-                                padding: '4px 10px', 
-                                borderRadius: '20px', 
-                                cursor: 'pointer', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '6px', 
-                                fontSize: '0.75rem', 
-                                fontWeight: 'bold',
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                              }}
-                              title={isLifetime ? 'Click to revoke lifetime' : 'Click to grant lifetime'}
-                            >
-                              {isLifetime ? (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
-                              ) : (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <button 
+                                onClick={() => {
+                                  if (!isLifetime) {
+                                    setPendingLifetimeUser(acc);
+                                  } else {
+                                    handleToggleLifetime(acc.id, acc.trial_ends_at);
+                                  }
+                                }}
+                                style={{ 
+                                  background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
+                                  color: isLifetime ? '#6d28d9' : '#475569', 
+                                  border: '1px solid',
+                                  borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
+                                  padding: '4px 8px', 
+                                  borderRadius: '16px', 
+                                  cursor: 'pointer', 
+                                  display: 'inline-flex', 
+                                  alignItemCenter: 'center', 
+                                  gap: '4px', 
+                                  fontSize: '0.7rem', 
+                                  fontWeight: 'bold',
+                                  whiteSpace: 'nowrap',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                }}
+                                title={isLifetime ? 'Cancel Lifetime' : 'Set Lifetime'}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
+                                <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
+                              </button>
+
+                              {!isSuperAdminUser && (
+                                <button
+                                  onClick={() => {
+                                    if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
+                                  }}
+                                  style={{
+                                    background: '#e0f2fe',
+                                    color: '#0284c7',
+                                    border: '1px solid #bae6fd',
+                                    padding: '4px 8px',
+                                    borderRadius: '16px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title="Extend 14 Days Trial"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                  <span>+14d</span>
+                                </button>
                               )}
-                              <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
-                            </button>
+                            </div>
+
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                                 {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
                               </span>
                               {!isLifetime && (
-                                <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
+                                <span style={{ fontSize: '0.62rem', color: '#0284c7', fontWeight: 'bold' }}>
                                   ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
                                 </span>
                               )}
@@ -565,28 +555,31 @@ export default function AdminUsersTab({
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
-                          title="Details"
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          title="View Details"
                         >
-                          Details
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          <span>Details</span>
                         </button>
                         <button
                           onClick={() => setResetModalUser(acc)}
-                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           title="Reset Data"
                         >
-                          Reset
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.23-5.19"/></svg>
+                          <span>Reset</span>
                         </button>
                         {!isSuperAdminUser && (
                           <button
                             onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                             title="Delete User"
                           >
-                            Delete
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span>Delete</span>
                           </button>
                         )}
                       </div>
