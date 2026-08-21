@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקה מאובטחת בסיסמת אדמין.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים ומחיקה מאובטחת.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -27,7 +27,7 @@ export default function AdminUsersTab({
   handleExtendTrial14Days
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
-  const [deleteModalUser, setDeleteModalUser] = useState(null); // מצב חדש למחיקת משתמש מלאה
+  const [deleteModalUser, setDeleteModalUser] = useState(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
@@ -98,7 +98,7 @@ export default function AdminUsersTab({
     }
   };
 
-  // פונקציה חדשה למחיקת משתמש קומפלט (דורשת סיסמת אדמין)
+  // מחיקת משתמש קומפלט מתוקנת ומדויקת לפי ה-ID של השורה בטבלה ולפי ה-user_id
   const handleExecuteUserDelete = async (e) => {
     e.preventDefault();
     if (!deleteModalUser) return;
@@ -126,22 +126,27 @@ export default function AdminUsersTab({
 
       const targetUserId = deleteModalUser.user_id;
       if (targetUserId) {
-        await supabase.from('quote_items').delete().in('quote_id', (
-          await supabase.from('quotes').select('id').eq('user_id', targetUserId)
-        ).data?.map(q => q.id) || []);
-        
+        const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
+        if (userQuotes && userQuotes.length > 0) {
+          const qIds = userQuotes.map(q => q.id);
+          await supabase.from('quote_items').delete().in('quote_id', qIds);
+          await supabase.from('quote_attachments').delete().in('quote_id', qIds);
+        }
         await supabase.from('quotes').delete().eq('user_id', targetUserId);
         await supabase.from('clients').delete().eq('user_id', targetUserId);
         await supabase.from('services').delete().eq('user_id', targetUserId);
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+      // מחיקה מפורשת של רשומת ההגדרות והמשתמש מטבלת הניהול
+      const { error: deleteSettingErr } = await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+      if (deleteSettingErr) throw deleteSettingErr;
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
       setShowSuccessModal(true);
     } catch (err) {
+      console.error("Delete error:", err);
       setResetError(err.message);
     } finally {
       setIsResetting(false);
@@ -197,7 +202,7 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל אבטחה למחיקת משתמש קומפלט בסיסמת אדמין */}
+      {/* מודל אבטחה למחיקת משתמש בסיסמת אדמין */}
       {deleteModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -361,7 +366,7 @@ export default function AdminUsersTab({
               <th style={{ padding: '8px 6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
                 Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '8px 6px', textAlign: 'center' }}>
+              <th style={{ padding: '8px 6px', textAlign: 'center', width: '130px' }}>
                 Actions
               </th>
             </tr>
@@ -534,17 +539,18 @@ export default function AdminUsersTab({
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      {/* כפתורים מוקטנים שנכנסים בשורה אחת בצורה מושלמת */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
-                          title="View Details"
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
+                          title="Details"
                         >
                           Details
                         </button>
                         <button
                           onClick={() => setResetModalUser(acc)}
-                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
                           title="Reset Data"
                         >
                           Reset
@@ -552,7 +558,7 @@ export default function AdminUsersTab({
                         {!isSuperAdminUser && (
                           <button
                             onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '5px 6px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.65rem' }}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.6rem' }}
                             title="Delete User"
                           >
                             Delete
