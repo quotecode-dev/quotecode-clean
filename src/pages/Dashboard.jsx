@@ -609,7 +609,7 @@ export default function Dashboard() {
     
     if (error) {
       setStatusMsg({ text: isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message, type: 'error' });
-    } else if (!data || data.length === 0) {
+    } else if (!data || data.length === 0)  {
       setStatusMsg({ text: isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.', type: 'error' });
     } else {
       setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
@@ -687,30 +687,27 @@ export default function Dashboard() {
     }
   }
 
-  // הגנה: בדיקה האם למשתמש יש כבר תקופת ניסיון פעילה שטרם פגה. אם כן – מונעים כפל הארכות ומציגים התראה.
+  // הגנה: מניעת הארכה למשתמש שיש לו עדיין ימים פעילים בניסיון
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
-    // מנוי משלם (Basic או Pro) אינו זכאי להארכת ניסיון אוטומטית
     const plan = (acc.plan || 'free').toLowerCase();
     if (plan === 'basic' || plan === 'pro') {
-      alert(isHebrew 
-        ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם במסלול Basic או Pro!' 
-        : '⚠️ Cannot extend trial for a paying subscriber on Basic or Pro!');
+      setStatusMsg({ text: isHebrew ? '⚠️ לא ניתן להאריך ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!', type: 'error' });
       return;
     }
 
     const now = new Date();
     if (acc.trial_ends_at && new Date(acc.trial_ends_at) > now) {
       const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - now) / (1000 * 60 * 60 * 24));
-      alert(isHebrew 
-        ? `⚠️ לא ניתן להאריך! למשתמש זה יש עוד ${daysLeft} ימים בתקופת הניסיון/ההארכה הפעילה שלו.` 
-        : `⚠️ Cannot extend! This user still has ${daysLeft} days remaining in their active trial.`);
+      setStatusMsg({ 
+        text: isHebrew ? `⚠️ לא ניתן להאריך! למשתמש זה יש עוד ${daysLeft} ימים פעילים.` : `⚠️ Cannot extend! User has ${daysLeft} active days left.`, 
+        type: 'error' 
+      });
       return;
     }
     
-    // מעניק בדיוק 14 יום נטו מעכשיו
     const newEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase
@@ -720,7 +717,7 @@ export default function Dashboard() {
 
     if (error) setStatusMsg({ text: 'Error extending trial: ' + error.message, type: 'error' });
     else {
-      setStatusMsg({ text: 'Trial extended by 14 days successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום!' : 'Trial extended by 14 days successfully!', type: 'success' });
       fetchAllAccounts();
     }
   }

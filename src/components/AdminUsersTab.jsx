@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול משתמשים. שעון הניסיון מוצג אך ורק למשתמשים שאינם משלמים (Paid Customers מוגנים).
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. סטטוס Paid ניתן אך ורק למנויים ששולמו בפועל, ואין שעון ניסיון למנויים משלמים.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -98,7 +98,7 @@ export default function AdminUsersTab({
     }
   };
 
-  // שעון ספירה לאחור: מוצג אך ורק למשתמשים שאינם משלמים קבוע (כלומר, חבילתם אינה Basic או Pro משלמות)
+  // שעון ספירה לאחור: מוצג אך ורק למשתמשים שאינם משלמים (כלומר, חבילתם אינה Basic או Pro משלמות)
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     const normalizedPlan = (plan || 'free').toLowerCase();
@@ -284,7 +284,7 @@ export default function AdminUsersTab({
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
-                const isLifetime = isSuperAdminUser || isPaidSubscriber || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
+                const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
                 const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
@@ -386,10 +386,10 @@ export default function AdminUsersTab({
                             }
                           }}
                           style={{ 
-                            background: isPaidSubscriber ? '#dcfce7' : (isLifetime ? '#f3e8ff' : '#f1f5f9'), 
-                            color: isPaidSubscriber ? '#166534' : (isLifetime ? '#6d28d9' : '#475569'), 
+                            background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
+                            color: isLifetime ? '#6d28d9' : '#475569', 
                             border: '1px solid',
-                            borderColor: isPaidSubscriber ? '#bbf7d0' : (isLifetime ? '#e9d5ff' : '#cbd5e1'),
+                            borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
                             padding: '4px 10px', 
                             borderRadius: '20px', 
                             cursor: 'pointer', 
@@ -401,22 +401,20 @@ export default function AdminUsersTab({
                             whiteSpace: 'nowrap',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
-                          title="Subscription Status"
+                          title={isLifetime ? 'Click to revoke lifetime' : 'Click to grant lifetime'}
                         >
-                          {isPaidSubscriber ? (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          ) : isLifetime ? (
+                          {isLifetime ? (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
                           ) : (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                           )}
-                          <span>{isPaidSubscriber ? 'Paid' : (isLifetime ? 'Lifetime' : 'Trial')}</span>
+                          <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
                         </button>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                            {isPaidSubscriber ? (isHebrew ? 'מנוי משלם קבוע' : 'Active Subscriber') : (isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`)}
+                            {isLifetime ? '(No expiry)' : `Ends: ${new Date(acc.trial_ends_at).toLocaleDateString('en-GB')}`}
                           </span>
-                          {!isLifetime && !isPaidSubscriber && (
+                          {!isLifetime && (
                             <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
                               ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
                             </span>
