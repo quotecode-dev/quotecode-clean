@@ -137,7 +137,17 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      const { error: deleteSettingErr } = await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+      // מחיקה לפי גם לפי ID וגם לפי user_id כדי לעקוף חסימות RLS במידת הצורך
+      let deleteSettingErr = null;
+      if (targetUserId) {
+        const res = await supabase.from('business_settings').delete().eq('user_id', targetUserId);
+        deleteSettingErr = res.error;
+      }
+      if (!targetUserId || deleteSettingErr) {
+        const res2 = await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
+        deleteSettingErr = res2.error;
+      }
+
       if (deleteSettingErr) throw deleteSettingErr;
 
       setDeleteModalUser(null);
@@ -200,7 +210,6 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל מחיקת משתמש עם חסימה מוחלטת לשמירת סיסמה בדפדפן */}
       {deleteModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -254,7 +263,6 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל איפוס נתונים עם חסימת שמירת סיסמה בדפדפן */}
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
