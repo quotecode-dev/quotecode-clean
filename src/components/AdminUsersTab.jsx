@@ -363,32 +363,56 @@ export default function AdminUsersTab({
       <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <th style={{ padding: '10px 6px', width: '20%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
-                Email {sortField === 'email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle' }}>
+              <th style={{ padding: '10px 6px', width: '20%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('email')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Email</span>
+                  {sortField === 'email' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
-                Business {sortField === 'business_name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('business_name')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Business</span>
+                  {sortField === 'business_name' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
-                Plan {sortField === 'plan' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('plan')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Plan</span>
+                  {sortField === 'plan' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
-                Region {sortField === 'country' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('country')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Region</span>
+                  {sortField === 'country' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
-                Role {sortField === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('role')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Role</span>
+                  {sortField === 'role' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
-                Lifetime {sortField === 'trial_ends_at_status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_ends_at_status')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Lifetime</span>
+                  {sortField === 'trial_ends_at_status' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_extension')}>
-                Trial Ext {sortField === 'trial_extension' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_extension')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Trial Ext</span>
+                  {sortField === 'trial_extension' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
-                Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('last_sign_in')}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <span>Last Sign In</span>
+                  {sortField === 'last_sign_in' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
+                </div>
               </th>
-              <th style={{ padding: '10px 6px', textAlign: 'center', width: '13%' }}>
+              <th style={{ padding: '10px 6px', textAlign: 'center', width: '13%', verticalAlign: 'middle' }}>
                 Actions
               </th>
             </tr>
