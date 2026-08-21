@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. ללא משתנים חיצוניים שגורמים לקריסה.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול משתמשים. הסרת תיוגי Paid אוטומטיים והגנה על משתמשי Lifetime.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -98,13 +98,18 @@ export default function AdminUsersTab({
     }
   };
 
+  // 1. שעון ספירה לאחור מעודכן ובטוח - מציג "מנוי פעיל" (ללא טיימר) אם המשתמש במסלול basic/pro.
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     try {
       if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
       const normalizedPlan = (plan || 'free').toLowerCase();
+      
+      // אם המשתמש הוא מנוי בסיסי או פרו - אין לו טיימר ניסיון! הוא לקוח משלם פעיל.
       if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
         return isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan';
       }
+      
+      // רק למי שבמסלול חינמי (Free) ויש לו תאריך ניסיון, נחשב את השעון
       if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
       
       const diffMs = new Date(trialEndsAt).getTime() - Date.now();
@@ -287,8 +292,9 @@ export default function AdminUsersTab({
                 if (!acc) return null;
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
-                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 
+                // 2. זיהוי נכון של מנוי - אם מנוי הוא בייסיק או פרו, הוא לא מוגדר כ-Lifetime אלא אם סומן כך בכוונה.
+                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
@@ -382,50 +388,59 @@ export default function AdminUsersTab({
                     </td>
                     <td style={{ padding: '10px 6px', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-                        {/* תוקן: קריאה נכונה לפונקציה עם 3 פרמטרים */}
-                        <button 
-                          onClick={() => {
-                            if (!isLifetime) {
-                              setPendingLifetimeUser(acc);
-                            } else {
-                              handleToggleLifetime(acc.id, acc.trial_ends_at);
-                            }
-                          }}
-                          style={{ 
-                            background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
-                            color: isLifetime ? '#6d28d9' : '#475569', 
-                            border: '1px solid',
-                            borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
-                            padding: '4px 10px', 
-                            borderRadius: '20px', 
-                            cursor: 'pointer', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '6px', 
-                            fontSize: '0.75rem', 
-                            fontWeight: 'bold',
-                            whiteSpace: 'nowrap',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                          }}
-                          title={isLifetime ? 'Click to revoke lifetime' : 'Click to grant lifetime'}
-                        >
-                          {isLifetime ? (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
-                          ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                          )}
-                          <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
-                        </button>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                            {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
+                        {isPaidSubscriber && !isSuperAdminUser ? (
+                          // לקוחות משלמים (Basic/Pro) אינם רואים כפתור Trial אלא חיווי ירוק נקי
+                          <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '4px 10px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                            {isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan'}
                           </span>
-                          {!isLifetime && (
-                            <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
-                              ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
-                            </span>
-                          )}
-                        </div>
+                        ) : (
+                          // משתמשי Free / Trial / Super Admin
+                          <>
+                            <button 
+                              onClick={() => {
+                                if (!isLifetime) {
+                                  setPendingLifetimeUser(acc);
+                                } else {
+                                  handleToggleLifetime(acc.id, acc.trial_ends_at);
+                                }
+                              }}
+                              style={{ 
+                                background: isLifetime ? '#f3e8ff' : '#f1f5f9', 
+                                color: isLifetime ? '#6d28d9' : '#475569', 
+                                border: '1px solid',
+                                borderColor: isLifetime ? '#e9d5ff' : '#cbd5e1',
+                                padding: '4px 10px', 
+                                borderRadius: '20px', 
+                                cursor: 'pointer', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '6px', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                              }}
+                              title={isLifetime ? 'Click to revoke lifetime' : 'Click to grant lifetime'}
+                            >
+                              {isLifetime ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
+                              ) : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              )}
+                              <span>{isLifetime ? 'Lifetime' : 'Trial'}</span>
+                            </button>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
+                              </span>
+                              {!isLifetime && (
+                                <span style={{ fontSize: '0.65rem', color: '#0284c7', fontWeight: 'bold' }}>
+                                  ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: '10px 6px', fontSize: '0.75rem', color: '#475569', direction: 'ltr', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}>
