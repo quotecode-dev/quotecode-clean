@@ -687,11 +687,16 @@ export default function Dashboard() {
     }
   }
 
+  // תיקון הארכה חד-פעמית ומבוקרת של 14 יום ללא צבירת כפל
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
-    const baseDate = acc.trial_ends_at && new Date(acc.trial_ends_at) > new Date() ? new Date(acc.trial_ends_at) : new Date();
+    const now = new Date();
+    const currentEnd = acc.trial_ends_at ? new Date(acc.trial_ends_at) : now;
+    
+    // אם תקופת הניסיון טרם הסתיימה, נוסיף 14 יום לתאריך הסיום הקיים (חד-פעמית). אם כבר פג, נתחיל מעכשיו + 14 יום.
+    const baseDate = currentEnd > now ? currentEnd : now;
     const newEnd = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase

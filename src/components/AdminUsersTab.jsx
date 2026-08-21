@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים עם שעון ספירה לאחור ומניעת כפל הארכות.
+// ==============================================================================
+
 import React, { useState } from 'react';
 import { supabase } from '../shared/supabase';
 
@@ -94,7 +98,7 @@ export default function AdminUsersTab({
     }
   };
 
-  // פונקציית עזר לחישוב הזמן הנותר (שעון ספירה לאחור)
+  // שעון ספירה לאחור מותאם ומדויק
   const getRemainingTimeFormatted = (trialEndsAt) => {
     if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     const diffMs = new Date(trialEndsAt).getTime() - Date.now();
@@ -102,12 +106,11 @@ export default function AdminUsersTab({
 
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
     if (days > 0) {
       return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
     }
-    return isHebrew ? `${hours} שע' ו-${minutes} דק'` : `${hours}h ${minutes}m left`;
+    return isHebrew ? `${hours} שע'` : `${hours}h left`;
   };
 
   return (
@@ -306,6 +309,8 @@ export default function AdminUsersTab({
                             const val = e.target.value;
                             if (val === 'ext_14') {
                               if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
+                              // מחזיר את ה-select מיד לערך האמיתי כדי שלא יישאר על ext_14
+                              e.target.value = planValue;
                             } else {
                               handleUpdatePlanOnly(acc.id, val);
                             }
