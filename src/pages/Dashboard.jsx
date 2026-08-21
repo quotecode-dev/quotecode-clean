@@ -692,6 +692,15 @@ export default function Dashboard() {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
     
+    // מנוי משלם (Basic או Pro) אינו זכאי להארכת ניסיון אוטומטית
+    const plan = (acc.plan || 'free').toLowerCase();
+    if (plan === 'basic' || plan === 'pro') {
+      alert(isHebrew 
+        ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם במסלול Basic או Pro!' 
+        : '⚠️ Cannot extend trial for a paying subscriber on Basic or Pro!');
+      return;
+    }
+
     const now = new Date();
     if (acc.trial_ends_at && new Date(acc.trial_ends_at) > now) {
       const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - now) / (1000 * 60 * 60 * 24));
