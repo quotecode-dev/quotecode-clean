@@ -98,7 +98,6 @@ export default function AdminUsersTab({
     }
   };
 
-  // מחיקת משתמש קומפלט מתוקנת ומדויקת לפי ה-ID של השורה בטבלה ולפי ה-user_id
   const handleExecuteUserDelete = async (e) => {
     e.preventDefault();
     if (!deleteModalUser) return;
@@ -138,7 +137,6 @@ export default function AdminUsersTab({
         await supabase.from('expenses').delete().eq('user_id', targetUserId);
       }
 
-      // מחיקה מפורשת של רשומת ההגדרות והמשתמש מטבלת הניהול
       const { error: deleteSettingErr } = await supabase.from('business_settings').delete().eq('id', deleteModalUser.id);
       if (deleteSettingErr) throw deleteSettingErr;
 
@@ -202,7 +200,7 @@ export default function AdminUsersTab({
         </div>
       )}
 
-      {/* מודל אבטחה למחיקת משתמש בסיסמת אדמין */}
+      {/* מודל אבטחה למחיקת משתמש בסיסמת אדמין עם מניעת שמירה בדפדפן */}
       {deleteModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -215,9 +213,12 @@ export default function AdminUsersTab({
                 : `This will permanently delete user ${deleteModalUser?.email || ''}. Enter your Super Admin password to confirm:`}
             </p>
             
-            <form onSubmit={handleExecuteUserDelete}>
+            <form onSubmit={handleExecuteUserDelete} autoComplete="off">
               <input
                 type="password"
+                name="admin_delete_password_field_secure"
+                autoComplete="new-password"
+                data-lpignore="true"
                 placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
                 value={adminPasswordInput}
                 onChange={(e) => setAdminPasswordInput(e.target.value)}
@@ -252,6 +253,7 @@ export default function AdminUsersTab({
         </div>
       )}
 
+      {/* מודל איפוס נתונים עם מניעת שמירה בדפדפן */}
       {resetModalUser && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left' }}>
@@ -264,9 +266,12 @@ export default function AdminUsersTab({
                 : `This will permanently delete all quotes and clients for: ${resetModalUser?.email || ''}. Please enter your Super Admin password to confirm:`}
             </p>
             
-            <form onSubmit={handleExecuteDataReset}>
+            <form onSubmit={handleExecuteDataReset} autoComplete="off">
               <input
                 type="password"
+                name="admin_reset_password_field_secure"
+                autoComplete="new-password"
+                data-lpignore="true"
                 placeholder={isHebrew ? 'סיסמת אדמין...' : 'Admin password...'}
                 value={adminPasswordInput}
                 onChange={(e) => setAdminPasswordInput(e.target.value)}
@@ -539,7 +544,6 @@ export default function AdminUsersTab({
                       <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                      {/* כפתורים מוקטנים שנכנסים בשורה אחת בצורה מושלמת */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
