@@ -195,8 +195,10 @@ export default function AdminUsersTab({
     }
   };
 
+  const isHebrewText = (str) => /[\u0590-\u05FF]/.test(str);
+
   return (
-    <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+    <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
@@ -324,72 +326,69 @@ export default function AdminUsersTab({
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-        <div 
-          onClick={() => handleOpenNewUsersModal(newUsersList)}
-          style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
-        >
-          <div style={{ fontSize: '0.6rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>NEW USERS (24H)</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+        <div onClick={() => handleOpenNewUsersModal(newUsersList)} style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.58rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>NEW USERS (24H)</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
         </div>
-        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.6rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE (10M)</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.58rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>ACTIVE (10M)</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
         </div>
-        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>LOCAL (LCL)</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>LOCAL (LCL)</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
         </div>
-        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.6rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>INTERNATIONAL</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.58rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>INTERNATIONAL</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
         </div>
-        <div style={{ background: 'white', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>TOTAL USERS</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>TOTAL USERS</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
         </div>
       </div>
 
-      <div style={{ marginBottom: '16px' }}>
+      <div style={{ marginBottom: '14px' }}>
         <input 
           type="text" 
           placeholder="Search user (email or business)..." 
           value={adminSearchTerm}
           onChange={(e) => setAdminSearchTerm(e.target.value)}
-          style={{ padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '260px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.82rem', background: 'white', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+          style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '240px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: 'white', outline: 'none' }}
         />
       </div>
       
-      {/* Modern Clean Table with Text Ellipsis */}
-      <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed', minWidth: '950px' }}>
+      {/* Table container with strict width control to eliminate horizontal scroll */}
+      <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <th style={{ padding: '10px 8px', width: '180px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
+            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <th style={{ padding: '10px 6px', width: '20%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('email')}>
                 Email {sortField === 'email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '130px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
-                Business Name {sortField === 'business_name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('business_name')}>
+                Business {sortField === 'business_name' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '80px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('plan')}>
                 Plan {sortField === 'plan' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '80px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('country')}>
                 Region {sortField === 'country' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '90px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
+              <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('role')}>
                 Role {sortField === 'role' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
+              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_ends_at_status')}>
                 Lifetime {sortField === 'trial_ends_at_status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '110px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_extension')}>
+              <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('trial_extension')}>
                 Trial Ext {sortField === 'trial_extension' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', width: '130px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
+              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('last_sign_in')}>
                 Last Sign In {sortField === 'last_sign_in' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 8px', textAlign: 'center', width: '110px' }}>
+              <th style={{ padding: '10px 6px', textAlign: 'center', width: '13%' }}>
                 Actions
               </th>
             </tr>
@@ -410,13 +409,7 @@ export default function AdminUsersTab({
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
-                
-                const pBg = planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9';
-                const pColor = planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b';
-
-                const rBg = currentCountry === 'Local' ? '#dcfce7' : '#fee2e2';
-                const rColor = currentCountry === 'Local' ? '#166534' : '#991b1b';
-                const rBorder = currentCountry === 'Local' ? '#bbf7d0' : '#fecaca';
+                const isIntl = currentCountry === 'International';
 
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
@@ -425,58 +418,66 @@ export default function AdminUsersTab({
                   isRecentActive = diffMs < 10 * 60 * 1000;
                 }
 
+                const bizName = acc.business_name || 'עסק חדש';
+                const isBizHebrew = isHebrewText(bizName);
+
+                const lastSignInDateObj = acc.last_sign_in ? new Date(acc.last_sign_in) : null;
+                const lastSignInDateStr = lastSignInDateObj ? lastSignInDateObj.toLocaleDateString('en-GB') : 'N/A';
+                const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
+
                 return (
-                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.8rem' }}>
+                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.78rem', height: '44px' }}>
                     
-                    {/* Email עם חיתוך טקסט אוטומטי ו-Tooltip */}
-                    <td style={{ padding: '10px 8px', fontWeight: '500', color: '#1e293b', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
+                    {/* Email */}
+                    <td style={{ padding: '6px 6px', fontWeight: '500', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
                       {acc.email || 'N/A'}
                     </td>
 
-                    {/* Business Name עם חיתוך טקסט אוטומטי ו-Tooltip */}
-                    <td style={{ padding: '10px 8px', color: '#334155', fontWeight: '500', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.business_name || 'עסק חדש'}>
-                      {acc.business_name || 'עסק חדש'}
+                    {/* Business Name */}
+                    <td 
+                      style={{ padding: '6px 6px', color: '#334155', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }} 
+                      title={bizName}
+                    >
+                      {bizName}
                     </td>
 
-                    <td style={{ padding: '10px 8px' }}>
-                      <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', background: pBg, color: pColor, fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                        {planValue}
+                    {/* Plan Icon */}
+                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
+                      <span 
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9', color: planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b' }}
+                        title={`Plan: ${planValue.toUpperCase()}`}
+                      >
+                        {planValue === 'pro' ? '⚡' : planValue === 'basic' ? '💼' : '🌱'}
                       </span>
                     </td>
 
-                    <td style={{ padding: '10px 8px' }}>
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <select 
-                          value={currentCountry} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setPendingRegionChange({ accountId: acc.id, newCountry: val, userEmail: acc.email });
-                          }}
-                          style={{ 
-                            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-                            padding: isHebrew ? '3px 8px 3px 20px' : '3px 20px 3px 8px', 
-                            borderRadius: '6px', 
-                            border: `1px solid ${rBorder}`, 
-                            background: rBg, 
-                            fontSize: '0.68rem', 
-                            fontWeight: '800', 
-                            color: rColor,
-                            cursor: 'pointer', outline: 'none'
-                          }}
-                        >
-                          <option value="Local">LCL</option>
-                          <option value="International">Intl</option>
-                        </select>
-                      </div>
+                    {/* Region Icon */}
+                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
+                      <span 
+                        onClick={() => {
+                          const newC = isIntl ? 'Local' : 'International';
+                          setPendingRegionChange({ accountId: acc.id, newCountry: newC, userEmail: acc.email });
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isIntl ? '#fee2e2' : '#dcfce7', color: isIntl ? '#991b1b' : '#166534', cursor: 'pointer' }}
+                        title={`Region: ${currentCountry} (Click to toggle)`}
+                      >
+                        {isIntl ? '🌍' : '🏠'}
+                      </span>
                     </td>
 
-                    <td style={{ padding: '10px 8px', color: acc.role === 'super_admin' ? '#ef4444' : '#64748b', fontWeight: '600', fontSize: '0.75rem' }}>
-                      {acc.role || 'user'}
+                    {/* Role Icon */}
+                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
+                      <span 
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isSuperAdminUser ? '#fee2e2' : '#f1f5f9', color: isSuperAdminUser ? '#991b1b' : '#475569' }}
+                        title={`Role: ${acc.role || 'user'}`}
+                      >
+                        {isSuperAdminUser ? '🛡️' : '👤'}
+                      </span>
                     </td>
 
                     {/* Lifetime Status Column */}
-                    <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <button 
                           onClick={() => {
                             if (!isLifetime) {
@@ -490,30 +491,29 @@ export default function AdminUsersTab({
                             color: isLifetime ? '#7c3aed' : '#94a3b8', 
                             border: '1px solid',
                             borderColor: isLifetime ? '#d8b4fe' : '#e2e8f0',
-                            width: '28px', height: '28px',
+                            width: '24px', height: '24px',
                             borderRadius: '50%', 
                             cursor: 'pointer', 
                             display: 'inline-flex', 
                             alignItems: 'center', 
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                            justifyContent: 'center'
                           }}
                           title={isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime'}
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </button>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: isLifetime ? '#7c3aed' : '#64748b' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: '600', color: isLifetime ? '#7c3aed' : '#64748b' }}>
                           {isLifetime ? 'Lifetime' : 'Standard'}
                         </span>
                       </div>
                     </td>
 
                     {/* Trial Extension Column */}
-                    <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isPaidSubscriber && !isSuperAdminUser ? (
-                          <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '3px 8px', borderRadius: '10px' }}>
-                            {isHebrew ? 'מנוי פעיל' : 'Active'}
+                          <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '2px 6px', borderRadius: '8px' }}>
+                            Active
                           </span>
                         ) : (
                           <>
@@ -526,26 +526,25 @@ export default function AdminUsersTab({
                                   background: '#e0f2fe',
                                   color: '#0284c7',
                                   border: '1px solid #bae6fd',
-                                  width: '28px', height: '28px',
+                                  width: '24px', height: '24px',
                                   borderRadius: '50%',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                  justifyContent: 'center'
                                 }}
                                 title="Extend Trial by 14 Days"
                               >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                               </button>
                             )}
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                                {isLifetime ? '(No expiry)' : `Ends: ${acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}`}
+                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.1' }}>
+                              <span style={{ fontSize: '0.62rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                {isLifetime ? 'No expiry' : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
                               </span>
                               {!isLifetime && (
-                                <span style={{ fontSize: '0.58rem', color: '#0284c7', fontWeight: 'bold' }}>
-                                  ⏱️ {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                                <span style={{ fontSize: '0.55rem', color: '#0284c7', fontWeight: 'bold' }}>
+                                  {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
                                 </span>
                               )}
                             </div>
@@ -554,41 +553,39 @@ export default function AdminUsersTab({
                       </div>
                     </td>
 
-                    <td style={{ padding: '10px 8px', fontSize: '0.7rem', color: '#475569', direction: 'ltr', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                      <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444', marginRight: '4px', verticalAlign: 'middle' }}></span>
-                      <span>{acc.last_sign_in ? new Date(acc.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
+                    {/* Last Sign In (Date only with full timestamp on hover) */}
+                    <td style={{ padding: '6px 6px', fontSize: '0.7rem', color: '#475569', direction: 'ltr', textAlign: 'left', whiteSpace: 'nowrap' }} title={lastSignInFullStr}>
+                      <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444', marginRight: '4px', verticalAlign: 'middle' }}></span>
+                      <span>{lastSignInDateStr}</span>
                     </td>
 
-                    {/* Actions Column with Sharp Minimalist Icon Buttons */}
-                    <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                    {/* Actions Column */}
+                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                         
-                        {/* Details Icon Button */}
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                          style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="View Details"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         </button>
 
-                        {/* Reset Icon Button */}
                         <button
                           onClick={() => setResetModalUser(acc)}
-                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="Reset Data"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.23-5.19"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.23-5.19"/></svg>
                         </button>
 
-                        {/* Delete Icon Button */}
                         {!isSuperAdminUser && (
                           <button
                             onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: '#991b1b', color: 'white', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                            style={{ background: '#991b1b', color: 'white', border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Delete User"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                           </button>
                         )}
 
