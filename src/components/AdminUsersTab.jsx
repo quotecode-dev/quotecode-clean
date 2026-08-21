@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול משתמשים. הסרת תיוגי Paid אוטומטיים והגנה על משתמשי Lifetime.
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. הסרת תיוגי Paid אוטומטיים והגנה על משתמשי Lifetime.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -38,13 +38,15 @@ export default function AdminUsersTab({
   
   const activeRecent = Array.isArray(allAccounts) ? allAccounts.filter(a => {
     if (!a?.last_sign_in) return false;
-    const diff = Date.now() - new Date(a.last_sign_in).getTime();
+    const now = Date.now();
+    const diff = now - new Date(a.last_sign_in).getTime();
     return diff < 10 * 60 * 1000;
   }).length : 0;
 
   const newUsersList = Array.isArray(allAccounts) ? allAccounts.filter(a => {
     if (!a?.created_at) return false;
-    const diff = Date.now() - new Date(a.created_at).getTime();
+    const now = Date.now();
+    const diff = now - new Date(a.created_at).getTime();
     return diff < 24 * 60 * 60 * 1000;
   }) : [];
 
@@ -98,21 +100,19 @@ export default function AdminUsersTab({
     }
   };
 
-  // 1. שעון ספירה לאחור מעודכן ובטוח - מציג "מנוי פעיל" (ללא טיימר) אם המשתמש במסלול basic/pro.
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     try {
+      const now = Date.now();
       if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
       const normalizedPlan = (plan || 'free').toLowerCase();
       
-      // אם המשתמש הוא מנוי בסיסי או פרו - אין לו טיימר ניסיון! הוא לקוח משלם פעיל.
       if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
         return isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan';
       }
       
-      // רק למי שבמסלול חינמי (Free) ויש לו תאריך ניסיון, נחשב את השעון
       if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
       
-      const diffMs = new Date(trialEndsAt).getTime() - Date.now();
+      const diffMs = new Date(trialEndsAt).getTime() - now;
       if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
 
       const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -293,7 +293,6 @@ export default function AdminUsersTab({
                 const isSuperAdminUser = acc.role === 'super_admin';
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 
-                // 2. זיהוי נכון של מנוי - אם מנוי הוא בייסיק או פרו, הוא לא מוגדר כ-Lifetime אלא אם סומן כך בכוונה.
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
@@ -308,7 +307,8 @@ export default function AdminUsersTab({
 
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
-                  const diffMs = Date.now() - new Date(acc.last_sign_in).getTime();
+                  const now = Date.now();
+                  const diffMs = now - new Date(acc.last_sign_in).getTime();
                   isRecentActive = diffMs < 10 * 60 * 1000;
                 }
 
@@ -389,12 +389,10 @@ export default function AdminUsersTab({
                     <td style={{ padding: '10px 6px', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
                         {isPaidSubscriber && !isSuperAdminUser ? (
-                          // לקוחות משלמים (Basic/Pro) אינם רואים כפתור Trial אלא חיווי ירוק נקי
                           <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '4px 10px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
                             {isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan'}
                           </span>
                         ) : (
-                          // משתמשי Free / Trial / Super Admin
                           <>
                             <button 
                               onClick={() => {
