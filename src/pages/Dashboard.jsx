@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (Dashboard.jsx): אכיפת ניתוב שפה דינמי, סטריקט והגנות מנויים (Free/Basic/PRO). חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי.
+// 🚨 חוק ברזל קשוח (Dashboard.jsx): ניהול בטוח של לשוניות ורכיבי אדמין עם הגנה מלאה נגד מסך לבן.
 // ==============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -560,7 +560,6 @@ export default function Dashboard() {
     }
   }
 
-  // פונקציית עדכון Plan נקייה ומבודדת שאינה נוגעת בטיימר או ב-Lifetime
   async function handleUpdatePlanOnly(accountId, newPlan) {
     if (!accountId || !newPlan) return;
     const { error } = await supabase
@@ -687,7 +686,6 @@ export default function Dashboard() {
     }
   }
 
-  // הגנה ומניעת הארכות כפולות עם הודעת סטטוס מעוצבת
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
@@ -2242,27 +2240,29 @@ export default function Dashboard() {
           )}
 
           {isSuperAdmin && activeTab === 'admin_clients' && (
-            <AdminUsersTab
-              t={t}
-              isHebrew={isHebrew}
-              allAccounts={allAccounts}
-              filteredAdminAccounts={filteredAdminAccounts}
-              adminSearchTerm={adminSearchTerm}
-              setAdminSearchTerm={setAdminSearchTerm}
-              handleSort={handleSort}
-              sortField={sortField}
-              sortDirection={sortDirection}
-              liveTick={liveTick}
-              handleUpdatePlanOnly={handleUpdatePlanOnly}
-              handleAdminPlanChange={handleAdminPlanChange}
-              handleExtendTrial14Days={handleExtendTrial14Days}
-              setPendingRegionChange={setPendingRegionChange}
-              setPendingLifetimeUser={setPendingLifetimeUser}
-              handleToggleLifetime={handleToggleLifetime}
-              setSelectedUserDetails={setSelectedUserDetails}
-              handleOpenNewUsersModal={handleOpenNewUsersModal}
-              lastSeenNewUsersTime={lastSeenNewUsersTime}
-            />
+            <ErrorBoundary isHebrew={isHebrew}>
+              <AdminUsersTab
+                t={t}
+                isHebrew={isHebrew}
+                allAccounts={allAccounts}
+                filteredAdminAccounts={filteredAdminAccounts}
+                adminSearchTerm={adminSearchTerm}
+                setAdminSearchTerm={setAdminSearchTerm}
+                handleSort={handleSort}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                liveTick={liveTick}
+                handleUpdatePlanOnly={handleUpdatePlanOnly}
+                handleAdminPlanChange={handleAdminPlanChange}
+                handleExtendTrial14Days={handleExtendTrial14Days}
+                setPendingRegionChange={setPendingRegionChange}
+                setPendingLifetimeUser={setPendingLifetimeUser}
+                handleToggleLifetime={handleToggleLifetime}
+                setSelectedUserDetails={setSelectedUserDetails}
+                handleOpenNewUsersModal={handleOpenNewUsersModal}
+                lastSeenNewUsersTime={lastSeenNewUsersTime}
+              />
+            </ErrorBoundary>
           )}
 
         </div>
@@ -2312,4 +2312,29 @@ export default function Dashboard() {
       </footer>
     </div>
   );
+}
+
+// קומפוננטת הגנה פנימית למניעת מסך לבן בזמן שגיאות רינדור
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '30px', textAlign: 'center', background: '#fef2f2', borderRadius: '12px', border: '1px solid #f87171', color: '#991b1b', margin: '20px 0' }}>
+          <h3>{this.props.isHebrew ? 'שגיאה בטעינת הרכיב' : 'Component Loading Error'}</h3>
+          <p style={{ fontSize: '0.85rem' }}>{this.props.isHebrew ? 'אירעה שגיאה זמנית בהצגת הנתונים. אנא רענן את העמוד.' : 'An error occurred while loading. Please refresh the page.'}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
