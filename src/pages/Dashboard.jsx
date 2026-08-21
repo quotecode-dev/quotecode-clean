@@ -41,6 +41,8 @@ const DEFAULT_TERMS_ENG = `General Terms:
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
 export default function Dashboard() {
+  const now = new Date(); // ⬅️ הוגדר מראש בראש הקומפוננטה כדי למנוע ReferenceError לחלוטין!
+
   const [session, setSession] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [emailInput, setEmailInput] = useState('');
@@ -332,7 +334,6 @@ export default function Dashboard() {
   let isTrialExpired = false;
   if (trialEndsAt) {
     const end = new Date(trialEndsAt);
-    const now = new Date();
     const diffTime = end - now;
     trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     isTrialExpired = trialDaysLeft <= 0;
@@ -696,9 +697,9 @@ export default function Dashboard() {
       return;
     }
 
-    const now = new Date();
-    if (acc.trial_ends_at && new Date(acc.trial_ends_at) > now) {
-      const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - now) / (1000 * 60 * 60 * 24));
+    const trialNow = new Date();
+    if (acc.trial_ends_at && new Date(acc.trial_ends_at) > trialNow) {
+      const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - trialNow) / (1000 * 60 * 60 * 24));
       setStatusMsg({ 
         text: isHebrew ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.` : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`, 
         type: 'error' 
@@ -706,7 +707,7 @@ export default function Dashboard() {
       return;
     }
     
-    const newEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const newEnd = new Date(trialNow.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const { error } = await supabase
       .from('business_settings')
@@ -1228,8 +1229,8 @@ export default function Dashboard() {
   taxAmount = baseAmount * taxRate;
   totalAmount = baseAmount + taxAmount;
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
   const monthlyQuotesCount = quotes.filter(q => {
     const qDate = new Date(q.created_at);
     return qDate.getMonth() === currentMonth && qDate.getFullYear() === currentYear;
