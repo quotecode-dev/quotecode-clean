@@ -1,5 +1,5 @@
 // ==============================================================================
-// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. שעון ניסיון מוצג אך ורק למי שבמסלול Trial אמיתי (מנויי Basic ו-Pro מוגנים כ-Paid/Active).
+// 🚨 חוק ברזל קשוח (AdminUsersTab.jsx): ניהול מתקדם של משתמשים. שעון הניסיון והסטטוס מופרדים בצורה נקייה בין מנויים פעילים למשתמשי Trial.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -98,7 +98,7 @@ export default function AdminUsersTab({
     }
   };
 
-  // שעון ספירה לאחור: מוצג אך ורק למשתמשים שהם בסטטוס Trial אמיתי (לא בייסיק, לא פרו, ולא אדמין)
+  // שעון ספירה לאחור: מתוקן כך שיקבל את כל הפרמטרים בצורה בטוחה לחלוטין
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
     const normalizedPlan = (plan || 'free').toLowerCase();
@@ -285,7 +285,7 @@ export default function AdminUsersTab({
                 const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 
-                // תיקון קריטי: Lifetime מותר אך ורק אם המשתמש הוא Super Admin או אם הוגדר במפורש כ-Lifetime (trial_ends_at === null). מנויי Basic/Pro אינם Lifetime אלא אם סומנו במפורש, ולמשתמשי Free יש Trial.
+                // Lifetime מותר אך ורק אם המשתמש הוא Super Admin או אם הוגדר במפורש כ-Lifetime (trial_ends_at === null במסד)
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
                 const currentCountry = acc.country || 'Local';
                 
