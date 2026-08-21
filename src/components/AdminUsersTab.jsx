@@ -33,7 +33,6 @@ export default function AdminUsersTab({
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // סינון החוצה של משתמשים שנמחקו/אופסו כדי שלא יוצגו בטבלה
   const activeAccountsList = (filteredAdminAccounts || []).filter(acc => {
     if (!acc) return false;
     const email = (acc.email || '').toLowerCase();
@@ -438,6 +437,7 @@ export default function AdminUsersTab({
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <select 
                           value={planValue} 
+                          disabled={isPaidSubscriber && !isSuperAdminUser}
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === 'ext_14') {
@@ -452,12 +452,15 @@ export default function AdminUsersTab({
                             padding: isHebrew ? '4px 10px 4px 24px' : '4px 24px 4px 10px', 
                             borderRadius: '8px', 
                             border: `1px solid ${pBorder}`, 
-                            background: pBg, 
+                            background: isPaidSubscriber && !isSuperAdminUser ? '#f8fafc' : pBg, 
                             fontSize: '0.7rem', 
                             fontWeight: '800', 
-                            color: pColor,
-                            cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            color: isPaidSubscriber && !isSuperAdminUser ? '#94a3b8' : pColor,
+                            cursor: isPaidSubscriber && !isSuperAdminUser ? 'not-allowed' : 'pointer', 
+                            outline: 'none', 
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                           }}
+                          title={isPaidSubscriber && !isSuperAdminUser ? 'Paid subscriber plan cannot be changed manually' : ''}
                         >
                           <option value="free">FREE</option>
                           <option value="basic">BASIC</option>
