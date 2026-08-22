@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   if (!isOpen || !user) return null;
@@ -46,7 +45,12 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   }
 
   // בדיקה האם מנוי לכל החיים (רק אם trial_ends_at הוא ממש null / undefined)
-  const isLifetime = user.trial_ends_at === null || user.trial_ends_at === undefined;
+  const isSuperAdminUser = user.role === 'super_admin';
+  const isLifetime = isSuperAdminUser || user.trial_ends_at === null || user.trial_ends_at === undefined;
+  const rawPlan = (user.plan || 'free').toLowerCase();
+  // Lifetime שקול ל-PRO גם אם שדה ה-plan הגולמי נשאר "free"/"basic" (handleToggleLifetime מעדכן רק trial_ends_at)
+  const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
+  const displayPlan = (isSuperAdminUser || isLifetime) ? 'PRO' : rawPlan.toUpperCase();
 
   return (
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
@@ -54,8 +58,8 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
         
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
 
-        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', fontSize: '1.2rem' }}>
-          👤
+        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
 
         <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
@@ -85,7 +89,9 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
           </div>
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
             <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'חבילה פעילה:' : 'Plan:'}</strong>
-            <span style={{ fontWeight: 'bold', color: '#4f46e5', textTransform: 'uppercase' }}>{user.plan || 'Free'}</span>
+            <span style={{ fontWeight: 'bold', color: isGrantedLifetimePro ? '#7c3aed' : '#4f46e5', textTransform: 'uppercase' }}>
+              {displayPlan}{isGrantedLifetimePro ? (isHebrew ? ' (לכל החיים)' : ' (Lifetime)') : ''}
+            </span>
           </div>
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
             <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'אזור פעילות:' : 'Region:'}</strong>

@@ -10,12 +10,28 @@ export default defineConfig([
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
-      reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      // Only the classic, battle-tested hooks rules - the rest of the "recommended"
+      // preset in eslint-plugin-react-hooks v7+ targets React Compiler adoption
+      // (purity/immutability/set-state-in-effect/etc.) and isn't what this project needs.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+  },
+  {
+    // Vercel serverless functions run under Node, not the browser
+    files: ['api/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

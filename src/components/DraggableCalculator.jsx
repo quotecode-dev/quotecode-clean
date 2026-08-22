@@ -2,7 +2,7 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (DraggableCalculator.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function DraggableCalculator({ isOpen, onClose, isHebrew, currency }) {
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -42,7 +42,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
           const now = new Date();
           setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
-      } catch (e) {
+      } catch {
         setRates({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
         setLastUpdated('Live (Cached)');
       }

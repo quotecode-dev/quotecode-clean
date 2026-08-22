@@ -6,6 +6,13 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
   try {
     const today = new Date().toISOString().split('T')[0];
     const logs = [];

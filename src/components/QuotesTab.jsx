@@ -3,7 +3,6 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
-import React from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
 
 export default function QuotesTab({
@@ -20,7 +19,6 @@ export default function QuotesTab({
   handleEditClick,
   handleDuplicateQuote,
   sendWhatsApp,
-  executeEmailSend,
   handleDeleteQuote,
   handleProtectedAction,
   activeTooltip,
@@ -31,7 +29,6 @@ export default function QuotesTab({
   handleToggleDropdown,
   isHebrew,
   isLocalIsraeliBusiness,
-  sym,
   formatNum,
   t,
   setPendingEmailQuote,
@@ -40,10 +37,14 @@ export default function QuotesTab({
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
-  const getQuoteViewLink = (quoteId) => {
-    return isHebrew 
-      ? `${window.location.origin}/public-quote/${quoteId}`
-      : `${window.location.origin}/en/public-quote/${quoteId}?lang=en`;
+  // השפה/מע"מ של קישור ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate)
+  // ולא מהגדרת השפה הנוכחית של המשתמש המחובר - כך שקישור להצעה בינלאומית
+  // תמיד יפתח כאנגלית/ללא מע"מ, גם אם נוצר ע"י בעל עסק ישראלי, ולהיפך.
+  const getQuoteViewLink = (quote) => {
+    const isLocalQuote = Number(quote?.tax_rate) > 0 || (quote?.currency || '').toUpperCase() === 'ILS';
+    return isLocalQuote
+      ? `${window.location.origin}/public-quote/${quote.id}`
+      : `${window.location.origin}/en/public-quote/${quote.id}?lang=en`;
   };
 
   const getQuoteCurrencySymbol = (quoteCurr) => {
@@ -160,7 +161,6 @@ export default function QuotesTab({
             ) : (
               quotes.map((quote) => {
                 const currentStatus = quote.status ? quote.status.toLowerCase() : 'draft';
-                const isLocked = currentStatus === 'approved' || currentStatus === 'paid' || quote.signature;
                 const isDropdownOpen = openDropdownId === quote.id;
                 const emailStatus = emailStatuses ? emailStatuses[quote.id] : null;
 
@@ -271,7 +271,7 @@ export default function QuotesTab({
                               }}
                             >
                               <button
-                                onClick={() => { setOpenDropdownId(null); window.open(getQuoteViewLink(quote.id), '_blank'); }}
+                                onClick={() => { setOpenDropdownId(null); window.open(getQuoteViewLink(quote), '_blank'); }}
                                 style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: '#3730a3', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                 onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                 onMouseLeave={(e) => e.target.style.background = 'none'}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 
 const getDialByCurrency = (curr) => {
@@ -21,7 +21,7 @@ export default function QuoteForm({
   clientTaxId, setClientTaxId,
   clientAddress, setClientAddress,
   quoteSubject, setQuoteSubject,
-  currency, setCurrency,
+  currency,
   quoteStatus, setQuoteStatus,
   validUntil, setValidUntil,
   discount, setDiscount,
@@ -39,13 +39,11 @@ export default function QuoteForm({
   discountAmount,
   taxAmount,
   totalAmount,
-  taxRate,
   isTrialExpired,
   isSuperAdmin,
   addItem,
   removeItem,
   handleItemChange,
-  handleAddFromCatalog,
   userPlan,
   onOpenPricingModal,
   quoteFiles,
@@ -209,13 +207,7 @@ export default function QuoteForm({
   const handleDisplayDateChange = (e) => {
     let val = e.target.value.replace(/\D/g, '');
     if (val.length > 8) val = val.slice(0, 8);
-    let formatted = val;
-    if (val.length > 4) {
-      formatted = `${val.slice(0, 2)}-${val.slice(2, 4)}-${val.slice(4)}`;
-    } else if (val.length > 2) {
-      formatted = `${val.slice(0, 2)}-${val.slice(2)}`;
-    }
-    
+
     if (val.length === 8) {
       const p1 = val.slice(0, 2);
       const p2 = val.slice(2, 4);

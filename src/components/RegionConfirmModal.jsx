@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function RegionConfirmModal({ isOpen, onClose, onConfirm, userEmail, newCountry, isHebrew }) {
   if (!isOpen) return null;

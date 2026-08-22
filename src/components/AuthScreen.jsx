@@ -2,7 +2,6 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (AuthScreen.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import React from 'react';
 import ProFlowLogo from './ProFlowLogo';
 
 export default function AuthScreen({

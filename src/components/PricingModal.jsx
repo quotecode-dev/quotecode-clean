@@ -3,8 +3,9 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../shared/supabase';
+import { wipeUserData } from '../shared/wipeUserData';
 
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -74,10 +75,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         if (error) throw error;
 
         if (dataPreference === 'delete') {
-          await supabase.from('quotes').delete().eq('user_id', userId);
-          await supabase.from('clients').delete().eq('user_id', userId);
-          await supabase.from('services').delete().eq('user_id', userId);
-          await supabase.from('expenses').delete().eq('user_id', userId);
+          await wipeUserData(userId);
         }
       }
 

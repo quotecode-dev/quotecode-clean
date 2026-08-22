@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote }) {
   const hasLogo = bizLogo && bizLogo.length > 5;

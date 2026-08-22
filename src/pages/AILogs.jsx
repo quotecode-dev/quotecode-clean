@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { formatDateLocal } from '../utils/regionConfig';
 
 export default function AILogs() {
+  // שער הרשאות: רק super_admin מחובר רשאי לצפות בלוגים. כל עוד לא אושר - לא נטען שום מידע.
+  const [authStatus, setAuthStatus] = useState('checking'); // 'checking' | 'authorized' | 'denied'
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null); // לפתיחת המלל המלא במודל
@@ -14,13 +16,41 @@ export default function AILogs() {
   const [sortDirection, setSortDirection] = useState('desc');
 
   useEffect(() => {
+    async function checkAccess() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        setAuthStatus('denied');
+        window.location.href = '/dashboard';
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error || data?.role !== 'super_admin') {
+        setAuthStatus('denied');
+        window.location.href = '/dashboard';
+        return;
+      }
+
+      setAuthStatus('authorized');
+    }
+    checkAccess();
+  }, []);
+
+  useEffect(() => {
+    if (authStatus !== 'authorized') return;
+
     async function fetchLogs() {
       setLoading(true);
       const { data, error } = await supabase
         .from('chat_logs')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (data) {
         setLogs(data);
       } else if (error) {
@@ -29,7 +59,15 @@ export default function AILogs() {
       setLoading(false);
     }
     fetchLogs();
-  }, []);
+  }, [authStatus]);
+
+  if (authStatus !== 'authorized') {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontFamily: 'Arial, sans-serif' }}>
+        {authStatus === 'checking' ? 'בודק הרשאות...' : 'מפנה מחדש...'}
+      </div>
+    );
+  }
 
   const handleSort = (field) => {
     if (sortField === field) {

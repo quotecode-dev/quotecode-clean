@@ -3,7 +3,7 @@
 // חל איסור מוחלט לפתוח הצעות מחיר או עמודים ללא אכיפת השפה התואמת (עברית/אנגלית).
 // ==========================================
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import LandingGlobal from './pages/LandingGlobal';
 import LandingLocal from './pages/LandingLocal';

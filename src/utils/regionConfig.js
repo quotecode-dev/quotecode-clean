@@ -78,7 +78,7 @@ export const formatDateLocal = (dateString, isHebrew, currency = 'USD') => {
     }
 
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };
@@ -88,7 +88,7 @@ export const formatNumberLocal = (val, isHebrew) => {
   try {
     const locale = isHebrew ? 'he-IL' : 'en-US';
     return num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  } catch (e) {
+  } catch {
     return num.toFixed(2);
   }
 };

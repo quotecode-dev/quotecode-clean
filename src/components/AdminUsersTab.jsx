@@ -2,11 +2,26 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (AdminUsersTab.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../shared/supabase';
+import { wipeUserData } from '../shared/wipeUserData';
+
+// Edge Function errors return the real reason in the response body (e.g. "Cannot delete
+// a Super Admin account") - supabase-js's default error.message is just a generic
+// "non-2xx status code", so for a destructive admin action we dig out the real message.
+async function getFunctionErrorMessage(error, fallback) {
+  try {
+    if (error?.context && typeof error.context.json === 'function') {
+      const body = await error.context.json();
+      if (body?.error) return body.error;
+    }
+  } catch {
+    // fall through to the generic message below
+  }
+  return error?.message || fallback;
+}
 
 export default function AdminUsersTab({
-  t,
   isHebrew,
   allAccounts = [],
   filteredAdminAccounts = [],
@@ -16,8 +31,6 @@ export default function AdminUsersTab({
   sortField,
   sortDirection,
   liveTick,
-  handleUpdatePlanOnly,
-  handleAdminPlanChange,
   setPendingRegionChange,
   setPendingLifetimeUser,
   handleToggleLifetime,
@@ -86,13 +99,7 @@ export default function AdminUsersTab({
 
       const targetUserId = resetModalUser.user_id;
       if (targetUserId) {
-        await supabase.from('quote_items').delete().in('quote_id', (
-          await supabase.from('quotes').select('id').eq('user_id', targetUserId)
-        ).data?.map(q => q.id) || []);
-        
-        await supabase.from('quotes').delete().eq('user_id', targetUserId);
-        await supabase.from('clients').delete().eq('user_id', targetUserId);
-        await supabase.from('expenses').delete().eq('user_id', targetUserId);
+        await wipeUserData(targetUserId);
       }
 
       setResetModalUser(null);
@@ -131,31 +138,23 @@ export default function AdminUsersTab({
       }
 
       const targetUserId = deleteModalUser.user_id;
-      
-      if (targetUserId) {
-        const { data: userQuotes } = await supabase.from('quotes').select('id').eq('user_id', targetUserId);
-        if (userQuotes && userQuotes.length > 0) {
-          const qIds = userQuotes.map(q => q.id);
-          await supabase.from('quote_items').delete().in('quote_id', qIds);
-          await supabase.from('quote_attachments').delete().in('quote_id', qIds);
-        }
-        await supabase.from('quotes').delete().eq('user_id', targetUserId);
-        await supabase.from('clients').delete().eq('user_id', targetUserId);
-        await supabase.from('services').delete().eq('user_id', targetUserId);
-        await supabase.from('expenses').delete().eq('user_id', targetUserId);
+      if (!targetUserId) {
+        throw new Error(isHebrew ? 'לא נמצא מזהה משתמש למחיקה.' : 'No user id found to delete.');
       }
 
-      await supabase
-        .from('business_settings')
-        .update({ 
-          business_name: 'DELETED', 
-          email: `deleted_${Date.now()}@proflow.com`, 
-          tax_id: '', 
-          phone: '', 
-          plan: 'free', 
-          trial_ends_at: new Date(0).toISOString() 
-        })
-        .eq('id', deleteModalUser.id);
+      // מחיקה מלאה חייבת לרוץ בצד השרת (Service Role): כל נתוני העסק + שורת
+      // business_settings + חשבון ה-Auth עצמו - כדי שהאימייל יתפנה להרשמה חוזרת.
+      // הקליינט (anon key) לעולם לא יכול לגשת ל-supabase.auth.admin.
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-delete-user', {
+        body: { targetUserId }
+      });
+
+      if (fnError) {
+        throw new Error(await getFunctionErrorMessage(fnError, isHebrew ? 'שגיאה במחיקת המשתמש.' : 'Failed to delete user.'));
+      }
+      if (fnData?.error) {
+        throw new Error(fnData.error);
+      }
 
       setDeleteModalUser(null);
       setAdminPasswordInput('');
@@ -190,7 +189,7 @@ export default function AdminUsersTab({
         return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
       }
       return isHebrew ? `${hours} שע'` : `${hours}h left`;
-    } catch (err) {
+    } catch {
       return isHebrew ? 'לא ידוע' : 'N/A';
     }
   };
@@ -327,32 +326,47 @@ export default function AdminUsersTab({
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-        <div onClick={() => handleOpenNewUsersModal(newUsersList)} style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.58rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>NEW USERS (24H)</div>
+        <div onClick={() => handleOpenNewUsersModal(newUsersList)} style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#e0e7ff', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+          </span>
+          <div style={{ fontSize: '0.58rem', color: '#4f46e5', fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'משתמשים חדשים (24 ש\')' : 'NEW USERS (24H)'}</div>
           <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#4f46e5' }}>{unreadNewUsersCount}</div>
         </div>
-        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.58rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>ACTIVE (10M)</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#dcfce7', color: '#166534', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
+          <div style={{ fontSize: '0.58rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'פעילים (10 ד\')' : 'ACTIVE (10M)'}</div>
           <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#166534' }}>{activeRecent} <span style={{display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
         </div>
-        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>LOCAL (LCL)</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </span>
+          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'מקומי (LCL)' : 'LOCAL (LCL)'}</div>
           <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{localU}</div>
         </div>
-        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.58rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>INTERNATIONAL</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#fee2e2', color: '#991b1b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </span>
+          <div style={{ fontSize: '0.58rem', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'בינלאומי' : 'INTERNATIONAL'}</div>
           <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#991b1b' }}>{intlU}</div>
         </div>
-        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>TOTAL USERS</div>
+        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#eef2ff', color: '#4338ca', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'סה"כ משתמשים' : 'TOTAL USERS'}</div>
           <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>{totalU}</div>
         </div>
       </div>
 
       <div style={{ marginBottom: '14px' }}>
-        <input 
-          type="text" 
-          placeholder="Search user (email or business)..." 
+        <input
+          type="text"
+          placeholder={isHebrew ? 'חיפוש משתמש (אימייל או שם עסק)...' : 'Search user (email or business)...'}
           value={adminSearchTerm}
           onChange={(e) => setAdminSearchTerm(e.target.value)}
           style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '240px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: 'white', outline: 'none' }}
@@ -366,31 +380,31 @@ export default function AdminUsersTab({
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle' }}>
               <th style={{ padding: '10px 6px', width: '20%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('email')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Email</span>
+                  <span>{isHebrew ? 'אימייל' : 'Email'}</span>
                   {sortField === 'email' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('business_name')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Business</span>
+                  <span>{isHebrew ? 'עסק' : 'Business'}</span>
                   {sortField === 'business_name' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('plan')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Plan</span>
+                  <span>{isHebrew ? 'חבילה' : 'Plan'}</span>
                   {sortField === 'plan' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('country')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Region</span>
+                  <span>{isHebrew ? 'אזור' : 'Region'}</span>
                   {sortField === 'country' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('role')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Role</span>
+                  <span>{isHebrew ? 'הרשאה' : 'Role'}</span>
                   {sortField === 'role' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
@@ -402,18 +416,18 @@ export default function AdminUsersTab({
               </th>
               <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_extension')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Trial Ext</span>
+                  <span>{isHebrew ? 'הארכת ניסיון' : 'Trial Ext'}</span>
                   {sortField === 'trial_extension' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('last_sign_in')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <span>Last Sign In</span>
+                  <span>{isHebrew ? 'כניסה אחרונה' : 'Last Sign In'}</span>
                   {sortField === 'last_sign_in' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', textAlign: 'center', width: '13%', verticalAlign: 'middle' }}>
-                Actions
+                {isHebrew ? 'פעולות' : 'Actions'}
               </th>
             </tr>
           </thead>
@@ -421,17 +435,22 @@ export default function AdminUsersTab({
             {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
               <tr>
                 <td colSpan="9" style={{ textAlign: 'center', padding: '25px', color: '#94a3b8', fontSize: '0.8rem' }}>
-                  No users found matching your search.
+                  {isHebrew ? 'לא נמצאו משתמשים התואמים לחיפוש.' : 'No users found matching your search.'}
                 </td>
               </tr>
             ) : (
               activeAccountsList.map(acc => {
                 if (!acc) return null;
                 const isSuperAdminUser = acc.role === 'super_admin';
-                const planValue = isSuperAdminUser ? 'pro' : (acc.plan ? acc.plan.toLowerCase() : 'free');
-                
-                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
+                const rawPlan = acc.plan ? acc.plan.toLowerCase() : 'free';
+                // משתמש Lifetime מקבל גישה שקולה ל-PRO ללא הגבלה, גם אם שדה ה-plan הגולמי נשאר "free"/"basic"
+                // (handleToggleLifetime מעדכן רק trial_ends_at ולא נוגע ב-plan) - לכן חובה לגזור את התצוגה משניהם יחד
+                const planValue = (isSuperAdminUser || isLifetime) ? 'pro' : rawPlan;
+                // Pro שהוענק דרך Lifetime toggle (ולא נרכש בפועל) מסומן ויזואלית בנפרד מ-Pro משלם אמיתי
+                const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
+
+                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const currentCountry = acc.country || 'Local';
                 const isIntl = currentCountry === 'International';
 
@@ -467,35 +486,53 @@ export default function AdminUsersTab({
 
                     {/* Plan Icon */}
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span 
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9', color: planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b' }}
-                        title={`Plan: ${planValue.toUpperCase()}`}
+                      <span
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isGrantedLifetimePro ? '#f3e8ff' : planValue === 'pro' ? '#e0e7ff' : planValue === 'basic' ? '#e0f2fe' : '#f1f5f9', color: isGrantedLifetimePro ? '#7c3aed' : planValue === 'pro' ? '#4f46e5' : planValue === 'basic' ? '#0284c7' : '#64748b' }}
+                        title={isHebrew
+                          ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}`
+                          : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
                       >
-                        {planValue === 'pro' ? '⚡' : planValue === 'basic' ? '💼' : '🌱'}
+                        {isGrantedLifetimePro ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M5 20h14"/></svg>
+                        ) : planValue === 'pro' ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 11-13h-7l1-7z"/></svg>
+                        ) : planValue === 'basic' ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                        )}
                       </span>
                     </td>
 
                     {/* Region Icon */}
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span 
+                      <span
                         onClick={() => {
                           const newC = isIntl ? 'Local' : 'International';
                           setPendingRegionChange({ accountId: acc.id, newCountry: newC, userEmail: acc.email });
                         }}
                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isIntl ? '#fee2e2' : '#dcfce7', color: isIntl ? '#991b1b' : '#166534', cursor: 'pointer' }}
-                        title={`Region: ${currentCountry} (Click to toggle)`}
+                        title={isHebrew ? `אזור: ${currentCountry} (לחץ להחלפה)` : `Region: ${currentCountry} (Click to toggle)`}
                       >
-                        {isIntl ? '🌍' : '🏠'}
+                        {isIntl ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        )}
                       </span>
                     </td>
 
                     {/* Role Icon */}
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span 
+                      <span
                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isSuperAdminUser ? '#fee2e2' : '#f1f5f9', color: isSuperAdminUser ? '#991b1b' : '#475569' }}
-                        title={`Role: ${acc.role || 'user'}`}
+                        title={isHebrew ? `הרשאה: ${acc.role || 'user'}` : `Role: ${acc.role || 'user'}`}
                       >
-                        {isSuperAdminUser ? '🛡️' : '👤'}
+                        {isSuperAdminUser ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        )}
                       </span>
                     </td>
 
@@ -522,12 +559,14 @@ export default function AdminUsersTab({
                             alignItems: 'center', 
                             justifyContent: 'center'
                           }}
-                          title={isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime'}
+                          title={isHebrew
+                            ? (isLifetime ? 'Lifetime מופעל (לחץ לביטול)' : 'הפעל Lifetime')
+                            : (isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime')}
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </button>
                         <span style={{ fontSize: '0.68rem', fontWeight: '600', color: isLifetime ? '#7c3aed' : '#64748b' }}>
-                          {isLifetime ? 'Lifetime' : 'Standard'}
+                          {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
                         </span>
                       </div>
                     </td>
@@ -537,7 +576,7 @@ export default function AdminUsersTab({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isPaidSubscriber && !isSuperAdminUser ? (
                           <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 'bold', background: '#dcfce7', padding: '2px 6px', borderRadius: '8px' }}>
-                            Active
+                            {isHebrew ? 'פעיל' : 'Active'}
                           </span>
                         ) : (
                           <>
@@ -557,14 +596,14 @@ export default function AdminUsersTab({
                                   alignItems: 'center',
                                   justifyContent: 'center'
                                 }}
-                                title="Extend Trial by 14 Days"
+                                title={isHebrew ? 'הארך ניסיון ב-14 יום' : 'Extend Trial by 14 Days'}
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                               </button>
                             )}
                             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.1' }}>
                               <span style={{ fontSize: '0.62rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                                {isLifetime ? 'No expiry' : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
+                                {isLifetime ? (isHebrew ? 'ללא תפוגה' : 'No expiry') : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
                               </span>
                               {!isLifetime && (
                                 <span style={{ fontSize: '0.55rem', color: '#0284c7', fontWeight: 'bold' }}>
@@ -590,7 +629,7 @@ export default function AdminUsersTab({
                         <button
                           onClick={() => setSelectedUserDetails(acc)}
                           style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          title="View Details"
+                          title={isHebrew ? 'צפה בפרטים' : 'View Details'}
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         </button>
@@ -598,7 +637,7 @@ export default function AdminUsersTab({
                         <button
                           onClick={() => setResetModalUser(acc)}
                           style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          title="Reset Data"
+                          title={isHebrew ? 'איפוס נתונים' : 'Reset Data'}
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.23-5.19"/></svg>
                         </button>
@@ -607,7 +646,7 @@ export default function AdminUsersTab({
                           <button
                             onClick={() => setDeleteModalUser(acc)}
                             style={{ background: '#991b1b', color: 'white', border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                            title="Delete User"
+                            title={isHebrew ? 'מחק משתמש' : 'Delete User'}
                           >
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                           </button>

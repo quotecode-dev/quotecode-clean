@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
+import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,9 +37,7 @@ export default function PublicQuote() {
   const [approved, setApproved] = useState(false);
   const [attachments, setAttachments] = useState([]);
 
-  const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSigned, setHasSigned] = useState(false);
+  const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   useEffect(() => {
     document.title = "ProFlow - הצעת מחיר דיגיטלית";
@@ -73,7 +72,6 @@ export default function PublicQuote() {
         setAttachments(attData);
       }
 
-      let bizData = null;
       if (data?.user_id) {
         const { data: bData } = await supabase
           .from('business_settings')
@@ -82,7 +80,6 @@ export default function PublicQuote() {
           .maybeSingle();
 
         if (bData) {
-          bizData = bData;
           setBusinessSettings(bData);
         }
       }
@@ -107,54 +104,6 @@ export default function PublicQuote() {
     }
   };
 
-  const startDrawing = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    setHasSigned(true);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasSigned(false);
-  };
-
   const handleApprove = async () => {
     if (!hasSigned) {
       alert('נא לחתום על גבי המסמך לפני האישור');
@@ -162,14 +111,11 @@ export default function PublicQuote() {
     }
 
     try {
-      const canvas = canvasRef.current;
-      const signatureDataUrl = canvas ? canvas.toDataURL('image/png') : null;
-
       const { error } = await supabase
         .from('quotes')
         .update({
           status: 'approved',
-          signature: signatureDataUrl
+          signature: getSignatureDataUrl()
         })
         .eq('id', id);
 
@@ -199,7 +145,9 @@ export default function PublicQuote() {
 
   const isHebrew = true;
   const currencySymbol = '₪';
-  const vatRate = 0.18;
+  // שיעור המע"מ נגזר מנתוני ההצעה השמורים (tax_rate) ולא קבוע קשיח - כך שהתעריף
+  // שהוצג/הוסכם בעת יצירת ההצעה הוא זה שיוצג גם בקישור הציבורי, גם אם ברירת המחדל תשתנה בעתיד
+  const vatRate = (quote.tax_rate !== undefined && quote.tax_rate !== null) ? Number(quote.tax_rate) : 0.18;
 
   let parsedItems = [];
   try {
@@ -208,7 +156,7 @@ export default function PublicQuote() {
     } else if (Array.isArray(quote.items)) {
       parsedItems = quote.items;
     }
-  } catch (e) {
+  } catch {
     parsedItems = [];
   }
 

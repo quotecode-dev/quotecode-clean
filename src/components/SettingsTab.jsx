@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -12,7 +12,6 @@ const getDialByCurrency = (curr, isLocal) => {
 };
 
 export default function SettingsTab({
-  t,
   isHebrew,
   handleSaveSettings,
   bizName,

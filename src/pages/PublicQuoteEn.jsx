@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
+import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -12,7 +13,6 @@ const formatDisplayPhone = (phone) => {
 
 export default function PublicQuoteEn() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [quote, setQuote] = useState(null);
   const [businessSettings, setBusinessSettings] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -21,9 +21,7 @@ export default function PublicQuoteEn() {
   const [approved, setApproved] = useState(false);
   const [attachments, setAttachments] = useState([]);
 
-  const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSigned, setHasSigned] = useState(false);
+  const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   useEffect(() => {
     document.title = "ProFlow - Digital Price Quote";
@@ -81,55 +79,10 @@ export default function PublicQuoteEn() {
     }
   };
 
-  const startDrawing = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    setHasSigned(true);
-  };
-
-  const stopDrawing = () => setIsDrawing(false);
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-    setHasSigned(false);
-  };
-
   const handleApprove = async () => {
     if (!hasSigned) { alert('Please sign the quote before approval'); return; }
     try {
-      const signatureDataUrl = canvasRef.current ? canvasRef.current.toDataURL('image/png') : null;
-      const { error } = await supabase.from('quotes').update({ status: 'approved', signature: signatureDataUrl }).eq('id', id);
+      const { error } = await supabase.from('quotes').update({ status: 'approved', signature: getSignatureDataUrl() }).eq('id', id);
       if (error) throw error;
       setApproved(true);
     } catch (err) { alert(`Error: ${err.message}`); }
@@ -142,7 +95,7 @@ export default function PublicQuoteEn() {
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
   
   let parsedItems = [];
-  try { parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items) : (Array.isArray(quote.items) ? quote.items : []); } catch (e) { parsedItems = []; }
+  try { parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items) : (Array.isArray(quote.items) ? quote.items : []); } catch { /* keep default [] */ }
 
   const subtotal = quote.subtotal ? Number(quote.subtotal) : parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
   const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal;

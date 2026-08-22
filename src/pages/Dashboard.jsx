@@ -7,7 +7,7 @@ import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
-import { isHebrewEnv, getCurrencySym, getRegionTaxRate } from '../utils/regionConfig';
+import { isHebrewEnv, getRegionTaxRate } from '../utils/regionConfig';
 
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
@@ -106,7 +106,7 @@ export default function Dashboard() {
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [activeTooltip, setActiveTooltip] = useState({ quoteId: null, action: null });
+  const [activeTooltip] = useState({ quoteId: null, action: null });
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
@@ -123,7 +123,6 @@ export default function Dashboard() {
 
   const [currency, setCurrency] = useState('ILS');
 
-  const [adminActionModal, setAdminActionModal] = useState({ isOpen: false, type: null, account: null });
   const [liveTick, setLiveTick] = useState(0);
 
   const [lastSeenNewUsersTime, setLastSeenNewUsersTime] = useState(() => {
@@ -150,7 +149,7 @@ export default function Dashboard() {
     if (session) {
       window.history.pushState({ dashboard: true }, '', window.location.href);
 
-      const handlePopState = (e) => {
+      const handlePopState = () => {
         window.history.pushState({ dashboard: true }, '', window.location.href);
         setShowSignOutModal(true);
       };
@@ -460,7 +459,7 @@ export default function Dashboard() {
   async function fetchSettings(userId, userEmail) {
     const nowIso = new Date().toISOString();
 
-    let { data, error } = await supabase
+    let { data } = await supabase
       .from('business_settings')
       .select('*')
       .eq('user_id', userId)
@@ -641,11 +640,10 @@ export default function Dashboard() {
           .update(updatePayload)
           .eq('user_id', targetAcc.user_id)
           .select();
-        data = res.data;
         error = res.error;
       }
     }
-    
+
     if (error) {
       setAlertModalMsg(isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message);
     } else {
@@ -672,7 +670,6 @@ export default function Dashboard() {
           .update(updatePayload)
           .eq('user_id', targetAcc.user_id)
           .select();
-        data = res.data;
         error = res.error;
       }
     }
@@ -716,35 +713,6 @@ export default function Dashboard() {
       setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום בהצלחה!' : 'Trial extended by 14 days successfully!', type: 'success' });
       fetchAllAccounts();
     }
-  }
-
-  async function executeAdminAction() {
-    if (!adminActionModal.account) return;
-    const acc = adminActionModal.account;
-
-    if (adminActionModal.type === 'freeze') {
-      const { error } = await supabase.from('business_settings').update({ plan: 'free', trial_ends_at: null }).eq('id', acc.id);
-      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בהקפאת החשבון: ' + error.message : 'Error freezing user account: ' + error.message);
-      else {
-        setStatusMsg({ text: isHebrew ? 'המנוי הוקפא בהצלחה!' : 'Account frozen successfully!', type: 'success' });
-        fetchAllAccounts();
-      }
-    } else if (adminActionModal.type === 'delete_data') {
-      const targetUserId = acc.user_id;
-      if (targetUserId) {
-        await supabase.from('quotes').delete().eq('user_id', targetUserId);
-        await supabase.from('clients').delete().eq('user_id', targetUserId);
-        await supabase.from('services').delete().eq('user_id', targetUserId);
-        await supabase.from('expenses').delete().eq('user_id', targetUserId);
-      }
-      const { error } = await supabase.from('business_settings').delete().eq('id', acc.id);
-      if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת נתוני החשבון: ' + error.message : 'Error deleting account data: ' + error.message);
-      else {
-        setStatusMsg({ text: isHebrew ? 'החשבון והנתונים נמחקו לצמיתות!' : 'Account and data deleted successfully!', type: 'success' });
-        fetchAllAccounts();
-      }
-    }
-    setAdminActionModal({ isOpen: false, type: null, account: null });
   }
 
   function emailEmailValidation(email) {
@@ -978,7 +946,7 @@ export default function Dashboard() {
     }
 
     if (isSignUp) {
-      const { data: existingBiz, error: checkErr } = await supabase
+      const { data: existingBiz } = await supabase
         .from('business_settings')
         .select('email')
         .eq('email', emailInput)
@@ -1132,11 +1100,17 @@ export default function Dashboard() {
 
     const proposalCurr = (proposal.currency || currency || 'USD').toUpperCase();
     const proposalSym = isLocalIsraeliBusiness && proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
-    
+
+    // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
+    const isLocalQuote = Number(proposal.tax_rate) > 0 || proposalCurr === 'ILS';
+    const quoteViewLink = isLocalQuote
+      ? `${window.location.origin}/public-quote/${proposal.id}`
+      : `${window.location.origin}/en/public-quote/${proposal.id}?lang=en`;
+
     const senderName = bizName || 'ProFlow';
-    const text = isHebrew 
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${window.location.origin}/public-quote/${proposal.id}`
-      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${window.location.origin}/public-quote/${proposal.id}`;
+    const text = isHebrew
+      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
+      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
     
     const url = phoneForUrl 
       ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
@@ -1159,7 +1133,11 @@ export default function Dashboard() {
     try {
       const quoteCurr = (quote.currency || currency || 'USD').toUpperCase();
       const quoteSym = isLocalIsraeliBusiness && quoteCurr === 'ILS' ? '₪' : (quoteCurr === 'EUR' ? '€' : quoteCurr === 'GBP' ? '£' : '$');
-      const quoteLink = `${window.location.origin}/public-quote/${quote.id}`;
+      // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
+      const isLocalQuote = Number(quote.tax_rate) > 0 || quoteCurr === 'ILS';
+      const quoteLink = isLocalQuote
+        ? `${window.location.origin}/public-quote/${quote.id}`
+        : `${window.location.origin}/en/public-quote/${quote.id}?lang=en`;
       
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';
 
@@ -1220,10 +1198,9 @@ export default function Dashboard() {
   
   let taxRate = getRegionTaxRate(bizCountry);
   
-  let taxAmount = 0;
   let totalAmount = 0;
 
-  taxAmount = baseAmount * taxRate;
+  const taxAmount = baseAmount * taxRate;
   totalAmount = baseAmount + taxAmount;
 
   const currentMonth = now.getMonth();
@@ -1237,8 +1214,6 @@ export default function Dashboard() {
 
   const totalQuotesCount = quotes.length;
   const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
 
   const reportYear = now.getFullYear();
   const reportMonth = now.getMonth();
@@ -1605,19 +1580,19 @@ export default function Dashboard() {
       bVal = b.id;
     } else if (quoteSortField === 'client') {
       aVal = a.clients?.company_name || '';
-      bVal = a.clients?.company_name || '';
+      bVal = b.clients?.company_name || '';
     } else if (quoteSortField === 'total') {
       aVal = Number(a.total || 0);
       bVal = Number(b.total || 0);
     } else if (quoteSortField === 'status') {
       aVal = a.status || '';
-      bVal = a.status || '';
+      bVal = b.status || '';
     } else if (quoteSortField === 'views') {
       aVal = Number(a.view_count || 0);
       bVal = Number(b.view_count || 0);
     } else {
       aVal = a.created_at || '';
-      bVal = a.created_at || '';
+      bVal = b.created_at || '';
     }
 
     if (typeof aVal === 'string') {
@@ -1802,36 +1777,7 @@ export default function Dashboard() {
         isHebrew={isHebrew}
       />
       
-      {adminActionModal.isOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left' }}>
-            <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.1rem', marginBottom: '8px' }}>
-              {adminActionModal.type === 'freeze' 
-                ? (isHebrew ? 'האם אתה בטוח שברצונך להקפיא/לנעול את המנוי?' : 'Are you sure you want to freeze/lock this subscription?') 
-                : (isHebrew ? 'האם אתה בטוח שברצונך למחוק את החשבון והנתונים?' : 'Are you sure you want to delete this account and all data?')}
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px' }}>
-              {adminActionModal.account?.email}
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={() => setAdminActionModal({ isOpen: false, type: null, account: null })}
-                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '6px', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isHebrew ? 'ביטול' : 'Cancel'}
-              </button>
-              <button 
-                onClick={executeAdminAction}
-                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isHebrew ? 'אישור פעולה' : 'Confirm Action'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <EditClientModal 
+      <EditClientModal
         isOpen={editingClient !== null}
         onClose={() => setEditingClient(null)}
         client={editingClient}
@@ -2338,7 +2284,7 @@ class ErrorBoundary extends React.Component {
     super(props);
     this.state = { hasError: false };
   }
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
   componentDidCatch(error, errorInfo) {

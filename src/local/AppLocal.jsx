@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingLocal from '../pages/LandingLocal';
 import Dashboard from '../pages/Dashboard';
 import AILogs from '../pages/AILogs';
-import PublicQuote from '../pages/PublicQuote';
+import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicTools from '../components/PublicTools';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
@@ -11,7 +11,7 @@ import Contact from '../pages/Contact';
 import { supabase } from '../shared/supabase';
 
 export default function AppLocal() {
-  const [session, setSession] = useState(null);
+  const [, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -21,8 +21,6 @@ export default function AppLocal() {
   const [newPassword, setNewPassword] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
-
-  const isHebrew = true;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -189,8 +187,8 @@ export default function AppLocal() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
-        <Route path="/public-quote/:id" element={<PublicQuote />} />
-        <Route path="/quote/:id" element={<PublicQuote />} />
+        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/quote/:id" element={<SmartPublicQuote />} />
         
         <Route path="/terms" element={<Terms isHebrew={true} />} />
         <Route path="/privacy" element={<Privacy isHebrew={true} />} />

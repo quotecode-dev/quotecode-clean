@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
@@ -53,7 +53,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       } else {
         setCurrencySymbol('$');
       }
-    } catch (e) {
+    } catch {
       setCurrencySymbol('$');
     }
   }, []);
@@ -174,9 +174,8 @@ export default function LandingGlobal({ onForgotPassword }) {
         
         .header-container {
           display: flex;
-          justify-content: center;
+          justify-content: space-between;
           align-items: center;
-          gap: 500px;
           max-width: 1050px;
           margin: 0 auto;
           padding: 12px 20px;
@@ -323,13 +322,29 @@ export default function LandingGlobal({ onForgotPassword }) {
               </p>
             </div>
             
-            <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <img 
-                src="/frustrated-user.png" 
-                alt="Frustrated business owner dealing with paperwork" 
-                style={{ width: '100%', display: 'block', maxHeight: '400px', objectFit: 'cover' }} 
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80'; }} 
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', textAlign: 'left' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.07)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '10px', padding: '18px 20px' }}>
+                <div style={{ color: '#f87171', fontWeight: '700', fontSize: '0.85rem', marginBottom: '12px' }}>The old way</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Hours spent on clunky Word documents', 'Manual, error-prone tax calculations', 'Chasing clients for approvals', 'Scattered quotes and client records'].map((t, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1', fontSize: '0.9rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div style={{ background: 'rgba(16, 185, 129, 0.07)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', padding: '18px 20px' }}>
+                <div style={{ color: '#34d399', fontWeight: '700', fontSize: '0.85rem', marginBottom: '12px' }}>With ProFlow</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['A polished quote ready in a minute', 'Taxes calculated automatically', 'Instant digital signature & approval', 'Every client and quote in one place'].map((t, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0', fontSize: '0.9rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#34d399', fontWeight: '700', fontSize: '1rem' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from './shared/supabase';
 
 export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
@@ -46,7 +46,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
           });
         }
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     return [
       { role: 'assistant', content: defaultWelcome }
     ];
@@ -76,7 +76,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
     try {
       const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
       sessionStorage.setItem(storageKey, JSON.stringify(messages));
-    } catch (e) {}
+    } catch { /* ignore */ }
     if (isOpen) scrollToBottom();
   }, [messages, isOpen, isDashboard, isHebrew]);
 

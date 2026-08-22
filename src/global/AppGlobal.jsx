@@ -3,12 +3,13 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה.
 // ==========================================
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
 import Dashboard from '../pages/Dashboard';
 import AILogs from '../pages/AILogs';
 import PublicQuoteEn from '../pages/PublicQuoteEn';
+import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
@@ -16,7 +17,7 @@ import Contact from '../pages/Contact';
 import { supabase } from '../shared/supabase';
 
 export default function AppGlobal() {
-  const [session, setSession] = useState(null);
+  const [, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -26,8 +27,6 @@ export default function AppGlobal() {
   const [newPassword, setNewPassword] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
-
-  const isHebrew = false;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -93,7 +92,7 @@ export default function AppGlobal() {
     setUpdateLoading(true);
     setUpdateMessage('');
 
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     setUpdateLoading(false);
 
     if (error) {
@@ -194,9 +193,9 @@ export default function AppGlobal() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
-        {/* אכיפה מוחלטת ל-PublicQuoteEn באזור הגלובלי */}
-        <Route path="/public-quote/:id" element={<PublicQuoteEn />} />
-        <Route path="/quote/:id" element={<PublicQuoteEn />} />
+        {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
+        <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
         
         <Route path="/terms" element={<Terms isHebrew={false} />} />

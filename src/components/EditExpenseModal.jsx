@@ -2,7 +2,7 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (EditExpenseModal.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function EditExpenseModal({ isOpen, onClose, expense, onSave, isHebrew }) {
   const [description, setDescription] = useState('');
