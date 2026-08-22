@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (ClientsTab.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React, { useState } from 'react';
 
 export default function ClientsTab({

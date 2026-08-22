@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (EmailConfirmModal.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React from 'react';
 
 export default function EmailConfirmModal({ isOpen, onClose, onConfirm, clientEmail, isHebrew }) {

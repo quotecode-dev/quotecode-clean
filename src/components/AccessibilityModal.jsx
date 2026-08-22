@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (AccessibilityModal.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React from 'react';
 
 export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {

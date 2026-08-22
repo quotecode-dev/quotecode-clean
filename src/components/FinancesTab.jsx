@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (FinancesTab.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 

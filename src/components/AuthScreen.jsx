@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (AuthScreen.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React from 'react';
 import ProFlowLogo from './ProFlowLogo';
 
@@ -26,7 +30,6 @@ export default function AuthScreen({
   setResetEmail,
   resetLoading
 }) {
-  // זיהוי שפה דינמי (עברית או אנגלית) לפי URL או הגדרות דפדפן
   const isHebURL = typeof window !== 'undefined' && (
     window.location.pathname.startsWith('/he') || 
     window.location.search.includes('lang=he') || 

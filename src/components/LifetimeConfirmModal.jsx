@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (LifetimeConfirmModal.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React from 'react';
 
 export default function LifetimeConfirmModal({ isOpen, onClose, onConfirm, userEmail, isHebrew }) {

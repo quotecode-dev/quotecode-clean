@@ -1,3 +1,7 @@
+// ==============================================================================
+// 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (DraggableCalculator.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
+// ==============================================================================
+
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function DraggableCalculator({ isOpen, onClose, isHebrew, currency }) {
@@ -14,7 +18,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   const [lastUpdated, setLastUpdated] = useState('');
   const [calcAmount, setCalcAmount] = useState('100');
   
-  // חוק ברזל: התאמה מוחלטת למטבע העסק בלבד (בלי ILS לבינלאומי)
   const isGlobal = currency && currency !== 'ILS';
   const defaultCurr = isGlobal ? currency : 'USD';
   const secondaryCurr = isGlobal ? (currency === 'GBP' ? 'USD' : 'GBP') : 'EUR';
@@ -159,7 +162,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
     setWaitingForOperand(true);
   };
 
-  // פונקציית המרה אוניברסלית לפי מטבע הבסיס (USD = 1)
   const getRateToUSD = (curr) => rates[curr] || 1;
   const convertedValue = (Number(calcAmount) || 0) / getRateToUSD(fromCurr) * getRateToUSD(toCurr);
 
@@ -223,7 +225,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
             <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
           </div>
           
-          {/* חוק ברזל: תצוגת השערים מותאמת אישית למצב הבינלאומי (בלי ILS) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
             {isGlobal ? (
               <>
