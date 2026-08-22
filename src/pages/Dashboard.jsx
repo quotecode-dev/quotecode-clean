@@ -1328,7 +1328,7 @@ export default function Dashboard() {
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || quote.quote_subject || '');
     
-    const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
+    const quoteCurr = quote.currency || (isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setCurrency(quoteCurr);
 
     setQuoteStatus(quote.status ? quote.status.charAt(0).toUpperCase() + quote.status.slice(1) : 'Draft');
@@ -1437,8 +1437,9 @@ export default function Dashboard() {
     }
 
     try {
+      const originalQuote = editingQuoteId ? quotes.find(q => q.id === editingQuoteId) : null;
+
       if (editingQuoteId) {
-        const originalQuote = quotes.find(q => q.id === editingQuoteId);
         if (originalQuote && (originalQuote.status?.toLowerCase() === 'approved' || originalQuote.status?.toLowerCase() === 'paid' || originalQuote.signature)) {
           setAlertModalMsg(isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
           return;
@@ -1481,7 +1482,7 @@ export default function Dashboard() {
       const quotePayload = {
         client_id: clientId,
         client_type: clientType,
-        currency: isLocalIsraeliBusiness ? 'ILS' : currency,
+        currency: editingQuoteId ? (originalQuote?.currency || currency) : (isLocalIsraeliBusiness ? 'ILS' : currency),
         subtotal: subtotal,
         tax_rate: taxRate,
         total: totalAmount,

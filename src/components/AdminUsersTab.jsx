@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { wipeUserData } from '../shared/wipeUserData';
+import { Mail, Building2, CreditCard, Globe, Shield, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 
 // Edge Function errors return the real reason in the response body (e.g. "Cannot delete
 // a Super Admin account") - supabase-js's default error.message is just a generic
@@ -203,7 +204,7 @@ export default function AdminUsersTab({
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
           <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center' }}>
             <div style={{ width: '56px', height: '56px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#166534' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <CheckCircle2 size={28} strokeWidth={2.2} />
             </div>
             <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>
               {isHebrew ? 'הפעולה בוצעה בהצלחה!' : 'Action Successful!'}
@@ -380,54 +381,65 @@ export default function AdminUsersTab({
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle' }}>
               <th style={{ padding: '10px 6px', width: '20%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('email')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <Mail size={12} color="#4f46e5" />
                   <span>{isHebrew ? 'אימייל' : 'Email'}</span>
                   {sortField === 'email' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('business_name')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <Building2 size={12} color="#0ea5e9" />
                   <span>{isHebrew ? 'עסק' : 'Business'}</span>
                   {sortField === 'business_name' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('plan')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <CreditCard size={12} color="#7c3aed" />
                   <span>{isHebrew ? 'חבילה' : 'Plan'}</span>
                   {sortField === 'plan' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('country')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <Globe size={12} color="#10b981" />
                   <span>{isHebrew ? 'אזור' : 'Region'}</span>
                   {sortField === 'country' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '6%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('role')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <Shield size={12} color="#991b1b" />
                   <span>{isHebrew ? 'הרשאה' : 'Role'}</span>
                   {sortField === 'role' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_ends_at_status')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <InfinityIcon size={12} color="#7c3aed" />
                   <span>Lifetime</span>
                   {sortField === 'trial_ends_at_status' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_extension')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <Clock size={12} color="#0284c7" />
                   <span>{isHebrew ? 'הארכת ניסיון' : 'Trial Ext'}</span>
                   {sortField === 'trial_extension' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('last_sign_in')}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
+                  <LogIn size={12} color="#22c55e" />
                   <span>{isHebrew ? 'כניסה אחרונה' : 'Last Sign In'}</span>
                   {sortField === 'last_sign_in' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               </th>
               <th style={{ padding: '10px 6px', textAlign: 'center', width: '13%', verticalAlign: 'middle' }}>
-                {isHebrew ? 'פעולות' : 'Actions'}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <SlidersHorizontal size={12} color="#475569" />
+                  <span>{isHebrew ? 'פעולות' : 'Actions'}</span>
+                </div>
               </th>
             </tr>
           </thead>

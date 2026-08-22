@@ -15,10 +15,6 @@ export const REGION_RULES = Object.freeze({
 });
 
 export const isHebrewEnv = (country, session) => {
-  if (!session || !session.user) {
-    return false;
-  }
-
   const email = session?.user?.email;
   
   if (email) {

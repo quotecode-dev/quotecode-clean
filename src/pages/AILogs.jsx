@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { formatDateLocal } from '../utils/regionConfig';
+import { Bot, ArrowRight, Search, Filter, Clock, Mail, HelpCircle, MessageSquareText, Tag, X, AlertTriangle } from 'lucide-react';
 
 export default function AILogs() {
   // שער הרשאות: רק super_admin מחובר רשאי לצפות בלוגים. כל עוד לא אושר - לא נטען שום מידע.
@@ -114,27 +115,27 @@ export default function AILogs() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
           <div style={{ background: 'white', width: '100%', maxWidth: '650px', maxHeight: '85vh', borderRadius: '12px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', overflowY: 'auto', textAlign: 'right' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.2rem' }}>פרטי לוג מלאים</h3>
-              <button onClick={() => setSelectedLog(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}><Bot size={20} color="#7c3aed" />פרטי לוג מלאים</h3>
+              <button onClick={() => setSelectedLog(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={20} /></button>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>זמן:</strong>
+              <strong style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}><Clock size={13} color="#7c3aed" />זמן:</strong>
               <span style={{ color: '#1e293b', fontSize: '0.95rem' }} dir="ltr">{selectedLog.created_at ? formatDateLocal(selectedLog.created_at, true) : ''}</span>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>אימייל משתמש:</strong>
+              <strong style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}><Mail size={13} color="#4f46e5" />אימייל משתמש:</strong>
               <span style={{ color: '#1e293b', fontSize: '0.95rem' }} dir="ltr">{selectedLog.user_email}</span>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>קטגוריה:</strong>
+              <strong style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}><Tag size={13} color="#f59e0b" />קטגוריה:</strong>
               <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155', fontSize: '0.85rem' }}>{selectedLog.category || 'GENERAL'}</span>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>שאלת הלקוח:</strong>
+              <strong style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}><HelpCircle size={13} color="#0ea5e9" />שאלת הלקוח:</strong>
               <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#1e293b', whiteSpace: 'pre-wrap', marginTop: '4px', fontSize: '0.95rem' }}>{selectedLog.user_question}</div>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ color: '#475569', display: 'block', fontSize: '0.85rem' }}>תשובת ה-AI:</strong>
+              <strong style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}><MessageSquareText size={13} color="#10b981" />תשובת ה-AI:</strong>
               <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#1e293b', whiteSpace: 'pre-wrap', marginTop: '4px', fontSize: '0.95rem' }}>{selectedLog.ai_response}</div>
             </div>
             <button onClick={() => setSelectedLog(null)} style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>סגור</button>
@@ -144,33 +145,43 @@ export default function AILogs() {
 
       <div style={{ maxWidth: '1100px', margin: '0 auto', background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-          <h1 style={{ color: '#1e293b', fontSize: '1.5rem', margin: 0 }}>יומן שאלות ותשובות AI (AI Support Logs)</h1>
-          <button 
+          <h1 style={{ color: '#1e293b', fontSize: '1.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Bot size={26} color="#7c3aed" />
+            יומן שאלות ותשובות AI (AI Support Logs)
+          </h1>
+          <button
             onClick={() => window.location.href = '/dashboard'}
-            style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
+            <ArrowRight size={15} strokeWidth={2.5} />
             חזרה לדשבורד
           </button>
         </div>
 
         {/* סרגל חיפוש וסינון קטגוריות */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <input 
-            type="text" 
-            placeholder="חיפוש לפי שאלה, אימייל או תשובה..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '280px', fontSize: '0.9rem' }}
-          />
-          <select 
-            value={categoryFilter} 
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', background: 'white' }}
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>קטגוריה: {cat}</option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <Search size={15} color="#94a3b8" style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="חיפוש לפי שאלה, אימייל או תשובה..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ padding: '8px 34px 8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', width: '280px', fontSize: '0.9rem', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <Filter size={14} color="#94a3b8" style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={{ padding: '8px 32px 8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', background: 'white' }}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>קטגוריה: {cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -184,19 +195,19 @@ export default function AILogs() {
                 <thead>
                   <tr style={{ background: '#f1f5f9', textAlign: 'right', color: '#475569', fontSize: '0.85rem' }}>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleSort('created_at')}>
-                      זמן {sortField === 'created_at' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={12} color="#7c3aed" />זמן {sortField === 'created_at' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</span>
                     </th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleSort('user_email')}>
-                      אימייל משתמש {sortField === 'user_email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Mail size={12} color="#4f46e5" />אימייל משתמש {sortField === 'user_email' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</span>
                     </th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleSort('user_question')}>
-                      שאלת הלקוח {sortField === 'user_question' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><HelpCircle size={12} color="#0ea5e9" />שאלת הלקוח {sortField === 'user_question' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</span>
                     </th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleSort('ai_response')}>
-                      תשובת ה-AI {sortField === 'ai_response' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageSquareText size={12} color="#10b981" />תשובת ה-AI {sortField === 'ai_response' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</span>
                     </th>
                     <th style={{ padding: '12px', cursor: 'pointer' }} onClick={() => handleSort('category')}>
-                      קטגוריה {sortField === 'category' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Tag size={12} color="#f59e0b" />קטגוריה {sortField === 'category' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</span>
                     </th>
                   </tr>
                 </thead>
@@ -232,11 +243,12 @@ export default function AILogs() {
                           {log.ai_response || '-'}
                         </td>
                         <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
-                          <span style={{ 
-                            background: isCritical ? '#fee2e2' : '#f1f5f9', 
+                          <span style={{
+                            background: isCritical ? '#fee2e2' : '#f1f5f9',
                             color: isCritical ? '#991b1b' : '#334155',
-                            padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block' 
+                            padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px'
                           }}>
+                            {isCritical ? <AlertTriangle size={11} /> : <Tag size={11} />}
                             {log.category || 'GENERAL'}
                           </span>
                         </td>

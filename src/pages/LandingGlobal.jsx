@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -435,11 +436,11 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#ffffff', marginBottom: '2px' }}>{currencySymbol}0 <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ month</span></div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>Total {currencySymbol}0/year</div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ Up to 5 quotes per month</li>
-                  <li>✓ Basic client management</li>
-                  <li>✓ Email support</li>
-                  <li style={{ color: '#ef4444' }}>✗ No direct WhatsApp sending</li>
-                  <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />Up to 5 quotes per month</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />Basic client management</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />Email support</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />No direct WhatsApp sending</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />No file & drawing attachments</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('free')}
@@ -461,10 +462,10 @@ export default function LandingGlobal({ onForgotPassword }) {
                   {billingCycle === 'monthly' ? `Total ${currencySymbol}${basicYearlyTotal}/year` : `Total ${currencySymbol}${basicYearlyTotal}/year (Billed annually)`}
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ Up to 20 quotes per month</li>
-                  <li>✓ Digital signatures & client management</li>
-                  <li style={{ color: '#ef4444' }}>✗ No direct WhatsApp sending</li>
-                  <li style={{ color: '#ef4444' }}>✗ No file & drawing attachments</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />Up to 20 quotes per month</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />Digital signatures & client management</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />No direct WhatsApp sending</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />No file & drawing attachments</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('basic')}
@@ -490,9 +491,9 @@ export default function LandingGlobal({ onForgotPassword }) {
                   {billingCycle === 'monthly' ? `Total ${currencySymbol}${proYearlyTotal}/year` : `Total ${currencySymbol}${proYearlyTotal}/year (Billed annually)`}
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ Unlimited quotes</li>
-                  <li>✓ Full income & expense tracking</li>
-                  <li>✓ File & drawing attachments (up to 30MB)</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />Unlimited quotes</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />Full income & expense tracking</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />File & drawing attachments (up to 30MB)</li>
                 </ul>
                 <button 
                   data-price-id={getGlobalPriceId('pro')}

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { wipeUserData } from '../shared/wipeUserData';
+import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -95,12 +96,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
         
-        <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
+        <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={18} strokeWidth={2.5} /></button>
 
         {!showCancelFlow ? (
           <>
-            <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.3rem', textAlign: 'center', marginBottom: '4px' }}>
-              {isHebrew ? '🚀 שדרג את העסק שלך עם ProFlow' : '🚀 Upgrade Your Business with ProFlow'}
+            <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.3rem', textAlign: 'center', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Rocket size={20} color="#4f46e5" />
+              {isHebrew ? 'שדרג את העסק שלך עם ProFlow' : 'Upgrade Your Business with ProFlow'}
             </h2>
             <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '16px', fontSize: '0.85rem' }}>
               {isHebrew ? 'בחר את המסלול המתאים ביותר לצרכים שלך והתחל לעבוד ללא הגבלות' : 'Choose the best plan for your needs and work without limits'}
@@ -151,11 +153,11 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   </div>
                 )}
                 
-                <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
-                  <li>{isHebrew ? 'עד 20 הצעות מחיר בחודש' : 'Up to 20 quotes/month'}</li>
-                  <li>{isHebrew ? 'חתימה דיגיטלית וניהול לקוחות' : 'Digital signature & client management'}</li>
-                  <li style={{ color: '#ef4444' }}>{isHebrew ? '✗ ללא שליחה ישירה בווצאפ' : '✗ No WhatsApp sending'}</li>
-                  <li style={{ color: '#ef4444' }}>{isHebrew ? '✗ ללא צירוף קבצים ושרטוטים להצעות' : '✗ No file attachments or drawings'}</li>
+                <ul style={{ margin: '0 0 16px 0', padding: 0, listStyle: 'none', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#10b981" style={{ flexShrink: 0 }} />{isHebrew ? 'עד 20 הצעות מחיר בחודש' : 'Up to 20 quotes/month'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#10b981" style={{ flexShrink: 0 }} />{isHebrew ? 'חתימה דיגיטלית וניהול לקוחות' : 'Digital signature & client management'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}><XCircle size={14} color="#ef4444" style={{ flexShrink: 0 }} />{isHebrew ? 'ללא שליחה ישירה בווצאפ' : 'No WhatsApp sending'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}><XCircle size={14} color="#ef4444" style={{ flexShrink: 0 }} />{isHebrew ? 'ללא צירוף קבצים ושרטוטים להצעות' : 'No file attachments or drawings'}</li>
                 </ul>
                 <button 
                   data-price-id={getSelectedPriceId('basic')}
@@ -168,7 +170,10 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
               {/* PRO Plan */}
               <div style={{ border: '2px solid #4f46e5', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: 'white', boxShadow: '0 8px 12px -2px rgba(79, 70, 229, 0.1)' }}>
-                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px' }}>{isHebrew ? 'הפופולרי ביותר ⭐' : 'POPULAR ⭐'}</div>
+                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Star size={11} fill="currentColor" />
+                  {isHebrew ? 'הפופולרי ביותר' : 'POPULAR'}
+                </div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מסלול עסקי (Pro)' : 'PRO Plan'}</h3>
                 <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? proMonthlyPrice : proYearlyMonthlyPrice} 
@@ -185,11 +190,11 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   </div>
                 )}
 
-                <ul style={{ margin: '0 0 16px 0', padding: isHebrew ? '0 16px 0 0' : '0 0 0 16px', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1 }}>
-                  <li>{isHebrew ? 'הצעות מחיר ללא הגבלה כלל' : 'Unlimited quotes without restrictions'}</li>
-                  <li>{isHebrew ? 'שליחה ישירה בוואטסאפ (WhatsApp)' : 'Direct WhatsApp sending'}</li>
-                  <li>{isHebrew ? 'ניהול הכנסות והוצאות מלא' : 'Full income and expense management'}</li>
-                  <li>{isHebrew ? '✓ צירוף קבצים ושרטוטים להצעות (עד 30MB)' : '✓ File attachments & drawings to quotes (up to 30MB)'}</li>
+                <ul style={{ margin: '0 0 16px 0', padding: 0, listStyle: 'none', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'הצעות מחיר ללא הגבלה כלל' : 'Unlimited quotes without restrictions'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'שליחה ישירה בוואטסאפ (WhatsApp)' : 'Direct WhatsApp sending'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'ניהול הכנסות והוצאות מלא' : 'Full income and expense management'}</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'צירוף קבצים ושרטוטים להצעות (עד 30MB)' : 'File attachments & drawings to quotes (up to 30MB)'}</li>
                 </ul>
                 <button 
                   data-price-id={getSelectedPriceId('pro')}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, Users, ArrowUpCircle, XCircle } from 'lucide-react';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -129,26 +130,27 @@ export default function SettingsTab({
 
   return (
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-      <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '500', marginTop: 0, marginBottom: '16px' }}>
+      <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '500', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Settings size={18} color="#7c3aed" strokeWidth={2.2} />
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
       <form onSubmit={handleSaveSettings}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'שם העסק' : 'Business Name'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Building2 size={13} color="#0ea5e9" />{isHebrew ? 'שם העסק' : 'Business Name'}</label>
             <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Hash size={13} color="#f59e0b" />{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
             <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Mail size={13} color="#4f46e5" />{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
             <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
           </div>
           
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Phone size={13} color="#10b981" />{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
               <div style={{ background: '#f1f5f9', padding: '7px 10px', fontSize: '0.8rem', color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>
                 {defaultLabel}
@@ -164,8 +166,8 @@ export default function SettingsTab({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
-              {isHebrew ? 'מטבע העסק' : 'Business Currency'}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
+              <Coins size={13} color="#f59e0b" />{isHebrew ? 'מטבע העסק' : 'Business Currency'}
             </label>
             <select 
               value={currency} 
@@ -187,8 +189,8 @@ export default function SettingsTab({
         </div>
 
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '500', marginTop: 0, marginBottom: '10px' }}>
-            {isHebrew ? 'כתובת העסק' : 'Business Address Details'}
+          <h3 style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '500', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MapPin size={14} color="#ef4444" />{isHebrew ? 'כתובת העסק' : 'Business Address Details'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
             <div style={{ gridColumn: 'span 2' }}>
@@ -211,8 +213,8 @@ export default function SettingsTab({
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
-            {isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
+            <ImageIcon size={13} color="#7c3aed" />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input 
@@ -245,7 +247,7 @@ export default function SettingsTab({
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><FileText size={13} color="#64748b" />{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
           <textarea 
             value={defaultTerms} 
             onChange={(e) => setDefaultTerms(e.target.value)} 
@@ -261,13 +263,13 @@ export default function SettingsTab({
 
       <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
         <h3 style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <Shield size={16} color="#4f46e5" strokeWidth={2} />
           {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
         </h3>
         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-             <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '8px', borderRadius: '8px' }}>
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+             <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+               <Users size={20} strokeWidth={2} />
              </div>
              <div>
                <div style={{ fontSize: '0.9rem', fontWeight: '400', color: '#0f172a', textTransform: 'uppercase' }}>{bizPlan} PLAN</div>
@@ -278,12 +280,12 @@ export default function SettingsTab({
            </div>
            <div style={{ display: 'flex', gap: '8px' }}>
              <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#4f46e5', color: 'white', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="m16 14-4-4-4 4"/><path d="M2 22h20"/></svg>
+               <ArrowUpCircle size={14} strokeWidth={2} />
                {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
              </button>
              {bizPlan !== 'free' && (
                <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  <XCircle size={14} strokeWidth={2} />
                   {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
                </button>
              )}

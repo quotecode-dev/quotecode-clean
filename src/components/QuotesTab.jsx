@@ -4,6 +4,7 @@
 // ==========================================
 
 import { formatDateLocal } from '../utils/regionConfig';
+import { FileText, Plus, Download, Hash, Building2, AlignLeft, DollarSign, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
 
 export default function QuotesTab({
   quotes,
@@ -79,19 +80,22 @@ export default function QuotesTab({
     <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9', marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0 }}>{t.recentHistory}</h2>
-          <button 
+          <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FileText size={17} color="#7c3aed" strokeWidth={2.2} />
+            {t.recentHistory}
+          </h2>
+          <button
             onClick={handleCreateNewQuoteClick}
             style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <Plus size={15} strokeWidth={2.5} />
             <span>{isHebrew ? 'צור הצעת מחיר חדשה' : 'Create New Quote'}</span>
           </button>
-          <button 
+          <button
             onClick={handleExportQuotes}
             style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <Download size={15} strokeWidth={2.5} />
             <span>{isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}</span>
           </button>
         </div>
@@ -123,28 +127,28 @@ export default function QuotesTab({
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('id')}>
-                {isHebrew ? 'מספר הזמנה' : '# Order'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Hash size={12} color="#f59e0b" />{isHebrew ? 'מספר הזמנה' : '# Order'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('client')}>
-                {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} color="#0ea5e9" />{isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', minWidth: '200px' }}>
-                {isHebrew ? 'תיאור' : 'Description'}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlignLeft size={12} color="#64748b" />{isHebrew ? 'תיאור' : 'Description'}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('total')}>
-                {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12} color="#10b981" />{isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('date')}>
-                {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} color="#7c3aed" />{isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('status')}>
-                {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><CircleDot size={12} color="#4f46e5" />{isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '60px' }} onClick={() => handleQuoteSort('views')} title={isHebrew ? 'מיון לפי צפיות' : 'Sort by views'}>
-                {isHebrew ? 'צפיות' : 'Views'} {quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Eye size={12} color="#64748b" />{isHebrew ? 'צפיות' : 'Views'} {quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: 'center', width: '50px' }}>
-                {isHebrew ? 'מייל' : 'Email'}
+                <Mail size={12} color="#2563eb" style={{ display: 'inline-block' }} />
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'left' : 'right' }}>
                 {isHebrew ? 'פעולות' : 'Actions'}
@@ -206,7 +210,7 @@ export default function QuotesTab({
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <span>{quote.view_count || 0}</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <Eye size={14} color="#64748b" strokeWidth={2} />
                       </span>
                     </td>
                     
@@ -276,7 +280,7 @@ export default function QuotesTab({
                                 onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                 onMouseLeave={(e) => e.target.style.background = 'none'}
                               >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <Eye size={15} color="#4f46e5" strokeWidth={2.2} />
                                 <span>{isHebrew ? 'צפה במסמך' : 'View Quote'}</span>
                               </button>
 
@@ -290,7 +294,7 @@ export default function QuotesTab({
                                   onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L19.5 9.5z"/></svg>
+                                  <Pencil size={15} color="#d97706" strokeWidth={2.2} />
                                   <span>{isHebrew ? 'ערוך במסמך' : 'Edit Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
@@ -310,7 +314,7 @@ export default function QuotesTab({
                                   onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                  <Copy size={15} color="#0d9488" strokeWidth={2.2} />
                                   <span>{isHebrew ? 'שכפל במסמך' : 'Duplicate Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
@@ -330,7 +334,7 @@ export default function QuotesTab({
                                   onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                  <MessageCircle size={15} color="#16a34a" strokeWidth={2.2} />
                                   <span>{isHebrew ? 'שלח בוואטסאפ' : 'Send WhatsApp'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
@@ -346,7 +350,7 @@ export default function QuotesTab({
                                 onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
                                 onMouseLeave={(e) => e.target.style.background = 'none'}
                               >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                <Mail size={15} color="#2563eb" strokeWidth={2.2} />
                                 <span>{isHebrew ? 'שלח במייל' : 'Send Email'}</span>
                               </button>
 
@@ -360,7 +364,7 @@ export default function QuotesTab({
                                   onMouseEnter={(e) => e.target.style.background = '#fee2e2'}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                  <Trash2 size={15} color="#dc2626" strokeWidth={2.2} />
                                   <span>{isHebrew ? 'מחק מסמך' : 'Delete Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (

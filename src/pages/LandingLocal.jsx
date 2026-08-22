@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function LandingLocal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -378,11 +379,11 @@ export default function LandingLocal({ onForgotPassword }) {
                 <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '2px' }}>0 ₪ <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#94a3b8' }}>/ חודש</span></div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '16px' }}>סה"כ 0 ₪ לשנה</div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ עד 5 הצעות מחיר בחודש</li>
-                  <li>✓ ניהול לקוחות בסיסי</li>
-                  <li>✓ תמיכה במייל</li>
-                  <li style={{ color: '#ef4444' }}>✗ ללא שליחה ישירה בווצאפ</li>
-                  <li style={{ color: '#ef4444' }}>✗ ללא צירוף קבצים ושרטוטים להזמנות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />עד 5 הצעות מחיר בחודש</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />ניהול לקוחות בסיסי</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />תמיכה במייל</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא צירוף קבצים ושרטוטים להזמנות</li>
                 </ul>
                 <button 
                   data-price-id={getLocalPriceId('free')}
@@ -407,10 +408,10 @@ export default function LandingLocal({ onForgotPassword }) {
                   {billingCycle === 'monthly' ? '* כולל מע"מ 18% (41.53 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (33.05 ₪ לפני מע"מ)'}
                 </p>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ עד 20 הצעות מחיר בחודש</li>
-                  <li>✓ חתימה דיגיטלית וניהול לקוחות</li>
-                  <li style={{ color: '#ef4444' }}>✗ ללא שליחה ישירה בווצאפ</li>
-                  <li style={{ color: '#ef4444' }}>✗ ללא צירוף קבצים ושרטוטים להזמנות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />עד 20 הצעות מחיר בחודש</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />חתימה דיגיטלית וניהול לקוחות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא צירוף קבצים ושרטוטים להזמנות</li>
                 </ul>
                 <button 
                   data-price-id={getLocalPriceId('basic')}
@@ -439,10 +440,10 @@ export default function LandingLocal({ onForgotPassword }) {
                   {billingCycle === 'monthly' ? '* כולל מע"מ 18% (83.90 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (66.95 ₪ לפני מע"מ)'}
                 </p>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
-                  <li>✓ הצעות מחיר ללא הגבלה כלל</li>
-                  <li>✓ שליחה ישירה בווצאפ (WhatsApp)</li>
-                  <li>✓ ניהול הכנסות והוצאות מלא</li>
-                  <li>✓ צירוף קבצים ושרטוטים להזמנות (עד 30MB)</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />הצעות מחיר ללא הגבלה כלל</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />שליחה ישירה בווצאפ (WhatsApp)</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />ניהול הכנסות והוצאות מלא</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#818cf8" style={{ flexShrink: 0 }} />צירוף קבצים ושרטוטים להזמנות (עד 30MB)</li>
                 </ul>
                 <button 
                   data-price-id={getLocalPriceId('pro')}

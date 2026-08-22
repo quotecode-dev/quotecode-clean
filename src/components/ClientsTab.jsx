@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import React, { useState } from 'react';
+import { Users, Pencil, Trash2, Building2, Hash, Mail, Phone, MapPin, Tag, StickyNote } from 'lucide-react';
 
 export default function ClientsTab({
   filteredClients = [],
@@ -58,7 +59,7 @@ export default function ClientsTab({
     <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <h2 style={{ fontSize: '1.0rem', color: '#1e293b', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <Users size={18} color="#7c3aed" strokeWidth={2.2} />
           {isHebrew ? 'ניהול ספר לקוחות (CRM)' : 'Clients Management'}
         </h2>
       </div>
@@ -81,25 +82,25 @@ export default function ClientsTab({
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('company_name')}>
-                {isHebrew ? 'שם חברה / לקוח' : 'Company / Name'} {clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} color="#0ea5e9" />{isHebrew ? 'שם חברה / לקוח' : 'Company / Name'} {clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('tax_id')}>
-                {isHebrew ? 'ח.פ / ת.ז' : 'Tax ID'} {clientSortField === 'tax_id' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Hash size={12} color="#f59e0b" />{isHebrew ? 'ח.פ / ת.ז' : 'Tax ID'} {clientSortField === 'tax_id' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('email')}>
-                {isHebrew ? 'אימייל' : 'Email'} {clientSortField === 'email' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Mail size={12} color="#4f46e5" />{isHebrew ? 'אימייל' : 'Email'} {clientSortField === 'email' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('phone')}>
-                {isHebrew ? 'טלפון' : 'Phone'} {clientSortField === 'phone' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Phone size={12} color="#10b981" />{isHebrew ? 'טלפון' : 'Phone'} {clientSortField === 'phone' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('address')}>
-                {isHebrew ? 'כתובת' : 'Address'} {clientSortField === 'address' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} color="#ef4444" />{isHebrew ? 'כתובת' : 'Address'} {clientSortField === 'address' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('client_type')}>
-                {isHebrew ? 'סוג לקוח' : 'Type'} {clientSortField === 'client_type' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Tag size={12} color="#7c3aed" />{isHebrew ? 'סוג לקוח' : 'Type'} {clientSortField === 'client_type' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('notes')}>
-                {isHebrew ? 'הערות / הנחיות' : 'Notes'} {clientSortField === 'notes' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><StickyNote size={12} color="#f59e0b" />{isHebrew ? 'הערות / הנחיות' : 'Notes'} {clientSortField === 'notes' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px' }}>{t.actions}</th>
             </tr>
@@ -149,7 +150,7 @@ export default function ClientsTab({
                           onClick={() => setEditingClient(client)}
                           style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          <Pencil size={12} color="#4f46e5" strokeWidth={2.5} />
                           {isHebrew ? 'ערוך' : 'Edit'}
                         </button>
                         <button 
@@ -163,7 +164,7 @@ export default function ClientsTab({
                             display: 'inline-flex', alignItems: 'center', gap: '3px' 
                           }}
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={hasSignedOrApproved ? '#94a3b8' : '#ef4444'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                          <Trash2 size={12} color={hasSignedOrApproved ? '#94a3b8' : '#ef4444'} strokeWidth={2.5} />
                           {t.delete}
                         </button>
                       </td>
