@@ -15,3 +15,13 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/admin-delete-user/deno.json"
 entrypoint = "./functions/admin-delete-user/index.ts"
+
+[functions.send-trial-expiration-email]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/send-trial-expiration-email/index.ts"
+
+[functions.send-subscription-expiration-email]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/send-subscription-expiration-email/index.ts"
