@@ -8,7 +8,7 @@ import { wipeUserData } from '../shared/wipeUserData';
 import {
   Mail, Building2, CreditCard, Globe, Shield, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
   UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
-  Send, CalendarClock, XCircle
+  Send, CalendarClock, XCircle, ChevronDown
 } from 'lucide-react';
 import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
@@ -73,6 +73,19 @@ export default function AdminUsersTab({
   // מזהה השורה (אם בכלל) שממנה נלחץ כפתור "שלח מייל בדיקה מהיר" - מאפשר לכל
   // שורה להציג ספינר משלה מבלי להתנגש עם מצב הכפתורים בפאנל הבדיקה הכללי
   const [sendingRowId, setSendingRowId] = useState(null);
+
+  // מזהי המשתמשים שהכרטיס שלהם פתוח (Accordion) בתצוגת המובייל בלבד -
+  // כל כרטיס נפתח/נסגר באופן עצמאי, וברירת המחדל היא סגור לכולם כדי
+  // שרשימה עם הרבה משתמשים תישאר קומפקטית וניתנת לסריקה מהירה
+  const [expandedMobileRows, setExpandedMobileRows] = useState(() => new Set());
+  const toggleMobileRow = (id) => {
+    setExpandedMobileRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // overrides מאפשר גם לכפתור המהיר בכל שורה בטבלה (אימייל/סוג/שלב קבועים
   // מראש מנתוני השורה) וגם לפאנל הבדיקה הכללי (המשתמש בשדות testEmail/
@@ -885,8 +898,10 @@ export default function AdminUsersTab({
       </div>
 
       {/* Mobile card list - shown only below 768px (see .admin-mobile-cards media query
-          above), replacing the 9-column table with a single well-spaced column so no
-          icons/badges/buttons ever collide or overflow on a narrow screen */}
+          above). Built as a collapsible accordion so a long user list stays compact and
+          scannable: each row shows only identity + last-sign-in by default, and expands
+          on tap to reveal badges/lifetime/trial/actions - keeps things scalable instead
+          of rendering every user's full detail block on screen at once. */}
       <div className="admin-mobile-cards">
         {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem', background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}` }}>
@@ -901,6 +916,8 @@ export default function AdminUsersTab({
               lastSignInDateStr, lastSignInFullStr,
             } = getAccountDerived(acc);
 
+            const isExpanded = expandedMobileRows.has(acc.id);
+
             const chipStyle = (bg, color) => ({
               display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 9px',
               borderRadius: '7px', fontSize: '0.68rem', fontWeight: '700', background: bg, color,
@@ -913,24 +930,46 @@ export default function AdminUsersTab({
             });
 
             return (
-              <div key={(acc.id || 'acc') + '_mobile_' + liveTick} style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '14px', marginBottom: '10px' }}>
+              <div key={(acc.id || 'acc') + '_mobile_' + liveTick} style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '12px 14px', marginBottom: '10px' }}>
 
-                {/* Identity: email + business name + last sign-in */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '10px', paddingBottom: '10px', borderBottom: `1px solid ${NEON.border}` }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
-                      {acc.email || 'N/A'}
-                    </div>
-                    <div style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginTop: '3px', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }}>
-                      {bizName}
-                    </div>
-                  </div>
+                {/* Collapsed row: last-sign-in, business name (primary) / email (secondary), chevron */}
+                <div
+                  onClick={() => toggleMobileRow(acc.id)}
+                  role="button"
+                  aria-expanded={isExpanded}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, fontSize: '0.68rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }} title={lastSignInFullStr}>
                     <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444' }} />
                     {lastSignInDateStr}
                   </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }}>
+                      {bizName}
+                    </div>
+                    <div style={{ color: NEON.textMuted, fontSize: '0.75rem', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }} title={acc.email || ''}>
+                      {acc.email || 'N/A'}
+                    </div>
+                  </div>
+
+                  <ChevronDown
+                    size={18}
+                    color={NEON.textMuted}
+                    style={{ flexShrink: 0, transition: 'transform 0.25s ease', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  />
                 </div>
 
+                {/* Expanded content: badges / lifetime / trial-subscription / actions */}
+                <div
+                  style={{
+                    maxHeight: isExpanded ? '700px' : '0px',
+                    opacity: isExpanded ? 1 : 0,
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease',
+                    marginTop: isExpanded ? '12px' : '0px',
+                  }}
+                >
                 {/* Plan / Region / Role badges */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                   <span
@@ -1067,6 +1106,7 @@ export default function AdminUsersTab({
                       {isHebrew ? 'מחק' : 'Delete'}
                     </button>
                   )}
+                </div>
                 </div>
 
               </div>
