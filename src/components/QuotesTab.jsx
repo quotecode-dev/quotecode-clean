@@ -81,10 +81,8 @@ export default function QuotesTab({
     <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontSize: '1.05rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-0.01em' }}>
-            <span style={{ background: 'rgba(139, 92, 246, 0.15)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '9px', boxShadow: '0 0 16px -4px rgba(139, 92, 246, 0.55)', flexShrink: 0 }}>
-              <History size={16} color={NEON.violetLight} strokeWidth={2.3} />
-            </span>
+          <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <History size={18} color={NEON.violetLight} strokeWidth={2.2} />
             {t.recentHistory}
           </h2>
           <button

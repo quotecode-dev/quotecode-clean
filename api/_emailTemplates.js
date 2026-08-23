@@ -20,8 +20,8 @@ function wrap(isHebrew, bodyHtml) {
       <td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
           <tr>
-            <td style="background:#4f46e5;padding:20px 28px;">
-              <span style="color:#ffffff;font-size:1.2rem;font-weight:800;">ProFlow</span>
+            <td style="background:#111112;padding:20px 28px;">
+              <span style="color:#ffffff;font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Pro</span><span style="color:#d8b4fe;font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Flow</span>
             </td>
           </tr>
           <tr>

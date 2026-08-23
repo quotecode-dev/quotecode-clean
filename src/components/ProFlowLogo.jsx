@@ -1,6 +1,8 @@
 import React from 'react';
 
-export default function ProFlowLogo({ size = 48, rtl = false, darkText = false, logoUrl = '', bizName = '' }) {
+// הפרמטר rtl נשמר לתאימות לאחור בלבד (קריאות קיימות עדיין מעבירות אותו) -
+// המותג הטקסטואלי הנקי הנוכחי סימטרי ואינו זקוק עוד לכיוון שונה לכל שפה.
+export default function ProFlowLogo({ size = 48, darkText = false, logoUrl = '', bizName = '' }) {
   // כל דפי המערכת (כולל הדשבורד) עברו לעיצוב ניאון-דארק, כך שטקסט הלוגו
   // תמיד בהיר כברירת מחדל; darkText נותר כדריסה מפורשת בלבד למי שבאמת צריך אותה.
   const shouldUseDarkText = darkText;
@@ -48,55 +50,29 @@ export default function ProFlowLogo({ size = 48, rtl = false, darkText = false, 
     );
   }
 
-  // 3. ברירת מחדל: לוגו ProFlow
+  // 3. ברירת מחדל: לוגו ProFlow - מותג טקסטואלי נקי בהשראת ניאון-דארק, ללא
+  // תיבת רקע/אייקון כלשהי. "Pro" בלבן חד ו"Flow" בגרדיאנט ניאון-סגול זוהר
+  // (הזוהר מושג באמצעות drop-shadow שפועל גם מעל טקסט עם background-clip).
   return (
-    <div dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      {!rtl && (
-        <div style={{ 
-          width: `${size}px`, 
-          height: `${size}px`, 
-          background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
-          borderRadius: '12px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
-          flexShrink: 0
-        }}>
-          <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-      )}
-      <span style={{ 
-        fontSize: `${size * 0.75}px`, 
-        fontWeight: '900', 
-        letterSpacing: '-0.5px', 
-        display: 'flex', 
-        alignItems: 'center',
-        fontFamily: 'Inter, Segoe UI, sans-serif'
-      }}>
-        <span style={{ color: shouldUseDarkText ? '#0f172a' : '#ffffff' }}>Pro</span>
-        <span style={{ color: '#4f46e5', marginLeft: '2px' }}>Flow</span>
-      </span>
-      {rtl && (
-        <div style={{ 
-          width: `${size}px`, 
-          height: `${size}px`, 
-          background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
-          borderRadius: '12px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
-          flexShrink: 0,
-          marginLeft: '10px'
-        }}>
-          <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-      )}
-    </div>
+    <span dir="ltr" style={{
+      fontSize: `${size * 0.75}px`,
+      fontWeight: '900',
+      letterSpacing: '-0.5px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      fontFamily: 'Inter, Segoe UI, sans-serif',
+      lineHeight: 1
+    }}>
+      <span style={{ color: shouldUseDarkText ? '#0f172a' : '#ffffff' }}>Pro</span>
+      <span style={{
+        marginLeft: '1px',
+        background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%)',
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        color: '#c084fc',
+        filter: 'drop-shadow(0 0 8px rgba(192, 132, 252, 0.55))'
+      }}>Flow</span>
+    </span>
   );
 }
