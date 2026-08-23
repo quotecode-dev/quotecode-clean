@@ -6,13 +6,57 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function symbolForCurrency(currencyCode: string | null | undefined, fallbackHebrew: boolean): string {
-  const curr = (currencyCode || '').toUpperCase()
-  if (curr === 'EUR') return '€'
-  if (curr === 'GBP') return '£'
-  if (curr === 'ILS') return '₪'
-  if (curr === 'USD') return '$'
-  return fallbackHebrew ? '₪' : '$'
+const INTL_CURRENCIES = ['USD', 'EUR', 'GBP']
+const INTL_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' }
+
+// חוק ברזל: שפה וסמל מטבע חייבים תמיד לצאת מאותה הכרעת אזור יחידה - לעולם
+// לא שני מקורות נפרדים (כמו שהיה כאן קודם: effectiveHebrew מ-country אבל
+// resolvedSym ישירות מ-quote.currency, מה שיכול היה לייצר "English + ₪"
+// עבור שורה היסטורית פגומה כמו country=International + quote.currency=ILS).
+// מחזיר null אם אי-אפשר לקבוע אזור אמין - במקרה כזה אסור לשלוח מייל בכלל.
+function resolveEmailRegion(
+  bizCountry: string | null | undefined,
+  bizCurrency: string | null | undefined,
+  quoteCurrency: string | null | undefined,
+  quoteTaxRate: number
+): { hebrew: boolean; symbol: string } | null {
+  const quoteCurr = (quoteCurrency || '').toUpperCase()
+
+  if (bizCountry) {
+    const isLocal = bizCountry === 'Local' || bizCountry === 'LCL'
+    if (isLocal) {
+      // Local: אזור החשבון קובע - הסמל תמיד ₪, גם אם quote.currency השמור
+      // הוא ערך זר/היסטורי שגוי. אסור בהחלט $/€/£ במייל של חשבון Local.
+      return { hebrew: true, symbol: '₪' }
+    }
+    if (bizCountry !== 'International') {
+      // ערך country לא-מוכר (לא Local/LCL/International) - אסור להניח
+      // International כברירת מחדל; נכשלים בבטחה במקום להמציא אזור.
+      return null
+    }
+    // International: הסמל חייב לצאת מ-USD/EUR/GBP בלבד - לעולם לא ₪, גם אם
+    // quote.currency השמור הוא 'ILS'/ריק/פגום. מעדיפים את מטבע ההצעה עצמה
+    // אם הוא תקין, אחרת נופלים למטבע החשבון אם הוא תקין, אחרת USD בברירת מחדל.
+    if (INTL_CURRENCIES.includes(quoteCurr)) {
+      return { hebrew: false, symbol: INTL_SYMBOLS[quoteCurr] }
+    }
+    const bizCurr = (bizCurrency || '').toUpperCase()
+    if (INTL_CURRENCIES.includes(bizCurr)) {
+      return { hebrew: false, symbol: INTL_SYMBOLS[bizCurr] }
+    }
+    return { hebrew: false, symbol: '$' }
+  }
+
+  // business_settings לא נמצא: מקבלים רק שילוב currency/tax_rate שעקבי
+  // פנימית מנתוני ההצעה עצמה - לעולם לא מנחשים 'Local' כברירת מחדל, ולעולם
+  // לא ממציאים אזור מתוך נתונים סותרים/חסרים.
+  if (quoteCurr === 'ILS' && quoteTaxRate > 0) {
+    return { hebrew: true, symbol: '₪' }
+  }
+  if (INTL_CURRENCIES.includes(quoteCurr) && quoteTaxRate === 0) {
+    return { hebrew: false, symbol: INTL_SYMBOLS[quoteCurr] }
+  }
+  return null
 }
 
 serve(async (req) => {
@@ -38,38 +82,46 @@ serve(async (req) => {
     }
 
     // אכיפה בצד השרת: השפה והמטבע נגזרים אך ורק ממסד הנתונים, לא מהלקוח.
-    // isHebrew/currencySymbol שהלקוח שולח נהיו לגמרי חסרי משמעות כאן -
-    // גם אם הפרונטאנד ישלח אי-פעם ערך שגוי/הפוך (בדיוק הבאג שדווח קודם -
-    // דגל שגוי שנשלח בגלל state ישן בדפדפן), המייל בפועל עדיין ייגזר נכון:
-    // effectiveHebrew מ-business_settings.country של בעל ההצעה (לא מהמשתמש
-    // הנוכחי בדפדפן ולא מה-URL), וסמל המטבע מהמטבע השמור על ההצעה עצמה
-    // (לא מהחשבון - הצעה ישנה שומרת את המטבע שהייתה בו כשנוצרה, גם אם
-    // סיווג העסק השתנה מאז).
-    let effectiveHebrew = false
-    let resolvedSym = symbolForCurrency(null, false)
-
+    // isHebrew/currencySymbol שהלקוח שולח נהיו לגמרי חסרי משמעות כאן - גם אם
+    // הפרונטאנד ישלח אי-פעם ערך שגוי/הפוך, המייל בפועל עדיין ייגזר נכון,
+    // ותמיד משפה+סמל שיוצאים יחד מ-resolveEmailRegion (הכרעת אזור אחת ויחידה -
+    // ר' ההערה שם) ולא משני מקורות נפרדים. אם אי-אפשר לקבוע אזור אמין,
+    // המייל לא נשלח כלל ומוחזרת שגיאת שרת ברורה, במקום לנחש.
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (quoteId && SUPABASE_URL && SERVICE_ROLE_KEY) {
-      const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
-      const { data: quoteRow } = await supabaseAdmin
-        .from('quotes')
-        .select('user_id, currency')
-        .eq('id', quoteId)
-        .maybeSingle()
-
-      if (quoteRow?.user_id) {
-        const { data: bizRow } = await supabaseAdmin
-          .from('business_settings')
-          .select('country')
-          .eq('user_id', quoteRow.user_id)
-          .maybeSingle()
-        effectiveHebrew = (bizRow?.country || 'Local') !== 'International'
-      }
-      resolvedSym = symbolForCurrency(quoteRow?.currency, effectiveHebrew)
-    } else {
-      console.error('send-quote-email: no quoteId provided, cannot verify language/currency against the database - defaulting to English/$.')
+    if (!quoteId || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      throw new Error('Cannot verify quote region/currency against the database - refusing to send email.')
     }
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+    const { data: quoteRow } = await supabaseAdmin
+      .from('quotes')
+      .select('user_id, currency, tax_rate')
+      .eq('id', quoteId)
+      .maybeSingle()
+
+    if (!quoteRow) {
+      throw new Error('Quote not found - refusing to send without a verified region/currency.')
+    }
+
+    let bizCountry: string | null = null
+    let bizCurrency: string | null = null
+    if (quoteRow.user_id) {
+      const { data: bizRow } = await supabaseAdmin
+        .from('business_settings')
+        .select('country, currency')
+        .eq('user_id', quoteRow.user_id)
+        .maybeSingle()
+      bizCountry = bizRow?.country ?? null
+      bizCurrency = bizRow?.currency ?? null
+    }
+
+    const resolved = resolveEmailRegion(bizCountry, bizCurrency, quoteRow.currency, Number(quoteRow.tax_rate))
+    if (!resolved) {
+      throw new Error('Cannot establish a trustworthy business region/currency for this quote - refusing to send email.')
+    }
+    const effectiveHebrew = resolved.hebrew
+    const resolvedSym = resolved.symbol
 
     const bizTitle = businessName || 'ProFlow';
 

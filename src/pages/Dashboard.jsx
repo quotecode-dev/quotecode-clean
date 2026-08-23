@@ -88,7 +88,11 @@ export default function Dashboard({ bundleIsHebrew }) {
   const isExplicitEnglish = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) || queryParams.get('lang') === 'en';
   const isExplicitHebrew = (typeof window !== 'undefined' && window.location.pathname.startsWith('/he')) || queryParams.get('lang') === 'he';
 
-  const isHebrew = isExplicitEnglish ? false : (isExplicitHebrew ? true : isHebrewEnv(bizCountry, session));
+  // חוק ברזל: השפה המוצגת בדשבורד המחובר נגזרת אך ורק מהאזור המשפטי האמיתי
+  // של העסק (bizCountry, שמגיע ממסד הנתונים). ?lang=/‎/he/‎/en בכתובת אינם
+  // רשאים עוד לעקוף אותה עבור חשבון קיים - הם עדיין משמשים רק לבחירת
+  // הבאנדל (AppLocal/AppGlobal) לפני התחברות, ולברירת המחדל של חשבון חדש.
+  const isHebrew = isHebrewEnv(bizCountry, session);
 
   const [statusMsg, setStatusMsg] = useState({ text: '', type: 'success' });
   const [alertModalMsg, setAlertModalMsg] = useState(null); // חלון צף מודרני במרכז המסך עבור הודעות שגיאה/התרעה
@@ -224,15 +228,24 @@ export default function Dashboard({ bundleIsHebrew }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        let isNewUser = false;
         setSession((prevSession) => {
           if (prevSession?.user?.id !== newSession?.user?.id) {
-            if (newSession?.user?.id) {
-              loadData(newSession.user.id, newSession.user.email);
-            }
+            isNewUser = true;
             return newSession;
           }
           return prevSession;
         });
+        if (isNewUser && newSession?.user?.id) {
+          // כמו ב-initAuth למעלה: יש לחסום את רינדור ה-Dashboard (שם bizCountry
+          // קובע שפה/כיוון) עד ש-loadData/fetchSettings מסיימים לטעון את
+          // האזור האמיתי של המשתמש *החדש*. בלי זה, מעבר בין חשבונות באותו
+          // טאב (או כניסה ראשונה) היה מרנדר לרגע עם bizCountry הישן/ברירת
+          // המחדל, לפני שהוא מתוקן - בדיוק ה"הבזק" בשפה הלא-נכונה שאסור שיקרה.
+          setIsInitializing(true);
+          await loadData(newSession.user.id, newSession.user.email);
+          setIsInitializing(false);
+        }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
         setQuotes([]);
@@ -539,7 +552,13 @@ export default function Dashboard({ bundleIsHebrew }) {
       // כמו ב-isLocalIsraeliBusiness: המטבע נגזר אך ורק מ-countryVal (השדה
       // שהמנהל קובע), ולא מ-isHebrew - אחרת ערך שגוי היה נכתב בחזרה למסד
       // הנתונים בכל התחברות (ראו update מטה) ומשבש את המע"מ/מטבע של העסק.
-      let userCurr = (countryVal === 'Local' || countryVal === 'LCL') ? 'ILS' : (data.currency || 'USD');
+      // הגנה נוספת: ל-International אסור בהחלט ILS (גם אם הגיע כך ממסד
+      // הנתונים ממקור ישן/פגום) - אחרת הערך היה גם מוצג וגם נכתב בחזרה
+      // (update מטה) ומנציח את הפגם.
+      const dataCurrUpper = (data.currency || '').toUpperCase();
+      let userCurr = (countryVal === 'Local' || countryVal === 'LCL')
+        ? 'ILS'
+        : (['USD', 'EUR', 'GBP'].includes(dataCurrUpper) ? dataCurrUpper : 'USD');
 
       setCurrency(userCurr);
       setTerms(defTerms);
@@ -1214,7 +1233,9 @@ export default function Dashboard({ bundleIsHebrew }) {
       : `${window.location.origin}/en/public-quote/${proposal.id}?lang=en`;
 
     const senderName = bizName || 'ProFlow';
-    const text = isHebrew
+    // כמו הקישור והסמל למעלה - נוסח ההודעה נגזר מנתוני ההצעה עצמה
+    // (isLocalQuote), לא משפת התצוגה הנוכחית של המשתמש המחובר.
+    const text = isLocalQuote
       ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
       : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
     
@@ -1309,9 +1330,15 @@ export default function Dashboard({ bundleIsHebrew }) {
   const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0);
   const discountAmount = (subtotal * Number(discount || 0)) / 100;
   const baseAmount = subtotal - discountAmount;
-  
-  let taxRate = getRegionTaxRate(bizCountry);
-  
+
+  // כמו currency: עריכת הצעה קיימת (טיוטה/נשלח) חייבת לשמר את tax_rate
+  // ההיסטורי שלה, לא לדרוס אותו לפי אזור החשבון הנוכחי - אחרת total/tax_rate
+  // שנשמרים היו נעשים לא-עקביים עם הצעה שכבר נשלחה ללקוח.
+  const editingOriginalQuote = editingQuoteId ? quotes.find(q => q.id === editingQuoteId) : null;
+  let taxRate = (editingOriginalQuote && editingOriginalQuote.tax_rate !== null && editingOriginalQuote.tax_rate !== undefined)
+    ? Number(editingOriginalQuote.tax_rate)
+    : getRegionTaxRate(bizCountry);
+
   let totalAmount = 0;
 
   const taxAmount = baseAmount * taxRate;
@@ -1498,7 +1525,12 @@ export default function Dashboard({ bundleIsHebrew }) {
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || quote.quote_subject || '');
     
-    const quoteCurr = isLocalIsraeliBusiness ? 'ILS' : (quote.currency || currency || 'USD');
+    // אם ההצעה המקורית הייתה ILS (למשל מלפני שהעסק סווג כ-International),
+    // אין להעתיק זאת להצעה החדשה - מטבע לא חוקי לחשבון International.
+    const originalDupCurr = (quote.currency || '').toUpperCase();
+    const quoteCurr = isLocalIsraeliBusiness
+      ? 'ILS'
+      : (['USD', 'EUR', 'GBP'].includes(originalDupCurr) ? originalDupCurr : (currency || 'USD'));
     setCurrency(quoteCurr);
 
     setQuoteStatus('Draft');

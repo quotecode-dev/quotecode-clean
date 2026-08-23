@@ -15,8 +15,16 @@ export const REGION_RULES = Object.freeze({
 });
 
 export const isHebrewEnv = (country, session) => {
+  // כמו ב-getCurrencySym/getRegionTaxRate למטה: country (האזור המשפטי
+  // האמיתי, שמגיע מ-business_settings.country) הוא מקור האמת ומנצח תמיד
+  // כשהוא ידוע - המטמון ב-localStorage משמש רק כברירת מחדל לפני שהאזור
+  // האמיתי נטען (או לצופה אנונימי בכלל). סדר הפוך (מטמון לפני country) היה
+  // גורם לחשבון שמתחבר על דפדפן משותף לרשת עם מטמון ישן/שגוי מחשבון קודם.
+  if (country === REGION_RULES.INTERNATIONAL.countryCode) return false;
+  if (country === REGION_RULES.LOCAL.countryCode || country === 'LCL') return true;
+
   const email = session?.user?.email;
-  
+
   if (email) {
     const userCached = localStorage.getItem('proflow_country_' + email);
     if (userCached) {
@@ -28,9 +36,6 @@ export const isHebrewEnv = (country, session) => {
   if (cachedCountry) {
     return cachedCountry !== REGION_RULES.INTERNATIONAL.countryCode;
   }
-
-  if (country === REGION_RULES.INTERNATIONAL.countryCode) return false;
-  if (country === REGION_RULES.LOCAL.countryCode) return true;
 
   return localStorage.getItem('proflow_lang') === 'he';
 };

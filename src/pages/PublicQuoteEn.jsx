@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
+import PublicQuote from './PublicQuote';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -20,6 +21,7 @@ export default function PublicQuoteEn() {
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [isLocalQuote, setIsLocalQuote] = useState(false);
 
   const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
@@ -45,6 +47,10 @@ export default function PublicQuoteEn() {
 
       if (error) throw error;
       setQuote(data);
+      // חוק ברזל: אם ההצעה שנשלפה היא בפועל הצעה מקומית/ILS (למשל מישהו
+      // ניגש ידנית ל-/en/public-quote/:id), אין להציגה באנגלית עם מטבע/
+      // מע"מ שגויים - יש להציג את התבנית העברית הנכונה, כמו ב-SmartPublicQuote.
+      setIsLocalQuote(Number(data.tax_rate) > 0 || (data.currency || '').toUpperCase() === 'ILS');
 
       // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
       const { data: attData } = await supabase
@@ -91,7 +97,10 @@ export default function PublicQuoteEn() {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif' }}><h2>Loading...</h2></div>;
   if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
 
-  const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
+  if (isLocalQuote) return <PublicQuote />;
+
+  const rawCurrency = (quote.currency || businessSettings?.currency || 'USD').toUpperCase();
+  const effectiveCurrency = ['USD', 'EUR', 'GBP'].includes(rawCurrency) ? rawCurrency : 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
   
   let parsedItems = [];
