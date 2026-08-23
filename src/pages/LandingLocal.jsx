@@ -537,7 +537,7 @@ export default function LandingLocal({ onForgotPassword }) {
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@quotecodepro.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/public-tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
+            <button onClick={() => navigate('/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Israel. כל הזכויות שמורות.</p>
         </div>
