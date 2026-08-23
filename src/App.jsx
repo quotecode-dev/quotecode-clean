@@ -30,9 +30,13 @@ function RootHandler() {
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
   const isBrowserHebrew = browserLang.startsWith('he');
 
-  // עדיפות ההכרעה בשורש (/): בחירה מפורשת (query param או שפה שמורה) גוברת על
-  // זיהוי אוטומטי לפי navigator.language - עברית (he-*) => LandingLocal, כל דבר אחר => LandingGlobal.
-  const isUserHebrew = isHebrewQuery || storedLang === 'he' || (!isEnglishQuery && storedLang !== 'en' && isBrowserHebrew);
+  // עדיפות ההכרעה בשורש (/): ?lang=he / ?lang=en גובר תמיד (גם על שפה שמורה) - כדי
+  // לאפשר בדיקה נוחה של שתי השפות; בהיעדר query מפורש, שפה שמורה גוברת על navigator.language.
+  const isUserHebrew = isEnglishQuery
+    ? false
+    : isHebrewQuery
+      ? true
+      : (storedLang === 'he' || (storedLang !== 'en' && isBrowserHebrew));
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
