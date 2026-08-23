@@ -515,8 +515,17 @@ export default function Dashboard({ bundleIsHebrew }) {
       setBizRole(data.role || 'user');
       
       const countryVal = data.country || 'International';
+      // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
+      // sym/isLocalIsraeliBusiness בהמשך) מתעדכן מהמדינה האמיתית שבמסד
+      // הנתונים. גדר ה-?lang= הייתה חוסמת את זה לגמרי בזמן תצוגה מקדימה
+      // בשפה השנייה - כלומר bizCountry היה נשאר תקוע לצמיתות על ניחוש
+      // הרינדור הראשון (state ה-useState ההתחלתי, שנקרא רק פעם אחת ולפני
+      // שההגעתה האמיתית ממסד הנתונים בכלל חוזרת), גם אחרי שההגעתה
+      // האמיתית התקבלה. רק כתיבת המטמון proflow_cached_country עצמו
+      // נשארת מותנית, כדי שתצוגה מקדימה חד-פעמית לא "תדביק" ביקורים
+      // עתידיים בדפדפן הזה.
+      setBizCountry(countryVal);
       if (!isExplicitEnglish && !isExplicitHebrew) {
-        setBizCountry(countryVal);
         localStorage.setItem('proflow_cached_country', countryVal);
       }
       
@@ -587,8 +596,10 @@ export default function Dashboard({ bundleIsHebrew }) {
         setBizAddress(newData.address || '');
         setBizPlan(newData.plan);
         setBizRole(newData.role);
+        // ר' הערה מקבילה למעלה - setBizCountry לא מותנה בגדר lang=, רק כתיבת
+        // המטמון המשותף.
+        setBizCountry(newData.country || detectedCountry);
         if (!isExplicitEnglish && !isExplicitHebrew) {
-          setBizCountry(newData.country || detectedCountry);
           localStorage.setItem('proflow_cached_country', newData.country || detectedCountry);
         }
         setDefaultTerms(newData.default_terms || detectedTerms);
