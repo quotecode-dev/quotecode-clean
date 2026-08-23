@@ -5,7 +5,7 @@
 
 import { formatDateLocal } from '../utils/regionConfig';
 import { History, Plus, Download, Hash, Building2, AlignLeft, DollarSign, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
-import { NEON } from '../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function QuotesTab({
   quotes,
@@ -81,12 +81,7 @@ export default function QuotesTab({
     <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* טקסט שטוח ופשוט בכוונה: ללא textShadow/filter/text-stroke, letterSpacing
-              רגיל (לא יורש את ה-letterSpacing השלילי הגלובלי של מעטפת הדשבורד),
-              ומשקל 700 ולא 800 - משקל כבד מדי על טקסט בהיר-כמעט-לבן על רקע כהה
-              מאוד עלול להיראות "זוהר"/"כפול" בגלל הילה אופטית (halation) בניגודיות
-              קיצונית, בעיקר בגופן עברי מודגש בגודל קטן */}
-          <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '700', letterSpacing: 'normal', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', textShadow: 'none', filter: 'none', WebkitTextStroke: '0px' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '800', letterSpacing: 'normal', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
             <History size={18} color={NEON.violetLight} strokeWidth={2.2} />
             {t.recentHistory}
           </h2>

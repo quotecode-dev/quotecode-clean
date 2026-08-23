@@ -10,7 +10,7 @@ import {
   UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
   Send, CalendarClock, XCircle
 } from 'lucide-react';
-import { NEON } from '../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 // Edge Function errors return the real reason in the response body (e.g. "Cannot delete
 // a Super Admin account") - supabase-js's default error.message is just a generic
@@ -305,7 +305,7 @@ export default function AdminUsersTab({
             <div style={{ width: '56px', height: '56px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: NEON.emerald }}>
               <CheckCircle2 size={28} strokeWidth={2.2} />
             </div>
-            <h3 style={{ marginTop: 0, color: NEON.textPrimary, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800' }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800', ...neonGlowTextStyle }}>
               {isHebrew ? 'הפעולה בוצעה בהצלחה!' : 'Action Successful!'}
             </h3>
             <button
@@ -467,7 +467,7 @@ export default function AdminUsersTab({
 
       {/* Live Email Test Panel - trial + subscription reminders, both languages */}
       <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: NEON.textPrimary, margin: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
           <Send size={16} color={NEON.violetLight} strokeWidth={2.2} />
           {isHebrew ? 'בדיקת מיילי תזכורת תפוגה (חי, דרך Resend)' : 'Test Expiration Reminder Emails (Live, via Resend)'}
         </h3>

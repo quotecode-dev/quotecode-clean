@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, Users, ArrowUpCircle, XCircle } from 'lucide-react';
-import { NEON } from '../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -131,7 +131,7 @@ export default function SettingsTab({
 
   return (
     <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
-      <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '500', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <h2 style={{ fontSize: '1rem', fontWeight: '800', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
         <Settings size={18} color={NEON.violetLight} strokeWidth={2.2} />
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
@@ -263,7 +263,7 @@ export default function SettingsTab({
       </form>
 
       <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: `1px solid ${NEON.border}` }}>
-        <h3 style={{ fontSize: '0.95rem', color: NEON.textPrimary, fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', ...neonGlowTextStyle }}>
           <Shield size={16} color={NEON.violetLight} strokeWidth={2} />
           {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
         </h3>

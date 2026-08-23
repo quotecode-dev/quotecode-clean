@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { Users, Pencil, Trash2, Building2, Hash, Mail, Phone, MapPin, Tag, StickyNote } from 'lucide-react';
-import { NEON } from '../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function ClientsTab({
   filteredClients = [],
@@ -59,7 +59,7 @@ export default function ClientsTab({
   return (
     <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
-        <h2 style={{ fontSize: '1.0rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h2 style={{ fontSize: '1.0rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
           <Users size={18} color={NEON.violetLight} strokeWidth={2.2} />
           {isHebrew ? 'ניהול ספר לקוחות (CRM)' : 'Clients Management'}
         </h2>

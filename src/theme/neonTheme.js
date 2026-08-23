@@ -94,3 +94,18 @@ export const neonGhostButtonStyle = (extra = {}) => ({
   cursor: 'pointer',
   ...extra,
 });
+
+// אותה טכניקת "Flow" הזוהרת בדיוק מ-ProFlowLogo.jsx (גרדיאנט סגול חתוך
+// לצורת הטקסט + drop-shadow שיוצר את הזוהר) - מיוצאת כאן פעם אחת כדי
+// שכל כותרת ראשית בכל רכיב תוכל לייבא אותה ולהיראות זהה, במקום להעתיק
+// את אותם ערכים שוב ושוב בכל קובץ. color הוא רק גיבוי לדפדפנים שלא
+// תומכים ב-background-clip: text; ה-WebkitTextFillColor הוא שבפועל
+// מסתיר אותו ומחשוף את הגרדיאנט מאחוריו.
+export const neonGlowTextStyle = {
+  background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 50%, #e879f9 100%)',
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  color: '#c084fc',
+  filter: 'drop-shadow(0 0 8px rgba(192, 132, 252, 0.55))',
+};

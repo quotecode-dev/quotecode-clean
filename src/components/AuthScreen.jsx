@@ -4,7 +4,7 @@
 
 import ProFlowLogo from './ProFlowLogo';
 import { CheckCircle2, AlertTriangle, Mail, Lock, LogIn, Rocket, KeyRound, X } from 'lucide-react';
-import { NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
+import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function AuthScreen({
   isInitializing,
@@ -63,7 +63,7 @@ export default function AuthScreen({
     return (
       <div style={{ fontFamily: font, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
         <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, padding: '30px', borderRadius: '14px', boxShadow: '0 20px 40px -12px rgba(139,92,246,0.25)', width: '100%', maxWidth: '380px', textAlign: isHebrew ? 'right' : 'left' }}>
-          <h2 style={{ color: NEON.textPrimary, marginBottom: '12px', fontWeight: '700' }}>{isHebrew ? 'הגדרת סיסמה חדשה' : 'Set New Password'}</h2>
+          <h2 style={{ marginBottom: '12px', fontWeight: '800', ...neonGlowTextStyle }}>{isHebrew ? 'הגדרת סיסמה חדשה' : 'Set New Password'}</h2>
           <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '18px' }}>{isHebrew ? 'הזן את הסיסמה החדשה לחשבון שלך' : 'Enter your new account password'}</p>
 
           {recoveryUpdateMsg && (
@@ -170,7 +170,7 @@ export default function AuthScreen({
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
           <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '380px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)', textAlign: isHebrew ? 'right' : 'left', position: 'relative' }}>
             <button onClick={() => setForgotOpen(false)} style={{ position: 'absolute', top: '14px', left: isHebrew ? '14px' : 'unset', right: isHebrew ? 'unset' : '14px', background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex' }}><X size={18} /></button>
-            <h3 style={{ marginTop: 0, color: NEON.textPrimary, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '700' }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800', ...neonGlowTextStyle }}>
               {isHebrew ? 'שחזור סיסמה' : 'Password Recovery'}
             </h3>
             <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '16px' }}>

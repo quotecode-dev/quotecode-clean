@@ -1,5 +1,5 @@
 import { Package, Pencil, Trash2, Save, X } from 'lucide-react';
-import { NEON } from './../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from './../theme/neonTheme';
 
 export default function ServicesCatalog({
   t,
@@ -23,7 +23,7 @@ export default function ServicesCatalog({
 }) {
   return (
     <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
-      <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '700', margin: 0, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
         <Package size={18} color={NEON.violetLight} strokeWidth={2.2} />
         {t.servicesCatalog}
       </h2>

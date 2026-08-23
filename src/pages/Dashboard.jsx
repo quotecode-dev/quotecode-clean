@@ -25,7 +25,7 @@ import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
 import AdminUsersTab from '../components/AdminUsersTab';
-import { NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
+import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
 import {
   AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
   Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
@@ -1751,7 +1751,7 @@ export default function Dashboard() {
             <div style={{ width: '48px', height: '48px', background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <AlertTriangle size={24} strokeWidth={2.5} />
             </div>
-            <h3 style={{ marginTop: 0, color: NEON.textPrimary, fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px', ...neonGlowTextStyle }}>
               {isHebrew ? 'שים לב' : 'Attention'}
             </h3>
             <p style={{ color: NEON.textSecondary, fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.4' }}>

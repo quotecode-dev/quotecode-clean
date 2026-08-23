@@ -4,7 +4,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp } from 'lucide-react';
-import { NEON } from '../theme/neonTheme';
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function FinancesTab({
   financeReportType,
@@ -39,7 +39,7 @@ export default function FinancesTab({
   return (
     <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
-         <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+         <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
            <BarChart3 size={18} color={NEON.emerald} strokeWidth={2.2} />
            {isHebrew ? 'הוצאות והכנסות ודוחות עסק' : 'Finances & Reports'}
          </h2>
@@ -93,7 +93,7 @@ export default function FinancesTab({
       </div>
 
       <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '20px', height: '260px' }} dir="ltr">
-         <h2 style={{ fontSize: '0.9rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, marginBottom: '12px', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'סקירה שנתית - הכנסות מול הוצאות' : 'Yearly Overview - Income vs Expenses'}</h2>
+         <h2 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0, marginBottom: '12px', textAlign: isHebrew ? 'right' : 'left', ...neonGlowTextStyle }}>{isHebrew ? 'סקירה שנתית - הכנסות מול הוצאות' : 'Yearly Overview - Income vs Expenses'}</h2>
          <ResponsiveContainer width="100%" height="100%">
            <BarChart data={chartData} margin={{ top: 5, right: 15, left: 0, bottom: 20 }}>
              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
@@ -113,7 +113,7 @@ export default function FinancesTab({
 
       <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '800', margin: 0 }}>{t.expensesManagement}</h2>
+            <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, ...neonGlowTextStyle }}>{t.expensesManagement}</h2>
             <button
               onClick={handleExportExpenses}
               style={{ background: NEON.emeraldDark, color: 'white', border: 'none', padding: '5px 10px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
