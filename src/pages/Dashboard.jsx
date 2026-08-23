@@ -7,7 +7,8 @@ import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
-import { isHebrewEnv, getRegionTaxRate } from '../utils/regionConfig';
+import { isHebrewEnv, getRegionTaxRate, formatDateLocal } from '../utils/regionConfig';
+import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
@@ -931,17 +932,98 @@ export default function Dashboard({ bundleIsHebrew }) {
     document.body.removeChild(link);
   };
 
-  const handleExportQuotes = () => {
-    const exportData = filteredQuotes.map(q => ({
-      ID: q.id,
-      Client: q.clients?.company_name || '',
-      Email: q.clients?.email || '',
-      Status: q.status,
-      Total: q.total,
-      ValidUntil: q.valid_until || '',
-      CreatedAt: q.created_at
-    }));
-    exportToCSV(exportData, 'quotes_report.csv');
+  const handleExportQuotes = async () => {
+    if (!filteredQuotes || filteredQuotes.length === 0) {
+      setAlertModalMsg(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.');
+      return;
+    }
+
+    const INTL_CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£' };
+    const localStatusLabels = { draft: 'טיוטה', sent: 'נשלח', approved: 'אושר', paid: 'שולם' };
+    const intlStatusLabels = { draft: 'Draft', sent: 'Sent', approved: 'Approved', paid: 'Paid' };
+
+    const reportBizName = bizName || 'ProFlow';
+    const align = isLocalIsraeliBusiness ? 'right' : 'left';
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(isLocalIsraeliBusiness ? 'הצעות מחיר' : 'Quotes', {
+      views: [{ rightToLeft: isLocalIsraeliBusiness }]
+    });
+
+    const headers = isLocalIsraeliBusiness
+      ? ['מספר הצעה', 'שם לקוח', 'אימייל', 'סטטוס', 'סכום', 'בתוקף עד', 'תאריך יצירה']
+      : ['Quote Number', 'Client', 'Email', 'Status', 'Amount', 'Valid Until', 'Created At'];
+
+    sheet.columns = [16, 26, 28, 14, 16, 16, 16].map(width => ({ width }));
+
+    sheet.mergeCells(1, 1, 1, headers.length);
+    const titleCell = sheet.getCell(1, 1);
+    titleCell.value = isLocalIsraeliBusiness
+      ? `${reportBizName} – דוח הצעות מחיר`
+      : `${reportBizName} – Quotes Report`;
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF000000' } };
+    titleCell.alignment = { horizontal: align, vertical: 'middle' };
+
+    sheet.mergeCells(2, 1, 2, headers.length);
+    const dateCell = sheet.getCell(2, 1);
+    dateCell.value = isLocalIsraeliBusiness
+      ? `תאריך הפקה: ${formatDateLocal(new Date().toISOString(), true)}`
+      : `Export Date: ${formatDateLocal(new Date().toISOString(), false, INTL_CURRENCY_SYMBOLS[(currency || '').toUpperCase()] ? (currency || '').toUpperCase() : 'USD')}`;
+    dateCell.font = { size: 10, color: { argb: 'FF000000' } };
+    dateCell.alignment = { horizontal: align, vertical: 'middle' };
+
+    const headerRow = sheet.getRow(4);
+    headers.forEach((h, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = h;
+      cell.font = { bold: true, color: { argb: 'FF000000' } };
+      cell.alignment = { horizontal: align, vertical: 'middle' };
+    });
+
+    filteredQuotes.forEach((quote, i) => {
+      const row = sheet.getRow(5 + i);
+      const statusKey = quote.status ? quote.status.toLowerCase() : 'draft';
+      const quoteNumber = `#${quote.id.slice(0, 6)}`;
+      const clientName = quote.clients?.company_name || '';
+      const clientEmail = quote.clients?.email || '';
+
+      let statusLabel, amountText, validUntilText, createdAtText;
+
+      if (isLocalIsraeliBusiness) {
+        statusLabel = localStatusLabels[statusKey] || statusKey;
+        amountText = `₪${formatNum(quote.total)}`;
+        validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, true) : '';
+        createdAtText = quote.created_at ? formatDateLocal(quote.created_at, true) : '';
+      } else {
+        statusLabel = intlStatusLabels[statusKey] || statusKey;
+        const quoteCurrency = (quote.currency || '').toUpperCase();
+        const accountCurrency = (currency || '').toUpperCase();
+        const safeCurrency = INTL_CURRENCY_SYMBOLS[quoteCurrency]
+          ? quoteCurrency
+          : (INTL_CURRENCY_SYMBOLS[accountCurrency] ? accountCurrency : 'USD');
+        amountText = `${INTL_CURRENCY_SYMBOLS[safeCurrency]}${formatNum(quote.total)}`;
+        validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, false, safeCurrency) : '';
+        createdAtText = quote.created_at ? formatDateLocal(quote.created_at, false, safeCurrency) : '';
+      }
+
+      [quoteNumber, clientName, clientEmail, statusLabel, amountText, validUntilText, createdAtText].forEach((v, idx) => {
+        const cell = row.getCell(idx + 1);
+        cell.value = v;
+        cell.font = { color: { argb: 'FF000000' } };
+        cell.alignment = { horizontal: align, vertical: 'middle' };
+      });
+    });
+
+    const bufferData = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([bufferData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'quotes_report.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportExpenses = () => {
