@@ -165,40 +165,50 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // ===== מצב בדיקה: שליחת מייל בודד מיידי, מוגבל ל-super_admin =====
+    // ===== מצב בדיקה: שליחת מייל בודד מיידי =====
     if (mode === 'test') {
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return jsonResponse({ error: 'Missing Authorization header' }, 401);
-      }
-
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-      const callerClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-
-      const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
-      if (callerAuthErr || !callerUser) {
-        return jsonResponse({ error: 'Invalid or expired session' }, 401);
-      }
-
-      const { data: callerBiz, error: callerBizErr } = await adminClient
-        .from('business_settings')
-        .select('role')
-        .eq('user_id', callerUser.id)
-        .maybeSingle();
-
-      if (callerBizErr) {
-        return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
-      }
-      if (callerBiz?.role !== 'super_admin') {
-        return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
-      }
-
       const email = body.email;
       if (!email || typeof email !== 'string') {
         return jsonResponse({ error: 'Missing or invalid "email"' }, 400);
       }
+
+      // שתי כתובות בדיקה מוחרגות במפורש (לפי בקשה מפורשת) מאימות ה-JWT/
+      // super_admin - מאפשר הפעלה ישירה (curl/script) ללא סשן מחובר בכלל.
+      // ההחרגה מוגבלת אך ורק לשתי הכתובות הקבועות האלו כנמענות, כדי לא
+      // להפוך את הפונקציה לנקודת קצה פתוחה לשליחת מייל לכל כתובת שרירותית.
+      const TEST_BYPASS_EMAILS = new Set(['tahshitishi@gmail.com', 'minhatshay@gmail.com']);
+      const isBypassedTestRecipient = TEST_BYPASS_EMAILS.has(email.toLowerCase());
+
+      if (!isBypassedTestRecipient) {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return jsonResponse({ error: 'Missing Authorization header' }, 401);
+        }
+
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+        const callerClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+
+        const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
+        if (callerAuthErr || !callerUser) {
+          return jsonResponse({ error: 'Invalid or expired session' }, 401);
+        }
+
+        const { data: callerBiz, error: callerBizErr } = await adminClient
+          .from('business_settings')
+          .select('role')
+          .eq('user_id', callerUser.id)
+          .maybeSingle();
+
+        if (callerBizErr) {
+          return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
+        }
+        if (callerBiz?.role !== 'super_admin') {
+          return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
+        }
+      }
+
       const useHebrew = Boolean(body.isHebrew);
       const useStage: Stage = body.stage === '24h' ? '24h' : '3d';
       const fakeSubscriptionEndsAt = new Date(Date.now() + (useStage === '3d' ? 3 : 1) * MS_PER_DAY).toISOString();

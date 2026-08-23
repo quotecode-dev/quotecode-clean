@@ -18,10 +18,14 @@ entrypoint = "./functions/admin-delete-user/index.ts"
 
 [functions.send-trial-expiration-email]
 enabled = true
-verify_jwt = true
+# verify_jwt=false בכוונה: הקוד עצמו (לא השער) אוכף הרשאות לפי מצב - batch
+# דורש CRON_SECRET, test דורש super_admin JWT לכל כתובת חוץ משתי כתובות
+# בדיקה מוחרגות במפורש. עם verify_jwt=true השער היה חוסם כל בקשה ללא
+# Authorization header עוד לפני שהקוד שלנו מקבל הזדמנות להחריג אותן.
+verify_jwt = false
 entrypoint = "./functions/send-trial-expiration-email/index.ts"
 
 [functions.send-subscription-expiration-email]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 entrypoint = "./functions/send-subscription-expiration-email/index.ts"
