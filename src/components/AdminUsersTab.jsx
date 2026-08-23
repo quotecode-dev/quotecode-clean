@@ -52,8 +52,8 @@ export default function AdminUsersTab({
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // בדיקת מיילי תזכורת חיה (ניסיון חינמי / מנוי בתשלום), בשתי השפות, דרך
-  // ה-Edge Function send-expiration-email במצב "test" - מוגבל ל-super_admin
+  // בדיקת מיילי תזכורת חיה (ניסיון חינמי / מנוי בתשלום), בשתי השפות - כל זרם
+  // מופעל דרך ה-Edge Function הייעודית שלו במצב "test", מוגבל ל-super_admin
   const [testEmail, setTestEmail] = useState('');
   const [testType, setTestType] = useState('trial');
   const [testStage, setTestStage] = useState('3d');
@@ -68,12 +68,12 @@ export default function AdminUsersTab({
     setSendingTestLang(sendHebrew ? 'he' : 'en');
     setTestStatus({ type: null, msg: '' });
     try {
-      const { data, error } = await supabase.functions.invoke('send-expiration-email', {
+      const functionName = testType === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           mode: 'test',
           email: testEmail,
           isHebrew: sendHebrew,
-          type: testType,
           stage: testStage,
           businessName: sendHebrew ? 'עסק לדוגמה' : 'Test Business'
         }

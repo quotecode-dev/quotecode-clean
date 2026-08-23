@@ -5,9 +5,9 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// שלב 3: מפעיל את ה-Supabase Edge Function send-expiration-email במצב "batch",
-// שהיא כעת המנוע היחיד ששולח בפועל את כל תזכורות התפוגה (הן ניסיון חינמי
-// והן מנוי בתשלום) דרך Resend - כך שאין כפילות לוגיקה בין Vercel ל-Supabase.
+// שלב 3: מפעיל את שתי ה-Edge Functions הייעודיות במצב "batch" - כל אחת אחראית
+// על זרם תזכורות עצמאי משלה (ניסיון חינמי / מנוי בתשלום) כך שאין כפילות
+// לוגיקה בין Vercel ל-Supabase, ואין תלות בין הזרמים אם אחד מהם נכשל.
 async function triggerExpirationReminders(logs) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -15,18 +15,28 @@ async function triggerExpirationReminders(logs) {
     return;
   }
 
-  const { data, error } = await supabase.functions.invoke('send-expiration-email', {
+  const { data: trialData, error: trialError } = await supabase.functions.invoke('send-trial-expiration-email', {
     body: { mode: 'batch' },
     headers: { 'x-cron-secret': cronSecret },
   });
 
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (trialError) throw trialError;
+  if (trialData?.error) throw new Error(trialData.error);
+  logs.push(`Trial reminders: ${trialData?.sent3d ?? 0} 3-day, ${trialData?.sent24h ?? 0} 24-hour email(s) sent.`);
+  if (trialData?.errors?.length) {
+    logs.push(`Trial reminder send errors: ${trialData.errors.join('; ')}`);
+  }
 
-  logs.push(`Trial reminders: ${data?.trial?.sent3d ?? 0} 3-day, ${data?.trial?.sent24h ?? 0} 24-hour email(s) sent.`);
-  logs.push(`Subscription reminders: ${data?.subscription?.sent3d ?? 0} 3-day, ${data?.subscription?.sent24h ?? 0} 24-hour email(s) sent.`);
-  if (data?.errors?.length) {
-    logs.push(`Reminder send errors: ${data.errors.join('; ')}`);
+  const { data: subData, error: subError } = await supabase.functions.invoke('send-subscription-expiration-email', {
+    body: { mode: 'batch' },
+    headers: { 'x-cron-secret': cronSecret },
+  });
+
+  if (subError) throw subError;
+  if (subData?.error) throw new Error(subData.error);
+  logs.push(`Subscription reminders: ${subData?.sent3d ?? 0} 3-day, ${subData?.sent24h ?? 0} 24-hour email(s) sent.`);
+  if (subData?.errors?.length) {
+    logs.push(`Subscription reminder send errors: ${subData.errors.join('; ')}`);
   }
 }
 
