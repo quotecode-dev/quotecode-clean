@@ -20,18 +20,31 @@ export default function ProFlowLogo({ size = 48, darkText = false, logoUrl = '',
   // לבן שנראה כמו תקלה ויזואלית. עוטפים אותם בשבב לבן מעוגל ומכוון בכוונה
   // (padding + radius + shadow עדין) כך שהלבן ייראה כעיצוב מכוון ולא כתקלה.
   if (logoUrl && logoUrl.trim() !== '' && !imgError) {
+    // הגובה/רוחב המרביים של התמונה נקבעים ביחידות vw מוחלטות (ולא אחוזים
+    // יחסית להורה) בכוונה: אחוזים בתוך עץ flexbox מקונן תלויים בכך שלכל
+    // אב-אב יש רוחב "מחושב" ודאי, מה שלא תמיד קורה בפועל בדפדפני מובייל -
+    // וכשזה נכשל, ה-overflow:hidden שהיה כאן קודם פשוט חתך את הלוגו במקום
+    // לכווץ אותו. תפיסה עצמאית ביחידות viewport עובדת תמיד, בכל הקשר.
+    const imgMaxHeight = Math.round(size * 0.7);
     return (
       <div dir="ltr" style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: '#ffffff', borderRadius: '10px', padding: '4px 10px',
         boxShadow: '0 2px 10px -2px rgba(0,0,0,0.35)', lineHeight: 0,
-        maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
+        maxWidth: '100%', boxSizing: 'border-box', flexShrink: 0
       }}>
         <img
           src={logoUrl}
           alt="Business Logo"
           onError={() => setImgError(true)}
-          style={{ maxHeight: `${Math.round(size * 0.7)}px`, maxWidth: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+          style={{
+            display: 'block',
+            width: 'auto',
+            height: 'auto',
+            maxHeight: `${imgMaxHeight}px`,
+            maxWidth: 'min(180px, 38vw)',
+            objectFit: 'contain'
+          }}
         />
       </div>
     );

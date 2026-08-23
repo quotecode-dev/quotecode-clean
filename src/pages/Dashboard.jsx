@@ -1746,6 +1746,15 @@ export default function Dashboard() {
         .dash-tab-btn {
           transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
         }
+        @media (max-width: 640px) {
+          .dash-header-bar {
+            justify-content: center;
+          }
+          .dash-header-logo-wrap {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
 
       {/* חלון צף מודרני (Modal) עבור כל הודעות השגיאה והאזהרות */}
@@ -1859,8 +1868,8 @@ export default function Dashboard() {
       <div style={{ flex: '1 0 auto', padding: '10px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, maxWidth: '55vw', flexShrink: 1 }}>
+          <div className="dash-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
             </div>
 
