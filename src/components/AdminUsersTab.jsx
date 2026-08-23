@@ -768,10 +768,17 @@ export default function AdminUsersTab({
                       </div>
                     </td>
 
-                    {/* Trial Extension Column */}
+                    {/* Trial Extension Column - Lifetime always wins the display here: a
+                        Lifetime user never has a real expiration to track, so neither the
+                        paid-subscriber badge/date-picker nor the extend-trial button make
+                        sense for them, regardless of what the raw plan field says. */}
                     <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {isPaidSubscriber && !isSuperAdminUser ? (
+                        {isLifetime ? (
+                          <span style={{ fontSize: '0.62rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }}>
+                            {isHebrew ? 'ללא תפוגה' : 'No expiry'}
+                          </span>
+                        ) : isPaidSubscriber && !isSuperAdminUser ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                             <span style={{ fontSize: '0.6rem', color: NEON.emerald, fontWeight: 'bold' }}>
                               {isHebrew ? 'מנוי בתשלום' : 'Paid - Active'}
@@ -812,13 +819,11 @@ export default function AdminUsersTab({
                             )}
                             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.1' }}>
                               <span style={{ fontSize: '0.62rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }}>
-                                {isLifetime ? (isHebrew ? 'ללא תפוגה' : 'No expiry') : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
+                                {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
                               </span>
-                              {!isLifetime && (
-                                <span style={{ fontSize: '0.55rem', color: NEON.sky, fontWeight: 'bold' }}>
-                                  {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
-                                </span>
-                              )}
+                              <span style={{ fontSize: '0.55rem', color: NEON.sky, fontWeight: 'bold' }}>
+                                {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                              </span>
                             </div>
                           </>
                         )}
@@ -1024,7 +1029,11 @@ export default function AdminUsersTab({
                     </span>
                   </div>
 
-                  {isPaidSubscriber && !isSuperAdminUser ? (
+                  {isLifetime ? (
+                    <span style={{ fontSize: '0.72rem', color: NEON.textSecondary }}>
+                      {isHebrew ? 'ללא תפוגה' : 'No expiry'}
+                    </span>
+                  ) : isPaidSubscriber && !isSuperAdminUser ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.68rem', color: NEON.emerald, fontWeight: 'bold' }}>
                         {isHebrew ? 'מנוי בתשלום' : 'Paid - Active'}
@@ -1053,13 +1062,11 @@ export default function AdminUsersTab({
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
                         <span style={{ fontSize: '0.72rem', color: NEON.textSecondary }}>
-                          {isLifetime ? (isHebrew ? 'ללא תפוגה' : 'No expiry') : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
+                          {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
                         </span>
-                        {!isLifetime && (
-                          <span style={{ fontSize: '0.65rem', color: NEON.sky, fontWeight: 'bold' }}>
-                            {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
-                          </span>
-                        )}
+                        <span style={{ fontSize: '0.65rem', color: NEON.sky, fontWeight: 'bold' }}>
+                          {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                        </span>
                       </div>
                     </div>
                   )}
