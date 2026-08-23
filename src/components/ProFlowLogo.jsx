@@ -53,11 +53,13 @@ export default function ProFlowLogo({ size = 48, darkText = false, logoUrl = '',
   // 2. אם אין לוגו או שהתמונה נכשלה בטעינה, נציג את שם העסק ב-BOLD אם קיים
   if (bizName && bizName.trim() !== '') {
     return (
-      <span style={{ 
-        fontSize: `${size * 0.6}px`, 
-        fontWeight: 'bold', 
+      <span style={{
+        fontSize: `${size * 0.6}px`,
+        fontWeight: 'bold',
         color: shouldUseDarkText ? '#0f172a' : '#ffffff',
-        fontFamily: 'Inter, Segoe UI, sans-serif'
+        fontFamily: 'Inter, Segoe UI, sans-serif',
+        whiteSpace: 'nowrap',
+        flexShrink: 0
       }}>
         {bizName}
       </span>
@@ -75,7 +77,9 @@ export default function ProFlowLogo({ size = 48, darkText = false, logoUrl = '',
       display: 'inline-flex',
       alignItems: 'center',
       fontFamily: 'Inter, Segoe UI, sans-serif',
-      lineHeight: 1
+      lineHeight: 1,
+      whiteSpace: 'nowrap',
+      flexShrink: 0
     }}>
       <span style={{ color: shouldUseDarkText ? '#0f172a' : '#ffffff' }}>Pro</span>
       <span style={{

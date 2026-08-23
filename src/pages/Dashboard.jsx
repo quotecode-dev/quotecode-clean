@@ -1748,11 +1748,22 @@ export default function Dashboard() {
         }
         @media (max-width: 640px) {
           .dash-header-bar {
-            justify-content: center;
+            flex-wrap: nowrap;
+            padding: 8px 10px;
+            gap: 6px;
           }
-          .dash-header-logo-wrap {
-            width: 100%;
-            justify-content: center;
+          .dash-header-logo-wrap,
+          .dash-header-actions,
+          .dash-header-profile {
+            flex-shrink: 0;
+          }
+          .dash-header-profile {
+            gap: 6px;
+          }
+          .dash-email-text,
+          .dash-admin-badge-text,
+          .dash-admin-logs-text {
+            display: none;
           }
         }
       `}</style>
@@ -1869,17 +1880,17 @@ export default function Dashboard() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
           <div className="dash-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
             </div>
 
-            <div style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="dash-header-actions" style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <AIChatWidget isHebrew={isHebrew} isDashboard={true} />
               {!isPro && !isSuperAdmin && (
                 <button
                   className="dash-neon-btn"
                   onClick={() => setShowPricingModal(true)}
-                  style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', gap: '5px' }}
+                  style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
                 >
                   <Crown size={14} fill="currentColor" strokeWidth={1.5} />
                   <span>{isHebrew ? 'שדרג חבילה' : 'Upgrade Plan'}</span>
@@ -1894,24 +1905,25 @@ export default function Dashboard() {
                     fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
                     background: 'rgba(239, 68, 68, 0.1)',
                     color: NEON.red,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   <MessagesSquare size={14} />
-                  AI Support Logs
+                  <span className="dash-admin-logs-text">AI Support Logs</span>
                 </button>
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="dash-header-profile" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flexShrink: 0 }}>
               {isSuperAdmin && (
-                <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: NEON.amber, fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
+                <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: NEON.amber, fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1px solid rgba(251, 191, 36, 0.3)', whiteSpace: 'nowrap' }}>
                   <Shield size={12} strokeWidth={2.5} />
-                  SUPER ADMIN
+                  <span className="dash-admin-badge-text">SUPER ADMIN</span>
                 </span>
               )}
-              <span style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{session.user.email}</span>
-              <button onClick={() => setShowSignOutModal(true)} style={{ background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><LogOut size={12} strokeWidth={2.5} />{isHebrew ? 'התנתק' : 'Sign Out'}</button>
+              <span className="dash-email-text" style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{session.user.email}</span>
+              <button onClick={() => setShowSignOutModal(true)} style={{ background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}><LogOut size={12} strokeWidth={2.5} />{isHebrew ? 'התנתק' : 'Sign Out'}</button>
             </div>
           </div>
 
