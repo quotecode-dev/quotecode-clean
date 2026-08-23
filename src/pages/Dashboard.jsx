@@ -13,7 +13,6 @@ import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
-import RegionConfirmModal from '../components/RegionConfirmModal';
 import UserDetailsModal from '../components/UserDetailsModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
 import SignOutModal from '../components/SignOutModal';
@@ -306,7 +305,6 @@ export default function Dashboard() {
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [pendingLifetimeUser, setPendingLifetimeUser] = useState(null);
-  const [pendingRegionChange, setPendingRegionChange] = useState(null);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -623,44 +621,6 @@ export default function Dashboard() {
       setAlertModalMsg(isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.');
     } else {
       setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
-      fetchAllAccounts();
-    }
-  }
-
-  async function handleAdminCountryChange(accountId, newCountry) {
-    if (!newCountry) return;
-    
-    const updatePayload = { country: newCountry };
-    if (newCountry === 'International') {
-      updatePayload.default_terms = DEFAULT_TERMS_ENG;
-      updatePayload.currency = 'USD';
-    } else {
-      updatePayload.default_terms = DEFAULT_TERMS_HEB;
-      updatePayload.currency = 'ILS';
-    }
-
-    let { data, error } = await supabase
-      .from('business_settings')
-      .update(updatePayload)
-      .eq('id', accountId)
-      .select();
-
-    if ((error || !data || data.length === 0) && accountId) {
-      const targetAcc = allAccounts.find(a => a.id === accountId);
-      if (targetAcc && targetAcc.user_id) {
-        const res = await supabase
-          .from('business_settings')
-          .update(updatePayload)
-          .eq('user_id', targetAcc.user_id)
-          .select();
-        error = res.error;
-      }
-    }
-
-    if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון אזור העסק: ' + error.message : 'Error updating user country: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'אזור העסק עודכן בהצלחה!' : 'Business region updated successfully!', type: 'success' });
       fetchAllAccounts();
     }
   }
@@ -1850,21 +1810,7 @@ export default function Dashboard() {
         isHebrew={isHebrew}
       />
 
-      <RegionConfirmModal 
-        isOpen={pendingRegionChange !== null}
-        onClose={() => setPendingRegionChange(null)}
-        onConfirm={async () => {
-          if (!pendingRegionChange) return;
-          const { accountId, newCountry } = pendingRegionChange;
-          setPendingRegionChange(null);
-          await handleAdminCountryChange(accountId, newCountry);
-        }}
-        userEmail={pendingRegionChange?.userEmail || ''}
-        newCountry={pendingRegionChange?.newCountry || 'Local'}
-        isHebrew={isHebrew}
-      />
-
-      <UserDetailsModal 
+      <UserDetailsModal
         isOpen={selectedUserDetails !== null}
         onClose={() => setSelectedUserDetails(null)}
         user={selectedUserDetails}
@@ -1888,7 +1834,7 @@ export default function Dashboard() {
           
           <div className="dash-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
+              <ProFlowLogo size={40} />
             </div>
 
             <div className="dash-header-actions" style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -2278,7 +2224,6 @@ export default function Dashboard() {
                 handleUpdatePlanOnly={handleUpdatePlanOnly}
                 handleAdminPlanChange={handleAdminPlanChange}
                 handleExtendTrial14Days={handleExtendTrial14Days}
-                setPendingRegionChange={setPendingRegionChange}
                 setPendingLifetimeUser={setPendingLifetimeUser}
                 handleToggleLifetime={handleToggleLifetime}
                 setSelectedUserDetails={setSelectedUserDetails}

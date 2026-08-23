@@ -37,7 +37,6 @@ export default function AdminUsersTab({
   sortField,
   sortDirection,
   liveTick,
-  setPendingRegionChange,
   setPendingLifetimeUser,
   handleToggleLifetime,
   setSelectedUserDetails,
@@ -637,15 +636,14 @@ export default function AdminUsersTab({
                       </span>
                     </td>
 
-                    {/* Region Icon */}
+                    {/* Region Icon - read-only: the region is a binding tax rule (18%
+                        VAT local / 0% global) determined automatically at signup from
+                        the business's detected locale. It cannot be toggled from here
+                        on purpose, so currency/VAT can never drift out of sync with it. */}
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
                       <span
-                        onClick={() => {
-                          const newC = isIntl ? 'Local' : 'International';
-                          setPendingRegionChange({ accountId: acc.id, newCountry: newC, userEmail: acc.email });
-                        }}
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isIntl ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: isIntl ? NEON.red : NEON.emerald, cursor: 'pointer' }}
-                        title={isHebrew ? `אזור: ${currentCountry} (לחץ להחלפה)` : `Region: ${currentCountry} (Click to toggle)`}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isIntl ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: isIntl ? NEON.red : NEON.emerald, cursor: 'default' }}
+                        title={isHebrew ? `אזור: ${currentCountry} (${isIntl ? '0%' : '18%'} מע"מ - נקבע אוטומטית ולא ניתן לשינוי)` : `Region: ${currentCountry} (${isIntl ? '0%' : '18%'} VAT - set automatically, cannot be changed)`}
                       >
                         {isIntl ? <Globe size={12} strokeWidth={2.2} /> : <Home size={12} strokeWidth={2.2} />}
                       </span>

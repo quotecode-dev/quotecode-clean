@@ -81,9 +81,13 @@ export default function QuotesTab({
     <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* WebkitFontSmoothing/MozOsxFontSmoothing: bold light text on a very dark
+              background can trigger ClearType sub-pixel color-fringing on Windows that
+              reads as a "doubled/smeared" glyph - forcing grayscale AA fixes it without
+              changing how the text looks anywhere it wasn't already an issue. */}
+          <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale', textRendering: 'optimizeLegibility' }}>
             <History size={18} color={NEON.violetLight} strokeWidth={2.2} />
-            {t.recentHistory}
+            <span style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>{t.recentHistory}</span>
           </h2>
           <button
             onClick={handleCreateNewQuoteClick}
