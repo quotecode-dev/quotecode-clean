@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
+import { loadNeonFonts } from '../theme/neonTheme';
 
 export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function Terms({ isHebrew }) {
       description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת ProFlow לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the ProFlow business management and quoting platform.',
       canonicalPath: isHebrew ? '/terms' : '/en/terms'
     });
+    loadNeonFonts();
   }, [isHebrew]);
 
   const t = isHebrew ? {
@@ -84,7 +86,7 @@ export default function Terms({ isHebrew }) {
   };
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', Segoe UI, Tahoma, sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
       {/* Header */}
       <header style={{ background: 'rgba(9, 13, 22, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>

@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
-
-// גופן מערכת נקי ומודרני מוגדר במפורש על שורש הטופס - כל הכותרות/תוויות
-// בפנים (כולל "פריטי ההצעה", "סה"כ לתשלום" ו"יצירת הצעת מחיר חדשה")
-// יורשות אותו במקום גופן ה-Rubik/Inter המשותף של מעטפת הדשבורד
-const CLEAN_FORM_FONT_STACK = '"Segoe UI", Arial, -apple-system, BlinkMacSystemFont, sans-serif';
+import { NEON, FONT_HE, neonGlowTextStyle } from '../theme/neonTheme';
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -230,7 +225,7 @@ export default function QuoteForm({
   };
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '16px', borderRadius: '14px', marginBottom: '20px', border: editingQuoteId ? `2px solid ${NEON.violet}` : `1px solid ${NEON.border}`, fontFamily: CLEAN_FORM_FONT_STACK }}>
+    <div style={{ background: NEON.bgCard, padding: '16px', borderRadius: '14px', marginBottom: '20px', border: editingQuoteId ? `2px solid ${NEON.violet}` : `1px solid ${NEON.border}`, fontFamily: FONT_HE }}>
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
       {/* מודל שדרוג PRO מעוצב */}

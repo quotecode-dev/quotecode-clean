@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { formatDateLocal } from '../utils/regionConfig';
 import { Bot, ArrowRight, Search, Filter, Clock, Mail, HelpCircle, MessageSquareText, Tag, X, AlertTriangle } from 'lucide-react';
+import { loadNeonFonts } from '../theme/neonTheme';
+
+const AI_LOGS_FONT_STACK = "'Rubik', Arial, sans-serif";
 
 export default function AILogs() {
+  useEffect(() => { loadNeonFonts(); }, []);
+
   // שער הרשאות: רק super_admin מחובר רשאי לצפות בלוגים. כל עוד לא אושר - לא נטען שום מידע.
   const [authStatus, setAuthStatus] = useState('checking'); // 'checking' | 'authorized' | 'denied'
   const [logs, setLogs] = useState([]);
@@ -64,7 +69,7 @@ export default function AILogs() {
 
   if (authStatus !== 'authorized') {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontFamily: AI_LOGS_FONT_STACK }}>
         {authStatus === 'checking' ? 'בודק הרשאות...' : 'מפנה מחדש...'}
       </div>
     );
@@ -108,7 +113,7 @@ export default function AILogs() {
   const categories = ['ALL', ...new Set(logs.map(l => l.category || 'GENERAL'))];
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', background: '#f8fafc', minHeight: '100vh' }} dir="rtl">
+    <div style={{ padding: '40px', fontFamily: AI_LOGS_FONT_STACK, background: '#f8fafc', minHeight: '100vh' }} dir="rtl">
       
       {/* מודל צף לקריאת מלוא המלל בלחיצה על שורה */}
       {selectedLog && (

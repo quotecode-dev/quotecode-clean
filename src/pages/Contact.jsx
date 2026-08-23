@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 import { setSeoMeta } from '../utils/seoMeta';
+import { loadNeonFonts } from '../theme/neonTheme';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Contact({ isHebrew }) {
       description: isHebrew ? 'צרו קשר עם צוות התמיכה של ProFlow לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the ProFlow support team for any question about managing your business and quotes.',
       canonicalPath: isHebrew ? '/contact' : '/en/contact'
     });
+    loadNeonFonts();
   }, [isHebrew]);
 
   const t = isHebrew ? {
@@ -49,7 +51,7 @@ export default function Contact({ isHebrew }) {
   };
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif', background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', Segoe UI, Tahoma, sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
       <style>{`
         .contact-card {

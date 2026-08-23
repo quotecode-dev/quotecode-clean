@@ -14,7 +14,7 @@ export default function ProFlowLogo({ size = 48, darkText = false }) {
       letterSpacing: '-0.5px',
       display: 'inline-flex',
       alignItems: 'center',
-      fontFamily: 'Inter, Segoe UI, sans-serif',
+      fontFamily: "'Rubik', Segoe UI, sans-serif",
       lineHeight: 1,
       whiteSpace: 'nowrap',
       flexShrink: 0

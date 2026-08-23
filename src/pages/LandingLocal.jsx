@@ -8,12 +8,7 @@ import {
   Zap, PenTool, BarChart3, ChevronDown, Mail, Wrench, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
-import { NEON, loadNeonFonts } from '../theme/neonTheme';
-
-// גופן מערכת נקי ומודרני, ללא תלות בהורדת Rubik מ-Google Fonts - נקבע כאן
-// במפורש לדף הנחיתה העברי בלבד (לא משנה את FONT_HE המשותף שרכיבים אחרים
-// עדיין משתמשים בו), כך שאין אפשרות לרגע של גופן חלופי/החלפה גלויה כלל
-const CLEAN_HEBREW_FONT_STACK = '"Segoe UI", Arial, -apple-system, BlinkMacSystemFont, sans-serif';
+import { NEON, FONT_HE, loadNeonFonts } from '../theme/neonTheme';
 
 // שם קצר מקומי לתאימות לשאר הקובץ - אותם טוקנים מוגדרים מרכזית ב-neonTheme
 // כדי שהעיצוב יישאר מאוחד מול LandingGlobal.jsx ו-Dashboard.jsx.
@@ -100,7 +95,7 @@ export default function LandingLocal({ onForgotPassword }) {
   ];
 
   return (
-    <div dir="rtl" style={{ fontFamily: CLEAN_HEBREW_FONT_STACK, background: NEON.bg, minHeight: '100vh', color: NEON.textPrimary, display: 'flex', flexDirection: 'column', overflowX: 'hidden', letterSpacing: '-0.01em' }}>
+    <div dir="rtl" style={{ fontFamily: FONT_HE, background: NEON.bg, minHeight: '100vh', color: NEON.textPrimary, display: 'flex', flexDirection: 'column', overflowX: 'hidden', letterSpacing: '-0.01em' }}>
 
       <style>{`
         .hover-card {

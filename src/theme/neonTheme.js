@@ -37,22 +37,28 @@ export const NEON = {
   cardHoverShadow: '0 24px 40px -14px rgba(139, 92, 246, 0.35)',
 };
 
+// Rubik הוא התקן הגופני היחיד והגלובלי של האפליקציה - עברית ואנגלית כאחד
+// (Rubik תומך בשני הסקריפטים באופן מלא). FONT_HE ו-FONT_EN נשארים כשני
+// exports נפרדים כדי לא לשבור קריאות קיימות בכל הקבצים שכבר מייבאים את
+// שניהם, אך שניהם מצביעים עכשיו על אותו מחסנית גופנים בדיוק - אין יותר
+// שום מקום באפליקציה שמשתמש ב-Inter או בכל גופן אחר כברירת מחדל ראשונה.
 export const FONT_HE = "'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-export const FONT_EN = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+export const FONT_EN = "'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-// טוען את גופני Rubik (עברית חדה ומודרנית) ו-Inter (אנגלית) פעם אחת לכל העמוד,
-// כדי שהטיפוגרפיה תיראה בפועל חדה ולא רק תיפול חזרה לגופן המערכת כברירת מחדל.
+// טוען את גופן Rubik (בכל המשקלים, כולל Bold/Extra Bold להדגשות בכותרות)
+// פעם אחת לכל העמוד, כדי שהטיפוגרפיה תיראה בפועל חדה ולא רק תיפול חזרה
+// לגופן המערכת כברירת מחדל. Inter הוסר לגמרי - Rubik הוא הגופן היחיד
+// שנטען כעת.
 //
-// display=optional (ולא display=swap כפי שהיה כאן קודם): עם swap הדפדפן
-// מציג טקסט מיידית בגופן הגיבוי ואז "מחליף" אותו לגופן שהורד ברגע שהוא
-// מוכן - בגרסה מודגשת/עברית ההחלפה הזו יוצרת קפיצת מידות/רוחב גלויה
-// שנראית כמו "רעד" או טקסט כפול לפריים אחד. עם optional הדפדפן לא מחליף
-// טיפוגרפיה אחרי הציור הראשון בכלל (אם הגופן לא היה מוכן כמעט מיידית),
-// כך שאין אף פעם קפיצה/הבהוב גלויים - לכל היותר גופן הגיבוי נשאר קבוע.
+// display=optional (ולא display=swap): עם swap הדפדפן מציג טקסט מיידית
+// בגופן הגיבוי ואז "מחליף" אותו לגופן שהורד ברגע שהוא מוכן - בגרסה
+// מודגשת/עברית ההחלפה הזו יוצרת קפיצת מידות/רוחב גלויה שנראית כמו "רעד"
+// או טקסט כפול לפריים אחד. עם optional הדפדפן לא מחליף טיפוגרפיה אחרי
+// הציור הראשון בכלל (אם הגופן לא היה מוכן כמעט מיידית), כך שאין אף פעם
+// קפיצה/הבהוב גלויים - לכל היותר גופן הגיבוי נשאר קבוע.
 export function loadNeonFonts() {
   if (typeof document === 'undefined') return;
   const fonts = [
-    { id: 'inter', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=optional' },
     { id: 'rubik', href: 'https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=optional' },
   ];
   fonts.forEach(({ id, href }) => {
