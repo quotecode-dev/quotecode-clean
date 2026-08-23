@@ -42,3 +42,10 @@ enabled = true
 # מול RESEND_WEBHOOK_SECRET, הנבדקת בתוך הקוד עצמו
 verify_jwt = false
 entrypoint = "./functions/resend-email-webhook/index.ts"
+
+[functions.billing-checkout-stub]
+enabled = true
+# שלד (stub) לחיוב עתידי - עדיין נדרש JWT תקין בשער בנוסף לבדיקת הבעלות
+# הפנימית, אין סיבה להנמיך את זה כמו הפונקציות שנקראות ע"י גורם חיצוני
+verify_jwt = true
+entrypoint = "./functions/billing-checkout-stub/index.ts"

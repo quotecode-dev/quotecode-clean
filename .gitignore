@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 google-indexing-key.json
 .claude/
+
+# Local secrets - never commit real keys (Stripe, Supabase, invoicing, etc.).
+# See .env.example for the variable names to fill in locally.
+.env
+.env.local
+.env.*.local
