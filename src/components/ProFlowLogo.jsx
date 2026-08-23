@@ -13,15 +13,22 @@ export default function ProFlowLogo({ size = 48, rtl = false, darkText = false, 
     setImgError(false);
   }, [logoUrl]);
 
-  // 1. אם יש לוגו תקין ואין שגיאת טעינה
+  // 1. אם יש לוגו תקין ואין שגיאת טעינה. לוגואים שהועלו ע"י בתי עסק הם כמעט
+  // תמיד קבצי JPG/PNG עם קנבס לבן אטום - הצגתם גולמיים על פס כהה יוצרת מלבן
+  // לבן שנראה כמו תקלה ויזואלית. עוטפים אותם בשבב לבן מעוגל ומכוון בכוונה
+  // (padding + radius + shadow עדין) כך שהלבן ייראה כעיצוב מכוון ולא כתקלה.
   if (logoUrl && logoUrl.trim() !== '' && !imgError) {
     return (
-      <div dir="ltr" style={{ display: 'flex', alignItems: 'center' }}>
-        <img 
-          src={logoUrl} 
-          alt="Business Logo" 
+      <div dir="ltr" style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: '#ffffff', borderRadius: '10px', padding: '4px 10px',
+        boxShadow: '0 2px 10px -2px rgba(0,0,0,0.35)', lineHeight: 0
+      }}>
+        <img
+          src={logoUrl}
+          alt="Business Logo"
           onError={() => setImgError(true)}
-          style={{ height: `${size}px`, width: 'auto', objectFit: 'contain', maxWidth: '180px' }} 
+          style={{ height: `${Math.round(size * 0.7)}px`, width: 'auto', objectFit: 'contain', maxWidth: '160px', display: 'block' }}
         />
       </div>
     );
