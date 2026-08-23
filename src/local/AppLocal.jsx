@@ -185,7 +185,9 @@ export default function AppLocal() {
       <Routes>
         <Route path="/" element={<LandingLocal />} />
         <Route path="/he" element={<LandingLocal />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* bundleIsHebrew=true: מקור אמת מפורש עבור ברירות המחדל של חשבון
+            חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
+        <Route path="/dashboard" element={<Dashboard bundleIsHebrew={true} />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/he/tools" element={<PublicTools />} />

@@ -191,7 +191,9 @@ export default function AppGlobal() {
       <Routes>
         <Route path="/" element={<LandingGlobal />} />
         <Route path="/en" element={<LandingGlobal />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* bundleIsHebrew=false: מקור אמת מפורש עבור ברירות המחדל של חשבון
+            חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
+        <Route path="/dashboard" element={<Dashboard bundleIsHebrew={false} />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />

@@ -45,7 +45,11 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
-export default function Dashboard() {
+// bundleIsHebrew: איזה באנדל בפועל (AppLocal/AppGlobal) עדכן את הדשבורד -
+// מועבר במפורש ע"י main.jsx/AppLocal.jsx/AppGlobal.jsx, ולא מנוחש מחדש
+// כאן מתוך URL/localStorage. זהו מקור האמת היחיד לברירות המחדל של חשבון
+// חדש (מדינה/מטבע/תקנון) בהרשמה - ראו שימוש למטה בענף היצירה החדשה.
+export default function Dashboard({ bundleIsHebrew }) {
   const now = new Date();
 
   const [session, setSession] = useState(null);
@@ -542,15 +546,17 @@ export default function Dashboard() {
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 14);
 
-      // הבאנדל שבפועל רץ כרגע (isHebrew, כבר הוכרע סופית ע"י main.jsx) הוא
-      // מקור האמת היחיד לברירות המחדל של חשבון חדש - לא פענוח עצמאי חוזר
-      // של ה-URL/localStorage כאן, שיכול להסתמך על ערך proflow_lang ישן/
-      // תקוע מביקור קודם (למשל דפדפן משותף) ולסתור את הבאנדל שבו המשתמש
-      // נרשם בפועל כרגע. אי-התאמה כזו בדיוק גרמה לחשבונות Global/אנגלית
-      // חדשים לקבל ברירת מחדל של תקנון בעברית, שם עסק בעברית ומטבע ILS.
-      const detectedCountry = isHebrew ? 'Local' : 'International';
-      const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = isHebrew ? 'ILS' : 'USD';
+      // bundleIsHebrew (מועבר ע"י AppLocal.jsx/AppGlobal.jsx לפי איזה מהם
+      // בפועל רינדר את הדשבורד) הוא מקור האמת היחיד לברירות המחדל של חשבון
+      // חדש - במפורש *לא* המשתנה isHebrew הרגיל שמעל, שיכול להיגזר מ-
+      // ?lang= בכתובת או מ-proflow_lang ב-localStorage שנשאר מביקור קודם
+      // (למשל דפדפן משותף, או שרת בדיקות). אי-התאמה בדיוק כזו גרמה לחשבונות
+      // Global/אנגלית חדשים לקבל ברירת מחדל של תקנון בעברית, שם עסק בעברית
+      // ומטבע ILS - כי isHebrew "נפל" בטעות לניחוש מבוסס URL/localStorage
+      // במקום להסתמך על הבאנדל שבו המשתמש נרשם בפועל.
+      const detectedCountry = bundleIsHebrew ? 'Local' : 'International';
+      const detectedTerms = bundleIsHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
+      const detectedCurr = bundleIsHebrew ? 'ILS' : 'USD';
 
       const defaultPayload = {
         user_id: userId,
