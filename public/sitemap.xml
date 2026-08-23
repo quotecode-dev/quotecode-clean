@@ -1,87 +1,118 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://www.quotecodepro.com/</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.quotecodepro.com/" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/en</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.quotecodepro.com/" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/he</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.quotecodepro.com/" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/tools</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/tools" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/tools" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/en/tools</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/tools" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/tools" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/contact</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/contact" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/contact" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/he/contact</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/contact" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/contact" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/en/contact</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/contact" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/contact" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/privacy</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/privacy" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/privacy" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/he/privacy</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/privacy" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/privacy" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/en/privacy</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/privacy" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/privacy" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/terms</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/terms" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/terms" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/he/terms</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/terms" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/terms" />
   </url>
   <url>
     <loc>https://www.quotecodepro.com/en/terms</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.quotecodepro.com/en/terms" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.quotecodepro.com/he/terms" />
   </url>
 </urlset>

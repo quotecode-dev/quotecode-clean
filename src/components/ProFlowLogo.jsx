@@ -24,13 +24,14 @@ export default function ProFlowLogo({ size = 48, darkText = false, logoUrl = '',
       <div dir="ltr" style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: '#ffffff', borderRadius: '10px', padding: '4px 10px',
-        boxShadow: '0 2px 10px -2px rgba(0,0,0,0.35)', lineHeight: 0
+        boxShadow: '0 2px 10px -2px rgba(0,0,0,0.35)', lineHeight: 0,
+        maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden'
       }}>
         <img
           src={logoUrl}
           alt="Business Logo"
           onError={() => setImgError(true)}
-          style={{ height: `${Math.round(size * 0.7)}px`, width: 'auto', objectFit: 'contain', maxWidth: '160px', display: 'block' }}
+          style={{ maxHeight: `${Math.round(size * 0.7)}px`, maxWidth: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
         />
       </div>
     );

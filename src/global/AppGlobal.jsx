@@ -190,17 +190,22 @@ export default function AppGlobal() {
 
       <Routes>
         <Route path="/" element={<LandingGlobal />} />
+        <Route path="/en" element={<LandingGlobal />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
+        <Route path="/en/tools" element={<PublicToolsEn />} />
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
-        
+
         <Route path="/terms" element={<Terms isHebrew={false} />} />
+        <Route path="/en/terms" element={<Terms isHebrew={false} />} />
         <Route path="/privacy" element={<Privacy isHebrew={false} />} />
+        <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/contact" element={<Contact isHebrew={false} />} />
+        <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
         <Route path="*" element={<LandingGlobal />} />
       </Routes>

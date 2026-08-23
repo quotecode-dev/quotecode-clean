@@ -18,6 +18,7 @@ const browserLang = (navigator.language || navigator.userLanguage || '').toLower
 const isEnglishEnv = langParam === 'en' ? true
   : langParam === 'he' ? false
   : window.location.pathname.startsWith('/en') ? true
+  : window.location.pathname.startsWith('/he') ? false
   : storedLang === 'en' ? true
   : storedLang === 'he' ? false
   : !browserLang.startsWith('he');

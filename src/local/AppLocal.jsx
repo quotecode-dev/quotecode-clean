@@ -184,15 +184,20 @@ export default function AppLocal() {
 
       <Routes>
         <Route path="/" element={<LandingLocal />} />
+        <Route path="/he" element={<LandingLocal />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
+        <Route path="/he/tools" element={<PublicTools />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
-        
+
         <Route path="/terms" element={<Terms isHebrew={true} />} />
+        <Route path="/he/terms" element={<Terms isHebrew={true} />} />
         <Route path="/privacy" element={<Privacy isHebrew={true} />} />
+        <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />
         <Route path="/contact" element={<Contact isHebrew={true} />} />
+        <Route path="/he/contact" element={<Contact isHebrew={true} />} />
 
         <Route path="*" element={<LandingLocal />} />
       </Routes>

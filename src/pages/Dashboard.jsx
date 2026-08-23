@@ -1718,7 +1718,7 @@ export default function Dashboard() {
   const currentHotClientName = hotQuotesList.length > 0 ? (hotQuotesList[hotQuoteIndex % hotQuotesList.length]?.clients?.company_name || 'Client') : '';
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em' }}>
+    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'hidden' }}>
 
       <style>{`
         @keyframes popupBounce {
@@ -1859,8 +1859,8 @@ export default function Dashboard() {
       <div style={{ flex: '1 0 auto', padding: '10px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, maxWidth: '55vw', flexShrink: 1 }}>
               <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
             </div>
 
