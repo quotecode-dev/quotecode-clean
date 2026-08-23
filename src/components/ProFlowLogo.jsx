@@ -1,9 +1,9 @@
 import React from 'react';
 
 export default function ProFlowLogo({ size = 48, rtl = false, darkText = false, logoUrl = '', bizName = '' }) {
-  // אם לא צוין במפורש darkText, נבדוק האם אנחנו בדשבורד לפי נתיב ה-URL
-  const isDashboard = typeof window !== 'undefined' && window.location.pathname.includes('/dashboard');
-  const shouldUseDarkText = darkText || isDashboard;
+  // כל דפי המערכת (כולל הדשבורד) עברו לעיצוב ניאון-דארק, כך שטקסט הלוגו
+  // תמיד בהיר כברירת מחדל; darkText נותר כדריסה מפורשת בלבד למי שבאמת צריך אותה.
+  const shouldUseDarkText = darkText;
 
   // מצב שגיאה בטעינת התמונה מנוהל באמצעות State נקי ובטוח לריאקט
   const [imgError, setImgError] = React.useState(false);

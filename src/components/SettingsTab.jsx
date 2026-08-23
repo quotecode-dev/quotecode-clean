@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, Users, ArrowUpCircle, XCircle } from 'lucide-react';
+import { NEON } from '../theme/neonTheme';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -129,51 +130,51 @@ export default function SettingsTab({
   };
 
   return (
-    <div style={{ background: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9' }}>
-      <h2 style={{ fontSize: '1rem', color: '#1e293b', fontWeight: '500', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Settings size={18} color="#7c3aed" strokeWidth={2.2} />
+    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
+      <h2 style={{ fontSize: '1rem', color: NEON.textPrimary, fontWeight: '500', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Settings size={18} color={NEON.violetLight} strokeWidth={2.2} />
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
       <form onSubmit={handleSaveSettings}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Building2 size={13} color="#0ea5e9" />{isHebrew ? 'שם העסק' : 'Business Name'}</label>
-            <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Building2 size={13} color={NEON.sky} />{isHebrew ? 'שם העסק' : 'Business Name'}</label>
+            <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Hash size={13} color="#f59e0b" />{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
-            <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Hash size={13} color={NEON.amber} />{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
+            <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Mail size={13} color="#4f46e5" />{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
-            <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: '#f8fafc', fontSize: '0.85rem' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Mail size={13} color={NEON.violetLight} />{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
+            <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
-          
+
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><Phone size={13} color="#10b981" />{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
-            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', overflow: 'hidden', boxSizing: 'border-box' }}>
-              <div style={{ background: '#f1f5f9', padding: '7px 10px', fontSize: '0.8rem', color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
+            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
                 {defaultLabel}
               </div>
-              <input 
-                type="text" 
-                value={localPhone} 
-                onChange={(e) => handleLocalPhoneChange(e.target.value)} 
-                placeholder="500000000" 
-                style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
+              <input
+                type="text"
+                value={localPhone}
+                onChange={(e) => handleLocalPhoneChange(e.target.value)}
+                placeholder="500000000"
+                style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', color: NEON.textPrimary, direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
-              <Coins size={13} color="#f59e0b" />{isHebrew ? 'מטבע העסק' : 'Business Currency'}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}>
+              <Coins size={13} color={NEON.amber} />{isHebrew ? 'מטבע העסק' : 'Business Currency'}
             </label>
-            <select 
-              value={currency} 
+            <select
+              value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               disabled={isLocalIsraeliBusiness}
-              style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: isLocalIsraeliBusiness ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem', fontWeight: '400', color: '#4f46e5' }}
+              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: isLocalIsraeliBusiness ? 'rgba(255,255,255,0.04)' : NEON.bgInput, fontSize: '0.85rem', fontWeight: '400', color: NEON.violetLight }}
             >
               {isLocalIsraeliBusiness ? (
                 <option value="ILS">ILS (₪)</option>
@@ -188,103 +189,103 @@ export default function SettingsTab({
           </div>
         </div>
 
-        <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '500', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <MapPin size={14} color="#ef4444" />{isHebrew ? 'כתובת העסק' : 'Business Address Details'}
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '0.85rem', color: NEON.textSecondary, fontWeight: '500', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MapPin size={14} color={NEON.red} />{isHebrew ? 'כתובת העסק' : 'Business Address Details'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'רחוב ומספר' : 'Street Address'}</label>
-              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'הזן כתובת רחוב ומספר' : 'e.g. 123 Main St'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'רחוב ומספר' : 'Street Address'}</label>
+              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'הזן כתובת רחוב ומספר' : 'e.g. 123 Main St'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'עיר' : 'City'}</label>
-              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'עיר' : 'City'}</label>
+              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'מדינה / מחוז (State)' : 'State / Province'}</label>
-              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה/אזור' : 'State / Region'} style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מדינה / מחוז (State)' : 'State / Province'}</label>
+              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה/אזור' : 'State / Region'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: '#64748b', marginBottom: '2px' }}>{isHebrew ? 'מיקוד (ZIP / Postal)' : 'ZIP / Postal Code'}</label>
-              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder="10001" style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מיקוד (ZIP / Postal)' : 'ZIP / Postal Code'}</label>
+              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder="10001" style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
             </div>
           </div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}>
-            <ImageIcon size={13} color="#7c3aed" />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {bizPlan !== 'pro' && <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}>
+            <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {bizPlan !== 'pro' && <span style={{ color: NEON.amber, fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input 
-              type="url" 
-              value={bizLogoUrl} 
-              onChange={(e) => setBizLogoUrl(e.target.value)} 
-              placeholder="https://example.com/logo.svg" 
-              disabled={bizPlan !== 'pro'} 
-              style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: bizPlan !== 'pro' ? '#f1f5f9' : '#f8fafc', fontSize: '0.85rem' }} 
+            <input
+              type="url"
+              value={bizLogoUrl}
+              onChange={(e) => setBizLogoUrl(e.target.value)}
+              placeholder="https://example.com/logo.svg"
+              disabled={bizPlan !== 'pro'}
+              style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: bizPlan !== 'pro' ? 'rgba(255,255,255,0.03)' : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
             />
-            <label style={{ background: bizPlan !== 'pro' ? '#e2e8f0' : '#4f46e5', color: bizPlan !== 'pro' ? '#94a3b8' : 'white', padding: '7px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: bizPlan !== 'pro' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+            <label style={{ background: bizPlan !== 'pro' ? 'rgba(255,255,255,0.08)' : NEON.gradient, color: bizPlan !== 'pro' ? NEON.textMuted : 'white', padding: '7px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: bizPlan !== 'pro' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', boxShadow: bizPlan !== 'pro' ? 'none' : NEON.glowSoft }}>
               <span>{isHebrew ? 'העלה קובץ' : 'Upload File'}</span>
-              <input 
-                type="file" 
-                accept=".svg,.png,.jpg,.jpeg" 
-                onChange={handleLogoFileChange} 
-                disabled={bizPlan !== 'pro'} 
-                style={{ display: 'none' }} 
+              <input
+                type="file"
+                accept=".svg,.png,.jpg,.jpeg"
+                onChange={handleLogoFileChange}
+                disabled={bizPlan !== 'pro'}
+                style={{ display: 'none' }}
               />
             </label>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.72rem', color: NEON.textMuted, marginTop: '4px' }}>
             {isHebrew ? 'ניתן להעלות קבצים עד משקל של 500KB ואך ורק מסוג של SVG JPG וכו\'' : 'Files up to 500KB only, formats: SVG, JPG, PNG, etc.'}
           </div>
           {logoError && (
-            <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '3px' }}>
+            <div style={{ fontSize: '0.75rem', color: NEON.red, marginTop: '3px' }}>
               {logoError}
             </div>
           )}
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: '#475569', marginBottom: '3px' }}><FileText size={13} color="#64748b" />{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
-          <textarea 
-            value={defaultTerms} 
-            onChange={(e) => setDefaultTerms(e.target.value)} 
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><FileText size={13} color={NEON.textSecondary} />{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
+          <textarea
+            value={defaultTerms}
+            onChange={(e) => setDefaultTerms(e.target.value)}
             rows="4"
-            style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.85rem', fontFamily: 'inherit', lineHeight: '1.4' }} 
+            style={{ width: '100%', padding: '8px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.85rem', fontFamily: 'inherit', lineHeight: '1.4' }}
           />
         </div>
 
-        <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: '400', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
+        <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
           {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
         </button>
       </form>
 
-      <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-        <h3 style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Shield size={16} color="#4f46e5" strokeWidth={2} />
+      <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: `1px solid ${NEON.border}` }}>
+        <h3 style={{ fontSize: '0.95rem', color: NEON.textPrimary, fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Shield size={16} color={NEON.violetLight} strokeWidth={2} />
           {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
         </h3>
-        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-             <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+             <div style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, padding: '8px', borderRadius: '8px', display: 'flex' }}>
                <Users size={20} strokeWidth={2} />
              </div>
              <div>
-               <div style={{ fontSize: '0.9rem', fontWeight: '400', color: '#0f172a', textTransform: 'uppercase' }}>{bizPlan} PLAN</div>
-               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+               <div style={{ fontSize: '0.9rem', fontWeight: '400', color: NEON.textPrimary, textTransform: 'uppercase' }}>{bizPlan} PLAN</div>
+               <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>
                  {isTrialExpired ? (isHebrew ? 'תקופת הניסיון הסתיימה' : 'Trial Expired') : (trialDaysLeft ? (isHebrew ? `נותרו ${trialDaysLeft} ימי ניסיון` : `Trial ends in ${trialDaysLeft} days`) : (isHebrew ? 'מנוי פעיל' : 'Active Subscription'))}
                </div>
              </div>
            </div>
            <div style={{ display: 'flex', gap: '8px' }}>
-             <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#4f46e5', color: 'white', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
+             <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: NEON.gradient, color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: NEON.glowSoft }}>
                <ArrowUpCircle size={14} strokeWidth={2} />
                {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
              </button>
              {bizPlan !== 'free' && (
-               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: '#fff', color: '#dc2626', padding: '8px 14px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
+               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: NEON.red, padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(248, 113, 113, 0.35)', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <XCircle size={14} strokeWidth={2} />
                   {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
                </button>

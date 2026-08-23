@@ -26,6 +26,12 @@ import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
 import AdminUsersTab from '../components/AdminUsersTab';
+import { NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
+import {
+  AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
+  Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
+  MessagesSquare, Accessibility as AccessibilityIcon
+} from 'lucide-react';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -1712,8 +1718,8 @@ export default function Dashboard() {
   const currentHotClientName = hotQuotesList.length > 0 ? (hotQuotesList[hotQuoteIndex % hotQuotesList.length]?.clients?.company_name || 'Client') : '';
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: '"Assistant", "Rubik", "Segoe UI", Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
+    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em' }}>
+
       <style>{`
         @keyframes popupBounce {
           0% { transform: scale(0.6) translateY(8px); opacity: 0; }
@@ -1731,24 +1737,34 @@ export default function Dashboard() {
             display: flex !important;
           }
         }
+        .dash-neon-btn {
+          transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .dash-neon-btn:hover {
+          filter: brightness(1.08);
+        }
+        .dash-tab-btn {
+          transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
       `}</style>
 
       {/* חלון צף מודרני (Modal) עבור כל הודעות השגיאה והאזהרות */}
       {alertModalMsg && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-          <div style={{ background: 'white', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', animation: 'popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-            <div style={{ width: '48px', height: '48px', background: '#fef2f2', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+          <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', textAlign: 'center', animation: 'popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+            <div style={{ width: '48px', height: '48px', background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <AlertTriangle size={24} strokeWidth={2.5} />
             </div>
-            <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
+            <h3 style={{ marginTop: 0, color: NEON.textPrimary, fontSize: '1.1rem', fontWeight: '800', marginBottom: '8px' }}>
               {isHebrew ? 'שים לב' : 'Attention'}
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.4' }}>
+            <p style={{ color: NEON.textSecondary, fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.4' }}>
               {alertModalMsg}
             </p>
             <button
+              className="dash-neon-btn"
               onClick={() => setAlertModalMsg(null)}
-              style={{ width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }}
+              style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}
             >
               {isHebrew ? 'הבנתי, סגור' : 'OK'}
             </button>
@@ -1843,7 +1859,7 @@ export default function Dashboard() {
       <div style={{ flex: '1 0 auto', padding: '10px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '10px 16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ProFlowLogo size={40} logoUrl={bizLogoUrl} />
             </div>
@@ -1852,10 +1868,11 @@ export default function Dashboard() {
               <AIChatWidget isHebrew={isHebrew} isDashboard={true} />
               {!isPro && !isSuperAdmin && (
                 <button
+                  className="dash-neon-btn"
                   onClick={() => setShowPricingModal(true)}
-                  style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '500', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', gap: '5px' }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <Crown size={14} fill="currentColor" strokeWidth={1.5} />
                   <span>{isHebrew ? 'שדרג חבילה' : 'Upgrade Plan'}</span>
                 </button>
               )}
@@ -1863,14 +1880,15 @@ export default function Dashboard() {
                 <button
                   onClick={() => { window.location.href = '/ai-logs'; }}
                   style={{
-                    padding: '6px 14px', borderRadius: '16px', 
-                    border: '1px solid #ef4444', 
-                    fontWeight: '500', fontSize: '0.8rem', cursor: 'pointer', 
-                    background: '#fef2f2', 
-                    color: '#ef4444', 
+                    padding: '6px 14px', borderRadius: '16px',
+                    border: '1px solid rgba(248, 113, 113, 0.4)',
+                    fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: NEON.red,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
                   }}
                 >
+                  <MessagesSquare size={14} />
                   AI Support Logs
                 </button>
               )}
@@ -1878,36 +1896,34 @@ export default function Dashboard() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {isSuperAdmin && (
-                <span style={{ background: '#fef08a', color: '#854d0e', fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z"/></svg>
+                <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: NEON.amber, fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
+                  <Shield size={12} strokeWidth={2.5} />
                   SUPER ADMIN
                 </span>
               )}
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{session.user.email}</span>
-              <button onClick={() => setShowSignOutModal(true)} style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>{isHebrew ? 'התנתק' : 'Sign Out'}</button>
+              <span style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{session.user.email}</span>
+              <button onClick={() => setShowSignOutModal(true)} style={{ background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><LogOut size={12} strokeWidth={2.5} />{isHebrew ? 'התנתק' : 'Sign Out'}</button>
             </div>
           </div>
 
           {statusMsg.text && (
-            <div style={{ padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2', color: statusMsg.type === 'success' ? '#166534' : '#991b1b', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              {statusMsg.type !== 'success' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+            <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', background: statusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', border: `1px solid ${statusMsg.type === 'success' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`, color: statusMsg.type === 'success' ? NEON.emerald : NEON.red, fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              {statusMsg.type !== 'success' && <AlertTriangle size={16} strokeWidth={2.5} />}
               <span>{statusMsg.text}</span>
             </div>
           )}
 
           {isExpiringSoon && (
-            <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </span>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={18} strokeWidth={2.5} />
               <span>{isHebrew ? `תקופת הניסיון שלך מסתיימת בעוד ${trialDaysLeft} ימים!` : `Your trial period expires in ${trialDaysLeft} days!`}</span>
             </div>
           )}
 
           {trialEndsAt && !isTrialExpired && !isSuperAdmin && !isExpiringSoon && (
-            <div style={{ background: '#eff6ff', border: '1px solid #3b82f6', color: '#1d4ed8', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
+            <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: NEON.sky, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3 z"/></svg>
+                <Clock size={14} strokeWidth={2.5} />
                 {isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}
               </span>
               <span>{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
@@ -1915,77 +1931,92 @@ export default function Dashboard() {
           )}
 
           {isTrialExpired && !isSuperAdmin && (
-            <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px', fontWeight: 'normal', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.35)', color: NEON.red, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', fontWeight: 'normal', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={16} strokeWidth={2.5} />
               <span>{isHebrew ? 'תקופת הניסיון פגה והועברת למסלול החינמי. אנא שדרג.' : 'Your trial has expired and you have been moved to the FREE tier. Please upgrade.'}</span>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <button
+              className="dash-tab-btn"
               onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '6px', 
-                border: activeTab === 'main' ? '1px solid #4f46e5' : '1px solid #cbd5e1', 
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', 
-                background: activeTab === 'main' ? '#4f46e5' : 'white', 
-                color: activeTab === 'main' ? 'white' : '#475569', 
+                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
+                border: activeTab === 'main' ? '1px solid transparent' : `1px solid ${NEON.border}`,
+                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                background: activeTab === 'main' ? NEON.gradient : NEON.bgCard,
+                color: activeTab === 'main' ? 'white' : NEON.textSecondary,
+                boxShadow: activeTab === 'main' ? NEON.glow : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
               }}
             >
+              <FileText size={14} />
               {t.quotesNav}
             </button>
             <button
+              className="dash-tab-btn"
               onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '6px', 
-                border: activeTab === 'settings' ? '1px solid #4f46e5' : '1px solid #cbd5e1', 
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', 
-                background: activeTab === 'settings' ? '#4f46e5' : 'white', 
-                color: activeTab === 'settings' ? 'white' : '#475569', 
+                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
+                border: activeTab === 'settings' ? '1px solid transparent' : `1px solid ${NEON.border}`,
+                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                background: activeTab === 'settings' ? NEON.gradient : NEON.bgCard,
+                color: activeTab === 'settings' ? 'white' : NEON.textSecondary,
+                boxShadow: activeTab === 'settings' ? NEON.glow : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
               }}
             >
+              <SettingsIcon size={14} />
               {t.settingsNav}
             </button>
             <button
+              className="dash-tab-btn"
               onClick={() => { setActiveTab('clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '6px', 
-                border: activeTab === 'clients' ? '1px solid #4f46e5' : '1px solid #cbd5e1', 
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', 
-                background: activeTab === 'clients' ? '#4f46e5' : 'white', 
-                color: activeTab === 'clients' ? 'white' : '#475569', 
+                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
+                border: activeTab === 'clients' ? '1px solid transparent' : `1px solid ${NEON.border}`,
+                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                background: activeTab === 'clients' ? NEON.gradient : NEON.bgCard,
+                color: activeTab === 'clients' ? 'white' : NEON.textSecondary,
+                boxShadow: activeTab === 'clients' ? NEON.glow : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
               }}
             >
+              <Users2 size={14} />
               {t.clientsNav}
             </button>
             <button
+              className="dash-tab-btn"
               onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '6px', 
-                border: activeTab === 'finances' ? '1px solid #4f46e5' : '1px solid #cbd5e1', 
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', 
-                background: activeTab === 'finances' ? '#4f46e5' : 'white', 
-                color: activeTab === 'finances' ? 'white' : '#475569', 
+                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
+                border: activeTab === 'finances' ? '1px solid transparent' : `1px solid ${NEON.border}`,
+                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                background: activeTab === 'finances' ? NEON.gradient : NEON.bgCard,
+                color: activeTab === 'finances' ? 'white' : NEON.textSecondary,
+                boxShadow: activeTab === 'finances' ? NEON.glow : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
               }}
             >
+              <BarChart3 size={14} />
               {t.financesNav}
             </button>
             {isSuperAdmin && (
               <button
+                className="dash-tab-btn"
                 onClick={() => { setActiveTab('admin_clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
                 style={{
-                  flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '6px', 
-                  border: activeTab === 'admin_clients' ? '1px solid #4f46e5' : '1px solid #cbd5e1', 
-                  fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', 
-                  background: activeTab === 'admin_clients' ? '#4f46e5' : 'white', 
-                  color: activeTab === 'admin_clients' ? 'white' : '#475569', 
+                  flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
+                  border: activeTab === 'admin_clients' ? '1px solid transparent' : `1px solid ${NEON.border}`,
+                  fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
+                  background: activeTab === 'admin_clients' ? NEON.gradient : NEON.bgCard,
+                  color: activeTab === 'admin_clients' ? 'white' : NEON.textSecondary,
+                  boxShadow: activeTab === 'admin_clients' ? NEON.glow : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
                 }}
               >
+                <Shield size={14} />
                 {t.usersAdminNav}
               </button>
             )}
@@ -1995,28 +2026,26 @@ export default function Dashboard() {
             <>
               {!isSuperAdmin && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9', borderTop: '3px solid #4f46e5', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>{t.totalQuotes}</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{totalQuotesCount}</div>
+                  <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '12px', border: `1px solid ${NEON.border}`, borderTop: `3px solid ${NEON.violet}`, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} color={NEON.violetLight} />{t.totalQuotes}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary }}>{totalQuotesCount}</div>
                     {!isPro && (
-                      <div style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 'bold' }}>
+                      <div style={{ fontSize: '0.65rem', color: NEON.amber, fontWeight: 'bold' }}>
                         {isHebrew ? `החודש: ${monthlyQuotesCount} / ${planLimit}` : `This month: ${monthlyQuotesCount} / ${planLimit}`}
                       </div>
                     )}
                   </div>
-                  <div style={{ background: 'white', padding: '14px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)', border: '1px solid #f1f5f9', borderTop: '3px solid #10b981', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>{t.totalRevenue}</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>{sym}{formatNum(totalRevenue)}</div>
+                  <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '12px', border: `1px solid ${NEON.border}`, borderTop: `3px solid ${NEON.emeraldDark}`, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color={NEON.emerald} />{t.totalRevenue}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.emerald }}>{sym}{formatNum(totalRevenue)}</div>
                   </div>
                 </div>
               )}
 
               {hotQuotesList.length > 0 && (
-                <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '10px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, padding: '10px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-                    </span>
+                    <Flame size={16} color={NEON.red} fill={NEON.red} strokeWidth={1} />
                     <span>
                       {t.hotQuoteAlert(currentHotClientName)}
                     </span>
@@ -2234,45 +2263,35 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: '#1e293b', color: 'white', justifyContent: 'space-around', padding: '10px 0', zIndex: 9998, boxShadow: '0 -4px 15px rgba(0,0,0,0.15)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <button onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'main' && !showQuoteForm ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </span>
+      <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: '#000000', color: 'white', justifyContent: 'space-around', padding: '10px 0', zIndex: 9998, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', borderTop: `1px solid ${NEON.border}` }}>
+        <button onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'main' && !showQuoteForm ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <FileText size={18} style={{ marginBottom: '2px' }} />
           {t.quotesNav}
         </button>
-        <button onClick={() => { setActiveTab('clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'clients' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </span>
+        <button onClick={() => { setActiveTab('clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'clients' ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <Users2 size={18} style={{ marginBottom: '2px' }} />
           {t.clientsNav}
         </button>
-        <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </span>
+        <button onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'settings' ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <SettingsIcon size={18} style={{ marginBottom: '2px' }} />
           {t.settingsNav}
         </button>
-        <button onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'finances' ? '#38bdf8' : '#94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </span>
+        <button onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'finances' ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <BarChart3 size={18} style={{ marginBottom: '2px' }} />
           {t.financesNav}
         </button>
-        <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: '1px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2.5px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </span>
+        <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: NEON.violetLight, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <PlusCircle size={18} strokeWidth={2.5} style={{ marginBottom: '2px' }} />
           {isHebrew ? 'חדש' : 'New'}
         </button>
       </div>
 
-      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem' }}>
+      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
           {isHebrew ? <>מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר</> : <><strong>ProFlow</strong> - Business & Quoting SaaS Platform</>}
         </div>
-        <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: '#4f46e5', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px', verticalAlign: 'middle'}}><circle cx="12" cy="5" r="2"/><path d="m5 10 7-1 7 1"/><path d="m12 10v7"/><path d="m12 17-4 5"/><path d="m12 17 4 5"/></svg>
+        <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <AccessibilityIcon size={14} />
           {isHebrew ? 'הצהרת נגישות' : 'Assignment Statement'}
         </button>
       </footer>
@@ -2294,7 +2313,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '30px', textAlign: 'center', background: '#fef2f2', borderRadius: '12px', border: '1px solid #f87171', color: '#991b1b', margin: '20px 0' }}>
+        <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, margin: '20px 0' }}>
           <h3>{this.props.isHebrew ? 'שגיאה בטעינת הרכיב' : 'Component Loading Error'}</h3>
           <p style={{ fontSize: '0.85rem' }}>{this.props.isHebrew ? 'אירעה שגיאה זמנית בהצגת הנתונים. אנא רענן את העמוד.' : 'An error occurred while loading. Please refresh the page.'}</p>
         </div>

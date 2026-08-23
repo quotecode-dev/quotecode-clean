@@ -8,11 +8,12 @@ import {
   Zap, PenTool, BarChart3, ChevronDown, Mail, Wrench, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
+import { NEON, FONT_HE, loadNeonFonts } from '../theme/neonTheme';
 
-// פלטת הניאון-דארק של הדף (בהשראת Vercel / Raycast): רקע שחור-כמעט-מוחלט,
-// גבולות דקים בעלי ניגודיות נמוכה, וזוהי ניאון סגול-ורוד חד כאקסנט חתימה.
-const NEON_GRADIENT = 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)';
-const NEON_GLOW = '0 0 0 1px rgba(255,255,255,0.08) inset, 0 12px 30px -8px rgba(139,92,246,0.55), 0 0 45px -10px rgba(236,72,153,0.45)';
+// שם קצר מקומי לתאימות לשאר הקובץ - אותם טוקנים מוגדרים מרכזית ב-neonTheme
+// כדי שהעיצוב יישאר מאוחד מול LandingGlobal.jsx ו-Dashboard.jsx.
+const NEON_GRADIENT = NEON.gradient;
+const NEON_GLOW = NEON.glow;
 
 export default function LandingLocal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -49,16 +50,7 @@ export default function LandingLocal({ onForgotPassword }) {
     }
     hreflangEn.href = 'https://www.quotecodepro.com/en';
 
-    // טעינת גופן Inter (משקלים מלאים) כדי שהטיפוגרפיה תהיה חדה ומודרנית בפועל,
-    // ולא רק נופלת חזרה לגופן המערכת כברירת מחדל.
-    let fontLink = document.querySelector("link[data-proflow-font='inter']");
-    if (!fontLink) {
-      fontLink = document.createElement('link');
-      fontLink.rel = 'stylesheet';
-      fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap';
-      fontLink.setAttribute('data-proflow-font', 'inter');
-      document.head.appendChild(fontLink);
-    }
+    loadNeonFonts();
   }, []);
 
   const getLocalPriceId = (planType) => {
@@ -93,7 +85,7 @@ export default function LandingLocal({ onForgotPassword }) {
   ];
 
   return (
-    <div dir="rtl" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#050506', minHeight: '100vh', color: '#fafafa', display: 'flex', flexDirection: 'column', overflowX: 'hidden', letterSpacing: '-0.01em' }}>
+    <div dir="rtl" style={{ fontFamily: FONT_HE, background: NEON.bg, minHeight: '100vh', color: NEON.textPrimary, display: 'flex', flexDirection: 'column', overflowX: 'hidden', letterSpacing: '-0.01em' }}>
 
       <style>{`
         .hover-card {
