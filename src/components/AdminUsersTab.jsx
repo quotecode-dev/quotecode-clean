@@ -296,8 +296,52 @@ export default function AdminUsersTab({
 
   const isHebrewText = (str) => /[\u0590-\u05FF]/.test(str);
 
+  // \u05DB\u05DC \u05D4\u05E2\u05E8\u05DB\u05D9\u05DD \u05D4\u05E0\u05D2\u05D6\u05E8\u05D9\u05DD \u05DC\u05DB\u05DC \u05DE\u05E9\u05EA\u05DE\u05E9 \u05DE\u05D7\u05D5\u05E9\u05D1\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05D3 \u05D5\u05DE\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD \u05D1\u05D9\u05DF \u05EA\u05E6\u05D5\u05D2\u05EA
+  // \u05D4\u05D8\u05D1\u05DC\u05D4 (\u05D3\u05E1\u05E7\u05D8\u05D5\u05E4) \u05DC\u05EA\u05E6\u05D5\u05D2\u05EA \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1\u05D9\u05DD (\u05DE\u05D5\u05D1\u05D9\u05D9\u05DC), \u05DB\u05D3\u05D9 \u05E9\u05D4\u05DC\u05D5\u05D2\u05D9\u05E7\u05D4 \u05DC\u05D0 \u05EA\u05EA\u05E4\u05E6\u05DC
+  // \u05DC\u05E9\u05E0\u05D9 \u05E2\u05D5\u05EA\u05E7\u05D9\u05DD \u05E9\u05E2\u05DC\u05D5\u05DC\u05D9\u05DD \u05DC\u05E1\u05D8\u05D5\u05EA \u05D6\u05D4 \u05DE\u05D6\u05D4 \u05E2\u05DD \u05D4\u05D6\u05DE\u05DF
+  const getAccountDerived = (acc) => {
+    const isSuperAdminUser = acc.role === 'super_admin';
+    const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
+    const rawPlan = acc.plan ? acc.plan.toLowerCase() : 'free';
+    const planValue = (isSuperAdminUser || isLifetime) ? 'pro' : rawPlan;
+    const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
+    const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
+    const currentCountry = acc.country || 'Local';
+    const isIntl = currentCountry === 'International';
+    const testEmailConfig = acc.email ? TEST_EMAIL_ALLOWLIST[acc.email.toLowerCase()] : null;
+
+    let isRecentActive = false;
+    if (acc.last_sign_in) {
+      const now = Date.now();
+      const diffMs = now - new Date(acc.last_sign_in).getTime();
+      isRecentActive = diffMs < 10 * 60 * 1000;
+    }
+
+    const bizName = acc.business_name || '\u05E2\u05E1\u05E7 \u05D7\u05D3\u05E9';
+    const isBizHebrew = isHebrewText(bizName);
+
+    const lastSignInDateObj = acc.last_sign_in ? new Date(acc.last_sign_in) : null;
+    const lastSignInDateStr = lastSignInDateObj ? lastSignInDateObj.toLocaleDateString('en-GB') : 'N/A';
+    const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
+
+    return {
+      isSuperAdminUser, isLifetime, rawPlan, planValue, isGrantedLifetimePro, isPaidSubscriber,
+      currentCountry, isIntl, testEmailConfig, isRecentActive, bizName, isBizHebrew,
+      lastSignInDateStr, lastSignInFullStr,
+    };
+  };
+
   return (
     <div style={{ background: NEON.bgCard, padding: '24px', borderRadius: '16px', border: `1px solid ${NEON.border}`, width: '100%', boxSizing: 'border-box' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+
+      <style>{`
+        .admin-table-desktop-wrap { display: block; }
+        .admin-mobile-cards { display: none; }
+        @media (max-width: 768px) {
+          .admin-table-desktop-wrap { display: none; }
+          .admin-mobile-cards { display: block; }
+        }
+      `}</style>
 
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
@@ -532,8 +576,8 @@ export default function AdminUsersTab({
         />
       </div>
 
-      {/* Table container with strict width control to eliminate horizontal scroll */}
-      <div style={{ background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}`, overflow: 'hidden' }}>
+      {/* Desktop table - hidden below 768px in favor of the mobile card list further down */}
+      <div className="admin-table-desktop-wrap" style={{ background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle' }}>
@@ -611,33 +655,11 @@ export default function AdminUsersTab({
             ) : (
               activeAccountsList.map(acc => {
                 if (!acc) return null;
-                const isSuperAdminUser = acc.role === 'super_admin';
-                const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
-                const rawPlan = acc.plan ? acc.plan.toLowerCase() : 'free';
-                // משתמש Lifetime מקבל גישה שקולה ל-PRO ללא הגבלה, גם אם שדה ה-plan הגולמי נשאר "free"/"basic"
-                // (handleToggleLifetime מעדכן רק trial_ends_at ולא נוגע ב-plan) - לכן חובה לגזור את התצוגה משניהם יחד
-                const planValue = (isSuperAdminUser || isLifetime) ? 'pro' : rawPlan;
-                // Pro שהוענק דרך Lifetime toggle (ולא נרכש בפועל) מסומן ויזואלית בנפרד מ-Pro משלם אמיתי
-                const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
-
-                const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
-                const currentCountry = acc.country || 'Local';
-                const isIntl = currentCountry === 'International';
-                const testEmailConfig = acc.email ? TEST_EMAIL_ALLOWLIST[acc.email.toLowerCase()] : null;
-
-                let isRecentActive = false;
-                if (acc.last_sign_in) {
-                  const now = Date.now();
-                  const diffMs = now - new Date(acc.last_sign_in).getTime();
-                  isRecentActive = diffMs < 10 * 60 * 1000;
-                }
-
-                const bizName = acc.business_name || 'עסק חדש';
-                const isBizHebrew = isHebrewText(bizName);
-
-                const lastSignInDateObj = acc.last_sign_in ? new Date(acc.last_sign_in) : null;
-                const lastSignInDateStr = lastSignInDateObj ? lastSignInDateObj.toLocaleDateString('en-GB') : 'N/A';
-                const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
+                const {
+                  isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, isPaidSubscriber,
+                  currentCountry, isIntl, testEmailConfig, isRecentActive, bizName, isBizHebrew,
+                  lastSignInDateStr, lastSignInFullStr,
+                } = getAccountDerived(acc);
 
                 return (
                   <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.78rem', height: '44px' }}>
@@ -860,6 +882,197 @@ export default function AdminUsersTab({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card list - shown only below 768px (see .admin-mobile-cards media query
+          above), replacing the 9-column table with a single well-spaced column so no
+          icons/badges/buttons ever collide or overflow on a narrow screen */}
+      <div className="admin-mobile-cards">
+        {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem', background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}` }}>
+            {isHebrew ? 'לא נמצאו משתמשים התואמים לחיפוש.' : 'No users found matching your search.'}
+          </div>
+        ) : (
+          activeAccountsList.map(acc => {
+            if (!acc) return null;
+            const {
+              isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, isPaidSubscriber,
+              currentCountry, isIntl, testEmailConfig, isRecentActive, bizName, isBizHebrew,
+              lastSignInDateStr, lastSignInFullStr,
+            } = getAccountDerived(acc);
+
+            const chipStyle = (bg, color) => ({
+              display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 9px',
+              borderRadius: '7px', fontSize: '0.68rem', fontWeight: '700', background: bg, color,
+              whiteSpace: 'nowrap',
+            });
+            const actionBtnStyle = (bg, color, border) => ({
+              background: bg, color, border: border || 'none', flex: '1 1 auto', minWidth: '84px',
+              padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex',
+              alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.72rem', fontWeight: '600',
+            });
+
+            return (
+              <div key={(acc.id || 'acc') + '_mobile_' + liveTick} style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '14px', marginBottom: '10px' }}>
+
+                {/* Identity: email + business name + last sign-in */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '10px', paddingBottom: '10px', borderBottom: `1px solid ${NEON.border}` }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
+                      {acc.email || 'N/A'}
+                    </div>
+                    <div style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginTop: '3px', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }}>
+                      {bizName}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, fontSize: '0.68rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }} title={lastSignInFullStr}>
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444' }} />
+                    {lastSignInDateStr}
+                  </div>
+                </div>
+
+                {/* Plan / Region / Role badges */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                  <span
+                    style={chipStyle(
+                      isGrantedLifetimePro || planValue === 'pro' ? 'rgba(139, 92, 246, 0.15)' : planValue === 'basic' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.08)',
+                      isGrantedLifetimePro || planValue === 'pro' ? NEON.violetLight : planValue === 'basic' ? NEON.sky : NEON.textSecondary
+                    )}
+                    title={isHebrew ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}` : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
+                  >
+                    {isGrantedLifetimePro ? <Crown size={12} strokeWidth={2.2} /> : planValue === 'pro' ? <Gem size={12} fill="currentColor" strokeWidth={1} /> : planValue === 'basic' ? <Layers size={12} strokeWidth={2.2} /> : <CircleUser size={12} strokeWidth={2.2} />}
+                    {planValue.toUpperCase()}
+                  </span>
+
+                  <span
+                    style={chipStyle(isIntl ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', isIntl ? NEON.red : NEON.emerald)}
+                    title={isHebrew ? `אזור: ${currentCountry} (${isIntl ? '0%' : '18%'} מע"מ - נקבע אוטומטית ולא ניתן לשינוי)` : `Region: ${currentCountry} (${isIntl ? '0%' : '18%'} VAT - automatic, cannot be changed)`}
+                  >
+                    {isIntl ? <Globe size={12} strokeWidth={2.2} /> : <Home size={12} strokeWidth={2.2} />}
+                    {currentCountry} · {isIntl ? '0%' : '18%'}
+                  </span>
+
+                  <span
+                    style={chipStyle(isSuperAdminUser ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.08)', isSuperAdminUser ? NEON.red : NEON.textSecondary)}
+                    title={isHebrew ? `הרשאה: ${acc.role || 'user'}` : `Role: ${acc.role || 'user'}`}
+                  >
+                    {isSuperAdminUser ? <Shield size={12} strokeWidth={2.2} /> : <CircleUser size={12} strokeWidth={2.2} />}
+                    {acc.role || 'user'}
+                  </span>
+                </div>
+
+                {/* Lifetime + Trial/Subscription */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '10px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        if (!isLifetime) setPendingLifetimeUser(acc);
+                        else handleToggleLifetime(acc.id, acc.trial_ends_at);
+                      }}
+                      style={{
+                        background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
+                        color: isLifetime ? NEON.violetLight : NEON.textMuted,
+                        border: '1px solid', borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
+                        width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                      title={isHebrew ? (isLifetime ? 'Lifetime מופעל (לחץ לביטול)' : 'הפעל Lifetime') : (isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime')}
+                    >
+                      <InfinityIcon size={13} strokeWidth={2.5} />
+                    </button>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: isLifetime ? NEON.violetLight : NEON.textSecondary }}>
+                      {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
+                    </span>
+                  </div>
+
+                  {isPaidSubscriber && !isSuperAdminUser ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.68rem', color: NEON.emerald, fontWeight: 'bold' }}>
+                        {isHebrew ? 'מנוי בתשלום' : 'Paid - Active'}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CalendarClock size={13} color={NEON.textMuted} style={{ flexShrink: 0 }} />
+                        <input
+                          type="date"
+                          defaultValue={acc.subscription_ends_at ? acc.subscription_ends_at.slice(0, 10) : ''}
+                          onBlur={(e) => handleSetSubscriptionEndDate(acc.id, e.target.value)}
+                          title={isHebrew ? 'תאריך תפוגת המנוי (לתזכורות אוטומטיות)' : 'Subscription expiry date (for automatic reminders)'}
+                          style={{ fontSize: '0.75rem', padding: '5px 7px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, color: NEON.textPrimary, flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {!isSuperAdminUser && (
+                        <button
+                          onClick={() => { if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id); }}
+                          style={{ background: 'rgba(56, 189, 248, 0.15)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.35)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          title={isHebrew ? 'הארך ניסיון ב-14 יום' : 'Extend Trial by 14 Days'}
+                        >
+                          <RotateCw size={13} strokeWidth={2.5} />
+                        </button>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                        <span style={{ fontSize: '0.72rem', color: NEON.textSecondary }}>
+                          {isLifetime ? (isHebrew ? 'ללא תפוגה' : 'No expiry') : (acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A')}
+                        </span>
+                        {!isLifetime && (
+                          <span style={{ fontSize: '0.65rem', color: NEON.sky, fontWeight: 'bold' }}>
+                            {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, acc.plan)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  <button onClick={() => setSelectedUserDetails(acc)} style={actionBtnStyle('rgba(139, 92, 246, 0.15)', NEON.violetLight)}>
+                    <Eye size={13} strokeWidth={2.5} />
+                    {isHebrew ? 'פרטים' : 'Details'}
+                  </button>
+
+                  {testEmailConfig && (
+                    <>
+                      <button
+                        onClick={() => handleSendTestEmail(testEmailConfig.isHebrew, { email: acc.email, rowId: `${acc.id}_trial`, type: 'trial', stage: '3d' })}
+                        disabled={sendingRowId === `${acc.id}_trial`}
+                        style={{ ...actionBtnStyle('rgba(56, 189, 248, 0.12)', NEON.sky, '1px solid rgba(56, 189, 248, 0.35)'), opacity: sendingRowId === `${acc.id}_trial` ? 0.5 : 1, cursor: sendingRowId === `${acc.id}_trial` ? 'not-allowed' : 'pointer' }}
+                        title={isHebrew ? `[בדיקה] מייל תום ניסיון (${testEmailConfig.isHebrew ? 'עברית' : 'אנגלית'})` : `[Test] Trial-expiration email (${testEmailConfig.isHebrew ? 'Hebrew' : 'English'})`}
+                      >
+                        <Send size={13} strokeWidth={2.5} />
+                        {isHebrew ? 'בדיקת ניסיון' : 'Test Trial'}
+                      </button>
+                      <button
+                        onClick={() => handleSendTestEmail(testEmailConfig.isHebrew, { email: acc.email, rowId: `${acc.id}_sub`, type: 'subscription', stage: '3d' })}
+                        disabled={sendingRowId === `${acc.id}_sub`}
+                        style={{ ...actionBtnStyle('rgba(139, 92, 246, 0.12)', NEON.violetLight, '1px solid rgba(167, 139, 250, 0.35)'), opacity: sendingRowId === `${acc.id}_sub` ? 0.5 : 1, cursor: sendingRowId === `${acc.id}_sub` ? 'not-allowed' : 'pointer' }}
+                        title={isHebrew ? `[בדיקה] מייל תפוגת מנוי (${testEmailConfig.isHebrew ? 'עברית' : 'אנגלית'})` : `[Test] Subscription-expiration email (${testEmailConfig.isHebrew ? 'Hebrew' : 'English'})`}
+                      >
+                        <CalendarClock size={13} strokeWidth={2.5} />
+                        {isHebrew ? 'בדיקת מנוי' : 'Test Sub'}
+                      </button>
+                    </>
+                  )}
+
+                  <button onClick={() => setResetModalUser(acc)} style={actionBtnStyle('rgba(239, 68, 68, 0.12)', NEON.red, '1px solid rgba(248, 113, 113, 0.4)')}>
+                    <RefreshCw size={13} strokeWidth={2.5} />
+                    {isHebrew ? 'איפוס' : 'Reset'}
+                  </button>
+
+                  {!isSuperAdminUser && (
+                    <button onClick={() => setDeleteModalUser(acc)} style={actionBtnStyle(NEON.redDark, 'white')}>
+                      <Trash2 size={13} strokeWidth={2.5} />
+                      {isHebrew ? 'מחק' : 'Delete'}
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
