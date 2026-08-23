@@ -58,22 +58,33 @@ export default function AdminUsersTab({
   const [testStage, setTestStage] = useState('3d');
   const [testStatus, setTestStatus] = useState({ type: null, msg: '' });
   const [sendingTestLang, setSendingTestLang] = useState(null);
+  // מזהה השורה (אם בכלל) שממנה נלחץ כפתור "שלח מייל בדיקה מהיר" - מאפשר לכל
+  // שורה להציג ספינר משלה מבלי להתנגש עם מצב הכפתורים בפאנל הבדיקה הכללי
+  const [sendingRowId, setSendingRowId] = useState(null);
 
-  const handleSendTestEmail = async (sendHebrew) => {
-    if (!testEmail || !testEmail.includes('@')) {
+  // overrides מאפשר גם לכפתור המהיר בכל שורה בטבלה (אימייל/סוג/שלב קבועים
+  // מראש מנתוני השורה) וגם לפאנל הבדיקה הכללי (המשתמש בשדות testEmail/
+  // testType/testStage) לחלוק את אותה קריאה חיה ל-Edge Function
+  const handleSendTestEmail = async (sendHebrew, overrides = {}) => {
+    const emailToUse = overrides.email || testEmail;
+    if (!emailToUse || !emailToUse.includes('@')) {
       setTestStatus({ type: 'error', msg: isHebrew ? 'הזן כתובת אימייל תקינה לבדיקה' : 'Enter a valid test email address' });
       return;
     }
-    setSendingTestLang(sendHebrew ? 'he' : 'en');
+    const rowId = overrides.rowId || null;
+    if (rowId) setSendingRowId(rowId);
+    else setSendingTestLang(sendHebrew ? 'he' : 'en');
     setTestStatus({ type: null, msg: '' });
     try {
-      const functionName = testType === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
+      const type = overrides.type || testType;
+      const stage = overrides.stage || testStage;
+      const functionName = type === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           mode: 'test',
-          email: testEmail,
+          email: emailToUse,
           isHebrew: sendHebrew,
-          stage: testStage,
+          stage,
           businessName: sendHebrew ? 'עסק לדוגמה' : 'Test Business'
         }
       });
@@ -84,13 +95,14 @@ export default function AdminUsersTab({
       setTestStatus({
         type: 'success',
         msg: isHebrew
-          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'})`
-          : `Sent successfully to ${testEmail} (${sendHebrew ? 'Hebrew' : 'English'})`
+          ? `נשלח בהצלחה ל-${emailToUse} (${sendHebrew ? 'עברית' : 'אנגלית'}, ${type === 'subscription' ? 'תפוגת מנוי' : 'תום ניסיון'})`
+          : `Sent successfully to ${emailToUse} (${sendHebrew ? 'Hebrew' : 'English'}, ${type === 'subscription' ? 'subscription expiration' : 'trial expiration'})`
       });
     } catch (err) {
       setTestStatus({ type: 'error', msg: err.message });
     } finally {
-      setSendingTestLang(null);
+      if (rowId) setSendingRowId(null);
+      else setSendingTestLang(null);
     }
   };
 
@@ -767,6 +779,17 @@ export default function AdminUsersTab({
                           title={isHebrew ? 'צפה בפרטים' : 'View Details'}
                         >
                           <Eye size={11} strokeWidth={2.5} />
+                        </button>
+
+                        <button
+                          onClick={() => handleSendTestEmail(!isIntl, { email: acc.email, rowId: acc.id, type: 'trial', stage: '3d' })}
+                          disabled={sendingRowId === acc.id || !acc.email}
+                          style={{ background: 'rgba(56, 189, 248, 0.12)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.35)', width: '24px', height: '24px', borderRadius: '6px', cursor: (sendingRowId === acc.id || !acc.email) ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: sendingRowId === acc.id ? 0.5 : 1 }}
+                          title={isHebrew
+                            ? `שלח מייל בדיקה (${isIntl ? 'אנגלית' : 'עברית'}, תום ניסיון) ל-${acc.email}`
+                            : `Send test email (${isIntl ? 'English' : 'Hebrew'}, trial expiration) to ${acc.email}`}
+                        >
+                          <Send size={11} strokeWidth={2.5} />
                         </button>
 
                         <button
