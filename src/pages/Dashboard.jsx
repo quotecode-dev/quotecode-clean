@@ -542,10 +542,15 @@ export default function Dashboard() {
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 14);
 
-      const isHebURL = window.location.pathname.startsWith('/he') || window.location.search.includes('lang=he') || localStorage.getItem('proflow_lang') === 'he';
-      const detectedCountry = isHebURL ? 'Local' : 'International';
-      const detectedTerms = detectedCountry === 'Local' ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = (detectedCountry === 'Local' || isHebrew) ? 'ILS' : 'USD';
+      // הבאנדל שבפועל רץ כרגע (isHebrew, כבר הוכרע סופית ע"י main.jsx) הוא
+      // מקור האמת היחיד לברירות המחדל של חשבון חדש - לא פענוח עצמאי חוזר
+      // של ה-URL/localStorage כאן, שיכול להסתמך על ערך proflow_lang ישן/
+      // תקוע מביקור קודם (למשל דפדפן משותף) ולסתור את הבאנדל שבו המשתמש
+      // נרשם בפועל כרגע. אי-התאמה כזו בדיוק גרמה לחשבונות Global/אנגלית
+      // חדשים לקבל ברירת מחדל של תקנון בעברית, שם עסק בעברית ומטבע ILS.
+      const detectedCountry = isHebrew ? 'Local' : 'International';
+      const detectedTerms = isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
+      const detectedCurr = isHebrew ? 'ILS' : 'USD';
 
       const defaultPayload = {
         user_id: userId,
@@ -1098,7 +1103,10 @@ export default function Dashboard() {
     const phoneForUrl = cleanPhone.replace('+', '');
 
     const proposalCurr = (proposal.currency || currency || 'USD').toUpperCase();
-    const proposalSym = isLocalIsraeliBusiness && proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
+    // הסמל נגזר אך ורק מקוד המטבע השמור על ההצעה עצמה - לא מסיווג העסק
+    // הנוכחי (isLocalIsraeliBusiness), כדי שהצעה ישנה ב-ILS תמשיך להציג ₪
+    // גם אם סיווג העסק שונה מאז ל-International (ולהפך).
+    const proposalSym = proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
 
     // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
     const isLocalQuote = Number(proposal.tax_rate) > 0 || proposalCurr === 'ILS';
@@ -1131,7 +1139,9 @@ export default function Dashboard() {
 
     try {
       const quoteCurr = (quote.currency || currency || 'USD').toUpperCase();
-      const quoteSym = isLocalIsraeliBusiness && quoteCurr === 'ILS' ? '₪' : (quoteCurr === 'EUR' ? '€' : quoteCurr === 'GBP' ? '£' : '$');
+      // ראו הערה המקבילה ב-sendWhatsApp למעלה - הסמל נגזר מהמטבע השמור
+      // על ההצעה, לא מסיווג העסק הנוכחי.
+      const quoteSym = quoteCurr === 'ILS' ? '₪' : (quoteCurr === 'EUR' ? '€' : quoteCurr === 'GBP' ? '£' : '$');
       // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
       const isLocalQuote = Number(quote.tax_rate) > 0 || quoteCurr === 'ILS';
       const quoteLink = isLocalQuote

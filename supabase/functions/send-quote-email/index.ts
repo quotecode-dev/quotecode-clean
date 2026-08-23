@@ -27,7 +27,11 @@ serve(async (req) => {
       throw new Error('Missing RESEND_API_KEY environment variable')
     }
 
-    const effectiveHebrew = isHebrew !== false;
+    // ברירת מחדל בטוחה: עברית מוצגת רק כאשר isHebrew הוא true במפורש.
+    // (!== false) הישן היה הפוך - כל ערך שאינו false (כולל חסר/undefined)
+    // "נופל" לעברית, כלומר בקשה בינלאומית שבה השדה חסר/שגוי הייתה מקבלת
+    // מייל בעברית - בדיוק הדלף שדווח בין הגרסה המקומית לגלובלית.
+    const effectiveHebrew = isHebrew === true;
     const bizTitle = businessName || 'ProFlow';
 
     const subject = effectiveHebrew 

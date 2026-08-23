@@ -23,7 +23,7 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
                 <div key={idx} style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{u.email || 'N/A'}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.business_name || 'עסק חדש'} | {u.country || 'Local'}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.business_name || (isHebrew ? 'עסק חדש' : 'New Business')} | {u.country || 'Local'}</div>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 'bold' }}>
                     {u.created_at ? new Date(u.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}

@@ -49,23 +49,21 @@ export default function QuotesTab({
       : `${window.location.origin}/en/public-quote/${quote.id}?lang=en`;
   };
 
+  // הסמל נגזר אך ורק מקוד המטבע השמור על ההצעה - לעולם לא משפת התצוגה
+  // (isHebrew) של מי שצופה בטבלה כרגע. הצעה ב-ILS מציגה ₪ גם כשנצפית
+  // באנגלית, והצעה ב-USD/EUR/GBP מציגה את סמלה גם כשנצפית בעברית.
   const getQuoteCurrencySymbol = (quoteCurr) => {
     const curr = (quoteCurr || '').toUpperCase();
     if (curr === 'EUR') return '€';
     if (curr === 'GBP') return '£';
+    if (curr === 'ILS' || curr === '₪') return '₪';
     if (curr === 'USD' || curr === '$') return '$';
-    if (curr === 'ILS' || curr === '₪') {
-      if (!isHebrew) return '$';
-      return '₪';
-    }
-    if (!isHebrew) {
-      const curUpper = (currency || '').toUpperCase();
-      if (curUpper === 'EUR') return '€';
-      if (curUpper === 'GBP') return '£';
-      if (curUpper === 'USD') return '$';
-      return '$';
-    }
-    return '₪';
+    // מטבע חסר/לא תקין על ההצעה עצמה - נופל לברירת המחדל של העסק
+    const curUpper = (currency || '').toUpperCase();
+    if (curUpper === 'EUR') return '€';
+    if (curUpper === 'GBP') return '£';
+    if (curUpper === 'ILS') return '₪';
+    return '$';
   };
 
   const getStatusBadge = (st) => {
