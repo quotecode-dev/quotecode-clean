@@ -139,7 +139,11 @@ export default function Dashboard() {
   const [quoteSubject, setQuoteSubject] = useState('');
   const [quoteFiles, setQuoteFiles] = useState([]);
 
-  const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL' || isHebrew;
+  // 🚨 חוק ברזל: אזור (country) הוא שדה משפטי/מס שנקבע אך ורק ע"י המנהל בטבלת
+  // המשתמשים, ואינו קשור לשפת התצוגה (isHebrew) של מי שצפה בו. חיבור בין
+  // השניים (כפי שהיה כאן בעבר) עלול לגרום למטבע/מע"מ סותרים - למשל עסק
+  // "International" (0% מע"מ) שמקבל הצעות ב-ILS רק כי הדפדפן/מטמון שפתו עברית.
+  const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL';
 
   const upperCurr = (currency || '').toUpperCase();
   const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
@@ -494,7 +498,10 @@ export default function Dashboard() {
       setDefaultTerms(defTerms);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
-      let userCurr = (countryVal === 'Local' || countryVal === 'LCL' || isHebrew) ? 'ILS' : (data.currency || 'USD');
+      // כמו ב-isLocalIsraeliBusiness: המטבע נגזר אך ורק מ-countryVal (השדה
+      // שהמנהל קובע), ולא מ-isHebrew - אחרת ערך שגוי היה נכתב בחזרה למסד
+      // הנתונים בכל התחברות (ראו update מטה) ומשבש את המע"מ/מטבע של העסק.
+      let userCurr = (countryVal === 'Local' || countryVal === 'LCL') ? 'ILS' : (data.currency || 'USD');
 
       setCurrency(userCurr);
       setTerms(defTerms);
