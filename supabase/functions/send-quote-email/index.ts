@@ -1,8 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function symbolForCurrency(currencyCode: string | null | undefined, fallbackHebrew: boolean): string {
+  const curr = (currencyCode || '').toUpperCase()
+  if (curr === 'EUR') return '€'
+  if (curr === 'GBP') return '£'
+  if (curr === 'ILS') return '₪'
+  if (curr === 'USD') return '$'
+  return fallbackHebrew ? '₪' : '$'
 }
 
 serve(async (req) => {
@@ -14,10 +24,10 @@ serve(async (req) => {
     const body = await req.json()
     console.log("Incoming request body:", JSON.stringify(body))
 
-    const { to, clientName, quoteId, total, currencySymbol, quoteLink, businessName, isHebrew } = body
-    
+    const { to, clientName, quoteId, total, quoteLink, businessName } = body
+
     const rawLogo = body.logoUrl || body.businessLogo || body.logo || body.bizLogo || body.imageUrl || body.image;
-    
+
     // בדיקה מדויקת האם מדובר ב-SVG אמיתי לפי הסיומת או הנתונים, ולא לפי מילה כללית בשם הקובץ
     const isSvg = rawLogo && (rawLogo.startsWith('data:image/svg+xml') || rawLogo.toLowerCase().endsWith('.svg'));
     const validLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('http') && !isSvg ? rawLogo : null;
@@ -27,11 +37,40 @@ serve(async (req) => {
       throw new Error('Missing RESEND_API_KEY environment variable')
     }
 
-    // ברירת מחדל בטוחה: עברית מוצגת רק כאשר isHebrew הוא true במפורש.
-    // (!== false) הישן היה הפוך - כל ערך שאינו false (כולל חסר/undefined)
-    // "נופל" לעברית, כלומר בקשה בינלאומית שבה השדה חסר/שגוי הייתה מקבלת
-    // מייל בעברית - בדיוק הדלף שדווח בין הגרסה המקומית לגלובלית.
-    const effectiveHebrew = isHebrew === true;
+    // אכיפה בצד השרת: השפה והמטבע נגזרים אך ורק ממסד הנתונים, לא מהלקוח.
+    // isHebrew/currencySymbol שהלקוח שולח נהיו לגמרי חסרי משמעות כאן -
+    // גם אם הפרונטאנד ישלח אי-פעם ערך שגוי/הפוך (בדיוק הבאג שדווח קודם -
+    // דגל שגוי שנשלח בגלל state ישן בדפדפן), המייל בפועל עדיין ייגזר נכון:
+    // effectiveHebrew מ-business_settings.country של בעל ההצעה (לא מהמשתמש
+    // הנוכחי בדפדפן ולא מה-URL), וסמל המטבע מהמטבע השמור על ההצעה עצמה
+    // (לא מהחשבון - הצעה ישנה שומרת את המטבע שהייתה בו כשנוצרה, גם אם
+    // סיווג העסק השתנה מאז).
+    let effectiveHebrew = false
+    let resolvedSym = symbolForCurrency(null, false)
+
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (quoteId && SUPABASE_URL && SERVICE_ROLE_KEY) {
+      const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+      const { data: quoteRow } = await supabaseAdmin
+        .from('quotes')
+        .select('user_id, currency')
+        .eq('id', quoteId)
+        .maybeSingle()
+
+      if (quoteRow?.user_id) {
+        const { data: bizRow } = await supabaseAdmin
+          .from('business_settings')
+          .select('country')
+          .eq('user_id', quoteRow.user_id)
+          .maybeSingle()
+        effectiveHebrew = (bizRow?.country || 'Local') !== 'International'
+      }
+      resolvedSym = symbolForCurrency(quoteRow?.currency, effectiveHebrew)
+    } else {
+      console.error('send-quote-email: no quoteId provided, cannot verify language/currency against the database - defaulting to English/$.')
+    }
+
     const bizTitle = businessName || 'ProFlow';
 
     const subject = effectiveHebrew 
@@ -47,7 +86,7 @@ serve(async (req) => {
         ${headerHtml}
         <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">שלום ${clientName || 'לקוח יקר'},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">מצורפת הצעת המחיר שלך ממערכת <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${currencySymbol || '₪'}${total}</span></p>
+        <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${total}</span></p>
         <br/>
         <p>לצפייה בהצעה המלאה, אישור או חתימה דיגיטלית לחץ על הכפתור הבא:</p>
         <div style="text-align: center; margin: 25px 0;">
@@ -62,7 +101,7 @@ serve(async (req) => {
         ${headerHtml}
         <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Hello ${clientName || 'Dear Client'},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">Please find your quote attached from <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>Total Amount:</strong> <span style="color: #4f46e5; font-weight: bold;">${currencySymbol || '$'}${total}</span></p>
+        <p style="font-size: 1.1rem;"><strong>Total Amount:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${total}</span></p>
         <br/>
         <p>To view, approve or digitally sign your quote, click the button below:</p>
         <div style="text-align: center; margin: 25px 0;">

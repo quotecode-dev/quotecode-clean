@@ -4,7 +4,7 @@
 // ==========================================
 
 import { formatDateLocal } from '../utils/regionConfig';
-import { History, Plus, Download, Hash, Building2, AlignLeft, DollarSign, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
+import { History, Plus, Download, Hash, Building2, AlignLeft, Banknote, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
 import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function QuotesTab({
@@ -135,7 +135,7 @@ export default function QuotesTab({
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlignLeft size={12} color={NEON.textSecondary} />{isHebrew ? 'תיאור' : 'Description'}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('total')}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12} color={NEON.emerald} />{isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Banknote size={12} color={NEON.emerald} />{isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '8px 6px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleQuoteSort('date')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} color={NEON.violetLight} />{isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>

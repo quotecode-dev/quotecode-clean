@@ -109,8 +109,8 @@ export default function PublicQuoteEn() {
   const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
 
   return (
-    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px' }}>
+    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
         
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
@@ -178,9 +178,9 @@ export default function PublicQuoteEn() {
             ℹ️ Admin View: Signature area is displayed to the client only.
           </div>
         ) : (
-          <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+          <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center', boxSizing: 'border-box' }}>
             <h4>Client Signature:</h4>
-            <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ border: '1px dashed #94a3b8', borderRadius: '8px', cursor: 'crosshair', background: 'white' }} />
+            <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', maxWidth: '350px', height: 'auto', margin: '0 auto', border: '1px dashed #94a3b8', borderRadius: '8px', cursor: 'crosshair', background: 'white', boxSizing: 'border-box' }} />
             <div style={{ marginTop: '10px' }}>
               <button type="button" onClick={clearSignature} style={{ padding: '5px 15px', marginRight: '10px' }}>Clear</button>
               <button onClick={handleApprove} style={{ padding: '5px 15px', background: '#10b981', color: 'white', border: 'none' }}>Approve</button>
