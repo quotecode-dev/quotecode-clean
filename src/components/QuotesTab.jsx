@@ -216,7 +216,21 @@ export default function QuotesTab({
                     </td>
 
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
-                      {emailStatus && (
+                      {quote.email_bounced ? (
+                        // כתובת לא קיימת/הצעה שהוחזרה (מזוהה ע"י resend-email-webhook,
+                        // לא ע"י תוצאת השליחה המיידית) - נשארת אדומה עד שליחה מחדש מוצלחת
+                        <span
+                          title={isHebrew ? 'כתובת המייל ששלחת אינה קיימת' : 'The email address you sent does not exist'}
+                          style={{
+                            display: 'inline-block',
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            background: NEON.redDark,
+                            boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)'
+                          }}
+                        />
+                      ) : emailStatus && (
                         <span
                           title={emailStatus === 'success' ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully') : (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')}
                           style={{

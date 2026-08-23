@@ -175,6 +175,23 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // מאזין חי לעדכוני שורת quotes - כשה-Webhook של Resend (resend-email-webhook)
+  // מסמן הצעה כ"הוחזרה" בעקבות כתובת לא קיימת, הנורית בטבלה הופכת לאדומה
+  // מיידית בלי צורך לרענן את העמוד
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`quotes-email-status-${userId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quotes', filter: `user_id=eq.${userId}` }, (payload) => {
+        setQuotes(prev => prev.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
+
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
@@ -1148,6 +1165,12 @@ export default function Dashboard() {
       if (data && data.error) {
         throw new Error(data.error);
       }
+
+      // שליחה מחדש מנקה סימון "הוחזר" קודם - אחרת נורית אדומה ישנה הייתה
+      // ממשיכה להיראות גם אחרי שהכתובת תוקנה ונשלחה בהצלחה מחדש. הכשל
+      // האמיתי (אם יש) יגיע מאוחר יותר דרך ה-Webhook ויעדכן שוב לאדום.
+      await supabase.from('quotes').update({ email_bounced: false, email_bounce_reason: null, email_bounced_at: null }).eq('id', quote.id);
+      setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, email_bounced: false, email_bounce_reason: null, email_bounced_at: null } : q));
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });

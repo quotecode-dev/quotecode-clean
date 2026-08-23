@@ -29,3 +29,16 @@ entrypoint = "./functions/send-trial-expiration-email/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-subscription-expiration-email/index.ts"
+
+[functions.send-quote-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-quote-email/index.ts"
+
+[functions.resend-email-webhook]
+enabled = true
+# verify_jwt=false בכוונה: זו קריאה חיצונית מ-Resend, לא מ-Supabase Auth -
+# האימות היחיד הוא חתימת ה-Webhook (svix-id/svix-timestamp/svix-signature)
+# מול RESEND_WEBHOOK_SECRET, הנבדקת בתוך הקוד עצמו
+verify_jwt = false
+entrypoint = "./functions/resend-email-webhook/index.ts"
