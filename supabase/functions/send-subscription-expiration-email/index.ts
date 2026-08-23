@@ -7,18 +7,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // (Basic/Pro), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך
 // Resend מ-support@quotecodepro.com למשתמשים דוברי עברית ומ-info@quotecodepro.com
 // למשתמשים דוברי אנגלית.
-//
-// הערה: נכון לעכשיו אין במערכת אינטגרציית סליקה אמיתית (Stripe/Paddle וכו'),
-// כך ששדה business_settings.subscription_ends_at מוזן כרגע ידנית ע"י אדמין
-// (ראו העמודה החדשה בטבלת המשתמשים בדשבורד הניהול). ברגע שיחובר ספק סליקה
-// אמיתי, הוא יוכל לעדכן את אותו שדה ולהפעיל את אותה לוגיקת התזכורות ללא שינוי.
-//
-// שני מצבי הפעלה:
-//   - mode "batch": ריצה יומית אוטומטית (מוגנת ב-CRON_SECRET משותף), נקראת
-//     על-ידי Vercel Cron (api/cron.js). סורקת את business_settings ושולחת
-//     תזכורות לכל מנויי Basic/Pro שתאריך התפוגה שהוגדר להם מתקרב.
-//   - mode "test": שליחת מייל בודד מיידי לכתובת נתונה, מוגבל ל-super_admin
-//     בלבד (מאומת דרך ה-JWT של הקורא) - משמש את כפתור בדיקת המייל בדשבורד.
 // ==========================================
 
 const corsHeaders = {
@@ -81,28 +69,30 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
 
 function ctaButton(isHebrew: boolean) {
   const url = 'https://www.quotecodepro.com/dashboard' + (isHebrew ? '' : '?lang=en');
-  const text = isHebrew ? 'חדש מנוי עכשיו' : 'Renew Subscription';
+  const text = isHebrew ? 'חידוש מנוי' : 'Renew Subscription';
   return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${text}</a>`;
 }
 
 function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsAt, isHebrew }: {
   stage: Stage; businessName: string; subscriptionEndsAt: string; isHebrew: boolean;
 }) {
-  const name = businessName || (isHebrew ? 'לקוח יקר' : 'there');
+  const name = businessName || (isHebrew ? 'עסק יקר' : 'there');
   const dateStr = formatDate(subscriptionEndsAt, isHebrew);
 
   if (stage === '3d') {
     const subject = isHebrew
-      ? 'המנוי שלך ב-ProFlow מתחדש/פג בעוד 3 ימים'
-      : 'Your ProFlow subscription renews/expires in 3 days';
+      ? 'המנוי שלך ב-ProFlow עומד פג תוקף בעוד 3 ימים'
+      : 'Your ProFlow subscription expires in 3 days';
     const html = wrapEmail(isHebrew, `
-      <p style="font-size:1rem;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
-      <p style="font-size:0.95rem;line-height:1.6;">
-        ${isHebrew
-          ? `המנוי בתשלום שלך ב-ProFlow עומד להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להבטיח המשך גישה רציפה לכל התכונות שלך ללא הפרעה, יש לחדש את המנוי מראש.`
-          : `Your paid ProFlow subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
-      </p>
-      ${ctaButton(isHebrew)}
+      <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
+        <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
+        <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
+          ${isHebrew
+            ? `מנוי ה־PRO בתשלום שלך במערכת <strong>ProFlow</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
+            : `Your paid ProFlow subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
+        </p>
+        ${ctaButton(isHebrew)}
+      </div>
     `);
     const text = isHebrew
       ? `שלום ${name}, המנוי שלך ב-ProFlow מסתיים ב-${dateStr} (עוד 3 ימים). חדש עכשיו: https://www.quotecodepro.com/dashboard`
@@ -114,13 +104,15 @@ function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsA
     ? 'תזכורת אחרונה: המנוי שלך ב-ProFlow פג מחר'
     : 'Last reminder: your ProFlow subscription expires tomorrow';
   const html = wrapEmail(isHebrew, `
-    <p style="font-size:1rem;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
-    <p style="font-size:0.95rem;line-height:1.6;">
-      ${isHebrew
-        ? `נשארו פחות מ-24 שעות למנוי שלך ב-ProFlow, שיסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינמי עם המגבלות שלו. חדש עכשיו כדי להימנע מהפרעה בעבודה השוטפת.`
-        : `Less than 24 hours remain on your paid ProFlow subscription, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan with its limits. Renew now to avoid any disruption to your work.`}
-    </p>
-    ${ctaButton(isHebrew)}
+    <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
+      <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
+      <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
+        ${isHebrew
+          ? `נשארו פחות מ-24 שעות למנוי שלך ב-ProFlow, שיסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינמי. חדש עכשיו כדי להימנע מהפרעה בעבודה.`
+          : `Less than 24 hours remain on your paid ProFlow subscription, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Renew now to avoid any disruption to your work.`}
+      </p>
+      ${ctaButton(isHebrew)}
+    </div>
   `);
   const text = isHebrew
     ? `שלום ${name}, נשארו פחות מ-24 שעות למנוי שלך ב-ProFlow (מסתיים ב-${dateStr}). חדש עכשיו: https://www.quotecodepro.com/dashboard`
@@ -165,17 +157,12 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // ===== מצב בדיקה: שליחת מייל בודד מיידי =====
     if (mode === 'test') {
       const email = body.email;
       if (!email || typeof email !== 'string') {
         return jsonResponse({ error: 'Missing or invalid "email"' }, 400);
       }
 
-      // שתי כתובות בדיקה מוחרגות במפורש (לפי בקשה מפורשת) מאימות ה-JWT/
-      // super_admin - מאפשר הפעלה ישירה (curl/script) ללא סשן מחובר בכלל.
-      // ההחרגה מוגבלת אך ורק לשתי הכתובות הקבועות האלו כנמענות, כדי לא
-      // להפוך את הפונקציה לנקודת קצה פתוחה לשליחת מייל לכל כתובת שרירותית.
       const TEST_BYPASS_EMAILS = new Set(['tahshitishi@gmail.com', 'minhatshay@gmail.com']);
       const isBypassedTestRecipient = TEST_BYPASS_EMAILS.has(email.toLowerCase());
 
@@ -232,7 +219,6 @@ serve(async (req) => {
       return jsonResponse({ success: true, sentTo: email, stage: useStage, language: useHebrew ? 'he' : 'en' }, 200);
     }
 
-    // ===== מצב אוטומטי (batch): מוגן בסוד משותף, נקרא רק ע"י Vercel Cron =====
     const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
     const providedSecret = req.headers.get('x-cron-secret') || '';
     if (!cronSecret || providedSecret !== cronSecret) {
@@ -255,7 +241,7 @@ serve(async (req) => {
     for (const biz of candidates || []) {
       if (!biz.email || biz.role === 'super_admin') continue;
       const plan = (biz.plan || 'free').toLowerCase();
-      if (plan !== 'basic' && plan !== 'pro') continue; // רלוונטי רק למנויים בתשלום בפועל
+      if (plan !== 'basic' && plan !== 'pro') continue;
 
       const endsMs = new Date(biz.subscription_ends_at).getTime();
       if (Number.isNaN(endsMs)) continue;

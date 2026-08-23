@@ -7,13 +7,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // (14 יום), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך Resend
 // מ-support@quotecodepro.com למשתמשים דוברי עברית ומ-info@quotecodepro.com
 // למשתמשים דוברי אנגלית.
-//
-// שני מצבי הפעלה:
-//   - mode "batch": ריצה יומית אוטומטית (מוגנת ב-CRON_SECRET משותף), נקראת
-//     על-ידי Vercel Cron (api/cron.js). סורקת את business_settings ושולחת
-//     תזכורות לכל משתמשי המסלול החינמי שתקופת הניסיון שלהם מתקרבת לתפוגה.
-//   - mode "test": שליחת מייל בודד מיידי לכתובת נתונה, מוגבל ל-super_admin
-//     בלבד (מאומת דרך ה-JWT של הקורא) - משמש את כפתור בדיקת המייל בדשבורד.
 // ==========================================
 
 const corsHeaders = {
@@ -82,7 +75,7 @@ function ctaButton(isHebrew: boolean) {
 function buildTrialReminderEmail({ stage, businessName, trialEndsAt, isHebrew }: {
   stage: Stage; businessName: string; trialEndsAt: string; isHebrew: boolean;
 }) {
-  const name = businessName || (isHebrew ? 'לקוח יקר' : 'there');
+  const name = businessName || (isHebrew ? 'עסק יקר' : 'there');
   const dateStr = formatDate(trialEndsAt, isHebrew);
 
   if (stage === '3d') {
@@ -90,13 +83,15 @@ function buildTrialReminderEmail({ stage, businessName, trialEndsAt, isHebrew }:
       ? 'תקופת הניסיון שלך ב-ProFlow מסתיימת בעוד 3 ימים'
       : 'Your ProFlow trial ends in 3 days';
     const html = wrapEmail(isHebrew, `
-      <p style="font-size:1rem;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
-      <p style="font-size:0.95rem;line-height:1.6;">
-        ${isHebrew
-          ? `תקופת הניסיון החינמית שלך ב-ProFlow תסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכל יכולות ה-PRO ללא הפרעה, נשמח שתשדרג לתוכנית בתשלום.`
-          : `Your free ProFlow trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all PRO features without interruption, upgrade to a paid plan.`}
-      </p>
-      ${ctaButton(isHebrew)}
+      <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
+        <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
+        <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
+          ${isHebrew
+            ? `תקופת הניסיון החינמית שלך במערכת <strong>ProFlow</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל יכולות ה-PRO ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
+            : `Your free ProFlow trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all PRO features without interruption, upgrade to a paid plan.`}
+        </p>
+        ${ctaButton(isHebrew)}
+      </div>
     `);
     const text = isHebrew
       ? `שלום ${name}, תקופת הניסיון שלך ב-ProFlow מסתיימת ב-${dateStr} (עוד 3 ימים). שדרג עכשיו: https://www.quotecodepro.com/dashboard`
@@ -108,13 +103,15 @@ function buildTrialReminderEmail({ stage, businessName, trialEndsAt, isHebrew }:
     ? 'תזכורת אחרונה: תקופת הניסיון שלך מסתיימת מחר'
     : 'Last reminder: your ProFlow trial ends tomorrow';
   const html = wrapEmail(isHebrew, `
-    <p style="font-size:1rem;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
-    <p style="font-size:0.95rem;line-height:1.6;">
-      ${isHebrew
-        ? `נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-ProFlow, שתסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית לתוכנית החינמית עם המגבלות שלה. שדרג עכשיו כדי להימנע מהפרעה.`
-        : `Less than 24 hours remain on your ProFlow trial, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan with its limits. Upgrade now to avoid any interruption.`}
-    </p>
-    ${ctaButton(isHebrew)}
+    <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
+      <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
+      <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
+        ${isHebrew
+          ? `נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-ProFlow, שתסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית לתוכנית החינמית. שדרג עכשיו כדי להימנע מהפסקת שירות.`
+          : `Less than 24 hours remain on your ProFlow trial, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Upgrade now to avoid any interruption.`}
+      </p>
+      ${ctaButton(isHebrew)}
+    </div>
   `);
   const text = isHebrew
     ? `שלום ${name}, נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-ProFlow (מסתיימת ב-${dateStr}). שדרג עכשיו: https://www.quotecodepro.com/dashboard`
@@ -159,17 +156,12 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // ===== מצב בדיקה: שליחת מייל בודד מיידי =====
     if (mode === 'test') {
       const email = body.email;
       if (!email || typeof email !== 'string') {
         return jsonResponse({ error: 'Missing or invalid "email"' }, 400);
       }
 
-      // שתי כתובות בדיקה מוחרגות במפורש (לפי בקשה מפורשת) מאימות ה-JWT/
-      // super_admin - מאפשר הפעלה ישירה (curl/script) ללא סשן מחובר בכלל.
-      // ההחרגה מוגבלת אך ורק לשתי הכתובות הקבועות האלו כנמענות, כדי לא
-      // להפוך את הפונקציה לנקודת קצה פתוחה לשליחת מייל לכל כתובת שרירותית.
       const TEST_BYPASS_EMAILS = new Set(['tahshitishi@gmail.com', 'minhatshay@gmail.com']);
       const isBypassedTestRecipient = TEST_BYPASS_EMAILS.has(email.toLowerCase());
 
@@ -226,7 +218,6 @@ serve(async (req) => {
       return jsonResponse({ success: true, sentTo: email, stage: useStage, language: useHebrew ? 'he' : 'en' }, 200);
     }
 
-    // ===== מצב אוטומטי (batch): מוגן בסוד משותף, נקרא רק ע"י Vercel Cron =====
     const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
     const providedSecret = req.headers.get('x-cron-secret') || '';
     if (!cronSecret || providedSecret !== cronSecret) {
@@ -248,7 +239,7 @@ serve(async (req) => {
 
     for (const biz of candidates || []) {
       if (!biz.email || biz.role === 'super_admin') continue;
-      if ((biz.plan || 'free').toLowerCase() !== 'free') continue; // כבר בתשלום - לא רלוונטי לתזכורת ניסיון
+      if ((biz.plan || 'free').toLowerCase() !== 'free') continue;
 
       const trialEndsMs = new Date(biz.trial_ends_at).getTime();
       if (Number.isNaN(trialEndsMs)) continue;
