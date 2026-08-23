@@ -182,11 +182,3 @@
     border-right-color: var(--border);
   }
 }
-
-/* Fix for font shadows, glitches and forcing clean sans-serif font globally */
-body, html, *, button, input, select, textarea, span, div {
-  font-family: Arial, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
-  text-shadow: none !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
