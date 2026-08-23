@@ -1,12 +1,17 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
+import { setSeoMeta } from '../utils/seoMeta';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = isHebrew ? 'ProFlow - צור קשר ותמיכה' : 'ProFlow - Contact Us & Support';
+    setSeoMeta({
+      title: isHebrew ? 'ProFlow - צור קשר ותמיכה' : 'ProFlow - Contact Us & Support',
+      description: isHebrew ? 'צרו קשר עם צוות התמיכה של ProFlow לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the ProFlow support team for any question about managing your business and quotes.',
+      canonicalPath: isHebrew ? '/contact' : '/en/contact'
+    });
   }, [isHebrew]);
 
   const t = isHebrew ? {

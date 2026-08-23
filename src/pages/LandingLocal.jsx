@@ -24,14 +24,24 @@ export default function LandingLocal({ onForgotPassword }) {
   useEffect(() => {
     document.title = "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות";
 
+    const descTag = document.querySelector('meta[name="description"]');
+    if (descTag) descTag.setAttribute('content', 'ProFlow - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.');
+
+    // עצמי: canonical משקף את הנתיב שבו נצפה בפועל (/ או /he) ולא ערך קבוע -
+    // אחרת ביקור אמיתי ב-/he היה מוצהר כפיל של השורש הריק ומאבד את הסיכוי
+    // להיות מאונדקס בפני עצמו
     let canonicalLink = document.querySelector("link[rel='canonical']");
     if (!canonicalLink) {
       canonicalLink = document.createElement('link');
       canonicalLink.rel = 'canonical';
       document.head.appendChild(canonicalLink);
     }
-    canonicalLink.href = 'https://www.quotecodepro.com/';
+    canonicalLink.href = window.location.pathname === '/he'
+      ? 'https://www.quotecodepro.com/he'
+      : 'https://www.quotecodepro.com/';
 
+    // תואם ל-hreflang שכבר מוצהר ב-sitemap.xml (he -> /he) - קודם הוצמד
+    // בטעות לשורש הריק, מה שסתר את המפה ובלבל את האיתות הדו-לשוני ל-Google
     let hreflangHe = document.querySelector("link[hreflang='he']");
     if (!hreflangHe) {
       hreflangHe = document.createElement('link');
@@ -39,7 +49,7 @@ export default function LandingLocal({ onForgotPassword }) {
       hreflangHe.hreflang = 'he';
       document.head.appendChild(hreflangHe);
     }
-    hreflangHe.href = 'https://www.quotecodepro.com/';
+    hreflangHe.href = 'https://www.quotecodepro.com/he';
 
     let hreflangEn = document.querySelector("link[hreflang='en']");
     if (!hreflangEn) {

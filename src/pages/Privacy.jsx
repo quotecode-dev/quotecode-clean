@@ -1,11 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setSeoMeta } from '../utils/seoMeta';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy';
+    setSeoMeta({
+      title: isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy',
+      description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת ProFlow ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the ProFlow platform and how user data is handled.',
+      canonicalPath: isHebrew ? '/privacy' : '/en/privacy'
+    });
   }, [isHebrew]);
 
   const t = isHebrew ? {

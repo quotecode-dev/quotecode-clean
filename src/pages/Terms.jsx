@@ -1,11 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setSeoMeta } from '../utils/seoMeta';
 
 export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service';
+    setSeoMeta({
+      title: isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service',
+      description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת ProFlow לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the ProFlow business management and quoting platform.',
+      canonicalPath: isHebrew ? '/terms' : '/en/terms'
+    });
   }, [isHebrew]);
 
   const t = isHebrew ? {

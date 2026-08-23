@@ -88,10 +88,24 @@ export default function AdminUsersTab({
     else setSendingTestLang(sendHebrew ? 'he' : 'en');
     setTestStatus({ type: null, msg: '' });
     try {
+      // הפונקציה בצד השרת מאמתת super_admin לפי ה-JWT של המבקש עצמו (לא לפי
+      // שום דבר שנשלח בגוף הבקשה), ולכן חובה שה-Authorization header יכיל
+      // access_token עדכני וטרי. קריאה מפורשת ל-getSession (ולא הסתמכות על
+      // הצירוף האוטומטי של supabase-js) מבטיחה טוקן רענן וחושפת הודעת שגיאה
+      // ברורה אם ההתחברות פגה, במקום כשל עמום מצד ה-Edge Function.
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (sessionErr || !accessToken) {
+        throw new Error(isHebrew
+          ? 'ההתחברות פגה. אנא רענן את העמוד והתחבר מחדש לפני שליחת מייל בדיקה.'
+          : 'Your session has expired. Please refresh the page and log in again before sending a test email.');
+      }
+
       const type = overrides.type || testType;
       const stage = overrides.stage || testStage;
       const functionName = type === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
       const { data, error } = await supabase.functions.invoke(functionName, {
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: {
           mode: 'test',
           email: emailToUse,

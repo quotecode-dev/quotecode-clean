@@ -20,13 +20,20 @@ export default function LandingGlobal({ onForgotPassword }) {
   useEffect(() => {
     document.title = "ProFlow - Business & Quoting SaaS Platform";
 
+    const descTag = document.querySelector('meta[name="description"]');
+    if (descTag) descTag.setAttribute('content', 'ProFlow is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.');
+
+    // עצמי: canonical משקף את הנתיב שבו נצפה בפועל (/ או /en) ולא ערך קבוע -
+    // אחרת ביקור אמיתי בשורש הריק (זוהה כאנגלית) היה מוצהר כפיל של /en
     let canonicalLink = document.querySelector("link[rel='canonical']");
     if (!canonicalLink) {
       canonicalLink = document.createElement('link');
       canonicalLink.rel = 'canonical';
       document.head.appendChild(canonicalLink);
     }
-    canonicalLink.href = 'https://www.quotecodepro.com/en';
+    canonicalLink.href = window.location.pathname === '/en'
+      ? 'https://www.quotecodepro.com/en'
+      : 'https://www.quotecodepro.com/';
 
     let hreflangEn = document.querySelector("link[hreflang='en']");
     if (!hreflangEn) {
@@ -44,7 +51,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       hreflangHe.hreflang = 'he';
       document.head.appendChild(hreflangHe);
     }
-    hreflangHe.href = 'https://www.quotecodepro.com/';
+    // תואם ל-sitemap.xml (he -> /he); קודם הוצמד בטעות לשורש הריק
+    hreflangHe.href = 'https://www.quotecodepro.com/he';
 
     loadNeonFonts();
 

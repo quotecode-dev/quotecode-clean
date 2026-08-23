@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
 import { NEON, FONT_HE, loadNeonFonts } from '../theme/neonTheme';
+import { setSeoMeta } from '../utils/seoMeta';
 
 function PublicTools() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('currency');
 
   useEffect(() => {
-    document.title = "ProFlow - מרכז הכלים והמחשבונים העסקיים";
+    setSeoMeta({
+      title: 'ProFlow - מרכז הכלים והמחשבונים העסקיים',
+      description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית ProFlow.',
+      canonicalPath: '/tools'
+    });
     loadNeonFonts();
   }, []);
 
