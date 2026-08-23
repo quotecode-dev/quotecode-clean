@@ -42,11 +42,18 @@ export const FONT_EN = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
 
 // טוען את גופני Rubik (עברית חדה ומודרנית) ו-Inter (אנגלית) פעם אחת לכל העמוד,
 // כדי שהטיפוגרפיה תיראה בפועל חדה ולא רק תיפול חזרה לגופן המערכת כברירת מחדל.
+//
+// display=optional (ולא display=swap כפי שהיה כאן קודם): עם swap הדפדפן
+// מציג טקסט מיידית בגופן הגיבוי ואז "מחליף" אותו לגופן שהורד ברגע שהוא
+// מוכן - בגרסה מודגשת/עברית ההחלפה הזו יוצרת קפיצת מידות/רוחב גלויה
+// שנראית כמו "רעד" או טקסט כפול לפריים אחד. עם optional הדפדפן לא מחליף
+// טיפוגרפיה אחרי הציור הראשון בכלל (אם הגופן לא היה מוכן כמעט מיידית),
+// כך שאין אף פעם קפיצה/הבהוב גלויים - לכל היותר גופן הגיבוי נשאר קבוע.
 export function loadNeonFonts() {
   if (typeof document === 'undefined') return;
   const fonts = [
-    { id: 'inter', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap' },
-    { id: 'rubik', href: 'https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap' },
+    { id: 'inter', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=optional' },
+    { id: 'rubik', href: 'https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=optional' },
   ];
   fonts.forEach(({ id, href }) => {
     if (!document.querySelector(`link[data-proflow-font='${id}']`)) {

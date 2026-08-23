@@ -27,6 +27,18 @@ async function getFunctionErrorMessage(error, fallback) {
   return error?.message || fallback;
 }
 
+// כפתור "שלח מייל בדיקה מהיר" מוצג אך ורק לשתי כתובות אלו, לפי דרישה
+// מפורשת - לא לכל שורה בטבלה. השפה קבועה מראש לכל כתובת (ולא נגזרת משדה
+// ה-country של החשבון), כדי שהבדיקה תמיד תבחן בדיוק את התבנית המבוקשת.
+// זהו קריאה ל-Edge Function באותו mode:"test" ייעודי שכבר קיים - נתיב
+// נפרד לחלוטין מ-mode:"batch" (התזכורות האוטומטיות היומיות של 3
+// ימים/24 שעות), ואינו נוגע בדגלי trial_reminder_*_sent /
+// subscription_reminder_*_sent או בכל לוגיקת התזמון של הבדיקה עצמה.
+const TEST_EMAIL_ALLOWLIST = {
+  'tahshitishi@gmail.com': { isHebrew: true },
+  'minhatshay@gmail.com': { isHebrew: false },
+};
+
 export default function AdminUsersTab({
   isHebrew,
   allAccounts = [],
@@ -597,6 +609,7 @@ export default function AdminUsersTab({
                 const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
                 const currentCountry = acc.country || 'Local';
                 const isIntl = currentCountry === 'International';
+                const testEmailConfig = acc.email ? TEST_EMAIL_ALLOWLIST[acc.email.toLowerCase()] : null;
 
                 let isRecentActive = false;
                 if (acc.last_sign_in) {
@@ -781,16 +794,30 @@ export default function AdminUsersTab({
                           <Eye size={11} strokeWidth={2.5} />
                         </button>
 
-                        <button
-                          onClick={() => handleSendTestEmail(!isIntl, { email: acc.email, rowId: acc.id, type: 'trial', stage: '3d' })}
-                          disabled={sendingRowId === acc.id || !acc.email}
-                          style={{ background: 'rgba(56, 189, 248, 0.12)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.35)', width: '24px', height: '24px', borderRadius: '6px', cursor: (sendingRowId === acc.id || !acc.email) ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: sendingRowId === acc.id ? 0.5 : 1 }}
-                          title={isHebrew
-                            ? `שלח מייל בדיקה (${isIntl ? 'אנגלית' : 'עברית'}, תום ניסיון) ל-${acc.email}`
-                            : `Send test email (${isIntl ? 'English' : 'Hebrew'}, trial expiration) to ${acc.email}`}
-                        >
-                          <Send size={11} strokeWidth={2.5} />
-                        </button>
+                        {testEmailConfig && (
+                          <>
+                            <button
+                              onClick={() => handleSendTestEmail(testEmailConfig.isHebrew, { email: acc.email, rowId: `${acc.id}_trial`, type: 'trial', stage: '3d' })}
+                              disabled={sendingRowId === `${acc.id}_trial`}
+                              style={{ background: 'rgba(56, 189, 248, 0.12)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.35)', width: '24px', height: '24px', borderRadius: '6px', cursor: sendingRowId === `${acc.id}_trial` ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: sendingRowId === `${acc.id}_trial` ? 0.5 : 1 }}
+                              title={isHebrew
+                                ? `[בדיקה בלבד] שלח מייל תום ניסיון (${testEmailConfig.isHebrew ? 'עברית' : 'אנגלית'}) ל-${acc.email}`
+                                : `[Test only] Send trial-expiration email (${testEmailConfig.isHebrew ? 'Hebrew' : 'English'}) to ${acc.email}`}
+                            >
+                              <Send size={11} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={() => handleSendTestEmail(testEmailConfig.isHebrew, { email: acc.email, rowId: `${acc.id}_sub`, type: 'subscription', stage: '3d' })}
+                              disabled={sendingRowId === `${acc.id}_sub`}
+                              style={{ background: 'rgba(139, 92, 246, 0.12)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.35)', width: '24px', height: '24px', borderRadius: '6px', cursor: sendingRowId === `${acc.id}_sub` ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: sendingRowId === `${acc.id}_sub` ? 0.5 : 1 }}
+                              title={isHebrew
+                                ? `[בדיקה בלבד] שלח מייל תפוגת מנוי (${testEmailConfig.isHebrew ? 'עברית' : 'אנגלית'}) ל-${acc.email}`
+                                : `[Test only] Send subscription-expiration email (${testEmailConfig.isHebrew ? 'Hebrew' : 'English'}) to ${acc.email}`}
+                            >
+                              <CalendarClock size={11} strokeWidth={2.5} />
+                            </button>
+                          </>
+                        )}
 
                         <button
                           onClick={() => setResetModalUser(acc)}
