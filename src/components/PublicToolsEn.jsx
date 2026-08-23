@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
-import { NEON, FONT_EN, loadNeonFonts } from '../theme/neonTheme';
+import { NEON, FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 
 function PublicToolsEn() {
@@ -15,7 +15,6 @@ function PublicToolsEn() {
       description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from ProFlow.',
       canonicalPath: '/en/tools'
     });
-    loadNeonFonts();
   }, []);
 
   // Currency state with Swap support

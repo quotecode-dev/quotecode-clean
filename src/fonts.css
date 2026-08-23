@@ -1,0 +1,28 @@
+/* Self-hosted Rubik (@fontsource/rubik) - deliberately kept in its own file,
+   separate from index.css. index.css starts with `@import "tailwindcss"`,
+   which routes the whole file through Tailwind v4's Lightning-CSS-based
+   Vite plugin instead of Vite's own native CSS pipeline - that pipeline
+   does not rebase/copy the nested font url() references the way plain
+   Vite CSS processing does, so importing these font files from inside
+   index.css silently produced a build where every @font-face still
+   pointed at a `./files/...` path that doesn't exist in dist/ at all
+   (verified: zero font files were emitted, every one would 404 in
+   production, forcing the Arial fallback on every load - worse than the
+   Google Fonts version this replaced). Importing this file directly from
+   main.jsx, completely outside Tailwind's processing, lets Vite's normal
+   CSS pipeline handle it correctly - each font file gets copied to
+   dist/assets with a real hashed filename and the CSS url()s get
+   rewritten to match. Only Hebrew and Latin subsets (this app doesn't
+   render Arabic/Cyrillic) at the weights actually used (400-900). */
+@import '@fontsource/rubik/latin-400.css';
+@import '@fontsource/rubik/hebrew-400.css';
+@import '@fontsource/rubik/latin-500.css';
+@import '@fontsource/rubik/hebrew-500.css';
+@import '@fontsource/rubik/latin-600.css';
+@import '@fontsource/rubik/hebrew-600.css';
+@import '@fontsource/rubik/latin-700.css';
+@import '@fontsource/rubik/hebrew-700.css';
+@import '@fontsource/rubik/latin-800.css';
+@import '@fontsource/rubik/hebrew-800.css';
+@import '@fontsource/rubik/latin-900.css';
+@import '@fontsource/rubik/hebrew-900.css';

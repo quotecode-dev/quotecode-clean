@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
-import { loadNeonFonts } from '../theme/neonTheme';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
@@ -12,7 +11,6 @@ export default function Privacy({ isHebrew }) {
       description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת ProFlow ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the ProFlow platform and how user data is handled.',
       canonicalPath: isHebrew ? '/privacy' : '/en/privacy'
     });
-    loadNeonFonts();
   }, [isHebrew]);
 
   const t = isHebrew ? {

@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 import { setSeoMeta } from '../utils/seoMeta';
-import { loadNeonFonts } from '../theme/neonTheme';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
@@ -13,7 +12,6 @@ export default function Contact({ isHebrew }) {
       description: isHebrew ? 'צרו קשר עם צוות התמיכה של ProFlow לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the ProFlow support team for any question about managing your business and quotes.',
       canonicalPath: isHebrew ? '/contact' : '/en/contact'
     });
-    loadNeonFonts();
   }, [isHebrew]);
 
   const t = isHebrew ? {

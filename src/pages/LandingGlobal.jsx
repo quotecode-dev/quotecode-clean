@@ -8,7 +8,7 @@ import {
   Zap, PenTool, BarChart3, ChevronDown, Mail, Wrench, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
-import { NEON, FONT_EN, loadNeonFonts } from '../theme/neonTheme';
+import { NEON, FONT_EN } from '../theme/neonTheme';
 
 export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -53,8 +53,6 @@ export default function LandingGlobal({ onForgotPassword }) {
     }
     // תואם ל-sitemap.xml (he -> /he); קודם הוצמד בטעות לשורש הריק
     hreflangHe.href = 'https://www.quotecodepro.com/he';
-
-    loadNeonFonts();
 
     try {
       const userLang = (navigator.language || '').toLowerCase();

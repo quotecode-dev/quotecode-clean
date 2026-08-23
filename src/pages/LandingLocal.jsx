@@ -8,7 +8,7 @@ import {
   Zap, PenTool, BarChart3, ChevronDown, Mail, Wrench, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
-import { NEON, FONT_HE, loadNeonFonts } from '../theme/neonTheme';
+import { NEON, FONT_HE } from '../theme/neonTheme';
 
 // שם קצר מקומי לתאימות לשאר הקובץ - אותם טוקנים מוגדרים מרכזית ב-neonTheme
 // כדי שהעיצוב יישאר מאוחד מול LandingGlobal.jsx ו-Dashboard.jsx.
@@ -59,8 +59,6 @@ export default function LandingLocal({ onForgotPassword }) {
       document.head.appendChild(hreflangEn);
     }
     hreflangEn.href = 'https://www.quotecodepro.com/en';
-
-    loadNeonFonts();
   }, []);
 
   const getLocalPriceId = (planType) => {

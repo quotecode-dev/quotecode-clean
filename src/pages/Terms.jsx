@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
-import { loadNeonFonts } from '../theme/neonTheme';
 
 export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
@@ -12,7 +11,6 @@ export default function Terms({ isHebrew }) {
       description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת ProFlow לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the ProFlow business management and quoting platform.',
       canonicalPath: isHebrew ? '/terms' : '/en/terms'
     });
-    loadNeonFonts();
   }, [isHebrew]);
 
   const t = isHebrew ? {

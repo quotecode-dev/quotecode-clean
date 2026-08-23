@@ -58,35 +58,15 @@ export const NEON = {
 export const FONT_HE = "'Rubik', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 export const FONT_EN = "'Rubik', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-// טוען את גופן Rubik (בכל המשקלים, כולל Bold/Extra Bold להדגשות בכותרות)
-// פעם אחת לכל העמוד, כדי שהטיפוגרפיה תיראה בפועל חדה ולא רק תיפול חזרה
-// לגופן המערכת כברירת מחדל. Inter הוסר לגמרי - Rubik הוא הגופן היחיד
-// שנטען כעת.
-//
-// display=swap (ולא display=optional כפי שהיה כאן קודם): עם optional,
-// אם Rubik לא היה מוכן כמעט מיידית (רשת איטית/חסומה), הדפדפן "נועל"
-// את גופן הגיבוי לכל אורך הצפייה בעמוד ולעולם לא מחליף ל-Rubik גם אחרי
-// שהוא סיים להיטען - כלומר בדיוק בתנאי הרשת שבהם "גופן לא רצוי" הכי
-// סביר שיופיע, האפליקציה לא הייתה בכלל מנסה לתקן את עצמה. עם swap,
-// ברגע ש-Rubik מוכן - גם אם זה קרה כמה שניות אחרי הציור הראשון - הוא
-// תמיד מחליף את הגיבוי. המחיר (הבהוב קל בהחלפה) פחות חשוב מהבטחה
-// שהגופן הנכון תמיד מנצח בסוף.
-export function loadNeonFonts() {
-  if (typeof document === 'undefined') return;
-  const fonts = [
-    { id: 'rubik', href: 'https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap' },
-  ];
-  fonts.forEach(({ id, href }) => {
-    if (!document.querySelector(`link[data-proflow-font='${id}']`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.setAttribute('data-proflow-font', id);
-      document.head.appendChild(link);
-    }
-  });
-}
-
+// loadNeonFonts() קיים היה כאן בעבר וטען את Rubik דרך <link> ל-Google
+// Fonts שהוזרק בזמן ריצה מתוך useEffect - כלומר רק אחרי הציור הראשון
+// של React, ורק לאחר סבב רשת אמיתי ל-fonts.googleapis.com/gstatic.com.
+// זה בדיוק מה שהבטיח לפחות פריים אחד של גופן גיבוי בכל טעינת עמוד, לא
+// משנה כמה מהירה הייתה הרשת. הוסר לגמרי: Rubik כעת "מתארח עצמאית"
+// (self-hosted) דרך @fontsource/rubik, מיובא דרך src/fonts.css -
+// (מיובא ישירות מ-main.jsx, בנפרד מ-index.css - ראה הערה שם) גיליון
+// סגנונות חוסם שנטען מלכתחילה, לפני כל ציור, בלי תלות ברשת חיצונית
+// כלשהי. אין יותר צורך בשום קריאת JS כדי "לטעון" את הגופן.
 // Shared reusable style helpers so buttons/cards look identical across files.
 export const neonCardStyle = (extra = {}) => ({
   background: NEON.bgCard,

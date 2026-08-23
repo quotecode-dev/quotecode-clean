@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { formatDateLocal } from '../utils/regionConfig';
 import { Bot, ArrowRight, Search, Filter, Clock, Mail, HelpCircle, MessageSquareText, Tag, X, AlertTriangle } from 'lucide-react';
-import { loadNeonFonts } from '../theme/neonTheme';
 
 const AI_LOGS_FONT_STACK = "'Rubik', Arial, sans-serif";
 
 export default function AILogs() {
-  useEffect(() => { loadNeonFonts(); }, []);
 
   // שער הרשאות: רק super_admin מחובר רשאי לצפות בלוגים. כל עוד לא אושר - לא נטען שום מידע.
   const [authStatus, setAuthStatus] = useState('checking'); // 'checking' | 'authorized' | 'denied'

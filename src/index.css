@@ -1,19 +1,13 @@
 @import "tailwindcss";
 
-/* Nuclear global font enforcement, applied by explicit request.
-   Context for whoever reads this next: an earlier version of this exact
-   pattern (universal selector + !important) was added once before and
-   had to be reverted - that version forced Arial/system fonts with NO
-   Rubik in the stack at all, which visibly broke the intended branding
-   across the whole app. This version is different on purpose: Rubik is
-   listed FIRST, so as long as it's loaded (see loadNeonFonts() in
-   src/theme/neonTheme.js, already called from every page), it is what
-   actually renders - Arial only ever shows if Rubik genuinely fails to
-   load. !important on the universal selector beats every inline
-   fontFamily set by any component, with zero exceptions - including the
-   one place in the app that intentionally used a different font
-   (PublicQuoteHeader.jsx's monospace quote-ID display), which will now
-   also render in Rubik/Arial instead. */
+/* Rubik font-face declarations live in src/fonts.css, imported separately
+   from main.jsx - see that file for why they can't live in this one. */
+
+/* Nuclear global font enforcement (kept from the previous change, per
+   explicit request) - !important on the universal selector beats every
+   inline fontFamily set by any component, no exceptions. Rubik is listed
+   first; Arial is a genuine fallback only if the self-hosted font
+   somehow fails to parse/load, not the default. */
 *, body, html, button, input, select, textarea {
   font-family: 'Rubik', Arial, sans-serif !important;
 }

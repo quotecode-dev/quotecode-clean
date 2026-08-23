@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
-import { NEON, FONT_HE, loadNeonFonts } from '../theme/neonTheme';
+import { NEON, FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 
 function PublicTools() {
@@ -15,7 +15,6 @@ function PublicTools() {
       description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית ProFlow.',
       canonicalPath: '/tools'
     });
-    loadNeonFonts();
   }, []);
 
   // Currency state with Swap support
