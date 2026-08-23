@@ -106,7 +106,7 @@ export default function AppLocal() {
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center',
-          alignItems: 'center', zIndex: 9999, direction: 'rtl', fontFamily: 'Arial, sans-serif'
+          alignItems: 'center', zIndex: 9999, direction: 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
             <button 
@@ -146,7 +146,7 @@ export default function AppLocal() {
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center',
-          alignItems: 'center', zIndex: 9999, direction: 'rtl', fontFamily: 'Arial, sans-serif'
+          alignItems: 'center', zIndex: 9999, direction: 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center' }}>
             <h2 style={{ color: '#0f172a', marginBottom: '15px' }}>איפוס סיסמה חדשה</h2>
