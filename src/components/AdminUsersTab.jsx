@@ -7,7 +7,8 @@ import { supabase } from '../shared/supabase';
 import { wipeUserData } from '../shared/wipeUserData';
 import {
   Mail, Building2, CreditCard, Globe, Shield, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
-  UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle
+  UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
+  Send, CalendarClock, XCircle
 } from 'lucide-react';
 import { NEON } from '../theme/neonTheme';
 
@@ -50,6 +51,63 @@ export default function AdminUsersTab({
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // בדיקת מיילי תזכורת חיה (ניסיון חינמי / מנוי בתשלום), בשתי השפות, דרך
+  // ה-Edge Function send-expiration-email במצב "test" - מוגבל ל-super_admin
+  const [testEmail, setTestEmail] = useState('');
+  const [testType, setTestType] = useState('trial');
+  const [testStage, setTestStage] = useState('3d');
+  const [testStatus, setTestStatus] = useState({ type: null, msg: '' });
+  const [sendingTestLang, setSendingTestLang] = useState(null);
+
+  const handleSendTestEmail = async (sendHebrew) => {
+    if (!testEmail || !testEmail.includes('@')) {
+      setTestStatus({ type: 'error', msg: isHebrew ? 'הזן כתובת אימייל תקינה לבדיקה' : 'Enter a valid test email address' });
+      return;
+    }
+    setSendingTestLang(sendHebrew ? 'he' : 'en');
+    setTestStatus({ type: null, msg: '' });
+    try {
+      const { data, error } = await supabase.functions.invoke('send-expiration-email', {
+        body: {
+          mode: 'test',
+          email: testEmail,
+          isHebrew: sendHebrew,
+          type: testType,
+          stage: testStage,
+          businessName: sendHebrew ? 'עסק לדוגמה' : 'Test Business'
+        }
+      });
+
+      if (error) throw new Error(await getFunctionErrorMessage(error, isHebrew ? 'שליחת מייל הבדיקה נכשלה' : 'Failed to send test email'));
+      if (data?.error) throw new Error(data.error);
+
+      setTestStatus({
+        type: 'success',
+        msg: isHebrew
+          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'})`
+          : `Sent successfully to ${testEmail} (${sendHebrew ? 'Hebrew' : 'English'})`
+      });
+    } catch (err) {
+      setTestStatus({ type: 'error', msg: err.message });
+    } finally {
+      setSendingTestLang(null);
+    }
+  };
+
+  // עדכון ידני של תאריך תפוגת מנוי בתשלום - מאפס את דגלי השליחה כדי שהתזכורות
+  // ייערכו מחדש מול התאריך החדש (רלוונטי עד שתחובר מערכת סליקה אמיתית)
+  const handleSetSubscriptionEndDate = async (accountId, dateValue) => {
+    const isoValue = dateValue ? new Date(`${dateValue}T00:00:00`).toISOString() : null;
+    await supabase
+      .from('business_settings')
+      .update({
+        subscription_ends_at: isoValue,
+        subscription_reminder_3d_sent: false,
+        subscription_reminder_24h_sent: false
+      })
+      .eq('id', accountId);
+  };
 
   const activeAccountsList = (filteredAdminAccounts || []).filter(acc => {
     if (!acc) return false;
@@ -370,6 +428,63 @@ export default function AdminUsersTab({
         </div>
       </div>
 
+      {/* Live Email Test Panel - trial + subscription reminders, both languages */}
+      <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: NEON.textPrimary, margin: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Send size={16} color={NEON.violetLight} strokeWidth={2.2} />
+          {isHebrew ? 'בדיקת מיילי תזכורת תפוגה (חי, דרך Resend)' : 'Test Expiration Reminder Emails (Live, via Resend)'}
+        </h3>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="email"
+            placeholder={isHebrew ? 'כתובת מייל לבדיקה' : 'Test recipient email'}
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            style={{ flex: '1 1 220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left' }}
+          />
+          <select
+            value={testType}
+            onChange={(e) => setTestType(e.target.value)}
+            style={{ padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }}
+          >
+            <option value="trial">{isHebrew ? 'תום תקופת ניסיון' : 'Trial Expiration'}</option>
+            <option value="subscription">{isHebrew ? 'תפוגת מנוי בתשלום' : 'Subscription Expiration'}</option>
+          </select>
+          <select
+            value={testStage}
+            onChange={(e) => setTestStage(e.target.value)}
+            style={{ padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }}
+          >
+            <option value="3d">{isHebrew ? '3 ימים לפני' : '3 days before'}</option>
+            <option value="24h">{isHebrew ? '24 שעות לפני' : '24 hours before'}</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => handleSendTestEmail(true)}
+            disabled={sendingTestLang !== null}
+            style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          >
+            <Send size={12} strokeWidth={2.5} />
+            {sendingTestLang === 'he' ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח בעברית' : 'Send Hebrew Test')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSendTestEmail(false)}
+            disabled={sendingTestLang !== null}
+            style={{ background: 'rgba(56, 189, 248, 0.15)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.4)', padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          >
+            <Send size={12} strokeWidth={2.5} />
+            {sendingTestLang === 'en' ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח באנגלית' : 'Send English Test')}
+          </button>
+        </div>
+        {testStatus.msg && (
+          <div style={{ marginTop: '8px', fontSize: '0.78rem', fontWeight: '600', color: testStatus.type === 'success' ? NEON.emerald : NEON.red, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            {testStatus.type === 'success' ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+            {testStatus.msg}
+          </div>
+        )}
+      </div>
+
       <div style={{ marginBottom: '14px' }}>
         <input
           type="text"
@@ -585,9 +700,21 @@ export default function AdminUsersTab({
                     <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isPaidSubscriber && !isSuperAdminUser ? (
-                          <span style={{ fontSize: '0.68rem', color: NEON.emerald, fontWeight: 'bold', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 6px', borderRadius: '8px' }}>
-                            {isHebrew ? 'פעיל' : 'Active'}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '0.6rem', color: NEON.emerald, fontWeight: 'bold' }}>
+                              {isHebrew ? 'מנוי בתשלום' : 'Paid - Active'}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <CalendarClock size={11} color={NEON.textMuted} style={{ flexShrink: 0 }} />
+                              <input
+                                type="date"
+                                defaultValue={acc.subscription_ends_at ? acc.subscription_ends_at.slice(0, 10) : ''}
+                                onBlur={(e) => handleSetSubscriptionEndDate(acc.id, e.target.value)}
+                                title={isHebrew ? 'תאריך תפוגת המנוי (לתזכורות אוטומטיות)' : 'Subscription expiry date (for automatic reminders)'}
+                                style={{ fontSize: '0.6rem', padding: '2px 3px', borderRadius: '4px', border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, color: NEON.textPrimary, width: '92px' }}
+                              />
+                            </div>
+                          </div>
                         ) : (
                           <>
                             {!isSuperAdminUser && (
