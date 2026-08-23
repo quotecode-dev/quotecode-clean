@@ -26,17 +26,18 @@ function RootHandler() {
   const isEnglishQuery = search.includes('lang=en') || search.includes('en=true');
   const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
 
-  const storedLang = localStorage.getItem('proflow_lang');
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
   const isBrowserHebrew = browserLang.startsWith('he');
 
-  // עדיפות ההכרעה בשורש (/): ?lang=he / ?lang=en גובר תמיד (גם על שפה שמורה) - כדי
-  // לאפשר בדיקה נוחה של שתי השפות; בהיעדר query מפורש, שפה שמורה גוברת על navigator.language.
+  // עדיפות ההכרעה בשורש (/): ?lang=he / ?lang=en גובר תמיד - כדי לאפשר בדיקה נוחה
+  // של שתי השפות. בנתיב שורש "נקי" (ללא query), ההכרעה נעשית תמיד לפי navigator.language
+  // בפועל (לא לפי שפה שמורה קודמת מ-localStorage) - כך שגולש ישראלי/עברי מגיע ל-LandingLocal
+  // וגולש בינלאומי מגיע ל-LandingGlobal בהתאם לדפדפן שלו בפועל.
   const isUserHebrew = isEnglishQuery
     ? false
     : isHebrewQuery
       ? true
-      : (storedLang === 'he' || (storedLang !== 'en' && isBrowserHebrew));
+      : isBrowserHebrew;
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
