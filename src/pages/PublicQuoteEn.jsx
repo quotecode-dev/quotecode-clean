@@ -88,8 +88,8 @@ export default function PublicQuoteEn() {
     } catch (err) { alert(`Error: ${err.message}`); }
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI' }}><h2>Loading...</h2></div>;
-  if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif' }}><h2>Loading...</h2></div>;
+  if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
 
   const effectiveCurrency = quote.currency || businessSettings?.currency || 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
@@ -109,7 +109,7 @@ export default function PublicQuoteEn() {
   const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
 
   return (
-    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
+    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
         
