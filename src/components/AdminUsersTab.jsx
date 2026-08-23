@@ -280,28 +280,35 @@ export default function AdminUsersTab({
     }
   };
 
+  // חשוב: plan הוא 'pro' כברירת מחדל על כל הרשמה חדשה (ר' Dashboard.jsx
+  // auto-init) עוד לפני שהמשתמש שילם אגורה - זה רק סוג התכונות הזמינות
+  // בזמן הניסיון החינמי, לא סימן לתשלום בפועל. לכן חובה לבדוק תמיד קודם
+  // אם trial_ends_at עדיין בעתיד (עדיין בניסיון) *לפני* שבודקים את plan -
+  // אחרת כל משתמש חדש היה מוצג כאן כ"מנוי פעיל" מהיום הראשון.
   const getRemainingTimeFormatted = (trialEndsAt, role, plan) => {
     try {
       const now = Date.now();
       if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+      if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+
+      const diffMs = new Date(trialEndsAt).getTime() - now;
+      if (diffMs > 0) {
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+        if (days > 0) {
+          return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
+        }
+        return isHebrew ? `${hours} שע'` : `${hours}h left`;
+      }
+
+      // תקופת הניסיון עברה - רק עכשיו שדה plan הופך רלוונטי כסימן להמשך
+      // מנוי בתשלום בפועל.
       const normalizedPlan = (plan || 'free').toLowerCase();
-      
       if (normalizedPlan === 'basic' || normalizedPlan === 'pro') {
         return isHebrew ? 'מנוי פעיל (Active)' : 'Active Plan';
       }
-      
-      if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-      
-      const diffMs = new Date(trialEndsAt).getTime() - now;
-      if (diffMs <= 0) return isHebrew ? 'פג תוקף' : 'Expired';
-
-      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-      if (days > 0) {
-        return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
-      }
-      return isHebrew ? `${hours} שע'` : `${hours}h left`;
+      return isHebrew ? 'פג תוקף' : 'Expired';
     } catch {
       return isHebrew ? 'לא ידוע' : 'N/A';
     }
@@ -318,7 +325,11 @@ export default function AdminUsersTab({
     const rawPlan = acc.plan ? acc.plan.toLowerCase() : 'free';
     const planValue = (isSuperAdminUser || isLifetime) ? 'pro' : rawPlan;
     const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
-    const isPaidSubscriber = planValue === 'basic' || planValue === 'pro';
+    // plan הוא 'pro' כברירת מחדל על כל הרשמה חדשה - לא מעיד על תשלום בפועל
+    // כל עוד תקופת הניסיון (trial_ends_at) עדיין לא הסתיימה. בלי הבדיקה
+    // הזו כל משתמש חדש היה מסומן "מנוי בתשלום" מרגע ההרשמה.
+    const isTrialActive = !isLifetime && !!acc.trial_ends_at && new Date(acc.trial_ends_at).getTime() > Date.now();
+    const isPaidSubscriber = !isTrialActive && (planValue === 'basic' || planValue === 'pro');
     const currentCountry = acc.country || 'Local';
     const isIntl = currentCountry === 'International';
     const testEmailConfig = acc.email ? TEST_EMAIL_ALLOWLIST[acc.email.toLowerCase()] : null;
@@ -338,7 +349,7 @@ export default function AdminUsersTab({
     const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
 
     return {
-      isSuperAdminUser, isLifetime, rawPlan, planValue, isGrantedLifetimePro, isPaidSubscriber,
+      isSuperAdminUser, isLifetime, isTrialActive, rawPlan, planValue, isGrantedLifetimePro, isPaidSubscriber,
       currentCountry, isIntl, testEmailConfig, isRecentActive, bizName, isBizHebrew,
       lastSignInDateStr, lastSignInFullStr,
     };
