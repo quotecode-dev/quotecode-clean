@@ -27,10 +27,12 @@ function RootHandler() {
   const isHebrewQuery = search.includes('lang=he') || search.includes('he=true');
 
   const storedLang = localStorage.getItem('proflow_lang');
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  const isBrowserHebrew = browserLang.startsWith('he');
 
-  const isUserHebrew = storedLang === 'he' || (!storedLang && (isHebrewQuery || timeZone === 'Asia/Jerusalem' || browserLang.startsWith('he')));
+  // עדיפות ההכרעה בשורש (/): בחירה מפורשת (query param או שפה שמורה) גוברת על
+  // זיהוי אוטומטי לפי navigator.language - עברית (he-*) => LandingLocal, כל דבר אחר => LandingGlobal.
+  const isUserHebrew = isHebrewQuery || storedLang === 'he' || (!isEnglishQuery && storedLang !== 'en' && isBrowserHebrew);
 
   useEffect(() => {
     if (hash.includes('type=recovery') || search.includes('type=recovery')) {
@@ -38,24 +40,22 @@ function RootHandler() {
       return;
     }
 
-    if (isEnglishQuery || storedLang === 'en') {
-      localStorage.setItem('proflow_lang', 'en');
-      return;
-    }
+    const isRoot = window.location.pathname === '/' || window.location.pathname === '';
 
     if (isUserHebrew) {
       localStorage.setItem('proflow_lang', 'he');
-      if (window.location.pathname === '/' || window.location.pathname === '') {
+      if (isRoot) {
         navigate('/he', { replace: true });
       }
+    } else {
+      localStorage.setItem('proflow_lang', 'en');
+      if (isRoot) {
+        navigate('/en', { replace: true });
+      }
     }
-  }, [navigate, hash, search, isEnglishQuery, storedLang, isUserHebrew]);
+  }, [navigate, hash, search, isUserHebrew]);
 
-  if (isEnglishQuery || storedLang === 'en') {
-    return <LandingGlobal />;
-  }
-
-  return <LandingLocal />;
+  return isUserHebrew ? <LandingLocal /> : <LandingGlobal />;
 }
 
 // רכיב עזר חכם ובטוח המזהה במדויק האם לטעון PublicQuote (ישראלי) או PublicQuoteEn (אנגלי)
