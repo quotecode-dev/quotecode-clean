@@ -344,7 +344,16 @@ export default function Dashboard() {
     isTrialExpired = trialDaysLeft <= 0;
   }
 
-  const effectivePlan = isTrialExpired ? 'free' : bizPlan.toLowerCase();
+  // תוכנית בתשלום אמיתית (basic/pro) שנקבעה בפועל ב-business_settings.plan
+  // תמיד תקפה, בלי תלות במצב trial_ends_at - אחרת לקוח משלם שדרוגו קרה אחרי
+  // שתאריך ניסיון ישן כבר פג היה מאבד גישה בטעות. בלי תוכנית בתשלום, ניסיון
+  // פעיל ולא פג (trial_ends_at) מעניק PRO מלא - בדיוק כפי שהבאנר "תקופת ניסיון
+  // פעילה (גישת PRO מלאה)" כבר מבטיח למשתמש, ללא תלות בערך הגולמי של plan
+  // (handleToggleLifetime של האדמין למשל מגדיר רק trial_ends_at ולא נוגע ב-plan).
+  const rawPlan = bizPlan.toLowerCase();
+  const effectivePlan = (rawPlan === 'pro' || rawPlan === 'basic')
+    ? rawPlan
+    : (trialEndsAt && !isTrialExpired ? 'pro' : 'free');
 
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';

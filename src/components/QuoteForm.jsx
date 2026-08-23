@@ -3,11 +3,6 @@ import DraggableCalculator from './DraggableCalculator';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket } from 'lucide-react';
 import { NEON } from '../theme/neonTheme';
 
-// זהה בדיוק ל-!important הגלובלי ב-src/index.css - נוסף כאן כתגבור מפורש
-// ובלתי תלוי בכותרות הספציפיות האלו, כדי שלא יישאר שום ספק בקריאת קוד
-// הרכיב עצמו בבידוד מהעיצוב הגלובלי
-const SYSTEM_FONT_STACK = 'Arial, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif';
-
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
   if (curr === 'EUR') return { dial: '+49', label: 'DE (+49)' };
@@ -293,7 +288,7 @@ export default function QuoteForm({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <h2 style={{ color: NEON.textPrimary, marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '3px', fontFamily: SYSTEM_FONT_STACK }}>
+          <h2 style={{ color: NEON.textPrimary, marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '3px' }}>
             {editingQuoteId ? `${isHebrew ? 'עריכת הצעה #' : 'Editing Quote #'}${editingQuoteId.slice(0, 6)}` : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
           </h2>
           <p style={{ color: NEON.textSecondary, margin: 0, fontSize: '0.8rem' }}>
@@ -513,7 +508,7 @@ export default function QuoteForm({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 style={{ fontSize: '0.9rem', color: NEON.textPrimary, fontWeight: '800', margin: 0, fontFamily: SYSTEM_FONT_STACK }}>{t.quoteItems}</h3>
+            <h3 style={{ fontSize: '0.9rem', color: NEON.textPrimary, fontWeight: '800', margin: 0 }}>{t.quoteItems}</h3>
             <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap' }}>
               <button
                 type="button"
@@ -578,7 +573,7 @@ export default function QuoteForm({
           </div>
           {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.red, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span><span>-{sym}{formatNum(discountAmount)}</span></div>}
           {isLocalIsraeliBusiness && isHebrew && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{t.vat}</span><span>{sym}{formatNum(taxAmount)}</span></div>}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '800', color: NEON.textPrimary, marginTop: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', fontFamily: SYSTEM_FONT_STACK }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '800', color: NEON.textPrimary, marginTop: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
              <span>{t.totalAmount}</span>
              <span style={{ color: NEON.violetLight }}>{sym}{formatNum(totalAmount)}</span>
           </div>

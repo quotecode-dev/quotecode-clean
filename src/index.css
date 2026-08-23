@@ -1,17 +1,1 @@
 @import "tailwindcss";
-
-/* Enforce one clean, standard sans-serif font everywhere in the app, full
-   stop. This exact rule previously existed in src/App.css, but App.css/
-   App.jsx are dead code never imported by main.jsx (the real entry point
-   renders AppLocal/AppGlobal directly) - so it was written once and never
-   actually took effect anywhere. !important on the universal selector
-   beats every inline fontFamily set by individual components (Rubik/
-   Inter included), so this single rule is enough to make every heading
-   and body of text render identically, with no per-component changes
-   needed and no possibility of a stray monospace/retro font surviving. */
-body, html, #root, * {
-  font-family: Arial, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
-  text-shadow: none !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
