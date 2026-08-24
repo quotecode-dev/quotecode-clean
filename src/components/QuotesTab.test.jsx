@@ -73,11 +73,13 @@ describe.each([
 
     expect(editBtn).not.toBeDisabled();
     expect(deleteBtn).not.toBeDisabled();
-    expect(editBtn).not.toHaveAttribute('title');
-    expect(deleteBtn).not.toHaveAttribute('title');
+    expect(editBtn.parentElement).not.toHaveAttribute('title');
+    expect(deleteBtn.parentElement).not.toHaveAttribute('title');
+    expect(screen.queryByTitle(editTooltip)).not.toBeInTheDocument();
+    expect(screen.queryByTitle(deleteTooltip)).not.toBeInTheDocument();
   });
 
-  it('disables Edit/Delete with the correct tooltip for an approved quote', () => {
+  it('disables Edit/Delete with the correct tooltip on the wrapper for an approved quote', () => {
     const props = buildProps(isHebrew, { status: 'approved', signature: null });
     render(<QuotesTab {...props} />);
 
@@ -86,11 +88,13 @@ describe.each([
 
     expect(editBtn).toBeDisabled();
     expect(deleteBtn).toBeDisabled();
-    expect(editBtn).toHaveAttribute('title', editTooltip);
-    expect(deleteBtn).toHaveAttribute('title', deleteTooltip);
+    expect(editBtn.parentElement).toHaveAttribute('title', editTooltip);
+    expect(deleteBtn.parentElement).toHaveAttribute('title', deleteTooltip);
+    expect(screen.getByTitle(editTooltip)).toBe(editBtn.parentElement);
+    expect(screen.getByTitle(deleteTooltip)).toBe(deleteBtn.parentElement);
   });
 
-  it('disables Edit/Delete with the correct tooltip for a paid quote', () => {
+  it('disables Edit/Delete with the correct tooltip on the wrapper for a paid quote', () => {
     const props = buildProps(isHebrew, { status: 'paid', signature: null });
     render(<QuotesTab {...props} />);
 
@@ -99,8 +103,8 @@ describe.each([
 
     expect(editBtn).toBeDisabled();
     expect(deleteBtn).toBeDisabled();
-    expect(editBtn).toHaveAttribute('title', editTooltip);
-    expect(deleteBtn).toHaveAttribute('title', deleteTooltip);
+    expect(editBtn.parentElement).toHaveAttribute('title', editTooltip);
+    expect(deleteBtn.parentElement).toHaveAttribute('title', deleteTooltip);
   });
 
   it('disables Edit/Delete for a signed quote with an unrelated status', () => {
