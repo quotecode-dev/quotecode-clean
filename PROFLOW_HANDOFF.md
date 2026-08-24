@@ -1,6 +1,6 @@
 # ProFlow — Project Handoff & Continuity Document
 
-**Last verified baseline:** `aad3a7a` — *"Harden SEO indexing and private page noindex"* (see §12 for full commit history and current pending-work status)
+**Last verified baseline:** `5737626` — *"Fix locked quote tooltip hit area"* (see §12 for full commit history and current pending-work status; see §17 for the security remediation included up to this baseline)
 **Production:** https://www.quotecodepro.com/
 
 > Before making architectural changes, verify this document against the current repository because the codebase may have advanced since this handoff was last updated.
@@ -431,7 +431,7 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 
 ## 9. Database Model — Observed Database Contract From Application Code
 
-> This is **not** a complete authoritative schema. No SQL migrations or schema-definition files were found in this repository. The tables/columns below are only what is demonstrably referenced by application code (`.select()`/`.insert()`/`.update()`/`.eq()` calls) as of this baseline. Row Level Security (RLS) policy definitions were **not found** in the repository and cannot be verified from the code alone — confirm directly in the Supabase dashboard before relying on any access-control assumption.
+> This is **not** a complete authoritative schema. No SQL migrations or schema-definition files were found in this repository. The tables/columns below are only what is demonstrably referenced by application code (`.select()`/`.insert()`/`.update()`/`.eq()` calls) as of this baseline. Row Level Security (RLS) policy definitions were **not found** in the repository and cannot be verified from the code alone — confirm directly in the Supabase dashboard before relying on any access-control assumption. **Exception:** the RLS/trigger/GRANT state for `quotes`/`quote_items`/`quote_attachments` and `business_settings` specifically has been live-verified as part of a security remediation — see §17. This does not extend to any other table.
 
 | Table | Observed columns |
 |---|---|
@@ -454,6 +454,8 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 **Country values observed:** `'Local'`, `'LCL'` (legacy alias for Local), `'International'`.
 
 **⚠ Pending/uncommitted invariant (see §4.D, §12):** as of the working-tree state described in this update, `business_settings` INSERT (as opposed to UPDATE) is intended to happen from exactly one place in the codebase — `createNewBusinessSettings()` in `Dashboard.jsx`. Verify this still holds with a fresh grep for `business_settings` + `.insert(` before relying on it, especially if this section is read after further changes.
+
+**`business_settings.user_id` is now `UNIQUE` and `NOT NULL`** (added as part of the §17.D security remediation — was neither previously). This makes the "one row per user" invariant stated earlier in this section structurally enforced, not merely conventional.
 
 ---
 
@@ -505,6 +507,13 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 13. Run lint where appropriate (`npm run lint`).
 14. Do not commit/push without explicit approval from the project owner.
 
+### Security-critical rules (added following the §17 remediation)
+
+15. **Approved/paid/signed quotes are immutable.** This must never be re-weakened at the UI layer (`QuotesTab.jsx`/`Dashboard.jsx`) without the equivalent DB-trigger enforcement (§17.A) remaining in place — the UI lock and the DB triggers are two independent layers, and removing either without the other reopens a real, previously-exploited regression.
+16. **Security-sensitive business rules must be enforced at the database layer (RLS + triggers), never as a frontend-only check.** Client-side gating (a hidden button, a disabled UI state, a role check in React) is a UX convenience, not a security boundary — see §17.B/§17.C for the concrete case where relying on this distinction mattered.
+17. **Never mutate real production or Lifetime customer data for testing.** Any mutation-based verification (UPDATE/DELETE/INSERT attack simulation, trigger testing, etc.) must run against an explicit, disposable TEST account only.
+18. **Use explicit disposable TEST accounts for mutation tests, and remove/restore them afterward.** See §17.F for the pattern followed in this remediation (one account restored to a clean state and kept, one account fully deleted with residue verified absent).
+
 ### Very important workflow rule
 
 - When the project owner requests code to manually copy/paste, provide the **complete** updated file from beginning to end, not fragments — unless he explicitly requests only a patch/diff.
@@ -514,28 +523,18 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 
 ## 12. Git / Release State
 
-- **Approved & pushed baseline:** `aad3a7a` — *"Harden SEO indexing and private page noindex"* (SEO Phase 1)
+- **Approved & pushed baseline:** `5737626` — *"Fix locked quote tooltip hit area"*
 - **Branch:** `main`
 - **Remote:** `origin` → `https://github.com/quotecode-dev/quotecode-clean.git`
-- Recent history (newest first, confirmed via `git log` at time of this update): `aad3a7a` (SEO Phase 1) → `9c8cb06` *"Add safe geo routing and first-signup region resolution"* → `60e5d2c` *"Add ProFlow project handoff document"* → `2532f1b` *"Enforce strict Local and International separation"* → `6d7a1ac` and earlier. The geo/first-signup work described in §4.D and §5b, previously pending, **is now committed and pushed** as of `9c8cb06` — that section's "pending" language is superseded; §4.D/§5b remain accurate as an architecture description, just no longer uncommitted.
+- Recent history (newest first, confirmed via `git log` at time of this update): `5737626` *"Fix locked quote tooltip hit area"* → `7e96b83` *"Restore approved/signed quote immutability (UI lock + handler guards + tests)"* (both §17.A) → `0843736` *"Replace native dialogs with ProFlow UX"* → `71cd378` *"Fix localized SEO canonical and hreflang architecture"* (this is SEO Phase 2 — see below, it is **now committed**, correcting this document's prior "pending" status) → `aad3a7a` (SEO Phase 1) → `9c8cb06` *"Add safe geo routing and first-signup region resolution"* → `60e5d2c` *"Add ProFlow project handoff document"* → `2532f1b` *"Enforce strict Local and International separation"* → `6d7a1ac` and earlier. The geo/first-signup work described in §4.D and §5b, previously pending, **is now committed and pushed** as of `9c8cb06` — that section's "pending" language is superseded; §4.D/§5b remain accurate as an architecture description, just no longer uncommitted.
 
-**⚠ Pending, uncommitted, not yet pushed (as of this update):** SEO Phase 2 (canonical/hreflang consolidation) — see §15 for full detail. Files involved (10, confirmed via `git status`):
-- `src/utils/seoMeta.js`
-- `src/pages/LandingLocal.jsx`
-- `src/pages/LandingGlobal.jsx`
-- `src/pages/Contact.jsx`
-- `src/pages/Privacy.jsx`
-- `src/pages/Terms.jsx`
-- `src/components/PublicTools.jsx`
-- `src/components/PublicToolsEn.jsx`
-- `public/sitemap.xml`
-- `vercel.json`
+**SEO Phase 2 (canonical/hreflang consolidation, §15) is now committed and pushed as `71cd378`.** This document previously (as of the `aad3a7a` checkpoint) described it as implemented-but-uncommitted — that status is now superseded. §15's design description remains accurate; only its commit status changed.
 
-This SEO Phase 2 work is **implemented and architecturally approved** (root `/` canonical strategy — Option B, stable self-canonical `/`, see §16.A; secondary bare-alias strategy for Contact/Privacy/Terms/Tools — client-side compatibility redirect + HTTP noindex, see §15) but **still not committed or pushed**, pending final explicit go-ahead to commit.
+**Security remediation (§17) — application code committed and pushed; DB objects live in Supabase (no in-repo migration file, consistent with this section's existing no-migrations caveat):**
+- Quote immutability UI/handler code: `7e96b83`, `5737626` (both pushed).
+- `business_settings` privilege-escalation fixes (role/plan/trial_ends_at UPDATE and INSERT hardening, `UNIQUE`+`NOT NULL` on `user_id`): DB-only — no application code changes were required, executed and live-verified directly in Supabase. See §17.B–§17.E for exact objects/policies.
 
-If you are reading this in a future session: run `git status`/`git log` first — this pending work may already be committed (with a new baseline hash superseding `aad3a7a`), still pending, or abandoned/reverted. Do not assume either state from this document alone.
-
-`aad3a7a` remains the last **confirmed pushed** baseline as of this update. **Do not assume no commits exist after this one** — verify with `git log` before relying on this as "current."
+If you are reading this in a future session: run `git status`/`git log` first — further work may already be committed on top of `5737626`, or new pending changes may exist. Do not assume either state from this document alone.
 
 ---
 
@@ -636,6 +635,92 @@ Everything else referenced in §2's directory map is active, reachable code as o
 - Search for `DollarSign`, `Banknote`, or a literal `$` character used as an icon/decoration (as opposed to actual currency-symbol formatting) in `src/components/QuotesTab.jsx` and any other quote-table render path (`Dashboard.jsx`'s own quote-list rendering, `AdminUsersTab.jsx`'s admin-facing quote/revenue tables if applicable).
 - Determine whether this is a **hardcoded decorative icon** (e.g. a `lucide-react` `DollarSign` used as a generic "money" glyph in the column header, never swapped per-region) versus an actual currency-formatting bug that could indicate a deeper data issue.
 - Fix only after confirming root cause — do not guess.
+
+---
+
+## 17. Security Remediation — Quote Immutability & business_settings Privilege Hardening (CLOSED)
+
+A multi-stage security remediation was completed this session, covering two previously-open issues: approved/paid/signed quote immutability (a regressed business rule), and `business_settings` privilege-escalation surfaces (`role`, `plan`, `trial_ends_at`). Both are now **CLOSED** — see the closed-scope list at the end of this section, and the follow-ups after it for what is deliberately *not* included.
+
+### 17.A Quote immutability — CLOSED
+
+Restores and hardens a rule that had silently regressed and been re-fixed across prior commits (`9f37c95` → `38be268` → `3f6cd27`, found via `git log -S` pickaxe search during this remediation).
+
+**Rule:** once a quote's `status` is `approved`/`paid` (case-insensitive) or it has a non-empty `signature`, it is fully immutable — no edit, no delete, no mutation of its `quote_items`/`quote_attachments` — identically in the Local/Hebrew and International/English bundles.
+
+| Layer | Protection | Location |
+|---|---|---|
+| Single source of truth | `isQuoteImmutable(quote)` helper | `src/utils/quoteLock.js` |
+| UI | Edit/Delete: native `disabled={isLocked}` + defensive `if (isLocked) return` inside `onClick`, tooltip owned by a wrapper `<span title=...>` around the button rather than the button itself (native disabled buttons don't reliably deliver hover events), sized to cover the full row so the tooltip hit area matches the visible locked row; exact HE/EN tooltip strings; button labels unchanged | `src/components/QuotesTab.jsx` |
+| App handler guards | `handleEditClick`, the quote-save path, `requestDeleteQuote`, `executeDeleteQuote` all call `isQuoteImmutable(...)` before any Supabase write | `src/pages/Dashboard.jsx` |
+| DB — UPDATE | `guard_quote_immutability()` / trigger `guard_quote_immutability_update` (BEFORE UPDATE on `quotes`) — allows the legitimate pending→approved/paid transition (incl. public approval, since both `PublicQuote.jsx`/`PublicQuoteEn.jsx` write `status`+`signature` in one combined UPDATE); once already immutable, only 5 named bookkeeping fields may still change (`view_count` non-decreasing/non-NULL, `expiration_reminder_sent` one-way false→true, `email_bounced`/`email_bounce_reason`/`email_bounced_at` bidirectional — a resend can legitimately clear a prior bounce); anything else raises `42501` | Live in Supabase (no in-repo migration file — see §9's existing no-migrations caveat) |
+| DB — DELETE | `guard_quote_immutability_delete()` / trigger `guard_quote_immutability_delete_trigger` (BEFORE DELETE on `quotes`) — blocks deleting an immutable quote; only bypass is `auth.role() = 'service_role'`, required for the `admin-delete-user` account-deletion cascade | Live in Supabase |
+| DB — children | `guard_quote_child_immutability()` / triggers `guard_quote_items_immutability`, `guard_quote_attachments_immutability` (BEFORE INSERT OR UPDATE OR DELETE on `quote_items`/`quote_attachments`) — checks **both** the OLD and NEW `quote_id`'s parent-quote immutability, so a row cannot be moved into or out of a locked quote; `service_role` bypass narrowed to `DELETE` only (the admin-delete-user cascade) — even `service_role` cannot INSERT/UPDATE child rows on a locked quote | Live in Supabase |
+| Regression tests | `src/utils/quoteLock.test.js` (11 cases: pending/draft→false, approved/paid incl. case variations→true, signature-with-unrelated-status→true, empty/null→false), `src/components/QuotesTab.test.jsx` (locked/unlocked UI state × HE/EN, exact tooltip text, click-on-locked-button never reaches the handler) — Vitest + Testing Library, newly added to this repo (`package.json`, `vite.config.js`, `src/test/setup.js`; no test framework previously existed) | `npm run test` — 21/21 passing at close |
+
+**Committed & pushed:** `7e96b83` *"Restore approved/signed quote immutability (UI lock + handler guards + tests)"*, `5737626` *"Fix locked quote tooltip hit area"*.
+
+**Full TEST-only functional matrix** (19 scenarios — pending-quote CRUD both languages, locked-quote UI/tooltip both languages, paid/signed-with-other-status locking, direct authenticated UPDATE/DELETE attack on an approved TEST quote, `quote_items`/`quote_attachments` mutation blocking, moving a child into/out of a locked quote, public approval succeeding both languages, `view_count`/`email_bounced`/`expiration_reminder_sent` bookkeeping still working, `admin-delete-user` cascade still succeeding) was executed against TEST accounts/quotes only. Real Lifetime production data was read-only verified (Edit/Delete render disabled, status/signature/currency inspected) and never mutated.
+
+### 17.B business_settings — `role` privilege escalation — CLOSED
+
+**Finding:** `business_settings.role` is the sole source of `super_admin` authority everywhere in the app (`Dashboard.jsx`, `AILogs.jsx`, `admin-delete-user`), and had no protection beyond ownership RLS — an ordinary authenticated user could potentially set their own `role` to `'super_admin'` via a raw UPDATE or INSERT, which every downstream admin check would then trust.
+
+**Closed by:**
+- `authenticated` no longer has UPDATE privilege on the `role` column (confirmed via live GRANT inspection).
+- The pre-existing RESTRICTIVE INSERT policy `"Restrict business_settings insert to role=user"` (`WITH CHECK (role = 'user')`) blocks any INSERT attempting a non-`'user'` role.
+- **Live-tested:** a fresh authenticated attack inserting `role='super_admin'` was rejected with PostgreSQL `42501`; no row was created.
+
+### 17.C business_settings — `plan`/`trial_ends_at` UPDATE escalation — CLOSED
+
+**Finding:** an ordinary authenticated owner's standard ownership RLS UPDATE policy permitted freely rewriting their own `plan`/`trial_ends_at` (self-upgrade to a paid plan, self-grant unlimited/Lifetime trial) — no trigger previously existed on `business_settings`.
+
+**Closed by:** `guard_business_settings_plan_trial()` / trigger `guard_business_settings_plan_trial_update` (BEFORE UPDATE on `business_settings`):
+- If neither `plan` nor `trial_ends_at` changes, the update passes through untouched (covers ordinary Settings saves and login bookkeeping — neither writes those columns).
+- An ordinary owner may perform *only* the exact legitimate self-cancellation transition: `plan='free' AND trial_ends_at IS NULL`.
+- A caller whose own `business_settings.role = 'super_admin'` may change `plan`/`trial_ends_at` on any account without restriction (covers Super Admin plan change, trial extension, and Lifetime grant/revoke — the latter, `handleToggleLifetime` in `Dashboard.jsx`, only ever touches `trial_ends_at`, never `plan`).
+- No `service_role` bypass — the writer inventory confirmed no service_role/cron process currently touches either column (the two reminder-email edge functions only ever write their own `*_reminder_*_sent` bookkeeping flags, despite their email copy — see follow-ups below).
+
+**Live-tested** with a disposable TEST account (`tahshitishi@gmail.com`, left restored to `plan: free`, `trial_ends_at: null`, `role: user` after testing): ordinary-user plan-upgrade attempt rejected `42501`; arbitrary trial extension rejected `42501`; legitimate self-cancellation to free/null succeeded; Super Admin (`shlomisiny@gmail.com`, `role: super_admin`) plan change and trial change on the TEST account succeeded; after Super Admin set `plan=pro`, the TEST user's own attempt to change its own plan was rejected, with `plan`/`trial_ends_at`/`role` unchanged.
+
+### 17.D business_settings — structural hardening — CLOSED
+
+- `UNIQUE (user_id)` added — live-confirmed zero duplicate `user_id` rows existed before installation.
+- `user_id` changed to `NOT NULL` — live-confirmed zero NULL rows existed before installation. Needed because a bare `UNIQUE` constraint does not by itself prevent multiple `NULL`-`user_id` rows in standard SQL; `NOT NULL` closes that residual gap, making every "one row per user" lookup in the app — including the §17.C trigger's own caller-role lookup — structurally guaranteed rather than merely conventionally true.
+
+### 17.E business_settings — `plan`/`trial_ends_at` INSERT escalation — CLOSED
+
+**Finding:** `createNewBusinessSettings()` (`src/pages/Dashboard.jsx` — still the sole in-repo INSERT path, unchanged) always inserts `plan:'pro'`, `trial_ends_at: now+14d` at signup; no legitimate flow ever inserts `plan:'free'`/`trial_ends_at:null`. But `authenticated` has column-level INSERT privilege on `plan`/`trial_ends_at`/`role`, so a raw REST INSERT bypassing the app's JS could previously set any `plan`/`trial_ends_at` value on a brand-new row.
+
+**Closed by:** new RESTRICTIVE INSERT policy `"Restrict business_settings insert to safe free or legitimate trial"`, ANDed automatically (RESTRICTIVE policies always AND) with the pre-existing `role='user'` restrictive policy and the ownership policy:
+```
+(plan = 'free' AND trial_ends_at IS NULL)
+OR (plan = 'pro' AND trial_ends_at within ±2 hours of now() + 14 days)
+```
+**Live-tested** with a second disposable TEST account: duplicate `business_settings` INSERT for an existing user rejected (unique-violation, §17.D); fresh-user INSERT with `role='super_admin'` rejected `42501`; fresh-user INSERT with a Pro plan and a +365-day trial rejected `42501`; a legitimate Pro +14-day trial INSERT succeeded with the expected resulting row state.
+
+### 17.F TEST cleanup — confirmed
+
+Two disposable TEST accounts were used across this remediation, never any real/production/Lifetime account:
+- `tahshitishi@gmail.com` — used for the UPDATE-path (plan/trial) tests; restored to a clean `plan: free / trial_ends_at: null / role: user` state and left in place.
+- `proflow.security.test2@gmail.com` — used for the INSERT-path (duplicate row / role-injection / trial-length) tests; **completely removed** afterward — final SQL verification returned no residue in either `auth.users` or `business_settings`.
+
+Temporary local test scripts and temporary credential environment variables were removed after use; `git status --short` was clean at each cleanup checkpoint.
+
+### Closed scope (this remediation)
+
+- Quote immutability (UI + handler + DB, both languages).
+- `business_settings.role` self-escalation.
+- `business_settings.plan`/`trial_ends_at` UPDATE self-escalation.
+- `business_settings.plan`/`trial_ends_at` INSERT self-escalation.
+- `business_settings` duplicate/NULL `user_id` rows.
+
+### Follow-ups (not started — tracked here for the next session, do not fold into unrelated work)
+
+- **Admin UI is the next major work area.** Before changing anything there, reconcile `AdminUsersTab.jsx`/`UserDetailsModal.jsx` against the actual current production DB schema — do not assume §9's "observed columns" list is authoritative (see next point for a concrete example of why).
+- **`subscription_*` column assumptions need review.** `AdminUsersTab.jsx`'s `handleSetSubscriptionEndDate` and `send-subscription-expiration-email` reference `subscription_ends_at`/`subscription_reminder_3d_sent`/`subscription_reminder_24h_sent` columns sourced from §9's non-authoritative "observed columns" list — these may not actually exist in the live schema, which would mean that feature is silently broken in production. Not fixed as part of this remediation (out of scope); verify before touching billing/subscription code.
+- **Reminder-email copy vs. actual behavior.** `send-trial-expiration-email` and `send-subscription-expiration-email` both send copy stating the account "moves automatically to the Free plan" after expiry, but neither function — nor anything else found in this codebase — actually writes `plan`/`trial_ends_at`; they only update their own `*_reminder_*_sent` bookkeeping flags. There is currently no automatic downgrade mechanism at all. Review during Admin/Billing work — either implement the described downgrade or correct the email copy.
+- **Stripe billing remains a stub** (`billing-checkout-stub/index.ts`, no real Stripe call). Any future billing writer that inserts/updates `business_settings.plan`/`trial_ends_at` must satisfy the RESTRICTIVE INSERT policy (§17.E) and the UPDATE trigger (§17.C) — most naturally by running through the account's own legitimate transition or a `super_admin`-equivalent path, not by bypassing them.
 
 ---
 
