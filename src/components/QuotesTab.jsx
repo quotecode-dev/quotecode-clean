@@ -371,7 +371,7 @@ export default function QuotesTab({
                                 <button
                                   onClick={() => {
                                     setOpenDropdownId(null);
-                                    handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id));
+                                    handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: quote.id.slice(0, 6), clientName: quote.clients?.company_name }));
                                   }}
                                   style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.red, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                                   onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.12)'}

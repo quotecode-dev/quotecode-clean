@@ -4,6 +4,7 @@ import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import PublicQuote from './PublicQuote';
+import Toast from '../components/Toast';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -22,8 +23,15 @@ export default function PublicQuoteEn() {
   const [approved, setApproved] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [isLocalQuote, setIsLocalQuote] = useState(false);
+  const [signatureWarning, setSignatureWarning] = useState(false);
+  const [approveToast, setApproveToast] = useState(null);
 
   const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
+
+  // The inline "please sign" warning clears itself as soon as a valid signature exists
+  useEffect(() => {
+    if (hasSigned) setSignatureWarning(false);
+  }, [hasSigned]);
 
   useEffect(() => {
     document.title = "ProFlow - Digital Price Quote";
@@ -104,12 +112,17 @@ export default function PublicQuoteEn() {
   };
 
   const handleApprove = async () => {
-    if (!hasSigned) { alert('Please sign the quote before approval'); return; }
+    if (!hasSigned) { setSignatureWarning(true); return; }
     try {
       const { error } = await supabase.from('quotes').update({ status: 'approved', signature: getSignatureDataUrl() }).eq('id', id);
       if (error) throw error;
       setApproved(true);
-    } catch (err) { alert(`Error: ${err.message}`); }
+    } catch (err) {
+      // Technical/database details stay in the console only - the public
+      // customer only ever sees a generic, friendly message, never raw error.message.
+      console.error('Error approving quote:', err);
+      setApproveToast({ type: 'error', message: "We couldn't approve the quote. Please try again." });
+    }
   };
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif' }}><h2>Loading...</h2></div>;
@@ -212,9 +225,15 @@ export default function PublicQuoteEn() {
               <button type="button" onClick={clearSignature} style={{ padding: '5px 15px', marginRight: '10px' }}>Clear</button>
               <button onClick={handleApprove} style={{ padding: '5px 15px', background: '#10b981', color: 'white', border: 'none' }}>Approve</button>
             </div>
+            {signatureWarning && (
+              <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginTop: '10px' }}>
+                Please sign the quote before approval
+              </div>
+            )}
           </div>
         )}
       </div>
+      <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={false} />
     </div>
   );
 }

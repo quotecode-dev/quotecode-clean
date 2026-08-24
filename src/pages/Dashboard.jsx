@@ -16,6 +16,7 @@ import EditExpenseModal from '../components/EditExpenseModal';
 import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
 import UserDetailsModal from '../components/UserDetailsModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import SignOutModal from '../components/SignOutModal';
 import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
@@ -400,6 +401,8 @@ export default function Dashboard() {
   const [isRecurring, setIsRecurring] = useState(false);
 
   const [pendingEmailQuote, setPendingEmailQuote] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   let trialDaysLeft = null;
   let isTrialExpired = false;
@@ -962,15 +965,32 @@ export default function Dashboard() {
     }
   }
 
-  async function handleDeleteExpense(expenseId) {
-    if (!window.confirm(isHebrew ? 'למחוק הוצאה זו?' : 'Delete this expense?')) return;
+  // חוק ברזל: כל ארבע זרימות המחיקה (הוצאה/הצעה/לקוח/שירות) פוצלו לזוג
+  // פונקציות - request* (בונה טקסט דינמי ופותח את DeleteConfirmModal, לא
+  // נוגע במסד הנתונים) ו-execute* (לוגיקת המחיקה המקורית, ללא שום שינוי,
+  // שרצה אך ורק מתוך handleConfirmDelete בלחיצה על אישור). window.confirm()
+  // הוא סינכרוני; מודאל הוא א-סינכרוני מטבעו, ולכן לא ניתן להחליף inline -
+  // סדר הקריאות/השאילתות/הבדיקות המקוריות בכל execute* נשאר זהה לחלוטין.
+  async function executeDeleteExpense(expenseId) {
     const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
     if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message);
     else fetchExpenses(session.user.id);
   }
 
-  async function handleDeleteQuote(quoteId) {
-    if (!window.confirm(isHebrew ? 'למחוק הצעת מחיר זו לצמיתות?' : 'Delete this quote permanently?')) return;
+  function requestDeleteExpense(expenseId, description) {
+    const trimmed = (description || '').trim();
+    setPendingDelete({
+      type: 'expense',
+      id: expenseId,
+      title: isHebrew ? 'למחוק את ההוצאה?' : 'Delete this expense?',
+      message: trimmed
+        ? (isHebrew ? `"${trimmed}" תימחק מרשימת ההוצאות.` : `"${trimmed}" will be removed from your expenses.`)
+        : (isHebrew ? 'ההוצאה תימחק מרשימת ההוצאות.' : 'This expense will be removed from your expenses.'),
+      confirmLabel: isHebrew ? 'מחיקה' : 'Delete',
+    });
+  }
+
+  async function executeDeleteQuote(quoteId) {
     await supabase.from('quote_items').delete().eq('quote_id', quoteId);
     await supabase.from('quote_attachments').delete().eq('quote_id', quoteId);
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
@@ -985,7 +1005,21 @@ export default function Dashboard() {
     }
   }
 
-  async function handleDeleteClient(clientId) {
+  function requestDeleteQuote(quoteId, { number, clientName } = {}) {
+    const idLabel = number || (quoteId ? quoteId.slice(0, 6) : '');
+    const message = isHebrew
+      ? (clientName ? `#${idLabel} · ${clientName} — ההצעה תימחק לצמיתות.` : `#${idLabel} — ההצעה תימחק לצמיתות.`)
+      : (clientName ? `#${idLabel} · ${clientName} — this quote will be permanently deleted.` : `#${idLabel} — this quote will be permanently deleted.`);
+    setPendingDelete({
+      type: 'quote',
+      id: quoteId,
+      title: isHebrew ? 'למחוק את ההצעה?' : 'Delete this quote?',
+      message,
+      confirmLabel: isHebrew ? 'מחיקה' : 'Delete',
+    });
+  }
+
+  async function executeDeleteClient(clientId) {
     const { data: clientQuotes, error: fetchErr } = await supabase
       .from('quotes')
       .select('status, signature')
@@ -996,8 +1030,8 @@ export default function Dashboard() {
       return;
     }
 
-    const hasSignedOrApproved = clientQuotes && clientQuotes.some(q => 
-      (q.status && (q.status.toLowerCase() === 'approved' || q.status.toLowerCase() === 'paid' || q.status.toLowerCase() === 'signed')) || 
+    const hasSignedOrApproved = clientQuotes && clientQuotes.some(q =>
+      (q.status && (q.status.toLowerCase() === 'approved' || q.status.toLowerCase() === 'paid' || q.status.toLowerCase() === 'signed')) ||
       (q.signature && q.signature.trim() !== '')
     );
 
@@ -1010,15 +1044,40 @@ export default function Dashboard() {
       setAlertModalMsg(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
       return;
     }
-      
-    if (!window.confirm(isHebrew ? 'האם למחוק לקוח זה לצמיתות?' : 'Delete this client permanently?')) return;
-      
+
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
       setAlertModalMsg(isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח נמחק בהצלחה!' : 'Client deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
+    }
+  }
+
+  function requestDeleteClient(clientId, clientName) {
+    const trimmed = (clientName || '').trim();
+    setPendingDelete({
+      type: 'client',
+      id: clientId,
+      title: isHebrew ? 'למחוק את הלקוח?' : 'Delete this client?',
+      message: trimmed
+        ? (isHebrew ? `"${trimmed}" יימחק מהמערכת.` : `"${trimmed}" will be removed from your system.`)
+        : (isHebrew ? 'הלקוח יימחק מהמערכת.' : 'This client will be removed from your system.'),
+      confirmLabel: isHebrew ? 'מחיקה' : 'Delete',
+    });
+  }
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      if (pendingDelete.type === 'quote') await executeDeleteQuote(pendingDelete.id);
+      else if (pendingDelete.type === 'client') await executeDeleteClient(pendingDelete.id);
+      else if (pendingDelete.type === 'expense') await executeDeleteExpense(pendingDelete.id);
+      else if (pendingDelete.type === 'service') await executeDeleteService(pendingDelete.id);
+    } finally {
+      setIsDeleting(false);
+      setPendingDelete(null);
     }
   }
 
@@ -1289,11 +1348,23 @@ export default function Dashboard() {
     }
   }
 
-  async function handleDeleteService(id) {
-    if (!window.confirm(isHebrew ? 'למחוק שירות זה מהקטלוג?' : 'Delete this service from catalog?')) return;
+  async function executeDeleteService(id) {
     const { error } = await supabase.from('services').delete().eq('id', id);
     if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message);
     else fetchServices(session.user.id);
+  }
+
+  function requestDeleteService(id, serviceName) {
+    const trimmed = (serviceName || '').trim();
+    setPendingDelete({
+      type: 'service',
+      id,
+      title: isHebrew ? 'להסיר מהקטלוג?' : 'Remove from catalog?',
+      message: trimmed
+        ? (isHebrew ? `"${trimmed}" יוסר מהקטלוג ולא ניתן יהיה לשחזר אותו.` : `"${trimmed}" will be removed from your catalog and can't be recovered.`)
+        : (isHebrew ? 'השירות יוסר מהקטלוג ולא ניתן יהיה לשחזר אותו.' : 'This service will be removed from your catalog and can\'t be recovered.'),
+      confirmLabel: isHebrew ? 'מחיקה' : 'Delete',
+    });
   }
 
   const sendWhatsApp = (proposal) => {
@@ -2146,6 +2217,18 @@ export default function Dashboard() {
         isHebrew={isHebrew}
       />
 
+      <DeleteConfirmModal
+        isOpen={pendingDelete !== null}
+        isHebrew={isHebrew}
+        title={pendingDelete?.title}
+        message={pendingDelete?.message}
+        confirmLabel={pendingDelete?.confirmLabel}
+        cancelLabel={isHebrew ? 'ביטול' : 'Cancel'}
+        isDeleting={isDeleting}
+        onCancel={() => { if (!isDeleting) setPendingDelete(null); }}
+        onConfirm={handleConfirmDelete}
+      />
+
       <div style={{ flex: '1 0 auto', padding: '10px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           
@@ -2359,7 +2442,7 @@ export default function Dashboard() {
                 handleDuplicateQuote={handleDuplicateQuote}
                 sendWhatsApp={sendWhatsApp}
                 executeEmailSend={executeEmailSend}
-                handleDeleteQuote={handleDeleteQuote}
+                handleDeleteQuote={requestDeleteQuote}
                 handleProtectedAction={handleProtectedAction}
                 activeTooltip={activeTooltip}
                 openDropdownId={openDropdownId}
@@ -2393,7 +2476,7 @@ export default function Dashboard() {
                 editServicePrice={editServicePrice}
                 setEditServicePrice={setEditServicePrice}
                 handleSaveEditedService={handleSaveEditedService}
-                handleDeleteService={handleDeleteService}
+                handleDeleteService={requestDeleteService}
                 sym={sym}
                 formatNum={formatNum}
               />
@@ -2454,7 +2537,7 @@ export default function Dashboard() {
               clientSortDirection={clientSortDirection}
               handleClientSort={handleClientSort}
               setEditingClient={setEditingClient}
-              handleDeleteClient={handleDeleteClient}
+              handleDeleteClient={requestDeleteClient}
               quotes={quotes}
               isHebrew={isHebrew}
               t={t}
@@ -2517,7 +2600,7 @@ export default function Dashboard() {
               handleAddExpense={handleAddExpense}
               handleExportExpenses={handleExportExpenses}
               setEditingExpense={setEditingExpense}
-              handleDeleteExpense={handleDeleteExpense}
+              handleDeleteExpense={requestDeleteExpense}
               isHebrew={isHebrew}
               sym={sym}
               formatNum={formatNum}

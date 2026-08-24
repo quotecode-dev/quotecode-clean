@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { wipeUserData } from '../shared/wipeUserData';
 import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
+import Toast from './Toast';
 
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -15,6 +16,9 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const [cancelOtherText, setCancelOtherText] = useState('');
   const [dataPreference, setDataPreference] = useState('archive'); // 'archive' or 'delete'
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+  const [cancelSubmitAttempted, setCancelSubmitAttempted] = useState(false);
+  const [checkoutInfo, setCheckoutInfo] = useState(null);
+  const [toast, setToast] = useState(null);
 
   if (!isOpen) return null;
 
@@ -50,15 +54,17 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   };
 
   const handleSelectPlan = (planType) => {
-    const priceId = getSelectedPriceId(planType);
-    alert(isHebrew ? `נבחר מסלול: ${planType.toUpperCase()} (${billingCycle}). מזהה סליקה: ${priceId}` : `Selected plan: ${planType.toUpperCase()} (${billingCycle}). Price ID: ${priceId}`);
-    onClose();
+    // צ'קאאוט אמיתי (Stripe) עדיין לא מחובר - ר' billing-checkout-stub.
+    // במקום alert() חוסם עם מזהה סליקה פנימי (לא מיועד למשתמש קצה), מוצג
+    // מצב מידע קטן וממותג בתוך המודאל עצמו; המודאל לא נסגר אוטומטית כדי
+    // שהמשתמש בפועל יראה את ההודעה.
+    setCheckoutInfo({ planType });
   };
 
   const handleConfirmCancellation = async (e) => {
     e.preventDefault();
     if (!cancelReason) {
-      alert(isHebrew ? 'נא לבחור סיבת ביטול אחת לפחות.' : 'Please select a cancellation reason.');
+      setCancelSubmitAttempted(true);
       return;
     }
 
@@ -80,13 +86,18 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         }
       }
 
-      alert(isHebrew ? 'המנוי בוטל בהצלחה. תודה שהשתמשת ב-ProFlow.' : 'Subscription successfully canceled. Thank you for using ProFlow.');
       setShowCancelFlow(false);
-      if (onPlanUpdated) onPlanUpdated();
-      onClose();
+      setToast({ type: 'success', message: isHebrew ? 'המנוי בוטל בהצלחה.' : 'Subscription canceled successfully.' });
+      // ההצלחה מוצגת כ-toast לא-חוסם; הסגירה בפועל מתעכבת קצת כדי שהיא
+      // תספיק להיראות במקום להיעלם מיד עם unmount של המודאל.
+      setTimeout(() => {
+        if (onPlanUpdated) onPlanUpdated();
+        onClose();
+      }, 1600);
     } catch (err) {
+      // הפרטים הטכניים נשארים ב-console בלבד - לא נחשפים למשתמש כ-raw error.message.
       console.error('Error canceling subscription:', err);
-      alert(isHebrew ? `שגיאה בביטול המנוי: ${err.message}` : `Error canceling subscription: ${err.message}`);
+      setToast({ type: 'error', message: isHebrew ? 'לא הצלחנו לבטל את המנוי. נסו שוב.' : "We couldn't cancel the subscription. Please try again." });
     } finally {
       setIsSubmittingCancel(false);
     }
@@ -107,6 +118,23 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '16px', fontSize: '0.85rem' }}>
               {isHebrew ? 'בחר את המסלול המתאים ביותר לצרכים שלך והתחל לעבוד ללא הגבלות' : 'Choose the best plan for your needs and work without limits'}
             </p>
+
+            {checkoutInfo && (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <span>
+                  {isHebrew
+                    ? 'התשלום המקוון עדיין לא זמין - ניצור איתך קשר להשלמת ההרשמה למסלול שבחרת.'
+                    : "Online checkout isn't available yet - we'll be in touch to complete your signup for the plan you chose."}
+                </span>
+                <button
+                  onClick={() => setCheckoutInfo(null)}
+                  aria-label={isHebrew ? 'סגור' : 'Dismiss'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', display: 'flex', flexShrink: 0 }}
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
               <div style={{ background: '#f1f5f9', padding: '3px', borderRadius: '24px', display: 'flex', gap: '4px', border: '1px solid #cbd5e1' }}>
@@ -256,6 +284,12 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
               </label>
             </div>
 
+            {cancelSubmitAttempted && !cancelReason && (
+              <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginTop: '-10px', marginBottom: '16px' }}>
+                {isHebrew ? 'יש לבחור סיבת ביטול.' : 'Please select a cancellation reason.'}
+              </div>
+            )}
+
             {cancelReason === 'other' && (
               <div style={{ marginBottom: '16px' }}>
                 <textarea
@@ -305,6 +339,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         )}
 
       </div>
+      <Toast toast={toast} onDismiss={() => setToast(null)} isHebrew={isHebrew} />
     </div>
   );
 }

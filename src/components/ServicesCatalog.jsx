@@ -130,7 +130,7 @@ export default function ServicesCatalog({
                           </button>
                           <button
                             title={t.delete}
-                            onClick={() => handleDeleteService(svc.id)}
+                            onClick={() => handleDeleteService(svc.id, svc.name)}
                             style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
                             <Trash2 size={11} strokeWidth={2.5} />

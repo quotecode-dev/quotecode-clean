@@ -203,7 +203,7 @@ export default function FinancesTab({
                           {isHebrew ? 'ערוך' : 'Edit'}
                         </button>
                         <button
-                          onClick={() => handleDeleteExpense(exp.id)}
+                          onClick={() => handleDeleteExpense(exp.id, exp.description)}
                           style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
                           <Trash2 size={12} color={NEON.red} strokeWidth={2.5} />

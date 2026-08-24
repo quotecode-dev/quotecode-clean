@@ -22,7 +22,7 @@ export default function ClientsTab({
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
   const [clientErrorMsg, setClientErrorMsg] = useState({ clientId: null, text: '' });
 
-  const handleClientDeleteAttempt = (clientId) => {
+  const handleClientDeleteAttempt = (clientId, clientName) => {
     const clientQuotes = quotes.filter(q => q.client_id === clientId);
 
     const hasSignedOrApprovedQuote = clientQuotes.some(q => {
@@ -53,7 +53,7 @@ export default function ClientsTab({
     }
 
     setClientErrorMsg({ clientId: null, text: '' });
-    handleDeleteClient(clientId);
+    handleDeleteClient(clientId, clientName);
   };
 
   return (
@@ -155,7 +155,7 @@ export default function ClientsTab({
                           {isHebrew ? 'ערוך' : 'Edit'}
                         </button>
                         <button
-                          onClick={() => handleClientDeleteAttempt(client.id)}
+                          onClick={() => handleClientDeleteAttempt(client.id, client.company_name)}
                           title={hasSignedOrApproved ? (isHebrew ? 'לא ניתן למחוק לקוח עם הצעה חתומה או מאושרת' : 'Cannot delete client with signed/approved quote') : (clientQuotes.length > 0 ? (isHebrew ? 'לא ניתן למחוק לקוח עם הצעות פעילות' : 'Cannot delete client with active quotes') : '')}
                           style={{
                             background: hasSignedOrApproved ? 'rgba(255,255,255,0.06)' : 'rgba(239, 68, 68, 0.15)',

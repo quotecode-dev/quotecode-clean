@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
+import Toast from '../components/Toast';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -36,8 +37,15 @@ export default function PublicQuote() {
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [signatureWarning, setSignatureWarning] = useState(false);
+  const [approveToast, setApproveToast] = useState(null);
 
   const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
+
+  // ההתראה המקומית "יש לחתום" נעלמת אוטומטית ברגע שיש חתימה תקפה בקנבס
+  useEffect(() => {
+    if (hasSigned) setSignatureWarning(false);
+  }, [hasSigned]);
 
   useEffect(() => {
     document.title = "ProFlow - הצעת מחיר דיגיטלית";
@@ -124,7 +132,7 @@ export default function PublicQuote() {
 
   const handleApprove = async () => {
     if (!hasSigned) {
-      alert('נא לחתום על גבי המסמך לפני האישור');
+      setSignatureWarning(true);
       return;
     }
 
@@ -140,8 +148,10 @@ export default function PublicQuote() {
       if (error) throw error;
       setApproved(true);
     } catch (err) {
+      // הפרטים הטכניים/מסד הנתונים נשארים ב-console בלבד - הלקוח הציבורי
+      // רואה רק הודעה כללית וידידותית, לא raw error.message.
       console.error('Error approving quote:', err);
-      alert(`שגיאה באישור ההצעה: ${err.message}`);
+      setApproveToast({ type: 'error', message: 'לא הצלחנו לאשר את ההצעה. נסו שוב בעוד רגע.' });
     }
   };
 
@@ -357,6 +367,11 @@ export default function PublicQuote() {
                   נקה חתימה
                 </button>
               </div>
+              {signatureWarning && (
+                <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>
+                  נא לחתום על גבי המסמך לפני האישור
+                </div>
+              )}
               <div>
                 <button onClick={handleApprove} style={{ background: hasSigned ? '#10b981' : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
                   אשר וחתום על הצעת המחיר ✓
@@ -378,6 +393,7 @@ export default function PublicQuote() {
         </div>
 
       </div>
+      <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={true} />
     </div>
   );
 }
