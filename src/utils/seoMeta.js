@@ -6,7 +6,7 @@
 // /privacy, /terms etc. from being indexed as their own pages even though
 // they're all listed in sitemap.xml. Call setSeoMeta() from a useEffect on
 // every indexable page so each distinct URL gets its own correct tags.
-export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription }) {
+export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription, hreflang, updateSocial = true }) {
   if (typeof document === 'undefined') return;
 
   if (title) document.title = title;
@@ -24,10 +24,17 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
   };
 
   if (description) setMeta('meta[name="description"]', 'content', description);
-  setMeta('meta[property="og:title"]', 'content', ogTitle || title);
-  setMeta('meta[property="og:description"]', 'content', ogDescription || description);
-  setMeta('meta[name="twitter:title"]', 'content', ogTitle || title);
-  setMeta('meta[name="twitter:description"]', 'content', ogDescription || description);
+  // updateSocial: false לדפי נחיתה (LandingLocal/LandingGlobal) - הם עדיין
+  // לא נגעו ב-og:*/twitter:* בעבר, ואנחנו לא רוצים לגעת בזה כאן (שלב עתידי
+  // נפרד) רק בגלל האיחוד ל-setSeoMeta המשותף. שאר הדפים (Contact/Privacy/
+  // Terms/PublicTools) כבר השתמשו ב-og:*/twitter:* דרך הפונקציה הזו קודם,
+  // ולכן ברירת המחדל true משמרת את ההתנהגות הקיימת שלהם ללא שינוי.
+  if (updateSocial) {
+    setMeta('meta[property="og:title"]', 'content', ogTitle || title);
+    setMeta('meta[property="og:description"]', 'content', ogDescription || description);
+    setMeta('meta[name="twitter:title"]', 'content', ogTitle || title);
+    setMeta('meta[name="twitter:description"]', 'content', ogDescription || description);
+  }
 
   // Self-referential canonical/og:url = the URL actually being viewed (path
   // only, no query string) - the standard, safe default for pages that
@@ -42,5 +49,23 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
     document.head.appendChild(canonicalLink);
   }
   canonicalLink.setAttribute('href', fullUrl);
-  setMeta('meta[property="og:url"]', 'content', fullUrl);
+  if (updateSocial) setMeta('meta[property="og:url"]', 'content', fullUrl);
+
+  // Reciprocal hreflang cluster for this content family - pass as an array
+  // of { lang: 'he' | 'en' | 'x-default', path: '/he/contact' }. Reuses the
+  // find-or-create pattern above so repeated calls (e.g. on isHebrew change)
+  // update the existing <link> tags in place instead of creating duplicates.
+  if (Array.isArray(hreflang)) {
+    hreflang.forEach(({ lang, path: hrefPath }) => {
+      if (!lang || !hrefPath) return;
+      let tag = document.querySelector(`link[rel="alternate"][hreflang="${lang}"]`);
+      if (!tag) {
+        tag = document.createElement('link');
+        tag.setAttribute('rel', 'alternate');
+        tag.setAttribute('hreflang', lang);
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('href', `https://www.quotecodepro.com${hrefPath}`);
+    });
+  }
 }

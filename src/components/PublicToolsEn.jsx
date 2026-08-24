@@ -10,12 +10,23 @@ function PublicToolsEn() {
   const [activeTab, setActiveTab] = useState('currency');
 
   useEffect(() => {
+    // See matching note in Contact.jsx - bare /tools is a compatibility
+    // alias only; PublicToolsEn is always the English component, so the
+    // redirect target is fixed to /en/tools.
+    if (window.location.pathname === '/tools') {
+      navigate('/en/tools', { replace: true });
+    }
+
     setSeoMeta({
       title: 'ProFlow - Business Tools & Calculators Hub',
       description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from ProFlow.',
-      canonicalPath: '/en/tools'
+      canonicalPath: '/en/tools',
+      hreflang: [
+        { lang: 'he', path: '/he/tools' },
+        { lang: 'en', path: '/en/tools' },
+      ],
     });
-  }, []);
+  }, [navigate]);
 
   // Currency state with Swap support
   const [amount, setAmount] = useState('100');

@@ -10,12 +10,22 @@ function PublicTools() {
   const [activeTab, setActiveTab] = useState('currency');
 
   useEffect(() => {
+    // ר' הערה מלאה ב-Contact.jsx - /tools הלא-מקודד הוא alias לתאימות
+    // בלבד; PublicTools הוא תמיד הרכיב העברי, כך שהיעד קבוע ל-/he/tools.
+    if (window.location.pathname === '/tools') {
+      navigate('/he/tools', { replace: true });
+    }
+
     setSeoMeta({
       title: 'ProFlow - מרכז הכלים והמחשבונים העסקיים',
       description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית ProFlow.',
-      canonicalPath: '/tools'
+      canonicalPath: '/he/tools',
+      hreflang: [
+        { lang: 'he', path: '/he/tools' },
+        { lang: 'en', path: '/en/tools' },
+      ],
     });
-  }, []);
+  }, [navigate]);
 
   // Currency state with Swap support
   const [amount, setAmount] = useState('100');

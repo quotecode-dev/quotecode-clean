@@ -1,6 +1,6 @@
 # ProFlow — Project Handoff & Continuity Document
 
-**Last verified baseline:** `2532f1b` (commit `2532f1b2261a218711e5974ce9832658cb7937eb`)
+**Last verified baseline:** `aad3a7a` — *"Harden SEO indexing and private page noindex"* (see §12 for full commit history and current pending-work status)
 **Production:** https://www.quotecodepro.com/
 
 > Before making architectural changes, verify this document against the current repository because the codebase may have advanced since this handoff was last updated.
@@ -514,18 +514,28 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 
 ## 12. Git / Release State
 
-- **Approved & pushed baseline:** `2532f1b` (full hash `2532f1b2261a218711e5974ce9832658cb7937eb`)
+- **Approved & pushed baseline:** `aad3a7a` — *"Harden SEO indexing and private page noindex"* (SEO Phase 1)
 - **Branch:** `main`
 - **Remote:** `origin` → `https://github.com/quotecode-dev/quotecode-clean.git`
+- Recent history (newest first, confirmed via `git log` at time of this update): `aad3a7a` (SEO Phase 1) → `9c8cb06` *"Add safe geo routing and first-signup region resolution"* → `60e5d2c` *"Add ProFlow project handoff document"* → `2532f1b` *"Enforce strict Local and International separation"* → `6d7a1ac` and earlier. The geo/first-signup work described in §4.D and §5b, previously pending, **is now committed and pushed** as of `9c8cb06` — that section's "pending" language is superseded; §4.D/§5b remain accurate as an architecture description, just no longer uncommitted.
 
-**⚠ Pending, uncommitted, not yet pushed (as of this update):** the geo-based landing routing and first-signup region-resolution work described in §4.D, §5b, and the revised §13 exists in the working tree, approved by the project owner but awaiting the explicit commit/push instruction. Files involved:
-- New: `middleware.ts`, `api/geo.js`
-- Modified: `src/main.jsx`, `src/pages/Dashboard.jsx`, `src/pages/LandingGlobal.jsx`, `package.json`, `package-lock.json`
-- This `PROFLOW_HANDOFF.md` update itself
+**⚠ Pending, uncommitted, not yet pushed (as of this update):** SEO Phase 2 (canonical/hreflang consolidation) — see §15 for full detail. Files involved (10, confirmed via `git status`):
+- `src/utils/seoMeta.js`
+- `src/pages/LandingLocal.jsx`
+- `src/pages/LandingGlobal.jsx`
+- `src/pages/Contact.jsx`
+- `src/pages/Privacy.jsx`
+- `src/pages/Terms.jsx`
+- `src/components/PublicTools.jsx`
+- `src/components/PublicToolsEn.jsx`
+- `public/sitemap.xml`
+- `vercel.json`
 
-If you are reading this in a future session: run `git status`/`git log` first — this pending work may already be committed (with a new baseline hash superseding `2532f1b`), still pending, or abandoned. Do not assume either state from this document alone.
+This SEO Phase 2 work is **implemented and architecturally approved** (root `/` canonical strategy — Option B, stable self-canonical `/`, see §16.A; secondary bare-alias strategy for Contact/Privacy/Terms/Tools — client-side compatibility redirect + HTTP noindex, see §15) but **still not committed or pushed**, pending final explicit go-ahead to commit.
 
-`2532f1b` remains the last **confirmed pushed** baseline. **Do not assume no commits exist after this one** — verify with `git log` before relying on this as "current."
+If you are reading this in a future session: run `git status`/`git log` first — this pending work may already be committed (with a new baseline hash superseding `aad3a7a`), still pending, or abandoned/reverted. Do not assume either state from this document alone.
+
+`aad3a7a` remains the last **confirmed pushed** baseline as of this update. **Do not assume no commits exist after this one** — verify with `git log` before relying on this as "current."
 
 ---
 
@@ -564,10 +574,75 @@ Everything else referenced in §2's directory map is active, reachable code as o
 
 ---
 
+## 15. SEO Architecture — Phase 1 (Live) / Phase 2 (Approved, Pending Commit)
+
+### Phase 1 — LIVE, committed and pushed at `aad3a7a`
+
+- **Public quote noindex (defense in depth):** `src/pages/PublicQuote.jsx` and `src/pages/PublicQuoteEn.jsx` each set `<meta name="robots" content="noindex, nofollow">` client-side in their existing mount `useEffect`. `vercel.json` additionally sends `X-Robots-Tag: noindex, nofollow` at the HTTP level for `/quote/:id`, `/public-quote/:id`, `/en/public-quote/:id`, `/dashboard`, and `/ai-logs` — the HTTP header is the primary guarantee (works even if a crawler doesn't execute JS); the meta tag is the secondary/client-side layer.
+- **`robots.txt` intentionally has no `Disallow` rules at all** — private/noindex routes are protected via `X-Robots-Tag` instead, specifically so crawlers are *not* blocked from fetching (and therefore seeing) the noindex directive. Blocking via `robots.txt` was tried and deliberately reverted for this exact reason during Phase 1 review.
+- **`<html lang>`/`<html dir>` are now set at runtime**, at the two central bundle-level locations: `src/local/AppLocal.jsx` (`lang='he'`, `dir='rtl'`) and `src/global/AppGlobal.jsx` (`lang='en'`, `dir='ltr'`), each in their own mount `useEffect`. `PublicQuote.jsx`/`PublicQuoteEn.jsx` additionally set their own `lang`/`dir` on mount (justified exception — a quote's actual language can differ from the hosting bundle, e.g. a Local/Hebrew quote opened via `/en/public-quote/:id`, which `PublicQuoteEn.jsx` detects and hands off to `PublicQuote.jsx`; the nested component's mount-effect correctly fires after and overrides the parent's).
+- `public/sitemap.xml` at this baseline still included the *bare* unprefixed page URLs (`/`, `/contact`, `/privacy`, `/terms`, `/tools`) alongside the prefixed ones — this was superseded by Phase 2 (below), which is not yet committed.
+
+### Phase 2 — IMPLEMENTED IN THE WORKING TREE, ARCHITECTURE APPROVED, NOT yet committed/pushed
+
+10 files modified (see §12 for the exact list). Summary of the final approved design:
+
+- **Canonical consolidation through `src/utils/seoMeta.js`:** this helper already existed pre-Phase-2 (used by Contact/Privacy/Terms/Tools) and has been extended with a `hreflang` array parameter (renders reciprocal `<link rel="alternate" hreflang>` tags via the same find-or-create DOM pattern already used for canonical/meta tags) and an `updateSocial` flag (default `true`, preserves existing Open Graph/Twitter behavior for its existing callers; explicitly `false` for the two landing pages so this consolidation does not start touching OG/Twitter for them — that remains out of scope until a later phase).
+- **Root `/` canonical strategy — FINAL, approved (Option B):** bare `/` is a stable, self-canonical, x-default entry point. `LandingLocal.jsx`/`LandingGlobal.jsx` compute their canonical from **both** a valid explicit `?lang=` override and the clean pathname — never from geo/`localStorage`/`navigator.language`:
+  ```js
+  const langParam = new URLSearchParams(window.location.search).get('lang');
+  const explicitLang = langParam === 'he' || langParam === 'en' ? langParam : null;
+  // LandingLocal:
+  const canonicalPath = explicitLang ? '/he' : window.location.pathname === '/he' ? '/he' : '/';
+  // LandingGlobal:
+  const canonicalPath = explicitLang ? '/en' : window.location.pathname === '/en' ? '/en' : '/';
+  ```
+  Only `?lang=he`/`?lang=en` (the two values `main.jsx` itself recognizes) count as an explicit override; any other/invalid `?lang=` value (e.g. `?lang=fr`) is treated as absent and falls back to the clean-pathname rule. Bare `/` with no (valid) `?lang=` **always** self-canonicalizes to `/`, regardless of which bundle (`AppLocal`/`AppGlobal`) actually rendered it for a given visitor — geo/browser/stored-preference signals may decide *what renders*, never *what the canonical says*. Real `/he`/`/en` visits, and valid crossed `?lang=` cases (e.g. `/he?lang=en` → English UI → canonical `/en`), still self-canonicalize to the language actually rendered.
+- **Contact/Privacy/Terms/Tools — bare `/contact`/`/privacy`/`/terms`/`/tools` are compatibility aliases only, FINAL:** these are the same shared-route-in-both-bundles shape root `/` had, but unlike root they carry no `x-default`/homepage role, so the resolution differs from Option B: bare aliases are **not** kept self-canonical and are **not** treated as indexable pages at all.
+  - **Canonical localized pages** are `/he/<page>` and `/en/<page>` only — never the bare alias. (This was already fixed in the prior Phase 2 pass and is unchanged.)
+  - **Internal navigation no longer generates bare-alias traffic:** the footers in `LandingLocal.jsx`/`LandingGlobal.jsx` now `navigate()` directly to `/he/contact`/`/en/contact` etc. (previously `/contact` etc.) — confirmed via a repo-wide grep that zero internal links to the bare aliases remain anywhere in `src/`.
+  - **Client-side compatibility redirect:** `Contact.jsx`, `Privacy.jsx`, `Terms.jsx`, `PublicTools.jsx` (Hebrew), `PublicToolsEn.jsx` (English) each check, in their existing mount `useEffect`, whether `window.location.pathname` is *exactly* the bare alias (e.g. `=== '/contact'`) and if so call `navigate(<resolved localized path>, { replace: true })` — using the `isHebrew` prop (Contact/Privacy/Terms) or the component's own fixed language (PublicTools/PublicToolsEn) that `main.jsx` already resolved before these components ever mounted, so no new geo/cookie/language-guessing logic was introduced. The condition only ever matches the bare path, so a direct visit to `/he/contact` or `/en/contact` never redirects (no loop possible).
+  - **HTTP `X-Robots-Tag: noindex, follow`** added in `vercel.json` for exactly `/contact`, `/privacy`, `/terms`, `/tools` (new entries, alongside the existing Phase 1 `noindex, nofollow` rules for `/quote/:id` etc. — those are untouched). `follow` (not `nofollow`) is used deliberately so crawlers can still traverse to/consolidate toward the localized canonical pages. `robots.txt` was **not** touched — no new `Disallow` rules, consistent with the existing Phase 1 rationale (crawlers must be able to fetch the response and see the noindex header).
+- **hreflang — final:** landing pages declare the 3-way cluster `he→/he`, `en→/en`, `x-default→/`; Contact/Privacy/Terms/Tools declare the 2-way `he→/he/<page>`, `en→/en/<page>` (no `x-default` for these, and the bare aliases are never an hreflang target — matches the pre-existing pattern).
+- **`public/sitemap.xml` — final, 11 URLs:** `/`, `/he`, `/en`, `/he/tools`, `/en/tools`, `/he/contact`, `/en/contact`, `/he/privacy`, `/en/privacy`, `/he/terms`, `/en/terms`. Bare `/` is its own `<url>` entry (matching its stable self-canonical status under Option B) with the same 3-way hreflang cluster as `/he`/`/en`. The 4 bare aliases for Contact/Privacy/Terms/Tools are excluded from the sitemap (they are not canonical, not indexable).
+- **`index.html` and `robots.txt` were NOT touched in Phase 2** — the static HTML's existing generic defaults and hreflang cluster (`en→/en`, `he→/he`, `x-default→/`) already matched the new architecture and needed no change; no SSR/SSG was introduced (deliberately ruled out as unnecessary). **`vercel.json` was touched** (see above — 4 new header entries only; every existing Phase 1 header/rewrite/cron entry is unchanged).
+
+---
+
+## 16. Known Open Items (Next Session)
+
+### A. Root `/` SEO canonical strategy — RESOLVED, approved (Option B)
+
+**Decision:** bare `/` is a stable, self-canonical, x-default entry point. It always declares `canonical = /`, regardless of which bundle (`AppLocal`/`AppGlobal`) actually renders it for a given visitor. `/he` and `/en` remain the two fixed localized canonical pages, each self-canonical to itself.
+
+**Why, grounded in current official Google Search Central documentation:**
+- Google explicitly names self-referential canonicals as the default best practice, and states JS should not override an original HTML canonical to a *different* value — the prior dynamic-per-render approach (`/` → `/he` or `/en` depending on render) violated both: it made a single URL emit *different* canonical targets across crawls, and contradicted `index.html`'s own static self-referential `/` canonical.
+- A hard geo-based redirect from `/` (an earlier candidate, "C") was rejected: Google's multi-regional/multilingual guidance explicitly says *"avoid automatically redirecting users... don't redirect based on what you think the user's language may be,"* warning it can prevent Google from crawling all locale variants. A later refinement of that idea (a redirect gated by a new middleware-readable language-preference cookie, "C2") was evaluated in detail and rejected for the same reason — it's still the exact auto-redirect-on-guessed-language pattern Google's docs warn against, and would have needed a new cookie, new `middleware.ts` logic, and a dependency on the `Accept-Language` header that Googlebot itself doesn't send.
+- Google's own `x-default` guidance names "auto-redirecting homepages" *and* "language selector pages" as valid patterns, but a self-canonical, locale-adaptive homepage that never redirects (Option B) avoids the documented auto-redirect risk entirely while still satisfying `x-default`'s purpose.
+
+**Final canonical logic** (implemented in `LandingLocal.jsx`/`LandingGlobal.jsx`, see §15 for the exact code and the full verified 12-case matrix, including the 3 invalid-`?lang=` cases): canonical is derived from a *valid* explicit `?lang=he`/`?lang=en` override first, then the clean pathname — never from geo/`localStorage`/`navigator.language`, and never from an unrecognized `?lang=` value.
+
+**Contact/Privacy/Terms/Tools resolved separately, NOT via Option B:** these four families had the identical bare-route-in-both-bundles shape root `/` did, but — unlike root — carry no `x-default`/homepage role, so they were resolved as compatibility aliases instead (client-side `replace` redirect to `/he/<page>`/`/en/<page>` + HTTP `X-Robots-Tag: noindex, follow`, internal navigation updated to stop generating bare-alias traffic). See §15 for the full final design. This item is now fully resolved, not just root.
+
+### B. Local currency header leakage — quote table column header (OPEN, not yet audited)
+
+**Observed (reported by the project owner, not yet independently verified in code):**
+- For a Local/Israeli test account, quote-history rows correctly display `₪` amounts, but the Hebrew "הסכום" (Amount) column **header** visibly shows a green `$` icon/symbol.
+- The Super Admin view shows a different, not-yet-identified green symbol in the equivalent header position.
+
+**Iron Rule implication:** a Local account's UI must never expose a foreign-currency indicator anywhere, including incidentally via a hardcoded icon — this would be a (likely cosmetic/icon-level, not data-level) violation of the same Local/International separation principle enforced everywhere else in this codebase.
+
+**Next session must audit before changing anything:**
+- Search for `DollarSign`, `Banknote`, or a literal `$` character used as an icon/decoration (as opposed to actual currency-symbol formatting) in `src/components/QuotesTab.jsx` and any other quote-table render path (`Dashboard.jsx`'s own quote-list rendering, `AdminUsersTab.jsx`'s admin-facing quote/revenue tables if applicable).
+- Determine whether this is a **hardcoded decorative icon** (e.g. a `lucide-react` `DollarSign` used as a generic "money" glyph in the column header, never swapped per-region) versus an actual currency-formatting bug that could indicate a deeper data issue.
+- Fix only after confirming root cause — do not guess.
+
+---
+
 ## Final verification performed
 
 - Every factual claim in this document was checked against the actual current repository content (direct file reads and targeted greps), not recalled from earlier conversation summaries.
 - No secret values are present anywhere in this document — only environment variable **names**.
 - The Local/International Iron Rule is documented prominently in §3 and cross-referenced from §4/§5.
-- **No application, configuration, database, or Supabase function file was modified while producing this document update.** Only `PROFLOW_HANDOFF.md` was edited in this pass.
-- This update pass (documenting §4.D, §5b, and the revised §13) was verified against the working tree's pending, **not-yet-committed** geo/first-signup changes — cross-check with `git log`/`git diff` on arrival, since those changes may have since been committed, amended, or abandoned.
+- **No application, configuration, database, or Supabase function file was modified while producing this document update.** Only `PROFLOW_HANDOFF.md` was edited in this pass — confirmed via `git status --short` immediately after, which showed the same 9 SEO Phase 2 files as before this checkpoint and nothing else added.
+- This is a **checkpoint update** (session-limit driven): it corrects the baseline from the now-committed `2532f1b`/`9c8cb06` state to the current pushed `aad3a7a`, and records the SEO Phase 2 work (§15) that exists only in the working tree, plus two open items for the next session (§16: the root `/` canonical-strategy investigation, and the local-currency-header-leakage UI bug). No SEO Phase 2 code was committed, pushed, or reverted during this checkpoint — only this document changed.

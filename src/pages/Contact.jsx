@@ -7,12 +7,29 @@ export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // /contact הלא-מקודד הוא alias לתאימות בלבד (בוקמארקים/בקלינקים ישנים)
+    // ולא URL קנוני - הוא לעולם לא מוזרם יותר מניווט פנימי (ר' footer ב-
+    // LandingLocal.jsx/LandingGlobal.jsx). כשמישהו בכל זאת נוחת עליו ישירות,
+    // מפנים אותו מיד (replace, לא push) ליעד המקומי שכבר נפתר - התנאי בודק
+    // בדיוק '/contact' הריק בלבד, כך שאין סיכון ללולאת הפניה כשנוחתים ישירות
+    // על /he/contact או /en/contact.
+    if (window.location.pathname === '/contact') {
+      navigate(isHebrew ? '/he/contact' : '/en/contact', { replace: true });
+    }
+
+    // הקנוני נגזר אך ורק מ-isHebrew (לא מ-pathname) ולכן תקין גם בטרנזיציה -
+    // /he/contact ו-/en/contact הם היחידים שיכולים אי-פעם להיות קנוני; ה-
+    // alias הריק עצמו לעולם לא.
     setSeoMeta({
       title: isHebrew ? 'ProFlow - צור קשר ותמיכה' : 'ProFlow - Contact Us & Support',
       description: isHebrew ? 'צרו קשר עם צוות התמיכה של ProFlow לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the ProFlow support team for any question about managing your business and quotes.',
-      canonicalPath: isHebrew ? '/contact' : '/en/contact'
+      canonicalPath: isHebrew ? '/he/contact' : '/en/contact',
+      hreflang: [
+        { lang: 'he', path: '/he/contact' },
+        { lang: 'en', path: '/en/contact' },
+      ],
     });
-  }, [isHebrew]);
+  }, [isHebrew, navigate]);
 
   const t = isHebrew ? {
     title: 'צור קשר',

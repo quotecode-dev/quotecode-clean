@@ -6,12 +6,22 @@ export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // ר' הערה מלאה ב-Contact.jsx - /privacy הלא-מקודד הוא alias לתאימות
+    // בלבד, מופנה מיד (replace) ליעד המקומי שכבר נפתר כשנוחתים עליו ישירות.
+    if (window.location.pathname === '/privacy') {
+      navigate(isHebrew ? '/he/privacy' : '/en/privacy', { replace: true });
+    }
+
     setSeoMeta({
       title: isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy',
       description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת ProFlow ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the ProFlow platform and how user data is handled.',
-      canonicalPath: isHebrew ? '/privacy' : '/en/privacy'
+      canonicalPath: isHebrew ? '/he/privacy' : '/en/privacy',
+      hreflang: [
+        { lang: 'he', path: '/he/privacy' },
+        { lang: 'en', path: '/en/privacy' },
+      ],
     });
-  }, [isHebrew]);
+  }, [isHebrew, navigate]);
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',

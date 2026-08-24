@@ -6,12 +6,22 @@ export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // ר' הערה מלאה ב-Contact.jsx - /terms הלא-מקודד הוא alias לתאימות
+    // בלבד, מופנה מיד (replace) ליעד המקומי שכבר נפתר כשנוחתים עליו ישירות.
+    if (window.location.pathname === '/terms') {
+      navigate(isHebrew ? '/he/terms' : '/en/terms', { replace: true });
+    }
+
     setSeoMeta({
       title: isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service',
       description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת ProFlow לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the ProFlow business management and quoting platform.',
-      canonicalPath: isHebrew ? '/terms' : '/en/terms'
+      canonicalPath: isHebrew ? '/he/terms' : '/en/terms',
+      hreflang: [
+        { lang: 'he', path: '/he/terms' },
+        { lang: 'en', path: '/en/terms' },
+      ],
     });
-  }, [isHebrew]);
+  }, [isHebrew, navigate]);
 
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',

@@ -9,6 +9,7 @@ import {
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
 import { NEON, FONT_HE } from '../theme/neonTheme';
+import { setSeoMeta } from '../utils/seoMeta';
 
 // שם קצר מקומי לתאימות לשאר הקובץ - אותם טוקנים מוגדרים מרכזית ב-neonTheme
 // כדי שהעיצוב יישאר מאוחד מול LandingGlobal.jsx ו-Dashboard.jsx.
@@ -22,43 +23,34 @@ export default function LandingLocal({ onForgotPassword }) {
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   useEffect(() => {
-    document.title = "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות";
+    // כלל קנוני סופי (חוק ברזל, ר' PROFLOW_HANDOFF.md §16): רק ?lang=
+    // מפורש רשאי להזיז את הקנוני של "/" הריק/עם query ליעד שפה ספציפי.
+    // geo/localStorage/navigator.language עשויים לקבוע איזה באנדל מוצג
+    // בפועל ב-"/" הריק עבור בן-אדם, אבל לעולם לא ישפיעו על הקנוני שלו -
+    // "/" הריק ללא ?lang= תמיד קנוני לעצמו ("/"), גם כשעברית מוצגת בו.
+    // אם LandingLocal בכלל רונדר עם ?lang=he/en מפורש ותקין, זה כבר אומר
+    // ש-main.jsx בחר עברית בגלל אותו ?lang - הקנוני העצמי /he תואם בדיוק
+    // לשפה שבאמת הוצגה. ערך ?lang= לא תקין (כל דבר חוץ מ-he/en - main.jsx
+    // עצמו לא מכיר בו) לא נחשב override מפורש ונופל לכלל pathname הרגיל.
+    const langParam = new URLSearchParams(window.location.search).get('lang');
+    const explicitLang = langParam === 'he' || langParam === 'en' ? langParam : null;
+    const canonicalPath = explicitLang
+      ? '/he'
+      : window.location.pathname === '/he'
+      ? '/he'
+      : '/';
 
-    const descTag = document.querySelector('meta[name="description"]');
-    if (descTag) descTag.setAttribute('content', 'ProFlow - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.');
-
-    // עצמי: canonical משקף את הנתיב שבו נצפה בפועל (/ או /he) ולא ערך קבוע -
-    // אחרת ביקור אמיתי ב-/he היה מוצהר כפיל של השורש הריק ומאבד את הסיכוי
-    // להיות מאונדקס בפני עצמו
-    let canonicalLink = document.querySelector("link[rel='canonical']");
-    if (!canonicalLink) {
-      canonicalLink = document.createElement('link');
-      canonicalLink.rel = 'canonical';
-      document.head.appendChild(canonicalLink);
-    }
-    canonicalLink.href = window.location.pathname === '/he'
-      ? 'https://www.quotecodepro.com/he'
-      : 'https://www.quotecodepro.com/';
-
-    // תואם ל-hreflang שכבר מוצהר ב-sitemap.xml (he -> /he) - קודם הוצמד
-    // בטעות לשורש הריק, מה שסתר את המפה ובלבל את האיתות הדו-לשוני ל-Google
-    let hreflangHe = document.querySelector("link[hreflang='he']");
-    if (!hreflangHe) {
-      hreflangHe = document.createElement('link');
-      hreflangHe.rel = 'alternate';
-      hreflangHe.hreflang = 'he';
-      document.head.appendChild(hreflangHe);
-    }
-    hreflangHe.href = 'https://www.quotecodepro.com/he';
-
-    let hreflangEn = document.querySelector("link[hreflang='en']");
-    if (!hreflangEn) {
-      hreflangEn = document.createElement('link');
-      hreflangEn.rel = 'alternate';
-      hreflangEn.hreflang = 'en';
-      document.head.appendChild(hreflangEn);
-    }
-    hreflangEn.href = 'https://www.quotecodepro.com/en';
+    setSeoMeta({
+      title: "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      description: 'ProFlow - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
+      canonicalPath,
+      hreflang: [
+        { lang: 'he', path: '/he' },
+        { lang: 'en', path: '/en' },
+        { lang: 'x-default', path: '/' },
+      ],
+      updateSocial: false,
+    });
   }, []);
 
   const getLocalPriceId = (planType) => {
@@ -537,15 +529,15 @@ export default function LandingLocal({ onForgotPassword }) {
       <footer style={{ background: '#000000', color: '#71717a', padding: '40px 16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px' }}>
-            <button onClick={() => navigate('/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>תנאי שימוש</button>
+            <button onClick={() => navigate('/he/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>תנאי שימוש</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>מדיניות פרטיות</button>
+            <button onClick={() => navigate('/he/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>מדיניות פרטיות</button>
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>נגישות</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@quotecodepro.com)</button>
+            <button onClick={() => navigate('/he/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@quotecodepro.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
+            <button onClick={() => navigate('/he/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Israel. כל הזכויות שמורות.</p>
         </div>

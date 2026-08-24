@@ -9,6 +9,7 @@ import {
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
 } from 'lucide-react';
 import { NEON, FONT_EN } from '../theme/neonTheme';
+import { setSeoMeta } from '../utils/seoMeta';
 
 export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -18,41 +19,38 @@ export default function LandingGlobal({ onForgotPassword }) {
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   useEffect(() => {
-    document.title = "ProFlow - Business & Quoting SaaS Platform";
+    // Final canonical rule (iron rule, see PROFLOW_HANDOFF.md §16): only an
+    // explicit ?lang= override may move the canonical of bare "/" (with or
+    // without a query string) to a specific language target. Geo/
+    // localStorage/navigator.language may decide which bundle actually
+    // renders at bare "/" for a human visitor, but must never affect its
+    // canonical - bare "/" with no ?lang= always self-canonicalizes to "/",
+    // even when English is what's shown. If LandingGlobal renders at all
+    // with a valid explicit ?lang=he/en present, that already means main.jsx
+    // picked English because of that ?lang - the self-canonical /en matches
+    // exactly the language actually rendered. An invalid ?lang= value
+    // (anything other than he/en - main.jsx itself doesn't recognize it
+    // either) does not count as an explicit override and falls back to the
+    // normal pathname rule.
+    const langParam = new URLSearchParams(window.location.search).get('lang');
+    const explicitLang = langParam === 'he' || langParam === 'en' ? langParam : null;
+    const canonicalPath = explicitLang
+      ? '/en'
+      : window.location.pathname === '/en'
+      ? '/en'
+      : '/';
 
-    const descTag = document.querySelector('meta[name="description"]');
-    if (descTag) descTag.setAttribute('content', 'ProFlow is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.');
-
-    // עצמי: canonical משקף את הנתיב שבו נצפה בפועל (/ או /en) ולא ערך קבוע -
-    // אחרת ביקור אמיתי בשורש הריק (זוהה כאנגלית) היה מוצהר כפיל של /en
-    let canonicalLink = document.querySelector("link[rel='canonical']");
-    if (!canonicalLink) {
-      canonicalLink = document.createElement('link');
-      canonicalLink.rel = 'canonical';
-      document.head.appendChild(canonicalLink);
-    }
-    canonicalLink.href = window.location.pathname === '/en'
-      ? 'https://www.quotecodepro.com/en'
-      : 'https://www.quotecodepro.com/';
-
-    let hreflangEn = document.querySelector("link[hreflang='en']");
-    if (!hreflangEn) {
-      hreflangEn = document.createElement('link');
-      hreflangEn.rel = 'alternate';
-      hreflangEn.hreflang = 'en';
-      document.head.appendChild(hreflangEn);
-    }
-    hreflangEn.href = 'https://www.quotecodepro.com/en';
-
-    let hreflangHe = document.querySelector("link[hreflang='he']");
-    if (!hreflangHe) {
-      hreflangHe = document.createElement('link');
-      hreflangHe.rel = 'alternate';
-      hreflangHe.hreflang = 'he';
-      document.head.appendChild(hreflangHe);
-    }
-    // תואם ל-sitemap.xml (he -> /he); קודם הוצמד בטעות לשורש הריק
-    hreflangHe.href = 'https://www.quotecodepro.com/he';
+    setSeoMeta({
+      title: "ProFlow - Business & Quoting SaaS Platform",
+      description: 'ProFlow is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.',
+      canonicalPath,
+      hreflang: [
+        { lang: 'he', path: '/he' },
+        { lang: 'en', path: '/en' },
+        { lang: 'x-default', path: '/' },
+      ],
+      updateSocial: false,
+    });
 
     try {
       const userLang = (navigator.language || '').toLowerCase();
@@ -579,15 +577,15 @@ export default function LandingGlobal({ onForgotPassword }) {
       <footer style={{ background: '#000000', color: '#71717a', padding: '40px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px' }}>
-            <button onClick={() => navigate('/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Terms of Service</button>
+            <button onClick={() => navigate('/en/terms')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Terms of Service</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
+            <button onClick={() => navigate('/en/privacy')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />Contact Us (info@quotecodepro.com)</button>
+            <button onClick={() => navigate('/en/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />Contact Us (info@quotecodepro.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />Business Tools</button>
+            <button onClick={() => navigate('/en/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />Business Tools</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Global. All rights reserved.</p>
         </div>
