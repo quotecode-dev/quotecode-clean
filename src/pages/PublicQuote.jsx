@@ -41,6 +41,24 @@ export default function PublicQuote() {
 
   useEffect(() => {
     document.title = "ProFlow - הצעת מחיר דיגיטלית";
+
+    // חוק ברזל: דף הצעת מחיר ציבורי מכיל נתוני לקוח/עסק ספציפיים ולעולם
+    // אסור שייכנס לאינדקס של גוגל. ר' הגנה מקבילה ב-vercel.json
+    // (X-Robots-Tag) וב-robots.txt - זהו רק שכבת ההגנה בצד הלקוח.
+    let robotsTag = document.querySelector('meta[name="robots"]');
+    if (!robotsTag) {
+      robotsTag = document.createElement('meta');
+      robotsTag.name = 'robots';
+      document.head.appendChild(robotsTag);
+    }
+    robotsTag.setAttribute('content', 'noindex, nofollow');
+
+    // עמוד זה תמיד מציג תוכן עברי/RTL - ללא קשר לבאנדל (Local/Global)
+    // שממנו הגיע (ר' PublicQuoteEn.jsx, שיכול לרנדר את הרכיב הזה בעצמו
+    // כשהצעה מסתבר שהיא מקומית למרות שנפתחה דרך /en/public-quote/:id).
+    document.documentElement.lang = 'he';
+    document.documentElement.dir = 'rtl';
+
     if (id) {
       fetchQuoteAndIncrementView();
     }

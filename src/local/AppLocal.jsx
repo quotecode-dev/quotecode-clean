@@ -23,6 +23,16 @@ export default function AppLocal() {
   const [updateMessage, setUpdateMessage] = useState('');
 
   useEffect(() => {
+    // חוק ברזל: הבאנדל המקומי מייצג תמיד עברית/RTL - זהו המקום המרכזי
+    // היחיד שקובע את document.documentElement.lang/dir עבור כל האפליקציה
+    // (לא נגזר מ-business_settings/מטבע הצעה/עוגיית geo - זו שפת/כיוון
+    // ה-UI בלבד). דפי הצעת מחיר ציבוריים (PublicQuote/PublicQuoteEn) קובעים
+    // זאת בעצמם בנפרד כי הם יכולים להציג את השפה הנגדית לבאנדל שמארח אותם.
+    document.documentElement.lang = 'he';
+    document.documentElement.dir = 'rtl';
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user?.email) {

@@ -3,6 +3,7 @@ Allow: /
 Allow: /he
 Allow: /en
 Allow: /tools
+Allow: /he/tools
 Allow: /en/tools
 Allow: /contact
 Allow: /he/contact
@@ -13,7 +14,5 @@ Allow: /en/privacy
 Allow: /terms
 Allow: /he/terms
 Allow: /en/terms
-
-Disallow: /dashboard
 
 Sitemap: https://www.quotecodepro.com/sitemap.xml

@@ -27,6 +27,24 @@ export default function PublicQuoteEn() {
 
   useEffect(() => {
     document.title = "ProFlow - Digital Price Quote";
+
+    // חוק ברזל: דף הצעת מחיר ציבורי מכיל נתוני לקוח/עסק ספציפיים ולעולם
+    // אסור שייכנס לאינדקס של גוגל. ר' הגנה מקבילה ב-vercel.json
+    // (X-Robots-Tag) וב-robots.txt - זהו רק שכבת ההגנה בצד הלקוח.
+    let robotsTag = document.querySelector('meta[name="robots"]');
+    if (!robotsTag) {
+      robotsTag = document.createElement('meta');
+      robotsTag.name = 'robots';
+      document.head.appendChild(robotsTag);
+    }
+    robotsTag.setAttribute('content', 'noindex, nofollow');
+
+    // ברירת המחדל של הרכיב הזה היא אנגלית/LTR. אם ההצעה מתגלה כמקומית
+    // (isLocalQuote), הרכיב הזה מרנדר את <PublicQuote /> במקום - וזה כבר
+    // קובע he/rtl בעצמו ב-useEffect שלו, שרץ אחרי זה ולכן מנצח כראוי.
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+
     if (id) {
       fetchQuoteAndIncrementView();
     }
