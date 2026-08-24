@@ -6,6 +6,7 @@
 import { formatDateLocal } from '../utils/regionConfig';
 import { History, Plus, Download, Hash, Building2, AlignLeft, Banknote, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
 import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { isQuoteImmutable } from '../utils/quoteLock';
 
 export default function QuotesTab({
   quotes,
@@ -165,6 +166,7 @@ export default function QuotesTab({
               quotes.map((quote) => {
                 const currentStatus = quote.status ? quote.status.toLowerCase() : 'draft';
                 const isDropdownOpen = openDropdownId === quote.id;
+                const isLocked = isQuoteImmutable(quote);
                 const emailStatus = emailStatuses ? emailStatuses[quote.id] : null;
 
                 const firstItemDesc = quote.quote_items && quote.quote_items.length > 0 ? quote.quote_items[0].description : '';
@@ -299,15 +301,18 @@ export default function QuotesTab({
 
                               <div style={{ position: 'relative' }}>
                                 <button
+                                  disabled={isLocked}
+                                  title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
                                   onClick={() => {
+                                    if (isLocked) return;
                                     setOpenDropdownId(null);
                                     handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
                                   }}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.amber, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? NEON.textMuted : NEON.amber, opacity: isLocked ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  onMouseEnter={(e) => { if (!isLocked) e.target.style.background = 'rgba(255,255,255,0.06)'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <Pencil size={15} color={NEON.amber} strokeWidth={2.2} />
+                                  <Pencil size={15} color={isLocked ? NEON.textMuted : NEON.amber} strokeWidth={2.2} />
                                   <span>{isHebrew ? 'ערוך במסמך' : 'Edit Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
@@ -369,15 +374,18 @@ export default function QuotesTab({
 
                               <div style={{ position: 'relative' }}>
                                 <button
+                                  disabled={isLocked}
+                                  title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
                                   onClick={() => {
+                                    if (isLocked) return;
                                     setOpenDropdownId(null);
                                     handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: quote.id.slice(0, 6), clientName: quote.clients?.company_name }));
                                   }}
-                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.red, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                                  onMouseEnter={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.12)'}
+                                  style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? NEON.textMuted : NEON.red, opacity: isLocked ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+                                  onMouseEnter={(e) => { if (!isLocked) e.target.style.background = 'rgba(239, 68, 68, 0.12)'; }}
                                   onMouseLeave={(e) => e.target.style.background = 'none'}
                                 >
-                                  <Trash2 size={15} color={NEON.red} strokeWidth={2.2} />
+                                  <Trash2 size={15} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
                                   <span>{isHebrew ? 'מחק מסמך' : 'Delete Quote'}</span>
                                 </button>
                                 {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (

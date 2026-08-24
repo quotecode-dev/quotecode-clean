@@ -8,6 +8,7 @@ import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { isHebrewEnv, getRegionTaxRate, formatDateLocal } from '../utils/regionConfig';
+import { isQuoteImmutable } from '../utils/quoteLock';
 import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
@@ -991,6 +992,15 @@ export default function Dashboard() {
   }
 
   async function executeDeleteQuote(quoteId) {
+    const targetQuote = quotes.find(q => q.id === quoteId);
+    if (isQuoteImmutable(targetQuote)) {
+      setAlertModalMsg(
+        isHebrew
+          ? 'לא ניתן למחוק הצעה חתומה.'
+          : 'Cannot delete a signed quote.'
+      );
+      return;
+    }
     await supabase.from('quote_items').delete().eq('quote_id', quoteId);
     await supabase.from('quote_attachments').delete().eq('quote_id', quoteId);
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
@@ -1006,6 +1016,15 @@ export default function Dashboard() {
   }
 
   function requestDeleteQuote(quoteId, { number, clientName } = {}) {
+    const targetQuote = quotes.find(q => q.id === quoteId);
+    if (isQuoteImmutable(targetQuote)) {
+      setAlertModalMsg(
+        isHebrew
+          ? 'לא ניתן למחוק הצעה חתומה.'
+          : 'Cannot delete a signed quote.'
+      );
+      return;
+    }
     const idLabel = number || (quoteId ? quoteId.slice(0, 6) : '');
     const message = isHebrew
       ? (clientName ? `#${idLabel} · ${clientName} — ההצעה תימחק לצמיתות.` : `#${idLabel} — ההצעה תימחק לצמיתות.`)
@@ -1617,7 +1636,7 @@ export default function Dashboard() {
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
   const handleEditClick = async (quote) => {
-    if (quote.status?.toLowerCase() === 'approved' || quote.status?.toLowerCase() === 'paid' || quote.signature) {
+    if (isQuoteImmutable(quote)) {
       setAlertModalMsg(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
     }
@@ -1749,7 +1768,7 @@ export default function Dashboard() {
       const originalQuote = editingQuoteId ? quotes.find(q => q.id === editingQuoteId) : null;
 
       if (editingQuoteId) {
-        if (originalQuote && (originalQuote.status?.toLowerCase() === 'approved' || originalQuote.status?.toLowerCase() === 'paid' || originalQuote.signature)) {
+        if (isQuoteImmutable(originalQuote)) {
           setAlertModalMsg(isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
           return;
         }
