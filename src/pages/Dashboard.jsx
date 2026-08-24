@@ -35,6 +35,24 @@ import {
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
+// שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
+// חשבון business_settings *חדש* (ר' fetchSettings למטה) - לעולם לא לחשבון
+// קיים. אם הקריאה נכשלת/geo לא זמין, מחזיר null - ואז fetchSettings אינו
+// מנחש אזור בעצמו אלא מבקש בחירה מפורשת מהמשתמש (ר' needsRegionChoice).
+const fetchFreshGeoCountry = async () => {
+  try {
+    const res = await fetch('/api/geo');
+    if (!res.ok) return null;
+    const data = await res.json();
+    // מנורמל ל-uppercase כאן (ולא סומך על הפורמט שהשרת מחזיר) לפני שמושווה
+    // ל-'IL' בהמשך.
+    return data?.country ? String(data.country).toUpperCase() : null;
+  } catch {
+    return null;
+  }
+};
+
 const DEFAULT_TERMS_HEB = `תנאים כלליים:
 1. תוקף ההצעה: ההצעה בתוקף ל-30 ימים מיום הצעת המחיר.
 2. מחירים: המחירים כוללים מע"מ, אלא אם צוין אחרת.
@@ -46,11 +64,11 @@ const DEFAULT_TERMS_ENG = `General Terms:
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
 3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
 
-// bundleIsHebrew: איזה באנדל בפועל (AppLocal/AppGlobal) עדכן את הדשבורד -
-// מועבר במפורש ע"י main.jsx/AppLocal.jsx/AppGlobal.jsx, ולא מנוחש מחדש
-// כאן מתוך URL/localStorage. זהו מקור האמת היחיד לברירות המחדל של חשבון
-// חדש (מדינה/מטבע/תקנון) בהרשמה - ראו שימוש למטה בענף היצירה החדשה.
-export default function Dashboard({ bundleIsHebrew }) {
+// חוק ברזל: אזור/מטבע/תקנון של חשבון *חדש* אינם נגזרים יותר מהבאנדל
+// (AppLocal/AppGlobal) שהציג את הדשבורד - הם נקבעים אך ורק ע"י geo טרי
+// מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
+// createNewBusinessSettings / handleRegionChoiceSelect למטה).
+export default function Dashboard() {
   const now = new Date();
 
   const [session, setSession] = useState(null);
@@ -107,6 +125,19 @@ export default function Dashboard({ bundleIsHebrew }) {
 
   const [settingId, setSettingId] = useState(null);
   const [bizName, setBizName] = useState('ProFlow');
+  // חוק ברזל: אם אין עדיין business_settings וגם geo טרי לא היה זמין, אסור
+  // לנחש אזור משפטי משפה/באנדל/עוגייה - יש לבקש בחירה מפורשת מהמשתמש (ר'
+  // fetchSettings/createNewBusinessSettings למטה). needsRegionChoice חוסם
+  // רינדור הדשבורד המלא עד שנבחר אזור, בדיוק כמו isInitializing.
+  const [needsRegionChoice, setNeedsRegionChoice] = useState(false);
+  const [pendingNewAccount, setPendingNewAccount] = useState(null);
+  // מצב טעינה/שגיאה עבור ניסיון יצירת business_settings (אוטומטי מ-geo או
+  // מבחירה מפורשת). isCreatingBusinessSettingsRef הוא ref (לא state) בכוונה -
+  // עדכון ref הוא מיידי/סינכרוני, ולכן חוסם הפעלה כפולה/מקבילה גם אם שני
+  // קליקים קורים לפני שריצה חוזרת של React "רואה" עדכון state קודם.
+  const isCreatingBusinessSettingsRef = useRef(false);
+  const [isCreatingBusinessSettings, setIsCreatingBusinessSettings] = useState(false);
+  const [regionChoiceError, setRegionChoiceError] = useState(null);
   const [bizTaxId, setBizTaxId] = useState('');
   const [bizEmail, setBizEmail] = useState('');
   const [bizPhone, setBizPhone] = useState('');
@@ -572,62 +603,120 @@ export default function Dashboard({ bundleIsHebrew }) {
         fetchAllAccounts();
       }
     } else {
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 14);
-
-      // bundleIsHebrew (מועבר ע"י AppLocal.jsx/AppGlobal.jsx לפי איזה מהם
-      // בפועל רינדר את הדשבורד) הוא מקור האמת היחיד לברירות המחדל של חשבון
-      // חדש - במפורש *לא* המשתנה isHebrew הרגיל שמעל, שיכול להיגזר מ-
-      // ?lang= בכתובת או מ-proflow_lang ב-localStorage שנשאר מביקור קודם
-      // (למשל דפדפן משותף, או שרת בדיקות). אי-התאמה בדיוק כזו גרמה לחשבונות
-      // Global/אנגלית חדשים לקבל ברירת מחדל של תקנון בעברית, שם עסק בעברית
-      // ומטבע ILS - כי isHebrew "נפל" בטעות לניחוש מבוסס URL/localStorage
-      // במקום להסתמך על הבאנדל שבו המשתמש נרשם בפועל.
-      const detectedCountry = bundleIsHebrew ? 'Local' : 'International';
-      const detectedTerms = bundleIsHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
-      const detectedCurr = bundleIsHebrew ? 'ILS' : 'USD';
-
-      const defaultPayload = {
-        user_id: userId,
-        email: userEmail,
-        business_name: detectedCountry === 'Local' ? 'עסק חדש' : 'New Business',
-        country: detectedCountry,
-        currency: detectedCurr,
-        plan: 'pro',
-        role: 'user',
-        default_terms: detectedTerms,
-        trial_ends_at: trialEndDate.toISOString(),
-        last_sign_in: nowIso
-      };
-
-      const { data: newData, error: insertError } = await supabase
-        .from('business_settings')
-        .insert([defaultPayload])
-        .select()
-        .maybeSingle();
-
-      if (insertError) console.error("Auto-init error:", insertError);
-
-      if (newData) {
-        setSettingId(newData.id);
-        setBizName(newData.business_name);
-        setBizEmail(newData.email);
-        setBizPhone(newData.phone || '');
-        setBizAddress(newData.address || '');
-        setBizPlan(newData.plan);
-        setBizRole(newData.role);
-        // ר' הערה מקבילה למעלה - setBizCountry לא מותנה בגדר lang=, רק כתיבת
-        // המטמון המשותף.
-        setBizCountry(newData.country || detectedCountry);
-        if (!isExplicitEnglish && !isExplicitHebrew) {
-          localStorage.setItem('proflow_cached_country', newData.country || detectedCountry);
-        }
-        setDefaultTerms(newData.default_terms || detectedTerms);
-        setTrialEndsAt(newData.trial_ends_at);
-        setCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
-        setTerms(newData.default_terms || detectedTerms);
+      // חוק ברזל: אזור משפטי לחשבון *חדש* חייב לבוא אך ורק מ-(1) geo טרי
+      // ואמין שנשלף עכשיו ממש מהשרת (api/geo.js - לא מעוגייה/localStorage
+      // שהלקוח יכול לשנות, ולא יכול להיות ישן אם המשתמש גלש/החליף VPN
+      // מאז ביקור קודם), או מ-(2) בחירה מפורשת של המשתמש עצמו - לעולם לא
+      // ניחוש שקט מבוסס bundleIsHebrew/?lang=/נתיב/localStorage/שפת
+      // דפדפן. אם geo טרי לא זמין, לא יוצרים עדיין שורת business_settings
+      // בכלל - מבקשים מהמשתמש לבחור אזור במפורש (ר' needsRegionChoice /
+      // handleRegionChoiceSelect ומסך הבחירה המינימלי ב-return הראשי).
+      const freshGeoCountry = await fetchFreshGeoCountry();
+      if (freshGeoCountry) {
+        await createNewBusinessSettings(userId, userEmail, freshGeoCountry === 'IL' ? 'Local' : 'International');
+      } else {
+        setPendingNewAccount({ userId, userEmail });
+        setNeedsRegionChoice(true);
       }
     }
+  }
+
+  // יוצרת בפועל את שורת business_settings הראשונה עבור המשתמש - הנקודה
+  // היחידה בקוד שמבצעת INSERT כזה, גם מהנתיב האוטומטי (geo טרי הצליח) וגם
+  // מבחירה מפורשת של המשתמש. country חייב להיות בדיוק 'Local' או
+  // 'International' - כל ערך אחר נדחה בלי לגעת במסד הנתונים.
+  //
+  // חוק ברזל - הגנה מפני insert כפול/מרוץ: isCreatingBusinessSettingsRef
+  // (ref, לא state) נבדק ונכתב באופן סינכרוני מיד עם הכניסה לפונקציה, לפני
+  // כל await - כך שקריאה שנייה (קליק כפול, או קליק על שני הכפתורים
+  // ברצף) נחסמת גם אם React עדיין לא הספיק לרנדר מחדש עם ה-state המעודכן.
+  // ה-state המקביל (isCreatingBusinessSettings) קיים בנפרד רק כדי להניע
+  // את מצב הטעינה/disabled בממשק.
+  //
+  // חוק ברזל - כישלון: אם ה-insert נכשל או לא מחזיר newData תקין, לעולם
+  // לא ממשיכים לרנדר דשבורד חלקי. מעבירים/משאירים את המשתמש במסך בחירת
+  // אזור מפורש (גם אם הניסיון הזה היה אוטומטי מ-geo, לא בחירה ידנית) עם
+  // הודעת שגיאה מקומית, כדי שיוכל לנסות שוב.
+  async function createNewBusinessSettings(userId, userEmail, country) {
+    if (country !== 'Local' && country !== 'International') {
+      console.error('createNewBusinessSettings: invalid country', country);
+      return false;
+    }
+    if (isCreatingBusinessSettingsRef.current) {
+      return false;
+    }
+    isCreatingBusinessSettingsRef.current = true;
+    setIsCreatingBusinessSettings(true);
+    setRegionChoiceError(null);
+
+    const nowIso = new Date().toISOString();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+
+    const detectedTerms = country === 'Local' ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
+    const detectedCurr = country === 'Local' ? 'ILS' : 'USD';
+
+    const defaultPayload = {
+      user_id: userId,
+      email: userEmail,
+      business_name: country === 'Local' ? 'עסק חדש' : 'New Business',
+      country,
+      currency: detectedCurr,
+      plan: 'pro',
+      role: 'user',
+      default_terms: detectedTerms,
+      trial_ends_at: trialEndDate.toISOString(),
+      last_sign_in: nowIso
+    };
+
+    const { data: newData, error: insertError } = await supabase
+      .from('business_settings')
+      .insert([defaultPayload])
+      .select()
+      .maybeSingle();
+
+    if (insertError || !newData) {
+      console.error("Auto-init error:", insertError);
+      setPendingNewAccount({ userId, userEmail });
+      setNeedsRegionChoice(true);
+      setRegionChoiceError(isHebrew ? 'לא הצלחנו ליצור את החשבון כרגע. נסה שוב.' : "We couldn't create your account right now. Please try again.");
+      isCreatingBusinessSettingsRef.current = false;
+      setIsCreatingBusinessSettings(false);
+      return false;
+    }
+
+    setSettingId(newData.id);
+    setBizName(newData.business_name);
+    setBizEmail(newData.email);
+    setBizPhone(newData.phone || '');
+    setBizAddress(newData.address || '');
+    setBizPlan(newData.plan);
+    setBizRole(newData.role);
+    // ר' הערה מקבילה למעלה - setBizCountry לא מותנה בגדר lang=, רק כתיבת
+    // המטמון המשותף.
+    setBizCountry(newData.country || country);
+    if (!isExplicitEnglish && !isExplicitHebrew) {
+      localStorage.setItem('proflow_cached_country', newData.country || country);
+    }
+    setDefaultTerms(newData.default_terms || detectedTerms);
+    setTrialEndsAt(newData.trial_ends_at);
+    setCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
+    setTerms(newData.default_terms || detectedTerms);
+
+    setNeedsRegionChoice(false);
+    setPendingNewAccount(null);
+    setRegionChoiceError(null);
+    isCreatingBusinessSettingsRef.current = false;
+    setIsCreatingBusinessSettings(false);
+    return true;
+  }
+
+  // מופעלת רק ע"י לחיצה מפורשת של המשתמש על "ישראל"/"בינלאומי" במסך
+  // הבחירה. createNewBusinessSettings עצמה כבר מגנה מפני הפעלה כפולה/
+  // מקבילה (ref סינכרוני) - אין צורך בבדיקה נוספת כאן.
+  async function handleRegionChoiceSelect(country) {
+    if (!pendingNewAccount) return;
+    await createNewBusinessSettings(pendingNewAccount.userId, pendingNewAccount.userEmail, country);
   }
 
   async function fetchAllAccounts() {
@@ -790,13 +879,16 @@ export default function Dashboard({ bundleIsHebrew }) {
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
       }
     } else {
-      const { data, error } = await supabase.from('business_settings').insert([payload]).select();
-      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בשמירת ההגדרות' : 'Error saving settings');
-      else if (data && data[0]) {
-        setSettingId(data[0].id);
-        localStorage.setItem('proflow_cached_country', bizCountry);
-        setStatusMsg({ text: isHebrew ? 'הגדרות העסק נשמרו בהצלחה!' : 'Business settings saved successfully!', type: 'success' });
-      }
+      // חוק ברזל: createNewBusinessSettings() היא הנקודה היחידה בקובץ הזה
+      // שמורשית ליצור שורת business_settings חדשה - עם אזור שכבר אומת
+      // (geo טרי או בחירה מפורשת של המשתמש). לא יוצרים כאן שורה חדשה
+      // בעצמנו בשום מקרה - זה היה עוקף את חוזה האזור המאומת ומאפשר יצירת
+      // חשבון עם אזור מנוחש. אם settingId חסר בזמן שמירת הגדרות, זהו מצב
+      // לא-תקין (הוא אמור כבר להיות מוגדר ע"י fetchSettings/
+      // createNewBusinessSettings לפני שהדשבורד בכלל נגיש) - נכשלים
+      // בבטחה במקום לנחש/ליצור.
+      console.error('handleSaveSettings: missing settingId - refusing to insert a new business_settings row (see createNewBusinessSettings).');
+      setAlertModalMsg(isHebrew ? 'לא ניתן לשמור את ההגדרות כרגע. טען מחדש את העמוד ונסה שוב.' : 'Settings cannot be saved right now. Please reload the page and try again.');
     }
   }
 
@@ -1851,6 +1943,58 @@ export default function Dashboard({ bundleIsHebrew }) {
         setResetEmail={setResetEmail}
         resetLoading={resetLoading}
       />
+    );
+  }
+
+  // חוק ברזל: מסך זה חוסם את הדשבורד המלא רק ברגע החד-פעמי שבו מתגלה
+  // חשבון חדש לגמרי שעבורו geo טרי מהשרת נכשל - הוא לא יופיע לחשבון קיים
+  // (ה-if הזה כלל לא נבדק אחרי שנוצרה שורת business_settings), לא בכל
+  // כניסה רגילה, ולא בעמודי נחיתה/הצעות ציבוריות (הרכיב הזה קיים רק בתוך
+  // Dashboard.jsx המאומת). שפת הטקסט/כיוון כאן היא תצוגה בלבד (isHebrew) -
+  // הערך שנשמר בפועל נקבע אך ורק ע"י הכפתור שנלחץ (ר' handleRegionChoiceSelect).
+  if (needsRegionChoice) {
+    return (
+      <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '14px', padding: '32px', width: '100%', maxWidth: '380px', textAlign: 'center', boxShadow: '0 20px 40px -12px rgba(139,92,246,0.25)' }}>
+          <div style={{ marginBottom: '18px', display: 'flex', justifyContent: 'center' }}>
+            <ProFlowLogo size={36} rtl={isHebrew} />
+          </div>
+          <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
+            {isHebrew ? 'באיזה אזור פועל העסק שלך?' : 'Where is your business located?'}
+          </h2>
+          <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '16px' }}>
+            {isHebrew
+              ? 'לא הצלחנו לזהות זאת אוטומטית - זה קובע שפה, מטבע ומע"מ עבור החשבון שלך.'
+              : "We couldn't detect this automatically - it determines your account's language, currency and VAT."}
+          </p>
+          {regionChoiceError && (
+            <p style={{ color: NEON.red, fontSize: '0.85rem', marginBottom: '16px' }}>
+              {regionChoiceError}
+            </p>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => handleRegionChoiceSelect('Local')}
+              disabled={isCreatingBusinessSettings}
+              style={{ padding: '12px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', fontSize: '0.95rem', cursor: isCreatingBusinessSettings ? 'default' : 'pointer', opacity: isCreatingBusinessSettings ? 0.6 : 1 }}
+            >
+              {isHebrew ? 'ישראל' : 'Israel'}
+            </button>
+            <button
+              onClick={() => handleRegionChoiceSelect('International')}
+              disabled={isCreatingBusinessSettings}
+              style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.textPrimary, fontWeight: '700', fontSize: '0.95rem', cursor: isCreatingBusinessSettings ? 'default' : 'pointer', opacity: isCreatingBusinessSettings ? 0.6 : 1 }}
+            >
+              {isHebrew ? 'בינלאומי' : 'International'}
+            </button>
+          </div>
+          {isCreatingBusinessSettings && (
+            <p style={{ color: NEON.textSecondary, fontSize: '0.8rem', marginTop: '14px' }}>
+              {isHebrew ? 'יוצר את החשבון...' : 'Creating your account...'}
+            </p>
+          )}
+        </div>
+      </div>
     );
   }
 

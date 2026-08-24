@@ -24,7 +24,7 @@ This document is written for a senior AI/software engineer entering a **new sess
   - Built-in AI chat widget for user support (OpenAI-backed), and a super-admin-only AI conversation log viewer (`AILogs.jsx`).
   - Super Admin panel (`AdminUsersTab.jsx`) for managing all accounts, plans, and trial/lifetime status.
   - Public, unauthenticated marketing/tool pages (`PublicTools.jsx` / `PublicToolsEn.jsx` — currency/unit/metal/crypto calculators) and legal pages (Terms/Privacy/Contact), each in a language-locked bundle.
-- **Current development status:** Production, live, actively maintained. This session's work (baseline `2532f1b`) was a full audit-and-hardening pass focused entirely on the Local/International separation invariant (see §5). No feature work was in progress at this baseline; the next planned investigation is documented in §13.
+- **Current development status:** Production, live, actively maintained. Commit `2532f1b` (pushed) was a full audit-and-hardening pass focused entirely on the Local/International separation invariant (see §5). Since then, the open investigation from §13 (geo-based landing routing and first-signup region resolution) has been **implemented but is not yet committed or pushed** — see §4.D, §5b, §12, and the updated §13 for the full design and its current (pending-approval) status.
 
 ### Technology stack (verified against `package.json` at this baseline)
 
@@ -32,6 +32,7 @@ This document is written for a senior AI/software engineer entering a **new sess
 "dependencies": {
   "@fontsource/rubik": "^5.3.0",
   "@supabase/supabase-js": "^2.39.0",
+  "@vercel/functions": "^3.9.5",
   "exceljs": "^4.4.0",
   "html2canvas": "^1.4.1",
   "jspdf": "^4.2.1",
@@ -67,19 +68,21 @@ This document is written for a senior AI/software engineer entering a **new sess
 
 ### Application bootstrap
 
-`src/main.jsx` decides which of two **entirely separate React app bundles** to mount, based on (in priority order): `?lang=` query param → `/en`/`/he` path prefix → `localStorage['proflow_lang']` → `navigator.language`. This decision only ever happens **before any Supabase session is checked** — it selects a bundle, nothing more. It writes its choice back to `localStorage['proflow_lang']`.
+`src/main.jsx` decides which of two **entirely separate React app bundles** to mount, based on (in priority order): `?lang=` query param → `/en`/`/he` path prefix → `localStorage['proflow_lang']` → an anonymous-UI-only geo cookie (`proflow_geo_country`, written by `middleware.ts` — see §4.D) → `navigator.language`. This decision only ever happens **before any Supabase session is checked** — it selects a bundle, nothing more. It writes its choice back to `localStorage['proflow_lang']`.
 
 ```js
-const isEnglishEnv = ...; // see §4 for exact logic
+const isEnglishEnv = ...; // see §4 for exact logic (now includes the geo-cookie tier)
 createRoot(...).render(isEnglishEnv ? <AppGlobal /> : <AppLocal />)
 ```
 
+**⚠ Pending/uncommitted as of this update:** the geo-cookie tier and `middleware.ts` are implemented in the working tree but not yet committed/pushed — see §12.
+
 ### Two parallel app bundles
 
-- **`src/local/AppLocal.jsx`** — the Hebrew/Israel-local bundle. Declares its own `<Routes>` tree (landing, dashboard, public quote, tools, legal pages), rendering `<Dashboard bundleIsHebrew={true} />`.
-- **`src/global/AppGlobal.jsx`** — the English/International bundle. Same route shape, `<Dashboard bundleIsHebrew={false} />`.
+- **`src/local/AppLocal.jsx`** — the Hebrew/Israel-local bundle. Declares its own `<Routes>` tree (landing, dashboard, public quote, tools, legal pages), rendering `<Dashboard />`.
+- **`src/global/AppGlobal.jsx`** — the English/International bundle. Same route shape, `<Dashboard />`.
 
-Both mount the **same** `Dashboard.jsx` component — the actual authenticated-account language/region logic lives entirely inside `Dashboard.jsx` and `regionConfig.js`, not in which bundle happened to load (see §4).
+Both mount the **same** `Dashboard.jsx` component — the actual authenticated-account language/region logic lives entirely inside `Dashboard.jsx` and `regionConfig.js`, not in which bundle happened to load (see §4). **As of the pending geo work**, `Dashboard.jsx` no longer accepts or reads a `bundleIsHebrew` prop at all — both `AppLocal.jsx` and `AppGlobal.jsx` still pass `bundleIsHebrew={true}`/`{false}` in their JSX, but it is now inert/ignored (React does not error on an unused prop). See §14 for this leftover.
 
 ### Dashboard architecture
 
@@ -87,6 +90,7 @@ Both mount the **same** `Dashboard.jsx` component — the actual authenticated-a
 - Auth session state (`session`, `isInitializing` — gates all rendering until both auth and `business_settings` have resolved; see §5 for the account-switch hardening).
 - Business settings state (`bizCountry`, `bizName`, `bizPlan`, `bizRole`, `currency`, VAT rate, trial state).
 - All Supabase data fetching (`fetchQuotes`, `fetchClients`, `fetchServices`, `fetchExpenses`, `fetchAllUserAttachments`, `fetchSettings` — all called sequentially from `loadData()`).
+- **First-time business-region resolution** for a brand-new account (no `business_settings` row yet): `fetchSettings` calls `fetchFreshGeoCountry()` (fetches `/api/geo`) and, on success, calls `createNewBusinessSettings(userId, userEmail, country)` — the **single** code path in the file (and, per a repo-wide grep, in the whole repository) allowed to `INSERT` a new `business_settings` row. If fresh geo is unavailable, the user is shown a minimal explicit "Israel / International" choice screen (`needsRegionChoice` state) instead of any guess. See §4.D for full detail — **pending/uncommitted, see §12**.
 - Quote CRUD (`handleSaveQuote`, `handleEditClick`, `handleDuplicateQuote`, `handleCancelEdit`, delete).
 - Email sending orchestration (`executeEmailSend`, calls the `send-quote-email` edge function).
 - WhatsApp link generation (`sendWhatsApp`).
@@ -139,6 +143,8 @@ Present, but **billing itself is a stub** — no real Stripe integration is wire
 
 - **Vercel** hosts the Vite-built SPA. `vercel.json` (present) configures: a catch-all rewrite to `index.html` (client-side routing), security headers, correct `Content-Type`s for `sitemap.xml`/`robots.txt`, and **one cron job**: `path: "/api/cron"`, schedule `"0 8 * * *"` (daily 08:00).
 - `api/cron.js` — a Vercel serverless function (Node, not a Supabase edge function) that runs daily: (1) marks quotes expiring "today" and flags `expiration_reminder_sent`, (2) fetches live FX rates from `open.er-api.com` and upserts them into an `app_settings` table (`key: 'exchange_rates'`), (3) invokes the two Supabase expiration-reminder edge functions in `batch` mode via `x-cron-secret`. Auth: requires `Authorization: Bearer <CRON_SECRET>`.
+- **`api/geo.js`** *(new, pending/uncommitted — see §12)* — a second Vercel serverless function, same Node convention as `api/cron.js`. Returns `{ country }` read fresh from the request's `x-vercel-ip-country` header (uppercased, `Cache-Control: no-store` so it's never CDN-cached). Never reads a client-supplied country value. Called only by `Dashboard.jsx` at first-account-creation time — see §4.D.
+- **`middleware.ts`** *(new, pending/uncommitted — see §12)* — Vercel Routing Middleware (project root, matches only `/`). Reads the visitor's geo country via the `@vercel/functions` `geolocation()` helper and, if available, sets a `proflow_geo_country` cookie for **anonymous landing-page UI routing only** (consumed by `main.jsx`, see above). Never redirects, never writes to any database, and is explicitly disconnected from legal-region creation (§4.D). Requires an actual Vercel deployment to see real geo data — the geo headers are not populated under local `vercel dev`.
 - **Supabase** hosts the Postgres database, Auth, and 7 Edge Functions (declared in `supabase/config.toml`): `chat-ai`, `admin-delete-user`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `send-quote-email`, `resend-email-webhook`, `billing-checkout-stub`.
 
 ### Important shared components/utilities
@@ -193,6 +199,8 @@ supabase/functions/
 └── send-subscription-expiration-email/index.ts
 
 api/cron.js                     # Vercel daily cron (not a Supabase function)
+api/geo.js                      # ⚠ pending/uncommitted — fresh geo lookup for first-signup region (§4.D)
+middleware.ts                   # ⚠ pending/uncommitted — Vercel Routing Middleware, anonymous UI-only geo cookie (§4.D)
 vercel.json / vite.config.js / index.html
 ```
 
@@ -233,13 +241,13 @@ A full audit against this rule was completed and pushed at commit `2532f1b` — 
 
 ## 4. Region Architecture
 
-There are **three distinct, non-interchangeable concepts** in this codebase. Confusing them is the single most common source of Local/International bugs found during the §5 audit.
+There are **four distinct, non-interchangeable concepts** in this codebase. Confusing them is the single most common source of Local/International bugs found during the §5 audit (and the reason concept D below exists at all — see its history).
 
 ### A. Anonymous / pre-signup landing-page language selection
 
-**Source of truth: query param → path prefix → `localStorage['proflow_lang']` → `navigator.language`.**
+**Source of truth: query param → path prefix → `localStorage['proflow_lang']` → geo UI cookie (pending, see D) → `navigator.language`.**
 
-This is the **only** context where browser-language-derived signals are legitimate. It governs exactly one decision: which of the two static app bundles (`AppLocal`/`AppGlobal`) mounts, and therefore which landing page an anonymous visitor sees.
+This is the **only** context where browser-language-derived (and, as of the pending work, geo-derived) signals are legitimate for *display* purposes. It governs exactly one decision: which of the two static app bundles (`AppLocal`/`AppGlobal`) mounts, and therefore which landing page an anonymous visitor sees.
 
 `src/main.jsx`:
 ```js
@@ -249,9 +257,10 @@ const isEnglishEnv = langParam === 'en' ? true
   : window.location.pathname.startsWith('/he') ? false
   : storedLang === 'en' ? true
   : storedLang === 'he' ? false
+  : geoCountryCookie ? geoCountryCookie !== 'IL'   // ⚠ pending/uncommitted — see D
   : !browserLang.startsWith('he');
 ```
-This value also seeds `bundleIsHebrew`, which `Dashboard.jsx` uses **only** as the default region/currency/terms for a **brand-new** account's first-ever `business_settings` row (never to override an existing account).
+**This bundle choice is UI-display-only.** As of the pending work (§D), it no longer seeds any account-creation default by itself — see D for why that distinction now matters and how it's enforced.
 
 ### B. Authenticated account region
 
@@ -269,6 +278,28 @@ This value also seeds `bundleIsHebrew`, which `Dashboard.jsx` uses **only** as t
 A quote, once created, keeps its own currency/tax_rate **even if the owning account's region is later corrected/changed** — this is intentional (see comments in `Dashboard.jsx` and `QuotesTab.jsx`) so that a historical document doesn't retroactively change. `isLocalQuote = Number(quote.tax_rate) > 0 || quote.currency === 'ILS'` is the pattern used (duplicated in `SmartPublicQuote.jsx`, `Dashboard.jsx`, `QuotesTab.jsx`) to decide a specific quote's own presentation language — this governs the public quote link route, the WhatsApp message text/link, and (as a secondary fallback only, see §6) the outbound email.
 
 **Do not confuse B and C**: an account's *current* region (B) governs new quotes, VAT calculation on save, and the authenticated dashboard UI. A *specific quote's* persisted data (C) governs how that one document (public page, WhatsApp text, email) is presented, independent of what the account's region has since become.
+
+### D. First-time business legal-region resolution (new-account creation) — ⚠ pending/uncommitted, see §12
+
+**Source of truth: a fresh, server-side Vercel geo lookup made at the exact moment of account creation (`/api/geo`) — or, if that's unavailable, an explicit one-time choice from the authenticated user. Never a cookie, never `localStorage`, never the anonymous UI bundle (A).**
+
+This concept exists because of a real bug found and fixed mid-session: an earlier version of this mechanism (mirroring the pre-existing `bundleIsHebrew` design) let the *anonymous UI bundle* (concept A — itself derived from `?lang=`/path/`navigator.language`) silently become the permanent `business_settings.country` for a brand-new account. That meant a UI-language override (e.g. `?lang=he` used purely to preview the Hebrew UI from outside Israel) could, if it happened to coincide with a signup, permanently misclassify a business's legal region with no error and no indication to the user. This was corrected by fully decoupling "what language is shown" (A) from "what legal region gets created" (D).
+
+**Mechanism, in `src/pages/Dashboard.jsx`'s `fetchSettings`, only in the branch where no `business_settings` row exists yet for the user:**
+
+1. `fetchFreshGeoCountry()` calls `GET /api/geo` (a live, uncached request — not a stored value) and normalizes the response to uppercase.
+2. **If it returns a usable country:** `createNewBusinessSettings(userId, userEmail, country === 'IL' ? 'Local' : 'International')` is called immediately. `IL` → `country: 'Local'`, `currency: 'ILS'`, Hebrew default terms; anything else → `country: 'International'`, `currency: 'USD'`, English default terms. This is the only place VAT-relevant defaults are set for a new account, and it flows into the existing, unchanged §3/§B rules from there.
+3. **If fresh geo is unavailable** (network failure, non-200, no header — e.g. local dev, or a proxy in front of the deployment): **no row is created.** Instead `needsRegionChoice` (React state) is set `true` and the authenticated user is shown a minimal, two-button "Israel / International" screen (rendered *before* the rest of the dashboard, in the same gate position as the `AuthScreen` loading screen) inside `Dashboard.jsx` itself. Its text follows the currently-displayed UI language (`isHebrew`) — that's cosmetic only; the *value* saved is exactly whichever button was clicked, mapped identically to step 2's rules.
+
+**`createNewBusinessSettings(userId, userEmail, country)` is the single code path — verified via a repository-wide grep for `business_settings` + `.insert(` — allowed to `INSERT` a new `business_settings` row anywhere in this codebase.** It:
+- Rejects (no insert) any `country` value other than exactly `'Local'` or `'International'`.
+- Guards against double-submission with a synchronous `useRef` flag (`isCreatingBusinessSettingsRef`, checked/set before any `await`, immune to React state-batching timing) in addition to a `useState` flag that disables both buttons in the UI while a creation attempt is in flight.
+- **On failure** (Supabase error, or no row returned): does **not** clear `needsRegionChoice` or the pending user/email — the user stays on the same explicit-choice screen (even if this attempt was the automatic geo-success path from step 2, not a manual click), sees a localized error, and can retry. There is no code path that renders the full dashboard with a partially-initialized business identity.
+- **On success:** populates all `biz*` component state from the inserted row, clears `needsRegionChoice`/the error/the pending-account marker, and only then does the full dashboard render.
+
+**`handleSaveSettings` (the manual Settings-tab save form) no longer contains a fallback INSERT.** It previously had one (`if (settingId) UPDATE else INSERT`) that independently bypassed this whole contract if `settingId` was ever unexpectedly null. That branch now fails safely instead — shows a localized "please reload and try again" error, logs a diagnostic to console, inserts nothing, and leaves existing state untouched.
+
+**What this does *not* touch:** `business_settings.country` for an account that already has a row (concept B) is completely unaffected — the `if (data)` branch of `fetchSettings` (see B above) has no reference to geo, `needsRegionChoice`, or anything from this section, and was last modified in the pushed `2532f1b` audit.
 
 ---
 
@@ -303,6 +334,25 @@ The following protections were verified present in the code at this baseline:
 | Local email can never produce `$`/`€`/`£` (Local branch hard-returns `₪` regardless of the quote's stored currency) | same file |
 
 All of the above were verified against the actual current file contents while writing this document (not merely recalled from prior conversation).
+
+### 5b. Pending follow-on hardening — geo-based landing routing & first-signup region resolution (⚠ NOT yet committed/pushed)
+
+Built in the same working tree, on top of `2532f1b`, resolving the investigation opened in §13:
+
+| Protection | Verified location |
+|---|---|
+| Anonymous landing bundle choice (concept A) may now be influenced by a fresh Vercel geo lookup, ranked *below* `?lang=`/path/`localStorage` and *above* `navigator.language` — never overriding an explicit or previously-stored preference | `src/main.jsx`, `middleware.ts` |
+| The geo signal used for anonymous UI routing (a cookie) is architecturally incapable of setting a new account's legal region — a completely separate, fresh server call is used for that (see next rows) | `middleware.ts` (writes UI-only cookie), `Dashboard.jsx` (never reads that cookie for region purposes) |
+| New-account legal region comes from a **fresh, uncached, server-side** geo lookup made at account-creation time, not any cached/client-controlled value | `api/geo.js` (`Cache-Control: no-store`, reads only `x-vercel-ip-country`, never a client-supplied parameter), `Dashboard.jsx` `fetchFreshGeoCountry()` |
+| If fresh geo is unavailable, the account region is **never guessed** from UI language/bundle/browser signals — the user is required to make an explicit choice before any row is created | `Dashboard.jsx`, `needsRegionChoice` gate + explicit "Israel/International" screen |
+| Exactly one code path in the entire repository can `INSERT` a new `business_settings` row (verified by repo-wide grep) | `Dashboard.jsx`, `createNewBusinessSettings()` |
+| Double-submit / concurrent-insert protection via a synchronous `useRef` guard, independent of React state-batching timing | `Dashboard.jsx`, `createNewBusinessSettings()` |
+| Insert failure (automatic or manual) never renders a partially-initialized dashboard — always routes back to the explicit-choice screen with a localized, non-raw error | `Dashboard.jsx`, `createNewBusinessSettings()` |
+| The Settings-tab manual save form's own former fallback INSERT (a second, independent account-creation path that bypassed this whole contract) was removed and now fails safely instead | `Dashboard.jsx`, `handleSaveSettings` |
+| International landing-page marketing currency no longer has an `A$`/AUD branch — falls back to `$` like any other unmatched locale | `src/pages/LandingGlobal.jsx` |
+| Existing-account behavior (concept B) is provably untouched by any of the above — no reference to geo/`needsRegionChoice` anywhere in `fetchSettings`'s existing-row branch | `Dashboard.jsx`, `fetchSettings` |
+
+See §4.D for the full mechanism and §12 for exact commit/push status.
 
 ---
 
@@ -403,6 +453,8 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 
 **Country values observed:** `'Local'`, `'LCL'` (legacy alias for Local), `'International'`.
 
+**⚠ Pending/uncommitted invariant (see §4.D, §12):** as of the working-tree state described in this update, `business_settings` INSERT (as opposed to UPDATE) is intended to happen from exactly one place in the codebase — `createNewBusinessSettings()` in `Dashboard.jsx`. Verify this still holds with a fresh grep for `business_settings` + `.insert(` before relying on it, especially if this section is read after further changes.
+
 ---
 
 ## 10. Environment Variables / Secrets
@@ -462,28 +514,32 @@ Quote numbers are exported in the same short, user-facing format shown in `Quote
 
 ## 12. Git / Release State
 
-- **Approved baseline:** `2532f1b` (full hash `2532f1b2261a218711e5974ce9832658cb7937eb`)
+- **Approved & pushed baseline:** `2532f1b` (full hash `2532f1b2261a218711e5974ce9832658cb7937eb`)
 - **Branch:** `main`
 - **Remote:** `origin` → `https://github.com/quotecode-dev/quotecode-clean.git`
-- Working tree was clean and `main` was up to date with `origin/main` at the time this document was written.
 
-This is the known approved baseline for this handoff document. **Do not assume no commits exist after this one** — verify with `git log` before relying on this as "current."
+**⚠ Pending, uncommitted, not yet pushed (as of this update):** the geo-based landing routing and first-signup region-resolution work described in §4.D, §5b, and the revised §13 exists in the working tree, approved by the project owner but awaiting the explicit commit/push instruction. Files involved:
+- New: `middleware.ts`, `api/geo.js`
+- Modified: `src/main.jsx`, `src/pages/Dashboard.jsx`, `src/pages/LandingGlobal.jsx`, `package.json`, `package-lock.json`
+- This `PROFLOW_HANDOFF.md` update itself
+
+If you are reading this in a future session: run `git status`/`git log` first — this pending work may already be committed (with a new baseline hash superseding `2532f1b`), still pending, or abandoned. Do not assume either state from this document alone.
+
+`2532f1b` remains the last **confirmed pushed** baseline. **Do not assume no commits exist after this one** — verify with `git log` before relying on this as "current."
 
 ---
 
-## 13. Known Open Item
+## 13. Known Open Item — RESOLVED (implementation pending commit, see §12)
 
-**Next planned investigation (not yet started, not yet implemented):**
+**Original item (kept for history):** landing-page geographic/locale behavior — it was observed that changing the location in Chrome DevTools' Sensors panel could affect currency/location-sensitive behavior on the landing pages. Investigation traced this to `LandingGlobal.jsx`'s marketing-pricing `navigator.language`/`Intl.DateTimeFormat` timezone heuristic (unrelated to true geolocation — no `navigator.geolocation` or IP-geolocation API was ever used anywhere in this codebase).
 
-Landing-page geographic/locale behavior. It was observed that changing the location in Chrome DevTools' Sensors panel can affect currency/location-sensitive behavior on the landing pages. The exact signal/mechanism driving this observed behavior has not yet been verified — determining that is the next investigation, not a conclusion reached here.
+**Resolution implemented:** a real Vercel-geo-based mechanism (`middleware.ts` + `api/geo.js`, see §4.D and §5b) now exists, with a hard architectural separation enforced between:
+- Visitor physically in Israel → Hebrew Local landing page (anonymous UI routing, concept A) — **implemented**.
+- Visitor outside Israel → English International landing page — **implemented**.
+- New-account legal region (`business_settings.country`) → resolved from a *fresh, server-side* geo lookup made at account-creation time, with an explicit user-choice fallback if that's unavailable — **never** guessed from the anonymous UI bundle — **implemented**.
+- Authenticated-account region enforcement (§3/§4.B/§5) — **unweakened**; the `if (data)` branch of `fetchSettings` was not touched by any of this work.
 
-The task is to inspect the **existing** mechanism used by the landing/global experience and determine whether it can safely be extended so that:
-- A visitor physically in Israel sees the Hebrew Local landing page.
-- A visitor outside Israel sees the English International landing page.
-
-**Without weakening authenticated-account region enforcement (§3/§4/§5).**
-
-**Do NOT implement this now.** This is logged only as an open investigation. Do not assume Chrome DevTools Sensors location changes prove real IP-based geolocation is implemented anywhere in this codebase — inspect the actual implementation (`src/main.jsx`, `LandingGlobal.jsx`, `LandingLocal.jsx`) before reaching any conclusion about what signal is actually driving the observed behavior.
+**Status:** implemented and approved in review, **not yet committed or pushed** — see §12 for exact pending-file list. A new open item worth tracking going forward: `AppLocal.jsx`/`AppGlobal.jsx` still pass an inert `bundleIsHebrew` prop that `Dashboard.jsx` no longer reads (see §14) — harmless, but a minor cleanup opportunity if anyone later touches those two files for an unrelated reason.
 
 ---
 
@@ -494,6 +550,7 @@ The task is to inspect the **existing** mechanism used by the landing/global exp
 - **`src/App.jsx`** — confirmed via repo-wide grep that no file imports it (`main.jsx` only imports `AppLocal`/`AppGlobal`). It is **not reachable in production**. Notably, it reimplements a `SmartPublicQuote`-named function that decides Hebrew-vs-English purely from `URLSearchParams`, `localStorage.getItem('proflow_lang')`, and `pathname.startsWith('/en')` — i.e. the exact anti-pattern the rest of the codebase's Iron Rule forbids for authenticated/quote contexts, under an identically-named function to the real, safe `src/components/SmartPublicQuote.jsx`. It also independently declares routes for `/tools`, `/he/tools`, `/en/tools`, `/public-quote/:id`, etc., mirroring (imperfectly) the real routes in `AppLocal.jsx`/`AppGlobal.jsx`.
   - **Do not delete or modify without explicit instruction** — this handoff only documents its status. It is a landmine risk if ever accidentally re-imported by a future refactor; flag it early in any work that touches routing.
 - **`jspdf` / `html2canvas`** (package.json dependencies) — no import found anywhere in `src/`. Likely vestigial from a removed or unfinished PDF-export feature. Confirm before removing (out of scope for this document to decide).
+- **`bundleIsHebrew` prop** (⚠ new as of the pending §4.D work) — `AppLocal.jsx`/`AppGlobal.jsx` still pass `bundleIsHebrew={true}`/`{false}` to `<Dashboard />`, but `Dashboard.jsx` no longer destructures or reads it anywhere (confirmed — its only prior use, the new-account default fallback, was replaced by the geo/explicit-choice mechanism). React silently ignores unused props, so this is harmless but genuinely dead as of this update. Left in place deliberately (removing it would mean touching `AppLocal.jsx`/`AppGlobal.jsx`, which was out of scope for that change) — safe to clean up in a future unrelated pass.
 
 ### Suspected legacy / worth re-verifying before relying on
 
@@ -512,4 +569,5 @@ Everything else referenced in §2's directory map is active, reachable code as o
 - Every factual claim in this document was checked against the actual current repository content (direct file reads and targeted greps), not recalled from earlier conversation summaries.
 - No secret values are present anywhere in this document — only environment variable **names**.
 - The Local/International Iron Rule is documented prominently in §3 and cross-referenced from §4/§5.
-- **No application, configuration, database, or Supabase function file was modified while producing this document.** Only `PROFLOW_HANDOFF.md` was created.
+- **No application, configuration, database, or Supabase function file was modified while producing this document update.** Only `PROFLOW_HANDOFF.md` was edited in this pass.
+- This update pass (documenting §4.D, §5b, and the revised §13) was verified against the working tree's pending, **not-yet-committed** geo/first-signup changes — cross-check with `git log`/`git diff` on arrival, since those changes may have since been committed, amended, or abandoned.

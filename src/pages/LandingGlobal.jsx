@@ -58,12 +58,13 @@ export default function LandingGlobal({ onForgotPassword }) {
       const userLang = (navigator.language || '').toLowerCase();
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 
+      // חוק ברזל: המטבעות הבינלאומיים המותרים הם אך ורק USD/EUR/GBP - אין
+      // להוסיף AUD/CAD או כל מטבע נוסף. אזורים שאינם תואמים אף תנאי (כולל
+      // אוסטרליה) נופלים לברירת המחדל $ (USD).
       if (userLang.includes('en-gb') || timeZone.includes('London')) {
         setCurrencySymbol('£');
       } else if (userLang.includes('de') || userLang.includes('fr') || userLang.includes('es') || userLang.includes('it') || timeZone.includes('Europe')) {
         setCurrencySymbol('€');
-      } else if (userLang.includes('en-au')) {
-        setCurrencySymbol('A$');
       } else {
         setCurrencySymbol('$');
       }
