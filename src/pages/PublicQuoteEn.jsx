@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
-import PublicQuote from './PublicQuote';
 import Toast from '../components/Toast';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -13,16 +11,9 @@ const formatDisplayPhone = (phone) => {
   return phone.trim();
 };
 
-export default function PublicQuoteEn() {
-  const { id } = useParams();
-  const [quote, setQuote] = useState(null);
-  const [businessSettings, setBusinessSettings] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [approved, setApproved] = useState(false);
-  const [attachments, setAttachments] = useState([]);
-  const [isLocalQuote, setIsLocalQuote] = useState(false);
+export default function PublicQuoteEn({ quoteData }) {
+  const { quote, business, client, items, attachments } = quoteData;
+  const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
@@ -47,74 +38,17 @@ export default function PublicQuoteEn() {
     }
     robotsTag.setAttribute('content', 'noindex, nofollow');
 
-    // ברירת המחדל של הרכיב הזה היא אנגלית/LTR. אם ההצעה מתגלה כמקומית
-    // (isLocalQuote), הרכיב הזה מרנדר את <PublicQuote /> במקום - וזה כבר
-    // קובע he/rtl בעצמו ב-useEffect שלו, שרץ אחרי זה ולכן מנצח כראוי.
     document.documentElement.lang = 'en';
     document.documentElement.dir = 'ltr';
-
-    if (id) {
-      fetchQuoteAndIncrementView();
-    }
-  }, [id]);
-
-  const fetchQuoteAndIncrementView = async () => {
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      setCurrentUserId(userId);
-
-      const { data, error } = await supabase
-        .from('quotes')
-        .select(`*, clients (*), quote_items (*)`)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      setQuote(data);
-      // חוק ברזל: אם ההצעה שנשלפה היא בפועל הצעה מקומית/ILS (למשל מישהו
-      // ניגש ידנית ל-/en/public-quote/:id), אין להציגה באנגלית עם מטבע/
-      // מע"מ שגויים - יש להציג את התבנית העברית הנכונה, כמו ב-SmartPublicQuote.
-      setIsLocalQuote(Number(data.tax_rate) > 0 || (data.currency || '').toUpperCase() === 'ILS');
-
-      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
-      const { data: attData } = await supabase
-        .from('quote_attachments')
-        .select('*')
-        .eq('quote_id', id);
-      
-      if (attData) {
-        setAttachments(attData);
-      }
-
-      if (data?.user_id) {
-        const { data: bData } = await supabase
-          .from('business_settings')
-          .select('*')
-          .eq('user_id', data.user_id)
-          .maybeSingle();
-        if (bData) setBusinessSettings(bData);
-      }
-
-      const isOwner = userId && data.user_id && userId === data.user_id;
-      if (!isOwner) {
-        await supabase.from('quotes').update({ view_count: (data.view_count || 0) + 1 }).eq('id', id);
-      }
-
-      if (data?.status === 'approved' || data?.signature) setApproved(true);
-    } catch (err) {
-      console.error('Error fetching quote:', err);
-      setError('Quote not found or expired.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   const handleApprove = async () => {
     if (!hasSigned) { setSignatureWarning(true); return; }
     try {
-      const { error } = await supabase.from('quotes').update({ status: 'approved', signature: getSignatureDataUrl() }).eq('id', id);
+      const { error } = await supabase.rpc('public_approve_quote', {
+        p_quote_id: quote.id,
+        p_signature_data_url: getSignatureDataUrl(),
+      });
       if (error) throw error;
       setApproved(true);
     } catch (err) {
@@ -125,37 +59,32 @@ export default function PublicQuoteEn() {
     }
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif' }}><h2>Loading...</h2></div>;
-  if (error || !quote) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, sans-serif', textAlign: 'center' }}><h2>{error || 'Quote not found'}</h2></div>;
-
-  if (isLocalQuote) return <PublicQuote />;
-
-  const rawCurrency = (quote.currency || businessSettings?.currency || 'USD').toUpperCase();
+  const rawCurrency = (quote.currency || business?.currency || 'USD').toUpperCase();
   const effectiveCurrency = ['USD', 'EUR', 'GBP'].includes(rawCurrency) ? rawCurrency : 'USD';
   const currencySymbol = effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'GBP' ? '£' : '$';
-  
+
   let parsedItems = [];
   try { parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items) : (Array.isArray(quote.items) ? quote.items : []); } catch { /* keep default [] */ }
 
   const subtotal = quote.subtotal ? Number(quote.subtotal) : parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
   const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal;
 
-  const bizName = businessSettings?.business_name || 'ProFlow Business';
-  const bizLogo = businessSettings?.logo_url;
-  const bizTaxId = businessSettings?.tax_id;
-  const bizEmail = businessSettings?.email;
-  const bizPhone = formatDisplayPhone(businessSettings?.phone);
-  const bizAddress = businessSettings?.address;
-  const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
+  const bizName = business?.business_name || 'ProFlow Business';
+  const bizLogo = business?.logo_url;
+  const bizTaxId = business?.tax_id;
+  const bizEmail = business?.email;
+  const bizPhone = formatDisplayPhone(business?.phone);
+  const bizAddress = business?.address;
+  const isOwnerViewing = quote.is_owner_viewing;
 
   return (
     <div dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
-        
+
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Client:</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{quote.clients?.company_name || quote.client_name || 'Valued Client'}</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{client?.company_name || 'Valued Client'}</div>
           {quote.subject && <div style={{ marginTop: '10px', fontWeight: 'bold' }}>Subject: <span style={{ fontWeight: 'normal' }}>{quote.subject}</span></div>}
         </div>
 
@@ -169,7 +98,7 @@ export default function PublicQuoteEn() {
             </tr>
           </thead>
           <tbody>
-            {quote.quote_items?.map((item, i) => (
+            {items?.map((item, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px 10px' }}>{item.description || 'Item'}</td>
                 <td style={{ padding: '12px 10px', textAlign: 'center' }}>{item.quantity}</td>
@@ -181,12 +110,12 @@ export default function PublicQuoteEn() {
         </table>
 
         {/* Attachments Section for International Clients */}
-        {attachments.length > 0 && (
+        {attachments && attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Attached Files & Documents:</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {attachments.map((att, idx) => (
-                <a key={idx} href={att.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
                   📄 {att.file_name || `Attachment #${idx + 1}`}
                 </a>
               ))}

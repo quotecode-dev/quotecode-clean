@@ -49,3 +49,15 @@ enabled = true
 # הפנימית, אין סיבה להנמיך את זה כמו הפונקציות שנקראות ע"י גורם חיצוני
 verify_jwt = true
 entrypoint = "./functions/billing-checkout-stub/index.ts"
+
+[functions.get-public-quote]
+enabled = true
+# verify_jwt=false בכוונה: זו נקודת הגישה הציבורית/אנונימית להצעת מחיר -
+# מבקר ללא Authorization header תקין חייב להצליח לטעון אותה. השער עם
+# verify_jwt=true היה חוסם כל בקשה עם טוקן חסר/פגום עוד לפני שהקוד שלנו
+# מקבל הזדמנות להתעלם ממנה בבטחה (owner detection הוא best-effort בלבד -
+# ר' get-public-quote/index.ts). גבול האבטחה בפועל הוא בקוד הפונקציה עצמו:
+# quote_id בלבד, אימות UUID, service_role בצד שרת בלבד, allowlist מפורש
+# לתגובה, ואין כתיבות DB.
+verify_jwt = false
+entrypoint = "./functions/get-public-quote/index.ts"

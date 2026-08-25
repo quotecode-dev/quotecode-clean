@@ -1,10 +1,4 @@
-// ==========================================
-// 🚨 חוק ברזל קשיח: שפת/מע"מ הצעת המחיר הציבורית נגזרים אך ורק מנתוני ההצעה
-// השמורים במסד הנתונים (currency / tax_rate) - לעולם לא מ-localStorage או משפת הדפדפן
-// של הצופה. כך קישור להצעה מקומית/בינלאומית תמיד יוצג נכון, לכל צופה, בכל דפדפן.
-// ==========================================
-
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import PublicQuote from '../pages/PublicQuote';
@@ -12,39 +6,58 @@ import PublicQuoteEn from '../pages/PublicQuoteEn';
 
 export default function SmartPublicQuote() {
   const { id } = useParams();
-  const [template, setTemplate] = useState(null); // 'local' | 'international' | 'notfound'
+  const [state, setState] = useState({ status: 'loading', dto: null });
+  const processedIdRef = useRef(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function determineTemplate() {
-      if (!id) {
-        if (!cancelled) setTemplate('notfound');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('currency, tax_rate')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (error || !data) {
-        setTemplate('notfound');
-        return;
-      }
-
-      const isLocalQuote = Number(data.tax_rate) > 0 || (data.currency || '').toUpperCase() === 'ILS';
-      setTemplate(isLocalQuote ? 'local' : 'international');
+    if (!id) {
+      setState({ status: 'notfound', dto: null });
+      return;
     }
 
-    determineTemplate();
-    return () => { cancelled = true; };
+    // מונע קריאה כפולה כתוצאה מ-double-invoke של useEffect ב-React 18
+    // StrictMode (dev בלבד) - ה-ref שורד בין ה-mount/cleanup/remount הכפול,
+    // בניגוד ל-state, ולכן מבטיח בקשת רשת אחת בפועל לכל id נתון, אך עדיין
+    // מאפשר fetch חדש אם המשתמש עובר בפועל להצעה אחרת (id שונה) באותה sesion.
+    if (processedIdRef.current === id) return;
+    processedIdRef.current = id;
+
+    (async () => {
+      const { data, error } = await supabase.functions.invoke('get-public-quote', {
+        body: { quote_id: id },
+      });
+
+      // Stale-response guard: apply this result only if `id` is still the
+      // most-recently-requested id. Unlike a per-effect `cancelled` closure,
+      // this is never flipped by React 18 StrictMode's dev-only synthetic
+      // cleanup (which never touches processedIdRef) - only a genuine
+      // navigation to a different quote id changes it.
+      if (processedIdRef.current !== id) return;
+
+      if (error) {
+        const status = error?.context?.status;
+        setState({ status: status === 404 ? 'notfound' : 'error', dto: null });
+        return;
+      }
+
+      if (!data || !data.quote) {
+        setState({ status: 'error', dto: null });
+        return;
+      }
+
+      setState({ status: 'ready', dto: data });
+
+      // Fire-and-forget: ה-RPC עצמו כבר לא סופר צפיות של הבעלים
+      // (auth.uid() = quotes.user_id) - נבדק ואומת ב-Phase 2. אין צורך
+      // לשכפל את אותה בדיקה כאן.
+      supabase.rpc('public_increment_quote_view', { p_quote_id: id }).then(
+        () => {},
+        () => {}
+      );
+    })();
   }, [id]);
 
-  if (template === null) {
+  if (state.status === 'loading') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
         <h2>Loading...</h2>
@@ -52,6 +65,17 @@ export default function SmartPublicQuote() {
     );
   }
 
-  // אם ההצעה לא נמצאה, מציגים את התבנית האנגלית - היא כבר יודעת להציג הודעת "not found" תקנית
-  return template === 'local' ? <PublicQuote /> : <PublicQuoteEn />;
+  if (state.status !== 'ready') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '20px', gap: '6px' }}>
+        <h2>Quote not found or expired.</h2>
+        <h2 dir="rtl">הצעת המחיר אינה נמצאת או שפג תוקפה.</h2>
+      </div>
+    );
+  }
+
+  const { quote } = state.dto;
+  const isLocalQuote = Number(quote.tax_rate) > 0 || (quote.currency || '').toUpperCase() === 'ILS';
+
+  return isLocalQuote ? <PublicQuote quoteData={state.dto} /> : <PublicQuoteEn quoteData={state.dto} />;
 }

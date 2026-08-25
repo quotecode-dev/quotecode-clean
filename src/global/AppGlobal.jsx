@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
 import Dashboard from '../pages/Dashboard';
 import AILogs from '../pages/AILogs';
-import PublicQuoteEn from '../pages/PublicQuoteEn';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
@@ -210,7 +209,7 @@ export default function AppGlobal() {
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/en/public-quote/:id" element={<PublicQuoteEn />} />
+        <Route path="/en/public-quote/:id" element={<SmartPublicQuote />} />
 
         <Route path="/terms" element={<Terms isHebrew={false} />} />
         <Route path="/en/terms" element={<Terms isHebrew={false} />} />

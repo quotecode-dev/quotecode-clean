@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
@@ -17,7 +17,7 @@ const formatDisplayPhone = (phone) => {
   } else if (!clean.startsWith('0') && clean.length === 9) {
     clean = '0' + clean;
   }
-  
+
   const digits = clean.replace(/\D/g, '');
   if (digits.length >= 9) {
     const prefix = digits.startsWith('03') || digits.startsWith('02') || digits.startsWith('04') || digits.startsWith('08') || digits.startsWith('09') ? digits.slice(0, 2) : digits.slice(0, 3);
@@ -27,16 +27,10 @@ const formatDisplayPhone = (phone) => {
   return clean;
 };
 
-export default function PublicQuote() {
-  const { id } = useParams();
+export default function PublicQuote({ quoteData }) {
   const navigate = useNavigate();
-  const [quote, setQuote] = useState(null);
-  const [businessSettings, setBusinessSettings] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [approved, setApproved] = useState(false);
-  const [attachments, setAttachments] = useState([]);
+  const { quote, business, client, items, attachments } = quoteData;
+  const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
@@ -62,73 +56,11 @@ export default function PublicQuote() {
     robotsTag.setAttribute('content', 'noindex, nofollow');
 
     // עמוד זה תמיד מציג תוכן עברי/RTL - ללא קשר לבאנדל (Local/Global)
-    // שממנו הגיע (ר' PublicQuoteEn.jsx, שיכול לרנדר את הרכיב הזה בעצמו
-    // כשהצעה מסתבר שהיא מקומית למרות שנפתחה דרך /en/public-quote/:id).
+    // שממנו הגיע (ר' PublicQuoteEn.jsx). זיהוי השפה/המטבע נעשה כעת פעם
+    // אחת בלבד ב-SmartPublicQuote, שמעביר את הרכיב הנכון כבר מהתחלה.
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
-
-    if (id) {
-      fetchQuoteAndIncrementView();
-    }
-  }, [id]);
-
-  const fetchQuoteAndIncrementView = async () => {
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      setCurrentUserId(userId);
-
-      const { data, error } = await supabase
-        .from('quotes')
-        .select(`*, clients (*), quote_items (*)`)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      setQuote(data);
-
-      // שליפת קבצים מצורפים להצעה זו מטאבלת quote_attachments
-      const { data: attData } = await supabase
-        .from('quote_attachments')
-        .select('*')
-        .eq('quote_id', id);
-      
-      if (attData) {
-        setAttachments(attData);
-      }
-
-      if (data?.user_id) {
-        const { data: bData } = await supabase
-          .from('business_settings')
-          .select('*')
-          .eq('user_id', data.user_id)
-          .maybeSingle();
-
-        if (bData) {
-          setBusinessSettings(bData);
-        }
-      }
-
-      const isOwner = userId && data.user_id && userId === data.user_id;
-      if (!isOwner) {
-        const newViewCount = (data.view_count || 0) + 1;
-        await supabase
-          .from('quotes')
-          .update({ view_count: newViewCount })
-          .eq('id', id);
-      }
-
-      if (data?.status === 'approved' || data?.signature) {
-        setApproved(true);
-      }
-    } catch (err) {
-      console.error('Error fetching quote:', err);
-      setError('הצעת המחיר אינה נמצאת או שפג תוקפה.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   const handleApprove = async () => {
     if (!hasSigned) {
@@ -137,13 +69,10 @@ export default function PublicQuote() {
     }
 
     try {
-      const { error } = await supabase
-        .from('quotes')
-        .update({
-          status: 'approved',
-          signature: getSignatureDataUrl()
-        })
-        .eq('id', id);
+      const { error } = await supabase.rpc('public_approve_quote', {
+        p_quote_id: quote.id,
+        p_signature_data_url: getSignatureDataUrl(),
+      });
 
       if (error) throw error;
       setApproved(true);
@@ -154,22 +83,6 @@ export default function PublicQuote() {
       setApproveToast({ type: 'error', message: 'לא הצלחנו לאשר את ההצעה. נסו שוב בעוד רגע.' });
     }
   };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
-        <h2>טוען הצעת מחיר...</h2>
-      </div>
-    );
-  }
-
-  if (error || !quote) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '20px' }}>
-        <h2>{error || 'הצעת המחיר אינה נמצאת'}</h2>
-      </div>
-    );
-  }
 
   const isHebrew = true;
   const currencySymbol = '₪';
@@ -190,27 +103,27 @@ export default function PublicQuote() {
 
   const dbTotal = Number(quote.total || 0);
   const calculatedSubtotalFromItems = parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
-  
+
   const subtotal = quote.subtotal ? Number(quote.subtotal) : (calculatedSubtotalFromItems > 0 ? calculatedSubtotalFromItems : (dbTotal > 0 ? dbTotal / (1 + vatRate) : 0));
-  const vatAmount = quote.vat !== undefined && quote.vat !== null ? Number(quote.vat) : subtotal * vatRate;
+  const vatAmount = subtotal * vatRate;
   const total = dbTotal > 0 ? dbTotal : (subtotal + vatAmount);
 
-  const bizName = businessSettings?.business_name || quote.businessSettings?.business_name || 'עסק ישראלי';
-  const bizLogo = businessSettings?.logo_url || quote.businessSettings?.logo_url;
-  const bizTaxId = businessSettings?.tax_id || quote.businessSettings?.tax_id;
-  const bizEmail = businessSettings?.email || quote.businessSettings?.email;
-  const bizPhone = formatDisplayPhone(businessSettings?.phone || quote.businessSettings?.phone);
-  const bizAddress = businessSettings?.address || quote.businessSettings?.address;
+  const bizName = business?.business_name || 'עסק ישראלי';
+  const bizLogo = business?.logo_url;
+  const bizTaxId = business?.tax_id;
+  const bizEmail = business?.email;
+  const bizPhone = formatDisplayPhone(business?.phone);
+  const bizAddress = business?.address;
 
-  const clientPhoneFormatted = formatDisplayPhone(quote.clients?.phone);
-  const isOwnerViewing = currentUserId && quote.user_id && currentUserId === quote.user_id;
+  const clientPhoneFormatted = formatDisplayPhone(client?.phone);
+  const isOwnerViewing = quote.is_owner_viewing;
   const displayTerms = quote.terms;
 
   return (
     <div dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
-        
-        <PublicQuoteHeader 
+
+        <PublicQuoteHeader
           isHebrew={isHebrew}
           bizLogo={bizLogo}
           bizName={bizName}
@@ -224,10 +137,10 @@ export default function PublicQuote() {
         {/* Client & Business Info */}
         <div style={{ background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>לכבוד:</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b' }}>{quote.clients?.company_name || quote.client_name || 'לקוח נכבד'}</div>
-          {quote.clients?.email && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{quote.clients.email}</div>}
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b' }}>{client?.company_name || 'לקוח נכבד'}</div>
+          {client?.email && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{client.email}</div>}
           {clientPhoneFormatted && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{clientPhoneFormatted}</div>}
-          {quote.clients?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{quote.clients.address}</div>}
+          {client?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{client.address}</div>}
 
           {quote.subject && (
             <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', fontSize: '0.95rem', color: '#0f172a', fontWeight: 'bold' }}>
@@ -249,9 +162,9 @@ export default function PublicQuote() {
               </tr>
             </thead>
             <tbody>
-              {quote.quote_items && quote.quote_items.length > 0 ? (
-                quote.quote_items.map((item, index) => {
-                  const itemPrice = Number(item.price || item.unit_price || 0);
+              {items && items.length > 0 ? (
+                items.map((item, index) => {
+                  const itemPrice = Number(item.price || 0);
                   const itemQty = Number(item.quantity || 1);
                   return (
                     <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
@@ -274,12 +187,12 @@ export default function PublicQuote() {
         </div>
 
         {/* Attachments Section for Israeli Clients */}
-        {attachments.length > 0 && (
+        {attachments && attachments.length > 0 && (
           <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {attachments.map((att, idx) => (
-                <a key={idx} href={att.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
                   📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
                 </a>
               ))}
