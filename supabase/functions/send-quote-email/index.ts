@@ -90,9 +90,9 @@ serve(async (req) => {
     // ר' ההערה שם) ולא משני מקורות נפרדים. אם אי-אפשר לקבוע אזור אמין,
     // המייל לא נשלח כלל ומוחזרת שגיאת שרת ברורה, במקום לנחש.
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const SECRET_KEY = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default']
     const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
-    if (!quoteId || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    if (!quoteId || !SUPABASE_URL || !SECRET_KEY) {
       throw new Error('Cannot verify quote region/currency against the database - refusing to send email.')
     }
 
@@ -117,7 +117,7 @@ serve(async (req) => {
       })
     }
 
-    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+    const supabaseAdmin = createClient(SUPABASE_URL, SECRET_KEY)
     const { data: quoteRow } = await supabaseAdmin
       .from('quotes')
       .select('user_id, currency, tax_rate, total, client_id')
