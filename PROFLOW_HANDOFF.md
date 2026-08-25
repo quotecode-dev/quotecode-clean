@@ -1115,7 +1115,7 @@ Live-tested with a second disposable TEST account: duplicate business_settings I
 
 Two disposable TEST accounts were used across this remediation, never any real/production/Lifetime account:
 
-tahshitishi@gmail.com — used for the UPDATE-path (plan/trial) tests; restored to a clean plan: free / trial_ends_at: null / role: user state and left in place.
+tahshitishi@gmail.com — used for the UPDATE-path (plan/trial) tests; restored to a clean plan: free / trial_ends_at: null / role: user state and left in place at the close of this §17 remediation. (⚠ Stale as a claim about the account's CURRENT state — this disposable TEST account has since been reused for later, separately-authorized regression testing, e.g. the Admin UI's Trial Extension feature and the §18.M UPDATE-policy hardening verification. Its live-verified state as of the §18.M update is plan: free, trial_ends_at: 2026-09-04 01:09:59.816+00 — NOT null. This is expected, authorized disposable-TEST-account churn, not a real customer subscription/payment state, and not evidence of any bug — do not reinterpret it as such. Its exact state may change again during future authorized regression testing; re-verify live before relying on any specific value.)
 
 proflow.security.test2@gmail.com — used for the INSERT-path (duplicate row / role-injection / trial-length) tests; completely removed afterward — final SQL verification returned no residue in either auth.users or business_settings.
 
@@ -1608,15 +1608,40 @@ The first attempted Super Admin SELECT policy used a direct self-referential sub
 
 The subsequent redesign replaced the self-referential subquery with the non-recursive public.is_super_admin() SECURITY DEFINER helper documented above. This works because a SECURITY DEFINER function executes with its owner's privileges (postgres, the table owner, with no FORCE ROW LEVEL SECURITY set on business_settings) — which bypasses business_settings' own RLS for the helper's internal lookup, breaking the recursion by construction rather than by coincidence. The helper and the final SELECT policy were each implemented and live-verified as separate, explicitly-authorized stages before being combined into the policy above.
 
-Existing UPDATE policy — OPEN follow-up, deliberately NOT touched by this item:
+UPDATE policy hardening — COMPLETED / HARDENED (was previously an OPEN follow-up; migrated in a separate, later, explicitly-authorized stage on top of the SELECT-policy work above):
 
-"Super admins can update all business settings" (pre-existing, unrelated in origin to the work above) still uses the same class of self-referential EXISTS subquery pattern:
+"Super admins can update all business settings" previously used the same class of self-referential EXISTS subquery pattern as the original (failed) SELECT-policy attempt:
 
 EXISTS (SELECT 1 FROM business_settings business_settings_1 WHERE business_settings_1.user_id = auth.uid() AND business_settings_1.role = 'super_admin')
 
-This was explicitly re-verified live as part of this item and does NOT currently recurse — UPDATE policies do not face the same SELECT-resolves-itself dependency that caused 42P17 for the SELECT case above. It is not broken today. However, the pattern is structurally the same fragile shape, and is explicitly flagged here as a known, currently-safe-but-fragile item for future hardening (replace the inline subquery with public.is_super_admin(), mirroring the SELECT policy above). It was deliberately left unmodified in this item, per explicit owner decision, because it was not required to restore Admin visibility. Do not describe it as broken; do not modify it without a separate, explicitly authorized task.
+This was re-verified live before the migration and confirmed NOT to recurse in that form — UPDATE policies do not face the same SELECT-resolves-itself dependency that caused 42P17 for the SELECT case above, so it was never broken. It was nonetheless flagged as structurally fragile (a hidden coupling to whichever SELECT-permissive policies happen to exist on business_settings at any given time), and has now been migrated to remove that fragility. Current live definition:
 
-business_settings policy count — current verified total: 7 (was 6 at the Stage C baseline described in §18.G, before this item added the SELECT policy):
+"Super admins can update all business settings"
+FOR UPDATE TO authenticated
+USING (public.is_super_admin())
+WITH CHECK (public.is_super_admin())
+
+Do not describe this policy as still using the old self-referential EXISTS subquery — that pattern is no longer live. public.is_super_admin() is byte-for-byte the same predicate (confirmed via pg_get_functiondef against the live function body before migrating), wrapped in the SECURITY DEFINER helper from above, so the row-level semantics are unchanged — only the recursion-fragility is removed, by construction (the helper bypasses business_settings' own RLS for its internal lookup rather than depending on whatever SELECT-permissive policies happen to be live).
+
+Migration verification, all live-tested this stage (BEGIN/SET LOCAL ROLE/ROLLBACK — no data persisted, nothing committed):
+
+no 42P17 occurred, before or after the migration;
+
+ordinary TEST user's own-row UPDATE still succeeds (1 row affected, no-op business_name write);
+
+ordinary TEST user's cross-user UPDATE attempt remains denied (0 rows affected);
+
+Super Admin's cross-user UPDATE succeeds (1 row affected, no-op trial_ends_at write on a different TEST user's row);
+
+WITH CHECK was proven against a real value change, not just a no-op: Super Admin session updated a TEST user's trial_ends_at by +1 minute inside the same transaction, the change was confirmed to have taken effect (before/after values captured), and the transaction was then rolled back;
+
+post-rollback, the TEST user's trial_ends_at read back to its exact pre-test value — confirming nothing was committed;
+
+SELECT visibility (ordinary=1 row, Super Admin=6 rows, anon=denied), the helper function's ACL, all other business_settings policies, all column-level grants, and the guard_business_settings_plan_trial trigger were all re-verified byte-identical before and after — this migration touched exactly the one UPDATE policy and nothing else;
+
+a get-public-quote smoke call against a known TEST quote returned 200 (expected — that function uses service_role and never depends on this policy).
+
+business_settings policy count — current verified total: 7 (was 6 at the Stage C baseline described in §18.G, before the SELECT policy was added; the UPDATE policy hardening above replaced an existing policy in place and did not change the count):
 
 "Owners can manage business settings" (ALL, ownership — pre-existing)
 
@@ -1624,13 +1649,21 @@ business_settings policy count — current verified total: 7 (was 6 at the Stage
 
 "Restrict business_settings insert to safe free or legitimate trial" (§17.E)
 
-"Super admins can update all business settings" (pre-existing; flagged above as an open follow-up)
+"Super admins can update all business settings" (hardened to public.is_super_admin() — see above; no longer the old self-referential subquery)
 
-"Super admins can view all business settings" (NEW — this item)
+"Super admins can view all business settings" (added in this §18.M work item)
 
 "Users can insert own settings" (ownership — pre-existing)
 
 "Users can update own settings" (ownership — pre-existing)
+
+New OPEN item surfaced during the UPDATE-policy hardening audit — Account-State column-write surface (NOT fixed, NOT in scope of the RLS-predicate migration above, tracked here for a future, separately-scoped task):
+
+The RLS predicate migration above changes only which caller/row combinations are authorized to attempt an UPDATE — it says nothing about which columns may be written once authorized. Separately, authenticated's column-level UPDATE grants on business_settings were inspected and found to include: address, business_name, country, currency, default_terms, email, last_sign_in, logo_url, phone, plan, tax_id, trial_ends_at, user_id. role is confirmed NOT in this list (consistent with §17.B — role remains non-updatable by authenticated at the grant level, independent of any RLS policy).
+
+The existing guard_business_settings_plan_trial trigger (§17.C) inspects and restricts only plan and trial_ends_at changes. It provides no equivalent DB-level protection for the other writable columns — notably country (backs the Local/International Iron Rule, §3), email, and business_name. Today, an owner can freely change these on their own row (via "Users can update own settings"), and a Super Admin can freely change these on any row (via the now-hardened UPDATE policy above), with no trigger-level guard — enforcement for these fields exists only at the application layer (Dashboard.jsx), not the database layer.
+
+This is identical regardless of whether the UPDATE policy's predicate is the old self-referential subquery or public.is_super_admin() — the migration above neither introduces nor fixes this gap; it is orthogonal to it. Do NOT mark this fixed. It remains OPEN, tracked as a future, separately-scoped Account-State hardening topic — do not implement a fix without a new, explicitly authorized task.
 
 Status: LIVE in the backend now, fully independent of the still-uncommitted frontend Admin UI redesign described in §19.A — the backend objects above do not depend on that frontend work, and the frontend work does not depend on any further backend change. Do not describe this backend item as "pending" — it is live and verified; only (a) its lack of a Git artifact, by design, consistent with this document's no-in-repo-migrations convention, and (b) the separately-tracked uncommitted frontend Admin UI changes (see the Git / Release State section) are actually pending.
 
