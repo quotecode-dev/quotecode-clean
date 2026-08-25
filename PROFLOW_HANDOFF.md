@@ -831,9 +831,9 @@ Database-only Supabase changes are not automatically represented by a Git commit
 
 Git / Release State
 
-Approved & pushed baseline: 5737626 — "Fix locked quote tooltip hit area"
+Approved & pushed baseline (historical, superseded — kept for continuity): 5737626 — "Fix locked quote tooltip hit area". Current verified pushed baseline is newer: commit 1caaff6f47d911d8114c8eaedd1c3a20ec73c2fd ("Implement Public Quote security remediation: Edge Function + RPC cutover, RLS/GRANT hardening, Storage upload lockdown (Phases 1-4, Stages A-D1)"), tagged public-quote-security-2026-08-25 — both confirmed live-verified as ancestors of origin/main. Three further commits (4088c2c, 5a7d958, 3ada41a — Admin UI/Trial Extension work, see the Second, independent working-tree item entry below) are pushed on top of that. Do not treat 5737626 as the current baseline for any purpose.
 
-CURRENT / VERIFIED WORKING TREE (not yet committed/pushed at this handoff update):
+CORRECTED — these files are COMMITTED AND PUSHED, not a pending working tree (this list previously said "not yet committed/pushed"; that status is superseded — see the baseline line above):
 
 src/components/SmartPublicQuote.jsx — Phase 4 secure public-quote loader/router
 
@@ -845,9 +845,9 @@ src/pages/PublicQuoteEn.jsx — DTO/RPC-based public flow; no self-routing fetch
 
 supabase/config.toml — get-public-quote block with verify_jwt=false
 
-supabase/functions/get-public-quote/index.ts — new deployed Edge Function
+supabase/functions/get-public-quote/index.ts — deployed Edge Function
 
-PROFLOW_HANDOFF.md — being updated for continuity/checkpoint
+All of the above were committed and pushed as 1caaff6f47d911d8114c8eaedd1c3a20ec73c2fd, tagged public-quote-security-2026-08-25 (both live-verified this update).
 
 Current live Supabase state is also newer than the pushed baseline: §18 Phases 1–4 and Stages A/B/C/D1 are implemented and verified. Stage D2 is deliberately NOT started.
 
@@ -865,23 +865,19 @@ Quote immutability UI/handler code: 7e96b83, 5737626 (both pushed).
 
 business_settings privilege-escalation fixes (role/plan/trial_ends_at UPDATE and INSERT hardening, UNIQUE+NOT NULL on user_id): DB-only — no application code changes were required, executed and live-verified directly in Supabase. See §17.B–§17.E for exact objects/policies.
 
-Second, independent uncommitted working-tree item — Admin UI redesign + Super Admin business_settings RLS/authority (CURRENT / VERIFIED as of this update; NOT part of the Public Quote work described above):
+Second, independent working-tree item — Admin UI redesign + Super Admin business_settings RLS/authority + Trial Extension fix — COMMITTED AND PUSHED (this section previously described these files as uncommitted; that status is now superseded, do not rely on the older wording):
 
-Current uncommitted frontend files (git status, verified fresh at this update):
+The three frontend files previously tracked here as uncommitted (src/components/AdminUsersTab.jsx, src/components/UserDetailsModal.jsx, src/pages/Dashboard.jsx) are now committed and pushed to origin/main, across three commits, newest first:
 
-src/components/AdminUsersTab.jsx
+3ada41a — "Fix trial extension eligibility logic" — src/pages/Dashboard.jsx only. See the Trial Extension entry in §19.A for full detail; production-verified by the owner (owner's own words: "עובד והכל תקין" / "works and everything is fine").
 
-src/components/UserDetailsModal.jsx
+5a7d958 — "Document Super Admin UPDATE policy hardening" — PROFLOW_HANDOFF.md only, documenting the already-live §18.M backend work.
 
-src/pages/Dashboard.jsx
+4088c2c — "Finalize Admin UI redesign and Super Admin visibility" — Super Admin exclusion from the managed-user list/KPIs, dead-code removal, User Details modal visual cleanup (see §19.A).
 
-See §19.A for exactly what changed in these three files (Super Admin exclusion from the managed-user list/KPIs, dead-code removal, User Details modal visual cleanup).
+The Super Admin RLS/authority backend work described in §18.M was, and remains, independent of this frontend work's commit status — it was live in Supabase before, during, and after all three commits above; its own hardening (the UPDATE-policy migration to public.is_super_admin()) is a separate, already-documented, already-pushed-via-5a7d958 item.
 
-The Super Admin RLS/authority backend work (public.is_super_admin() helper + the "Super admins can view all business settings" SELECT policy, see §18.M) is already LIVE in Supabase right now — it does NOT wait on, and is not blocked by, the still-uncommitted frontend files above. Do not describe §18.M's backend objects as pending; only the three frontend files listed above, and the Git commit/push/tag step itself, are pending for this item.
-
-This item and the Public Quote security work described earlier in this section are two separate, independently-uncommitted pieces of work sharing the same working tree. Do not conflate them into a single checkpoint without the project owner explicitly reviewing and approving both.
-
-If you are reading this in a future session: run git status/git log first — further work may already be committed on top of 5737626, or new pending changes may exist (in either or both of the two items above). Do not assume either state from this document alone.
+If you are reading this in a future session: run git status/git log first — further work may already be committed on top of 3ada41a, or new pending changes may exist. Do not assume either state from this document alone.
 
 Known Open Item — RESOLVED (committed/pushed; historical wording below may mention earlier pending state)
 
@@ -1161,7 +1157,7 @@ Status at this HANDOFF update
 
 Public Quote remediation is functionally complete through the DB/RLS/GRANT public-access cutover and Storage INSERT hardening. The remaining Storage-private cutover (D2) is intentionally blocked until authenticated Dashboard attachment handling is made private-bucket compatible.
 
-No commit/push has yet captured the current Phase 3/4 application/config changes. The live Supabase DB/Storage changes described below are already applied and verified.
+CORRECTED (was previously stale): the Phase 3/4 application/config changes described below (SmartPublicQuote.jsx, PublicQuote.jsx/PublicQuoteEn.jsx, AppGlobal.jsx, supabase/config.toml, get-public-quote/index.ts) ARE committed and pushed — commit 1caaff6f47d911d8114c8eaedd1c3a20ec73c2fd, tag public-quote-security-2026-08-25, both confirmed live as ancestors of origin/main. The live Supabase DB/Storage changes described below were already applied and verified independently of that commit, consistent with this document's no-in-repo-migrations convention.
 
 18.A Phase 1 — durable attachment storage_path — COMPLETE
 
@@ -1665,7 +1661,31 @@ The existing guard_business_settings_plan_trial trigger (§17.C) inspects and re
 
 This is identical regardless of whether the UPDATE policy's predicate is the old self-referential subquery or public.is_super_admin() — the migration above neither introduces nor fixes this gap; it is orthogonal to it. Do NOT mark this fixed. It remains OPEN, tracked as a future, separately-scoped Account-State hardening topic — do not implement a fix without a new, explicitly authorized task.
 
-Status: LIVE in the backend now, fully independent of the still-uncommitted frontend Admin UI redesign described in §19.A — the backend objects above do not depend on that frontend work, and the frontend work does not depend on any further backend change. Do not describe this backend item as "pending" — it is live and verified; only (a) its lack of a Git artifact, by design, consistent with this document's no-in-repo-migrations convention, and (b) the separately-tracked uncommitted frontend Admin UI changes (see the Git / Release State section) are actually pending.
+Status: LIVE in the backend now, fully independent of the frontend Admin UI redesign described in §19.A — the backend objects above do not depend on that frontend work, and the frontend work does not depend on any further backend change. Do not describe this backend item as "pending" — it is live and verified; its only distinguishing property is (per this document's no-in-repo-migrations convention) having no Git artifact of its own. (Note: the frontend Admin UI/Trial Extension work in §19.A is itself now committed and pushed — see the Git / Release State section — this note previously described it as uncommitted; that status is superseded.)
+
+18.N API-key exposure incident — OPEN / SECURITY PRIORITY (discovered during Stage D1.1 preparation; remediation design verified but NOT implemented; do not describe as resolved)
+
+What happened, verified facts only: while preparing Stage D1.1 (Storage owner DELETE policy work), the command npx supabase projects api-keys --output json was run to check whether a service-role credential could be safely obtained for testing. That command unexpectedly printed the project's full legacy API-key values directly into the working conversation, without requiring the CLI's own --reveal flag. Both the legacy anon key and the legacy service_role key were printed in full.
+
+Severity distinction: the legacy anon key is designed for public/client use (already bundled into every browser session by design, protected by RLS, not secrecy) and is not equivalent in sensitivity to service_role. The legacy service_role key bypasses RLS entirely and grants full database/storage access — it must be treated as COMPROMISED.
+
+The exposed value itself is not reproduced here, in source, in logs, in commands, or in any report, and must never be — this document records only that the exposure occurred and which key type was affected.
+
+Immediate response, verified: Stage D1.1 was suspended immediately upon detection. No CREATE POLICY was executed as part of that stage. No Storage API operation (upload/delete) was executed. The disposable D1 TEST object (quote-files/67ef489f-8d54-490b-a1b7-a52c905b6ad0/a1c8f5f8-6311-4076-a9d5-2fd2821073f5_1787621897465.txt) remains untouched, exactly as it was before the incident. No further use of the exposed service_role value occurred after detection — confirmed via a fresh, secret-safe read-only audit immediately following (git status/policy/bucket/object state all re-verified unchanged).
+
+A separate read-only audit also found (unrelated to the incident itself, discovered while investigating remediation options) that a .env file was committed to this repository's history at commit 6f72ea8 ("fresh-start") and later deleted at commit 54bf766 — both confirmed ancestors of origin/main, so that historical content is permanently recoverable from GitHub history. Inspected safely (key names and value lengths only, values never displayed): that historical file contained only VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY — both client-safe-by-design values, not secrets. No SUPABASE_SERVICE_ROLE_KEY or any other secret was ever found in tracked history. This is a separate, low-severity historical-hygiene note, not part of the service_role compromise.
+
+Remediation design — verified READ-ONLY, NOT implemented:
+
+A modern sb_secret_* key already exists for this project (provisioned, unused by current code) — confirmed via safe metadata inspection only (name/type/existence), value never inspected or displayed.
+
+Preferred remediation path, per current official Supabase documentation: migrate all 8 server-side locations (7 Edge Functions + api/cron.js) that currently read SUPABASE_SERVICE_ROLE_KEY to use the modern secret key instead, verify each individually, and only then disable (not "rotate" — legacy keys cannot be rotated in place) the legacy service_role key via the Supabase Dashboard.
+
+JWT-secret regeneration is NOT currently planned — it has a much broader blast radius (invalidates all legacy-key-based connections at once, and its effect on already-issued user sessions depends on this project's JWT-Signing-Keys migration status, which was not confirmed) and is not required by the preferred path above.
+
+verify_jwt (the Edge Function gateway's caller-authentication check, per-function in supabase/config.toml) should remain UNCHANGED for this migration — confirmed via current Supabase documentation and via direct inspection of all 8 functions' actual caller-auth code that verify_jwt governs the caller's own presented credential, not the function's internal admin-client credential; migrating only the internal credential requires no verify_jwt change for any of ProFlow's functions.
+
+Status: migration is NOT yet implemented. Legacy service_role is NOT yet disabled — it remains live and must be treated as compromised in the meantime. Stage D1.1 remains suspended pending both this remediation and a safe TEST-user authentication method (recommended: ordinary supabase.auth.signInWithPassword() using only the anon key, once the owner supplies TEST-account credentials via a safe out-of-band channel — never via service_role/admin API).
 
 Near-Term Product/Security Work Queue — VERIFIED DECISIONS / OPEN WORK
 
@@ -1695,7 +1715,29 @@ Trial expiration date remains visible for every non-Lifetime managed user (table
 
 Remaining trial time/status text (getRemainingTimeFormatted()) remains visible, unchanged.
 
-Trial Extension (the 14-day extend button, handleExtendTrial14Days) remains available and uses the exact same existing handler/behavior as before this redesign — not touched.
+Trial Extension (the 14-day extend button, handleExtendTrial14Days) — COMPLETED + PRODUCTION VERIFIED (bug found and fixed after this redesign; not part of the redesign itself, tracked here for continuity):
+
+Bug found (pre-existing, predates this redesign by several days per git blame — not introduced by it): the old handleExtendTrial14Days contained two guards. Guard 1 blocked whenever business_settings.plan was 'basic' or 'pro', with an "Cannot extend trial for paying subscriber!" message. Guard 2 blocked whenever trial_ends_at was still in the future, with a "Cannot extend! User has N active days remaining." message. Guard 1 was stale/incorrect: createNewBusinessSettings() gives every brand-new signup plan:'pro' as its 14-day trial default (see §1/§17.E), so a real trial user's plan being 'pro' proves nothing about payment — Guard 1 was blocking the exact population (fresh trial users) the button exists to serve. Guard 2, taken together with Guard 1, meant almost no real trial user could ever be extended by this button as originally written.
+
+Final, owner-confirmed product rule (do not describe Guard 2 as a bug — the owner explicitly confirmed blocking extension during an active trial is the correct, intended behavior; only Guard 1 was wrong):
+
+Ordinary user with an ACTIVE trial: the Trial Extension control may be shown, but clicking it is blocked while trial_ends_at is still in the future, and the UI reports the exact number of active trial days remaining. This is intentional, not a defect.
+
+Ordinary user with an EXPIRED trial: Super Admin may grant a fresh 14-day trial. The new trial_ends_at is set to NOW + 14 days (click time), never old trial_ends_at + 14 days.
+
+Lifetime user: the Trial Extension control is not shown at all (existing, unchanged AdminUsersTab.jsx button-visibility logic).
+
+Super Admin: not applicable — already excluded from the managed-user list entirely (§19.A above).
+
+VERIFIED paying subscriber: the intended future behavior is that Trial Extension should not be shown for one. However, per the paid-subscriber source-of-truth audit below, no such verified state currently exists — current code correctly does NOT infer "paid" from plan='pro'/'basic', and must not until a real one exists.
+
+Fix implemented (src/pages/Dashboard.jsx only, two commits): Guard 1 (the plan-based "paying subscriber" check) was permanently removed. Guard 2 (the active-trial check) was, in the same work item, also removed and then deliberately restored once the owner confirmed its blocking behavior was the intended product rule, not a bug — so the net final state keeps Guard 2 exactly as it originally was, with Guard 1 gone for good. The NOW + 14 days success-path logic was never changed throughout. Committed as 3ada41a "Fix trial extension eligibility logic" (src/pages/Dashboard.jsx only). Verified before commit: build PASS; lint 0 errors (only the same pre-existing unrelated warnings already documented elsewhere in this file); tests 21/21 PASS; git diff confirmed only src/pages/Dashboard.jsx changed; HEAD == origin/main after push; working tree clean after push.
+
+Owner production verification: after deployment, the owner tested the live Trial Extension behavior on the production site and explicitly confirmed it working ("עובד והכל תקין"). Status: COMPLETED + PRODUCTION VERIFIED — do not reopen without new evidence.
+
+Paid-subscriber source of truth — audited, CONFIRMED ABSENT (read-only audit, separate from the fix above; billing implementation remains OPEN, not designed or implemented here):
+
+"ProFlow currently has no authoritative paid-subscriber source of truth." Verified live, this audit: the public schema has exactly 9 tables (business_settings, chat_logs, clients, expenses, quote_attachments, quote_items, quotecode_documents, quotes, services) — no subscription/billing/payment table exists. business_settings has no payment-status field. plan='pro' cannot prove payment (see Bug found above). subscription_ends_at, subscription_reminder_3d_sent, and subscription_reminder_24h_sent do NOT exist in the live business_settings schema (live column list re-verified this audit) — send-subscription-expiration-email's query against these nonexistent columns would fail if invoked, meaning that function is not a valid production source of subscription state today, not merely "non-authoritative." billing-checkout-stub remains a pure scaffold (checkoutUrl always null, no real Stripe API call, no table writes — confirmed by reading the full file this audit). Future paid status should come from a provider-backed, signature-verified billing/webhook source of truth (mirroring the existing Svix-verified pattern already used in resend-email-webhook), never inferred from plan. This remains OPEN — see §19.C; not designed or implemented in this update.
 
 Ordinary-user Plan/Region/Role/Lifetime/Trial display remains fully data-driven from acc.role/acc.plan/acc.trial_ends_at/acc.country via getAccountDerived() — unchanged by the redesign, no hardcoded values introduced.
 
@@ -1760,6 +1802,8 @@ paid-subscription expiration reminder only where relevant to the eventual billin
 Existing reminder infrastructure/copy must be reconciled against real Account-State behavior before billing launch; older code/email copy was previously found to claim automatic downgrade without an actual downgrade writer.
 
 19.C Billing / payment infrastructure — NOT COMPLETE
+
+See §19.A's "Paid-subscriber source of truth — audited, CONFIRMED ABSENT" entry for the full, live-verified evidence trail (schema/table inspection, billing-checkout-stub/send-subscription-expiration-email inspection) behind the statement that no authoritative paid-subscriber signal exists today. Not duplicated here.
 
 billing-checkout-stub remains scaffolding only; there is no completed real payment-provider subscription lifecycle.
 
