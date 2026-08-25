@@ -568,23 +568,28 @@ export default function QuoteForm({
         </div>
 
         <div style={{ borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-            <span>{isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (isHebrew ? 'סכום ביניים (כולל מע"מ):' : 'Subtotal (Inc. VAT):') : t.subtotal}</span>
-            <span>{sym}{formatNum(subtotal)}</span>
-          </div>
+          {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
+              (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
+              החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
+          {!(isLocalIsraeliBusiness && isHebrew && clientType === 'private') && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+              <span>{t.subtotal}</span>
+              <span>{sym}{formatNum(subtotal)}</span>
+            </div>
+          )}
           {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.red, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span><span>-{sym}{formatNum(discountAmount)}</span></div>}
           {isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (
-            // מע"מ כלול (Private): נטו מוצג בנפרד מהמע"מ הכלול, בלי לחשב נוסחה
-            // חדשה - netAmount הוא פשוט total-taxAmount (שני ערכים שכבר
-            // הגיעו מ-calculateQuoteFinancials ב-Dashboard.jsx). formatNumberLocal
-            // (לא formatNum) כדי לא לאבד אגורות בעיגול-לשלם (254.24, לא 254.00).
+            // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
+            // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
+            // רק תוויות/סדר שונים; אין נוסחה חדשה. formatNumberLocal (לא
+            // formatNum) כדי לא לאבד אגורות (254.24, לא 254.00).
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-                <span>נטו:</span>
+                <span>סכום לפני מע"מ:</span>
                 <span>{sym}{formatNumberLocal(totalAmount - taxAmount, isHebrew)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-                <span>מע"מ כלול (18%):</span>
+                <span>מע"מ (18%):</span>
                 <span>{sym}{formatNumberLocal(taxAmount, isHebrew)}</span>
               </div>
             </>

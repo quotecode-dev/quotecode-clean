@@ -239,10 +239,15 @@ export default function PublicQuote({ quoteData }) {
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '30px' }}>
           <div style={{ width: '300px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
-              <span>{isPrivateDisplay ? 'סכום ביניים (כולל מע"מ):' : 'סיכום ביניים:'}</span>
-              <span>{currencySymbol}{formatNum(subtotal)}</span>
-            </div>
+            {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
+                (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
+                החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
+            {!isPrivateDisplay && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+                <span>סיכום ביניים:</span>
+                <span>{currencySymbol}{formatNum(subtotal)}</span>
+              </div>
+            )}
             {quote.discount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#ef4444', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
                 <span>הנחה ({quote.discount}%):</span>
@@ -253,13 +258,16 @@ export default function PublicQuote({ quoteData }) {
                 נטו) מבוסס-ניחוש - לא Business, לא Private. מציגים רק
                 subtotal/discount/total האמינים שכבר שמורים, בלי שורת מע"מ כלל. */}
             {isAmbiguousClientType ? null : isPrivateDisplay ? (
+              // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
+              // - אותם ערכים בדיוק כמו קודם (netAmount, vatAmount), רק
+              // תוויות/סדר שונים; אין נוסחה חדשה.
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
-                  <span>נטו:</span>
+                  <span>סכום לפני מע"מ:</span>
                   <span>{currencySymbol}{formatNum(netAmount)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
-                  <span>מע"מ כלול (18%):</span>
+                  <span>מע"מ (18%):</span>
                   <span>{currencySymbol}{formatNum(vatAmount)}</span>
                 </div>
               </>
