@@ -763,24 +763,27 @@ export default function Dashboard() {
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
     if (!acc) return;
-    
-    const plan = (acc.plan || 'free').toLowerCase();
-    if (plan === 'basic' || plan === 'pro') {
-      setAlertModalMsg(isHebrew ? '⚠️ לא ניתן להאריך תקופת ניסיון למנוי משלם!' : '⚠️ Cannot extend trial for paying subscriber!');
-      return;
-    }
 
     const trialNow = new Date();
     if (acc.trial_ends_at && new Date(acc.trial_ends_at) > trialNow) {
-      const daysLeft = Math.ceil((new Date(acc.trial_ends_at) - trialNow) / (1000 * 60 * 60 * 24));
-      setAlertModalMsg(
-        isHebrew ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.` : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`
+      const daysLeft = Math.ceil(
+        (new Date(acc.trial_ends_at) - trialNow) /
+        (1000 * 60 * 60 * 24)
       );
+
+      setAlertModalMsg(
+        isHebrew
+          ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.`
+          : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`
+      );
+
       return;
     }
-    
-    const newEnd = new Date(trialNow.getTime() + 14 * 24 * 60 * 60 * 1000);
-    
+
+    const newEnd = new Date(
+      trialNow.getTime() + 14 * 24 * 60 * 60 * 1000
+    );
+
     const { error } = await supabase
       .from('business_settings')
       .update({ trial_ends_at: newEnd.toISOString() })
