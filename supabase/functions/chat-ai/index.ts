@@ -26,6 +26,22 @@ serve(async (req) => {
       ? 'Language Rule: You may respond in Hebrew or English based on the user\'s input language.' 
       : 'Language Rule: You MUST answer strictly in English at all times. Even if the user writes to you in Hebrew or any other language, you must reply exclusively in English.';
 
+    // חוק ברזל מטבע: אסור בהחלט לערבב ₪ ו-$/EUR/GBP באותה תשובה - לכן בלוק
+    // המחירים חייב להיגזר מ-isHebrew, בדיוק כמו languageInstruction/supportEmail
+    // למעלה, ולא להישאר בלוק סטטי משותף אחד שמכיל את שני המטבעות תמיד.
+    const pricingBlock = isHebrew
+      ? `Pricing (ISRAEL/HEBREW CONTEXT ONLY — do not use these figures for international/English users; NEVER mention $, USD, EUR, or GBP as a price or as a payment/currency option here):
+- חינם: ₪0 לחודש (5 הצעות מחיר בחודש).
+- בסיסי: ₪39 לחודש (20 הצעות מחיר בחודש).
+- פרו: ₪79 לחודש (הצעות מחיר ללא הגבלה, WhatsApp, והעלאת קבצים/שרטוטים עד 30MB סך הכל, מקסימום 3MB לקובץ).
+- תקופת ניסיון חינמית של 14 יום כוללת גישה מלאה לתוכנית ה-PRO.`
+      : `Pricing (INTERNATIONAL/ENGLISH CONTEXT ONLY — do not use these figures for Hebrew/Israeli users; NEVER mention NIS, ILS, or ₪ as a price or as a payment/currency option here):
+- Free: $0/mo (5 quotes/mo).
+- Basic: $12/mo (20 quotes/mo).
+- Pro: $23/mo (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to 30MB total, max 3MB per file).
+- 14-day free trial gives full PRO access.
+- Your ProFlow subscription itself is priced in USD as shown above. Separately, when you create your own quotes for your clients, you may choose USD, EUR, or GBP as that quote's currency.`;
+
     const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
 Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. 
 ${languageInstruction}
@@ -34,11 +50,7 @@ SUPPORT EMAIL RULE:
 - For Hebrew users, use: support@quotecodepro.com
 - For English users, use: info@quotecodepro.com
 
-Pricing:
-- Free: $0 / 0 NIS (5 quotes/mo).
-- Basic: $12/mo / 39 NIS/mo (20 quotes/mo).
-- Pro: $23/mo / 79 NIS/mo (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to 30MB total, max 3MB per file).
-- 14-day free trial gives full PRO access.
+${pricingBlock}
 
 FILE ATTACHMENTS FEATURE (PRO ONLY):
 - Yes, users can attach files and drawings to quotes on the PRO plan.
@@ -89,7 +101,11 @@ Rules:
       category = 'CANCELLATION';
     } else if (lowerMsg.includes('אפשר להוסיף') || lowerMsg.includes('פיצ\'ר') || lowerMsg.includes('feature') || lowerMsg.includes('can you add')) {
       category = 'FEATURE_REQUEST';
-    } else if (lowerMsg.includes('לא מבין') || lowerMsg.includes('בעיה') || lowerMsg.includes('שגיאה') || lowerMsg.includes('error') || lowerMsg.includes('bug')) {
+    } else if (
+      lowerMsg.includes('לא מבין') || lowerMsg.includes('בעיה') || lowerMsg.includes('שגיאה') || lowerMsg.includes('error') || lowerMsg.includes('bug') ||
+      lowerMsg.includes('תלונה') || lowerMsg.includes('תביעה') || lowerMsg.includes('משפטי') || lowerMsg.includes('עורך דין') || lowerMsg.includes('עו"ד') || lowerMsg.includes('לתבוע') || lowerMsg.includes('תובע') || lowerMsg.includes('בית משפט') || lowerMsg.includes('לבית משפט') ||
+      lowerMsg.includes('complaint') || lowerMsg.includes('legal') || lowerMsg.includes('lawsuit') || lowerMsg.includes('lawyer') || lowerMsg.includes('attorney') || lowerMsg.includes('suing')
+    ) {
       category = 'HARD_QUESTION';
     }
 
