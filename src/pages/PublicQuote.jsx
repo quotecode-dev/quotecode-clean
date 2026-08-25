@@ -4,8 +4,12 @@ import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
+import { calculateQuoteFinancials } from '../utils/regionConfig';
 
-const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// חוק ברזל: ללא Math.round מוקדם - ערכי מע"מ/נטו של הצעה פרטית (VAT-inclusive)
+// הם לרוב לא-שלמים (למשל 254.24), וכל עיגול-לשלם לפני הצגת האגורות היה
+// שובר את ההתאמה (Net + VAT כלול = Total) שהצעת P0 מחייבת להציג במדויק.
+const formatNum = (val) => Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const formatDisplayPhone = (phone) => {
   if (!phone) return '';
@@ -88,7 +92,9 @@ export default function PublicQuote({ quoteData }) {
   const currencySymbol = '₪';
   // שיעור המע"מ נגזר מנתוני ההצעה השמורים (tax_rate) ולא קבוע קשיח - כך שהתעריף
   // שהוצג/הוסכם בעת יצירת ההצעה הוא זה שיוצג גם בקישור הציבורי, גם אם ברירת המחדל תשתנה בעתיד
-  const vatRate = (quote.tax_rate !== undefined && quote.tax_rate !== null) ? Number(quote.tax_rate) : 0.18;
+  const vatRate = (quote.tax_rate !== undefined && quote.tax_rate !== null && Number.isFinite(Number(quote.tax_rate)) && Number(quote.tax_rate) >= 0)
+    ? Number(quote.tax_rate)
+    : 0.18;
 
   let parsedItems = [];
   try {
@@ -104,9 +110,39 @@ export default function PublicQuote({ quoteData }) {
   const dbTotal = Number(quote.total || 0);
   const calculatedSubtotalFromItems = parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
 
-  const subtotal = quote.subtotal ? Number(quote.subtotal) : (calculatedSubtotalFromItems > 0 ? calculatedSubtotalFromItems : (dbTotal > 0 ? dbTotal / (1 + vatRate) : 0));
-  const vatAmount = subtotal * vatRate;
-  const total = dbTotal > 0 ? dbTotal : (subtotal + vatAmount);
+  const resolvedSubtotal = quote.subtotal
+    ? Number(quote.subtotal)
+    : (calculatedSubtotalFromItems > 0 ? calculatedSubtotalFromItems : (dbTotal > 0 ? dbTotal / (1 + vatRate) : 0));
+
+  // נקודת אמת אחת: אותה calculateQuoteFinancials ששימשה בזמן השמירה (Step 1-3)
+  // מחושבת כאן מחדש מהנתונים השמורים (subtotal/discount/tax_rate) - "פריט"
+  // סינתטי יחיד ששוויו resolvedSubtotal מזין את הפונקציה בדיוק כמו שהיה
+  // מוזן subtotal אמיתי, בלי לשכפל נוסחת מע"מ עצמאית כאן ובלי להסתמך על
+  // recompute מהפריטים (שעלול לסטות מהערך השמור).
+  const financials = calculateQuoteFinancials({
+    country: 'Local',
+    clientType: quote.client_type,
+    items: [{ quantity: 1, unit_price: resolvedSubtotal }],
+    discount: quote.discount,
+    taxRateOverride: vatRate,
+  });
+
+  const isAmbiguousClientType = financials.clientTypeAmbiguous;
+  const isPrivateDisplay = !isAmbiguousClientType && quote.client_type === 'private';
+
+  // חוק ברזל §6: client_type חסר/לא-מזוהה על הצעה מקומית - לעולם לא מנחשים
+  // Business ולא Private, ולעולם לא מציגים ללקוח פירוט מע"מ (מחושב/מוסף/כלול)
+  // שמבוסס על ניחוש כזה. במצב הזה מציגים אך ורק ערכים אמינים ששמורים כבר
+  // בהצעה עצמה ושאינם דורשים כל פרשנות Business/Private: subtotal, discount
+  // ו-total השמורים - בלי netAmount/vatAmount מחושבים (ה-JSX למטה פשוט לא
+  // מרנדר שורת מע"מ/נטו כלל כש-isAmbiguousClientType===true).
+  const subtotal = isAmbiguousClientType ? resolvedSubtotal : financials.enteredSubtotal;
+  const discountAmountDisplay = isAmbiguousClientType
+    ? (resolvedSubtotal * (Number(quote.discount || 0) / 100))
+    : financials.discountAmount;
+  const netAmount = financials.netAmount;
+  const vatAmount = financials.taxAmount;
+  const total = dbTotal > 0 ? dbTotal : (isAmbiguousClientType ? (subtotal - discountAmountDisplay) : financials.total);
 
   const bizName = business?.business_name || 'עסק ישראלי';
   const bizLogo = business?.logo_url;
@@ -204,19 +240,35 @@ export default function PublicQuote({ quoteData }) {
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '30px' }}>
           <div style={{ width: '300px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
-              <span>סיכום ביניים:</span>
+              <span>{isPrivateDisplay ? 'סכום ביניים (כולל מע"מ):' : 'סיכום ביניים:'}</span>
               <span>{currencySymbol}{formatNum(subtotal)}</span>
             </div>
             {quote.discount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#ef4444', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
                 <span>הנחה ({quote.discount}%):</span>
-                <span>-{currencySymbol}{formatNum((subtotal * quote.discount) / 100)}</span>
+                <span>-{currencySymbol}{formatNum(discountAmountDisplay)}</span>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
-              <span>מע"מ (18%):</span>
-              <span>{currencySymbol}{formatNum(vatAmount)}</span>
-            </div>
+            {/* client_type חסר/לא-מזוהה: לעולם לא מציגים פירוט מע"מ (מוסף/כלול/
+                נטו) מבוסס-ניחוש - לא Business, לא Private. מציגים רק
+                subtotal/discount/total האמינים שכבר שמורים, בלי שורת מע"מ כלל. */}
+            {isAmbiguousClientType ? null : isPrivateDisplay ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+                  <span>נטו:</span>
+                  <span>{currencySymbol}{formatNum(netAmount)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+                  <span>מע"מ כלול (18%):</span>
+                  <span>{currencySymbol}{formatNum(vatAmount)}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b', fontSize: '0.9rem', flexDirection: 'row-reverse' }}>
+                <span>מע"מ (18%):</span>
+                <span>{currencySymbol}{formatNum(vatAmount)}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', borderTop: '2px solid #cbd5e1', paddingTop: '10px', marginTop: '5px', flexDirection: 'row-reverse' }}>
               <span>סה"כ לתשלום:</span>
               <span style={{ color: '#4f46e5' }}>{currencySymbol}{formatNum(total)}</span>

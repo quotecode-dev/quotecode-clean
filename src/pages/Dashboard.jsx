@@ -7,7 +7,7 @@ import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
-import { isHebrewEnv, getRegionTaxRate, formatDateLocal } from '../utils/regionConfig';
+import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import ExcelJS from 'exceljs';
 
@@ -1456,22 +1456,44 @@ export default function Dashboard() {
     callback();
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0);
-  const discountAmount = (subtotal * Number(discount || 0)) / 100;
-  const baseAmount = subtotal - discountAmount;
-
-  // כמו currency: עריכת הצעה קיימת (טיוטה/נשלח) חייבת לשמר את tax_rate
-  // ההיסטורי שלה, לא לדרוס אותו לפי אזור החשבון הנוכחי - אחרת total/tax_rate
-  // שנשמרים היו נעשים לא-עקביים עם הצעה שכבר נשלחה ללקוח.
+  // תצוגה (preview) בלבד - לעולם לא מקור אמת לשמירה. handleSaveQuote (Step
+  // 1-3) שולף מחדש מהשרת ומחשב בנפרד את הערכים שבאמת נשמרים; שינוי כאן
+  // משפיע רק על מה שהמשתמש רואה בטופס לפני לחיצה על "שמור". אותה
+  // calculateQuoteFinancials בדיוק (ללא נוסחת מע"מ עצמאית נוספת) כדי
+  // שהתצוגה תתאים ל-total שבאמת יישמר: להצעה חדשה - אזור/תעריף נגזרים
+  // מ-bizCountry הנוכחי (כמו שהיה גם קודם); לעריכת הצעה קיימת - אזור נגזר
+  // ממטבע ההצעה הקיימת ו-tax_rate ההיסטורי שלה משמש override, בדיוק לפי
+  // אותו עיקרון fail-closed שכבר אושר ב-Step 2 (לעולם לא לגזור tax_rate
+  // מחדש מהגדרות האזור הנוכחיות של החשבון עבור הצעה קיימת).
   const editingOriginalQuote = editingQuoteId ? quotes.find(q => q.id === editingQuoteId) : null;
-  let taxRate = (editingOriginalQuote && editingOriginalQuote.tax_rate !== null && editingOriginalQuote.tax_rate !== undefined)
-    ? Number(editingOriginalQuote.tax_rate)
-    : getRegionTaxRate(bizCountry);
 
-  let totalAmount = 0;
+  const previewRegionCountry = editingOriginalQuote
+    ? ((editingOriginalQuote.currency || '').toUpperCase() === 'ILS' ? 'Local' : 'International')
+    : bizCountry;
 
-  const taxAmount = baseAmount * taxRate;
-  totalAmount = baseAmount + taxAmount;
+  const previewTaxRateOverride = (editingOriginalQuote
+    && typeof editingOriginalQuote.tax_rate === 'number'
+    && Number.isFinite(editingOriginalQuote.tax_rate)
+    && editingOriginalQuote.tax_rate >= 0)
+    ? editingOriginalQuote.tax_rate
+    : undefined;
+
+  const previewFinancials = calculateQuoteFinancials({
+    country: previewRegionCountry,
+    clientType,
+    items,
+    discount,
+    taxRateOverride: previewTaxRateOverride,
+  });
+
+  const subtotal = previewFinancials.enteredSubtotal;
+  const discountAmount = previewFinancials.discountAmount;
+  // clientTypeAmbiguous (הצעה מקומית חדשה לפני שנבחר סוג לקוח): מציגים 0%
+  // מע"מ כברירת מחדל ניטרלית עד שהמשתמש יבחר בפועל - לא מנחשים Business
+  // ולא Private. handleSaveQuote חוסם בכל מקרה שמירה במצב הזה (fail-closed).
+  const taxRate = previewFinancials.taxRate ?? 0;
+  const taxAmount = previewFinancials.taxAmount ?? 0;
+  const totalAmount = previewFinancials.total ?? (subtotal - discountAmount);
 
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -1610,9 +1632,14 @@ export default function Dashboard() {
 
     setTerms(editTerms);
     setNotes(editNotes);
-    
+
     if (quote.quote_items && quote.quote_items.length > 0) {
-      setItems(quote.quote_items.map(item => ({ description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price, isFromCatalog: false })));
+      // שומרים את ה-id האמיתי של כל quote_item בזמן טעינת עריכה - זהו המזהה
+      // היחיד שמאפשר בהמשך (handleSaveQuote) לבצע UPDATE ממוקד ובטוח של
+      // description בלבד על עריכה לא-פיננסית, בלי DELETE+INSERT ובלי להסתמך
+      // על סדר המערך. פריטים חדשים שנוספים אחר-כך (addItem/מקטלוג) נשארים
+      // בלי id בכוונה - הוספת/הסרת פריט היא ממילא שינוי פיננסי.
+      setItems(quote.quote_items.map(item => ({ id: item.id, description: item.description, quantity: item.quantity || '1', unit_price: item.unit_price, isFromCatalog: false })));
     } else {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
@@ -1712,10 +1739,36 @@ export default function Dashboard() {
     }
 
     try {
-      const originalQuote = editingQuoteId ? quotes.find(q => q.id === editingQuoteId) : null;
+      // מקור אמת פיננסי אמין לעריכת הצעה קיימת: שולפים מחדש את ההצעה ואת
+      // פריטיה ישירות מהשרת - לא מסתמכים על quotes.find (state מקומי שעלול
+      // להיות מיושן). זה בדיוק מנגנון הכשל שגרם לתקרית ה-VAT ההיסטורית
+      // (עריכה שהתבססה על מצב לקוח לא-רענן ודרסה tax_rate/currency תקינים).
+      let authoritativeQuote = null;
+      let authoritativeItems = null;
 
       if (editingQuoteId) {
-        if (isQuoteImmutable(originalQuote)) {
+        const { data: fetchedQuote, error: fetchQuoteErr } = await supabase
+          .from('quotes')
+          .select('id, currency, client_type, tax_rate, subtotal, discount, total, status')
+          .eq('id', editingQuoteId)
+          .single();
+
+        const { data: fetchedItems, error: fetchItemsErr } = await supabase
+          .from('quote_items')
+          .select('id, description, quantity, unit_price, total_price')
+          .eq('quote_id', editingQuoteId);
+
+        if (fetchQuoteErr || !fetchedQuote || fetchItemsErr || !fetchedItems) {
+          setAlertModalMsg(isHebrew
+            ? 'לא ניתן היה לאמת את מצב ההצעה הקיים מול השרת. השמירה בוטלה כדי למנוע פגיעה בנתונים פיננסיים.'
+            : 'Could not verify the existing quote against the server. Save cancelled to protect financial data.');
+          return;
+        }
+
+        authoritativeQuote = fetchedQuote;
+        authoritativeItems = fetchedItems;
+
+        if (isQuoteImmutable(authoritativeQuote)) {
           setAlertModalMsg(isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
           return;
         }
@@ -1729,6 +1782,171 @@ export default function Dashboard() {
           );
           return;
         }
+      }
+
+      // --- זיהוי דטרמיניסטי: האם זוהי עריכה פיננסית או לא-פיננסית? ---
+      // שדות פיננסיים-סמנטיים בלבד: items/quantities/unit_prices/discount/
+      // client_type. שינוי טקסט/סדר מערך/ייצוג string-מול-number שאינו משנה
+      // את המשמעות הפיננסית בפועל אינו נספר כשינוי (numKey מנרמל את שניהם;
+      // מיון ה-pairs הופך את הבדיקה לבלתי-תלויה בסדר). אם multiset הזוגות
+      // (quantity, unit_price) זהה, סכום הביניים המחושב יהיה זהה במדויק בכל
+      // מקרה - כך שאין צורך "לתפוס" שינוי קוסמטי כזה כפיננסי.
+      let isFinancialEdit = true;
+      let effectiveClientType = clientType;
+      let financialQuotePatch = null;
+      let descriptionUpdates = null;
+      let newQuoteFinancials = null;
+
+      if (editingQuoteId) {
+        const numKey = (v) => Number(v || 0).toFixed(6);
+        const normType = (v) => v || '';
+
+        const currentItemPairs = items.map(it => `${numKey(it.quantity)}|${numKey(it.unit_price)}`).sort();
+        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(it.quantity)}|${numKey(it.unit_price)}`).sort();
+        const itemsChanged = currentItemPairs.length !== authoritativeItemPairs.length
+          || currentItemPairs.some((v, i) => v !== authoritativeItemPairs[i]);
+
+        const discountChanged = numKey(discount) !== numKey(authoritativeQuote.discount);
+        const clientTypeChanged = normType(clientType) !== normType(authoritativeQuote.client_type);
+
+        isFinancialEdit = itemsChanged || discountChanged || clientTypeChanged;
+        effectiveClientType = clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
+
+        if (!isFinancialEdit) {
+          // עריכה לא-פיננסית: משמרים במדויק (verbatim) את כל השדות
+          // הפיננסיים כפי שנשלפו מהשרת - בלי לגזור currency/client_type/
+          // tax_rate מחדש מהגדרות העסק/אזור הנוכחיים. זה כולל שימור
+          // client_type ריק/legacy בדיוק כפי שהוא שמור בהצעה הקיימת.
+          financialQuotePatch = {
+            currency: authoritativeQuote.currency,
+            client_type: authoritativeQuote.client_type,
+            tax_rate: authoritativeQuote.tax_rate,
+            subtotal: authoritativeQuote.subtotal,
+            discount: authoritativeQuote.discount,
+            total: authoritativeQuote.total,
+          };
+
+          // מיפוי בטוח של עריכת description בלבד: לעולם לא לפי index (סדר
+          // עלול להשתנות) - רק לפי quote_items.id האמיתי שנשמר על כל פריט
+          // בזמן טעינת העריכה (ר' handleEditClick). אם המיפוי אינו בדיוק
+          // חד-חד-ערכי (id חסר על פריט, id כפול, או שסט ה-id-ים של הטופס
+          // אינו זהה בדיוק לסט ה-id-ים האמיתי) - נכשלים בבטחה ולא כותבים
+          // כלום, כדי לא להחיל תיאור על פריט לא-נכון ולא ליפול חזרה על
+          // DELETE+INSERT (שהיה מוחק/מייצר id-ים חדשים).
+          const formIds = items.map(it => it.id);
+          const authoritativeIds = authoritativeItems.map(it => it.id);
+          const formIdsMappingSafe =
+            formIds.length === authoritativeIds.length &&
+            formIds.every(id => id !== undefined && id !== null) &&
+            new Set(formIds).size === formIds.length &&
+            formIds.every(id => authoritativeIds.includes(id));
+
+          if (!formIdsMappingSafe) {
+            setAlertModalMsg(isHebrew
+              ? 'לא ניתן היה למפות בבטחה את פריטי ההצעה לצורך שמירת שינוי בתיאור. השמירה בוטלה כדי למנוע שיוך תיאור לפריט הלא-נכון.'
+              : 'Could not safely map this quote\'s items to save a description change. Save cancelled to avoid applying a description to the wrong item.');
+            return;
+          }
+
+          descriptionUpdates = items
+            .filter(formItem => {
+              const authItem = authoritativeItems.find(a => a.id === formItem.id);
+              return (formItem.description || '') !== (authItem.description || '');
+            })
+            .map(formItem => ({ id: formItem.id, description: formItem.description || '' }));
+        } else {
+          const curr = (authoritativeQuote.currency || '').toUpperCase();
+          let region;
+          if (curr === 'ILS') region = 'Local';
+          else if (curr === 'USD' || curr === 'EUR' || curr === 'GBP') region = 'International';
+          else {
+            setAlertModalMsg(isHebrew
+              ? 'לא ניתן לקבוע אזור/מטבע אמין להצעה זו לצורך חישוב פיננסי. השמירה בוטלה.'
+              : 'Could not determine a reliable region/currency for this quote for financial recalculation. Save cancelled.');
+            return;
+          }
+
+          if (region === 'Local' && effectiveClientType !== 'business' && effectiveClientType !== 'private') {
+            setAlertModalMsg(isHebrew
+              ? 'יש לבחור סוג לקוח תקין (עסקי/פרטי) כדי לשמור שינוי פיננסי בהצעה מקומית.'
+              : 'A valid client type (Business/Private) is required to save a financial change on a Local quote.');
+            return;
+          }
+
+          // ה-tax_rate ההיסטורי השמור על ההצעה הוא מקור האמת היחיד - לעולם
+          // לא לגזור אותו מחדש מאזור/הגדרות החשבון הנוכחיים. אם הוא חסר או
+          // לא-תקין (הצעה legacy פגומה), נכשלים בבטחה כאן ולא סומכים על
+          // calculateQuoteFinancials שיתייחס אליו כ"לא סופק" ויחזור לברירת
+          // מחדל אזורית - זה בדיוק ההתנהגות שהתקרית המקורית נגרמה ממנה.
+          const persistedTaxRate = authoritativeQuote.tax_rate;
+          const persistedTaxRateValid = typeof persistedTaxRate === 'number' && Number.isFinite(persistedTaxRate) && persistedTaxRate >= 0;
+          if (!persistedTaxRateValid) {
+            setAlertModalMsg(isHebrew
+              ? 'שיעור המע"מ השמור בהצעה זו חסר או לא תקין. לא ניתן לבצע שינוי פיננסי בבטחה. השמירה בוטלה.'
+              : 'This quote\'s persisted tax rate is missing or invalid. A financial change cannot be safely saved. Save cancelled.');
+            return;
+          }
+
+          const result = calculateQuoteFinancials({
+            country: region,
+            clientType: effectiveClientType,
+            items,
+            discount,
+            taxRateOverride: persistedTaxRate,
+          });
+
+          if (result.clientTypeAmbiguous || result.taxRateOverrideInvalid) {
+            setAlertModalMsg(isHebrew
+              ? 'לא ניתן היה לחשב את הנתונים הפיננסיים של ההצעה בבטחה. השמירה בוטלה.'
+              : 'Could not safely calculate this quote\'s financial data. Save cancelled.');
+            return;
+          }
+
+          financialQuotePatch = {
+            currency: authoritativeQuote.currency,
+            client_type: effectiveClientType,
+            tax_rate: result.taxRate,
+            subtotal: result.enteredSubtotal,
+            discount: Number(discount || 0),
+            total: result.total,
+          };
+        }
+      } else {
+        // הצעה חדשה: אותה נקודת אמת פיננסית יחידה (calculateQuoteFinancials)
+        // כמו בעריכה פיננסית - בלי override (מקבלים tax_rate מהאזור הנוכחי,
+        // isLocalIsraeliBusiness/bizCountry, בדיוק כמו שה-currency הקיים כבר
+        // נגזר מהם). ל-Local, client_type תקין (business/private) הוא חובה
+        // fail-closed לפני כל כתיבה - לא מנחשים Business/Private כברירת מחדל.
+        if (isLocalIsraeliBusiness && clientType !== 'business' && clientType !== 'private') {
+          setAlertModalMsg(isHebrew
+            ? 'יש לבחור סוג לקוח תקין (עסקי/פרטי) כדי ליצור הצעת מחיר מקומית.'
+            : 'A valid client type (Business/Private) is required to create a Local quote.');
+          return;
+        }
+
+        const result = calculateQuoteFinancials({
+          country: bizCountry,
+          clientType,
+          items,
+          discount,
+        });
+
+        const requiredFieldsValid = [result.enteredSubtotal, result.taxRate, result.total]
+          .every(v => typeof v === 'number' && Number.isFinite(v));
+
+        if (result.clientTypeAmbiguous || !requiredFieldsValid) {
+          setAlertModalMsg(isHebrew
+            ? 'לא ניתן היה לחשב את הנתונים הפיננסיים של ההצעה בבטחה. השמירה בוטלה.'
+            : 'Could not safely calculate this quote\'s financial data. Save cancelled.');
+          return;
+        }
+
+        newQuoteFinancials = {
+          subtotal: result.enteredSubtotal,
+          tax_rate: result.taxRate,
+          total: result.total,
+          discount: Number(discount || 0),
+        };
       }
 
       let clientId;
@@ -1754,46 +1972,89 @@ export default function Dashboard() {
         clientId = newClientData[0].id;
       }
 
-      const quotePayload = {
-        client_id: clientId,
-        client_type: clientType,
-        currency: editingQuoteId ? (originalQuote?.currency || currency) : (isLocalIsraeliBusiness ? 'ILS' : currency),
-        subtotal: subtotal,
-        tax_rate: taxRate,
-        total: totalAmount,
-        status: quoteStatus.toLowerCase(),
-        valid_until: validUntil || null,
-        discount: Number(discount || 0),
-        terms: terms,
-        notes: notes,
-        subject: quoteSubject || '',
-        quote_subject: quoteSubject || '',
-        user_id: session.user.id
-      };
+      // תשלום payload פיננסי: להצעה קיימת נובע *אך ורק* מ-financialQuotePatch
+      // (שכבר נגזר מהמצב האמין שנשלף מהשרת למעלה) - לעולם לא מ-subtotal/
+      // taxRate/totalAmount המחושבים בגוף הקומפוננטה (שעלולים להסתמך על
+      // quotes.find/bizCountry לא-רענן). להצעה חדשה ההתנהגות נשארת זהה
+      // לחלוטין להתנהגות הקודמת.
+      const quotePayload = editingQuoteId
+        ? {
+            client_id: clientId,
+            client_type: financialQuotePatch.client_type,
+            currency: financialQuotePatch.currency,
+            subtotal: financialQuotePatch.subtotal,
+            tax_rate: financialQuotePatch.tax_rate,
+            total: financialQuotePatch.total,
+            discount: financialQuotePatch.discount,
+            status: quoteStatus.toLowerCase(),
+            valid_until: validUntil || null,
+            terms: terms,
+            notes: notes,
+            subject: quoteSubject || '',
+            quote_subject: quoteSubject || '',
+            user_id: session.user.id
+          }
+        : {
+            client_id: clientId,
+            client_type: clientType,
+            currency: isLocalIsraeliBusiness ? 'ILS' : currency,
+            subtotal: newQuoteFinancials.subtotal,
+            tax_rate: newQuoteFinancials.tax_rate,
+            total: newQuoteFinancials.total,
+            discount: newQuoteFinancials.discount,
+            status: quoteStatus.toLowerCase(),
+            valid_until: validUntil || null,
+            terms: terms,
+            notes: notes,
+            subject: quoteSubject || '',
+            quote_subject: quoteSubject || '',
+            user_id: session.user.id
+          };
 
       let quoteId;
+      // עריכה פיננסית והצעה חדשה: ממשיכים בדיוק כמו קודם - delete+insert
+      // מלא מה-state הנוכחי של items. עריכה לא-פיננסית: **אין** delete+insert
+      // בכלל (איפס כתיבה אם אין שינוי description; אחרת UPDATE ממוקד per-id
+      // בלבד, ר' descriptionUpdates למעלה) - כך שאין שינוי quantity/unit_price/
+      // total_price ואין regeneration של quote_item id-ים על עריכה לא-פיננסית.
+      let itemsForPersist = items;
 
       if (editingQuoteId) {
         const { error: updateError } = await supabase.from('quotes').update(quotePayload).eq('id', editingQuoteId);
         if (updateError) throw updateError;
         quoteId = editingQuoteId;
-        await supabase.from('quote_items').delete().eq('quote_id', quoteId);
+
+        if (isFinancialEdit) {
+          await supabase.from('quote_items').delete().eq('quote_id', quoteId);
+        } else {
+          for (const upd of descriptionUpdates) {
+            const { error: descUpdateError } = await supabase
+              .from('quote_items')
+              .update({ description: upd.description })
+              .eq('id', upd.id)
+              .eq('quote_id', quoteId);
+            if (descUpdateError) throw descUpdateError;
+          }
+          itemsForPersist = null;
+        }
       } else {
         const { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([quotePayload]).select();
         if (quoteError) throw quoteError;
         quoteId = quoteData[0].id;
       }
 
-      const quoteItemsToInsert = items.map(item => ({
-        quote_id: quoteId,
-        description: item.description,
-        quantity: Number(item.quantity || 1),
-        unit_price: Number(item.unit_price || 0),
-        total_price: Number(item.quantity || 1) * Number(item.unit_price || 0)
-      }));
+      if (itemsForPersist) {
+        const quoteItemsToInsert = itemsForPersist.map(item => ({
+          quote_id: quoteId,
+          description: item.description,
+          quantity: Number(item.quantity || 1),
+          unit_price: Number(item.unit_price || 0),
+          total_price: Number(item.quantity || 1) * Number(item.unit_price || 0)
+        }));
 
-      const { error: itemsError } = await supabase.from('quote_items').insert(quoteItemsToInsert);
-      if (itemsError) throw itemsError;
+        const { error: itemsError } = await supabase.from('quote_items').insert(quoteItemsToInsert);
+        if (itemsError) throw itemsError;
+      }
 
       for (let file of quoteFiles) {
         if (!file.id) {
@@ -1813,11 +2074,14 @@ export default function Dashboard() {
         }
       }
 
-      setStatusMsg({ 
-        text: editingQuoteId 
-          ? (isHebrew ? `הצעת מחיר #${editingQuoteId.slice(0, 6)} עודכנה בהצלחה!` : `Quote #${editingQuoteId.slice(0, 6)} successfully updated!`) 
-          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatNum(totalAmount)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatNum(totalAmount)}`), 
-        type: 'success' 
+      setStatusMsg({
+        text: editingQuoteId
+          ? (isHebrew ? `הצעת מחיר #${editingQuoteId.slice(0, 6)} עודכנה בהצלחה!` : `Quote #${editingQuoteId.slice(0, 6)} successfully updated!`)
+          // מציגים את הסכום שבאמת נשמר (newQuoteFinancials.total) ולא את
+          // totalAmount המחושב בגוף הקומפוננטה - עבור הצעה מקומית פרטית חדשה
+          // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
+          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatNum(newQuoteFinancials.total)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatNum(newQuoteFinancials.total)}`),
+        type: 'success'
       });
       
       setEditingQuoteId(null);

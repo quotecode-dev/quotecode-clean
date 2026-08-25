@@ -72,7 +72,7 @@ serve(async (req) => {
       .from('quotes')
       .select(`
         id, user_id, created_at, valid_until, tax_rate, subtotal, total,
-        discount, terms, notes, subject, status, signature, currency,
+        discount, terms, notes, subject, status, signature, currency, client_type,
         clients ( company_name, email, phone, address ),
         quote_items ( description, quantity, unit_price, total_price )
       `)
@@ -119,6 +119,7 @@ serve(async (req) => {
         status: quote.status,
         signature: quote.signature,
         currency: quote.currency,
+        client_type: quote.client_type,
         is_owner_viewing: Boolean(callerUserId && callerUserId === quote.user_id),
       },
       business: bizRow ? {

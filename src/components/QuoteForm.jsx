@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket } from 'lucide-react';
 import { NEON, FONT_HE, neonGlowTextStyle } from '../theme/neonTheme';
+import { formatNumberLocal } from '../utils/regionConfig';
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -326,7 +327,7 @@ export default function QuoteForm({
             <select
               value={clientType}
               onChange={(e) => setClientType(e.target.value)}
-              required
+              required={!editingQuoteId}
               style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}
             >
               <option value="" disabled>{isHebrew ? 'בחר סוג לקוח...' : 'Select Client Type...'}</option>
@@ -572,7 +573,24 @@ export default function QuoteForm({
             <span>{sym}{formatNum(subtotal)}</span>
           </div>
           {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.red, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span><span>-{sym}{formatNum(discountAmount)}</span></div>}
-          {isLocalIsraeliBusiness && isHebrew && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{t.vat}</span><span>{sym}{formatNum(taxAmount)}</span></div>}
+          {isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (
+            // מע"מ כלול (Private): נטו מוצג בנפרד מהמע"מ הכלול, בלי לחשב נוסחה
+            // חדשה - netAmount הוא פשוט total-taxAmount (שני ערכים שכבר
+            // הגיעו מ-calculateQuoteFinancials ב-Dashboard.jsx). formatNumberLocal
+            // (לא formatNum) כדי לא לאבד אגורות בעיגול-לשלם (254.24, לא 254.00).
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                <span>נטו:</span>
+                <span>{sym}{formatNumberLocal(totalAmount - taxAmount, isHebrew)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                <span>מע"מ כלול (18%):</span>
+                <span>{sym}{formatNumberLocal(taxAmount, isHebrew)}</span>
+              </div>
+            </>
+          ) : (
+            isLocalIsraeliBusiness && isHebrew && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{t.vat}</span><span>{sym}{formatNum(taxAmount)}</span></div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '800', marginTop: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
              <span style={{ ...neonGlowTextStyle }}>{t.totalAmount}</span>
              <span style={{ color: NEON.violetLight }}>{sym}{formatNum(totalAmount)}</span>
