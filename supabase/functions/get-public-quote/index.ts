@@ -46,12 +46,12 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceRoleKey) {
+    const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
+    if (!supabaseUrl || !secretKey) {
       console.error('get-public-quote: missing required server configuration');
       return jsonResponse({ error: 'Unable to load quote' }, 400);
     }
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const adminClient = createClient(supabaseUrl, secretKey);
 
     let callerUserId: string | null = null;
     const authHeader = req.headers.get('Authorization');
