@@ -122,8 +122,8 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
+    const adminClient = createClient(supabaseUrl, secretKey);
 
     // אימות בעלות: הקורא חייב להיות המשתמש עצמו (userId תואם ל-JWT שלו) או
     // super_admin - אחרת כל משתמש מחובר היה יכול לבקש נתוני חיוב/אזור של
