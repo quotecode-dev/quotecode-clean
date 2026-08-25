@@ -147,14 +147,14 @@ serve(async (req) => {
     const mode = body.mode === 'test' ? 'test' : 'batch';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
     const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 
     if (!resendApiKey) {
       return jsonResponse({ error: 'RESEND_API_KEY is not configured for this function.' }, 500);
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const adminClient = createClient(supabaseUrl, secretKey);
 
     if (mode === 'test') {
       const email = body.email;
