@@ -68,8 +68,10 @@ serve(async (req) => {
     const body = await req.json()
     console.log("Incoming request body:", JSON.stringify(body))
 
-    const { to, clientName, quoteId, total, quoteLink, businessName } = body
+    const { quoteId } = body
 
+    // הלוגו נשאר, בכוונה, מקור מהבקשה בשלב הזה - ר' ההערה בהמשך הקובץ
+    // (ליד adminClient) על הסיבה שהוא לא הועבר למקור סמכותי יחד עם שאר השדות.
     const rawLogo = body.logoUrl || body.businessLogo || body.logo || body.bizLogo || body.imageUrl || body.image;
 
     // בדיקה מדויקת האם מדובר ב-SVG אמיתי לפי הסיומת או הנתונים, ולא לפי מילה כללית בשם הקובץ
@@ -89,14 +91,36 @@ serve(async (req) => {
     // המייל לא נשלח כלל ומוחזרת שגיאת שרת ברורה, במקום לנחש.
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
     if (!quoteId || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
       throw new Error('Cannot verify quote region/currency against the database - refusing to send email.')
+    }
+
+    // אימות: הקורא חייב להיות משתמש מחובר אמיתי - הזהות נקבעת אך ורק מה-JWT
+    // שלו (דרך callerClient, עם מפתח ה-anon בלבד), לעולם לא נסמכים על שדה
+    // userId/ownerId כלשהו שהבקשה עצמה שולחת.
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const callerClient = createClient(SUPABASE_URL, ANON_KEY ?? '', {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser()
+    if (callerAuthErr || !callerUser) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired session' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
     const { data: quoteRow } = await supabaseAdmin
       .from('quotes')
-      .select('user_id, currency, tax_rate')
+      .select('user_id, currency, tax_rate, total, client_id')
       .eq('id', quoteId)
       .maybeSingle()
 
@@ -104,16 +128,45 @@ serve(async (req) => {
       throw new Error('Quote not found - refusing to send without a verified region/currency.')
     }
 
+    // בעלות: משתמש רשאי לשלוח רק הצעת מחיר שהוא עצמו הבעלים שלה - אין
+    // כרגע חריגה ל-super_admin, כי אין שימוש מוצרי קיים לשליחה מטעם משתמש אחר.
+    if (quoteRow.user_id !== callerUser.id) {
+      return new Response(JSON.stringify({ error: 'Forbidden: you may only send your own quote' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     let bizCountry: string | null = null
     let bizCurrency: string | null = null
+    let bizName: string | null = null
     if (quoteRow.user_id) {
       const { data: bizRow } = await supabaseAdmin
         .from('business_settings')
-        .select('country, currency')
+        .select('country, currency, business_name')
         .eq('user_id', quoteRow.user_id)
         .maybeSingle()
       bizCountry = bizRow?.country ?? null
       bizCurrency = bizRow?.currency ?? null
+      bizName = bizRow?.business_name ?? null
+    }
+
+    // נמען ושם הלקוח נגזרים אך ורק מרשומת ה-client האמיתית המקושרת להצעה -
+    // לעולם לא מהבקשה, אחרת קורא כלשהו יכול היה להפנות מייל "רשמי" של
+    // ProFlow לכל כתובת שירצה.
+    let clientEmail: string | null = null
+    let clientCompanyName: string | null = null
+    if (quoteRow.client_id) {
+      const { data: clientRow } = await supabaseAdmin
+        .from('clients')
+        .select('email, company_name')
+        .eq('id', quoteRow.client_id)
+        .maybeSingle()
+      clientEmail = clientRow?.email ?? null
+      clientCompanyName = clientRow?.company_name ?? null
+    }
+    if (!clientEmail) {
+      throw new Error('No client email on file for this quote - refusing to send.')
     }
 
     const resolved = resolveEmailRegion(bizCountry, bizCurrency, quoteRow.currency, Number(quoteRow.tax_rate))
@@ -123,26 +176,36 @@ serve(async (req) => {
     const effectiveHebrew = resolved.hebrew
     const resolvedSym = resolved.symbol
 
-    const bizTitle = businessName || 'ProFlow';
+    const bizTitle = bizName || 'ProFlow';
+    const clientDisplayName = clientCompanyName || (effectiveHebrew ? 'לקוח יקר' : 'Dear Client');
+    const displayTotal = Math.round(Number(quoteRow.total || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    const subject = effectiveHebrew 
+    // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
+    // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור
+    // דיוג כלשהו בתוך מייל "רשמי" שנשלח מהדומיין האמיתי של ProFlow.
+    const PROD_ORIGIN = 'https://www.quotecodepro.com';
+    const canonicalQuoteLink = effectiveHebrew
+      ? `${PROD_ORIGIN}/public-quote/${quoteId}`
+      : `${PROD_ORIGIN}/en/public-quote/${quoteId}?lang=en`;
+
+    const subject = effectiveHebrew
       ? `הצעת מחיר #${quoteId ? quoteId.slice(0, 6).toUpperCase() : 'GENERAL'} מ-${bizTitle}`
       : `Quote #${quoteId ? quoteId.slice(0, 6).toUpperCase() : 'GENERAL'} from ${bizTitle}`;
 
-    const headerHtml = validLogo 
+    const headerHtml = validLogo
       ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${validLogo}" alt="${bizTitle}" style="max-height: 55px; object-fit: contain;" /></div>`
       : `<div style="text-align: center; margin-bottom: 20px; font-size: 1.5rem; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">${bizTitle}</div>`;
 
     const html = effectiveHebrew ? `
       <div dir="rtl" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
         ${headerHtml}
-        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">שלום ${clientName || 'לקוח יקר'},</h2>
+        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">שלום ${clientDisplayName},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">מצורפת הצעת המחיר שלך ממערכת <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${total}</span></p>
+        <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${displayTotal}</span></p>
         <br/>
         <p>לצפייה בהצעה המלאה, אישור או חתימה דיגיטלית לחץ על הכפתור הבא:</p>
         <div style="text-align: center; margin: 25px 0;">
-          <a href="${quoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפה בהצעת המחיר</a>
+          <a href="${canonicalQuoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפה בהצעת המחיר</a>
         </div>
         <br/>
         <p style="color: #64748b; font-size: 0.9rem;">נשמח לעמוד לשירותך לכל שאלה!</p>
@@ -151,13 +214,13 @@ serve(async (req) => {
     ` : `
       <div dir="ltr" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
         ${headerHtml}
-        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Hello ${clientName || 'Dear Client'},</h2>
+        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Hello ${clientDisplayName},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">Please find your quote attached from <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>Total Amount:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${total}</span></p>
+        <p style="font-size: 1.1rem;"><strong>Total Amount:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${displayTotal}</span></p>
         <br/>
         <p>To view, approve or digitally sign your quote, click the button below:</p>
         <div style="text-align: center; margin: 25px 0;">
-          <a href="${quoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">View Quote</a>
+          <a href="${canonicalQuoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">View Quote</a>
         </div>
         <br/>
         <p style="color: #64748b; font-size: 0.9rem;">Feel free to contact us with any questions!</p>
@@ -177,7 +240,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'ProFlow <info@quotecodepro.com>',
-        to: [to],
+        to: [clientEmail],
         subject: subject,
         html: html,
         ...(tags ? { tags } : {}),

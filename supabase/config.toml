@@ -32,7 +32,11 @@ entrypoint = "./functions/send-subscription-expiration-email/index.ts"
 
 [functions.send-quote-email]
 enabled = true
-verify_jwt = false
+# verify_jwt=true בכוונה: הקורא היחיד בפועל הוא Dashboard.jsx (executeEmailSend)
+# עם משתמש מחובר - supabase.functions.invoke() כבר שולח את ה-JWT שלו אוטומטית,
+# ואין כאן שום קורא לגיטימי אחר (לא Cron, לא Webhook חיצוני) שדורש verify_jwt=false.
+# בדיקת auth.getUser() הפנימית עדיין קיימת כשכבת הגנה נוספת ובלתי-תלויה.
+verify_jwt = true
 entrypoint = "./functions/send-quote-email/index.ts"
 
 [functions.resend-email-webhook]
