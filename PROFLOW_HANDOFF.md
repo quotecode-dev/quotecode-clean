@@ -865,7 +865,23 @@ Quote immutability UI/handler code: 7e96b83, 5737626 (both pushed).
 
 business_settings privilege-escalation fixes (role/plan/trial_ends_at UPDATE and INSERT hardening, UNIQUE+NOT NULL on user_id): DB-only — no application code changes were required, executed and live-verified directly in Supabase. See §17.B–§17.E for exact objects/policies.
 
-If you are reading this in a future session: run git status/git log first — further work may already be committed on top of 5737626, or new pending changes may exist. Do not assume either state from this document alone.
+Second, independent uncommitted working-tree item — Admin UI redesign + Super Admin business_settings RLS/authority (CURRENT / VERIFIED as of this update; NOT part of the Public Quote work described above):
+
+Current uncommitted frontend files (git status, verified fresh at this update):
+
+src/components/AdminUsersTab.jsx
+
+src/components/UserDetailsModal.jsx
+
+src/pages/Dashboard.jsx
+
+See §19.A for exactly what changed in these three files (Super Admin exclusion from the managed-user list/KPIs, dead-code removal, User Details modal visual cleanup).
+
+The Super Admin RLS/authority backend work (public.is_super_admin() helper + the "Super admins can view all business settings" SELECT policy, see §18.M) is already LIVE in Supabase right now — it does NOT wait on, and is not blocked by, the still-uncommitted frontend files above. Do not describe §18.M's backend objects as pending; only the three frontend files listed above, and the Git commit/push/tag step itself, are pending for this item.
+
+This item and the Public Quote security work described earlier in this section are two separate, independently-uncommitted pieces of work sharing the same working tree. Do not conflate them into a single checkpoint without the project owner explicitly reviewing and approving both.
+
+If you are reading this in a future session: run git status/git log first — further work may already be committed on top of 5737626, or new pending changes may exist (in either or both of the two items above). Do not assume either state from this document alone.
 
 Known Open Item — RESOLVED (committed/pushed; historical wording below may mention earlier pending state)
 
@@ -1119,9 +1135,9 @@ business_settings duplicate/NULL user_id rows.
 
 Follow-ups (not started — tracked here for the next session, do not fold into unrelated work)
 
-Admin UI is the next major work area. Before changing anything there, reconcile AdminUsersTab.jsx/UserDetailsModal.jsx against the actual current production DB schema — do not assume §9's "observed columns" list is authoritative (see next point for a concrete example of why).
+Admin UI was the next major work area at the time this paragraph was written; a first redesign/security pass has since happened — see §18.M (Super Admin RLS/authority) and §19.A (Admin UI current implemented state) for the verified current state. Some of the reconciliation this paragraph called for has happened as part of that work; re-verify against the live schema again before further Admin/billing work.
 
-subscription_* column assumptions need review. AdminUsersTab.jsx's handleSetSubscriptionEndDate and send-subscription-expiration-email reference subscription_ends_at/subscription_reminder_3d_sent/subscription_reminder_24h_sent columns sourced from §9's non-authoritative "observed columns" list — these may not actually exist in the live schema, which would mean that feature is silently broken in production. Not fixed as part of this remediation (out of scope); verify before touching billing/subscription code.
+subscription_* column assumptions need review. send-subscription-expiration-email (Edge Function) references subscription_ends_at/subscription_reminder_3d_sent/subscription_reminder_24h_sent columns sourced from §9's non-authoritative "observed columns" list — these may not actually exist in the live schema, which would mean that feature is silently broken in production. This remains open and untouched — NOT resolved. (AdminUsersTab.jsx's former handleSetSubscriptionEndDate function and its subscription_ends_at date-picker / "Paid - Active" UI, which previously also referenced this column, were removed entirely during the Admin UI redesign — see §19.A's dead-code list — but that removal is a frontend cleanup only and does not verify or resolve whether the column exists live; the Edge Function side still needs that verification before any subscription/billing work.)
 
 Reminder-email copy vs. actual behavior. send-trial-expiration-email and send-subscription-expiration-email both send copy stating the account "moves automatically to the Free plan" after expiry, but neither function — nor anything else found in this codebase — actually writes plan/trial_ends_at; they only update their own reminder_sent bookkeeping flags. There is currently no automatic downgrade mechanism at all. Review during Admin/Billing work — either implement the described downgrade or correct the email copy.
 
@@ -1428,7 +1444,7 @@ anon: ZERO table grants on business_settings;
 
 authenticated: SELECT remains;
 
-six non-public/account-state policies remain unchanged, including ownership, the two RESTRICTIVE signup policies, Super Admin UPDATE policy, and current application-dependency insert/update policies;
+six non-public/account-state policies remain unchanged, including ownership, the two RESTRICTIVE signup policies, Super Admin UPDATE policy, and current application-dependency insert/update policies. (This was the count at this Stage C baseline. A 7th policy — a Super Admin SELECT policy — was added afterward, in a separate later work item; see §18.M for the current full 7-policy state and its verification. Do not treat "six" as the current count.)
 
 authenticated TEST owner can read their own row;
 
@@ -1554,13 +1570,129 @@ create and push a consistent Git tag for this security milestone.
 
 Do not include unfinished D2 work in that checkpoint.
 
+18.M Super Admin business_settings RLS/authority — CURRENT / VERIFIED (live in Supabase now; database-only, no in-repo migration file, not represented by any Git commit — consistent with this document's existing no-migrations convention)
+
+Built after 18.A–18.L, in response to a real regression the owner found while browser-testing the Admin UI: once Stage C (18.G) correctly closed anonymous SELECT on business_settings, the Admin panel's own authenticated Super Admin session could no longer see any account other than its own. Root-caused: the pre-Stage-C "Super Admin sees everyone" behavior had never been a genuine Super Admin RLS policy — it was an accidental side effect of the two anonymous-readable USING(true) policies Stage C correctly removed. There had never been a real "Super Admin can read all rows" policy until this item.
+
+public.is_super_admin() — SECURITY DEFINER helper, live-verified:
+
+no arguments; returns boolean
+
+SECURITY DEFINER; owner postgres
+
+STABLE
+
+SET search_path = public, pg_temp
+
+EXECUTE: authenticated granted; anon revoked; PUBLIC revoked; service_role retains its normal platform-level privilege
+
+Verified directly against the live pg_proc.proacl catalog column (information_schema alone was found unreliable for this check mid-implementation, due to a Supabase project-level default-privileges rule that grants EXECUTE on new public-schema functions directly to anon/authenticated/service_role, independent of any REVOKE ... FROM PUBLIC): {postgres=X/postgres, authenticated=X/postgres, service_role=X/postgres} — no anon, no bare PUBLIC.
+
+business_settings SELECT policy, live-verified:
+
+"Super admins can view all business settings"
+FOR SELECT TO authenticated
+USING (public.is_super_admin())
+
+Verified live visibility (read-only BEGIN/SET LOCAL ROLE/ROLLBACK simulations — no persisted changes made for this verification):
+
+ordinary authenticated TEST user (tahshitishi@gmail.com): sees exactly 1 row (own only).
+
+Super Admin (real account): sees all 6 business_settings rows.
+
+anon: SELECT denied — permission denied for table business_settings (PostgreSQL 42501), i.e. denied at the table-privilege level (anon has zero table grants on business_settings, per 18.G), not merely by RLS.
+
+42P17 recursion incident — documented in full, not omitted:
+
+The first attempted Super Admin SELECT policy used a direct self-referential subquery against business_settings itself — EXISTS (SELECT 1 FROM business_settings WHERE user_id=auth.uid() AND role='super_admin') — to decide SELECT visibility on business_settings. Because that policy needed to resolve its own table's SELECT-visibility via itself, it caused PostgreSQL error 42P17 (infinite recursion) for every authenticated SELECT on business_settings — a real, live production regression affecting every real user's dashboard load, not only the Admin panel. It was caught immediately via the mandated post-execution verification step (not left running) and rolled back within the same session: DROP POLICY IF EXISTS "Super admins can view all business settings" ON public.business_settings;. Authenticated SELECT was confirmed fully restored afterward. No data corruption occurred — the incident was RLS-policy-only; no rows were read, written, or lost at any point.
+
+The subsequent redesign replaced the self-referential subquery with the non-recursive public.is_super_admin() SECURITY DEFINER helper documented above. This works because a SECURITY DEFINER function executes with its owner's privileges (postgres, the table owner, with no FORCE ROW LEVEL SECURITY set on business_settings) — which bypasses business_settings' own RLS for the helper's internal lookup, breaking the recursion by construction rather than by coincidence. The helper and the final SELECT policy were each implemented and live-verified as separate, explicitly-authorized stages before being combined into the policy above.
+
+Existing UPDATE policy — OPEN follow-up, deliberately NOT touched by this item:
+
+"Super admins can update all business settings" (pre-existing, unrelated in origin to the work above) still uses the same class of self-referential EXISTS subquery pattern:
+
+EXISTS (SELECT 1 FROM business_settings business_settings_1 WHERE business_settings_1.user_id = auth.uid() AND business_settings_1.role = 'super_admin')
+
+This was explicitly re-verified live as part of this item and does NOT currently recurse — UPDATE policies do not face the same SELECT-resolves-itself dependency that caused 42P17 for the SELECT case above. It is not broken today. However, the pattern is structurally the same fragile shape, and is explicitly flagged here as a known, currently-safe-but-fragile item for future hardening (replace the inline subquery with public.is_super_admin(), mirroring the SELECT policy above). It was deliberately left unmodified in this item, per explicit owner decision, because it was not required to restore Admin visibility. Do not describe it as broken; do not modify it without a separate, explicitly authorized task.
+
+business_settings policy count — current verified total: 7 (was 6 at the Stage C baseline described in §18.G, before this item added the SELECT policy):
+
+"Owners can manage business settings" (ALL, ownership — pre-existing)
+
+"Restrict business_settings insert to role=user" (§17.B)
+
+"Restrict business_settings insert to safe free or legitimate trial" (§17.E)
+
+"Super admins can update all business settings" (pre-existing; flagged above as an open follow-up)
+
+"Super admins can view all business settings" (NEW — this item)
+
+"Users can insert own settings" (ownership — pre-existing)
+
+"Users can update own settings" (ownership — pre-existing)
+
+Status: LIVE in the backend now, fully independent of the still-uncommitted frontend Admin UI redesign described in §19.A — the backend objects above do not depend on that frontend work, and the frontend work does not depend on any further backend change. Do not describe this backend item as "pending" — it is live and verified; only (a) its lack of a Git artifact, by design, consistent with this document's no-in-repo-migrations convention, and (b) the separately-tracked uncommitted frontend Admin UI changes (see the Git / Release State section) are actually pending.
+
 Near-Term Product/Security Work Queue — VERIFIED DECISIONS / OPEN WORK
 
-19.A Admin UI / Account-State redesign — OPEN, previously audited
+19.A Admin UI / Account-State redesign — PARTIALLY IMPLEMENTED (visual/exclusion redesign done and owner-approved; Account-State track itself remains OPEN, see below)
 
-Do not infer Lifetime from trial_ends_at=NULL. Lifetime is an explicit Super Admin grant chosen intentionally for selected users (e.g. non-paying permanent access) and requires a durable distinct state in the future Account-State design.
+Do not infer Lifetime from trial_ends_at=NULL as a general Account-State design principle. Lifetime is an explicit Super Admin grant chosen intentionally for selected users (e.g. non-paying permanent access) and requires a durable distinct state in the future Account-State design. (Note: the current frontend derivation, unchanged by this redesign, still treats trial_ends_at=NULL as Lifetime for every account, Super Admin included — see AdminUsersTab.jsx's/UserDetailsModal.jsx's getAccountDerived()/isLifetime logic. This pre-existing gap was not in scope for and was not touched by the redesign below; it remains open for the future Account-State work.)
 
-Product intent:
+Current implemented and owner-browser-approved state (AdminUsersTab.jsx, UserDetailsModal.jsx, Dashboard.jsx — uncommitted, see Git/Release State):
+
+Super Admin account is excluded entirely from the managed-user table and mobile cards (AdminUsersTab.jsx's managedAccounts/activeAccountsList, filtered on role !== 'super_admin').
+
+Super Admin is excluded from every managed-user KPI (Total Users, Local, International, Active-recent, New Users list/count) — all now derive from the same managedAccounts array, not the raw fetched account list.
+
+Super Admin's own authentication/authorization is completely unchanged by this exclusion — it is a client-side rendering/aggregation filter only, applied after the existing fetchAllAccounts() query; it does not touch auth, the DB, RLS, or the is_super_admin()/RLS work in §18.M.
+
+Owner-verified visible managed-user count: 5 ordinary users (consistent with the live is_super_admin() backend-visibility count of 6 total rows minus 1 excluded Super Admin — see §18.M).
+
+The obsolete "Super Admin should always sort/pin to the top" product-intent bullet from an earlier version of this section is corrected here: that pinning logic was implemented in an earlier pass and has since been removed as conclusively dead code, once Super Admin was excluded from the list entirely (a row that never renders cannot be usefully pinned). Do not re-implement Super Admin pinning; the approved, current behavior is exclusion, not pinning.
+
+Diagnostics/email-test controls (the live Resend test-send capability) were moved into a single collapsed-by-default "Diagnostics" panel, separated from the primary user-management flow — the capability itself (calling the trial/subscription-expiration Edge Functions in test mode) is unchanged, only its position/visibility changed.
+
+The former per-row email-test buttons (one set of Send-Hebrew/Send-English buttons per user row) were removed; the single Diagnostics-panel form (free-text recipient email) replaced them.
+
+The former subscription_ends_at Admin date-picker and "Paid - Active" subscription UI were removed entirely (see the dead-code list below in this section) — this UI could not be trusted since the underlying subscription_ends_at live-schema existence was never actually confirmed (see the subscription_* follow-up above) and there is still no real billing/payment backend (§19.C).
+
+Trial expiration date remains visible for every non-Lifetime managed user (table + mobile cards).
+
+Remaining trial time/status text (getRemainingTimeFormatted()) remains visible, unchanged.
+
+Trial Extension (the 14-day extend button, handleExtendTrial14Days) remains available and uses the exact same existing handler/behavior as before this redesign — not touched.
+
+Ordinary-user Plan/Region/Role/Lifetime/Trial display remains fully data-driven from acc.role/acc.plan/acc.trial_ends_at/acc.country via getAccountDerived() — unchanged by the redesign, no hardcoded values introduced.
+
+The Actions column itself (Eye/Reset/Delete buttons, their icons and layout) was not redesigned or touched in this pass; visual alignment became consistent purely as a side effect of the Super Admin row (with different action buttons than ordinary rows) being excluded from the table.
+
+User Details modal (UserDetailsModal.jsx) — visual cleanup, owner-approved, uncommitted:
+
+Restyled to the dark/neon ProFlow theme (consistent with the rest of the redesigned Admin UI).
+
+Horizontal separator lines between info rows were removed (the shared row() helper's borderBottom style dropped; row spacing/padding otherwise unchanged).
+
+Business address is now displayed as street, city (comma + one space, no pipe, no parentheses) instead of the raw stored value. The underlying stored data is unchanged — business_settings.address is still saved as the same pipe-delimited street|city|state|zip string (see SettingsTab.jsx); this is a display-only parse (formatAddressCity()) done at render time. Missing values are handled safely: only street shown if city is absent (no trailing comma), only city shown if street is absent (no leading comma), and the pre-existing "Not provided"/"לא הוזנה" fallback text is preserved if both are absent or the address predates the pipe-delimited format's 4-part shape.
+
+No account-state logic (isSuperAdminUser/isLifetime/displayPlan/isTrialActive derivation) was changed in this cleanup.
+
+Confirmed dead/removed from src/ during this Admin UI redesign (verified via repository-wide grep — zero remaining references):
+
+handleUpdatePlanOnly
+
+handleAdminPlanChange
+
+handleSetSubscriptionEndDate (see the corrected subscription_* follow-up above)
+
+isPaidSubscriber
+
+TEST_EMAIL_ALLOWLIST
+
+the obsolete aIsSuperAdmin/bIsSuperAdmin pinning comparator in Dashboard.jsx's sort logic
+
+Product intent (original, retained for context — not all of it has been acted on yet):
 
 new user receives a 14-day full PRO trial across PRO features;
 
@@ -1572,13 +1704,9 @@ BASIC is differentiated to encourage upgrade to PRO;
 
 Admin "package" indicators must clearly represent all real states;
 
-Super Admin should always sort/pin to the top independent of selected sort;
+Admin package/status icons should be vertically aligned/cleanly presented — DONE, owner-verified in browser as a side effect of the Super Admin exclusion above.
 
-Admin package/status icons should be vertically aligned/cleanly presented;
-
-unnecessary manual admin email-sending controls are candidates for removal; user deletion remains required.
-
-Account-State work remains a separate controlled track. Ordinary authenticated users must ultimately have zero direct write authority over plan/entitlement/trial/subscription/role state; legitimate transitions should route through protected server/RPC/webhook/job mechanisms. Do not implement this merely from the summary here — re-audit the current live schema/code before any change.
+Account-State work remains a separate, still-OPEN controlled track — NOT addressed by the redesign above. Ordinary authenticated users must ultimately have zero direct write authority over plan/entitlement/trial/subscription/role state; legitimate transitions should route through protected server/RPC/webhook/job mechanisms. Do not implement this merely from the summary here — re-audit the current live schema/code before any change.
 
 19.B Email automation requirements — OPEN / product requirement
 

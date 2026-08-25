@@ -730,62 +730,6 @@ export default function Dashboard() {
     }
   }
 
-  async function handleUpdatePlanOnly(accountId, newPlan) {
-    if (!accountId || !newPlan) return;
-    const { error } = await supabase
-      .from('business_settings')
-      .update({ plan: newPlan })
-      .eq('id', accountId);
-
-    if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון החבילה: ' + error.message : 'Error updating plan: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'החבילה עודכנה בהצלחה!' : 'Plan updated successfully!', type: 'success' });
-      fetchAllAccounts();
-    }
-  }
-
-  async function handleAdminPlanChange(accountId, newPlan) {
-    if (!newPlan) return;
-    const updatePayload = { plan: newPlan };
-    
-    if (newPlan !== 'free') {
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 14);
-      updatePayload.trial_ends_at = trialEndDate.toISOString();
-    } else {
-      updatePayload.trial_ends_at = null;
-    }
-
-    let { data, error } = await supabase
-      .from('business_settings')
-      .update(updatePayload)
-      .eq('id', accountId)
-      .select();
-
-    if ((error || !data || data.length === 0) && accountId) {
-      const targetAcc = allAccounts.find(a => a.id === accountId);
-      if (targetAcc && targetAcc.user_id) {
-        const res = await supabase
-          .from('business_settings')
-          .update(updatePayload)
-          .eq('user_id', targetAcc.user_id)
-          .select();
-        data = res.data;
-        error = res.error;
-      }
-    }
-    
-    if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון חבילת המשתמש: ' + error.message : 'Error updating user plan: ' + error.message);
-    } else if (!data || data.length === 0) {
-      setAlertModalMsg(isHebrew ? 'שגיאה: מדיניות RLS חסמה את העדכון.' : 'Error: RLS policy blocked update on business_settings.');
-    } else {
-      setStatusMsg({ text: isHebrew ? 'חבילת המשתמש עודכנה בהצלחה!' : 'User plan updated successfully!', type: 'success' });
-      fetchAllAccounts();
-    }
-  }
-
   async function handleToggleLifetime(accountId, currentTrialEnds) {
     const newTrialEnds = currentTrialEnds === null ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
     const updatePayload = { trial_ends_at: newTrialEnds };
@@ -2640,8 +2584,6 @@ export default function Dashboard() {
                 sortField={sortField}
                 sortDirection={sortDirection}
                 liveTick={liveTick}
-                handleUpdatePlanOnly={handleUpdatePlanOnly}
-                handleAdminPlanChange={handleAdminPlanChange}
                 handleExtendTrial14Days={handleExtendTrial14Days}
                 setPendingLifetimeUser={setPendingLifetimeUser}
                 handleToggleLifetime={handleToggleLifetime}

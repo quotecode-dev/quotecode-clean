@@ -1,3 +1,4 @@
+import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   if (!isOpen || !user) return null;
@@ -6,26 +7,26 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   if (user.isNewUsersListModal) {
     const usersList = user.users || [];
     return (
-      <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-        <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '550px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-          
-          <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
+      <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+        <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '550px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
 
-          <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: NEON.textMuted, fontWeight: 'bold' }}>✕</button>
+
+          <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800', ...neonGlowTextStyle }}>
             {isHebrew ? 'משתמשים חדשים ב-24 השעות האחרונות' : 'New Users (Last 24 Hours)'}
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '60vh', overflowY: 'auto' }}>
             {usersList.length === 0 ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '20px' }}>{isHebrew ? 'אין משתמשים חדשים ב-24 השעות האחרונות.' : 'No new users in the last 24 hours.'}</p>
+              <p style={{ color: NEON.textMuted, textAlign: 'center', padding: '20px' }}>{isHebrew ? 'אין משתמשים חדשים ב-24 השעות האחרונות.' : 'No new users in the last 24 hours.'}</p>
             ) : (
               usersList.map((u, idx) => (
-                <div key={idx} style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${NEON.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{u.email || 'N/A'}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.business_name || (isHebrew ? 'עסק חדש' : 'New Business')} | {u.country || 'Local'}</div>
+                    <div style={{ fontWeight: 'bold', color: NEON.textPrimary }}>{u.email || 'N/A'}</div>
+                    <div style={{ fontSize: '0.75rem', color: NEON.textMuted }}>{u.business_name || (isHebrew ? 'עסק חדש' : 'New Business')} | {u.country || 'Local'}</div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 'bold' }}>
+                  <div style={{ fontSize: '0.75rem', color: NEON.violetLight, fontWeight: 'bold' }}>
                     {u.created_at ? new Date(u.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                 </div>
@@ -34,7 +35,7 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
           </div>
 
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <button onClick={onClose} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 24px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>
+            <button onClick={onClose} style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '9px 24px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', boxShadow: NEON.glow }}>
               {isHebrew ? 'סגור חלון' : 'Close'}
             </button>
           </div>
@@ -52,69 +53,88 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
   const displayPlan = (isSuperAdminUser || isLifetime) ? 'PRO' : rawPlan.toUpperCase();
 
-  return (
-    <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-      <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '450px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-        
-        <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
+  // מצב מנוי - רק Lifetime וניסיון (עדיין בתוקף / פג) הם עובדות שניתן להוכיח
+  // מהנתונים הקיימים. אין עדיין חיבור סליקה אמיתי, כך שאין כאן ניסוח שמרמז
+  // על תשלום מאומת - ר' מפרט הרדיזיין של ה-Admin UI.
+  const isTrialActive = !isLifetime && !!user.trial_ends_at && new Date(user.trial_ends_at).getTime() > Date.now();
 
-        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+  const row = (label, value, opts = {}) => (
+    <div style={{ paddingBottom: '8px' }}>
+      <strong style={{ color: NEON.textMuted, display: 'inline-block', width: '130px', fontWeight: '600', fontSize: '0.78rem' }}>{label}</strong>
+      <span dir={opts.ltr ? 'ltr' : undefined} style={{ fontWeight: '600', color: opts.color || NEON.textPrimary }}>{value}</span>
+    </div>
+  );
+
+  // כתובת עסק מאוחסנת כמחרוזת מאוחדת "רחוב|עיר|מדינה/אזור|מיקוד" (ר' SettingsTab.jsx).
+  // מציגים "רחוב, עיר" קריא, ללא "|", ללא סוגריים, וללא פסיק מיותר כשחסר ערך אחד.
+  const formatAddressCity = (rawAddress) => {
+    if (!rawAddress) return '';
+    const parts = rawAddress.split('|');
+    if (parts.length >= 4) {
+      const street = (parts[0] || '').trim();
+      const city = (parts[1] || '').trim();
+      if (street && city) return `${street}, ${city}`;
+      return street || city || '';
+    }
+    return rawAddress.trim();
+  };
+  const addressCityDisplay = formatAddressCity(user.address);
+
+  return (
+    <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
+      <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+
+        <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: NEON.textMuted, fontWeight: 'bold' }}>✕</button>
+
+        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
 
-        <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
+        <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800', ...neonGlowTextStyle }}>
           {isHebrew ? 'פרטי משתמש מלאים' : 'User Full Details'}
         </h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem', color: '#334155' }}>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'אימייל:' : 'Email:'}</strong>
-            <span dir="ltr" style={{ fontWeight: '600', color: '#0f172a' }}>{user.email || user.user_email || 'N/A'}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'שם העסק:' : 'Business Name:'}</strong>
-            <span style={{ fontWeight: '600', color: '#0f172a' }}>{user.business_name || 'New Business'}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'}</strong>
-            <span dir="ltr" style={{ fontWeight: '600', color: '#0f172a' }}>{user.tax_id || (isHebrew ? 'לא הוזן' : 'Not provided')}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'טלפון עסק:' : 'Phone:'}</strong>
-            <span dir="ltr" style={{ fontWeight: '600', color: '#0f172a' }}>{user.phone || (isHebrew ? 'לא הוזן' : 'Not provided')}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'כתובת עסק:' : 'Address:'}</strong>
-            <span style={{ fontWeight: '600', color: '#0f172a' }}>{user.address || (isHebrew ? 'לא הוזנה' : 'Not provided')}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'חבילה פעילה:' : 'Plan:'}</strong>
-            <span style={{ fontWeight: 'bold', color: isGrantedLifetimePro ? '#7c3aed' : '#4f46e5', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem', color: NEON.textSecondary }}>
+          {row(isHebrew ? 'אימייל:' : 'Email:', user.email || user.user_email || 'N/A', { ltr: true })}
+          {row(isHebrew ? 'שם העסק:' : 'Business Name:', user.business_name || 'New Business')}
+          {row(isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:', user.tax_id || (isHebrew ? 'לא הוזן' : 'Not provided'), { ltr: true })}
+          {row(isHebrew ? 'טלפון עסק:' : 'Phone:', user.phone || (isHebrew ? 'לא הוזן' : 'Not provided'), { ltr: true })}
+          {row(isHebrew ? 'כתובת עסק:' : 'Address:', addressCityDisplay || (isHebrew ? 'לא הוזנה' : 'Not provided'))}
+          {row(
+            isHebrew ? 'חבילה פעילה:' : 'Plan:',
+            <span style={{ fontWeight: 'bold', color: isGrantedLifetimePro ? NEON.violetLight : NEON.sky, textTransform: 'uppercase' }}>
               {displayPlan}{isGrantedLifetimePro ? (isHebrew ? ' (לכל החיים)' : ' (Lifetime)') : ''}
             </span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'אזור פעילות:' : 'Region:'}</strong>
-            <span style={{ fontWeight: 'bold', color: (user.country || 'Local') === 'Local' ? '#166534' : '#991b1b' }}>{user.country === 'International' ? 'Intl' : 'LCL'}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'הרשאה (Role):' : 'Role:'}</strong>
-            <span style={{ fontWeight: '600', color: user.role === 'super_admin' ? '#ef4444' : '#0f172a' }}>{user.role || 'user'}</span>
-          </div>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'סטטוס מנוי:' : 'Subscription:'}</strong>
-            <span style={{ fontWeight: '600', color: '#7c3aed' }}>
-              {isLifetime ? (isHebrew ? '♾️ מנוי לכל החיים (Lifetime)' : 'Lifetime Active') : (isHebrew ? `ניסיון פעיל עד ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}` : `Trial until ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}`)}
+          )}
+          {row(
+            isHebrew ? 'אזור פעילות:' : 'Region:',
+            <span style={{ fontWeight: 'bold', color: (user.country || 'Local') === 'Local' ? NEON.emerald : NEON.red }}>
+              {user.country === 'International' ? 'Intl' : 'LCL'}
             </span>
-          </div>
+          )}
+          {row(
+            isHebrew ? 'הרשאה (Role):' : 'Role:',
+            user.role || 'user',
+            { color: isSuperAdminUser ? NEON.red : NEON.textPrimary }
+          )}
+          {row(
+            isHebrew ? 'סטטוס מנוי:' : 'Subscription:',
+            <span style={{ fontWeight: '600', color: NEON.violetLight }}>
+              {isLifetime
+                ? (isHebrew ? '♾️ מנוי לכל החיים (Lifetime)' : 'Lifetime Active')
+                : isTrialActive
+                  ? (isHebrew ? `ניסיון פעיל עד ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}` : `Trial active until ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}`)
+                  : (isHebrew ? `הניסיון פג בתאריך ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}` : `Trial expired on ${new Date(user.trial_ends_at).toLocaleDateString('en-GB')}`)}
+            </span>
+          )}
           <div>
-            <strong style={{ color: '#64748b', display: 'inline-block', width: '120px' }}>{isHebrew ? 'כניסה אחרונה:' : 'Last Sign In:'}</strong>
-            <span dir="ltr" style={{ fontWeight: '600', color: '#0f172a' }}>{user.last_sign_in ? new Date(user.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
+            <strong style={{ color: NEON.textMuted, display: 'inline-block', width: '130px', fontWeight: '600', fontSize: '0.78rem' }}>{isHebrew ? 'כניסה אחרונה:' : 'Last Sign In:'}</strong>
+            <span dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary }}>{user.last_sign_in ? new Date(user.last_sign_in).toLocaleString('en-GB') : 'N/A'}</span>
           </div>
         </div>
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button onClick={onClose} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px 24px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>
+          <button onClick={onClose} style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '9px 24px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', boxShadow: NEON.glow }}>
             {isHebrew ? 'סגור חלון' : 'Close'}
           </button>
         </div>
