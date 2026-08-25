@@ -107,8 +107,8 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
+    const adminClient = createClient(supabaseUrl, secretKey);
 
     const bounceReason = event?.data?.bounce?.message || event?.data?.bounce?.type || eventType;
 
