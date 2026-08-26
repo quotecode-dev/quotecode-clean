@@ -1824,9 +1824,179 @@ Critical preservation rule for this feature, whenever it is eventually built: it
 
 Mandatory next step, NOT done here: before any implementation, a separate READ-ONLY audit must determine the smallest safe unread/read-state mechanism. That audit must specifically inspect whether an existing state mechanism (e.g. a timestamp comparison against the Super Admin's last-viewed time, a client-side marker, or similar) can be reused before proposing any DB/schema change — do not assume a new DB column/table is necessary; that must be a conclusion of the audit, not a starting assumption. This entry documents the requirement and constraints only; it is not authorization to begin that audit or any implementation, and does not change the owner-driven work-order rule (§3 above) — this remains OPEN until the owner explicitly asks to start it.
 
+18.W chat_logs — RLS/table-privilege security hardening — FIXED + VERIFIED (applied manually live in Supabase by the project owner; database-only, no in-repo migration file, consistent with this document's existing no-migrations convention)
+
+Finding, live-confirmed before the fix: public.chat_logs had RLS DISABLED with no policies at all, and anon/authenticated/service_role all held the full table-privilege set (DELETE/INSERT/REFERENCES/SELECT/TRIGGER/TRUNCATE/UPDATE). Live-tested exploit confirmation: an ordinary authenticated TEST account (PROFLOW_TEST_USER1, role='user', not an admin) performed a minimal direct Data API request (`select=id&limit=5`, no sensitive columns fetched) against public.chat_logs and received HTTP 200 with 5 rows — the intended super_admin-only /ai-logs UI guard (AILogs.jsx) was confirmed to be the only thing standing in the way, i.e. no server-side enforcement existed at all.
+
+Read-only repository dependency audit performed before the fix (unchanged, re-confirmed at fix time): sole writer is supabase/functions/chat-ai/index.ts (INSERT only, via the legacy SUPABASE_SERVICE_ROLE_KEY — service_role bypasses RLS unconditionally regardless of any policy state); sole legitimate reader is src/pages/AILogs.jsx (SELECT via the authenticated user's own JWT, full-table `select('*')`, client-side search/filter, no pagination); no legitimate UPDATE/DELETE/UPSERT path exists anywhere in the repository against this table; no legitimate anon access path exists anywhere. AIChatWidget.jsx never queries this table directly.
+
+Fix applied, live in Supabase (no application file touched):
+
+RLS ENABLED on public.chat_logs.
+
+Exactly one policy created: "Super admins can view all chat logs" — FOR SELECT TO authenticated USING (public.is_super_admin()). Reuses the existing SECURITY DEFINER helper already live-verified non-recursive for business_settings (§18.M) — no new database function was created. No INSERT/UPDATE/DELETE policy exists on this table.
+
+Grants: anon reduced to NONE (no table privileges at all). authenticated reduced to SELECT only (INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER revoked). service_role left unchanged, retaining DELETE/INSERT/REFERENCES/SELECT/TRIGGER/TRUNCATE/UPDATE (never client-reachable, so this carries no public exposure risk; narrowing it was not required by the writer's actual needs and was not attempted).
+
+Verification evidence, live-tested:
+
+Post-fix, PROFLOW_TEST_USER1's direct Data API SELECT (`select=id&limit=5`) returned HTTP 200 with `[]` — zero rows, the expected result given the new policy and USER1's non-admin role.
+
+Super Admin AI Support Logs was manually verified by the project owner post-fix: historical logs remained visible; search was manually verified working; categories remained visible/filterable, including GENERAL, FEATURE_REQUEST and HARD_QUESTION explicitly confirmed.
+
+No evidence that any historical chat_logs row was altered or deleted by this fix.
+
+No application source code was changed for this fix — chat-ai/index.ts, AILogs.jsx, AIChatWidget.jsx, and Dashboard.jsx were all re-confirmed unchanged, consistent with the pre-fix dependency audit's conclusion that the existing reader/writer code paths are already compatible with this exact RLS design.
+
+chat-ai's service_role credential/architecture was not touched by this fix — it remains on the legacy SUPABASE_SERVICE_ROLE_KEY per §18.P; that migration track is fully independent of and unaffected by this table-level RLS change (service_role bypasses RLS under either the legacy or the modern SUPABASE_SECRET_KEYS credential form).
+
+Local/International AI market-separation behavior (§3/§18.U) was not changed and is architecturally independent of this fix — the chat_logs INSERT is a post-response side-effect that runs via service_role regardless of the RLS/policy state on the table.
+
+What was NOT verified as part of this fix, stated explicitly so this is never overclaimed: CANCELLATION category visibility was not separately named as re-confirmed (only GENERAL/FEATURE_REQUEST/HARD_QUESTION were). The four-context AI Chat functional flows (Hebrew/International × landing/authenticated) were not independently re-run as live functional tests against this specific fix — their non-interaction with chat_logs RLS is an architectural conclusion from the dependency audit (the INSERT path uses service_role, unaffected by RLS), not a claim that all four were freshly live-tested here. A later same-session attempt to re-confirm PROFLOW_TEST_USER2's direct SELECT against this table could not be completed because USER2 could not be authenticated at all (see §18.X below) — this is a gap in verification coverage, not evidence of any problem with the fix itself.
+
+Status: 🟢 FIXED + VERIFIED (the chat_logs anon/ordinary-authenticated exposure itself). Do not describe every possible regression scenario as completed — see the explicit NOT-verified list immediately above.
+
+18.X TEST account auth / QA reliability — OPEN, unrelated to and must NOT be described as a chat_logs regression
+
+Observed: PROFLOW_TEST_USER2 could not authenticate using the credentials currently stored in .env, even though the project owner states USER2's password was not changed during the earlier password-reset-request test (that test only requested a reset email and never consumed/completed it, consistent with the owner's statement that the password itself should be unchanged).
+
+Observed: later PROFLOW_TEST_USER1 browser re-login attempts in the same QA session were inconsistent — most attempts did not even trigger a network auth request at all (consistent with a known browser-automation pitfall: bypassing a React-controlled input's change events leaves the form's internal state stale even though the visible DOM value looks correct), and one attempt did reach the server and returned a generic credential-rejection response.
+
+Explicitly NOT done, and must not be assumed done: no password was reset, .env was not modified, Supabase Auth was not modified, and the root cause (stale credentials vs. QA browser-automation reliability vs. something else) was not investigated or fixed.
+
+Status: OPEN — requires its own separate, controlled, read-only audit before any action is taken. This is a TEST-account/QA-tooling reliability question, not a security finding, and must never be conflated with or cited as evidence against the chat_logs fix above, which was independently confirmed via a session that was successfully authenticated at the time of that specific check.
+
+18.Y International (and Local) signup / email-confirmation / market-bootstrap — ARCHITECTURE AUDIT COMPLETE, GO WITH CONDITIONS, NOT IMPLEMENTED
+
+Trigger: a fresh, explicitly-approved International TEST signup (PROFLOW_TEST_INTL_EMAIL, credentials only in .env, values never recorded here) was performed through the real International signup UI specifically to reproduce and diagnose a suspected signup/confirmation defect.
+
+Reproduction, live-verified this session:
+
+Auth signup succeeded through the real International UI. No active Supabase session was created immediately after signUp() (email confirmation is enabled on this project). The English confirmation email was received from info@quotecodepro.com and manually clicked by the project owner. Verification succeeded. Live auth.users check afterward (owner-performed): the row exists, email_confirmed_at is populated, last_sign_in_at is populated. The confirmation redirect landed on the Hebrew/Israel root landing page, not an International destination. Live business_settings check afterward (owner-performed): ZERO rows for this email.
+
+Resulting state, deliberately preserved as a reproduction case — do NOT repair, delete, recreate, or manually insert business_settings for this account without explicit separate authorization:
+
+Auth: EXISTS + CONFIRMED. business_settings: MISSING.
+
+Root cause, fully traced by re-reading the actual live entry point (src/main.jsx renders AppLocal.jsx/AppGlobal.jsx directly — src/App.jsx, which has its own separate signUp/routing logic, is NOT the live entry point and is not part of this trace):
+
+(1) The one shared signUp() call, used identically by both markets (Dashboard.jsx, inside the auth form handler), is invoked with no options object at all — no emailRedirectTo, no metadata. This is not International-specific; Local signups have the exact same code and the exact same gap.
+
+(2) With no emailRedirectTo, Supabase falls back to the project's Site URL, landing the confirmation click on the bare domain root.
+
+(3) Neither LandingLocal.jsx nor LandingGlobal.jsx contains any session-awareness at all (confirmed by direct grep — zero getSession/onAuthStateChange references) — a valid, confirmed session sitting in localStorage after confirmation is never detected or acted on there.
+
+(4) The only code that creates a business_settings row (fetchSettings()/createNewBusinessSettings(), both defined inside Dashboard.jsx, triggered only by Dashboard.jsx's own mount effect and its onAuthStateChange SIGNED_IN handler) therefore never runs, because Dashboard.jsx never mounts at the landing-page URL the confirmation redirect actually reaches.
+
+(5) Separately, main.jsx's bundle-selection cascade (query lang param -> /en//he path prefix -> localStorage.proflow_lang -> proflow_geo_country cookie -> browser language) re-resolves market completely fresh at that bare-root URL, independent of which market the user actually signed up under -> this is the direct, confirmed mechanism behind the Hebrew-landing-page redirect.
+
+Architecture decision, resolved this session (explicitly correcting an earlier ambiguity in the first pass of this audit, which left createNewBusinessSettings() still leaning on fresh geo for creation-time market even after proposing signup_market metadata):
+
+Authoritative market source of truth, three tiers, strictly narrowing, never re-widening:
+
+Tier 1: business_settings.country - permanent authority once a profile row exists, unchanged forever after (already true today, unaffected by this fix).
+
+Tier 2: auth.user_metadata.signup_market - authoritative ONLY for the one-time creation of a genuinely missing profile. Captured at the exact instant signUp() is called, from whichever bundle (isHebrew) the user was actually viewing.
+
+Tier 3: fresh geo lookup / explicit user region-choice screen (today's existing mechanism, unchanged) - fallback ONLY when tier 2 is unavailable (e.g. a pre-fix legacy account, like the current TEST International reproduction case, whose metadata was never populated).
+
+user_metadata trust-boundary conclusion (Task 6 of the architecture audit): an authenticated user CAN freely rewrite their own user_metadata at any time via auth.updateUser() - this is standard Supabase behavior, unlike app_metadata which only a service_role call can write. Therefore signup_market must be consumed ONLY inside the one existing branch that already gates all profile creation (fetchSettings's "no row found" branch) and must NEVER be re-read once business_settings exists for that account - this is already guaranteed for free, since that branch is already permanently unreachable once a row exists (unchanged, pre-existing fact). app_metadata would be the stricter choice but requires new server-side signup-hook infrastructure not currently justified by the actual risk (self-selecting one's own brand-new, still-empty account's market is not a privilege-escalation risk in the sense this project's other role/RLS protections guard against).
+
+Recommended architecture (Option C of the compared alternatives - reuse the existing, already-idempotent Dashboard.jsx bootstrap logic; no new route/component): confirmation redirect points at https://www.quotecodepro.com/dashboard (no market needs to be encoded in the URL at all, since metadata now carries it); Dashboard.jsx's existing mount effect/onAuthStateChange handler is left otherwise unchanged and simply gets the chance to run because the user actually lands there.
+
+Live Supabase Auth URL Configuration, current state (owner manually verified and then owner manually changed, this session - see below):
+
+Site URL: https://www.quotecodepro.com (unchanged).
+
+Redirect URLs, before the owner's manual addition: https://quotecode.vercel.app/ and https://www.quotecodepro.com only - confirmed by the owner via Supabase Dashboard -> Authentication -> URL Configuration.
+
+Manual owner action, live, this session: the project owner added https://www.quotecodepro.com/dashboard to the Redirect URLs allow-list. Nothing was removed. Site URL was not changed. The old Vercel URL was intentionally left in place.
+
+Current live Redirect URLs, as a result: https://quotecode.vercel.app/, https://www.quotecodepro.com, https://www.quotecodepro.com/dashboard.
+
+Whether the pre-existing bare-origin entry already covered /dashboard before this addition is unverified (Supabase's own redirect-URL matcher semantics for a bare-origin vs. a specific subpath were not testable from any session in this engagement) - the addition was made out of caution regardless; live behavioral confirmation (does a fresh signup/confirmation now actually land on /dashboard) remains an outstanding Phase-0 verification step, not yet performed.
+
+quotecode.vercel.app reference audit (repo-wide, this session): zero references to vercel.app anywhere in src/ or supabase/ - confirmed by direct grep. Nothing in current application code generates, checks, or depends on that domain for any auth redirect or otherwise. Its presence in the Redirect URL allow-list is inert from the codebase's perspective. Removal or redirection of the old Vercel domain remains a fully separate, independently-scoped issue (see the earlier canonical-domain-cutover audit in this document's history) and must not be bundled into this signup fix.
+
+Multi-currency / quote-history product rules, owner-restated and cross-referenced against already-documented mechanisms (no new mechanism, clarifying an existing one): International intentionally supports changing the account's active currency between USD/EUR/GBP at any time - this only affects NEW quotes going forward and must never retroactively rewrite existing quotes (mechanism already documented: handleEditClick preserves a quote's original currency/tax_rate on save, per the existing §5 audit note above in this document). One International account can therefore legitimately have quote history spanning multiple currencies simultaneously - this is correct, not leakage. Important owner correction: a historical quote displayed with ₪ inside an International account is not automatically current currency-leakage - a known example exists where the quote was originally created in ILS and cannot simply be changed, and the reason is not merely a soft policy against rewriting history - the quote is signed/approved and therefore immutable under the existing §17.A immutability system (DB triggers + UI/handler guards). Future QA must distinguish CURRENT incorrect ₪ leakage from VALID, locked historical quote data. Separately, the owner demonstrated that changing the selected country/market in business settings intentionally changes the active currency going forward as designed - this is not something to "fix" during International work.
+
+Bilateral regression rule (owner-stated, standing requirement, not new but formally restated here): Local/Israel and International must be evaluated together whenever shared functionality changes. This signup/confirmation defect is a clean example of correct application - it was diagnosed as a shared-code defect affecting both markets equally (Local's signUp() call has the exact same missing emailRedirectTo gap), not an International-only issue, and any future fix must be verified against both markets, not just the one that happened to surface the bug first.
+
+Admin UI standing requirement (restated for permanence, not new): the final Admin/Super Admin UI design remains NOT approved - the current dark/neon UI must not be treated as final. One firm rule already fixed regardless of final design: the users-management table/list must not begin with email as the primary identity column - the primary/first identity shown must be the user/business human-readable name, with email as secondary information. Any future Admin mockup/implementation must preserve this.
+
+Exact minimal implementation plan (design only, NOT implemented, NOT authorized in this entry):
+
+File: src/pages/Dashboard.jsx only. (a) At the existing signUp() call: add options: { emailRedirectTo: window.location.origin + '/dashboard', data: { signup_market: isHebrew ? 'Local' : 'International' } }. (b) Inside fetchSettings()'s missing-profile branch: read session.user.user_metadata?.signup_market first (mapped to 'Local'/'International'), before falling back to the existing fetchFreshGeoCountry() call. No other file, no database object, no RLS policy, no Edge Function requires any change for this fix.
+
+Phased rollout (design only): Phase 0 (live verify whether the new Redirect URL entry actually resolves the confirmation redirect to /dashboard correctly - not yet performed) -> Phase 1 (code change, both edits above, one file) -> Phase 2 (full bilateral Local+International regression matrix, including the specific "confirm from a different-language device/location" test) -> Phase 3 (validate using the existing preserved TEST International account for the bootstrap-path half, plus one fresh post-fix signup for the full metadata-preservation half, per the audit's own Section 16/Task 8 findings).
+
+STOP conditions: do not proceed past Phase 0 without confirming the redirect actually lands on /dashboard. Any regression-matrix failure for either market is a hard stop - this fix must never be considered complete on an International-only pass. Do not bundle this work with the separately-tracked chat_logs work (§18.W, already closed), the TEST-account credential/trial-reset issues (§18.X, this document's trial-reset note above), the restricted-admin-role work, or the old Vercel-domain cutover question.
+
+Status: DESIGN COMPLETE, GO WITH CONDITIONS. Implementation NOT started, NOT authorized by this entry. Next action requires a separate, explicit project-owner authorization.
+
+18.Z P0 — Persistent project continuity system — CREATED, PERMANENT REQUIREMENT
+
+The project owner identified loss of AI-session context as a critical project risk after a prior long conversation reached its limit and significant time was lost re-explaining history, rules, decisions, and current state to a new session.
+
+A new, permanent file was created this session: PROFLOW_PROJECT_CONTEXT.md (repository root, alongside this file). It is the project's persistent operational memory across sessions - not merely a summary. It begins with an explicit "read this first" instruction, contains a full mandatory continuity protocol (required reading order; resume-not-restart discipline; a standing "continuity owner" responsibility on whichever session is currently active; a self-perpetuating rule that every future session inherits responsibility for maintaining it; an explicit list of triggers requiring an update; fact/assumption/design-decision labeling discipline; authorization-state tracking that survives session boundaries; a live "current exact checkpoint" section; anti-staleness and anti-append-forever discipline; manual-owner-action attribution rules; TEST-account documentation rules with an absolute no-secrets constraint; a chat-limit emergency priority rule; and an explicit success criterion), followed by ~30 knowledge sections covering project identity, architecture, both markets' product rules, market source-of-truth rules, currency/quote-history rules, Auth/signup state, business_settings, Supabase/RLS state, the role model, Admin work and UI requirements, chat_logs/AI state, trial/plan rules, production safety, David Aluminum protection, workflow/git rules, TEST-account inventory (no secrets), the bilateral-regression requirement, open issues, closed issues not to be reopened without reason, owner corrections, the current workstream, the current exact checkpoint, the next action, and this maintenance rule itself.
+
+This is a PERMANENT ProFlow workflow requirement, not a one-time migration. Every future session - starting with the very next one - must read PROFLOW_PROJECT_CONTEXT.md first, then PROFLOW_ARCHITECTURE.md, then this file, then resume from the checkpoint recorded in PROFLOW_PROJECT_CONTEXT.md, and must keep all three documents synchronized with actual project state as work proceeds, per the protocol documented in PROFLOW_PROJECT_CONTEXT.md itself.
+
+18.AA P0.1/P0.2 — Architecture documentation audit and remediation - COMPLETE
+
+18.AA.1 P0.1 - Architecture Documentation Audit (read-only)
+
+PROFLOW_ARCHITECTURE.md was read-only audited section-by-section against PROFLOW_PROJECT_CONTEXT.md, this file, and current repository code. Overall classification: MIXED. Findings, summarized (full section-by-section table produced and reviewed by the project owner, not duplicated here):
+
+Remained accurate: project/stack/domain description; VAT rules (18% Local / 0% International); multi-currency/quote-currency-preservation architecture (quote.currency frozen at creation, never renormalized); paywall tiers (Free 5 / Basic 20 / Pro unlimited quotes/month), matching current AdminUsersTab.jsx logic exactly.
+
+Stale/incorrect: the sitemap/robots.txt SEO claims did not match the live files (live sitemap has 11 URLs, not the 6 the document listed; robots.txt has no Disallow rules at all - noindexing of /dashboard and /ai-logs is actually enforced via X-Robots-Tag headers in vercel.json, a deliberate documented choice, not by robots.txt).
+
+Dangerously incomplete: the document contained zero mention of the chat_logs RLS exposure/fix, zero mention of the admin role work, and zero mention of the Auth/signup architecture work - a future session relying on it alone would have no idea any of that had happened.
+
+Dangerous if followed literally: the localization claim ("browser settings + timezone determine language and default currency") describes a far simpler and less safe mechanism than what is actually implemented (see §18.Y above and the rewritten PROFLOW_ARCHITECTURE.md §3 for the real three-layer pre-signup/post-signup distinction). The document's final unnumbered block was a literal, syntactically executable git add . ; commit ; tag ; push sequence with no framing marking it as historical-only - flagged as the single highest-priority remediation item, since a future session instructed to "follow the architecture document" could otherwise interpret it as a standing instruction to auto-commit/push, directly contradicting the explicit no-automatic-commit/push rule this project has followed throughout every task in this engagement.
+
+Remediation strategy selected by the project owner: Option B - substantially rewrite while preserving verified content. (Option A, minimal patch, was judged insufficient given the size of the gaps; Option C, archive as historical and start fresh, was judged wasteful given how much content was still correct.)
+
+18.AA.2 P0.2 - Documentation Remediation (executed, documentation-only)
+
+PROFLOW_ARCHITECTURE.md was substantially rewritten per the Option B strategy above. Preserved near-verbatim: stack/domain, VAT rules, multi-currency/quote-currency-preservation architecture (including the owner's signed-quote-immutability nuance for the historical-ILS-quote example), paywall tiers. Rewritten: the localization/market section, now explicitly separating LIVE current behavior (pre-signup anonymous routing cascade in main.jsx; post-signup business_settings.country permanence) from DESIGN/NOT-YET-IMPLEMENTED behavior (the three-tier signup_market authority from §18.Y), with an explicit warning not to treat the design tier as live. Corrected: the SEO/sitemap/robots.txt section, now matching the live files exactly. Added: full Auth/signup architecture section (§18.Y's findings), a full RLS/security section (business_settings and chat_logs current state, §18.M/§18.W), a role-model/Admin section (current live vs. designed vs. not-started state, plus the Admin-UI name-before-email requirement), a Public Quote/Storage section (including the documented, still-open Storage-cleanup/DELETE-policy gap from §18.J), and an email/WhatsApp section clearly distinguishing repo-verifiable architecture from external, not-repo-verifiable operational setup (Namecheap/Gmail). Removed entirely: the old numbered "Iron Rules" section (replaced with a pointer to PROFLOW_PROJECT_CONTEXT.md as the authority for current workflow/authorization rules) and the executable git command block (deleted outright, not merely commented out).
+
+PROFLOW_PROJECT_CONTEXT.md was updated: a new "Document Hierarchy & Conflict Resolution" section was added (the three-document role split, and the five-part conflict-resolution rule - current-vs-historical first, PROJECT_CONTEXT authoritative for operational/authorization matters, repo/live evidence decisive for technical claims, HANDOFF never rewritten to match current architecture, repo evidence resolves any PROJECT_CONTEXT/ARCHITECTURE technical disagreement); the required reading order was extended to include PROFLOW_ARCHITECTURE.md between this file and PROFLOW_HANDOFF.md; the CURRENT EXACT CHECKPOINT was updated to reflect P0/P0.1/P0.2 completion, with the signup-fix work correctly preserved as the next workstream, not implemented, not authorized by the documentation update itself.
+
+This entry in PROFLOW_HANDOFF.md. No other section of this file was rewritten - existing historical content (§1-§18.Z) was left untouched, per the standing rule that this file preserves historical evidence and is never rewritten merely to match current architecture.
+
+Verification performed before considering this complete: git status confirmed only the three documentation files were modified/untracked (no application file, no .env, no other file); a secret scan of all new/changed documentation content confirmed no password, JWT, service-role key, API key, or token value was introduced anywhere - only environment-variable NAMES are referenced, consistent with the standing no-secrets-in-documentation rule.
+
+Status: COMPLETE. Documentation-only. No code, database, Supabase, Auth, RLS, or TEST-account change was made across P0, P0.1, or P0.2. No commit, push, or deploy occurred - these remain separately gated by explicit project-owner authorization, unaffected by this documentation work.
+
+18.AB P0.3 — ChatGPT <-> GitHub Continuity Verification - COMPLETE, DOCUMENTATION + VERIFICATION ONLY
+
+The project owner connected ChatGPT's official GitHub plugin/connector (discovered in ChatGPT Plugins) to the GitHub account with access to quotecode-dev/quotecode-clean. Permission mode was explicitly set by the owner to "Allow read actions" - described by the ChatGPT UI as "ChatGPT can read without asking, but will ask before making changes." This choice is intentional: the project does not require or want autonomous ChatGPT repository writes for continuity to work.
+
+Live connectivity test performed jointly by the project owner and a ChatGPT session, repository quotecode-dev/quotecode-clean:
+
+ChatGPT successfully fetched PROFLOW_ARCHITECTURE.md directly from the connected GitHub repository - result PASS. This proves the connector reads real, current repository state rather than relying on chat memory or an uploaded copy.
+
+ChatGPT then attempted to fetch PROFLOW_PROJECT_CONTEXT.md - result 404 / NOT FOUND. This was expected and is explicitly NOT a connector failure: at the time of this test, per the P0.2 report, git status showed PROFLOW_ARCHITECTURE.md and PROFLOW_HANDOFF.md as modified-but-uncommitted and PROFLOW_PROJECT_CONTEXT.md as untracked - none of the P0.2 documentation work had been committed or pushed. GitHub therefore correctly did not yet contain PROFLOW_PROJECT_CONTEXT.md at all, and still exposed the pre-P0.2 committed version of PROFLOW_ARCHITECTURE.md. This 404 is itself further, independent confirmation that the connector reads actual GitHub state rather than fabricating a plausible-sounding read.
+
+Documentation updated this session (P0.3, documentation-only, all three files):
+
+PROFLOW_PROJECT_CONTEXT.md: new section recording the verified GitHub-continuity status (repository, connector state, permission mode, both test results, explicit no-write-authorization note); three new Mandatory Continuity Protocol items - a new-session GitHub bootstrap path (read PROJECT_CONTEXT -> ARCHITECTURE -> HANDOFF from the current default branch, in that order, when connector access exists; manual-upload fallback retained, same reading order, when it does not), a working-tree-vs-GitHub freshness rule (a connector read never proves uncommitted local changes are already in GitHub; a 404 or stale content for a known-uncommitted file is expected, correct behavior, not a failure), and an explicit GitHub-connector write-authorization restriction (read access is never, by itself, authorization to write - every GitHub write action remains gated on separate, explicit, per-instance project-owner authorization, identical to the existing commit/push discipline); CURRENT EXACT CHECKPOINT updated to reflect P0.3 completion, the still-not-committed status of the P0 documentation set, and the exact post-approval commit/push/re-test/acceptance-test sequence.
+
+PROFLOW_ARCHITECTURE.md: one small addition only (not a rewrite - P0.2 already completed that work) noting GitHub as the project's persistent version-controlled source and pointing to PROFLOW_PROJECT_CONTEXT.md for the connector's operating rules; the architecture file is explicitly not turned into a connector/ChatGPT manual.
+
+PROFLOW_HANDOFF.md: this entry.
+
+Verified before considering this complete: git status confirmed only the three documentation files were modified/untracked - no application file, no .env, no other file. A secret scan of all new/changed content confirmed no password, JWT, service-role key, API key, OAuth token, or database credential value was introduced anywhere - only the repository name, environment-variable NAMES, and non-secret architectural identifiers appear.
+
+Status: COMPLETE. Documentation + verification only. No GitHub write operation was performed (no commit, no push, no branch, no file edit through the connector or otherwise). No application code, database, Supabase, Auth, or RLS change was made. The three documentation files remain uncommitted in the local working tree, awaiting separate explicit project-owner authorization to commit and push - not granted by this entry.
+
 NEXT SESSION START — read this before touching anything
 
-1. Read this entire PROFLOW_HANDOFF.md first, especially §18.N–§18.V above, before taking any action.
+0. FIRST read PROFLOW_PROJECT_CONTEXT.md in full (see §18.Z above) - it is the project's persistent operational memory and contains the current exact checkpoint. THEN read PROFLOW_ARCHITECTURE.md in full (see §18.AA above for its current, remediated state) - it is the current technical/product architecture reference. THEN read this entire PROFLOW_HANDOFF.md. THEN resume from the CURRENT EXACT CHECKPOINT recorded in PROFLOW_PROJECT_CONTEXT.md - do not restart analysis from scratch, and do not ask the project owner to re-explain anything already documented in any of the three files.
+
+1. Read this entire PROFLOW_HANDOFF.md first, especially §18.N–§18.AB above, before taking any action.
 2. Verify fresh: git status (expect clean), and HEAD == origin/main == 7329efbd77ccbf5312e54e681aaedb1f283edf81 (or whatever it has since become — do not assume this value is still current without checking).
 3. Do NOT immediately modify, deploy, or migrate anything on arrival — confirm the state above matches this document before proceeding.
 4. If resuming the service_role remediation: send-quote-email's and get-public-quote's migrations are now both complete (§18.N/§18.P). The next dependency must be selected from §18.P's remaining list (admin-delete-user, send-subscription-expiration-email, chat-ai, api/cron.js) and audited one at a time under the same discipline used so far — do not pre-select or start one without a fresh, narrow read-only pre-flight and explicit owner authorization first. Note send-subscription-expiration-email (§18.Q) is separately confirmed broken and its credential migration would not fix that; note chat-ai's prompt/classification behavior is separately already fixed (§18.U) — only its credential remains on the legacy key. Per the owner-driven work-order rule (§3 above), do not auto-resume this track merely because it is open — start only when the owner explicitly asks.
