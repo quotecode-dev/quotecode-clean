@@ -2042,11 +2042,69 @@ Follow-up hardening, same phase, working-tree only: a dedicated read-only audit 
 
 Status: IMPLEMENTED IN WORKING TREE / NOT COMMITTED / NOT DEPLOYED / NOT LIVE-TESTED. This must not be described as live, deployed, or verified-in-production until each of those steps is separately performed and separately authorized.
 
+18.AE Signup-market fix - Live functional verification Phases 1 and 2 - INTERNATIONAL NEW-SIGNUP PATH LIVE VERIFIED; LOCAL NOT YET TESTED
+
+Following the authorized commit/push of the signup-market fix (ee4b8a8) and its fail-closed hardening follow-up, two live verification phases were performed this session, using only pre-existing TEST accounts/aliases and read-only/self-authenticated checks - no code, database, Supabase, Auth, or RLS change was made in either phase.
+
+Phase 1 - legacy account (no signup_market), result: country=Local, currency=ILS - explained, not a defect:
+
+The previously-preserved International TEST reproduction account (Auth confirmed, business_settings missing, documented across §18.Y-§18.AD) was logged into normally. Because this account was created before signup_market existed, fetchSettings() correctly found no metadata to consult and fell through to the unchanged, pre-existing geo-fallback tier (fetchFreshGeoCountry() -> /api/geo). That live lookup, for this QA environment's actual network path to Vercel's edge, returned IL. The resulting business_settings row was created with country=Local, currency=ILS, business_name defaulted to the Hebrew "עסק חדש" - confirmed via a safe, self-authenticated RLS-scoped read of the account's own row (never any other account). This is explicitly NOT a signup_market defect - that code path never activated for this account at all, since it has no metadata; it is the exact same fallback behavior this project already had before the fix, now simply observed to resolve to IL because of this QA environment's own apparent geolocation. This account's business_settings row now exists permanently in this state and was left untouched, not repaired, per explicit instruction.
+
+Phase 2 - fresh new signup (has signup_market), result: country=International, currency=USD - the core assertion, proven:
+
+A brand-new Gmail plus-address alias of the same TEST mailbox (never previously registered in ProFlow/Supabase) was used to perform one complete, real International signup through the actual /en UI: International bundle confirmed (lang=en, dir=ltr) before signup: Sign Up submitted, Auth user created, "Sign up successful" shown, no premature session (email confirmation required, as expected). The project owner then manually received and clicked the real Verify Email link from Gmail, confirming it landed on the canonical quotecodepro.com domain (not quotecode.vercel.app). A normal login was then performed live through the QA browser, triggering the real first-authenticated-session bootstrap.
+
+Read directly, self-authenticated, RLS-scoped, no other account touched:
+
+auth session's own user_metadata.signup_market = "International" (read from the session's own JWT payload - confirms the value was correctly captured and persisted at signUp() time, exactly as designed).
+
+business_settings row created by the application: country="International", currency="USD", email and user_id both matching the signed-up account exactly, plan="pro", trial_ends_at ~14 days out, business_name="New Business" (the English default, consistent with country=International), role="user".
+
+UI confirmed English/LTR (document.documentElement.lang='en', dir='ltr'); confirmed zero Hebrew characters and zero ₪ symbols anywhere on the rendered page (both checked programmatically, not just visually). Dashboard loaded successfully - "Logged in successfully" banner, normal empty-account UI (0 quotes, $0.00), no runtime or visible errors.
+
+This directly and completely proves the core assertion this fix exists for: International bundle -> signup_market=International captured at signup -> real email confirmation -> canonical /dashboard redirect -> missing-profile bootstrap -> signup_market wins over Geo -> country=International - even though this exact QA environment's live Geo independently resolves to IL, as directly demonstrated by Phase 1 on the identical network.
+
+Status: INTERNATIONAL NEW-SIGNUP PATH - LIVE FUNCTIONALLY VERIFIED. LOCAL NEW-SIGNUP PATH - NOT YET TESTED. Do not describe the complete bilateral Local+International fix as fully verified until a fresh Local new-signup live test is separately performed and separately authorized - explicitly not done in this entry.
+
+No repair, deletion, or recreation was performed on either TEST account. No other account/production data was accessed or modified. No commit, push, or deploy occurred in either phase - both were read/verify-only against already-committed, already-pushed code.
+
+18.AF Signup-market fix - Live functional verification Phase 3 (Local) - BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION LIVE VERIFIED
+
+Following Phase 2 (§18.AE, International path LIVE VERIFIED), a third live verification phase was performed to test the Local path and complete bilateral verification. As with Phase 2, no code, database, Supabase, Auth, or RLS change was made - read/verify only, against already-committed, already-pushed code (ee4b8a8).
+
+A fresh Gmail plus-address alias of the same TEST mailbox (nimrod1sinai+local2@gmail.com, never previously registered) was used to perform one complete, real Local signup through the actual /he UI: Hebrew/RTL confirmed (document.documentElement.lang='he', dir='rtl') before signup; Sign Up submitted, Auth user created, no premature session (email confirmation required, as expected, matching Phase 2's pattern exactly). The project owner received the real confirmation email at 18:10, addressed exactly to nimrod1sinai+local2@gmail.com, and clicked it once.
+
+Test-contamination correction, recorded explicitly: the browser used for that first confirmation click already had a prior +intl2 (International) session active, so the screen shown immediately after that click was correctly identified as unreliable evidence of which account was actually authenticated - UI language alone must never be used as account identity evidence, since a stale session or cached state can render either language regardless of which account is truly active. This was explicitly not treated as a failure; it was re-verified cleanly instead.
+
+Clean re-verification, performed this session: confirmed no residual Supabase session token existed in the browser (a genuinely clean auth context, not merely a different-looking screen) before signing in explicitly with the +local2 email and its already-established password. After login, identity was verified from the authoritative session/DB source, never from UI text:
+
+session.user.email = "nimrod1sinai+local2@gmail.com" (exact match).
+
+session.user.id = a UUID distinct from the +intl2 account's own user_id, confirming no cross-contamination between the two new TEST identities.
+
+session.user.user_metadata.signup_market = "Local".
+
+business_settings row (read via a safe, self-authenticated, RLS-scoped fetch under this exact session): country="Local", currency="ILS", user_id and email both matching the authenticated session exactly, business_name="עסק חדש" (Hebrew default, consistent with country=Local), plan="pro", trial_ends_at ~14 days out.
+
+document.documentElement.lang='he', dir='rtl'; confirmed programmatically zero "$" characters and the "₪" symbol present on the page.
+
+This completes bilateral verification of the core assertion: Local bundle -> signup_market=Local captured at signup -> real email confirmation -> canonical /dashboard -> missing-profile bootstrap -> signup_market wins -> country=Local, currency=ILS, Hebrew/RTL - verified independently and cleanly, with no contamination from the separately-verified International path.
+
+Status: LOCAL NEW-SIGNUP PATH - LIVE VERIFIED. INTERNATIONAL NEW-SIGNUP PATH - LIVE VERIFIED (§18.AE). BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION - LIVE VERIFIED. This is the completion of the live-verification work for this fix.
+
+Separate, still-open localization findings, recorded only, explicitly NOT investigated or fixed as part of this work (a future, separately-authorized localization audit is the appropriate venue):
+
+International (+intl2): the post-confirmation/login flow transiently displayed Hebrew loading text ("טוען את המערכת...") before the final English Dashboard rendered; the logout-confirmation dialog and the subsequent login screen after logout were also observed in Hebrew for this International account.
+
+Local (+local2): the confirmation email itself arrived in English; the post-signup success message ("Sign up successful! Initializing user profile with free trial...") displayed in English on the Hebrew signup page. Root cause traced (read-only, not fixed): both are driven by the file's local isHebrew variable (isHebrewEnv(bizCountry, session)), whose bizCountry input falls back to a hardcoded 'International' default whenever localStorage.proflow_cached_country is empty - independent of which bundle (/he vs /en) is actually active. This is unrelated to and unaffected by the signup_market fix itself, which captures market via the separate, reliable bundleIsHebrew route prop, not this isHebrew variable - confirmed by the fact that both Phase 2 and Phase 3's actual signup_market/country/currency results were correct despite these cosmetic language glitches occurring alongside them.
+
+No repair, deletion, or recreation was performed on any TEST account (the Phase-1 legacy account, the Phase-2 +intl2 account, or the Phase-3 +local2 account). No other account/production data was accessed or modified. No commit, push, or deploy occurred in this phase.
+
 NEXT SESSION START — read this before touching anything
 
 0. FIRST read PROFLOW_PROJECT_CONTEXT.md in full (see §18.Z above) - it is the project's persistent operational memory and contains the current exact checkpoint. THEN read PROFLOW_ARCHITECTURE.md in full (see §18.AA above for its current, remediated state) - it is the current technical/product architecture reference. THEN read this entire PROFLOW_HANDOFF.md. THEN resume from the CURRENT EXACT CHECKPOINT recorded in PROFLOW_PROJECT_CONTEXT.md - do not restart analysis from scratch, and do not ask the project owner to re-explain anything already documented in any of the three files.
 
-1. Read this entire PROFLOW_HANDOFF.md first, especially §18.N–§18.AD above, before taking any action.
+1. Read this entire PROFLOW_HANDOFF.md first, especially §18.N–§18.AF above, before taking any action.
 2. Verify fresh: git status (expect clean), and HEAD == origin/main == 7329efbd77ccbf5312e54e681aaedb1f283edf81 (or whatever it has since become — do not assume this value is still current without checking).
 3. Do NOT immediately modify, deploy, or migrate anything on arrival — confirm the state above matches this document before proceeding.
 4. If resuming the service_role remediation: send-quote-email's and get-public-quote's migrations are now both complete (§18.N/§18.P). The next dependency must be selected from §18.P's remaining list (admin-delete-user, send-subscription-expiration-email, chat-ai, api/cron.js) and audited one at a time under the same discipline used so far — do not pre-select or start one without a fresh, narrow read-only pre-flight and explicit owner authorization first. Note send-subscription-expiration-email (§18.Q) is separately confirmed broken and its credential migration would not fix that; note chat-ai's prompt/classification behavior is separately already fixed (§18.U) — only its credential remains on the legacy key. Per the owner-driven work-order rule (§3 above), do not auto-resume this track merely because it is open — start only when the owner explicitly asks.
