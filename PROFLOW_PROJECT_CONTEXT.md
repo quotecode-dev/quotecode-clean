@@ -159,7 +159,38 @@ A session must distinguish between (A) repository **working-tree** state as repo
 
 A GitHub read/write connector does **not** change this project's conservative safety model. Even if a connector technically exposes write-capable actions (file edits, commits, branches, merges, pushes), **do not use any of them** — do not modify repository files, create files, delete files, create commits, create branches, merge, push changes, or perform any other GitHub write operation — **unless the project owner separately and explicitly authorizes that specific action.** The current, owner-selected role for any ChatGPT-side GitHub connector is **READ FIRST** — the owner explicitly selected the connector's **"Allow read actions"** permission mode (described in that UI as *"can read without asking, but will ask before making changes"*), and this is intentional: the project does not require or want autonomous repository writes from that integration for continuity to work. Having read access is never, by itself, authorization to write.
 
-### 20. Success Criterion
+### 20. Proactive Continuity Checkpoint (added P0.4)
+
+**The active chat/AI session — not the project owner — is responsible for proactively deciding when a continuity checkpoint is needed.** This responsibility is permanent and self-perpetuating (see item 4) — every future session inherits it automatically. The project owner is explicitly **not** responsible for watching chat length, estimating context-window usage, remembering elapsed time since the last push, remembering to request documentation updates, warning that a session may soon end, or reconstructing work after a session boundary.
+
+**Why this exists**: the GitHub continuity path (item 17) only persists state up to the **latest pushed** checkpoint — a GitHub connector reads committed/pushed state, never Claude's uncommitted working tree (item 18). A real gap was observed where roughly 11 hours of work passed between commits — if a session had ended unexpectedly during that window, a new session would have recovered a checkpoint many hours stale. **"Documentation updated locally" is not equivalent to "continuity safely persisted" — persistence requires an actual push, not just an edit.**
+
+**Checkpoint triggers — consider/prepare a checkpoint when any of these occur** (these are triggers to *prepare*, never authorization to commit):
+1. Roughly 2-3 hours of meaningful project work have accumulated without a documentation push.
+2. A significant audit, investigation, implementation phase, verification, debugging phase, or architectural discussion reaches a stable checkpoint.
+3. Multiple important owner decisions/corrections have accumulated since the last pushed checkpoint.
+4. Current project state or the exact next action has materially changed.
+5. Significant facts exist only in the active conversation or the coding agent's working tree and are not yet recoverable from GitHub.
+6. The conversation has become unusually long or complex.
+7. A deliberate switch to another session/tab is being considered.
+8. There is any reasonable risk that losing the current conversation would force the project owner to explain important work again.
+
+**What the active session must do when a trigger fires**:
+1. Proactively recognize it — do not wait for the project owner to notice.
+2. Determine whether meaningful state exists that isn't yet preserved in the last-pushed documentation.
+3. If yes, tell the project owner a continuity checkpoint is recommended.
+4. Ensure the coding agent updates the appropriate continuity documents with: current verified state, owner decisions/corrections, completed work, incomplete work, working-tree state where relevant, authorization state, open issues/STOP conditions, the CURRENT EXACT CHECKPOINT, and the exact next action.
+5. Review the resulting documentation state.
+6. Request explicit project-owner authorization for a documentation checkpoint commit/push.
+7. Only after that explicit authorization may the coding agent commit/push the documentation checkpoint.
+
+**Documentation checkpoint ≠ application commit.** A continuity checkpoint must never force unfinished application code to be committed. If application work is intentionally incomplete/uncommitted, continuity can still be preserved through a **documentation-only** checkpoint that accurately states application changes exist only in the working tree and are not yet committed/pushed — unfinished application work, accurate documentation of its state, and a documentation-only commit/push can coexist without ever falsely publishing unfinished code as complete.
+
+**Critical authorization rule — this does not change anything about commit/push authorization**: the active session may proactively detect the need, recommend a checkpoint, prepare/update documentation, and request approval — but commit and push still require separate, explicit project-owner authorization, exactly as before. **Never interpret the 2-3 hour trigger, or any other trigger above, as permission to commit or push automatically.** Never interpret "Continuity Owner" responsibility (item 3) as Git authorization.
+
+**Emergency priority**: if session-loss risk appears high, preserving the CURRENT EXACT CHECKPOINT takes priority over starting another non-essential task (this reaffirms and sharpens item 15). At minimum, an emergency checkpoint must let a completely new session answer: what were we working on and why; what was actually completed; what remains incomplete; what did the coding agent last do/report; what did the owner manually do/decide; what exists only in the working tree; what is already committed/pushed; what is authorized; what is NOT authorized; are there active STOP conditions; and what exact action comes next. The owner must never be required to reconstruct these answers themselves.
+
+### 21. Success Criterion
 
 This continuity system succeeds only if a brand-new session can understand what ProFlow is, its architecture, its product rules, its workflow/safety rules, its production constraints, what has happened, what is currently true, what is unresolved, what was just done, what is authorized, what is not authorized, and what happens next — **without asking the project owner to reconstruct previous conversations.**
 
@@ -360,12 +391,13 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 - **Permission mode selected by the owner**: **"Allow read actions"** — described by the ChatGPT UI as *"ChatGPT can read without asking, but will ask before making changes."* Intentional — this project does not require autonomous ChatGPT repository writes for continuity (see Protocol item 19).
 - **Live repository read test**: **PASS** — ChatGPT successfully fetched `PROFLOW_ARCHITECTURE.md` directly from the connected GitHub repository, proving the connector reads real repository state, not chat memory or an uploaded copy.
 - **`PROFLOW_PROJECT_CONTEXT.md` fetch attempt (same test)**: returned **404 / NOT FOUND** — **this was expected and is not a connector failure.** At the time of this test, the P0.2 documentation work (including this file's own creation) existed only in the local working tree — `git status` showed `?? PROFLOW_PROJECT_CONTEXT.md` (untracked) and `M PROFLOW_ARCHITECTURE.md`/`M PROFLOW_HANDOFF.md` (modified, uncommitted) — nothing had been committed or pushed yet. GitHub therefore correctly did not yet contain this file at all, and still contained the **pre-P0.2** version of `PROFLOW_ARCHITECTURE.md`. This is strong, direct evidence the connector reads actual GitHub state (see Protocol item 18).
-- **Write authorization**: none granted or exercised — the connector has read-only intended use per the owner's permission choice; no GitHub write operation has occurred as part of P0.3.
-- **P0 documentation commit/push status as of P0.3**: **NOT YET AUTHORIZED, NOT YET EXECUTED.** See §28/§29.
+- **Write authorization**: none granted or exercised via the ChatGPT connector — the connector has read-only intended use per the owner's permission choice. The documentation-only commit/push itself (below) was performed by the coding agent (Claude), separately explicitly authorized by the project owner, not via the ChatGPT connector.
+- **P0 documentation commit/push — UPDATE, now COMPLETE**: the project owner explicitly authorized, and the coding agent executed, a single documentation-only commit (`docs: establish persistent ProFlow continuity system`, commit `78aba82`) containing exactly the three documentation files, pushed to `origin/main` on `quotecode-dev/quotecode-clean`. Verified post-push via a live `git ls-remote` query against GitHub (not just local tracking state) — local `HEAD` and the remote `main` ref matched exactly.
+- **ChatGPT post-push acceptance test**: **PASSED.** ChatGPT successfully read `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, and `PROFLOW_HANDOFF.md` directly from GitHub after the push — GitHub is now a confirmed, working persistence path for future sessions.
 
 ## §27. Current Workstream
 
-**P0 persistent continuity/documentation infrastructure** (P0 → P0.1 → P0.2 → P0.3, all documentation-only, P0.3 just completed as of this update) — running in parallel with, and currently taking priority over, the still-pending **International/Local signup → email confirmation → `business_settings` bootstrap** fix.
+**P0 persistent continuity/documentation infrastructure** (P0 → P0.1 → P0.2 → P0.3 → P0.4) — running in parallel with, and currently taking priority over, the still-pending **International/Local signup → email confirmation → `business_settings` bootstrap** fix.
 
 **P0** — `PROFLOW_PROJECT_CONTEXT.md` created.
 
@@ -373,29 +405,30 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 
 **P0.2** — Three-document documentation remediation completed.
 
-**P0.3** — ChatGPT ↔ GitHub repository-**read** continuity verified (§26.A). GitHub connector: **CONNECTED**. Repository: `quotecode-dev/quotecode-clean`. ChatGPT permission mode: **ALLOW READ ACTIONS**. Live read test: **PASS** (`PROFLOW_ARCHITECTURE.md` successfully read directly from current GitHub committed state). `PROFLOW_PROJECT_CONTEXT.md` fetch: **expected 404** during this pre-commit test, because P0.2's new/updated files are still uncommitted/unpushed. **The connector reads GitHub state, not uncommitted working-tree state.**
+**P0.3** — ChatGPT ↔ GitHub continuity verified **and pushed** (commit `78aba82`, `docs: establish persistent ProFlow continuity system`, on `origin/main` of `quotecode-dev/quotecode-clean`). **Post-push ChatGPT read test PASSED** for all three permanent documents (§26.A).
+
+**P0.4** — Proactive Continuity Checkpoint rule documented (Protocol item 20) — every future session now owns detecting *when* a checkpoint is needed, without relying on the project owner to notice or ask. **Documented locally only as of this update — NOT YET COMMITTED/PUSHED.**
 
 ## §28. CURRENT EXACT CHECKPOINT
 
-- **What are we working on, and why**: P0.3 — documenting and verifying that a ChatGPT session can read this project's GitHub repository directly, as the intended long-term continuity path, while confirming this in no way authorizes GitHub writes. The underlying, still-pending product work is the International/Local signup-market preservation fix (unchanged since P0).
-- **Last action actually performed**: P0.3 — added the GitHub-continuity status section (§26.A) and three new protocol items (17-19: bootstrap path, freshness rule, write-authorization restriction) to this file; added a corresponding historical entry to `PROFLOW_HANDOFF.md`; made a small, non-rewriting addition to `PROFLOW_ARCHITECTURE.md` noting GitHub as the persistent source and the verified read connector. **No GitHub write operation, no `git add`, no commit, no push occurred.** No application code, database, Supabase, Auth, or RLS change was made in P0, P0.1, P0.2, or P0.3 — documentation only throughout.
-- **P0 documentation commit/push status**: **NOT YET AUTHORIZED / NOT YET EXECUTED.** The three documentation files (`PROFLOW_PROJECT_CONTEXT.md` untracked/new, `PROFLOW_ARCHITECTURE.md` and `PROFLOW_HANDOFF.md` modified) remain in the local working tree only.
+- **What are we working on, and why**: P0.4 — closing a real gap identified after P0.3's success: GitHub only persists state up to the last *push*, and a real ~11-hour gap between commits was observed during actual work, meaning a session ending unexpectedly mid-window could leave a new session recovering a stale checkpoint. This rule makes the *active session* — never the project owner — responsible for proactively noticing that risk. The underlying, still-pending product work is the International/Local signup-market preservation fix (unchanged since P0).
+- **Last action actually performed**: P0.4 — added Protocol item 20 (Proactive Continuity Checkpoint: triggers, required actions, documentation-checkpoint-≠-application-commit distinction, the never-auto-commit rule, emergency-priority minimum contents) to this file; updated §26.A to record that the P0.3 commit/push actually completed (commit `78aba82`) and that the post-push ChatGPT read test passed for all three documents; updated this checkpoint. Added a corresponding historical entry to `PROFLOW_HANDOFF.md` (§18.AC). **`PROFLOW_ARCHITECTURE.md` was not modified** — no contradiction with it was created by this rule. **No `git add`, no commit, no push occurred.** No application code, database, Supabase, Auth, or RLS change was made in P0, P0.1, P0.2, P0.3, or P0.4 — documentation only throughout.
 - **Latest manual owner production action** (live in Supabase, unchanged since P0): added `https://www.quotecodepro.com/dashboard` to Authentication → URL Configuration → Redirect URLs. Nothing removed. Site URL unchanged.
-- **Current signup work status**: International/Local signup-market architecture audit **completed**. Status: **GO WITH CONDITIONS. Implementation NOT STARTED.**
+- **Continuity checkpoint guideline** (Protocol item 20): roughly 2-3 hours of meaningful work without a pushed documentation checkpoint, or any of the other listed milestone/state-change/risk triggers — a guideline for when to *consider and prepare* a checkpoint, never an automatic commit schedule.
+- **Automatic commit/push**: **NOT AUTHORIZED** — proactive detection and preparation never substitutes for explicit, per-instance project-owner authorization to actually commit or push.
+- **Current application workstream**: International/Local signup-market architecture. Status: audit/design **completed — GO WITH CONDITIONS. Implementation NOT STARTED.**
 - **Current International TEST reproduction**: Auth confirmed; `business_settings` missing; **preserved intentionally**, not to be repaired without separate explicit authorization.
-- **What is currently live**: `chat_logs` RLS fix, `is_admin()` + its one additive policy, the new Supabase Redirect URL entry, and the (now GitHub-connected-for-reading, still locally-uncommitted) documentation set. The signup/confirmation code itself is **unchanged and still has the bug**.
-- **What is approved**: the signup-fix *design* (GO WITH CONDITIONS); the P0.3 documentation additions (executed this checkpoint).
-- **What is NOT approved**: implementation of the signup fix; repair of the TEST International account; `PROFLOW_TEST_ADMIN` provisioning; any GitHub write action (commit/push/branch/merge/file edit through the connector or otherwise) beyond what's explicitly authorized per-instance.
-- **What must NOT happen yet**: the signup-fix implementation; committing/pushing the P0 documentation files without explicit owner authorization; any repair/deletion/recreation of the TEST International account.
-- **Active STOP conditions**: do not commit/push the documentation files without a fresh explicit go-ahead; do not implement the signup fix without a fresh explicit go-ahead; do not treat GitHub read access as authorization for any GitHub write action.
+- **What is currently live** (on GitHub `main`, as of commit `78aba82`): `chat_logs` RLS fix, `is_admin()` + its one additive policy, the new Supabase Redirect URL entry, and the full P0-P0.3 documentation set. **P0.4's own additions exist only in the local working tree, not yet pushed** — exactly the kind of state this new rule exists to track accurately.
+- **What is approved**: the signup-fix *design* (GO WITH CONDITIONS); the P0.4 documentation additions (pending owner review below).
+- **What is NOT approved**: implementation of the signup fix; repair of the TEST International account; `PROFLOW_TEST_ADMIN` provisioning; any GitHub write action beyond what's explicitly authorized per-instance; automatic/scheduled commits or pushes of any kind.
+- **What must NOT happen yet**: the signup-fix implementation; committing/pushing the P0.4 documentation changes without explicit owner authorization; any repair/deletion/recreation of the TEST International account.
+- **Active STOP conditions**: do not commit/push P0.4's documentation changes without a fresh explicit go-ahead; do not implement the signup fix without a fresh explicit go-ahead; never treat any checkpoint trigger (time elapsed, conversation length, milestone reached) as authorization to commit or push automatically.
 
-## §29. Next Immediate Action / After That
+## §29. Next Action
 
-1. **Next immediate action**: final review of the three P0 documentation files by the project owner.
-2. **After owner approval**: commit/push **only** the three documentation files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`) — no application file.
-3. **After that push**: run a fresh ChatGPT GitHub read test of all three files to confirm GitHub now reflects the current versions (see §26.A's freshness rule — a connector read is only meaningful proof *after* a push has actually happened).
-4. **Final P0 acceptance test**: open/use a fresh ChatGPT session (no prior chat history) and verify it can obtain the three documents from GitHub, read them in the required order, locate the CURRENT EXACT CHECKPOINT, and correctly state the next ProFlow workstream — without the project owner reconstructing any previous conversation.
-5. **Only after the above**: the International signup implementation remains available as the next product workstream, still requiring its own separate, explicit project-owner authorization — not granted by any documentation work.
+1. **Immediate next action**: project-owner review of the P0.4 documentation changes.
+2. **If approved**: a documentation-only commit/push of `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` (P0.4's changes only — `PROFLOW_ARCHITECTURE.md` was not modified this round).
+3. **After that**: resume the previously-approved project workstream (the International/Local signup fix) **only** according to its existing authorization state — **do not infer implementation authorization merely from the P0.4 documentation work.**
 
 ## §30. Documentation Maintenance Rule
 
