@@ -142,18 +142,45 @@ Document purpose, market, role, relevant current state, and special reproduction
 
 If a conversation appears likely to end or migrate to a new session, **updating this continuity documentation takes priority over starting another non-essential implementation step.** The project owner must never again be forced to reconstruct a long conversation from memory.
 
-### 17. New-Session GitHub Bootstrap Path (added P0.3)
+### 17. New-Session GitHub Bootstrap Path (added P0.3; corrected to four documents — emergency continuity repair, see PROFLOW_HANDOFF.md's latest checkpoint)
+
+**This protocol requires FOUR documents, not three.** An earlier version of this item listed only three and omitted `PROFLOW_TODO.md` — that omission is the confirmed root cause of a real-world continuity failure (a fresh session resumed from a stale historical checkpoint instead of current state) and is corrected here.
 
 **IF** a GitHub connector/integration with read access to `quotecode-dev/quotecode-clean` is available to a new session:
 
 1. Access the repository through that GitHub integration.
-2. Read the **current default-branch** versions of: (a) `PROFLOW_PROJECT_CONTEXT.md`, (b) `PROFLOW_ARCHITECTURE.md`, (c) `PROFLOW_HANDOFF.md` — in exactly that order.
-3. Locate the **CURRENT EXACT CHECKPOINT** (§28).
-4. Resume from that checkpoint.
-5. Do not ask the project owner to reconstruct information already documented.
-6. Treat the repository versions as **the source documents** — not an older uploaded copy, and not a chat-memory reconstruction.
+2. Read the **current default-branch** versions of, in **exactly** this order:
+   1. `PROFLOW_PROJECT_CONTEXT.md`
+   2. `PROFLOW_ARCHITECTURE.md`
+   3. `PROFLOW_HANDOFF.md`
+   4. `PROFLOW_TODO.md`
+3. Locate the **CURRENT EXACT CHECKPOINT** in `PROFLOW_PROJECT_CONTEXT.md` (§28) — treat it as authoritative over any earlier/historical section that merely appears first in file order (see item 18a below).
+4. Identify the **current owner-approved priority** from `PROFLOW_TODO.md`'s "Current Recommended Execution Order."
+5. Identify the **current authorization state** — what is approved, what is working-tree-only, what is committed/pushed, what is explicitly NOT authorized — from the checkpoint itself.
+6. Resume from that checkpoint. **Do not restart old work, and do not select an older historical section (e.g. an early P0.x architecture-audit entry) merely because it appears earlier in the document.**
+7. Do not ask the project owner to reconstruct information already documented.
+8. Treat the repository versions as **the source documents** — not an older uploaded copy, and not a chat-memory reconstruction.
 
-**IF** GitHub connector access is not available: the project owner may provide/upload the three files manually. Use the identical reading order: `PROFLOW_PROJECT_CONTEXT.md` → `PROFLOW_ARCHITECTURE.md` → `PROFLOW_HANDOFF.md` → locate checkpoint → resume.
+**IF** GitHub connector access is not available: the project owner may provide/upload the four files manually. Use the identical reading order and steps 3-8 above.
+
+### 17.A Magic Phrase Continuity Contract (added — emergency continuity repair)
+
+The owner's standing trigger phrase for resuming this project in **any** AI session (ChatGPT, Claude, or otherwise) is exactly:
+
+> **"ProFlow — תמשיך מהנקודה האחרונה"**
+
+Any session that receives this phrase (or an unambiguous equivalent, e.g. "ProFlow — continue from where we left off") must, before doing anything else:
+
+1. **Not** answer from chat memory alone, and **not** reconstruct the project from remembered conversation fragments.
+2. If GitHub read access is available, immediately read the **current default branch** of `quotecode-dev/quotecode-clean`.
+3. Read, in order: `PROFLOW_PROJECT_CONTEXT.md` → `PROFLOW_ARCHITECTURE.md` → `PROFLOW_HANDOFF.md` → `PROFLOW_TODO.md` (item 17 above).
+4. Locate the **CURRENT EXACT CHECKPOINT** (§28 of `PROFLOW_PROJECT_CONTEXT.md`) and the **current owner-approved priority** (`PROFLOW_TODO.md`'s execution order).
+5. Prefer the newest explicit current-state section over any historical/earlier section — never select an old P0.x or similarly-numbered historical entry as "the current checkpoint" merely because it appears earlier in a file.
+6. Distinguish **committed/pushed GitHub state** from any **newer uncommitted working-tree state** that may only be documented, not yet pushed (item 18 below).
+7. Return a **concise resume report** covering: exact current workstream; last completed action; current working-tree state if documented; current owner-approved priority; open/blocking questions; the exact next safe action; and what is explicitly **not** authorized.
+8. **Do not execute or change anything** until the owner confirms the resume summary is correct.
+
+This contract exists so the owner never has to type more than the magic phrase itself — the burden of doing this correctly belongs entirely to the AI session, not to a longer prompt the owner must remember.
 
 ### 18. Working-Tree-vs-GitHub Freshness Rule (added P0.3)
 
@@ -457,26 +484,33 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 
 **P0.4** — Proactive Continuity Checkpoint rule documented (Protocol item 20) — every future session now owns detecting *when* a checkpoint is needed, without relying on the project owner to notice or ask.
 
-## §28. CURRENT EXACT CHECKPOINT
+## §28. CURRENT EXACT CHECKPOINT — 2026-08-26 (Business Owner Dashboard implementation, pending owner visual acceptance)
 
-- **What are we working on, and why**: the signup-market preservation fix and the routing/locale-selection audit are both complete and live on `main` (unchanged, not reopened by this checkpoint). `PROFLOW_TODO.md` is established as the third continuity document (§35), now including its item 12 (Auth/Routing Localization) and item 13 (Visual Acceptance) statuses below, plus a new item 14 defining the owner's next primary workstream. **This checkpoint consolidates and, once committed, publishes**: Auth/Routing Localization Phase 1 (Findings A/D/E/H) implemented and statically verified, three recorded Local-market anonymous-routing visual PASS results, and the TODO priority update.
-- **Auth/Routing Localization Phase 1 status**: `src/components/AuthScreen.jsx` accepts an explicit `bundleIsHebrew` boolean prop (passed from `Dashboard.jsx`) and prefers it over its previous independent pathname/`?lang=`/`localStorage.proflow_lang` guess for the pre-auth loading screen, login/signup forms, and post-logout login screen (old cascade retained only as a fallback). `Dashboard.jsx`'s signup-success and login-success messages now use `bundleIsHebrew` instead of `isHebrew`. Findings C (`SignOutModal.jsx`, cause UNKNOWN) and F (external Supabase email template) remain explicitly untouched. No signup_market/`business_settings`/currency/quote logic changed. **STATIC VERIFICATION PASSED** (ESLint 0 errors/1 pre-existing unrelated warning, build succeeds, 21/21 tests pass) — **LIVE VISUAL VERIFICATION STILL PENDING**. TODO item 12 remains 🟡, explicitly not marked complete.
-- **Visual Acceptance evidence recorded** (Owner Desktop Browser, clean incognito, Local market only): (1) root `/` automatic Local selection — PASS; (2) Local Landing → Login, Hebrew/RTL — PASS; (3) Local Login → Signup, Hebrew/RTL — PASS. Authenticated Local visual acceptance and any International-market check (including automatic International routing) remain **NOT** covered — do not claim otherwise. TODO item 13 remains 🟡 IN PROGRESS / NOT YET COMPLETED.
-- **Signup-market fix status (unchanged, not reopened)**: **COMMITTED + PUSHED** (`ee4b8a8` on `origin/main`). **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED.** See §26.B and §32.I for the explicit non-reopening statement.
-- **Routing/locale audit status**: **COMPLETE, COMMITTED + PUSHED** (`d7f3408` on `origin/main`). B and G remain PASS/LIVE VERIFIED; C remains OPEN/CAUSE UNKNOWN; F remains OPEN/external.
-- **Owner's next primary workstream (TODO item 14)**: **Public Quote + User UI Visual Redesign — Desktop + Mobile.** Explicitly **design-first**: current screens reviewed, Desktop/Mobile considered separately, visual mockups shown to and approved by the owner — **before** any implementation. No Public Quote or authenticated-UI code has been touched. Business logic, calculations, schema, currency rules, permissions, and production behavior are explicitly out of scope for this workstream; Local/International separation and David Aluminum's live production usage must be protected throughout any future implementation phase.
-- **What is currently live** (on GitHub `main`, once this checkpoint is pushed): the signup-market fix, the routing/locale audit, all P0-P0.4 documentation, `chat_logs` RLS fix, `is_admin()` + its policy, the Supabase Redirect URL entries, `PROFLOW_TODO.md` and its continuity-protocol integration, and Auth/Localization Phase 1 (statically verified, not live-verified).
-- **What is approved**: everything above that is already live; this checkpoint's commit/push (documentation + the Phase 1 code diff, per explicit owner authorization for this exact task).
-- **What is NOT approved**: any fix for Finding C or F; any Public Quote or authenticated-UI code change (item 14 is design-first — mockups/approval must come first); repair of any TEST account; `PROFLOW_TEST_ADMIN` provisioning; further Visual Acceptance browser testing beyond what is already recorded.
-- **What must NOT happen yet**: UI implementation for item 14; fixing Finding C or F; TEST account repair; more browser/VPN/TEST-account actions; treating Finding C's cause as known (explicitly **UNKNOWN**); treating any observation as proof of device/browser dependency (explicitly **NOT PROVEN** for A/D/E/H); marking TODO item 12 or 13 complete.
-- **Active STOP conditions**: none currently active — this checkpoint is the complete, owner-authorized unit of work for this task; do not begin item 14 implementation, further localization fixes, or any other new workstream without a fresh explicit request.
+**THIS SECTION OVERRIDES ALL OLDER CHECKPOINT SECTIONS AND ALL HISTORICAL P0.x / EARLY-AUDIT ENTRIES FOR RESUME PURPOSES.** If any earlier-numbered section (in this file, in `PROFLOW_ARCHITECTURE.md`, or especially in `PROFLOW_HANDOFF.md`, which is append-only history) appears to describe "the current state" but conflicts with this section, **this section wins**. See `PROFLOW_HANDOFF.md`'s own "CURRENT RESUME STATE — READ FIRST" block (top of that file) for the matching pointer.
+
+- **What are we working on, and why**: the signup-market preservation fix and the routing/locale-selection audit are both complete and live on `main` (unchanged). `PROFLOW_TODO.md` is established as the third continuity document (§35). Item 14 (Public Quote + User UI Visual Redesign) now has three tracked sub-items — see `PROFLOW_TODO.md` item 14 (14.A Public Quote, 14.B Business Owner Dashboard, 14.C Super Admin) for full detail; **14.B (Business Owner Dashboard) has been implemented in the working tree and is this checkpoint's main subject.**
+- **Owner-confirmed visual approvals (resolves the discrepancy flagged in the prior checkpoint)**: after reviewing that flagged discrepancy, the owner explicitly confirmed that visual-direction approvals for the Super Admin panel (light direction), Public Quote (Desktop + Mobile), and the Business Owner Dashboard (Desktop + Mobile) genuinely occurred in a separate owner/ChatGPT conversation and are authoritative owner decisions. This confirmation is now the basis for the statuses below — it was **not** independently re-derived by Claude, and design approval is tracked as a distinct gate from implementation and from final visual acceptance for each surface (see `PROFLOW_TODO.md` item 14).
+- **Business Owner Dashboard (14.B) — DESIGN: approved in principle. FIRST IMPLEMENTATION: completed, LIVE VERIFIED (Desktop+Mobile, Local+International — see `PROFLOW_HANDOFF.md` §18.AN/§18.AO), BUT OWNER VISUAL REVIEW REJECTED IT** — the owner inspected the implemented result and rejected it for final visual acceptance because it was primarily a light reskin of the old layout, not the approved redesign. **CURRENT RESULT: CHANGES REQUIRED. NEXT IMPLEMENTATION: authorized (once concrete "changes required" direction is available — do not restart from scratch or reinterpret silently). OWNER FINAL VISUAL ACCEPTANCE: still pending. COMMIT/PUSH/DEPLOY OF UI: NOT authorized.** Do not describe this first implementation as owner-approved anywhere in these documents. First-implementation technical detail (theme infra, files touched, two real bugs found/fixed during live QA, the modal-consistency correction, Super Admin live testing BLOCKED by the permission classifier) is preserved as historical record in `PROFLOW_TODO.md` item 14.B and `PROFLOW_HANDOFF.md` §18.AN/§18.AO — none of it is claimed as accepted. **NOT committed, NOT pushed, NOT deployed.**
+- **Public Quote (14.A) and Super Admin (14.C)**: design **approved in principle**, **implementation NOT started for either** — both explicitly out of scope for the Dashboard implementation task just completed. `AdminUsersTab.jsx` and every Public Quote file are confirmed untouched (`git status` verified).
+- **Agent Monitor POC (working-tree-only, no files changed)**: the built-in `PushNotification` tool was confirmed callable, but a test notification returned "not sent" — it suppresses phone delivery whenever the terminal is actively watched, so mobile delivery could not be confirmed or denied. No monitor implementation exists. Side tool, not the primary workstream.
+- **Auth/Routing Localization Phase 1 status (unchanged by this checkpoint)**: implemented (Findings A/D/E/H), **STATIC VERIFICATION PASSED**, **LIVE VISUAL VERIFICATION STILL PENDING**. Findings C and F remain OPEN. TODO item 12 remains 🟡, not complete.
+- **Visual Acceptance evidence (unchanged by this checkpoint)**: three Local-market anonymous-routing PASS results recorded (root `/` auto-selection; Landing→Login; Login→Signup, all Hebrew/RTL, Owner Desktop Browser/clean incognito). Nothing else covered. TODO item 13 remains 🟡, not complete.
+- **Signup-market fix (unchanged, not reopened)**: **COMMITTED + PUSHED** (`ee4b8a8`). **LIVE VERIFIED.** See §26.B/§32.I.
+- **Routing/locale audit (unchanged)**: **COMMITTED + PUSHED** (`d7f3408`).
+- **What is currently live** (GitHub `main`): the signup-market fix, the routing/locale audit, all P0-P0.4 docs, `chat_logs` RLS fix, `is_admin()`, Supabase Redirect URLs, and the routing/localization continuity docs (commit `d7f3408`). The 3-file continuity system's integration (`PROFLOW_TODO.md` etc.), Auth/Localization Phase 1 code, this continuity correction, and the entire 14.B Dashboard implementation are **local-only — NOT committed/pushed**.
+- **What is approved**: 14.A/14.B/14.C visual **direction** (owner-confirmed); 14.B **implementation** (authorized and done, per this checkpoint); everything already live above.
+- **What is NOT approved**: 14.A or 14.C implementation; commit/push/deploy of 14.B's implementation (owner final visual acceptance is still pending); any fix for Finding C or F; repair of any TEST account; further Visual Acceptance browser testing beyond what is recorded.
+- **What must NOT happen yet**: implementing 14.A or 14.C; committing/pushing/deploying 14.B; fixing Finding C or F; TEST account repair; treating Finding C's cause as known (explicitly **UNKNOWN**); treating any localization observation as proof of device/browser dependency (explicitly **NOT PROVEN**); marking TODO item 12 or 13 complete; documentation ever again stating that no Dashboard visual approval exists or that Dashboard implementation is unauthorized — both are now false per the owner's confirmation above.
+- **Active STOP conditions**: none currently active; do not begin 14.A/14.C implementation, commit/push 14.B, fix Finding C/F, or start any other new workstream without a fresh explicit request.
 
 ## §29. Next Action
 
-1. **Immediate next action** (per this exact checkpoint): Owner + ChatGPT begin the **design-first** visual work for TODO item 14 (Public Quote + User UI Visual Redesign, Desktop + Mobile) — starting with visual examples/mockups, not code.
-2. **In parallel, whenever the owner directs**: live visual verification of Auth/Routing Localization Phase 1 (Findings A/D/E/H), and continuation of Owner + ChatGPT Visual Acceptance (item 13) beyond the three Local anonymous-routing checks already recorded.
-3. **Separately deferred, awaiting future authorization**: (a) any fix for Finding C (cause remains UNKNOWN, must not be guessed at) or Finding F (external Supabase email template); (b) any decision on cleaning up or repairing the three TEST accounts now in their post-test states.
-4. **No new workstream — including any Public Quote or authenticated-UI code change — should be inferred or begun from this checkpoint alone.**
+1. **Immediate next action**: Owner + ChatGPT visual review of the 14.B Business Owner Dashboard implementation already in the working tree (Desktop + Mobile).
+2. **Following that review**: either explicit authorization to commit/push 14.B, or a request for adjustments (minor refinements were pre-approved as expected and do not require re-litigating the design).
+3. **Separately, whenever the owner directs**: implementation of 14.A (Public Quote) and/or 14.C (Super Admin), each under its own approved direction — see `PROFLOW_TODO.md` item 14.
+4. **In parallel**: live visual verification of Auth/Routing Localization Phase 1 (Findings A/D/E/H), and continuation of Owner + ChatGPT Visual Acceptance (item 13) beyond the three checks already recorded.
+5. **Separately deferred, awaiting future authorization**: (a) any fix for Finding C (cause remains UNKNOWN) or Finding F (external Supabase email template); (b) any decision on repairing the three TEST accounts.
+6. **No new workstream should be inferred or begun from this checkpoint alone.**
 
 ## §30. Documentation Maintenance Rule
 

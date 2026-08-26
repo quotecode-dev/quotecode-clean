@@ -19,10 +19,12 @@ Statuses below reflect only what has actually been verified elsewhere in the con
 
 ## Current Recommended Execution Order
 
-1. **Owner-approved next primary workstream: Public Quote + User UI Visual Redesign, Desktop + Mobile (item 14)** — design-first: visual examples/mockups reviewed and explicitly approved by the owner before any implementation begins.
-2. Complete live visual verification of **Auth / Routing Localization Phase 1** (item 12, Findings A/D/E/H) and continue **Owner + ChatGPT Visual Acceptance** (item 13) alongside/after item 14's design phase, as the owner directs.
-3. Any fix for Finding C or Finding F (item 12) only after their own separate audit/authorization.
-4. Then continue through the remaining open backlog items (3, 6, 7, 8, 9, 10, 11, and the item-2 follow-up) one subject at a time, per the Working Rule below.
+1. **Owner-approved primary workstream: item 14 (Public Quote + User UI Visual Redesign)** — Business Owner Dashboard (14.B) is implemented in the working tree and awaiting the owner's final visual acceptance; Public Quote (14.A) and Super Admin (14.C) have approved visual direction but implementation has not started for either.
+2. Once the owner reviews 14.B's implemented result: either approve for a separately-authorized commit/push, or request adjustments (minor refinements were pre-approved as expected).
+3. Implement 14.A (Public Quote) and/or 14.C (Super Admin) as separately authorized, each on its own approved direction (see item 14 above).
+4. Complete live visual verification of **Auth / Routing Localization Phase 1** (item 12, Findings A/D/E/H) and continue **Owner + ChatGPT Visual Acceptance** (item 13), as the owner directs.
+5. Any fix for Finding C or Finding F (item 12) only after their own separate audit/authorization.
+6. Then continue through the remaining open backlog items (3, 6, 7, 8, 9, 10, 11, and the item-2 follow-up) one subject at a time, per the Working Rule below.
 
 This ordering is a recommendation, not a permanent override — the owner may reprioritize at any time.
 
@@ -42,6 +44,16 @@ For each open backlog subject, the established project workflow is:
 10. Commit/push only after approval.
 
 All project iron rules (Local/International market separation, David Aluminum protection, TEST-account-only QA, etc. — see `PROFLOW_PROJECT_CONTEXT.md`) apply throughout every item below. No item in this backlog implies automatic permission to modify code or to commit/push — each remains its own explicit-authorization gate.
+
+## Permanent Question / Ambiguity Rule
+
+Within any single authorized task, if Claude gets stuck, hits a genuine question, or finds a real ambiguity on one specific sub-item:
+
+1. Document the exact question/problem.
+2. Block **only** that sub-item.
+3. Continue immediately with the next independent, safe item.
+
+Do **not** stop an entire task/workstream because of one isolated question — record it and keep moving through everything else that is safe and independent of it. The only exception: stop completely if continuing could risk production, security, real customer data, or any other destructive/unrecoverable change — those always warrant a full stop, not just a blocked sub-item.
 
 ---
 
@@ -190,30 +202,39 @@ Use the precision rule documented in `PROFLOW_PROJECT_CONTEXT.md` §33. Every vi
 
 ## 14. Public Quote + User UI Visual Redesign — Desktop + Mobile
 
-**Status: 🟡 DESIGN-FIRST / NOT STARTED — awaiting visual mockups and owner approval**
+**Status: 🟡 IN PROGRESS — see three sub-items below, each with its own design/implementation/acceptance status**
 
-**This is the owner's NEXT PRIMARY WORKSTREAM** after the checkpoint that established this item is committed.
+Purpose: a visual/UX redesign covering three related but distinct surfaces. Owner + ChatGPT approved visual direction for all three in a separate conversation (owner-confirmed, not independently re-derived by Claude); each is tracked below with its own precise status — design approval, implementation, and owner final visual acceptance are three separate gates, never conflated.
 
-Purpose: a visual/UX redesign review covering two related but distinct customer/user-facing surfaces:
+**Important scope boundary (applies to all three)**: this is a **visual/UX workstream only**. It does not authorize any change to business logic, quote calculations, database schema, currency rules, permissions, or production behavior — those remain governed by their own separate, explicitly-authorized workstreams (e.g. item 3 Billing, the currency/VAT iron rules in `PROFLOW_PROJECT_CONTEXT.md`). Preserve throughout: strict Local/International separation (Local = Hebrew/RTL/ILS/₪; International = English/LTR/supported international currencies, no accidental ₪ contamination); existing calculations/business logic must not be altered merely for a visual redesign; existing live production behavior must be protected; **David Aluminum's live production usage must not be disrupted or placed at risk**; conservative, isolated visual changes; minor visual refinements remain expected/allowed after the owner sees an implementation.
 
-**A. Public Quote / Customer-Facing Quote Experience** — Desktop + Mobile. Visual redesign/review of the quote that the end customer receives/sees (Public Quote pages, PDF/print presentation where applicable).
+### 14.A Public Quote — Desktop + Mobile
 
-**B. Authenticated User Application UI** — Desktop + Mobile. Visual review/redesign of the working interface used by the ProFlow business user (the authenticated Dashboard and its tabs/screens).
+- **DESIGN**: 🟢 APPROVED IN PRINCIPLE (owner + ChatGPT).
+- **IMPLEMENTATION**: 🔴 NOT STARTED. **Not authorized in the Business Owner Dashboard implementation task** — explicitly excluded from that task's scope; to be implemented separately.
+- **OWNER FINAL VISUAL ACCEPTANCE**: N/A — nothing implemented yet.
+- Approved direction (for the future implementation task): light/white content, strong ProFlow purple header/hierarchy (not black), sender logo in header, recipient/business/address emphasized, call CTA text `"חייג/י אליי"` without displaying the phone number on the button, exactly ONE customer signature area (`"חתימת לקוח לאישור ההצעה:"` label, signature pad, `"נקה חתימה"` control, approval/sign action), attachments area always visible (list attachments if present, else show `"אין קובץ מצורף להצעה זו"` or equivalent), existing attachment/signature functionality fully preserved.
+- **Do not describe this as implemented merely because the design is approved.**
 
-**Important scope boundary**: this is a **visual/UX workstream only**. It does not authorize any change to business logic, quote calculations, database schema, currency rules, permissions, or production behavior — those remain governed by their own separate, explicitly-authorized workstreams (e.g. item 3 Billing, the currency/VAT iron rules in `PROFLOW_PROJECT_CONTEXT.md`).
+### 14.B Business Owner Dashboard — Desktop + Mobile
 
-**MANDATORY DESIGN-FIRST RULE — no UI implementation may begin until:**
-1. Current relevant screens are visually reviewed.
-2. Desktop and Mobile are considered separately.
-3. Proposed visual examples/mockups are shown to the owner.
-4. Owner explicitly approves the desired visual direction.
-5. Only then may a separately-authorized implementation task begin.
+- **DESIGN**: 🟢 APPROVED IN PRINCIPLE (owner + ChatGPT).
+- **FIRST IMPLEMENTATION**: 🟢 COMPLETED / LIVE VERIFIED (Desktop + Mobile, Local + International, per Phase 1 + Phase 2 — see `PROFLOW_HANDOFF.md` §18.AN/§18.AO) — **BUT OWNER VISUAL REVIEW REJECTED IT.** The owner inspected this first implementation and rejected it for final visual acceptance because it was primarily a **light reskin of the old layout**, not the approved redesign.
+- **CURRENT RESULT**: 🔴 **CHANGES REQUIRED** — do not describe this first implementation as owner-approved anywhere in these documents.
+- **NEXT IMPLEMENTATION**: 🟡 AUTHORIZED — a further implementation pass is authorized once concrete direction on what "changes required" means is available; do not restart from scratch without that direction, and do not silently reinterpret it.
+- **OWNER FINAL VISUAL ACCEPTANCE**: 🟡 PENDING (still pending — the rejected pass does not count toward it).
+- **COMMIT/PUSH/DEPLOY OF UI**: 🔴 NOT AUTHORIZED.
+- Delivered: light theme (near-white background, white cards, sharp borders, ProFlow purple primary, semantic green/red) across the Dashboard shell, KPI cards, hot-quote card (now a compact attention card, not a full-width banner), Quote History (light table + a genuine JS-driven mobile card layout, not a shrunk table), Clients/Finances/Settings/QuoteForm (color pass only), and `DeleteConfirmModal.jsx` (fixed during Phase 2, see below). Catalog search field added beside "Add to Catalog" (client-side, filters on `name` — the catalog data model has no `description` field, recorded as a finding, not blocking) — **live-tested**: filters immediately while typing, clears correctly, non-matching search shows a distinct "no results" message, Hebrew text works. Super Admin (`AdminUsersTab.jsx`) and every Public Quote file remain **not** touched.
+- **Two real issues found and fixed during Phase 2 live QA** (per the record→continue rule, neither stopped the overall verification): (1) the mobile/desktop Quote History switch relied on a `matchMedia` `change` listener that did not reliably fire on a CDP/automated viewport change even though a fresh `matchMedia` query correctly reflected the new width — fixed by adding a redundant native `window resize` listener that re-evaluates the query; re-verified both directions work without a reload. (2) `DeleteConfirmModal.jsx` (used for deleting quotes/catalog items) was still calling a dark-theme-bound helper function (`neonGhostButtonStyle`, which reads the real dark `NEON` internally regardless of the caller's own theme import) — fixed by aliasing its import and inlining an equivalent light-themed button style.
+- **Correction to the prior "modals remain dark" finding**: only `DeleteConfirmModal.jsx` (now fixed above) and `UserDetailsModal.jsx` (correctly out of scope — Super Admin) actually import the dark `NEON` theme. `SignOutModal.jsx`, `EditClientModal.jsx`, `EditExpenseModal.jsx`, `EmailConfirmModal.jsx`, `LifetimeConfirmModal.jsx`, `PricingModal.jsx`, and `AccessibilityModal.jsx` never used `NEON` tokens at all (hardcoded white/light already) — confirmed live for `SignOutModal.jsx` by screenshot. The earlier report over-stated this as a broader open item than it actually is.
+- Remaining recorded open sub-item: Clients/Finances/Settings were not rebuilt into mobile-card layouts (only Quote History had an explicit mobile-card spec) — unchanged from the prior report, not addressed in Phase 2.
 
-The owner must **see** the proposed design before any code change — mockups/examples first, implementation only after explicit approval.
+### 14.C Super Admin — Visual Direction Only
 
-**Preserve throughout** (applies to any future implementation phase, not to the design phase itself): strict Local/International separation (Local = Hebrew/RTL/ILS/₪; International = English/LTR/supported international currencies, no accidental ₪ contamination); existing quote calculations/business logic must not be altered merely for a visual redesign; existing live production behavior must be protected; **David Aluminum's live production usage must not be disrupted or placed at risk**; prefer conservative, isolated visual changes after approval.
-
-No Public Quote or authenticated-UI code has been modified as part of establishing this item — design phase has not started.
+- **DESIGN**: 🟢 APPROVED (owner + ChatGPT) — the LIGHT Super Admin visual direction. **Visual/design approval only — does not imply approval of any unrelated functional change.**
+- **IMPLEMENTATION**: 🔴 NOT STARTED — explicitly out of scope for the Business Owner Dashboard implementation task; `AdminUsersTab.jsx` was not modified.
+- **OWNER FINAL VISUAL ACCEPTANCE**: N/A — nothing implemented yet.
+- Regression verification only was performed on Super Admin this round (code-level: confirmed zero changes, so nothing to regress) — this is not the same as implementing its approved light direction.
 
 ---
 
