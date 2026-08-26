@@ -441,7 +441,7 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 
 ## §27. Current Workstream
 
-**P0 persistent continuity/documentation infrastructure** (P0 → P0.1 → P0.2 → P0.3 → P0.4) — running in parallel with, and currently taking priority over, the still-pending **International/Local signup → email confirmation → `business_settings` bootstrap** fix.
+**P0 persistent continuity/documentation infrastructure** (P0 → P0.1 → P0.2 → P0.3 → P0.4) — complete. The **International/Local signup → email confirmation → `business_settings` bootstrap** fix — implemented, committed, pushed, and bilaterally live-verified (§26.B). A dedicated **read-only production routing/locale-selection audit** has since been completed (§31/§32) to ground the next workstream, **Owner + ChatGPT Visual Acceptance testing**, in verified repo behavior rather than assumption. Visual Acceptance testing itself has **NOT** started.
 
 **P0** — `PROFLOW_PROJECT_CONTEXT.md` created.
 
@@ -451,27 +451,105 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 
 **P0.3** — ChatGPT ↔ GitHub continuity verified **and pushed** (commit `78aba82`, `docs: establish persistent ProFlow continuity system`, on `origin/main` of `quotecode-dev/quotecode-clean`). **Post-push ChatGPT read test PASSED** for all three permanent documents (§26.A).
 
-**P0.4** — Proactive Continuity Checkpoint rule documented (Protocol item 20) — every future session now owns detecting *when* a checkpoint is needed, without relying on the project owner to notice or ask. **Documented locally only as of this update — NOT YET COMMITTED/PUSHED.**
+**P0.4** — Proactive Continuity Checkpoint rule documented (Protocol item 20) — every future session now owns detecting *when* a checkpoint is needed, without relying on the project owner to notice or ask.
 
 ## §28. CURRENT EXACT CHECKPOINT
 
-- **What are we working on, and why**: the International/Local signup-market preservation fix is now **fully implemented, committed, pushed, and bilaterally live-verified**. This checkpoint records that completion.
-- **Last action actually performed**: **Phase 3 live verification, completed cleanly after correcting a test-contamination concern.** A fresh Local signup (`+local2` alias) was created via the real `/he` UI and confirmed by the owner via the real email link. An initial post-confirmation observation was flagged as unreliable (a stale `+intl2` browser session was active, and UI language alone is not valid identity evidence) — this was correctly re-done using a **clean auth context** and verification from the **authoritative session/DB source**, not UI text: `session.user.email='nimrod1sinai+local2@gmail.com'`, distinct `user_id` (no cross-contamination with `+intl2`), `user_metadata.signup_market='Local'`, `business_settings.country='Local'`/`currency='ILS'`, `lang='he'`/`dir='rtl'`, `₪` present, zero `$`. **No commit, no push, no deploy, no code change** — verification only.
-- **Both phases summarized**: Phase 2 (International, `+intl2`) — `country='International'`, `currency='USD'`, English UI, zero ₪ — LIVE VERIFIED. Phase 3 (Local, `+local2`) — `country='Local'`, `currency='ILS'`, Hebrew/RTL, ₪ present, zero `$` — LIVE VERIFIED. Phase 1 (legacy `+intl` account, no `signup_market`) — correctly fell back to geo, producing `country='Local'` because this QA environment's geo resolves to `IL` — explained, not a defect, left untouched.
-- **Code status**: **COMMITTED + PUSHED** (`ee4b8a8` on `origin/main`).
-- **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED.**
-- **What is currently live** (on GitHub `main`): the full signup-market fix, all P0-P0.4 documentation, `chat_logs` RLS fix, `is_admin()` + its policy, the Supabase Redirect URL entries.
-- **What is approved**: the signup-fix design and implementation (committed/pushed, bilaterally verified live).
-- **What is NOT approved**: repair of any of the three TEST accounts now in their respective post-test states; `PROFLOW_TEST_ADMIN` provisioning; any localization fix for the separately-recorded open cosmetic findings (§26.B); any new implementation work not yet explicitly requested.
-- **What must NOT happen yet**: repair of any TEST account; investigation/fixing of the recorded `isHebrew`-driven cosmetic localization quirks (explicitly deferred, separate future audit).
-- **Active STOP conditions**: none currently active — this workstream is complete pending owner review; do not begin any new workstream (localization audit, TODO items, etc.) without a fresh explicit request.
+- **What are we working on, and why**: the signup-market preservation fix is complete and bilaterally live-verified (unchanged, not reopened by this checkpoint). A separate, read-only **production routing/locale-selection audit** (§31) plus a **screen-level localization findings map** (§32, Findings A–H) have just been completed and preserved in continuity documentation, in preparation for a future Owner + ChatGPT Visual Acceptance test that must exercise real production routing behavior rather than manually-forced `/he`/`/en` routes.
+- **Last action actually performed**: a documentation-only checkpoint (this update) recording the routing/locale audit's conclusions into `PROFLOW_PROJECT_CONTEXT.md` (§31–§34) and `PROFLOW_HANDOFF.md` (§18.AG–§18.AI). No code was read differently than already audited; no new analysis was performed in this step — only preservation of already-established, already-classified conclusions. **No commit, no push, no deploy, no code change.**
+- **Signup-market fix status (unchanged, not reopened)**: **COMMITTED + PUSHED** (`ee4b8a8` on `origin/main`). **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED** — International (`+intl2`): `country='International'`, `currency='USD'`, final Dashboard English — LIVE VERIFIED. Local (`+local2`): `country='Local'`, `currency='ILS'`, final Dashboard Hebrew/RTL/₪ — LIVE VERIFIED. See §26.B and §32.I for the explicit non-reopening statement.
+- **Routing/locale audit status**: **COMPLETE, READ-ONLY, DOCUMENTED**. See §31 for the verified production routing architecture and §32 for the eight open screen-level localization findings (A–H) — all still **OPEN, NOT FIXED**, none affecting the signup-market mechanism itself.
+- **What is currently live** (on GitHub `main`): the full signup-market fix, all P0-P0.4 documentation, `chat_logs` RLS fix, `is_admin()` + its policy, the Supabase Redirect URL entries. The routing/locale audit and this documentation checkpoint are **local-only as of this update — NOT YET COMMITTED/PUSHED**.
+- **What is approved**: the signup-fix design and implementation (already live); preservation of the routing/locale audit's conclusions in continuity documentation (this checkpoint).
+- **What is NOT approved**: any fix for Findings A–H (§32); repair of any of the three TEST accounts now in their respective post-test states; `PROFLOW_TEST_ADMIN` provisioning; starting Owner + ChatGPT Visual Acceptance testing; any new implementation work not yet explicitly requested.
+- **What must NOT happen yet**: fixing any localization finding (A–H); TEST account repair; visual testing; treating Finding C's cause as known (it is explicitly **UNKNOWN**); treating any observation as proof of device/browser dependency (explicitly **NOT PROVEN** for A/D/E/H).
+- **Active STOP conditions**: none currently active — this workstream (documentation preservation of the routing audit) is complete pending owner + ChatGPT review; do not begin Visual Acceptance testing, localization fixes, or any other new workstream without a fresh explicit request.
 
 ## §29. Next Action
 
-1. **Immediate next action**: project-owner review of the complete bilateral verification result.
-2. **Two explicitly deferred, separate items on file, awaiting future authorization**: (a) a dedicated localization audit for the recorded `isHebrew`/cache-driven cosmetic quirks (transient Hebrew loading text on International, English success/confirmation text on Local) — not started; (b) any decision on cleaning up or repairing the three TEST accounts now in their post-test states (Phase-1 legacy → Local/ILS, Phase-2 `+intl2` → International/USD, Phase-3 `+local2` → Local/ILS) — not started.
-3. **No new workstream should be inferred or begun from this checkpoint alone.**
+1. **Immediate next action**: Owner + ChatGPT review of the routing/locale audit's conclusions (§31, §32) as now preserved in continuity documentation.
+2. **After that review/approval**: build the Owner + ChatGPT Visual Acceptance test plan strictly per the precision rule in §33 (explicit environment, account, starting session state, starting URL, action, screen, expected result, what it proves / does not prove) — not yet built, not yet started.
+3. **Separately deferred, awaiting future authorization**: (a) a fix for any of Findings A–H (§32) — none authorized yet, Finding C's cause remains unknown and must not be guessed at; (b) any decision on cleaning up or repairing the three TEST accounts now in their post-test states (Phase-1 legacy → Local/ILS, Phase-2 `+intl2` → International/USD, Phase-3 `+local2` → Local/ILS) — not started.
+4. **No new workstream should be inferred or begun from this checkpoint alone.**
 
 ## §30. Documentation Maintenance Rule
 
 See the full Mandatory Continuity Protocol at the top of this file (items 1-16). In short: this file must be updated whenever a new session would need the information to continue correctly, kept as a clean current-state document (not a chronological dump — that belongs in `PROFLOW_HANDOFF.md`), and every future session inherits responsibility for keeping it accurate. This rule does not expire and does not need to be re-requested by the project owner in future sessions.
+
+## §31. Production Routing / Locale Selection Architecture — REPO VERIFIED
+
+Established by a dedicated read-only audit (full trace in `PROFLOW_HANDOFF.md` §18.AG). Supersedes any prior informal description of routing/locale behavior.
+
+**A. Actual React entry point**: `src/main.jsx` is the true, running entry point (loaded via `index.html` → Vite), and selects/mounts either `AppLocal` or `AppGlobal` at the React root. `src/App.jsx` remains legacy/dead code — zero imports anywhere in `src/`, never mounted — and is **not** the running root.
+
+**B. Anonymous bundle-selection cascade** (`src/main.jsx`), exact priority order:
+1. `?lang=en` / `?lang=he` (query param) — highest priority, always wins if present.
+2. Pathname prefix `/en` or `/he`.
+3. `localStorage.proflow_lang` — this browser's saved choice from a prior visit.
+4. `proflow_geo_country` cookie — set by `middleware.ts` from Vercel's real geo header, root path (`/`) only.
+5. `navigator.language` (browser language) — lowest priority, final fallback.
+After the decision, `localStorage.proflow_lang` is unconditionally overwritten with the result — every anonymous visit rewrites this cache to match whatever was just decided.
+
+**C. Critical behavior of root `/`**: opening `https://www.quotecodepro.com/` does **NOT** redirect the browser to `/he` or `/en`. `main.jsx` selects `AppLocal` or `AppGlobal` and mounts that bundle in place — the URL remains `/`. **This distinction is important for future QA**: never assume `/he`/`/en` appearing in the address bar is required, or that root routing produces one.
+
+**D. Explicit routes**: `/he` → Local bundle (`AppLocal`), unless overridden by higher-priority `?lang=`. `/en` → International bundle (`AppGlobal`), unless overridden by higher-priority `?lang=`. These are explicit, user-selectable route tests — **not** evidence of automatic geo-routing. A passing `/he` or `/en` visual test proves only that the explicit route itself works, never that anonymous root routing selects the correct bundle for a real visitor.
+
+**E. `/dashboard`**: does not itself encode Local or International. Initial bundle selection happens via the same anonymous cascade (B), **before** any Supabase/account state is known. After authentication and `business_settings` load, `Dashboard.jsx`'s own rendered account UI (`isHebrew = isHebrewEnv(bizCountry, session)`) uses `business_settings.country` as the source of truth. **INITIAL BUNDLE / AUTH-SHELL LANGUAGE and FINAL AUTHENTICATED ACCOUNT LANGUAGE/MARKET are related but NOT the same source of truth** — this distinction underlies Findings A/D/E/H in §32.
+
+**F. Anonymous Geo vs. legacy bootstrap Geo — two distinct mechanisms, must not be conflated**:
+1. *Anonymous routing geo*: `middleware.ts` → Vercel `geolocation()` → `proflow_geo_country` cookie (24h) → read by `main.jsx` at cascade priority 4. Purpose: anonymous landing-page bundle selection only.
+2. *Legacy missing-profile bootstrap geo*: `Dashboard.jsx`'s `fetchSettings()` → `api/geo.js` → live `x-vercel-ip-country` request header (no cache, no cookie) → used **only** when an authenticated user has no `business_settings` row yet **and** no valid `signup_market` metadata is present. Purpose: one-time new-account `country` bootstrap for legacy (pre-signup-market-fix) accounts only.
+
+**G. Logout**: handler is `Dashboard.jsx`'s `handleSignOut()` → `supabase.auth.signOut()` only. Does **NOT** navigate to `/`, `/he`, or `/en` — no `window.location`/router navigation occurs; remains on the existing URL (normally `/dashboard`). The `SIGNED_OUT` auth-state-change handler then renders `AuthScreen` in place once `session` becomes null. Clears `localStorage.proflow_cached_country`; resets `bizCountry` state to `'International'`. Does **NOT** clear `localStorage.proflow_lang` — this persists unchanged across logout, regardless of which account just logged out.
+
+## §32. Auth / Routing Localization — Open Screen-Level Findings (A–H) — OPEN, NOT FIXED
+
+Produced by the same read-only audit as §31 (full narrative in `PROFLOW_HANDOFF.md` §18.AH). None of these findings reopen or affect the signup-market mechanism — see §32.I.
+
+| Finding | Account/Context | Exact Screen | Expected | Observed | Status | Evidence Classification | Device Dependency |
+|---|---|---|---|---|---|---|---|
+| A | International `+intl2` | Transient loading screen before final Dashboard | English | Hebrew (`"טוען את המערכת..."`) | OPEN — mechanism identified, not fixed | mechanism REPO VERIFIED; occurrence OWNER-OBSERVED | NOT PROVEN |
+| B | International `+intl2` | Fully loaded Dashboard | English / International / non-ILS | English / International / USD | **PASS — LIVE VERIFIED** | REPO VERIFIED + OWNER-OBSERVED | NOT INDICATED |
+| C | International `+intl2` | Logout confirmation dialog (English Dashboard → Sign Out) | English | Hebrew | **OPEN — CAUSE UNKNOWN** | OWNER-OBSERVED; mechanism UNKNOWN | UNKNOWN |
+| D | International `+intl2` | Post-logout login screen (English Dashboard → Sign Out → session null) | English | Hebrew | OPEN — mechanism identified, not fixed | REPO VERIFIED | NOT PROVEN |
+| E | Local `+local2` | Post-signup success message (before email confirmation/bootstrap) | Hebrew | English (`"Sign up successful! Initializing user profile with free trial..."`) | OPEN — mechanism identified, not fixed | REPO VERIFIED | N/A |
+| F | Local `+local2` | Actual confirmation email content | Hebrew | English | OPEN — not fixed | OWNER-OBSERVED (source outside this repo — Supabase Auth email template) | NOT INDICATED |
+| G | Local `+local2` | Fully loaded Dashboard | Hebrew + RTL + ILS/₪ | Hebrew + RTL + ILS/₪ | **PASS — LIVE VERIFIED** | REPO VERIFIED + OWNER-OBSERVED | NOT INDICATED |
+| H | Local `+local2`, **Agent desktop browser**, Phase-3 clean verification | Login-success toast, on an already-correct Hebrew Dashboard | Hebrew | English (`"Logged in successfully"`) | OPEN — mechanism identified; specific trigger is INFERENCE | mechanism REPO VERIFIED; specific stale-cache trigger INFERENCE | NOT PROVEN |
+
+Standing notes (must be preserved, not softened in future updates):
+- **Finding C's cause is explicitly UNKNOWN.** Do not invent a root cause and do not mark it fixed until a controlled live reproduction with instrumentation identifies the actual mechanism.
+- **No device/browser dependency is proven** for Findings A, D, E, or H — observations span multiple environments (owner mobile, owner desktop browser, Agent desktop browser) that must not be merged or conflated in future work (see §33).
+- Finding H was captured specifically in the **Agent's own desktop browser** during the Phase-3 clean verification — explicitly **not** the owner's mobile browser.
+
+**§32.I — Explicit non-reopening statement**: these findings concern transient/auth/email UI language selection only. They do **NOT** reopen, invalidate, or cast doubt on the signup-market preservation mechanism, which remains **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED** (§26.B) — International `+intl2`: `signup_market='International'`, `business_settings.country='International'`, `currency='USD'`, final Dashboard = English; Local `+local2`: `signup_market='Local'`, `business_settings.country='Local'`, `currency='ILS'`, final Dashboard = Hebrew/RTL/₪. Findings B and G above are the direct confirmation that the mechanism itself is unaffected — every finding concerns UI text/screens *adjacent* to it, never the `signup_market`/`country`/`currency` values themselves.
+
+## §33. Visual Acceptance Test Precision Rule — PERMANENT REQUIREMENT
+
+Before asking the owner to perform any visual test, every test step must explicitly identify:
+1. **ENVIRONMENT** — Owner Mobile / Owner Desktop Browser / Agent Desktop Browser / other (must be named explicitly).
+2. **EXACT ACCOUNT** — full email/alias when account-specific.
+3. **STARTING SESSION STATE** — authenticated / unauthenticated / clean-incognito / required cache-localStorage state if relevant.
+4. **EXACT STARTING URL**.
+5. **EXACT ACTION**.
+6. **EXACT SCREEN/STATE** being tested.
+7. **EXPECTED RESULT**.
+8. **WHAT THAT TEST PROVES**.
+9. **WHAT THAT TEST DOES NOT PROVE**.
+
+Ambiguous instructions ("open Local", "open the site", "log in again", "check the email") without specifying environment/account/context are **not** acceptable test steps.
+
+Standing clarifications (derived from §31.D):
+- Opening `/he` manually tests the explicit Local route only. It does **NOT** prove automatic production geo-routing.
+- Opening `/en` manually tests the explicit International route only. It does **NOT** prove automatic production geo-routing.
+- Testing automatic routing must begin from the exact root URL `https://www.quotecodepro.com/`, with the required browser/cache/session state explicitly defined beforehand (§31.B/C).
+
+## §34. Documentation Continuity Workflow Rule — PERMANENT REQUIREMENT
+
+A READ-ONLY audit must not modify documentation while the audit itself is running. When an audit produces material project conclusions, architecture findings, verified bugs, changed status, or important QA constraints, the following sequence applies:
+1. Owner + ChatGPT review the audit findings.
+2. After approval, run a separate, explicitly-authorized DOCUMENTATION-ONLY task.
+3. Preserve the approved conclusions in `PROFLOW_PROJECT_CONTEXT.md` and/or `PROFLOW_HANDOFF.md`, per each file's role (§30).
+4. Only after continuity documentation is reviewed may the project move to the next implementation/test workstream.
+
+Purpose: avoid losing important project knowledge while preserving the strict read-only nature of audits. This rule does not expire and does not need to be re-requested by the project owner in future sessions.
