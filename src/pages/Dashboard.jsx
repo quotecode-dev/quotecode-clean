@@ -70,7 +70,7 @@ const DEFAULT_TERMS_ENG = `General Terms:
 // (AppLocal/AppGlobal) שהציג את הדשבורד - הם נקבעים אך ורק ע"י geo טרי
 // מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
 // createNewBusinessSettings / handleRegionChoiceSelect למטה).
-export default function Dashboard() {
+export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
 
   const [session, setSession] = useState(null);
@@ -252,7 +252,7 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session?.user?.id) {
-        await loadData(session.user.id, session.user.email);
+        await loadData(session.user.id, session.user.email, session.user.user_metadata);
       }
       setIsInitializing(false);
     };
@@ -276,7 +276,7 @@ export default function Dashboard() {
           // טאב (או כניסה ראשונה) היה מרנדר לרגע עם bizCountry הישן/ברירת
           // המחדל, לפני שהוא מתוקן - בדיוק ה"הבזק" בשפה הלא-נכונה שאסור שיקרה.
           setIsInitializing(true);
-          await loadData(newSession.user.id, newSession.user.email);
+          await loadData(newSession.user.id, newSession.user.email, newSession.user.user_metadata);
           setIsInitializing(false);
         }
       } else if (event === 'SIGNED_OUT') {
@@ -485,13 +485,13 @@ export default function Dashboard() {
     hotQuoteAlert: (name) => isHebrew ? `הצעה חמה! הלקוח "${name}" צפה בהצעה מספר פעמים ללא חתימה.` : `Hot Quote! Client "${name}" viewed the quote multiple times without signing.`
   };
 
-  async function loadData(userId, userEmail) {
+  async function loadData(userId, userEmail, userMetadata) {
     await fetchQuotes(userId);
     await fetchClients(userId);
     await fetchServices(userId);
     await fetchExpenses(userId);
     await fetchAllUserAttachments(userId);
-    await fetchSettings(userId, userEmail);
+    await fetchSettings(userId, userEmail, userMetadata);
   }
 
   async function fetchQuotes(userId) {
@@ -543,7 +543,7 @@ export default function Dashboard() {
     }
   }
 
-  async function fetchSettings(userId, userEmail) {
+  async function fetchSettings(userId, userEmail, userMetadata) {
     const nowIso = new Date().toISOString();
 
     let { data } = await supabase
@@ -607,20 +607,29 @@ export default function Dashboard() {
         fetchAllAccounts();
       }
     } else {
-      // חוק ברזל: אזור משפטי לחשבון *חדש* חייב לבוא אך ורק מ-(1) geo טרי
-      // ואמין שנשלף עכשיו ממש מהשרת (api/geo.js - לא מעוגייה/localStorage
-      // שהלקוח יכול לשנות, ולא יכול להיות ישן אם המשתמש גלש/החליף VPN
-      // מאז ביקור קודם), או מ-(2) בחירה מפורשת של המשתמש עצמו - לעולם לא
-      // ניחוש שקט מבוסס bundleIsHebrew/?lang=/נתיב/localStorage/שפת
-      // דפדפן. אם geo טרי לא זמין, לא יוצרים עדיין שורת business_settings
-      // בכלל - מבקשים מהמשתמש לבחור אזור במפורש (ר' needsRegionChoice /
-      // handleRegionChoiceSelect ומסך הבחירה המינימלי ב-return הראשי).
-      const freshGeoCountry = await fetchFreshGeoCountry();
-      if (freshGeoCountry) {
-        await createNewBusinessSettings(userId, userEmail, freshGeoCountry === 'IL' ? 'Local' : 'International');
+      // חוק ברזל: אזור משפטי לחשבון *חדש* חייב לבוא אך ורק מ-(1) signup_market
+      // שנשמר ב-user_metadata ברגע ה-signUp() עצמו - זהו הבאנדל שבו המשתמש
+      // בפועל נרשם, ואינו תלוי בדפדפן/IP/geo של מי שלוחץ על קישור האימות
+      // (יכול להיות מכשיר/דפדפן/מדינה אחרים לגמרי), (2) geo טרי ואמין שנשלף
+      // עכשיו ממש מהשרת (api/geo.js - לא מעוגייה/localStorage שהלקוח יכול
+      // לשנות) - fallback רק כאשר signup_market אינו זמין (חשבון legacy
+      // שנוצר לפני התיקון הזה), או (3) בחירה מפורשת של המשתמש עצמו - לעולם
+      // לא ניחוש שקט מבוסס bundleIsHebrew/?lang=/נתיב/localStorage/שפת
+      // דפדפן. אם גם signup_market וגם geo טרי אינם זמינים, לא יוצרים עדיין
+      // שורת business_settings בכלל - מבקשים מהמשתמש לבחור אזור במפורש (ר'
+      // needsRegionChoice / handleRegionChoiceSelect ומסך הבחירה המינימלי
+      // ב-return הראשי).
+      const signupMarket = userMetadata?.signup_market;
+      if (signupMarket === 'Local' || signupMarket === 'International') {
+        await createNewBusinessSettings(userId, userEmail, signupMarket);
       } else {
-        setPendingNewAccount({ userId, userEmail });
-        setNeedsRegionChoice(true);
+        const freshGeoCountry = await fetchFreshGeoCountry();
+        if (freshGeoCountry) {
+          await createNewBusinessSettings(userId, userEmail, freshGeoCountry === 'IL' ? 'Local' : 'International');
+        } else {
+          setPendingNewAccount({ userId, userEmail });
+          setNeedsRegionChoice(true);
+        }
       }
     }
   }
@@ -1196,7 +1205,33 @@ export default function Dashboard() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({ email: emailInput, password: passwordInput });
+      // signup_market נשמר ב-user_metadata ברגע ה-signUp() עצמו - מקור האמת
+      // היחיד לאזור המשפטי של החשבון החדש ל-Tier 2 (ר' fetchSettings למעלה),
+      // בלתי-תלוי לחלוטין בדפדפן/IP/geo של מי שילחץ בהמשך על קישור האימות
+      // במייל. bundleIsHebrew (prop שמגיע מ-AppLocal/AppGlobal, שתי הקריאות
+      // החיות היחידות ל-<Dashboard>) הוא המקור היחיד שמותר כאן - fail-closed
+      // בכוונה: אם איכשהו לא הגיע כ-boolean אמיתי (למשל קורא עתידי ששכח
+      // להעביר אותו), אין שום ניחוש חלופי (לא isHebrew המקומי - שנגזר
+      // מ-bizCountry/session ומיועד לתצוגת חשבון *קיים* בלבד, לא localStorage,
+      // לא שפת דפדפן, לא geo) - פשוט לא נרשמים, ומוצגת שגיאה כללית. emailRedirectTo
+      // מוצמד לדומיין הקנוני המפורש בכוונה (לא window.location.origin), כדי
+      // שהאימות תמיד יחזור ל-www.quotecodepro.com גם אם ההרשמה בוצעה
+      // דרך quotecode.vercel.app.
+      if (typeof bundleIsHebrew !== 'boolean') {
+        setAuthError(isHebrew
+          ? 'שגיאת הגדרה: לא ניתן לקבוע את אזור החשבון. רענן את העמוד ונסה שוב.'
+          : 'Configuration error: unable to determine account region. Please refresh the page and try again.');
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: emailInput,
+        password: passwordInput,
+        options: {
+          emailRedirectTo: 'https://www.quotecodepro.com/dashboard',
+          data: { signup_market: bundleIsHebrew ? 'Local' : 'International' }
+        }
+      });
       if (error) {
         setAuthError(isHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
       } else {
