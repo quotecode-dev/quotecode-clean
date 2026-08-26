@@ -1238,7 +1238,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
           setAuthError(isHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
         } else {
-          setAuthSuccess(isHebrew ? 'ההרשמה הצליחה! מאתחל פרופיל עם תקופת ניסיון...' : 'Sign up successful! Initializing user profile with free trial...');
+          setAuthSuccess(bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל פרופיל עם תקופת ניסיון...' : 'Sign up successful! Initializing user profile with free trial...');
         }
       }
     } else {
@@ -1246,7 +1246,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (error) {
         setAuthError(isHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.');
       } else {
-        setStatusMsg({ text: isHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
+        setStatusMsg({ text: bundleIsHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
       }
     }
   };
@@ -2255,6 +2255,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   if (isInitializing || isPasswordRecoveryMode || !session) {
     return (
       <AuthScreen
+        bundleIsHebrew={bundleIsHebrew}
         isInitializing={isInitializing}
         isPasswordRecoveryMode={isPasswordRecoveryMode}
         newPasswordInput={newPasswordInput}

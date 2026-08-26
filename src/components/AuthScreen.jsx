@@ -7,6 +7,7 @@ import { CheckCircle2, AlertTriangle, Mail, Lock, LogIn, Rocket, KeyRound, X } f
 import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function AuthScreen({
+  bundleIsHebrew,
   isInitializing,
   isPasswordRecoveryMode,
   newPasswordInput,
@@ -43,7 +44,13 @@ export default function AuthScreen({
     (!isHebURL && (navigator.language || '').toLowerCase().startsWith('en'))
   );
 
-  const isHebrew = isHebURL || (!isEnglishEnv && isHebURL);
+  // חוק ברזל: bundleIsHebrew (המגיע מ-Dashboard.jsx, שמקבל אותו מ-AppLocal/
+  // AppGlobal - שתי קריאות ה-<Dashboard> החיות היחידות) הוא מקור האמת
+  // המועדף לשפת מסכי הטרום-אימות/טעינה - לא ניחוש עצמאי מ-pathname/
+  // ?lang=/localStorage שיכול להיות מיושן/שגוי ובלתי-תלוי בבאנדל בפועל.
+  // הקסקדה הישנה נשמרת כרשת ביטחון בלבד למקרה שהרכיב הזה יירונדר בלי
+  // bundleIsHebrew כ-boolean אמיתי.
+  const isHebrew = typeof bundleIsHebrew === 'boolean' ? bundleIsHebrew : (isHebURL || (!isEnglishEnv && isHebURL));
   const font = isHebrew ? FONT_HE : FONT_EN;
 
   if (isInitializing) {

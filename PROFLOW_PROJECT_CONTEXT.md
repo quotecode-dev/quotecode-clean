@@ -6,13 +6,15 @@
 
 **THEN READ `PROFLOW_HANDOFF.md`.**
 
-**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL BOTH ARE UNDERSTOOD.**
+**THEN READ `PROFLOW_TODO.md`** — the authoritative living backlog; identify the current owner-approved priority before beginning any workstream.
+
+**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL FOUR ARE UNDERSTOOD.**
 
 **RESUME FROM THE CURRENT EXACT CHECKPOINT (§28 below) — DO NOT RESTART FROM ZERO.**
 
 **DO NOT ASK THE PROJECT OWNER TO RE-EXPLAIN INFORMATION ALREADY DOCUMENTED HERE OR IN `PROFLOW_HANDOFF.md`.**
 
-This file is the project's **persistent operational memory across chat sessions** (originally written to survive a ChatGPT session boundary; it applies identically to any AI session working on this project, including Claude Code). It must NOT assume access to any previous conversation. Everything a new session needs to continue correctly must be findable here or in `PROFLOW_HANDOFF.md` — never only in a chat transcript that no longer exists.
+This file is the project's **persistent operational memory across chat sessions** (originally written to survive a ChatGPT session boundary; it applies identically to any AI session working on this project, including Claude Code). It must NOT assume access to any previous conversation. Everything a new session needs to continue correctly must be findable here, in `PROFLOW_HANDOFF.md`, or in `PROFLOW_TODO.md` (for backlog/work-item status) — never only in a chat transcript that no longer exists.
 
 This is now a **permanent ProFlow workflow requirement**, not a one-time migration. See §30 (Documentation Maintenance Rule) and the Continuity Protocol immediately below.
 
@@ -28,22 +30,24 @@ Every new session must, before proposing or executing anything:
 1. Read this entire file (`PROFLOW_PROJECT_CONTEXT.md`).
 2. Read `PROFLOW_ARCHITECTURE.md` in full.
 3. Read `PROFLOW_HANDOFF.md` in full.
-4. Locate the **CURRENT EXACT CHECKPOINT** (§28 below).
-5. Identify all **OPEN / PENDING** items (§24).
-6. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
-7. Identify the **exact next proposed action** (§29 below).
-8. Understand the **permanent product/safety rules** (§4, §18, §19, and Part C-derived rules below) before proposing any change.
-9. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) below.
+4. Read `PROFLOW_TODO.md` in full — the authoritative living backlog (see §35).
+5. Locate the **CURRENT EXACT CHECKPOINT** (§28 below).
+6. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
+7. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
+8. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
+9. Understand the **permanent product/safety rules** (§4, §18, §19, and Part C-derived rules below) before proposing any change.
+10. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
 
 ### 0.A Document Hierarchy & Conflict Resolution
 
-Three permanent documents, each with a distinct role — do not blur them:
+Four permanent documents, each with a distinct role — do not blur them:
 
 1. **`PROFLOW_PROJECT_CONTEXT.md`** (this file) — current operational truth: rules, owner decisions, current state, authorization state, open issues, the exact current checkpoint.
 2. **`PROFLOW_ARCHITECTURE.md`** — current technical/product architecture: how the system is built and intended to behave.
 3. **`PROFLOW_HANDOFF.md`** — detailed engineering history: audits, incidents, migrations, fixes, verification evidence, chronology.
+4. **`PROFLOW_TODO.md`** — the authoritative living work backlog/roadmap: every known work item, its status, dependencies, and verification requirements (see §35).
 
-**If the three documents appear inconsistent**, resolve as follows:
+**If the four documents appear inconsistent**, resolve as follows:
 
 - **A.** First determine whether the difference is *current state* vs. *historical record* — a lot of apparent conflict is just one document describing an earlier state that has since changed.
 - **B.** For current authorization, current owner instructions, current workflow, the current checkpoint, and what is/isn't approved — **`PROFLOW_PROJECT_CONTEXT.md` is authoritative.**
@@ -455,22 +459,24 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 
 ## §28. CURRENT EXACT CHECKPOINT
 
-- **What are we working on, and why**: the signup-market preservation fix is complete and bilaterally live-verified (unchanged, not reopened by this checkpoint). A separate, read-only **production routing/locale-selection audit** (§31) plus a **screen-level localization findings map** (§32, Findings A–H) have just been completed and preserved in continuity documentation, in preparation for a future Owner + ChatGPT Visual Acceptance test that must exercise real production routing behavior rather than manually-forced `/he`/`/en` routes.
-- **Last action actually performed**: a documentation-only checkpoint (this update) recording the routing/locale audit's conclusions into `PROFLOW_PROJECT_CONTEXT.md` (§31–§34) and `PROFLOW_HANDOFF.md` (§18.AG–§18.AI). No code was read differently than already audited; no new analysis was performed in this step — only preservation of already-established, already-classified conclusions. **No commit, no push, no deploy, no code change.**
-- **Signup-market fix status (unchanged, not reopened)**: **COMMITTED + PUSHED** (`ee4b8a8` on `origin/main`). **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED** — International (`+intl2`): `country='International'`, `currency='USD'`, final Dashboard English — LIVE VERIFIED. Local (`+local2`): `country='Local'`, `currency='ILS'`, final Dashboard Hebrew/RTL/₪ — LIVE VERIFIED. See §26.B and §32.I for the explicit non-reopening statement.
-- **Routing/locale audit status**: **COMPLETE, READ-ONLY, DOCUMENTED**. See §31 for the verified production routing architecture and §32 for the eight open screen-level localization findings (A–H) — all still **OPEN, NOT FIXED**, none affecting the signup-market mechanism itself.
-- **What is currently live** (on GitHub `main`): the full signup-market fix, all P0-P0.4 documentation, `chat_logs` RLS fix, `is_admin()` + its policy, the Supabase Redirect URL entries. The routing/locale audit and this documentation checkpoint are **local-only as of this update — NOT YET COMMITTED/PUSHED**.
-- **What is approved**: the signup-fix design and implementation (already live); preservation of the routing/locale audit's conclusions in continuity documentation (this checkpoint).
-- **What is NOT approved**: any fix for Findings A–H (§32); repair of any of the three TEST accounts now in their respective post-test states; `PROFLOW_TEST_ADMIN` provisioning; starting Owner + ChatGPT Visual Acceptance testing; any new implementation work not yet explicitly requested.
-- **What must NOT happen yet**: fixing any localization finding (A–H); TEST account repair; visual testing; treating Finding C's cause as known (it is explicitly **UNKNOWN**); treating any observation as proof of device/browser dependency (explicitly **NOT PROVEN** for A/D/E/H).
-- **Active STOP conditions**: none currently active — this workstream (documentation preservation of the routing audit) is complete pending owner + ChatGPT review; do not begin Visual Acceptance testing, localization fixes, or any other new workstream without a fresh explicit request.
+- **What are we working on, and why**: the signup-market preservation fix and the routing/locale-selection audit are both complete and live on `main` (unchanged, not reopened by this checkpoint). `PROFLOW_TODO.md` is established as the third continuity document (§35), now including its item 12 (Auth/Routing Localization) and item 13 (Visual Acceptance) statuses below, plus a new item 14 defining the owner's next primary workstream. **This checkpoint consolidates and, once committed, publishes**: Auth/Routing Localization Phase 1 (Findings A/D/E/H) implemented and statically verified, three recorded Local-market anonymous-routing visual PASS results, and the TODO priority update.
+- **Auth/Routing Localization Phase 1 status**: `src/components/AuthScreen.jsx` accepts an explicit `bundleIsHebrew` boolean prop (passed from `Dashboard.jsx`) and prefers it over its previous independent pathname/`?lang=`/`localStorage.proflow_lang` guess for the pre-auth loading screen, login/signup forms, and post-logout login screen (old cascade retained only as a fallback). `Dashboard.jsx`'s signup-success and login-success messages now use `bundleIsHebrew` instead of `isHebrew`. Findings C (`SignOutModal.jsx`, cause UNKNOWN) and F (external Supabase email template) remain explicitly untouched. No signup_market/`business_settings`/currency/quote logic changed. **STATIC VERIFICATION PASSED** (ESLint 0 errors/1 pre-existing unrelated warning, build succeeds, 21/21 tests pass) — **LIVE VISUAL VERIFICATION STILL PENDING**. TODO item 12 remains 🟡, explicitly not marked complete.
+- **Visual Acceptance evidence recorded** (Owner Desktop Browser, clean incognito, Local market only): (1) root `/` automatic Local selection — PASS; (2) Local Landing → Login, Hebrew/RTL — PASS; (3) Local Login → Signup, Hebrew/RTL — PASS. Authenticated Local visual acceptance and any International-market check (including automatic International routing) remain **NOT** covered — do not claim otherwise. TODO item 13 remains 🟡 IN PROGRESS / NOT YET COMPLETED.
+- **Signup-market fix status (unchanged, not reopened)**: **COMMITTED + PUSHED** (`ee4b8a8` on `origin/main`). **BILATERAL LOCAL + INTERNATIONAL SIGNUP-MARKET PRESERVATION: LIVE VERIFIED.** See §26.B and §32.I for the explicit non-reopening statement.
+- **Routing/locale audit status**: **COMPLETE, COMMITTED + PUSHED** (`d7f3408` on `origin/main`). B and G remain PASS/LIVE VERIFIED; C remains OPEN/CAUSE UNKNOWN; F remains OPEN/external.
+- **Owner's next primary workstream (TODO item 14)**: **Public Quote + User UI Visual Redesign — Desktop + Mobile.** Explicitly **design-first**: current screens reviewed, Desktop/Mobile considered separately, visual mockups shown to and approved by the owner — **before** any implementation. No Public Quote or authenticated-UI code has been touched. Business logic, calculations, schema, currency rules, permissions, and production behavior are explicitly out of scope for this workstream; Local/International separation and David Aluminum's live production usage must be protected throughout any future implementation phase.
+- **What is currently live** (on GitHub `main`, once this checkpoint is pushed): the signup-market fix, the routing/locale audit, all P0-P0.4 documentation, `chat_logs` RLS fix, `is_admin()` + its policy, the Supabase Redirect URL entries, `PROFLOW_TODO.md` and its continuity-protocol integration, and Auth/Localization Phase 1 (statically verified, not live-verified).
+- **What is approved**: everything above that is already live; this checkpoint's commit/push (documentation + the Phase 1 code diff, per explicit owner authorization for this exact task).
+- **What is NOT approved**: any fix for Finding C or F; any Public Quote or authenticated-UI code change (item 14 is design-first — mockups/approval must come first); repair of any TEST account; `PROFLOW_TEST_ADMIN` provisioning; further Visual Acceptance browser testing beyond what is already recorded.
+- **What must NOT happen yet**: UI implementation for item 14; fixing Finding C or F; TEST account repair; more browser/VPN/TEST-account actions; treating Finding C's cause as known (explicitly **UNKNOWN**); treating any observation as proof of device/browser dependency (explicitly **NOT PROVEN** for A/D/E/H); marking TODO item 12 or 13 complete.
+- **Active STOP conditions**: none currently active — this checkpoint is the complete, owner-authorized unit of work for this task; do not begin item 14 implementation, further localization fixes, or any other new workstream without a fresh explicit request.
 
 ## §29. Next Action
 
-1. **Immediate next action**: Owner + ChatGPT review of the routing/locale audit's conclusions (§31, §32) as now preserved in continuity documentation.
-2. **After that review/approval**: build the Owner + ChatGPT Visual Acceptance test plan strictly per the precision rule in §33 (explicit environment, account, starting session state, starting URL, action, screen, expected result, what it proves / does not prove) — not yet built, not yet started.
-3. **Separately deferred, awaiting future authorization**: (a) a fix for any of Findings A–H (§32) — none authorized yet, Finding C's cause remains unknown and must not be guessed at; (b) any decision on cleaning up or repairing the three TEST accounts now in their post-test states (Phase-1 legacy → Local/ILS, Phase-2 `+intl2` → International/USD, Phase-3 `+local2` → Local/ILS) — not started.
-4. **No new workstream should be inferred or begun from this checkpoint alone.**
+1. **Immediate next action** (per this exact checkpoint): Owner + ChatGPT begin the **design-first** visual work for TODO item 14 (Public Quote + User UI Visual Redesign, Desktop + Mobile) — starting with visual examples/mockups, not code.
+2. **In parallel, whenever the owner directs**: live visual verification of Auth/Routing Localization Phase 1 (Findings A/D/E/H), and continuation of Owner + ChatGPT Visual Acceptance (item 13) beyond the three Local anonymous-routing checks already recorded.
+3. **Separately deferred, awaiting future authorization**: (a) any fix for Finding C (cause remains UNKNOWN, must not be guessed at) or Finding F (external Supabase email template); (b) any decision on cleaning up or repairing the three TEST accounts now in their post-test states.
+4. **No new workstream — including any Public Quote or authenticated-UI code change — should be inferred or begun from this checkpoint alone.**
 
 ## §30. Documentation Maintenance Rule
 
@@ -502,20 +508,22 @@ After the decision, `localStorage.proflow_lang` is unconditionally overwritten w
 
 **G. Logout**: handler is `Dashboard.jsx`'s `handleSignOut()` → `supabase.auth.signOut()` only. Does **NOT** navigate to `/`, `/he`, or `/en` — no `window.location`/router navigation occurs; remains on the existing URL (normally `/dashboard`). The `SIGNED_OUT` auth-state-change handler then renders `AuthScreen` in place once `session` becomes null. Clears `localStorage.proflow_cached_country`; resets `bizCountry` state to `'International'`. Does **NOT** clear `localStorage.proflow_lang` — this persists unchanged across logout, regardless of which account just logged out.
 
-## §32. Auth / Routing Localization — Open Screen-Level Findings (A–H) — OPEN, NOT FIXED
+## §32. Auth / Routing Localization — Open Screen-Level Findings (A–H)
 
 Produced by the same read-only audit as §31 (full narrative in `PROFLOW_HANDOFF.md` §18.AH). None of these findings reopen or affect the signup-market mechanism — see §32.I.
 
+**Implementation Phase 1 (working tree only, not committed/pushed/deployed/live-verified — see `PROFLOW_HANDOFF.md` §18.AK)**: `src/components/AuthScreen.jsx` now accepts an explicit `bundleIsHebrew` boolean prop and prefers it over its previous independent pathname/`?lang=`/`localStorage.proflow_lang` guess (old cascade retained only as a fallback); `Dashboard.jsx`'s signup-success and login-success messages now use `bundleIsHebrew` instead of `isHebrew`. This targets Findings A, D, E, H below. Findings C and F were explicitly left untouched per the owner's scope.
+
 | Finding | Account/Context | Exact Screen | Expected | Observed | Status | Evidence Classification | Device Dependency |
 |---|---|---|---|---|---|---|---|
-| A | International `+intl2` | Transient loading screen before final Dashboard | English | Hebrew (`"טוען את המערכת..."`) | OPEN — mechanism identified, not fixed | mechanism REPO VERIFIED; occurrence OWNER-OBSERVED | NOT PROVEN |
+| A | International `+intl2` | Transient loading screen before final Dashboard | English | Hebrew (`"טוען את המערכת..."`) | 🟡 FIX IMPLEMENTED IN WORKING TREE — verification pending | mechanism REPO VERIFIED; occurrence OWNER-OBSERVED | NOT PROVEN |
 | B | International `+intl2` | Fully loaded Dashboard | English / International / non-ILS | English / International / USD | **PASS — LIVE VERIFIED** | REPO VERIFIED + OWNER-OBSERVED | NOT INDICATED |
-| C | International `+intl2` | Logout confirmation dialog (English Dashboard → Sign Out) | English | Hebrew | **OPEN — CAUSE UNKNOWN** | OWNER-OBSERVED; mechanism UNKNOWN | UNKNOWN |
-| D | International `+intl2` | Post-logout login screen (English Dashboard → Sign Out → session null) | English | Hebrew | OPEN — mechanism identified, not fixed | REPO VERIFIED | NOT PROVEN |
-| E | Local `+local2` | Post-signup success message (before email confirmation/bootstrap) | Hebrew | English (`"Sign up successful! Initializing user profile with free trial..."`) | OPEN — mechanism identified, not fixed | REPO VERIFIED | N/A |
-| F | Local `+local2` | Actual confirmation email content | Hebrew | English | OPEN — not fixed | OWNER-OBSERVED (source outside this repo — Supabase Auth email template) | NOT INDICATED |
+| C | International `+intl2` | Logout confirmation dialog (English Dashboard → Sign Out) | English | Hebrew | **OPEN — CAUSE UNKNOWN** (explicitly out of Phase 1 scope, `SignOutModal.jsx` untouched) | OWNER-OBSERVED; mechanism UNKNOWN | UNKNOWN |
+| D | International `+intl2` | Post-logout login screen (English Dashboard → Sign Out → session null) | English | Hebrew | 🟡 FIX IMPLEMENTED IN WORKING TREE — verification pending | REPO VERIFIED | NOT PROVEN |
+| E | Local `+local2` | Post-signup success message (before email confirmation/bootstrap) | Hebrew | English (`"Sign up successful! Initializing user profile with free trial..."`) | 🟡 FIX IMPLEMENTED IN WORKING TREE — verification pending | REPO VERIFIED | N/A |
+| F | Local `+local2` | Actual confirmation email content | Hebrew | English | OPEN — not fixed (explicitly out of Phase 1 scope, Supabase not touched) | OWNER-OBSERVED (source outside this repo — Supabase Auth email template) | NOT INDICATED |
 | G | Local `+local2` | Fully loaded Dashboard | Hebrew + RTL + ILS/₪ | Hebrew + RTL + ILS/₪ | **PASS — LIVE VERIFIED** | REPO VERIFIED + OWNER-OBSERVED | NOT INDICATED |
-| H | Local `+local2`, **Agent desktop browser**, Phase-3 clean verification | Login-success toast, on an already-correct Hebrew Dashboard | Hebrew | English (`"Logged in successfully"`) | OPEN — mechanism identified; specific trigger is INFERENCE | mechanism REPO VERIFIED; specific stale-cache trigger INFERENCE | NOT PROVEN |
+| H | Local `+local2`, **Agent desktop browser**, Phase-3 clean verification | Login-success toast, on an already-correct Hebrew Dashboard | Hebrew | English (`"Logged in successfully"`) | 🟡 FIX IMPLEMENTED IN WORKING TREE — verification pending | mechanism REPO VERIFIED; specific stale-cache trigger INFERENCE | NOT PROVEN |
 
 Standing notes (must be preserved, not softened in future updates):
 - **Finding C's cause is explicitly UNKNOWN.** Do not invent a root cause and do not mark it fixed until a controlled live reproduction with instrumentation identifies the actual mechanism.
@@ -553,3 +561,13 @@ A READ-ONLY audit must not modify documentation while the audit itself is runnin
 4. Only after continuity documentation is reviewed may the project move to the next implementation/test workstream.
 
 Purpose: avoid losing important project knowledge while preserving the strict read-only nature of audits. This rule does not expire and does not need to be re-requested by the project owner in future sessions.
+
+## §35. PROFLOW_TODO.md — Backlog Continuity Rule — PERMANENT REQUIREMENT
+
+`PROFLOW_TODO.md` is now formally recognized as the third primary continuity document alongside this file and `PROFLOW_HANDOFF.md` (see §0.A). Responsibility split:
+
+- **`PROFLOW_PROJECT_CONTEXT.md`** (this file) = durable project truth — architecture, iron rules, verified findings, continuity protocol, high-level current state.
+- **`PROFLOW_HANDOFF.md`** = exact operational checkpoint/resume state for the next session.
+- **`PROFLOW_TODO.md`** = the authoritative living work backlog/roadmap — all known work items, their current status, dependencies, and verification requirements.
+
+**Rule**: a material backlog/status change (an item completed, reopened, newly discovered, or reprioritized) must update `PROFLOW_TODO.md`. This file must **not** duplicate the full backlog — reference `PROFLOW_TODO.md` by item number instead of copying its content here. A future AI/session must read `PROFLOW_TODO.md` and identify the current owner-approved priority before beginning a new workstream — an item's presence in the backlog as OPEN is never, by itself, authorization to start it.
