@@ -4,7 +4,6 @@
 
 import { useState } from 'react';
 import { supabase } from '../shared/supabase';
-import { wipeUserData } from '../shared/wipeUserData';
 import {
   Mail, Building2, CreditCard, Globe, Shield, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
   UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
@@ -184,7 +183,23 @@ export default function AdminUsersTab({
 
       const targetUserId = resetModalUser.user_id;
       if (targetUserId) {
-        await wipeUserData(targetUserId);
+        // ניקוי עץ ההצעות (quotes/quote_items/quote_attachments) של משתמש אחר
+        // חייב לרוץ בצד השרת (Service Role): ה-RLS הרגיל (auth.uid() = user_id)
+        // חוסם כל DELETE חוצה-משתמשים מהקליינט הרגיל, ובלי error גלוי - DELETE
+        // שמסונן ע"י RLS ל-0 שורות מוחזר כ"הצלחה" (אין error), מה שיצר בעבר
+        // הודעת "הצלחה" כוזבת בלי שנמחק בפועל שום דבר. הפונקציה הפריבילגית
+        // מאמתת server-side שהקורא הוא super_admin, ומאמתת בפועל (קריאה חוזרת
+        // מהמסד, לא רק "אין error") שההצעות אכן נמחקו לפני שהיא מדווחת הצלחה.
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-cleanup-user-quotes', {
+          body: { targetUserId }
+        });
+
+        if (fnError) {
+          throw new Error(await getFunctionErrorMessage(fnError, isHebrew ? 'ניקוי ההצעות נכשל.' : 'Failed to clean up quotes.'));
+        }
+        if (fnData?.error) {
+          throw new Error(fnData.error);
+        }
       }
 
       setResetModalUser(null);

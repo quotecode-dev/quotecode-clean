@@ -16,6 +16,13 @@ verify_jwt = true
 import_map = "./functions/admin-delete-user/deno.json"
 entrypoint = "./functions/admin-delete-user/index.ts"
 
+[functions.admin-cleanup-user-quotes]
+enabled = true
+# verify_jwt=true בכוונה: אין קורא לגיטימי אנונימי לפונקציה הזו - כל קריאה
+# חייבת להגיע ממשתמש מחובר, ומאומתת פנימית בנוסף שהוא super_admin בפועל.
+verify_jwt = true
+entrypoint = "./functions/admin-cleanup-user-quotes/index.ts"
+
 [functions.send-trial-expiration-email]
 enabled = true
 # verify_jwt=false בכוונה: הקוד עצמו (לא השער) אוכף הרשאות לפי מצב - batch
