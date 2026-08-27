@@ -35,7 +35,7 @@ Every new session must, before proposing or executing anything:
 6. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
 7. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
 8. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
-9. Understand the **permanent product/safety rules** (§4, §18, §19, and Part C-derived rules below) before proposing any change.
+9. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, and Part C-derived rules below) before proposing any change.
 10. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
 
 ### 0.A Document Hierarchy & Conflict Resolution
@@ -357,6 +357,8 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 
 ## §20. Claude/Coding-Agent Workflow Rules
 
+**See §36 for the full permanent TEST-first / owner-gated LIVE release sequence — this section's points remain in force and are the commit/push-specific instance of that broader rule.**
+
 - **Never** instruct a coding agent to modify code/database/production, commit, push, or deploy merely because an audit recommends a fix — project-owner approval is required before any implementation stage begins.
 - Before commit/push: audit complete → alternatives/dependencies considered → implementation reviewed → verification performed → regression impact understood → **project owner explicitly approves**.
 - Prefer technical instructions to the coding agent in English.
@@ -385,6 +387,8 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 ## §23. Local + International Regression Requirement
 
 **Standing, non-negotiable rule (owner-stated, restated for permanence — "Bilateral Regression Rule", §C1):** Local/Israel and International must be evaluated together whenever shared functionality changes. Never fix one market while silently breaking or leaving unaddressed the same defect in the other. The current signup/confirmation bug (§10/§D) is a clean example of correctly applying this: it was diagnosed as a **shared-code defect affecting both markets equally**, not an International-only issue, and any fix must be verified against both.
+
+**See §37 for the permanent rule extending this specifically to UI/UX work**: every UI/UX change must be implemented in both language/direction experiences in the same work pass, with Local and International verified and reported separately — never treat this section's regression principle and §37's same-pass parity requirement as interchangeable; §37 is stricter (same pass, not just "eventually both fixed").
 
 ## §24. Known Open Issues
 
@@ -514,6 +518,7 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 4. **In parallel, whenever directed**: live visual verification of Auth/Routing Localization Phase 1 (Findings A/D/E/H), and continuation of Owner + ChatGPT Visual Acceptance (item 13) beyond the three checks already recorded.
 5. **Separately deferred, awaiting future authorization**: (a) any fix for Finding C (cause remains UNKNOWN) or Finding F (external Supabase email template); (b) any decision on repairing the three TEST accounts.
 6. **No new workstream should be inferred or begun from this checkpoint alone.**
+7. **Two new permanent workflow rules now govern every future action item above and everything that follows them**: §36 (Test-First / Owner-Gated Live Release) and §37 (Hebrew RTL / English LTR UI Parity) — read both before implementing or deploying anything, on item 14 or any future item.
 
 ## §30. Documentation Maintenance Rule
 
@@ -608,3 +613,36 @@ Purpose: avoid losing important project knowledge while preserving the strict re
 - **`PROFLOW_TODO.md`** = the authoritative living work backlog/roadmap — all known work items, their current status, dependencies, and verification requirements.
 
 **Rule**: a material backlog/status change (an item completed, reopened, newly discovered, or reprioritized) must update `PROFLOW_TODO.md`. This file must **not** duplicate the full backlog — reference `PROFLOW_TODO.md` by item number instead of copying its content here. A future AI/session must read `PROFLOW_TODO.md` and identify the current owner-approved priority before beginning a new workstream — an item's presence in the backlog as OPEN is never, by itself, authorization to start it.
+
+## §36. Test-First / Owner-Gated Live Release Rule — PERMANENT REQUIREMENT
+
+**Owner decision, standing rule, applies to ALL future ProFlow work — not an item-14-only instruction, does not expire, does not need to be re-requested.** Covers every change category without exception: UI/UX, frontend logic, backend logic, Auth, Routing, Billing, Supabase, DB/schema, RLS, Edge Functions, email flows/templates, API behavior, automation, configuration, and any other product/system change.
+
+**Required sequence for every change:**
+1. Implement in the TEST/development environment first (per §18, localhost/working-tree — never production-first).
+2. Verify the change there (lint/build/tests/manual/browser-harness as applicable).
+3. The project owner personally reviews the result where relevant.
+4. The owner gives **explicit approval** for LIVE/production.
+5. Only then may the change be moved/deployed to LIVE/production.
+6. After deployment, perform an appropriate controlled production smoke check.
+
+**TEST PASS does NOT equal PRODUCTION APPROVAL.** Code review, lint, build, automated tests, Claude's own verification, another agent's verification, or browser-harness verification **never** substitute for the owner's explicit LIVE approval (this extends, and does not relax, §20/§21's existing commit/push gating — those sections remain in force). No direct production-first implementation is permitted unless the owner explicitly authorizes a specific, named emergency exception.
+
+**Unsaved-work / user-safety principle**: when a change can affect an active user session, the test and rollout design must consider preservation of unsaved user work. Never introduce forced refresh/reload/session behavior that can silently discard user input. This is consistent with, and does not duplicate, `PROFLOW_TODO.md` item 15 (New Version Available / Safe Refresh Notification) — that item's own critical safe-refresh requirement is the concrete instance of this general principle.
+
+## §37. Hebrew RTL / English LTR UI Parity Rule — PERMANENT REQUIREMENT
+
+**Owner decision, standing rule, applies to ALL future UI/UX work that touches both markets — not an item-14-only instruction, does not expire.**
+
+**Same-pass requirement**: every future UI/UX change applicable to both Local and International must be implemented in **both** language/direction experiences in the **same work pass**. Implementing Hebrew now and leaving English "for later" is not acceptable — English/International is never an optional follow-up, and vice versa.
+
+- **Local / Hebrew**: Hebrew text, RTL direction, correct RTL composition, correct RTL element order, correct alignment, correct icon/control placement, Local market/currency behavior preserved (§4/§8/§9).
+- **International / English**: English text, LTR direction, correctly mirrored/recomposed LTR layout, correct LTR element order, correct alignment, correct icon/control placement, International market/currency behavior preserved (§5/§8/§9).
+
+**Direction is more than CSS.** `direction: rtl`/`ltr` alone does not prove parity — the actual visual composition must be checked. Example: if a Hebrew section has *title + Export control on the right* and *Search + Status filter on the left*, the English/LTR equivalent should intentionally mirror that structure — *title + Export control on the left*, *Search + Status filter on the right* — unless a specific UX reason requires otherwise. Applies to headers, nav, tables, forms, modals, cards, action bars, icons, breadcrumbs, toolbars, mobile layouts, Public Quote, Business Owner UI, Super Admin, and any future interface.
+
+**Dual verification rule**: a UI change is **not** fully verified merely because the Hebrew version works. The final report for every relevant UI task must classify Local and International **separately** — Local Hebrew/RTL: PASS/FAIL/BLOCKED/NOT TESTABLE; International English/LTR: PASS/FAIL/BLOCKED/NOT TESTABLE. "Same code," "mirrored code," "shared component," or "should work" are **not** sufficient evidence for a PASS on either side. Verify both visually/at runtime where reasonably possible; if one side cannot be tested, state that explicitly rather than inferring a result.
+
+**Market isolation remains strict — UI parity is not a license to merge market behavior.** This rule extends, and does not replace or weaken, §23 (Local + International Regression Requirement) and the Iron Rule market separation (§4/§5/§6/§8/§9): never contaminate currency, VAT/tax behavior, `signup_market`, `business_settings.country`, locale, or any other market-specific behavior in the name of visual/UX parity. Visual parity and market separation are both mandatory, simultaneously, never traded off against each other.
+
+**Question/blocker rule preserved**: if stuck, or a genuine question/ambiguity arises on one sub-item, record it, document it, block **only** that sub-item, and continue immediately with the next independent, safe item (see `PROFLOW_TODO.md`'s "Permanent Question / Ambiguity Rule"). A full-task STOP applies only for genuine production/security/data/destructive risk — never for one isolated blocked sub-item.
