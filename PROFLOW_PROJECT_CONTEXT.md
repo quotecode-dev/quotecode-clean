@@ -233,7 +233,7 @@ This continuity system succeeds only if a brand-new session can understand what 
 
 ## §2. Current Production Architecture
 
-Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Vercel (hosting), GitHub (version control). Cloud-only development — no localhost workflow; all changes are managed in the cloud under versioned/backup-tagged commits.
+Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Vercel (hosting), GitHub (version control). **Corrected (previously documented as "Cloud-only — no localhost workflow," no longer accurate)**: production remains cloud-hosted, and GitHub/Vercel remain the sole source of truth for deployed code — but a local Vite dev server is actively used as a development/live-verification environment (recent UI work has been repeatedly verified this way). Localhost verification never implies production deployment; commit, push, and deploy remain separate, independently controlled gates.
 
 ## §3. Canonical Domain / Deployment
 
@@ -345,7 +345,7 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 
 ## §18. Production Safety
 
-- Cloud-only workflow; no localhost dev environment.
+- Production remains cloud-hosted; a local Vite dev server is used for development/live-verification only, never treated as deployed — localhost verification does not imply production deployment; commit, push, and deploy remain separate, independently controlled gates.
 - Never mutate real/production/Lifetime customer data for testing — use explicit disposable TEST accounts only, and clean them up afterward (or explicitly, deliberately preserve a reproduction case, as with the current TEST International account — §D).
 - Security-sensitive business rules must be enforced at the database layer (RLS + triggers), never frontend-only.
 - Full file delivery (not fragments) when the owner requests manual copy/paste code.
