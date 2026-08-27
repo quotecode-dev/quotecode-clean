@@ -35,7 +35,7 @@ Every new session must, before proposing or executing anything:
 6. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
 7. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
 8. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
-9. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, and Part C-derived rules below) before proposing any change.
+9. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, §38, and Part C-derived rules below) before proposing any change.
 10. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
 
 ### 0.A Document Hierarchy & Conflict Resolution
@@ -319,7 +319,7 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 - One new additive policy on `business_settings`: `"Admins can view all business settings"`, `FOR SELECT TO authenticated USING (public.is_admin())` — does not touch any of the 7 pre-existing policies.
 - Verification queries were drafted and provided to the owner for manual execution; **live confirmation of the exact ACL/policy-count results was reported by the owner as successful**, per the flow of this engagement (OWNER-OBSERVED FACT — not independently re-queried by an agent this session).
 
-**Application layer: NOT STARTED.** No frontend `isAdmin`/`isAdminOrAbove` distinction exists yet. No `admin`-role account exists. `PROFLOW_TEST_ADMIN` provisioning is **blocked** — `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` do not exist in `.env` (confirmed absent by direct check); the project owner must choose and add these values before Phase 2 (signup) can proceed. **No password should ever be invented by an agent.**
+**Application layer: NOT STARTED.** No frontend `isAdmin`/`isAdminOrAbove` distinction exists yet. No `admin`-role account exists. `PROFLOW_TEST_ADMIN` provisioning remains **blocked** — **corrected**: `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` keys **are present** in `.env` (an earlier claim that they were absent was stale/incorrect), but the configured email (`shlomisiny22@gmail.com`) **does not currently exist in Supabase Auth**, per the owner's own manual check in Authentication → Users — so this credential set is **not currently usable** regardless of the `.env` keys' presence, and the stored password value is **not live-verified** and may be stale. The project owner must either provision that Auth user or supply new credential values before Phase 2 (signup) can proceed. **No password should ever be invented by an agent.**
 
 **Approved capability model for ADMIN V1 (design only, not implemented)**: read-only — Admin area access, users list, platform KPIs, search/filter, permitted user/business details. Explicitly denied: delete user, reset data, extend trial, Lifetime, plan/subscription changes, role changes, admin creation/removal, diagnostic/test-email actions, destructive Edge Functions, **AI Support Logs / chat_logs access** (explicitly deferred, not granted).
 
@@ -357,7 +357,7 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 
 ## §20. Claude/Coding-Agent Workflow Rules
 
-**See §36 for the full permanent TEST-first / owner-gated LIVE release sequence — this section's points remain in force and are the commit/push-specific instance of that broader rule.**
+**See §36 for the full permanent TEST-first / owner-gated LIVE release sequence — this section's points remain in force and are the commit/push-specific instance of that broader rule. See §38 for the permanent rule that every task must open with an explicit `EFFORT LEVEL` declaration — that rule governs how deeply Claude reasons/verifies, never how broad the scope is; scope is still set only by the task itself and by the rules in this section.**
 
 - **Never** instruct a coding agent to modify code/database/production, commit, push, or deploy merely because an audit recommends a fix — project-owner approval is required before any implementation stage begins.
 - Before commit/push: audit complete → alternatives/dependencies considered → implementation reviewed → verification performed → regression impact understood → **project owner explicitly approves**.
@@ -382,7 +382,7 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 | `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` | International-market signup reproduction (legacy pre-fix account) | **Local** (post-Phase-1) | user | **State changed by authorized Phase 1 live test**: `business_settings` now exists with `country='Local'`, `currency='ILS'` — a correct, expected outcome of the pre-existing geo-fallback (this account has no `signup_market`, and this QA environment's live geo resolves to `IL`), not a defect. No longer in the original "Auth confirmed / profile missing" state. Left as-is, not repaired, pending owner review. |
 | `<PROFLOW_TEST_INTL_EMAIL local-part>+intl2@gmail.com` | Fresh post-fix International new-signup test (Gmail plus-address alias of the same TEST mailbox, never previously registered) | **International (LIVE VERIFIED)** | user | **Core assertion proven**: `user_metadata.signup_market='International'`, `business_settings.country='International'`, `currency='USD'`, English UI, zero ₪/Hebrew — confirmed despite this QA environment's geo resolving to `IL`. Password reused from `PROFLOW_TEST_INTL_PASSWORD` (same mailbox owner, not a new secret). |
 | `<PROFLOW_TEST_INTL_EMAIL local-part>+local2@gmail.com` | Fresh post-fix Local new-signup test (Gmail plus-address alias, never previously registered) | **Local (LIVE VERIFIED)** | user | **Bilateral verification completed**: verified via a clean auth context (no residual session) and the authoritative session/DB source (not UI text) — `session.user.email`/`id`/`user_metadata.signup_market='Local'` all confirmed, distinct `user_id` from the `+intl2` account (no cross-contamination), `business_settings.country='Local'`, `currency='ILS'`, `lang='he'`/`dir='rtl'`, `₪` present, zero `$`. Password reused from `PROFLOW_TEST_INTL_PASSWORD`. |
-| `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` | Future restricted-admin-role QA | To be decided (Local recommended, per earlier audit) | admin (not yet provisioned) | **Does not exist yet** — keys absent from `.env`, no signup performed, no role assigned. Blocked pending owner-chosen credential values. |
+| `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` | Future restricted-admin-role QA | To be decided (Local recommended, per earlier audit) | admin (not yet provisioned) | **Corrected**: keys **are present** in `.env` (an earlier "does not exist yet / keys absent" claim here was stale/incorrect). The configured email is a TEST/QA configuration identity only. That email **does NOT currently exist in Supabase Auth**, per the owner's own manual verification in Authentication → Users — so this credential set is **NOT currently usable**. No signup has been performed for it and no role is assigned. The stored password value is **NOT live-verified** and may be stale. The presence of these `.env` keys must **not** be read as proof of a working Super Admin account — Super Admin authorization is determined exclusively by `business_settings.role = 'super_admin'` (§13/§14), never by this email address. Blocked pending either provisioning that Auth user or owner-chosen new credential values. |
 
 ## §23. Local + International Regression Requirement
 
@@ -395,7 +395,7 @@ Stack: React (Vite) frontend, Supabase (Auth, Postgres/RLS, Edge Functions), Ver
 1. **International (and Local) signup → email confirmation → missing `business_settings`** — architecture fully diagnosed, design approved GO WITH CONDITIONS, **not implemented**. See §D/§17 (of this doc) for full detail. **This is the current active workstream.**
 2. **`PROFLOW_TEST_USER1` trial-reset anomaly** — open, separately tracked, plausible-not-confirmed explanation on file, not to be fixed opportunistically.
 3. **`PROFLOW_TEST_USER2` cannot log in** — open, credential/account issue, not investigated further per instruction.
-4. **`PROFLOW_TEST_ADMIN` provisioning blocked** — waiting on owner-chosen `.env` credential values.
+4. **`PROFLOW_TEST_ADMIN` provisioning blocked** — `.env` keys are present (corrected from an earlier stale "absent" claim), but the configured email does not currently exist in Supabase Auth, per owner verification — not usable until the owner either provisions that Auth user or supplies new credential values (see §14/§22).
 5. **Restricted `admin` role application-layer work** — DB prep done; frontend/UI work not started; blocked behind #4 for QA validation.
 6. **AI Support Logs read/unread status indicator** — owner-requested, not designed in detail, not started (`PROFLOW_HANDOFF.md` §18.V).
 7. **Real billing/payment infrastructure** — not designed, not started (`PROFLOW_HANDOFF.md` §19.C).
@@ -518,7 +518,7 @@ The previously-approved (GO WITH CONDITIONS) signup-market design was implemente
 4. **In parallel, whenever directed**: live visual verification of Auth/Routing Localization Phase 1 (Findings A/D/E/H), and continuation of Owner + ChatGPT Visual Acceptance (item 13) beyond the three checks already recorded.
 5. **Separately deferred, awaiting future authorization**: (a) any fix for Finding C (cause remains UNKNOWN) or Finding F (external Supabase email template); (b) any decision on repairing the three TEST accounts.
 6. **No new workstream should be inferred or begun from this checkpoint alone.**
-7. **Two new permanent workflow rules now govern every future action item above and everything that follows them**: §36 (Test-First / Owner-Gated Live Release) and §37 (Hebrew RTL / English LTR UI Parity) — read both before implementing or deploying anything, on item 14 or any future item.
+7. **Three permanent workflow rules now govern every future action item above and everything that follows them**: §36 (Test-First / Owner-Gated Live Release), §37 (Hebrew RTL / English LTR UI Parity), and §38 (Task Effort-Level Declaration) — read all three before implementing or deploying anything, on item 14 or any future item.
 
 ## §30. Documentation Maintenance Rule
 
@@ -646,3 +646,23 @@ Purpose: avoid losing important project knowledge while preserving the strict re
 **Market isolation remains strict — UI parity is not a license to merge market behavior.** This rule extends, and does not replace or weaken, §23 (Local + International Regression Requirement) and the Iron Rule market separation (§4/§5/§6/§8/§9): never contaminate currency, VAT/tax behavior, `signup_market`, `business_settings.country`, locale, or any other market-specific behavior in the name of visual/UX parity. Visual parity and market separation are both mandatory, simultaneously, never traded off against each other.
 
 **Question/blocker rule preserved**: if stuck, or a genuine question/ambiguity arises on one sub-item, record it, document it, block **only** that sub-item, and continue immediately with the next independent, safe item (see `PROFLOW_TODO.md`'s "Permanent Question / Ambiguity Rule"). A full-task STOP applies only for genuine production/security/data/destructive risk — never for one isolated blocked sub-item.
+
+## §38. Task Effort-Level Declaration Rule — PERMANENT REQUIREMENT
+
+**Owner decision, standing rule, applies to every future task given to Claude on this project — not a one-time instruction, does not expire.**
+
+**A. Every task must begin with an explicit effort level**: `EFFORT LEVEL: LOW / MEDIUM / HIGH / MAXIMUM`, stated before execution begins. This applies to a task set by the owner and, equally, to any task a session sets for itself when self-directing follow-up work.
+
+**B. The level is selected by risk, scope, complexity, and required depth — never by remaining Claude usage/quota.** See §E below — usage percentage must never drive the level chosen, in either direction (never inflated to "look thorough," never deflated to save quota).
+
+**C. General guidance**:
+- **LOW** — tiny, isolated, low-risk inspection/documentation task; a simple lookup or narrowly scoped verification; no architectural/security/data implications.
+- **MEDIUM** — normal bounded implementation or investigation; a limited set of files/components; dependencies already understood; moderate verification required.
+- **HIGH** — multi-file or multi-surface work; UI changes requiring Hebrew RTL + English LTR parity (§37); authentication/domain/session behavior; database-related analysis; production-sensitive behavior; significant regression risk; deep diagnostics; workflow/rule changes (including this file's own permanent sections).
+- **MAXIMUM** — architecture/security/auth redesign; migrations or destructive/data-sensitive operations; production incidents; broad refactors; high-risk cross-system changes; any task where a mistake could materially affect LIVE users/data; exceptionally deep audits where exhaustive reasoning is warranted.
+
+**D. Effort level never overrides any existing safety rule, and higher effort is never permission for broader scope.** In particular, regardless of the declared level: TEST-first remains mandatory (§36); owner approval remains mandatory before LIVE (§36); no commit/push/deploy without separate authorization under existing project rules (§21); the Hebrew RTL/English LTR same-pass rule remains mandatory wherever applicable (§37); market isolation remains mandatory (§4/§5/§6/§8/§9/§23/§37); and Claude must still stop and ask wherever an existing owner-gated rule requires it, regardless of how much effort was declared. A HIGH or MAXIMUM effort level authorizes deeper reasoning and verification for the task as scoped — it does not authorize touching more files, surfaces, or systems than the task itself defines.
+
+**E. Usage percentage must never drive effort or scope.** Available weekly/session Claude usage must not cause artificial token burning (padding a LOW task into something that reads as MEDIUM/HIGH) or unnecessary corner-cutting (compressing a task that genuinely needs HIGH/MAXIMUM reasoning down to save quota). Use the effort the task genuinely requires, independent of how much usage remains.
+
+**F. Discoverability**: a new/cold-start session must be able to discover this rule on its own, without being told about it again. It is indexed via the standard four-document reading order (§0.A, §1) — any session reading this file in full, as required, will reach this section.
