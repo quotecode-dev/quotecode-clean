@@ -251,6 +251,20 @@ Purpose: a visual/UX redesign covering three related but distinct surfaces. Owne
 - **COMMIT/PUSH/DEPLOY**: 🔴 NOT AUTHORIZED.
 - **Owner question**: is a further, deeper structural redesign of Super Admin (matching 14.B's level of compositional rework) wanted in a follow-up pass, and can the classifier-blocked admin-login testing path be explicitly authorized/unblocked for a future live-verification attempt?
 
+## 15. New Version Available / Safe Refresh Notification
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED**
+
+**This is a FUTURE TODO item. It must not interrupt or replace the currently approved item 14.B Dashboard Desktop work, and is not part of any current implementation pass.**
+
+**Requirement**: ProFlow should provide a clear in-app notification when a newer application version becomes available while a user is already using the system, to prevent users from unknowingly continuing to work on an outdated frontend bundle after a new version has been released. The notification should provide a clear user action to refresh/reload ProFlow and load the current version.
+
+**Important**: a screenshot/example was previously discussed as **conceptual reference only** — its wording must not be copied. The final ProFlow notification text, visual design, placement, and interaction must be separately reviewed and approved by the Owner before implementation.
+
+**Critical safe-refresh requirement**: a refresh must **not** blindly destroy unsaved user work. Before any automatic or user-triggered refresh mechanism is implemented, the design must account for situations where the user is currently editing unsaved data — including forms such as the Quote Form or other editable business data — and must safely protect against accidental loss of unsaved changes. Exact UX/technical behavior is **not decided yet** and must be designed/reviewed before implementation.
+
+**Do NOT infer authorization for**: automatic forced refresh; automatic reload timers; discarding unsaved changes; background deployment behavior; service-worker changes; PWA changes.
+
 ---
 
 *This file must be updated whenever a backlog item's status materially changes. See `PROFLOW_PROJECT_CONTEXT.md`'s continuity protocol for the full 3-file responsibility split.*
