@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
-import { NEON, FONT_HE, FONT_EN, neonGhostButtonStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
 
 // רכיב מחיקה-מאשרת יחיד ומשותף לכל זרימות המחיקה באפליקציה - מחליף את כל
 // window.confirm() המובנים של הדפדפן כדי לשמור על עיצוב אחיד (NEON כהה)
@@ -46,7 +46,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
           <button
             onClick={onCancel}
             disabled={isDeleting}
-            style={neonGhostButtonStyle({ flex: 1, padding: '9px', fontSize: '0.85rem', opacity: isDeleting ? 0.6 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' })}
+            style={{ flex: 1, background: NEON.bgCardAlt, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontWeight: '600', padding: '9px', fontSize: '0.85rem', opacity: isDeleting ? 0.6 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
           >
             {cancelLabel}
           </button>

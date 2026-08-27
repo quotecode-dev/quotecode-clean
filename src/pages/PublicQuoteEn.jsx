@@ -3,6 +3,8 @@ import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
+import { LIGHT } from '../theme/neonTheme';
+import { UserRound, Paperclip } from 'lucide-react';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -78,17 +80,72 @@ export default function PublicQuoteEn({ quoteData }) {
   const isOwnerViewing = quote.is_owner_viewing;
 
   return (
-    <div dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
+    <div className="pq-page" dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+      <style>{`
+        .pq-card { padding: 40px; }
+        @media (max-width: 640px) {
+          /* Iron rule (owner-approved correction - genuine mobile width,
+             not A4): the outer wrapper's fixed 20px padding (.pq-page) was
+             the root cause of the "A4 page floating in the phone" feel -
+             it was never viewport-dependent at all. Reduced to 6px only
+             below 640px (owner's 4-8px target), Desktop's original 20px
+             untouched outside this media query. */
+          .pq-page {
+            padding: 6px !important;
+          }
+          /* Iron rule (owner correction, follow-up pass - "still looks like
+             A4"): live measurement showed the previous fix (6px on
+             .pq-page) was correct and already in place, but .pq-card
+             itself (the white card) still kept 18px of its own internal
+             padding per side - 3x the outer 6px gutter. In practice: the
+             white card itself did span nearly the full viewport (378px of
+             390px), but the *actual content* (header/recipient/items)
+             only started at 340px width (87.2% of viewport) - exactly the
+             "page with large margins" feel the owner still described,
+             even though the outer card was already the right width.
+             Reduced to 12px to meaningfully tighten the internal margin
+             (new content width: 354px, 90.8%) without touching the outer
+             gutter (6px, already inside the owner's 4-8px target) and
+             without hurting readability (not full edge-to-edge). */
+          .pq-card { padding: 12px; }
+          .pq-recipient {
+            padding: 6px 10px !important;
+            margin-bottom: 10px !important;
+          }
+          .pq-recipient-name {
+            font-size: 0.95rem !important;
+            margin-top: 2px !important;
+          }
+        }
+      `}</style>
+      {/* Iron rule (owner-approved correction - responsive document, not A4):
+          maxWidth increased from 800px to 1100px, mirroring PublicQuote.jsx -
+          800px caused excessive side margins on wide desktops and an "A4
+          page squeezed in the browser" feel. Mobile is unaffected -
+          width:'100%' already caps at the actual screen width regardless
+          of maxWidth. */}
+      <div className="pq-card" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
 
-        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Client:</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{client?.company_name || 'Valued Client'}</div>
+        <div className="pq-recipient" style={{ background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', marginBottom: '25px', border: `1px solid ${LIGHT.border}`, borderInlineStart: `4px solid ${LIGHT.violet}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: LIGHT.violet, fontWeight: '800', textTransform: 'uppercase' }}>
+            <UserRound size={13} strokeWidth={2.4} />
+            Client:
+          </div>
+          <div className="pq-recipient-name" style={{ fontSize: '1.2rem', fontWeight: '800', marginTop: '4px' }}>{client?.company_name || 'Valued Client'}</div>
           {quote.subject && <div style={{ marginTop: '10px', fontWeight: 'bold' }}>Subject: <span style={{ fontWeight: 'normal' }}>{quote.subject}</span></div>}
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
+        {/* Iron rule (parity fix): wrapped in an overflowX:'auto' container
+            with no forced minWidth, exactly mirroring PublicQuote.jsx's
+            Hebrew table structure - this wrapper was previously missing
+            here entirely, a genuine gap risking horizontal page overflow
+            on narrow/mobile screens. No minWidth is set (matching Hebrew),
+            so the table shrinks/wraps naturally on narrow screens instead
+            of forcing a horizontal scrollbar - true composition parity,
+            not just a defensive safety net that behaves differently. */}
+        <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f1f5f9', color: '#475569' }}>
               <th style={{ padding: '10px', textAlign: 'left' }}>Description</th>
@@ -108,26 +165,33 @@ export default function PublicQuoteEn({ quoteData }) {
             ))}
           </tbody>
         </table>
+        </div>
 
-        {/* Attachments Section for International Clients */}
-        {attachments && attachments.length > 0 && (
-          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Attached Files & Documents:</div>
+        {/* Attachments Section - always visible (product awareness: the customer
+            should see the system supports attachments even when none exist) */}
+        <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>
+            <Paperclip size={14} color={LIGHT.violet} strokeWidth={2.2} />
+            Attached Files & Documents:
+          </div>
+          {attachments && attachments.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {attachments.map((att, idx) => (
-                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: LIGHT.violet, textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
                   📄 {att.file_name || `Attachment #${idx + 1}`}
                 </a>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No attachment included with this quote.</div>
+          )}
+        </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-          <div style={{ width: '300px', background: '#f8fafc', padding: '20px', borderRadius: '10px' }}>
+          <div style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}><span>Subtotal:</span><span>{currencySymbol}{formatNum(subtotal)}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '2px solid #cbd5e1', paddingTop: '10px' }}>
-              <span>Total:</span><span style={{ color: '#4f46e5' }}>{currencySymbol}{formatNum(total)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: '900', borderTop: `2px solid ${LIGHT.borderStrong}`, paddingTop: '12px' }}>
+              <span>Total:</span><span style={{ color: LIGHT.violet }}>{currencySymbol}{formatNum(total)}</span>
             </div>
           </div>
         </div>
@@ -147,18 +211,24 @@ export default function PublicQuoteEn({ quoteData }) {
             ℹ️ Admin View: Signature area is displayed to the client only.
           </div>
         ) : (
-          <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center', boxSizing: 'border-box' }}>
-            <h4>Client Signature:</h4>
-            <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', maxWidth: '350px', height: 'auto', margin: '0 auto', border: '1px dashed #94a3b8', borderRadius: '8px', cursor: 'crosshair', background: 'white', boxSizing: 'border-box' }} />
-            <div style={{ marginTop: '10px' }}>
-              <button type="button" onClick={clearSignature} style={{ padding: '5px 15px', marginRight: '10px' }}>Clear</button>
-              <button onClick={handleApprove} style={{ padding: '5px 15px', background: '#10b981', color: 'white', border: 'none' }}>Approve</button>
+          <div style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>Client Signature to Approve This Quote:</h4>
+            <div style={{ display: 'block', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', cursor: 'crosshair', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', touchAction: 'none', maxWidth: '100%', height: 'auto' }} />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
             </div>
             {signatureWarning && (
-              <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginTop: '10px' }}>
+              <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>
                 Please sign the quote before approval
               </div>
             )}
+            <div>
+              <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
+                Approve & Sign This Quote ✓
+              </button>
+            </div>
           </div>
         )}
       </div>

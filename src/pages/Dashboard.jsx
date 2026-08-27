@@ -28,11 +28,18 @@ import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
 import AdminUsersTab from '../components/AdminUsersTab';
-import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
+// חוק ברזל: ה-Dashboard (ה"קליפה" של בעל העסק - ניווט/KPI/היסטוריית הצעות/
+// טאבים) עבר לערכת הנושא הבהירה שאושרה ע"י הבעלים (LIGHT), דרך אותה טכניקת
+// alias-at-import שכבר משמשת ב-QuotesTab.jsx/ServicesCatalog.jsx - שינוי
+// שורת ה-import היחיד הזה משנה את *כל* השימושים הקיימים ב-NEON.xxx בקובץ,
+// בלי לגעת בכל אחד מהם בנפרד. AdminUsersTab.jsx (Super Admin) מייבא NEON
+// האמיתי (הכהה) בעצמו ונשאר כך בכוונה - עיצובו מחדש אושר בעיקרון בנפרד
+// ואינו בתחום המשימה הזו.
+import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import {
   AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
   Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon
+  MessagesSquare, Accessibility as AccessibilityIcon, Package
 } from 'lucide-react';
 
 const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -115,6 +122,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const isHebrew = isHebrewEnv(bizCountry, session);
 
   const [statusMsg, setStatusMsg] = useState({ text: '', type: 'success' });
+  // חוק ברזל (תיקון בעלים - הודעת "התחברת בהצלחה"): ההודעה תפסה שורה
+  // קבועה בפריסה (עד שנדרסה ע"י setStatusMsg הבא) ולא נעלמה מעצמה. במקום
+  // לבנות מנגנון התראות גלובלי חדש, נוסף כאן טיימר יחיד שמנקה אוטומטית כל
+  // statusMsg (לא רק הודעת ההתחברות - זהו אותו state משותף לכל 15+ נקודות
+  // הקריאה הקיימות) כעבור ~2.7 שניות, בהתאמה לאופי ה"טוסט" הזמני שהטקסט
+  // עצמו כבר רומז עליו ("...בהצלחה!"). הרינדור עצמו הוזז לשכבת-על צפה מעל
+  // הכותרת הסגולה (ר' למטה) כדי שלא ידחוף תוכן כלל, גם לפני שהטיימר מפעיל.
+  useEffect(() => {
+    if (!statusMsg.text) return;
+    const timer = setTimeout(() => setStatusMsg({ text: '', type: 'success' }), 2700);
+    return () => clearTimeout(timer);
+  }, [statusMsg.text]);
   const [alertModalMsg, setAlertModalMsg] = useState(null); // חלון צף מודרני במרכז המסך עבור הודעות שגיאה/התרעה
   
   const [emailStatuses, setEmailStatuses] = useState({});
@@ -481,8 +500,51 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     settingsNav: isHebrew ? 'הגדרות עסק' : 'Business Settings',
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
     financesNav: isHebrew ? 'פיננסים' : 'Finances',
+    catalogNav: isHebrew ? 'קטלוג' : 'Catalog',
     usersAdminNav: isHebrew ? 'ניהול משתמשים' : 'Users Admin',
-    hotQuoteAlert: (name) => isHebrew ? `הצעה חמה! הלקוח "${name}" צפה בהצעה מספר פעמים ללא חתימה.` : `Hot Quote! Client "${name}" viewed the quote multiple times without signing.`
+    // חוק ברזל (תיקון בעלים - הצעה חמה): הכותרת "הצעה חמה!"/"Hot Quote!"
+    // כבר מוצגת פעם אחת בכותרת הכרטיס (dash-kpi-label) - הטקסט כאן חוזר
+    // עליה שוב היה כפילות מיותרת. הטקסט עודכן להשתמש ב-view_count האמיתי
+    // (לא מומצא) עם דקדוק יחיד/רבים נכון, במקום "מספר פעמים" הגנרי.
+    // חוק ברזל (תיקון בעלים - הדגשת נתונים): מחזיר עכשיו JSX (לא מחרוזת)
+    // כדי להדגיש בסגול (אותו גוון בדיוק כמו הבאנר הראשי - NEON.violet,
+    // שכן NEON כבר מכונה כאן ל-LIGHT) רק את שם הלקוח ואת מספר הצפיות עצמו
+    // - שאר המשפט נשאר בצבע הטקסט הרגיל של הכרטיס, לא כל המשפט בסגול.
+    hotQuoteAlert: (name, viewCount) => {
+      const purpleStrong = { color: NEON.violet, fontWeight: '800' };
+      if (isHebrew) {
+        return (
+          <>
+            <span style={purpleStrong}>{name}</span>
+            {' צפה בהצעה '}
+            {viewCount === 1 ? (
+              <span style={purpleStrong}>פעם אחת</span>
+            ) : (
+              <>
+                <span style={purpleStrong}>{viewCount}</span>
+                {' פעמים'}
+              </>
+            )}
+            {' ועדיין לא חתם.'}
+          </>
+        );
+      }
+      return (
+        <>
+          <span style={purpleStrong}>{name}</span>
+          {' viewed this quote '}
+          {viewCount === 1 ? (
+            <span style={purpleStrong}>once</span>
+          ) : (
+            <>
+              <span style={purpleStrong}>{viewCount}</span>
+              {' times'}
+            </>
+          )}
+          {" and hasn't signed yet."}
+        </>
+      );
+    }
   };
 
   async function loadData(userId, userEmail, userMetadata) {
@@ -1686,7 +1748,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setStatusMsg({ text: isHebrew ? `עורך הצעה #${quote.id.slice(0, 6)}...` : `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
   };
 
+  // חוק ברזל (תיקון בעלים מאושר): setActiveTab('main') נוסף כאן כי ה-CTA
+  // "הצעת מחיר חדשה" הוא פעולת-על גלובלית של הדשבורד, נגישה מתוך כל טאב
+  // (Clients/Finances/Settings/Catalog) - אך טופס ההצעה עצמו מוצג רק תחת
+  // activeTab === 'main' (ר' showQuoteForm למטה). בלי השורה הזו, לחיצה
+  // מטאב שאינו 'main' עדכנה state פנימי (isCreatingQuote) בלי לרנדר שום
+  // דבר גלוי - זה היה הפער שדווח ותוקן כאן, לא מומש טופס נפרד/כפול.
   const handleCreateNewQuoteClick = () => {
+    setActiveTab('main');
     setIsCreatingQuote(true);
     setEditingQuoteId(null);
     setClientName('');
@@ -2336,7 +2405,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }
 
   const hotQuotesList = quotes.filter(q => (q.view_count || 0) >= 3 && q.status !== 'approved' && q.status !== 'paid');
-  const currentHotClientName = hotQuotesList.length > 0 ? (hotQuotesList[hotQuoteIndex % hotQuotesList.length]?.clients?.company_name || 'Client') : '';
+  const currentHotQuote = hotQuotesList.length > 0 ? hotQuotesList[hotQuoteIndex % hotQuotesList.length] : null;
+  const currentHotClientName = currentHotQuote?.clients?.company_name || 'Client';
+  const currentHotViewCount = Number(currentHotQuote?.view_count || 0);
 
   return (
     <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'hidden' }}>
@@ -2352,6 +2423,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
         .mobile-bottom-nav {
           display: none !important;
+        }
+        .dash-trial-compact {
+          display: none;
         }
         @media (max-width: 768px) {
           .mobile-bottom-nav {
@@ -2385,6 +2459,73 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           .dash-admin-badge-text,
           .dash-admin-logs-text {
             display: none;
+          }
+        }
+        /* חוק ברזל (תיקון בעלים מאושר - צפיפות מובייל): שינויים מתחת
+           נכנסים אך ורק מתחת ל-768px - הדסקטופ נשאר בדיוק כפי שהיה, בלי
+           שום שינוי לרוחב/ריווח/עוצמת הצפיפות שלו. כרטיסי ה-KPI/הצעה חמה
+           מוקטנים כאן כ-30% (padding/gap/גודל אייקון/גודל טקסט הערך) -
+           הערכים והתוויות עצמם נשארים קריאים ולא משתנים בחישוב. */
+        @media (max-width: 768px) {
+          .dash-kpi-grid {
+            gap: 8px !important;
+            margin-bottom: 10px !important;
+            /* חוק ברזל (תיקון בעלים - העברה 2): grid-template-columns של
+               הדסקטופ (repeat(auto-fit, minmax(200px, 1fr))) קרס לעמודה
+               בודדת במובייל כי הרוחב הזמין (~370px) לא מספיק לשתי עמודות
+               של 200px+gap. כפיית 2 עמודות שוות כאן פותרת זאת - "הצעה
+               חמה" נשאר ברוחב מלא (span שתי העמודות) ע"י dash-kpi-hot
+               למטה, בעוד סה"כ הצעות/הכנסות חולקות את השורה השנייה. */
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .dash-kpi-hot {
+            grid-column: 1 / -1 !important;
+          }
+          .dash-kpi-card {
+            padding: 10px !important;
+            gap: 8px !important;
+            border-radius: 10px !important;
+          }
+          .dash-kpi-icon {
+            width: 32px !important;
+            height: 32px !important;
+          }
+          .dash-kpi-icon svg {
+            width: 15px !important;
+            height: 15px !important;
+          }
+          .dash-kpi-value {
+            font-size: 1.15rem !important;
+          }
+          .dash-kpi-label {
+            font-size: 0.65rem !important;
+          }
+          .dash-kpi-sub {
+            font-size: 0.75rem !important;
+          }
+          /* מרווח תחתון מספיק כדי שהתוכן האחרון בכל טאב (כולל שורת ההצעה
+             האחרונה בהיסטוריה) יוכל לגלול לגמרי מעל אזור כפתור צאט ה-AI
+             הצף וניווט התחתון הקבועים - בלי זה, תוכן בתחתית העמוד יכול
+             להישאר "תקוע" מאחורי הכפתור הצף לצמיתות. גובה מדוד בפועל:
+             ניווט תחתון ~58px + כפתור AI Chat יושב כ-85px מהתחתית - 100px
+             נוסף מבטיח מרווח בטוח. */
+          .dash-footer {
+            padding-bottom: 100px !important;
+          }
+          /* חוק ברזל (תיקון בעלים - העברה 2): הודעת "תקופת ניסיון" נמדדה
+             בפועל בגובה 67px עם flex-wrap ל-2 שורות ב-390px, כי הטקסט
+             המלא ארוך מדי לרוחב הזמין. nowrap + טקסט מקוצר ייעודי
+             (dash-trial-compact) במקום הטקסט המלא (dash-trial-full)
+             מצמצם לשורה אחת קומפקטית בלי לאבד מידע חשוב. */
+          .dash-trial-alert {
+            flex-wrap: nowrap !important;
+            padding: 6px 10px !important;
+          }
+          .dash-trial-full {
+            display: none !important;
+          }
+          .dash-trial-compact {
+            display: inline !important;
           }
         }
       `}</style>
@@ -2496,11 +2637,26 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       />
 
       <div style={{ flex: '1 0 auto', padding: '10px' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          
-          <div className="dash-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgCard, padding: '10px 16px', borderRadius: '12px', border: `1px solid ${NEON.border}`, marginBottom: '12px', flexWrap: 'wrap', gap: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <ProFlowLogo size={40} />
+        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+
+          <div className="dash-header-bar" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.gradient, padding: '14px 20px', borderRadius: '16px', marginBottom: '14px', flexWrap: 'wrap', gap: '10px', maxWidth: '100%', boxSizing: 'border-box', boxShadow: NEON.glow }}>
+            {/* חוק ברזל (דרישת בעלים מפורשת): זהות בעל העסק - לא מותג ProFlow -
+                היא מה שמופיע כאן. אם קיים לוגו מועלה, הוא מוצג בתוך מיכל
+                לבן/ניטרלי (לעולם לא ישירות על הרקע הסגול, כדי שלא "ייבלע"
+                בצבעי הלוגו עצמו) עם object-fit:contain ששומר על יחס-הממדים
+                ולעולם לא חותך אותו. בהיעדר לוגו - שם העסק בטקסט נקי, לעולם
+                לא לוגו ProFlow כברירת מחדל - זהו דשבורד בעל העסק, לא מסך
+                מיתוג ProFlow. */}
+            <div className="dash-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, minWidth: 0 }}>
+              {bizLogoUrl ? (
+                <div style={{ background: '#ffffff', borderRadius: '10px', padding: '6px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '46px', maxWidth: '180px', boxSizing: 'border-box', flexShrink: 0 }}>
+                  <img src={bizLogoUrl} alt={bizName} style={{ maxHeight: '34px', maxWidth: '160px', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }} />
+                </div>
+              ) : (
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px' }}>
+                  {bizName}
+                </div>
+              )}
             </div>
 
             <div className="dash-header-actions" style={{ flex: '0 1 auto', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -2509,7 +2665,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <button
                   className="dash-neon-btn"
                   onClick={() => setShowPricingModal(true)}
-                  style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                  style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.35)', padding: '6px 14px', borderRadius: '16px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
                 >
                   <Crown size={14} fill="currentColor" strokeWidth={1.5} />
                   <span>{isHebrew ? 'שדרג חבילה' : 'Upgrade Plan'}</span>
@@ -2520,10 +2676,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   onClick={() => { window.location.href = '/ai-logs'; }}
                   style={{
                     padding: '6px 14px', borderRadius: '16px',
-                    border: '1px solid rgba(248, 113, 113, 0.4)',
-                    fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    color: NEON.red,
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.16)',
+                    color: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                     whiteSpace: 'nowrap'
                   }}
@@ -2536,22 +2692,56 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
             <div className="dash-header-profile" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flexShrink: 0 }}>
               {isSuperAdmin && (
-                <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: NEON.amber, fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1px solid rgba(251, 191, 36, 0.3)', whiteSpace: 'nowrap' }}>
+                <span style={{ background: 'rgba(255,255,255,0.18)', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1px solid rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
                   <Shield size={12} strokeWidth={2.5} />
                   <span className="dash-admin-badge-text">SUPER ADMIN</span>
                 </span>
               )}
-              <span className="dash-email-text" style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{session.user.email}</span>
-              <button onClick={() => setShowSignOutModal(true)} style={{ background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, border: 'none', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}><LogOut size={12} strokeWidth={2.5} />{isHebrew ? 'התנתק' : 'Sign Out'}</button>
+              <span className="dash-email-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)' }}>{session.user.email}</span>
+              <button onClick={() => setShowSignOutModal(true)} style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 8px', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}><LogOut size={12} strokeWidth={2.5} />{isHebrew ? 'התנתק' : 'Sign Out'}</button>
             </div>
-          </div>
 
-          {statusMsg.text && (
-            <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', background: statusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', border: `1px solid ${statusMsg.type === 'success' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`, color: statusMsg.type === 'success' ? NEON.emerald : NEON.red, fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              {statusMsg.type !== 'success' && <AlertTriangle size={16} strokeWidth={2.5} />}
-              <span>{statusMsg.text}</span>
-            </div>
-          )}
+            {/* חוק ברזל (תיקון בעלים - הודעת "התחברת בהצלחה"): הודעת הסטטוס
+                עברה משורה קבועה בפריסה (שדחפה תוכן למטה עד שנדרסה) לשכבת-על
+                צפה (position:absolute, לא בזרימת המסמך כלל) שתלויה מהקצה
+                התחתון של הכותרת הסגולה - לא מכסה לוגו/שם עסק (משמאל/מימין,
+                תלוי כיוון) ולא מכסה Sign Out (גם הם בשורה העליונה, מעל
+                השכבה הזו). נעלמת אוטומטית אחרי 2.7 שניות (ר' ה-useEffect
+                למעלה), ולא רק כשנדרסת ע"י ההודעה הבאה. */}
+            {statusMsg.text && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  position: 'absolute',
+                  bottom: '-14px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 30,
+                  padding: '7px 16px',
+                  borderRadius: '999px',
+                  background: statusMsg.type === 'success' ? '#ffffff' : '#dc2626',
+                  color: statusMsg.type === 'success' ? NEON.violet : '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 8px 20px -6px rgba(0,0,0,0.35)',
+                  maxWidth: 'calc(100% - 24px)',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  animation: 'popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                }}
+              >
+                {statusMsg.type !== 'success' && <AlertTriangle size={14} strokeWidth={2.5} />}
+                <span>{statusMsg.text}</span>
+              </div>
+            )}
+          </div>
 
           {isExpiringSoon && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
@@ -2561,12 +2751,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           )}
 
           {trialEndsAt && !isTrialExpired && !isSuperAdmin && !isExpiringSoon && (
-            <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: NEON.sky, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
+            // חוק ברזל (תיקון בעלים מאושר - צפיפות מובייל): הבאנר נשבר
+            // לשתי שורות במובייל כי הטקסט המלא ("תקופת ניסיון פעילה (גישת
+            // PRO מלאה)" + "תקופת הניסיון מסתיימת בעוד X ימים") ארוך מדי
+            // מכדי להיכנס לשורה אחת ב-370px, גם עם flex-wrap:wrap. נוסף
+            // טקסט מקוצר ייעודי למובייל (dash-trial-compact, מוסתר
+            // בדסקטופ) לצד הטקסט המלא הקיים (dash-trial-full, מוסתר
+            // במובייל) - שניהם מוחלפים ב-CSS בלבד, בלי state/hook חדש.
+            // אין אובדן מידע - שני הטקסטים מכילים בדיוק את אותו מידע
+            // (סטטוס + ימים שנותרו), רק מנוסחים בתמציתיות שונה.
+            <div className="dash-trial-alert" style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: NEON.sky, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <Clock size={14} strokeWidth={2.5} />
-                {isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}
+                <span className="dash-trial-full">{isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}</span>
+                <span className="dash-trial-compact">{isHebrew ? 'תקופת ניסיון פעילה' : 'Trial active'}</span>
               </span>
-              <span>{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
+              <span className="dash-trial-full">{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
+              <span className="dash-trial-compact">{isHebrew ? `נותרו ${trialDaysLeft} ימים` : `${trialDaysLeft} days left`}</span>
             </div>
           )}
 
@@ -2577,122 +2778,112 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <button
-              className="dash-tab-btn"
-              onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-              style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
-                border: activeTab === 'main' ? '1px solid transparent' : `1px solid ${NEON.border}`,
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                background: activeTab === 'main' ? NEON.gradient : NEON.bgCard,
-                color: activeTab === 'main' ? 'white' : NEON.textSecondary,
-                boxShadow: activeTab === 'main' ? NEON.glow : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-              }}
-            >
-              <FileText size={14} />
-              {t.quotesNav}
-            </button>
-            <button
-              className="dash-tab-btn"
-              onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-              style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
-                border: activeTab === 'settings' ? '1px solid transparent' : `1px solid ${NEON.border}`,
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                background: activeTab === 'settings' ? NEON.gradient : NEON.bgCard,
-                color: activeTab === 'settings' ? 'white' : NEON.textSecondary,
-                boxShadow: activeTab === 'settings' ? NEON.glow : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-              }}
-            >
-              <SettingsIcon size={14} />
-              {t.settingsNav}
-            </button>
-            <button
-              className="dash-tab-btn"
-              onClick={() => { setActiveTab('clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-              style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
-                border: activeTab === 'clients' ? '1px solid transparent' : `1px solid ${NEON.border}`,
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                background: activeTab === 'clients' ? NEON.gradient : NEON.bgCard,
-                color: activeTab === 'clients' ? 'white' : NEON.textSecondary,
-                boxShadow: activeTab === 'clients' ? NEON.glow : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-              }}
-            >
-              <Users2 size={14} />
-              {t.clientsNav}
-            </button>
-            <button
-              className="dash-tab-btn"
-              onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-              style={{
-                flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
-                border: activeTab === 'finances' ? '1px solid transparent' : `1px solid ${NEON.border}`,
-                fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                background: activeTab === 'finances' ? NEON.gradient : NEON.bgCard,
-                color: activeTab === 'finances' ? 'white' : NEON.textSecondary,
-                boxShadow: activeTab === 'finances' ? NEON.glow : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-              }}
-            >
-              <BarChart3 size={14} />
-              {t.financesNav}
-            </button>
-            {isSuperAdmin && (
+          {/* חוק ברזל (תיקון בעלים מאושר - שילוב "הצעת מחיר חדשה" לתוך קבוצת
+              הניווט): הוסר ה-spacer (flex:'1 1 auto') שהפריד בעבר בין
+              כפתורי הטאבים לכפתור ה-CTA הסגול, וגרם לו "לצוף" לבד בקצה
+              הנגדי של השורה - זה בדיוק מה שהבעלים דחה. עכשיו כל הכפתורים
+              (כולל ה-CTA) יושבים באותה שורת flex רציפה, אותו gap אחיד, בלי
+              מפריד. ה-CTA הוא ראשון ב-DOM בכוונה: במיכל RTL (עברית), הילד
+              הראשון ב-DOM ממוקם בפועל בקצה הימני (ה-"התחלה" ב-RTL) - כך
+              שהוא מוביל את הקבוצה מימין, תואם בדיוק לסדר שאושר: "הצעת מחיר
+              חדשה, הגדרות עסק, לקוחות, פיננסים, קטלוג" (ימין לשמאל). באנגלית
+              (LTR), אותו סדר DOM ממוקם את ה-CTA בקצה השמאלי (ה-"התחלה"
+              ב-LTR) - מוביל את הקבוצה משמאל, שיקוף מכוון של אותה קומפוזיציה
+              ולא רק תרגום. "הצעות מחיר" עצמו לא מוצג כפריט ניווט כשכבר
+              נמצאים בו - עדיין נגיש בחזרה מכל טאב אחר. "קטלוג" הוא טאב
+              קיים - מציג את אותו רכיב ServicesCatalog הקיים במלואו (ר'
+              activeTab === 'catalog' למטה), לא מימוש כפול. עדיין רק כפתור
+              "הצעת מחיר חדשה" יחיד באפליקציה - לא שוחזר הכפתור הכפול
+              שהוסר מתוך QuotesTab.jsx. handleCreateNewQuoteClick עצמה
+              עודכנה (למטה) כך שתעבוד גם מטאבים אחרים - ר' הערה שם. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {!isSuperAdmin && (
               <button
-                className="dash-tab-btn"
-                onClick={() => { setActiveTab('admin_clients'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-                style={{
-                  flex: '1 1 auto', minWidth: '100px', padding: '7px 10px', borderRadius: '8px',
-                  border: activeTab === 'admin_clients' ? '1px solid transparent' : `1px solid ${NEON.border}`,
-                  fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                  background: activeTab === 'admin_clients' ? NEON.gradient : NEON.bgCard,
-                  color: activeTab === 'admin_clients' ? 'white' : NEON.textSecondary,
-                  boxShadow: activeTab === 'admin_clients' ? NEON.glow : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-                }}
+                onClick={handleCreateNewQuoteClick}
+                style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
               >
-                <Shield size={14} />
-                {t.usersAdminNav}
+                <PlusCircle size={16} strokeWidth={2.4} />
+                {isHebrew ? 'הצעת מחיר חדשה' : 'New Quote'}
               </button>
             )}
+            {[
+              { key: 'main', icon: FileText, label: t.quotesNav },
+              { key: 'settings', icon: SettingsIcon, label: t.settingsNav },
+              { key: 'clients', icon: Users2, label: t.clientsNav },
+              { key: 'finances', icon: BarChart3, label: t.financesNav },
+              { key: 'catalog', icon: Package, label: t.catalogNav },
+              ...(isSuperAdmin ? [{ key: 'admin_clients', icon: Shield, label: t.usersAdminNav }] : [])
+            ].filter(({ key }) => key !== activeTab).map(({ key, icon: TabIcon, label }) => (
+              <button
+                key={key}
+                className="dash-tab-btn"
+                onClick={() => { setActiveTab(key); setIsCreatingQuote(false); setEditingQuoteId(null); }}
+                style={{
+                  padding: '10px 16px', borderRadius: '10px',
+                  border: `1px solid ${NEON.border}`,
+                  fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                  background: NEON.bgCard,
+                  color: NEON.textSecondary,
+                  display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+                }}
+              >
+                <TabIcon size={15} />
+                {label}
+              </button>
+            ))}
           </div>
 
           {activeTab === 'main' && !showQuoteForm && (
             <>
               {!isSuperAdmin && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '12px', border: `1px solid ${NEON.border}`, borderTop: `3px solid ${NEON.violet}`, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} color={NEON.violetLight} />{t.totalQuotes}</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary }}>{totalQuotesCount}</div>
-                    {!isPro && (
-                      <div style={{ fontSize: '0.65rem', color: NEON.amber, fontWeight: 'bold' }}>
-                        {isHebrew ? `החודש: ${monthlyQuotesCount} / ${planLimit}` : `This month: ${monthlyQuotesCount} / ${planLimit}`}
+                // חוק ברזל (התאמה ל-mockup המאושר): סדר ה-DOM כאן [חמה,
+                // הצעות, הכנסות] מכוון בכוונה - ברשת CSS Grid בתוך מיכל
+                // RTL, הפריט הראשון תמיד ממוקם בעמודה הימנית ביותר. הסדר
+                // הזה מייצר בפועל את סדר התצוגה משמאל-לימין שב-mockup:
+                // הכנסות (שמאל) → הצעות (אמצע) → חמה (ימין). אין כאן שינוי
+                // בשום חישוב/ערך - רק סדר הופעה חזותי.
+                <div className="dash-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  {hotQuotesList.length > 0 && (
+                    <div className="dash-kpi-card dash-kpi-hot" style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className="dash-kpi-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ffffff', border: `1.5px solid ${NEON.red}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Flame size={19} color={NEON.red} fill={NEON.red} strokeWidth={1} />
                       </div>
-                    )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                        <div className="dash-kpi-label" style={{ fontSize: '0.75rem', color: NEON.red, fontWeight: '800' }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</div>
+                        <div className="dash-kpi-sub" style={{ fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', lineHeight: 1.3 }}>{t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="dash-kpi-card" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '14px', border: `1px solid ${NEON.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="dash-kpi-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ffffff', border: `1.5px solid ${NEON.violet}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <FileText size={19} color={NEON.violet} strokeWidth={2.2} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                      <div className="dash-kpi-label" style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{t.totalQuotes}</div>
+                      <div className="dash-kpi-value" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{totalQuotesCount}</div>
+                      {!isPro && (
+                        <div style={{ fontSize: '0.65rem', color: NEON.amber, fontWeight: 'bold' }}>
+                          {isHebrew ? `החודש: ${monthlyQuotesCount} / ${planLimit}` : `This month: ${monthlyQuotesCount} / ${planLimit}`}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '12px', border: `1px solid ${NEON.border}`, borderTop: `3px solid ${NEON.emeraldDark}`, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color={NEON.emerald} />{t.totalRevenue}</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.emerald }}>{sym}{formatNum(totalRevenue)}</div>
+                  <div className="dash-kpi-card" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '14px', border: `1px solid ${NEON.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="dash-kpi-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ffffff', border: `1.5px solid ${NEON.violet}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Wallet size={19} color={NEON.violet} strokeWidth={2.2} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                      <div className="dash-kpi-label" style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{t.totalRevenue}</div>
+                      <div className="dash-kpi-value" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{sym}{formatNum(totalRevenue)}</div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {hotQuotesList.length > 0 && (
-                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, padding: '10px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal' }}>
-                    <Flame size={16} color={NEON.red} fill={NEON.red} strokeWidth={1} />
-                    <span>
-                      {t.hotQuoteAlert(currentHotClientName)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
+              {/* חוק ברזל (החלטת בעלים מאושרת): הקטלוג הוצא מהתצוגה הראשית
+                  של הדשבורד ועבר לטאב עצמאי משלו ("קטלוג" - ר' activeTab
+                  === 'catalog' למטה). היסטוריית הצעות תופסת כעת את מלוא
+                  רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
               <QuotesTab
                 quotes={filteredQuotes}
                 searchTerm={searchTerm}
@@ -2702,7 +2893,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 quoteSortField={quoteSortField}
                 quoteSortDirection={quoteSortDirection}
                 handleQuoteSort={handleQuoteSort}
-                handleCreateNewQuoteClick={handleCreateNewQuoteClick}
                 handleExportQuotes={handleExportQuotes}
                 handleEditClick={handleEditClick}
                 handleDuplicateQuote={handleDuplicateQuote}
@@ -2724,27 +2914,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 setPendingEmailQuote={setPendingEmailQuote}
                 emailStatuses={emailStatuses}
                 currency={currency}
-              />
-
-              <ServicesCatalog
-                t={t}
-                isHebrew={isHebrew}
-                newServiceName={newServiceName}
-                setNewServiceName={setNewServiceName}
-                newServicePrice={newServicePrice}
-                setNewServicePrice={setNewServicePrice}
-                handleAddService={handleAddService}
-                services={services}
-                editingServiceId={editingServiceId}
-                setEditingServiceId={setEditingServiceId}
-                editServiceName={editServiceName}
-                setEditServiceName={setEditServiceName}
-                editServicePrice={editServicePrice}
-                setEditServicePrice={setEditServicePrice}
-                handleSaveEditedService={handleSaveEditedService}
-                handleDeleteService={requestDeleteService}
-                sym={sym}
-                formatNum={formatNum}
               />
             </>
           )}
@@ -2874,6 +3043,29 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             />
           )}
 
+          {activeTab === 'catalog' && (
+            <ServicesCatalog
+              t={t}
+              isHebrew={isHebrew}
+              newServiceName={newServiceName}
+              setNewServiceName={setNewServiceName}
+              newServicePrice={newServicePrice}
+              setNewServicePrice={setNewServicePrice}
+              handleAddService={handleAddService}
+              services={services}
+              editingServiceId={editingServiceId}
+              setEditingServiceId={setEditingServiceId}
+              editServiceName={editServiceName}
+              setEditServiceName={setEditServiceName}
+              editServicePrice={editServicePrice}
+              setEditServicePrice={setEditServicePrice}
+              handleSaveEditedService={handleSaveEditedService}
+              handleDeleteService={requestDeleteService}
+              sym={sym}
+              formatNum={formatNum}
+            />
+          )}
+
           {isSuperAdmin && activeTab === 'admin_clients' && (
             <ErrorBoundary isHebrew={isHebrew}>
               <AdminUsersTab
@@ -2900,7 +3092,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         </div>
       </div>
 
-      <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: '#000000', color: 'white', justifyContent: 'space-around', padding: '10px 0', zIndex: 9998, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', borderTop: `1px solid ${NEON.border}` }}>
+      <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: NEON.bgElevated, color: NEON.textPrimary, justifyContent: 'space-around', padding: '10px 0', zIndex: 9998, boxShadow: '0 -4px 16px -6px rgba(31,27,46,0.12)', borderTop: `1px solid ${NEON.border}` }}>
         <button onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'main' && !showQuoteForm ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <FileText size={18} style={{ marginBottom: '2px' }} />
           {t.quotesNav}
@@ -2917,13 +3109,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           <BarChart3 size={18} style={{ marginBottom: '2px' }} />
           {t.financesNav}
         </button>
+        {/* חוק ברזל (תיקון בעלים מאושר - רגרסיית מובייל): לפני שהקטלוג הפך
+            לטאב עצמאי, הוא היה נגיש במובייל דרך הרשת הדו-טורית שקרסה לטור
+            יחיד. אחרי המעבר לטאב, נשכח להוסיף אותו לניווט התחתון של
+            המובייל - הפך ללא נגיש לגמרי בנייד. תוקן כאן: כפתור נוסף, אותו
+            תבנית מדויקת כמו כל כפתור אחר בשורה, בלי שינוי עיצובי נוסף. */}
+        <button onClick={() => { setActiveTab('catalog'); setIsCreatingQuote(false); setEditingQuoteId(null); }} style={{ background: 'none', border: 'none', color: activeTab === 'catalog' ? NEON.violetLight : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <Package size={18} style={{ marginBottom: '2px' }} />
+          {t.catalogNav}
+        </button>
         <button onClick={() => { handleCreateNewQuoteClick(); }} style={{ background: 'none', border: 'none', color: NEON.violetLight, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
           <PlusCircle size={18} strokeWidth={2.5} style={{ marginBottom: '2px' }} />
           {isHebrew ? 'חדש' : 'New'}
         </button>
       </div>
 
-      <footer className="no-print" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
+      <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
         <div style={{ marginBottom: '6px' }}>
           {isHebrew ? <>מערכת <strong>ProFlow</strong> - ניהול עסק והצעות מחיר</> : <><strong>ProFlow</strong> - Business & Quoting SaaS Platform</>}
         </div>

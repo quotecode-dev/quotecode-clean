@@ -4,7 +4,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function FinancesTab({
   financeReportType,

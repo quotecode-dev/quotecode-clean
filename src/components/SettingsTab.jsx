@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, Users, ArrowUpCircle, XCircle } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {

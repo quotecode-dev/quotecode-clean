@@ -9,7 +9,7 @@ import {
   UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
   Send, XCircle, ChevronDown
 } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 
 // Edge Function errors return the real reason in the response body (e.g. "Cannot delete
 // a Super Admin account") - supabase-js's default error.message is just a generic
@@ -465,6 +465,16 @@ export default function AdminUsersTab({
           </div>
         </div>
       )}
+
+      {/* Module title bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+        <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,58,237,0.10)', color: NEON.violet, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Shield size={19} strokeWidth={2.2} />
+        </span>
+        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: NEON.textPrimary }}>
+          {isHebrew ? 'ניהול משתמשים ועסקים' : 'User & Business Management'}
+        </h2>
+      </div>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>

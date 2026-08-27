@@ -1,5 +1,6 @@
-import { Package, Pencil, Trash2, Save, X } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from './../theme/neonTheme';
+import { useState } from 'react';
+import { Package, Pencil, Trash2, Save, X, Search } from 'lucide-react';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from './../theme/neonTheme';
 
 export default function ServicesCatalog({
   t,
@@ -21,6 +22,17 @@ export default function ServicesCatalog({
   sym,
   formatNum
 }) {
+  // חוק ברזל: החיפוש הוא סינון client-side בלבד על הנתונים שכבר נטענו
+  // (services), ללא כל פנייה נוספת למסד הנתונים ובלי לשנות סכימה. מודל
+  // הנתונים הנוכחי של הקטלוג כולל אך ורק name ו-price - אין שדה description
+  // אמיתי (הכותרת t.description בטבלה היא תווית מחרוזת שאינה תואמת שדה
+  // ממשי) - החיפוש בודק אפוא רק name, השדה הטקסטואלי הבטוח היחיד שקיים בפועל.
+  const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
+  const normalizedSearch = catalogSearchTerm.trim().toLowerCase();
+  const filteredServices = normalizedSearch
+    ? services.filter((svc) => (svc.name || '').toLowerCase().includes(normalizedSearch))
+    : services;
+
   return (
     <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
       <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
@@ -28,28 +40,41 @@ export default function ServicesCatalog({
         {t.servicesCatalog}
       </h2>
 
-      <form onSubmit={handleAddService} style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexDirection: 'row', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder={t.serviceName}
-          value={newServiceName}
-          onChange={(e) => setNewServiceName(e.target.value)}
-          required
-          style={{ flex: '2 1 140px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-        />
-        <input
-          type="number"
-          step="0.01"
-          placeholder={t.defaultPrice}
-          value={newServicePrice}
-          onChange={(e) => setNewServicePrice(e.target.value)}
-          required
-          style={{ flex: '1 1 80px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-        />
-        <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow }}>
-          {t.addService}
-        </button>
-      </form>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <form onSubmit={handleAddService} style={{ display: 'flex', gap: '6px', flexDirection: 'row', flexWrap: 'wrap', flex: '2 1 260px' }}>
+          <input
+            type="text"
+            placeholder={t.serviceName}
+            value={newServiceName}
+            onChange={(e) => setNewServiceName(e.target.value)}
+            required
+            style={{ flex: '2 1 140px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+          />
+          <input
+            type="number"
+            step="0.01"
+            placeholder={t.defaultPrice}
+            value={newServicePrice}
+            onChange={(e) => setNewServicePrice(e.target.value)}
+            required
+            style={{ flex: '1 1 80px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+          />
+          <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow }}>
+            {t.addService}
+          </button>
+        </form>
+
+        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '160px' }}>
+          <Search size={14} color={NEON.textMuted} style={{ position: 'absolute', top: '50%', [isHebrew ? 'right' : 'left']: '10px', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder={isHebrew ? 'חיפוש בקטלוג...' : 'Search catalog...'}
+            value={catalogSearchTerm}
+            onChange={(e) => setCatalogSearchTerm(e.target.value)}
+            style={{ width: '100%', padding: isHebrew ? '7px 32px 7px 10px' : '7px 10px 7px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+          />
+        </div>
+      </div>
 
       <div style={{ overflowX: 'auto' }}>
          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
@@ -61,14 +86,16 @@ export default function ServicesCatalog({
             </tr>
           </thead>
           <tbody>
-            {services.length === 0 ? (
+            {filteredServices.length === 0 ? (
               <tr>
                 <td colSpan="3" style={{ textAlign: 'center', padding: '16px', color: NEON.textMuted, fontSize: '0.8rem' }}>
-                  {isHebrew ? 'הקטלוג ריק. הוסף שירותים למעלה.' : 'Your catalog is empty. Add services above.'}
+                  {services.length === 0
+                    ? (isHebrew ? 'הקטלוג ריק. הוסף שירותים למעלה.' : 'Your catalog is empty. Add services above.')
+                    : (isHebrew ? 'לא נמצאו פריטים תואמים לחיפוש.' : 'No catalog items match your search.')}
                 </td>
               </tr>
             ) : (
-              services.map((svc) => {
+              filteredServices.map((svc) => {
                 const isEditingThisSvc = editingServiceId === svc.id;
                 return (
                   <tr key={svc.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>

@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { Users, Pencil, Trash2, Building2, Hash, Mail, Phone, MapPin, Tag, StickyNote } from 'lucide-react';
-import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 
 export default function ClientsTab({
   filteredClients = [],

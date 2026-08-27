@@ -5,6 +5,8 @@ import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
+import { LIGHT } from '../theme/neonTheme';
+import { UserRound, Paperclip } from 'lucide-react';
 
 // חוק ברזל: ללא Math.round מוקדם - ערכי מע"מ/נטו של הצעה פרטית (VAT-inclusive)
 // הם לרוב לא-שלמים (למשל 254.24), וכל עיגול-לשלם לפני הצגת האגורות היה
@@ -156,8 +158,55 @@ export default function PublicQuote({ quoteData }) {
   const displayTerms = quote.terms;
 
   return (
-    <div dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', maxWidth: '800px', boxSizing: 'border-box' }}>
+    <div className="pq-page" dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+      <style>{`
+        .pq-card { padding: 40px; }
+        @media (max-width: 640px) {
+          /* חוק ברזל (תיקון בעלים מאושר - רוחב מובייל אמיתי, לא A4):
+             ה-padding הקבוע 20px של המעטפת החיצונית (.pq-page) הוא הגורם
+             השורשי לתחושת "דף A4 צף בתוך הטלפון" - הוא לא היה תלוי-viewport
+             בכלל, זהה בדסקטופ ובמובייל. הוקטן כאן ל-6px רק מתחת ל-640px -
+             משאיר גבול קטן וסביר (יעד הבעלים: 4-8px) בלי לגעת בערך
+             הדסקטופ המקורי (20px, לא במדיה query זו). */
+          .pq-page {
+            padding: 6px !important;
+          }
+          /* חוק ברזל (תיקון בעלים - העברה נוספת, "עדיין נראה כמו A4"):
+             מדידה חיה גילתה שהתיקון הקודם (6px ל-.pq-page) היה נכון וטופל
+             בעבר, אך .pq-card עצמו (הכרטיס הלבן) שמר padding פנימי של 18px
+             מצד קודם - פי 3 מה-gutter החיצוני (6px). בפועל: הכרטיס הלבן
+             עצמו כן משתרע כמעט לכל רוחב המסך (378px מתוך 390px), אבל
+             *התוכן בפועל* (כותרת/פרטי נמען/פריטים) התחיל רק ב-340px רוחב
+             (87.2% מה-viewport) - בדיוק התחושה של "דף עם שוליים גדולים"
+             שהבעלים עדיין תיאר, גם כשהכרטיס החיצוני עצמו כבר היה ברוחב
+             נכון. הוקטן ל-12px כדי לצמצם את השוליים הפנימיים משמעותית
+             (רוחב תוכן חדש: 354px, 90.8%) בלי לגעת ב-gutter החיצוני (6px,
+             כבר בתוך יעד הבעלים 4-8px) ובלי לפגוע בקריאות (לא edge-to-edge
+             מלא). */
+          .pq-card { padding: 12px; }
+          .pq-recipient {
+            padding: 6px 10px !important;
+            margin-bottom: 10px !important;
+          }
+          .pq-recipient-label {
+            margin-bottom: 2px !important;
+          }
+          .pq-recipient-name {
+            font-size: 0.95rem !important;
+          }
+          .pq-recipient-detail {
+            font-size: 0.78rem !important;
+            line-height: 1.25 !important;
+          }
+        }
+      `}</style>
+      {/* חוק ברזל (תיקון בעלים מאושר - הצעת מחיר כמסמך רספונסיבי, לא A4):
+          maxWidth הוגדל מ-800px ל-1100px - 800px גרם למרווחים צדדיים
+          מוגזמים בדסקטופ רחב ולתחושת "עמוד A4 מכווץ בדפדפן". 1100px עדיין
+          שומר על רוחב קריאה סביר (לא edge-to-edge מלא, שהיה פוגע בקריאות
+          טקסט ארוך) אך מנצל את רוחב הדפדפן טוב יותר. במובייל אין השפעה -
+          width:'100%' כבר חוסם לרוחב המסך בפועל ללא קשר ל-maxWidth. */}
+      <div className="pq-card" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
 
         <PublicQuoteHeader
           isHebrew={isHebrew}
@@ -171,16 +220,19 @@ export default function PublicQuote({ quoteData }) {
         />
 
         {/* Client & Business Info */}
-        <div style={{ background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', marginBottom: '25px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>לכבוד:</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b' }}>{client?.company_name || 'לקוח נכבד'}</div>
-          {client?.email && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{client.email}</div>}
-          {clientPhoneFormatted && <div style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{clientPhoneFormatted}</div>}
+        <div className="pq-recipient" style={{ background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', marginBottom: '25px', border: `1px solid ${LIGHT.border}`, borderInlineStart: `4px solid ${LIGHT.violet}`, textAlign: 'right' }}>
+          <div className="pq-recipient-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: LIGHT.violet, fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px' }}>
+            <UserRound size={13} strokeWidth={2.4} />
+            לכבוד:
+          </div>
+          <div className="pq-recipient-name" style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1e293b' }}>{client?.company_name || 'לקוח נכבד'}</div>
+          {client?.email && <div className="pq-recipient-detail" style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{client.email}</div>}
+          {clientPhoneFormatted && <div className="pq-recipient-detail" style={{ color: '#475569', fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{clientPhoneFormatted}</div>}
           {client?.address && <div style={{ color: '#475569', fontSize: '0.9rem' }}>{client.address}</div>}
 
           {quote.subject && (
             <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', fontSize: '0.95rem', color: '#0f172a', fontWeight: 'bold' }}>
-              <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>נושא ההצעה: </span>
+              <span style={{ color: LIGHT.violet, fontWeight: 'bold' }}>נושא ההצעה: </span>
               <span style={{ fontWeight: 'normal' }}>{quote.subject}</span>
             </div>
           )}
@@ -222,23 +274,29 @@ export default function PublicQuote({ quoteData }) {
           </table>
         </div>
 
-        {/* Attachments Section for Israeli Clients */}
-        {attachments && attachments.length > 0 && (
-          <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>קבצים ושרטוטים מצורפים להצעה:</div>
+        {/* Attachments Section - always visible (product awareness: the customer
+            should see the system supports attachments even when none exist) */}
+        <div style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>
+            <Paperclip size={14} color={LIGHT.violet} strokeWidth={2.2} />
+            קבצים ושרטוטים מצורפים להצעה:
+          </div>
+          {attachments && attachments.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {attachments.map((att, idx) => (
-                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
+                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: LIGHT.violet, textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '600' }}>
                   📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
                 </a>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>אין קובץ מצורף להצעה זו</div>
+          )}
+        </div>
 
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '30px' }}>
-          <div style={{ width: '300px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box' }}>
             {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
                 (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
                 החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
@@ -277,9 +335,9 @@ export default function PublicQuote({ quoteData }) {
                 <span>{currencySymbol}{formatNum(vatAmount)}</span>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', borderTop: '2px solid #cbd5e1', paddingTop: '10px', marginTop: '5px', flexDirection: 'row-reverse' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: '900', color: '#1e293b', borderTop: `2px solid ${LIGHT.borderStrong}`, paddingTop: '12px', marginTop: '5px', flexDirection: 'row-reverse' }}>
               <span>סה"כ לתשלום:</span>
-              <span style={{ color: '#4f46e5' }}>{currencySymbol}{formatNum(total)}</span>
+              <span style={{ color: LIGHT.violet }}>{currencySymbol}{formatNum(total)}</span>
             </div>
           </div>
         </div>
@@ -346,7 +404,7 @@ export default function PublicQuote({ quoteData }) {
                 </div>
               )}
               <div>
-                <button onClick={handleApprove} style={{ background: hasSigned ? '#10b981' : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
+                <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
                   אשר וחתום על הצעת המחיר ✓
                 </button>
               </div>
@@ -358,7 +416,7 @@ export default function PublicQuote({ quoteData }) {
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
           <span>
             מסמך זה נערך ע"י{' '}
-            <span onClick={() => navigate('/he')} style={{ color: '#4f46e5', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}>
+            <span onClick={() => navigate('/he')} style={{ color: LIGHT.violet, cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}>
               ProFlow
             </span>
             {' '}– התוכנה שעושה לעסקים את החיים קלים.

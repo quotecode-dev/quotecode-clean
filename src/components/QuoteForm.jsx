@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import DraggableCalculator from './DraggableCalculator';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket } from 'lucide-react';
-import { NEON, FONT_HE, neonGlowTextStyle } from '../theme/neonTheme';
+import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { formatNumberLocal } from '../utils/regionConfig';
 
 const getDialByCurrency = (curr) => {

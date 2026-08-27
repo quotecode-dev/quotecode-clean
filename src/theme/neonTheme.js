@@ -110,3 +110,56 @@ export const neonGlowTextStyle = {
   color: '#c084fc',
   filter: 'drop-shadow(0 0 8px rgba(192, 132, 252, 0.55))',
 };
+
+// LIGHT — owner-approved light SaaS design tokens for the Business Owner
+// Dashboard visual redesign. Same key names as NEON on purpose: a component
+// file can switch its entire visual theme by aliasing this at import time
+// (`import { LIGHT as NEON } from '../theme/neonTheme'`) without touching any
+// individual style reference. ProFlow purple remains the primary/action
+// color; green/red stay semantic only (success/approved vs. warning/attention)
+// rather than being used decoratively.
+export const LIGHT = {
+  bg: '#f7f6fb',
+  bgCard: '#ffffff',
+  bgCardAlt: '#faf9fd',
+  bgElevated: '#ffffff',
+  bgInput: '#ffffff',
+
+  border: '#e4e1ee',
+  borderStrong: '#d5d0e6',
+  borderHover: '#8b5cf6',
+  divider: '#ece9f5',
+
+  textPrimary: '#1f1b2e',
+  textSecondary: '#6b6580',
+  textMuted: '#9490a3',
+  textOnAccent: '#ffffff',
+
+  violet: '#7c3aed',
+  violetLight: '#8b5cf6',
+  violetLighter: '#ede9fe',
+  pink: '#db2777',
+  amber: '#b45309',
+  sky: '#0284c7',
+  emerald: '#059669',
+  emeraldDark: '#047857',
+  red: '#dc2626',
+  redDark: '#b91c1c',
+
+  gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+  glow: '0 1px 2px rgba(124,58,237,0.06), 0 8px 20px -8px rgba(124,58,237,0.35)',
+  glowSoft: '0 1px 2px rgba(124,58,237,0.05), 0 4px 12px -6px rgba(124,58,237,0.25)',
+  cardHoverShadow: '0 12px 28px -12px rgba(124,58,237,0.22)',
+};
+
+// Solid, no-glow heading style for the light theme — a gradient/drop-shadow
+// glow (neonGlowTextStyle) reads as a rendering glitch on a white background.
+// Same alias-at-import trick: `import { lightHeadingTextStyle as neonGlowTextStyle }`.
+export const lightHeadingTextStyle = {
+  background: 'none',
+  WebkitBackgroundClip: 'initial',
+  backgroundClip: 'initial',
+  WebkitTextFillColor: 'initial',
+  color: '#6d28d9',
+  filter: 'none',
+};
