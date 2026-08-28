@@ -304,6 +304,20 @@ VAT/₪/Hebrew leakage. Full ledger + release-order plan:
 `PROFLOW_CLAUDE_LATEST_REPORT.md`. Recommend a small fix-and-reverify pass
 before requesting commit authorization.
 
+## 10.G HIGH-1 fixed, commit-readiness upgraded to READY (added 2026-08-28)
+
+The one HIGH defect from §10.F (delete-confirmation double-prefix) is fixed
+(removed a hardcoded `#` in `Dashboard.jsx`) and independently re-verified
+clean by both Agent HE and Agent EN - real numbers now show `A123` exactly
+once, fallback shows `#abcd1234` exactly once, both markets, RTL/LTR/
+deletion/modal all confirmed unaffected. Repo-wide search found no other
+instance of the pattern. **Commit-readiness verdict upgraded to APPLICATION
+COMMIT READY** for the full accumulated release candidate. **Source remains
+LOCAL/UNCOMMITTED** - this verdict is not itself commit authorization; a
+separate explicit Owner + ChatGPT go-ahead is still required before any
+`git add`/`commit`/`push` of application source. Full detail:
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
