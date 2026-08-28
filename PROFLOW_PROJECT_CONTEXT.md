@@ -2,13 +2,15 @@
 
 ## ⚠️ NEW CHAT / SESSION: READ THIS ENTIRE FILE FIRST
 
+**THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
+
 **THEN READ `PROFLOW_ARCHITECTURE.md`.**
 
 **THEN READ `PROFLOW_HANDOFF.md`.**
 
 **THEN READ `PROFLOW_TODO.md`** — the authoritative living backlog; identify the current owner-approved priority before beginning any workstream.
 
-**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL FOUR ARE UNDERSTOOD.**
+**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL FIVE ARE UNDERSTOOD AND THE LOCAL WORKING TREE HAS BEEN FRESHLY VERIFIED** (§17.B).
 
 **RESUME FROM THE CURRENT EXACT CHECKPOINT (§28 below) — DO NOT RESTART FROM ZERO.**
 
@@ -27,33 +29,37 @@ This protocol is not optional guidance — it is a standing operating rule for e
 ### 1. Required Reading Order
 
 Every new session must, before proposing or executing anything:
-1. Read this entire file (`PROFLOW_PROJECT_CONTEXT.md`).
-2. Read `PROFLOW_ARCHITECTURE.md` in full.
-3. Read `PROFLOW_HANDOFF.md` in full.
-4. Read `PROFLOW_TODO.md` in full — the authoritative living backlog (see §35).
-5. Locate the **CURRENT EXACT CHECKPOINT** (§28 below).
-6. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
-7. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
-8. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
-9. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, §38, and Part C-derived rules below) before proposing any change.
-10. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
+1. Read this entire file (`PROFLOW_PROJECT_CONTEXT.md`) — the Permanent Bootstrap Protocol itself.
+2. Read `PROFLOW_CHAT_HANDOFF.md` — a ChatGPT continuity snapshot only; see §17.B for its role and limits before relying on it.
+3. Read `PROFLOW_ARCHITECTURE.md` in full.
+4. Read `PROFLOW_HANDOFF.md` in full.
+5. Read `PROFLOW_TODO.md` in full — the authoritative living backlog (see §35).
+6. Obtain a **FRESH** local/Claude working-tree check (`git status`, `git log`, current branch/HEAD vs. `origin`) and reconcile it against the documents above — see §17.B and §18. The documentation snapshot alone is never proof of current state.
+7. Locate the **CURRENT EXACT CHECKPOINT** (§28 below).
+8. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
+9. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
+10. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
+11. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, §38, and Part C-derived rules below) before proposing any change.
+12. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
 
 ### 0.A Document Hierarchy & Conflict Resolution
 
-Four permanent documents, each with a distinct role — do not blur them:
+Five permanent documents, each with a distinct role — do not blur them:
 
 1. **`PROFLOW_PROJECT_CONTEXT.md`** (this file) — current operational truth: rules, owner decisions, current state, authorization state, open issues, the exact current checkpoint.
-2. **`PROFLOW_ARCHITECTURE.md`** — current technical/product architecture: how the system is built and intended to behave.
-3. **`PROFLOW_HANDOFF.md`** — detailed engineering history: audits, incidents, migrations, fixes, verification evidence, chronology.
-4. **`PROFLOW_TODO.md`** — the authoritative living work backlog/roadmap: every known work item, its status, dependencies, and verification requirements (see §35).
+2. **`PROFLOW_CHAT_HANDOFF.md`** — a ChatGPT-conversation continuity snapshot: working relationship, accepted product/visual state, current resume point. It exists to orient a brand-new ChatGPT conversation quickly; it supplements documents 1/3/4/5 and never overrides them, and it is never proof of current filesystem/git/runtime state by itself (see §17.B).
+3. **`PROFLOW_ARCHITECTURE.md`** — current technical/product architecture: how the system is built and intended to behave.
+4. **`PROFLOW_HANDOFF.md`** — detailed engineering history: audits, incidents, migrations, fixes, verification evidence, chronology.
+5. **`PROFLOW_TODO.md`** — the authoritative living work backlog/roadmap: every known work item, its status, dependencies, and verification requirements (see §35).
 
-**If the four documents appear inconsistent**, resolve as follows:
+**If the five documents appear inconsistent**, resolve as follows:
 
 - **A.** First determine whether the difference is *current state* vs. *historical record* — a lot of apparent conflict is just one document describing an earlier state that has since changed.
 - **B.** For current authorization, current owner instructions, current workflow, the current checkpoint, and what is/isn't approved — **`PROFLOW_PROJECT_CONTEXT.md` is authoritative.**
 - **C.** For current technical implementation claims — do **not** blindly trust either `PROFLOW_PROJECT_CONTEXT.md` or `PROFLOW_ARCHITECTURE.md` merely by precedence; verify against the repository or live evidence.
 - **D.** `PROFLOW_HANDOFF.md` preserves historical evidence — it is never rewritten merely to make old sections match current architecture.
 - **E.** If `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md` both claim current technical truth and genuinely conflict, repository/live evidence decides — not document priority.
+- **F.** `PROFLOW_CHAT_HANDOFF.md` is never authoritative on its own for architecture, backlog status, or historical claims — documents 1/3/4/5 govern those. It is useful only as a fast orientation snapshot and must always be verified against a fresh local working-tree check before it informs any implementation decision (§17.B).
 
 ### 2. Resume — Do Not Restart
 
@@ -142,26 +148,28 @@ Document purpose, market, role, relevant current state, and special reproduction
 
 If a conversation appears likely to end or migrate to a new session, **updating this continuity documentation takes priority over starting another non-essential implementation step.** The project owner must never again be forced to reconstruct a long conversation from memory.
 
-### 17. New-Session GitHub Bootstrap Path (added P0.3; corrected to four documents — emergency continuity repair, see PROFLOW_HANDOFF.md's latest checkpoint)
+### 17. New-Session GitHub Bootstrap Path (added P0.3; corrected to five documents — see PROFLOW_HANDOFF.md's latest checkpoint)
 
-**This protocol requires FOUR documents, not three.** An earlier version of this item listed only three and omitted `PROFLOW_TODO.md` — that omission is the confirmed root cause of a real-world continuity failure (a fresh session resumed from a stale historical checkpoint instead of current state) and is corrected here.
+**This protocol requires FIVE documents.** Earlier versions required first three, then four; each omission was a confirmed root cause of a real-world continuity failure (a fresh session resumed from a stale or incomplete checkpoint instead of current state). `PROFLOW_CHAT_HANDOFF.md` is the fifth — a ChatGPT continuity snapshot, not a replacement for any of the other four (see §17.B for its role and limits).
 
 **IF** a GitHub connector/integration with read access to `quotecode-dev/quotecode-clean` is available to a new session:
 
 1. Access the repository through that GitHub integration.
 2. Read the **current default-branch** versions of, in **exactly** this order:
    1. `PROFLOW_PROJECT_CONTEXT.md`
-   2. `PROFLOW_ARCHITECTURE.md`
-   3. `PROFLOW_HANDOFF.md`
-   4. `PROFLOW_TODO.md`
+   2. `PROFLOW_CHAT_HANDOFF.md`
+   3. `PROFLOW_ARCHITECTURE.md`
+   4. `PROFLOW_HANDOFF.md`
+   5. `PROFLOW_TODO.md`
 3. Locate the **CURRENT EXACT CHECKPOINT** in `PROFLOW_PROJECT_CONTEXT.md` (§28) — treat it as authoritative over any earlier/historical section that merely appears first in file order (see item 18a below).
 4. Identify the **current owner-approved priority** from `PROFLOW_TODO.md`'s "Current Recommended Execution Order."
 5. Identify the **current authorization state** — what is approved, what is working-tree-only, what is committed/pushed, what is explicitly NOT authorized — from the checkpoint itself.
-6. Resume from that checkpoint. **Do not restart old work, and do not select an older historical section (e.g. an early P0.x architecture-audit entry) merely because it appears earlier in the document.**
-7. Do not ask the project owner to reconstruct information already documented.
-8. Treat the repository versions as **the source documents** — not an older uploaded copy, and not a chat-memory reconstruction.
+6. Obtain a **fresh local/Claude working-tree check** and reconcile it against all five documents before proposing or executing anything (§17.B, §18).
+7. Resume from that checkpoint. **Do not restart old work, and do not select an older historical section (e.g. an early P0.x architecture-audit entry) merely because it appears earlier in the document.**
+8. Do not ask the project owner to reconstruct information already documented.
+9. Treat the repository versions as **the source documents** — not an older uploaded copy, and not a chat-memory reconstruction.
 
-**IF** GitHub connector access is not available: the project owner may provide/upload the four files manually. Use the identical reading order and steps 3-8 above.
+**IF** GitHub connector access is not available: the project owner may provide/upload the five files manually. Use the identical reading order and steps 3-9 above.
 
 ### 17.A Magic Phrase Continuity Contract (added — emergency continuity repair)
 
@@ -173,14 +181,22 @@ Any session that receives this phrase (or an unambiguous equivalent, e.g. "ProFl
 
 1. **Not** answer from chat memory alone, and **not** reconstruct the project from remembered conversation fragments.
 2. If GitHub read access is available, immediately read the **current default branch** of `quotecode-dev/quotecode-clean`.
-3. Read, in order: `PROFLOW_PROJECT_CONTEXT.md` → `PROFLOW_ARCHITECTURE.md` → `PROFLOW_HANDOFF.md` → `PROFLOW_TODO.md` (item 17 above).
+3. Read, in order: `PROFLOW_PROJECT_CONTEXT.md` → `PROFLOW_CHAT_HANDOFF.md` → `PROFLOW_ARCHITECTURE.md` → `PROFLOW_HANDOFF.md` → `PROFLOW_TODO.md` (item 17 above).
 4. Locate the **CURRENT EXACT CHECKPOINT** (§28 of `PROFLOW_PROJECT_CONTEXT.md`) and the **current owner-approved priority** (`PROFLOW_TODO.md`'s execution order).
 5. Prefer the newest explicit current-state section over any historical/earlier section — never select an old P0.x or similarly-numbered historical entry as "the current checkpoint" merely because it appears earlier in a file.
-6. Distinguish **committed/pushed GitHub state** from any **newer uncommitted working-tree state** that may only be documented, not yet pushed (item 18 below).
+6. Distinguish **committed/pushed GitHub state** from any **newer uncommitted working-tree state** that may only be documented, not yet pushed (item 18 below), and treat `PROFLOW_CHAT_HANDOFF.md` as a snapshot that itself may already be behind the working tree (§17.B).
 7. Return a **concise resume report** covering: exact current workstream; last completed action; current working-tree state if documented; current owner-approved priority; open/blocking questions; the exact next safe action; and what is explicitly **not** authorized.
 8. **Do not execute or change anything** until the owner confirms the resume summary is correct.
 
 This contract exists so the owner never has to type more than the magic phrase itself — the burden of doing this correctly belongs entirely to the AI session, not to a longer prompt the owner must remember.
+
+### 17.B PROFLOW_CHAT_HANDOFF.md — Role and Limits (added — five-document bootstrap update)
+
+`PROFLOW_CHAT_HANDOFF.md` is a dedicated ChatGPT continuity snapshot — working relationship, accepted product/visual state, and the current resume point — written so a brand-new ChatGPT conversation can orient itself quickly. It supplements, and never replaces, the four canonical technical documents (§0.A): it is not authoritative for architecture, backlog status, or detailed history — `PROFLOW_ARCHITECTURE.md`, `PROFLOW_TODO.md`, and `PROFLOW_HANDOFF.md` remain authoritative for those respectively.
+
+**Golden rule 1 — CHAT HANDOFF ≠ FRESH LOCAL STATE.** It is a snapshot, not a live view. It must never be assumed to prove the current filesystem/git/runtime state — the local working tree may already contain newer uncommitted work than the latest documentation commit (this reinforces, and does not replace, the Working-Tree-vs-GitHub Freshness Rule in §18).
+
+**Golden rule 2 — read it first, then verify against the fresh local working tree.** A new session should read `PROFLOW_CHAT_HANDOFF.md` early, right after this file (§1, §17) — it is a fast, high-value orientation. But it must still obtain a fresh local/Claude working-tree check (`git status`, `git log`) and reconcile any difference before proposing or executing any implementation action. Reading the chat handoff is never equivalent to confirming the current state.
 
 ### 18. Working-Tree-vs-GitHub Freshness Rule (added P0.3)
 
