@@ -265,6 +265,19 @@ serially. An HE-only or EN-only pass is never "task complete" for a
 cross-market task - Claude Lead reconciles both into one result before
 declaring completion. Full rule: `PROFLOW_PROJECT_CONTEXT.md` §17.G.
 
+## 10.D Full HE/EN cross-market regression audit (added 2026-08-28)
+
+First real use of the Agent HE/Agent EN split (§10.C): audited every accumulated
+uncommitted application/Edge-Function file. Result: no CRITICAL/HIGH findings,
+no VAT/₪/Hebrew leakage in either direction. Two real MEDIUM findings recorded
+(both independently re-verified by Claude Lead, not just copied from an agent):
+(1) Hebrew address formatting silently drops a State/Province field that both
+markets collect; (2) `PublicQuote.jsx` duplicates the canonical money formatter
+instead of importing it. Neither fixed - read-only audit, owner decision
+pending. One agent-reported finding was checked and rejected as a misread. New
+permanent rule: `PROFLOW_PROJECT_CONTEXT.md` §17.H (Cross-Market Parity Gate).
+Full file-by-file ledger: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
