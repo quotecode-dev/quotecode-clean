@@ -253,6 +253,18 @@ Lead alone reconciles agent findings, verifies high-risk claims, and owns
 Final Report accuracy - an agent's conclusion is evidence, never automatic
 truth. Full rule: `PROFLOW_PROJECT_CONTEXT.md` §17.F.
 
+## 10.C HE/EN parallel agent split (added 2026-08-28, extends §10.B)
+
+For a task genuinely affecting both markets, Claude may split verification into
+**Agent HE** (Local/Hebrew/RTL) and **Agent EN** (International/English/LTR,
+always including the no-₪/no-VAT/no-Hebrew-leakage invariants) - within the
+same max-2-agent limit from §10.B. Shared core (DB/RLS/RPCs/auth/quote-number
+allocation/shared utilities) stays single-source always; Claude Lead alone
+decides any shared-core implementation and coordinates shared-file edits
+serially. An HE-only or EN-only pass is never "task complete" for a
+cross-market task - Claude Lead reconciles both into one result before
+declaring completion. Full rule: `PROFLOW_PROJECT_CONTEXT.md` §17.G.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
