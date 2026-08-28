@@ -6,83 +6,153 @@
 
 ---
 
-## Task: PROFLOW — HIGH-1 Fix-and-Reverify Pass + Commit-Readiness Gate Re-Evaluation
+## Task: PROFLOW — Application Release-Candidate Commit + Push
 
-**Effort level**: MEDIUM. **Owner + ChatGPT approved.** LOCAL/UNCOMMITTED only — no Production, no LIVE, no DB mutation, no deploy, no application commit/push.
+**Effort level**: HIGH. **Owner + ChatGPT explicitly approved the commit+push described below.** COMMIT/PUSH ≠ LIVE — no Production, no LIVE, no DB mutation, no deploy.
 
-### 1. Fresh Baseline
+### 1–2. Fresh Starting HEAD / origin/main
 
-`HEAD == origin/main == d40540d2f0f74e94932cfa34be93df3fd24c2a94` at task start, unchanged throughout.
+Both `3b8832dc50f46a5ba4f1e5758d3122c8bb7e5b77` at task start — confirmed matching before beginning any staging.
 
-### 2. Exact Source Change
+### 3. Exact Fresh Release-Candidate Inventory
 
-`src/pages/Dashboard.jsx`, `requestDeleteQuote` function: removed the hardcoded literal `#` from both the Hebrew and English delete-confirmation message templates. `idLabel` (unchanged: `number || formatQuoteFallback(targetQuote || { id: quoteId })`) is always already fully-formatted; the message now consumes it verbatim.
+Reconfirmed via fresh `git status --short`/`git diff --stat`, matching the previously audited list exactly (11 modified + 3 new application/Edge-Function files, 943 insertions/174 deletions before this task's own changes): `src/components/{ClientsTab,FinancesTab,PublicQuoteHeader,QuoteForm,QuotesTab}.jsx`, `src/index.css`, `src/pages/{Dashboard,PublicQuote,PublicQuoteEn}.jsx`, `src/utils/{addressFormat,money,quoteNumber}.js` (new), `supabase/functions/{get-public-quote,send-quote-email}/index.ts`. No unexpected file found.
 
-### 3. Before/After Behavior
+### 4. Exact Exclusions
 
-| Case | Before | After |
-|---|---|---|
-| Real quote number (e.g. `123`) | `#A123` (wrong extra `#`) | `A123` |
-| Fallback (e.g. `id` starting `abcd1234`) | `##abcd1234` (double hash) | `#abcd1234` |
+`.gitignore` (separate, already-authorized safety fix, unrelated to this release candidate); `supabase/migrations/` (6 files), `supabase/quote_number_counter_init.sql`, `supabase/quote_number_backfill.sql` (the DB migration package — its own, previously-established, unambiguous `NEEDS OWNER DECISION` category, kept entirely separate from application source); `pentest-source-review/`/`.zip` (already `.gitignore`-excluded, confirmed absent from `git status` entirely, never at risk of being staged).
 
-Nothing else changed: `formatQuoteFallback()`, Quote Number architecture, `QuotesTab.jsx`'s call-site contract, deletion behavior, and DB behavior are all untouched.
+### 5. DB/Migration Source-Package Decision
 
-### 4. Agent HE Result
+**Not staged, not committed — no ambiguity, no new decision needed.** This was already unambiguously classified `NEEDS OWNER DECISION`, distinct from "INTENDED RELEASE FILE," in the prior full audit (`PROFLOW_HANDOFF.md` §18.BS). This task did not alter that classification and did not re-litigate it.
 
-**PASS — CODE-VERIFIED.** Hand-traced both cases against the actual current code; confirmed real-number → `"A123"` exactly once, fallback → `"#abcd1234"` exactly once; confirmed the Hebrew sentence reads naturally; confirmed RTL unaffected (only string content changed, no JSX/CSS/direction logic touched); confirmed deletion functionality unaffected (`pendingDelete.id`/confirm/cancel handlers all untouched); confirmed the single shared `DeleteConfirmModal.jsx` (no separate Mobile variant, renders `message` verbatim as a plain prop) requires no changes.
+### 6–8. Final QA
 
-### 5. Agent EN Result
+- **eslint**: 0 errors, 6 pre-existing warnings — matched the approved baseline exactly.
+- **build**: PASS, same pre-existing chunk-size advisory only.
+- **tests**: 42/42 PASS.
 
-**PASS — CODE-VERIFIED.** Independently hand-traced both cases for the English branch with the same result; confirmed zero HE/₪/VAT leakage anywhere near the fix (the Hebrew-language code *comments* documenting the fix are source-only, never rendered to any UI); confirmed LTR unaffected; confirmed deletion functionality and the shared modal unaffected; independently located the single production call site (`QuotesTab.jsx:262`) and confirmed no change was needed there.
+### 9. Agent HE Final Gate
 
-### 6. Claude Lead Result
+**PASS.** All 14 files-to-be-committed re-read in full; every previously-verified Hebrew/Local invariant (RTL, ₪, VAT gating, `.pf-money` isolation, "מספר הצעה" label, address State/Province fix, Attn fields, the `Dashboard.jsx` delete-message HIGH-1 fix, the `--pf-desktop-content-width` token, `PublicQuote.jsx`'s whole-shekel rounding) confirmed present, correct, and unchanged since the prior audit rounds. No drift detected.
 
-Repo-wide search (`` #${...(idLabel|formatQuoteFallback|formatQuoteNumber) `` across `src/` and `supabase/functions/`) found **zero other instances** of this double-prefix pattern — the defect was isolated to this one location, now resolved. The two LOW findings from the prior full audit (dead `.pq-totals-grid` className; indentation drift) were deliberately left untouched, per this task's explicit instruction not to opportunistically fix unrelated findings — they do not block this correction.
+### 10. Agent EN Final Gate
 
-### 7. File-by-File HE/EN Ledger
+**PASS.** All 14 files re-read in full; zero VAT/₪/Hebrew/RTL leakage found; currency behavior confirmed never inferred from language; canonical money/quote-number/address formatters confirmed correctly used; the HIGH-1 fix reconfirmed present in the English branch; shared desktop-width token and `PublicQuoteEn.jsx`'s shell border/width fix reconfirmed present. No drift detected.
 
-**FILE**: `src/pages/Dashboard.jsx`
-**HE IMPACT**: message template fixed; natural Hebrew sentence confirmed; RTL unaffected. Verification: CODE-VERIFIED (Agent HE).
-**EN IMPACT**: message template fixed; correct English sentence confirmed; LTR unaffected; zero leakage. Verification: CODE-VERIFIED (Agent EN).
-**SHARED CORE**: one function, one fix, applies identically to both branches (this was never a market-specific bug).
-**PARITY RESULT**: READY.
-**REMAINING ACTION**: none.
+### 11. Claude Lead Reconciliation
 
-**FILE**: `src/components/QuotesTab.jsx`
-**HE IMPACT**: call site (`formatQuoteFallback(quote)` passed as `number`) unchanged, confirmed compatible with the fix. Verification: CODE-VERIFIED (Agent HE).
-**EN IMPACT**: same call site, confirmed compatible. Verification: CODE-VERIFIED (Agent EN).
-**SHARED CORE**: single call site, market-neutral.
-**PARITY RESULT**: READY.
-**REMAINING ACTION**: none.
+Both agents' PASS verdicts independently reached via full-content re-reads (not diff summaries), covering the exact same 14-file set, with consistent findings on every shared file (`Dashboard.jsx`, `PublicQuoteHeader.jsx`, `QuotesTab.jsx`, `src/index.css`, both Edge Functions) — no contradiction between the two reports required resolution. Both gates PASS.
 
-### 8. Repo-Wide Double-Prefix Search Result
+### 12. Secret/Privacy Scan
 
-Zero additional instances found. This was a single, isolated occurrence.
+Performed on the exact intended application/source diff (the 11 modified files) and the 3 new utility files separately, searching for password/API-key/service-role-key/bearer-token/JWT/private-key/connection-string patterns. **Zero matches in either scan. PASSED.**
 
-### 9–11. QA
+### 13. Exact Staged Application/Source Files
 
-- **eslint**: 0 errors, 6 warnings (unchanged).
-- **build**: succeeds, same pre-existing chunk-size advisory only.
-- **tests**: 42/42 passing (unchanged).
-- Targeted Quote Number consumer search: confirmed no regression to real `quote_number` display, fallback display, Dashboard, QuotesTab, or `PublicQuoteHeader.jsx` — none of these were touched by this fix beyond the one corrected function.
+Staged explicitly by exact path (never `git add .`/`-A`/`--all`): `src/components/ClientsTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/PublicQuoteHeader.jsx`, `src/components/QuoteForm.jsx`, `src/components/QuotesTab.jsx`, `src/index.css`, `src/pages/Dashboard.jsx`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/utils/addressFormat.js`, `src/utils/money.js`, `src/utils/quoteNumber.js`, `supabase/functions/get-public-quote/index.ts`, `supabase/functions/send-quote-email/index.ts` — **14 files, exactly matching the approved list.**
 
-### 12. Remaining Findings/Blockers
+### 14. `git diff --cached` Verification
 
-- Two LOW cosmetic items from the prior full audit (dead CSS class in `PublicQuote.jsx`; indentation drift in `Dashboard.jsx`'s reset block) — reported, not fixed, do not block commit.
-- Edge Function deploy gap (`get-public-quote`/`send-quote-email` deployed versions stale) — already tracked, separate from source-commit readiness, requires its own coordinated-release authorization per `PROFLOW_TODO.md` item 17's Release Order.
+`git diff --cached --stat` confirmed exactly 14 files, 1044 insertions/174 deletions. `git status --short` confirmed the remaining unstaged items were exactly the expected exclusions (`.gitignore` modified, 3 migration-related untracked items) — zero unexpected staged content, zero excluded content accidentally staged.
 
-### 13. Commit-Readiness Verdict
+### 15. Application Commit Message
 
-**APPLICATION COMMIT READY.** All findings from the full pre-commit release-candidate audit — the two MEDIUM findings (money-formatter duplication, Hebrew address state-field drop) and the one HIGH finding (delete-confirmation double-prefix) — are now implemented and independently double-verified clean on both markets, with zero CRITICAL/HIGH findings remaining. **This verdict does not itself authorize committing** — application source remains local/uncommitted, and a separate, explicit Owner + ChatGPT authorization is still required before any `git add`/`commit`/`push` of application source, per this task's own explicit instruction.
+```
+feat: prepare cross-market quote release candidate
 
-### 14. Documentation Sync / Commit / Push Result
+Consolidates the accumulated HE/EN quote-number, money-alignment, address-
+formatting, and desktop-width work into one release candidate: canonical
+formatMoney/formatQuoteNumber/formatAddress utilities, unified Quote Number
+fallback presentation across Dashboard/QuotesTab/PublicQuoteHeader, Hebrew
+address formatting with State/Province, a shared 980px desktop content-width
+token, and the Attn/recipient contact fields on Public Quote. Audited via
+Claude Lead + Agent HE + Agent EN across two full passes plus a final release
+gate; the one HIGH defect found (delete-confirmation double-prefix) is fixed
+and re-verified. Edge Functions updated locally to select quote_number and
+Attn fields; not yet redeployed. Quote Number DB migration package remains
+separate and unapplied to Production, pending its own authorization.
+```
 
-Documents changed this task: `PROFLOW_TODO.md` (item 17 — HIGH-1 marked fixed), `PROFLOW_HANDOFF.md` (new §18.BV entry + top-block pointer), `PROFLOW_CHAT_HANDOFF.md` (new §10.G), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). Secret/privacy scan performed on all four — no password, API/service-role/anon key, token, connection string, or customer data found. **PASSED.** Staged, committed, and pushed under the standing Documentation Sync Rule — exact staged files, commit SHA, push result, and HEAD-vs-origin/main confirmation recorded in the chat response following this report.
+### 16. Application Commit SHA
 
-### 15. Final `git status --short`
+`ffc741d19ee4c66b88697c717bb536758dd3b33a`
 
-Recorded in the chat response after the documentation commit — application source (including this task's own `Dashboard.jsx` fix) will continue to show as locally modified/uncommitted, alongside the rest of the accumulated release candidate, unchanged from before this task except for the one corrected function.
+### 17. Application Push Result
+
+Succeeded: `3b8832d..ffc741d main -> main`.
+
+### 18. HEAD == origin/main After Application Push
+
+Confirmed: both `ffc741d19ee4c66b88697c717bb536758dd3b33a`.
+
+### 19. Full File-by-File HE/EN Ledger (committed files)
+
+All 14 committed files were carried through three independent verification rounds this session (full release-candidate audit → HIGH-1 fix reverify → this task's final gate). Condensed final-state summary (full per-file detail from the earlier rounds stands, not restated in full here per the Documentation Maintenance Rule against unnecessary duplication):
+
+| File | HE Impact | EN Impact | Shared Core | Parity |
+|---|---|---|---|---|
+| `src/pages/Dashboard.jsx` | Delete-message fix confirmed; VAT/₪ correctly gated | Delete-message fix confirmed; zero leakage | One file, one fix, both branches | READY |
+| `src/pages/PublicQuote.jsx` ↔ `PublicQuoteEn.jsx` | Money/address fixes confirmed, whole-shekel rounding untouched | `formatMoney`/state-aware address confirmed, zero VAT UI | Shared tokens/formula, market-specific layout by design | READY |
+| `src/components/PublicQuoteHeader.jsx` | "מספר הצעה" label confirmed | "Quote Number" label confirmed | One component, both branches verified | READY |
+| `src/components/QuoteForm.jsx` | VAT gate confirmed HE-only | VAT gate confirmed never renders EN | One grid block, one conditional set | READY |
+| `src/components/QuotesTab.jsx` | Delete-message trigger confirmed fixed | Delete-message trigger confirmed fixed | One component | READY |
+| `src/components/ClientsTab.jsx`, `FinancesTab.jsx` | RTL/`.pf-money` confirmed | Additive/cosmetic, zero currency logic touched | Market-neutral | READY |
+| `src/index.css` | N/A (shared tokens) | N/A (shared tokens) | Global scope, market-neutral, confirmed twice | READY |
+| `src/utils/money.js`, `quoteNumber.js`, `addressFormat.js` | Consumed correctly | Consumed correctly | Genuinely single-source | READY |
+| `supabase/functions/get-public-quote/index.ts`, `send-quote-email/index.ts` | Local source complete | Local source complete | Shared functions/payloads | READY (local) / BLOCKED (deployed — tracked separately) |
+
+### 20. Exact Files Remaining Local/Uncommitted
+
+`.gitignore` (modified); `supabase/migrations/` (6 files, untracked); `supabase/quote_number_counter_init.sql` (untracked); `supabase/quote_number_backfill.sql` (untracked).
+
+### 21. Migration/SQL Status
+
+Unchanged: runtime-validated in isolation (disposable `quotecode-test` project, prior task), NOT applied to Production, NOT committed to git, requires its own separate explicit Owner + ChatGPT LIVE authorization per `PROFLOW_TODO.md` item 17's Release Order.
+
+### 22. Edge Function Source Status
+
+Local source now committed (part of `ffc741d`) — includes `quote_number`/`attn_name`/`attn_role` in both functions.
+
+### 23. Edge Function Deployed Status
+
+**Unchanged, still stale.** No deploy was performed or authorized this task. The deployed versions of `get-public-quote`/`send-quote-email` remain the pre-existing ones from 2026-08-25, confirmed via `supabase functions list` earlier this session (not re-checked this specific task, since no deploy action occurred that could have changed it).
+
+### 24. Production DB Status
+
+**Unchanged.** No SQL of any kind was executed against Production or TEST this task.
+
+### 25. Vercel Status
+
+**⚠️ UNKNOWN / UNVERIFIED — flagged prominently, not resolved.** This task never called `vercel deploy` or any deploy command, and no Vercel deploy was separately authorized. However, standard Vercel-GitHub integration auto-deploys on every push to the production branch by default, and this environment has no Vercel CLI/dashboard access to confirm whether that's configured for this project. **It is possible this `git push` already triggered an automatic Production deployment as an unauthorized side effect of the explicitly-authorized commit+push.** Owner should check the Vercel dashboard directly. Mitigating factor: the committed change-set contains no DB/Edge-Function-dependent behavior change that would break anything currently live — every new code path degrades gracefully when its DB/Edge-Function prerequisite isn't live, per each file's own fail-open design, confirmed repeatedly across this session's audits. This reduces risk but does not resolve the open verification question.
+
+### 26. LIVE Status
+
+**No LIVE release action was performed or authorized.** See §25's flag for the one open, unverified risk.
+
+### 27. Documentation Files Updated
+
+`PROFLOW_HANDOFF.md` (new §18.BW entry, top-block "Latest committed/pushed GitHub state" corrected to the new commit truth, Vercel-status flag added), `PROFLOW_TODO.md` (item 10's three findings marked 🟢 COMMITTED, item 17 addendum distinguishing application-commit from DB-migration status), `PROFLOW_CHAT_HANDOFF.md` (new §10.H, §14 resume-point corrected), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_ARCHITECTURE.md`/`PROFLOW_PROJECT_CONTEXT.md` reviewed, not changed (no new permanent architecture/rule needed for a checkpoint of this kind).
+
+### 28–30. Documentation Commit/Push
+
+Secret/privacy scan performed on all four changed documentation files — no password, API/service-role/anon key, token, connection string, or customer data found. **PASSED.** Staged explicitly by filename, committed, pushed under the standing Documentation Sync Rule. Exact commit SHA, push result, and final HEAD-vs-origin/main confirmation recorded in the chat response following this report.
+
+### 31. Final `git status --short`
+
+Recorded in the chat response after the documentation commit.
+
+### 32. Exact Next Decision Point
+
+(a) **Owner should check the Vercel dashboard** to resolve the auto-deploy uncertainty flagged in §25. (b) Owner + ChatGPT decision on whether/when to authorize the Quote Number DB migration package against Production. (c) The coordinated Edge Function redeploy, per the existing Release Order (`PROFLOW_TODO.md` item 17).
 
 ---
 
-**NO APPLICATION COMMIT. NO APPLICATION PUSH. NO MIGRATION COMMIT. NO DB MUTATION. NO EDGE FUNCTION DEPLOY. NO VERCEL DEPLOY. NO PRODUCTION. NO LIVE.**
+**APPLICATION COMMIT: YES — AUTHORIZED and EXECUTED (`ffc741d`).**
+**APPLICATION PUSH: YES — AUTHORIZED and EXECUTED.**
+
+**PRODUCTION DB MUTATION: NO.**
+**PRODUCTION MIGRATION EXECUTION: NO.**
+**EDGE FUNCTION DEPLOY: NO.**
+**VERCEL DEPLOY: NO (explicitly) — but auto-deploy-on-push status UNKNOWN, see §25.**
+**LIVE: NO (explicitly authorized) — same caveat as above.**

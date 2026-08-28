@@ -318,6 +318,23 @@ separate explicit Owner + ChatGPT go-ahead is still required before any
 `git add`/`commit`/`push` of application source. Full detail:
 `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.H FIRST APPLICATION COMMIT of this engagement (added 2026-08-28)
+
+Owner + ChatGPT explicitly authorized, and Claude executed, the first
+application-source commit+push of this entire multi-task Quote-Number/HE-EN
+engagement: `ffc741d19ee4c66b88697c717bb536758dd3b33a`, 14 files (canonical
+money/quote-number/address utilities, Attn fields, Hebrew address
+State/Province fix, the delete-confirmation double-prefix fix, shared
+desktop-width token). Passed a full gate chain: fresh-state check, inventory
+reconfirmation, QA, a final Agent HE + Agent EN release-gate PASS, secret
+scan, explicit staging. **The DB migration package and `.gitignore` remain
+separately local/uncommitted** - a source commit is not a DB/LIVE action.
+
+**⚠️ Flagged, not resolved**: whether this repo's Vercel project auto-deploys
+on push to `main` (the common default for a GitHub-connected Vercel project)
+could not be checked from the Claude environment - Owner should check the
+Vercel dashboard directly. Full reasoning: `PROFLOW_HANDOFF.md` §18.BW.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
@@ -385,7 +402,7 @@ As of this snapshot:
 - Mobile Quote Number label/surface consistency: implemented locally.
 - English live visual QA: unavailable.
 - Quote Number: LIVE architecture audited (read-only), local package redesigned, then **runtime-validated in an isolated disposable Supabase project** (`quotecode-test`) - two real defects found and fixed through that testing (§8, §10.A). Still nothing applied to Production.
-- Application code: still uncommitted/unpushed.
+- Application code: **first commit pushed** (`ffc741d`, §10.H) — 14 files, the HE/EN Quote Number release candidate. The DB migration package and `.gitignore` remain separately uncommitted; no DB migration, Edge Function deploy, or LIVE action has occurred.
 - No application deployment.
 - No DB migration.
 - No LIVE release.
