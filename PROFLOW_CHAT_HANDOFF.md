@@ -240,6 +240,19 @@ David Aluminum). Two genuine defects were found and fixed via this testing that 
 review alone had missed - see `PROFLOW_HANDOFF.md`'s Disposable Supabase Runtime
 Migration Validation entry. Full permanent rule: `PROFLOW_PROJECT_CONTEXT.md` §17.D.
 
+## 10.B Claude Lead + parallel sub-agents (added 2026-08-28)
+
+Claude may operate as **Lead**, optionally delegating to up to **two** parallel
+sub-agents for genuinely independent read/audit/analysis workstreams (e.g. a
+DB/RLS audit split from an application-consumer/HE+EN audit). Sub-agents never
+gain more authority than Claude Lead - every ProFlow restriction in force
+(NO LIVE, NO COMMIT, TEST-only, etc.) applies to them identically. Mutating
+work (DB changes, migrations, deploy, commit, push, Production config)
+remains serial under Claude Lead's direct control, not parallelized. Claude
+Lead alone reconciles agent findings, verifies high-risk claims, and owns
+Final Report accuracy - an agent's conclusion is evidence, never automatic
+truth. Full rule: `PROFLOW_PROJECT_CONTEXT.md` §17.F.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
