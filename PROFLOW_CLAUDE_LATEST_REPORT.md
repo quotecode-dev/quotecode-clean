@@ -1,119 +1,114 @@
 # PROFLOW — Claude Latest Report
 
-**This file is a REPORT TRANSPORT / REVIEW BRIDGE only. THIS VERSION IS LOCAL ONLY — NOT COMMITTED, NOT PUSHED**, per this task's own explicit instruction (audit + design only). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
+**This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence — see below). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
 
-**GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.**
+**GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE either. See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
 ---
 
-## Task: PROFLOW — Safe Continuity Branch Design (Audit + Design Only, Nothing Created)
+## Task: PROFLOW — Activate Verified Continuity Workflow + First Routine Six-Document Sync
 
-**Effort level**: MEDIUM. **Owner + ChatGPT approved.** AUDIT + DESIGN ONLY — no branch created, no commit, no push, no Vercel change, no Production change, no DB change, no deploy.
+**Effort level**: MEDIUM. **Owner + ChatGPT approved.** DOCUMENTATION/CONTINUITY ONLY — no application source change, no `main` commit/push, no DB/migration/deploy/Vercel-config/Production action.
 
-### 1. Fresh Git Baseline
+### 1–2. Fresh `main` HEAD / origin/main
 
-`HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. Working tree: `.gitignore` (modified) plus the six documentation files modified locally by the prior task (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`), plus the untracked migration package — all preserved exactly, none touched by this task.
+Both `17ac4d3a950d96f4167f9b320c82b4798382d621` at task start, confirmed via fresh inspection — unchanged throughout this task.
 
-### 2. Existing Branches/Remotes
+### 3. Continuity HEAD Before
 
-`git branch -a`: only `main` (local) and `remotes/origin/main` (`remotes/origin/HEAD -> origin/main`) exist. **No other branch exists anywhere, locally or on the remote — a `proflow-continuity` branch would be entirely new.** `git remote -v`: single remote, `origin` → `https://github.com/quotecode-dev/quotecode-clean.git` (fetch + push).
+`8cc579547a700a774aa69118399009e888729378` (the first controlled push from the prior task, matching `origin/proflow-continuity` exactly at task start).
 
-### 3. Current Vercel Evidence (read-only inspection only — no Vercel CLI available in this environment, no login/link/settings change attempted or possible)
+### 4–5. Continuity HEAD After / origin/proflow-continuity After
 
-- **`vercel.json`** (repo root): contains `rewrites` (SPA fallback), `headers` (security headers + `X-Robots-Tag` per-route), and `crons` (one daily cron). **Contains no `ignoreCommand`, no `git.deploymentEnabled` setting, and no branch-restriction configuration of any kind.** REPO-VERIFIED.
-- **No `.vercelignore` file** found at repo root. REPO-VERIFIED.
-- **No `.vercel/` directory** found locally (would normally hold a local CLI project link) — this working directory has never been `vercel link`-ed. REPO-VERIFIED.
-- **Vercel CLI is not installed/available** in this environment — no dashboard/project-settings inspection was possible beyond what's committed to the repo itself. CONFIRMED ABSENCE, not a workaround attempted.
-- **Owner-verified fact** (from the prior task, carried forward, not re-derived): `main` is Vercel's configured **Production branch**, and every push to it triggers a Production deployment.
+Recorded in the chat response following this report, after this task's own commit+push.
 
-### 4. Proven vs. Inferred vs. Unknown
+### 6. Continuity Workflow Status
 
-- **PROVEN** (repo-level, direct inspection): `main` is the only branch that exists today; `vercel.json` contains zero branch-specific deployment logic; no local Vercel CLI link exists.
-- **OWNER-VERIFIED** (prior task, not re-derived this task): push to `main` → Production deployment.
-- **INFERRED, NOT PROVEN**: standard Vercel-GitHub integration behavior (general platform knowledge, not confirmed for *this* project's actual dashboard settings) is that pushing a **new, non-Production branch** to a connected GitHub repo typically triggers a **Preview** deployment (an isolated, non-Production build/URL) by default, unless the Vercel dashboard's Git settings have been configured to restrict which branches build at all. Nothing in this repo proves or disproves whether that restriction exists for this specific project.
-- **UNKNOWN**: whether pushing a brand-new `proflow-continuity` branch (containing only Markdown files, no `package.json` changes) would (a) trigger no build at all, (b) trigger a Preview build that succeeds trivially (static docs, no app code to build against — though Vercel would still run `npm run build` unless told not to, which could even *fail* on a docs-only branch missing nothing relevant, or succeed harmlessly since the repo's existing `build` script doesn't care which branch it's on), or (c) trigger something else. **This cannot be proven from this environment.**
+**CONTINUITY WORKFLOW: ACTIVE / VERIFIED.** Owner manually confirmed in the Vercel dashboard that the first controlled push of `proflow-continuity` (`8cc5795`) produced **no Preview or Production deployment** — the newest visible Vercel deployment remained `main`'s own last commit. This is because the Vercel project has an **Ignored Build Step** configured specifically so `proflow-continuity` skips the build entirely, while `main`/other branches build normally. Every earlier "PENDING VERIFICATION" reference to this workflow across ProFlow documentation is now superseded.
 
-### 5. Recommended Continuity Architecture
+### 7. Exact Six-Document Update Summary
 
-**Conceptual model** (matches the Owner's own preferred model): Claude local → six ProFlow documents → dedicated `proflow-continuity` branch → GitHub → ChatGPT reads that branch directly via a GitHub URL/ref, never via `main`.
+See §7 table below (per-file detail).
 
-**Branch design**: `proflow-continuity` should be created as an **orphan branch** (`git checkout --orphan` / `git worktree add --orphan`) — i.e. a branch with **no shared history with `main` at all**, containing from its very first commit only the six documents and nothing else. This is a stronger isolation guarantee than branching off `main` and then deleting everything else: an orphan branch can never, even by accident, carry any application/source/migration file in its history, because it never had one to begin with.
+### 8. Permanent Rules Activated
 
-### 6. Exact Isolation Mechanism
+- `PROFLOW_PROJECT_CONTEXT.md` §17.J — the drafted (prior task) continuity-branch design is now **activated for real**, corrected from "not yet active" to "ACTIVE/VERIFIED," with the verified-safety fact, the permanent sync model, the golden rules, the authorization-layering statement, the post-task sync procedure, and the main/continuity divergence-handling rule.
+- `PROFLOW_CHAT_HANDOFF.md` §15.B — same activation, ChatGPT-facing framing.
+- Both explicitly reaffirm: DOCUMENTATION UPDATE AUTHORIZATION ≠ DOCUMENTATION COMMIT AUTHORIZATION ≠ CONTINUITY PUSH AUTHORIZATION ≠ MAIN PUSH AUTHORIZATION ≠ DEPLOY/LIVE AUTHORIZATION.
+- Claude Lead + Agent HE/Agent EN workflow (§17.F/§17.G/§17.H/§17.I) preserved unchanged, not modified by this task.
 
-**Recommended: a dedicated `git worktree`, not a branch-switch in the existing working directory.**
+### 9. Notification Slider TODO Status
 
-- `git worktree add <path> proflow-continuity` creates a **second, independent working directory** (e.g. a sibling folder to the current repo, or under the scratchpad) checked out to `proflow-continuity`, while the current working directory stays exactly on `main` with all its uncommitted application/migration work completely undisturbed — no `git checkout`, no `git stash`, no risk of the local working tree's in-progress files ever touching the continuity branch.
-- **Sync procedure per task**: (1) update/reconcile the six documents in the normal working directory as already done today; (2) **copy** (plain file copy, not a git operation) the current content of the six documents from the main working directory into the continuity worktree directory; (3) inside the continuity worktree only: secret/privacy scan, `git add` the six files explicitly (never `.`/`-A`), commit, push `proflow-continuity` only.
-- This makes the data flow strictly **one-directional and explicit** (working directory → copy → continuity worktree → commit → push) — there is no git merge/rebase step that could pull anything unintended into continuity, and no risk to the primary working tree's own uncommitted state at any point.
-- The worktree itself is a **one-time local setup step** (not yet performed) — after that, each future sync is just 6 file copies + a scoped commit + a scoped push, entirely mechanical and low-risk to repeat.
+Already fully recorded in `PROFLOW_TODO.md` item 21 (prior task) with the complete behavioral spec. This task's instructions repeated the same specification with one additional detail — the overlay-must-not-cover-critical-navigation/CTA/form-controls requirement — which was not yet present and has been added. Status remains **OPEN / NOT IMPLEMENTED / DOCUMENTED ONLY** — no source code touched.
 
-### 7. Six-Document Synchronization Procedure (future, once authorized)
+### 10. New-Version Slider Reuse TODO Status
 
-1. Update/reconcile the six documents in the normal working directory (as already practiced).
-2. Copy the current content of the six documents into the `proflow-continuity` worktree directory.
-3. Secret/privacy scan the resulting diff in the continuity worktree.
-4. Explicit staging of only the six changed files (never `git add .`/`-A`/`--all`) inside the continuity worktree.
-5. Commit (continuity worktree only).
-6. Push **only** `proflow-continuity` — never `main` — from the continuity worktree.
-7. Verify `origin/proflow-continuity` matches the new local commit.
-8. **`main` is never pushed automatically as part of this procedure**, under any circumstance.
-9. Report the continuity commit SHA to the Owner.
+Already captured in item 21's "Architectural intent — build as a REUSABLE component, not Trial-only" section, explicitly cross-referencing item 15 (New Version Available notification) as the second anticipated use case for the same mechanism, without resolving or changing item 15's own status.
 
-Note: since the working directory documents and the continuity worktree's documents are two separate file locations reconciled only by explicit copy, the standing "documentation-only allowed file set" and "never `git add .`" rules from `PROFLOW_PROJECT_CONTEXT.md` §17.E apply identically inside the continuity worktree, with no exception.
+### 11. NEW CHAT Introduction Follow-Up Status
 
-### 8. Main/Continuity Divergence Handling
+Recorded in `PROFLOW_CHAT_HANDOFF.md` (new note near §15.B): the Owner's separate, externally-maintained NEW CHAT Bootstrap/Introduction document previously described continuity as PENDING VERIFICATION; that wording is now superseded by this verified ACTIVE status. **This repository does not contain that external file, and this task did not create or modify it** — recorded only so a future session knows what to expect.
 
-- **During normal (non-release) work**: `proflow-continuity` is the freshest, authoritative source for the six documents. `main`'s copies of those same six files become intentionally stale the moment continuity is updated ahead of it — this is expected and safe, since `main`'s own documents were never the ChatGPT-facing read path to begin with once this workflow is live.
-- **At an explicitly-authorized main application release** (e.g. the next `ffc741d`-style commit): that same authorized event should **also** bring `main`'s copies of the six documents up to the freshest available version (from `proflow-continuity` or the current local working tree, whichever Claude Lead confirms is actually newest) — so `main` never permanently drifts arbitrarily far behind. This reconciliation is a deliberate, Claude-Lead-reviewed step at release time, not an automatic merge.
-- **Conflict detection**: before any such reconciliation, diff the six files between `proflow-continuity`'s `HEAD` and `main`'s `HEAD` directly (`git diff main..proflow-continuity -- <six files>`). If both branches have independently changed the same file since their last common point, this must be **manually reconciled** by Claude Lead reading both versions and merging the actual content — never an automatic git merge for these files, since they are prose/structured Markdown where a naive merge could silently interleave contradictory statements (e.g. two different "CURRENT EXACT CHECKPOINT" blocks) without raising a real conflict marker in every case.
-- **Why continuity must never blindly overwrite newer `main` content**: if `main` received a documentation update through some other explicitly-authorized path (e.g. a future task that intentionally updates and pushes `main` directly with Owner's specific sign-off), a routine continuity sync should never silently clobber that with older content — the sync procedure's step 2 (copy from the *current local working directory*, which itself should already reflect anything relevant from a recent `main` pull) is the mechanism that prevents this in normal operation, but Claude Lead should still spot-check `main`'s current state before a continuity sync if there's any reason to suspect `main` moved independently.
+### 12. Secret/Privacy Scan Result
 
-### 9. ChatGPT Direct-Read Procedure
+Performed on all six documents' current content before this sync — searched for password/API-key/service-role-key/token/JWT/private-key/connection-string patterns. Matches found were manually re-verified (not just pattern-matched) against the same criteria applied in the prior sync: every match is either an environment-variable *name*, a Postgres role *name*, a template placeholder, or narrative describing a past incident *without reproducing* the actual secret value (the incident's own documentation explicitly states the exposed value was never reproduced anywhere). **PASSED** — no actual secret value present.
 
-Once this workflow is authorized and live, ChatGPT reads the six documents from `https://github.com/quotecode-dev/quotecode-clean` using `ref = proflow-continuity` (e.g. via the GitHub connector's branch/ref selection, or a raw URL of the form `.../refs/heads/proflow-continuity/<file>`), never via `main`'s default ref. The Owner's existing trigger phrases (magic phrase, "קלודי סיים — תקרא את הדוח האחרון") would need a small update to specify this ref explicitly once the workflow goes live — drafted in §12 below, not yet applied to any document.
+### 13. Exact Staged Inventory
 
-### 10. Vercel Safety Analysis
+Exactly the six files: `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`, staged inside the continuity worktree via explicit paths — never `git add .`/`-A`/`--all`.
 
-Per §3–4: no repo-level evidence rules out a new branch triggering *some* Vercel build activity, and no repo-level evidence confirms it either. The task's own explicit standing rule (`PROFLOW_PROJECT_CONTEXT.md` §17.E, corrected in the immediately prior task) is that **any** push whose Vercel consequence is not confirmed must not be treated as automatically safe — this was exactly the mistake already made once this engagement with documentation-only pushes to `main`. Creating and pushing an entirely new branch is a different action with unconfirmed consequences of its own, not a proven-safe variant of the same mistake.
-
-### 11. VERCEL SAFETY GATE VERDICT
-
-**VERCEL VERIFICATION REQUIRED FIRST.**
-
-Before any branch is created or pushed, recommend the Owner perform one simple, read-only check in the Vercel dashboard: **Project Settings → Git** — confirm (a) the configured Production Branch (already known: `main`), and (b) whether Preview Deployments are enabled for all branches or restricted to specific patterns. Two safe outcomes follow:
-
-- If Preview Deployments are already restricted/disabled for arbitrary new branches, or can be restricted for this specific branch name via an **Ignored Build Step** (a simple bash condition checking the branch name, configurable without any project-linkage change) — this is the **recommended** configuration regardless of safety, since a documentation-only branch has no reason to ever consume a Vercel build at all, and Owner can set this up as a one-time, low-risk dashboard change (not something Claude can do — no Vercel CLI/dashboard access from this environment).
-- If Preview Deployments are enabled platform-wide and Owner is comfortable accepting that `proflow-continuity` will produce ordinary, isolated Preview URLs (which do not affect `www.quotecodepro.com` or Production data in any way) as a known, accepted tradeoff, that is also an acceptable outcome — but it should be a **decision**, not a discovery, which is exactly why this task stopped short of creating anything.
-
-### 12. Permanent Rule Draft (NOT applied to any document yet — proposal text only)
-
-**Draft addition for `PROFLOW_PROJECT_CONTEXT.md` (new §17.J, proposed):**
-
-> ### 17.J Continuity Branch (`proflow-continuity`) — Six-Document Transport Path (DRAFT, not yet active)
->
-> A dedicated orphan branch, `proflow-continuity`, carries only the six canonical/report documents (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`) via a dedicated `git worktree`, never the primary working directory. It exists specifically so routine documentation synchronization never requires a push to `main` (which triggers a Vercel Production deployment for this repository, confirmed §17.E). Application/source/migration files must never enter this branch's history under any circumstance. `main` remains the sole application/Production source-of-truth branch; a push to `main` still requires its own explicit Owner + ChatGPT authorization regardless of this branch's existence. `proflow-continuity` may hold newer document content than `main` during normal work — this must never be misread as application source state. At an explicitly-authorized `main` release, documentation is reconciled back into `main` as a deliberate, reviewed step, never an automatic merge.
-
-**Draft addition for `PROFLOW_CHAT_HANDOFF.md` (new §15.B, proposed):**
-
-> ## 15.B Reading the six documents from `proflow-continuity` (DRAFT, not yet active)
->
-> Once activated, ChatGPT should read the six ProFlow documents from the `proflow-continuity` branch/ref on GitHub, not `main`'s default ref — `main` may lag behind on documentation between releases by design. This does not change the LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE rule (§15.A) — the continuity branch is a transport path, not proof of current filesystem/runtime state either.
-
-Neither draft has been written to its target file. Both are presented here only for Owner + ChatGPT review before any future activation task.
-
-### 13. Exact Next Setup Actions If Approved
-
-1. Owner performs the Vercel dashboard check from §11 (and, if desired, configures an Ignored Build Step for `proflow-continuity`).
-2. A future, separately-authorized task creates the orphan branch + worktree (§6), performs the first sync, and applies the two draft rules from §12 to their target documents.
-3. The Owner's standing trigger phrases are updated to reference the new ref where relevant.
-
-None of this was performed by this task.
-
-### 14. Final `git status --short`
+### 14–15. Continuity Commit SHA / Push Result
 
 Recorded in the chat response following this report.
 
+### 16. Proof `main` Was Not Committed/Pushed
+
+`main`'s own working directory and its `.git` history were never touched by this task's git operations — every commit/stage/push command this task ran targeted the separate `proflow-continuity` worktree exclusively (`c:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas-continuity`), a physically distinct working directory from the primary one.
+
+### 17. Final Primary Working-Tree Status
+
+Recorded in the chat response following this report — expected identical to this task's own start state (`.gitignore` + untracked migration package only; the six documentation files in the primary tree are the *source* copies this task read from, and remain as locally-modified/uncommitted exactly as before, since primary-tree documentation commits are a separate, not-yet-authorized action distinct from the continuity sync).
+
+### 18. Final Continuity Worktree Status
+
+Recorded in the chat response following this report — expected clean, one commit ahead of the prior `8cc5795`, matching `origin/proflow-continuity`.
+
 ---
 
-**NO BRANCH CREATED. NO COMMIT. NO PUSH. NO VERCEL CHANGE. NO PRODUCTION CHANGE. NO DB MUTATION. NO DEPLOY. NO LIVE CHANGE.**
+## Six-Document Update Detail
+
+**FILE**: `PROFLOW_PROJECT_CONTEXT.md`
+**What changed**: §17.J activated for real (was a draft/proposal in the prior "design only" task) — status corrected to ACTIVE/VERIFIED, verified-safety fact recorded, permanent sync model, golden rules, authorization layering, post-task sync procedure, main/continuity divergence handling.
+**Why**: the design was approved and the first push was independently Owner-verified safe since the draft was written.
+**Status**: DONE.
+
+**FILE**: `PROFLOW_CHAT_HANDOFF.md`
+**What changed**: §15.B activated for real (same draft→active correction); new note recording the external NEW CHAT Introduction document's expected follow-up status.
+**Why**: same as above, plus explicit continuity for a document this repo doesn't contain.
+**Status**: DONE.
+
+**FILE**: `PROFLOW_HANDOFF.md`
+**What changed**: new §18.BY entry recording the verification and this task's own sync; top-block pointer updated to note `main` and `proflow-continuity` now have independently-tracked "latest pushed" states that must both be checked fresh, never assumed from one another.
+**Why**: chronological checkpoint record, consistent with every prior task this engagement.
+**Status**: DONE.
+
+**FILE**: `PROFLOW_TODO.md`
+**What changed**: item 21 (General Notification Slider) — one additional behavioral detail added (overlay must not cover critical navigation/CTA/form controls); otherwise already fully specified from the prior task, confirmed no duplicate entry needed.
+**Why**: reconciliation against this task's own repeated (near-identical) specification surfaced one genuinely new detail.
+**Status**: DONE.
+
+**FILE**: `PROFLOW_ARCHITECTURE.md`
+**What changed**: nothing this task — the Vercel auto-deploy fact was already recorded in §2 (prior task); the continuity-branch mechanism itself is a workflow/process concern, not a technical/product architecture fact, so it correctly lives in `PROFLOW_PROJECT_CONTEXT.md` §17.J instead, consistent with this engagement's established pattern of not duplicating workflow rules into the architecture reference.
+**Why**: reviewed, judged not to need a change.
+**Status**: REVIEWED, NOT CHANGED (intentional).
+
+**FILE**: `PROFLOW_CLAUDE_LATEST_REPORT.md`
+**What changed**: this file — the complete Final Report for this task, replacing the prior task's "design only" report now that the design has been activated.
+**Why**: standing rule.
+**Status**: DONE.
+
+---
+
+**CONTINUITY WORKFLOW: ACTIVE / VERIFIED.**
+
+**NO APPLICATION SOURCE CHANGE. NO APPLICATION COMMIT. NO MAIN COMMIT. NO MAIN PUSH. NO DB MUTATION. NO MIGRATION EXECUTION. NO EDGE FUNCTION DEPLOY. NO VERCEL CONFIG CHANGE. NO PRODUCTION/LIVE APPLICATION CHANGE.**

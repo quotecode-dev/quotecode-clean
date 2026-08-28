@@ -744,7 +744,7 @@ During the Public Quote Mobile true-full-width pass (`PROFLOW_HANDOFF.md` §18.B
 **HE / Local**: RTL; enters/slides from **right toward left**; Hebrew/local trial wording.
 **EN / International**: LTR; enters/slides from **left toward right**; English/international trial wording. Direction must be derived from actual market/locale, never from language string content alone — same discipline as item 20's banner-direction requirement.
 
-Desktop + Mobile must eventually be independently verified (not assumed from one viewport).
+Desktop + Mobile must eventually be independently verified (not assumed from one viewport). The overlay must not cover critical navigation, CTA buttons, form controls, or other important application content on either viewport.
 
 **Architectural intent — build as a REUSABLE component, not Trial-only**: design this as a general notification-slider mechanism from the start, since at least these types are already anticipated:
 1. Trial-period reminder (the first concrete instance, above).

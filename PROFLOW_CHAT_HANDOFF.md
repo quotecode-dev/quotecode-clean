@@ -455,6 +455,21 @@ it against `PROFLOW_HANDOFF.md`/`PROFLOW_TODO.md`/`PROFLOW_PROJECT_CONTEXT.md`
 local working-tree evidence — never treat the report alone as sufficient.
 Full detail: `PROFLOW_PROJECT_CONTEXT.md` §17.C.
 
+## 15.B Reading the six documents from `proflow-continuity` (ACTIVE/VERIFIED, added 2026-08-28)
+
+ChatGPT should read the six ProFlow documents from the **`proflow-continuity`
+branch/ref** on GitHub, not `main`'s default ref - `main` may lag behind on
+documentation between releases by design (§17.J). **Verified safe** (Owner
+confirmed after the first controlled push): pushing this branch produces no
+Vercel Preview/Production deployment (an Ignored Build Step is configured
+specifically for it) - `main` remains the only branch whose push carries a
+deployment consequence. This does not change the golden rule from §15.A:
+CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE, and LATEST CLAUDE REPORT ≠
+FRESH LOCAL STATE either way - the continuity branch is a transport path, not
+proof of current filesystem/runtime state.
+
+**Note on the Owner's separate NEW CHAT Bootstrap/Introduction document** (an external, ChatGPT-maintained document, not part of this repository's six-file set): that document previously described `proflow-continuity` as PENDING VERIFICATION, written before the first controlled push was manually confirmed safe. That wording is now superseded - the next revision of that external document should show `proflow-continuity` as ACTIVE/VERIFIED. This repository does not contain that file and this task did not create or modify it - recorded here only so a future session knows to expect that external document to eventually reflect this status, and does not need to re-verify continuity safety from scratch if it already does.
+
 ## 15. New-chat startup instruction
 
 When a new ChatGPT conversation begins, the recommended Owner message is:
