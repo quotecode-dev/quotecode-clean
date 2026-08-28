@@ -6,35 +6,31 @@
 
 ---
 
-## Task: PROFLOW — Claude Lead + Parallel Sub-Agents Protocol + Documentation Sync Reconciliation
+## Task: PROFLOW — Post-Restart Bootstrap + Local Dev Server Restore
 
-**Effort level**: MEDIUM. **Owner + ChatGPT approved.** Documentation/workflow only — no application, migration, deployment, database, or LIVE work authorized or performed.
+**Effort level**: MEDIUM. **Owner + ChatGPT approved.** Resume/diagnostic/local-runtime task only — no application, migration, deployment, database, or LIVE work authorized or performed.
 
-1. **Pre-task HEAD / origin/main**: both `cfcf69482c3b9489945fffea82557ad96b7307c1` — identical, confirming no drift since the prior task.
-2. **Previous documentation push actually complete**: **YES, confirmed genuinely complete**, not merely reported as complete. `git rev-parse HEAD` and `git rev-parse origin/main` both matched the exact SHA (`cfcf6948...`) reported at the end of the prior task's chat response, and `git log --oneline -5` showed that commit as the current tip with the expected message (`docs: sync ProFlow state and latest Claude report`). No discrepancy, no investigation needed.
-3. **Exact documents changed this task**: `PROFLOW_PROJECT_CONTEXT.md` (new §17.F), `PROFLOW_CHAT_HANDOFF.md` (new §10.B), `PROFLOW_HANDOFF.md` (new §18.BP entry + top-block pass-count update), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_ARCHITECTURE.md` and `PROFLOW_TODO.md` were reviewed but deliberately **not** edited — see items 4/13 below for why.
-4. **Claude Lead role recorded**: yes — `PROFLOW_PROJECT_CONTEXT.md` §17.F and `PROFLOW_CHAT_HANDOFF.md` §10.B both record the hierarchy (Owner → ChatGPT → Claude Lead → up to 2 sub-agents) and that Claude Lead retains sole responsibility for authorization understanding, scope enforcement, Production protection, decomposition decisions, finding reconciliation, contradiction resolution, output review, final implementation decisions, QA, documentation reconciliation, and Final Report accuracy.
-5. **Maximum parallel agents = 2 recorded**: yes, explicit in both documents.
-6. **When agents may run in parallel**: recorded — genuinely independent read/audit/analysis workstreams only (e.g. DB/RLS/RPC analysis vs. application-consumer/HE+EN/regression audit), never merely because the capability exists; small/simple tasks stay direct.
-7. **When mutation must remain serial**: recorded — DB changes, migration execution, deploy, commit, push, Production configuration, Auth/RLS/Storage changes all stay serial under direct Claude Lead control, never split across parallel agents.
-8. **Confirmation agents inherit all ProFlow restrictions**: recorded explicitly, with the exact examples from the task brief preserved (NO LIVE, NO COMMIT, READ-ONLY, TEST-only-not-Production) — a sub-agent can never receive an authority Claude Lead itself doesn't currently hold.
-9. **Agent-output verification rule**: recorded — agent findings are evidence, not automatic truth; Claude Lead must inspect important claims, reconcile conflicts, independently verify high-risk conclusions where practical, and classify every finding as PROVEN / CODE-VERIFIED / LIVE-VERIFIED / INFERRED / NOT TESTED / BLOCKED before it can enter a Final Report.
-10. **TEST/Production target-control rule**: reconfirmed as already-permanent in `PROFLOW_PROJECT_CONTEXT.md` §17.D (added the prior task) and cross-referenced from the new §17.F — Claude Lead alone establishes `TARGET_IS_DISPOSABLE`/`TARGET_IS_PRODUCTION` before any DB-sensitive delegated work; agents may never independently decide a target is safe.
-11. **Quote Number runtime PASS reconciled**: confirmed already accurately recorded in `PROFLOW_TODO.md` item 17 (status `🟢 RUNTIME-VALIDATED IN ISOLATION`) from the prior task's own documentation pass — re-read this task, verified still accurate, not re-edited.
-12. **Two runtime defects recorded**: confirmed present in `PROFLOW_TODO.md` item 17 and `PROFLOW_HANDOFF.md` §18.BO — (1) counter-seeding off-by-one (businesses would have skipped A100700, fixed by seeding `GREATEST(100699, MAX(historical))`), (2) `anon` retained `EXECUTE` on the allocator RPC despite `REVOKE ALL FROM PUBLIC` (Supabase platform-default grant not routed through `PUBLIC`; fixed with explicit `REVOKE ... FROM anon`/`FROM service_role`).
-13. **Open Production work preserved as OPEN**: confirmed — `PROFLOW_TODO.md` item 17 still explicitly states nothing has been applied, pushed, or deployed to Production, and the Release Order/Rollback plan remain the required gate. Not touched or weakened this task.
-14. **Documentation Sync Rule confirmed permanent**: `PROFLOW_PROJECT_CONTEXT.md` §17.E (added the prior task) remains in force unchanged — this task's own commit follows it exactly (update Latest Report → review all five canonical docs → reconcile genuine changes only → secret/privacy scan → explicit staging → one snapshot commit → push).
-15. **Secret/privacy scan**: performed on every file changed this task — contains only workflow/process description text (roles, rules, examples referencing "commit"/"deploy"/"LIVE" as concepts) and the already-established non-secret project refs from the prior task's own additions (not newly introduced here). No password, API/service-role/anon key value, token, connection string, or customer data. **PASSED.**
-16. **Exact staged files**: recorded in the chat response after staging, per the standing 6-file allowlist (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`) — only those genuinely changed this task.
-17. **Documentation commit SHA**: recorded in the chat response after commit.
-18. **Push result**: recorded in the chat response after push.
-19. **HEAD vs origin/main**: recorded in the chat response after push.
-20. **Application changes remain uncommitted**: confirmed — no `src/`, `supabase/functions/`, or other application file was touched this task.
-21. **Migration changes remain uncommitted**: confirmed — `supabase/migrations/` and `supabase/quote_number_counter_init.sql` untouched and still untracked this task.
-22. **Final `git status --short`**: recorded in the chat response after the documentation commit.
+1. **Branch**: `main`
+2. **HEAD**: `36a62c3cce51232210a9cf18ce588c5d35f86428`
+3. **origin/main**: `36a62c3cce51232210a9cf18ce588c5d35f86428`
+4. **HEAD match**: YES
+5. **Working tree preserved**: YES
+6. **Modified/untracked files still present**: YES — identical to the pre-restart set: 11 modified application files (`.gitignore`, `ClientsTab.jsx`, `FinancesTab.jsx`, `PublicQuoteHeader.jsx`, `QuoteForm.jsx`, `QuotesTab.jsx`, `index.css`, `Dashboard.jsx`, `PublicQuote.jsx`, `PublicQuoteEn.jsx`, `get-public-quote/index.ts`, `send-quote-email/index.ts`) plus 6 untracked files (`src/utils/{addressFormat,money,quoteNumber}.js`, `supabase/migrations/`, `supabase/quote_number_backfill.sql`, `supabase/quote_number_counter_init.sql`). Nothing missing, nothing changed by the Windows restart.
+7. **Documentation continuity**: OK — `PROFLOW_CLAUDE_LATEST_REPORT.md` present; Claude Lead/max-2-sub-agent protocol (`PROFLOW_PROJECT_CONTEXT.md` §17.F) present; TEST environment documentation (§17.D) present; Documentation Sync Rule (§17.E) present. No discrepancy found.
+8. **Current PC LAN IPv4**: `192.168.1.189` (confirmed freshly via `Get-NetIPAddress` after restart, not assumed from prior documentation — happened to be unchanged, but verified independently rather than assumed).
+9. **Port 5184 status**: free before starting (no listener found, no stale process, confirmed via `Get-NetTCPConnection`).
+10. **Dev server started**: YES — `npm run dev -- --host --port 5184` (existing project command, no `package.json`/`vite.config.js` edit).
+11. **Actual LAN URL**: `http://192.168.1.189:5184/`
+12. **PC-local access**: PASS (`http://localhost:5184/` → HTTP 200)
+13. **LAN-IP access**: PASS (`http://192.168.1.189:5184/` → HTTP 200)
+14. **Claude Lead/sub-agent protocol loaded**: YES
+15. **TEST environment documentation present**: YES
 
-23. **NO APPLICATION COMMIT** — confirmed.
-24. **NO MIGRATION COMMIT** — confirmed.
-25. **NO DEPLOY** — confirmed.
-26. **NO PRODUCTION MIGRATION** — confirmed.
-27. **NO LIVE** — confirmed; no database of any kind (TEST or Production) was accessed this task at all.
+16. **NO FILE CHANGES**
+17. **NO DB CHANGES**
+18. **NO COMMIT**
+19. **NO PUSH**
+20. **NO DEPLOY**
+21. **NO LIVE**
+
+Dev server left running in the background (LAN-accessible) after this task — no application work performed, no test data created, no mutation of any kind.
