@@ -6,77 +6,85 @@
 
 ---
 
-## Task: PROFLOW — Isolated Quote-Number Migration Validation + Activate Claude Latest Report Workflow
+## Task: PROFLOW — Disposable Supabase Runtime Migration Validation
 
-**Effort level**: HIGH. **Owner + ChatGPT approved.**
+**Effort level**: HIGH. **Owner + ChatGPT approved this validation pass.**
+
+**Outcome: BLOCKED BEFORE EXECUTION — no runtime validation was performed.** No disposable/isolated Supabase project exists, and creating one requires Owner action this task is not authorized to take on its own. Nothing was run against Production. This report documents the blocker honestly rather than fabricating pass/fail results for tests that never executed.
 
 ### PRE-TASK
 
-1. **Git state**: branch `main`, `HEAD == origin/main == 38705db992247b32396df6d9ce0da4367fce88b9` at task start (unchanged by this task's local-only work prior to this documentation commit).
-2. **Isolation capability found**: **NO.** Checked for `psql`, `pg_ctl`, `postgres`, `docker`, `podman`, common PostgreSQL install paths, and any bundled npm Postgres-compatible tooling (`pg`, `pg-mem`, `pglite`, `embedded-postgres`) in `package.json`/`node_modules` — none present. Per this task's own explicit instruction, no software was installed and no substitute (LIVE or otherwise) was used. Proceeded with static-only validation.
+1. **Git state**: branch `main`, `HEAD == origin/main == c9460355eefa2e63ed56fa30f25ae6b9c6354b74` (unchanged by this task prior to this report commit — confirmed fresh at task start, matching the previous task's final push).
+2. **Exact local modified/untracked state**: identical to the previous task's ending state — `.gitignore`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, and 9 application files modified; `src/utils/{addressFormat,money,quoteNumber}.js`, `supabase/migrations/` (6 files, including the `20260827000001a` split), `supabase/quote_number_backfill.sql`, `supabase/quote_number_counter_init.sql` untracked. No local work was lost or disturbed by this task.
+3. **Disposable project availability**: **NOT AVAILABLE.** `supabase projects list` (read-only, authenticated CLI) returned exactly **one** project under this account: `ixabnzhjeqevtbhdfswv` ("quotecode", region `eu-central-1`), the same project ref used as the linked Production project throughout this entire engagement (`linked: true`, matches `supabase/.temp/project-ref` and every prior audit's target). No second/disposable project exists.
 
-### MIGRATION VALIDATION
+### TARGET SAFETY
 
-3. **Runtime isolated test**: **NO** — no isolated Postgres-capable environment exists on this machine.
-4. **Exact isolated environment used**: none — static SQL review only.
-5. **Starting schema recreated**: not performed (no environment to recreate it in).
-6–10. **Migration 00000/00001/00002/counter-init/00003 results**: STATIC-REVIEWED, NOT RUNTIME-VALIDATED. Manual, statement-by-statement review performed against the confirmed live schema facts from the prior read-only audit (`quotes.quote_number integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')`, no unique constraint, no allocation RPC/trigger live). No inconsistency found with that baseline.
+4. **Production identity**: `ixabnzhjeqevtbhdfswv` ("quotecode") — the sole project visible to this account, currently CLI-linked.
+5. **Disposable identity**: none exists.
+6. **Proof targets differ**: N/A — there is only one project, so there is nothing to differentiate. This is precisely why execution did not proceed: with only Production available, any runtime SQL execution would necessarily target Production, which is strictly forbidden.
+7. **Temporary linking used**: no — no linking action of any kind was performed (nothing to link to).
 
-   **Defect found and fixed via this static review** (the one genuine defect this task surfaced): `20260827000001_add_quote_number_unique_index.sql` previously contained BOTH `CREATE UNIQUE INDEX CONCURRENTLY` and `ALTER TABLE ... ADD CONSTRAINT ... USING INDEX` in the same file. `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block, and Supabase applies each migration file as one transaction — this file would have failed immediately on `supabase db push`, ironically the exact failure mode its own original comment claimed to be avoiding. **Fixed**: split into `20260827000001` (index build only) and a new `20260827000001a_attach_quote_number_unique_constraint.sql` (constraint attachment only, wrapped in an idempotency-guarding `DO` block since Postgres has no native `ADD CONSTRAINT IF NOT EXISTS`). Filename ordering verified (`sort` confirms `20260827000001a` sorts between `20260827000001` and `20260827000002`).
+### BLOCKER REPORT (per this task's own §4 procedure — STOP BEFORE CREATION)
 
-11. **Historical-number preservation**: STATIC-CONFIRMED — `quote_number_counter_init.sql` contains no `UPDATE`/`ALTER` of any kind against the `quotes` table; it only writes to `business_quote_sequences`. No file in the package touches an existing `quotes.quote_number` value.
-12. **First per-business number**: STATIC-VERIFIED via formula reasoning, NOT RUNTIME-VERIFIED — `allocate_quote_number`'s `INSERT ... VALUES (p_user_id, 100700) ON CONFLICT DO UPDATE next_number = next_number + 1` yields `100700` on a business's first-ever call (direct insert, no conflict) and `100701` on the second (conflict path). `quote_number_counter_init.sql`'s `GREATEST(100700, MAX(existing)+1)` correctly pre-seeds a business with historical numbers ≥100700 above its own high-water mark, and correctly resolves to `100700` for every business with lower historical numbers (i.e. every live business today).
-13. **Cross-business same-number result**: STATIC-CONFIRMED via constraint definition — `UNIQUE (user_id, quote_number)` permits two different `user_id`s to each hold `100700`; only a `user_id` collision would be rejected.
-14. **Duplicate rejection**: STATIC-CONFIRMED — same constraint rejects a second `100700` for the same `user_id`. Not runtime-executed.
-15. **Immutability tests**: STATIC-CONFIRMED via trigger logic — `protect_quote_number_immutability()` raises on any `NEW.quote_number IS DISTINCT FROM OLD.quote_number`, covering value→different-value, value→NULL, and (by the same unconditional check) the specific `A90→A100700` / `A100700→A999999` cases named in this task's brief. `service_role` bypass exists deliberately for forward-fix, everyone else is blocked. Not runtime-executed.
-16. **Old global sequence state**: STATIC-CONFIRMED — `20260827000003` drops the column `DEFAULT` and revokes `anon`/`authenticated` privileges on `quotes_quote_number_seq`, but does **not** `DROP SEQUENCE` — matches the approved staged design exactly.
-17. **Idempotency**: `20260827000000`, `20260827000001` (post-split), `20260827000002`, `20260827000003` — all safely re-runnable (`IF NOT EXISTS`/`CREATE OR REPLACE`/`DROP...IF EXISTS`/no-op `DROP DEFAULT`+`REVOKE` on already-absent grants). `20260827000001a` — made safely re-runnable this pass via an explicit `pg_constraint` existence guard. `quote_number_counter_init.sql` — genuinely idempotent, confirmed via its `GREATEST(existing, seed)` formula, which never moves a counter backward even after real allocations have advanced it past the seed value. Note: under the intended `supabase db push` deployment path, migration files only ever run once regardless (Supabase's own tracking) — the idempotency review targets manual/out-of-band reruns specifically.
-18. **Concurrency result**: **NOT RUNTIME-TESTED** — no isolated environment to exercise simultaneous sessions. The allocator's `INSERT ... ON CONFLICT ... DO UPDATE ... RETURNING` is a standard, well-established atomic Postgres idiom relying on the engine's own row-level lock on the conflicting unique key (not a novel/custom concurrency mechanism) — noted with appropriately calibrated confidence, not claimed as empirically verified.
-19. **Failure/fail-closed result**: reasoned statically. (A) allocator+counters live but `20260827000003` not yet applied: any insert path that explicitly supplies `quote_number` (the frontend's existing RPC-then-INSERT pattern) already bypasses the old global `DEFAULT` today, without needing the DEFAULT removed first — the DEFAULT only fires when a INSERT omits the column. (B) `DEFAULT` removed, INSERT omits `quote_number`: `NOT NULL` constraint rejects the row — correct fail-closed behavior, no silent fallback exists in current code to catch and reroute this. (C) allocator fails: current app code has no secondary/alternate numbering fallback to silently reroute into — confirmed via source re-read. (D) rollback principle (no renumbering issued identifiers) — consistent with `PROFLOW_TODO.md` item 17's existing Rollback/Forward-Fix plan, unchanged.
-20. **Defects found/fixed**: exactly one (item 6–10 above, the `CONCURRENTLY`/transaction-boundary bug) plus one minor idempotency hardening (`20260827000001a`'s guard). Both fixes are within the already-approved architecture (no design change), both documented in-file with a dated correction note.
+Creating a disposable Supabase project (`supabase projects create`) requires, per the CLI's own flag set:
+
+**A. What must be created**: a new, separate Supabase project (e.g. `quotecode-test` or similar), in the same organization as Production (`org-id smcrpeczwtpujpnhurwz`) or a different one, dedicated solely to disposable migration-validation testing.
+
+**B. What Owner must click/select/do**: choose (or confirm) the organization to create it in; choose a region (`--region`, e.g. `eu-central-1` to match Production, or any other); set a database password (`--db-password`) — a genuine new secret that must be deliberately chosen/generated, never invented or silently generated by Claude; optionally confirm an instance size (`--size`, default likely `micro`) and whether high availability is wanted (extra cost). Supabase project creation may also count against the organization's project-quota/billing tier, which only the Owner can confirm is acceptable.
+
+**C. Whether any cost may be involved**: possibly — a new project may consume a free-tier project slot or, depending on size/HA choices and the organization's current plan, incur direct cost. This cannot be determined with certainty from the CLI alone without the Owner's own knowledge of the organization's billing state.
+
+**D. What information Claude needs afterward**: the new project's ref/ID (safe to share — not a secret) so the CLI can be pointed at it explicitly and verifiably for this validation only; confirmation that this project is authorized to hold TEST/fictional data only, is disposable, and may be deleted afterward.
+
+**E. How we will prove it is NOT Production**: once created, its project ref will differ from `ixabnzhjeqevtbhdfswv` — every command in the eventual validation run would explicitly target the new ref (e.g. `--project-ref <new-ref>` or a dedicated `--db-url` for that project only), never the currently-linked Production ref, and a hard target-guard check (comparing the ref used against the known Production ref) would be performed before any mutating statement, exactly as this task's own §5 requires.
+
+**No cloud resource was created. No Owner credentials, passwords, or tokens were used or requested in chat.**
+
+### FIXTURE / RUNTIME MIGRATION / DATABASE RESULTS / CONCURRENCY / SECURITY / IDEMPOTENCY / DEFECTS (items 8–37)
+
+**NOT ATTEMPTED** — all require a disposable database that does not exist. No fixture was built, no migration was executed, no historical/uniqueness/immutability/delete/concurrency/security/idempotency test was run, and no defect could be found or fixed via runtime execution this task (the one defect from the prior static-review pass — the `CONCURRENTLY`/transaction-boundary split into `20260827000001` + `20260827000001a` — remains as previously fixed and documented; not re-tested here).
 
 ### APPLICATION CONTRACT
 
-21. **Remaining frontend fail-closed work**: `Dashboard.jsx`'s create-flow must be changed, in the same coordinated release as `20260827000003`, from "silently proceed without `quote_number` on RPC failure" to "fail the quote creation outright on RPC failure" — not implemented this task (by design; implementing it now against the still-unmigrated live schema would break quote creation entirely today, since the RPC genuinely doesn't exist live).
-22. **Create/duplicate/edit/approve/sign/delete behavior**: reconfirmed unchanged from the prior task's audit — CREATE → attempts allocator (fresh number once live); DUPLICATE → reuses the same create path unmodified, confirmed no `quote_number` copy in `handleDuplicateQuote`; EDIT/APPROVE/SIGN → untouched, trivially preserve; DELETE → no counter-decrement logic exists anywhere in the package, so no reuse is possible.
+38. **Remaining frontend fail-closed work**: unchanged from the prior report — `Dashboard.jsx`'s create-flow still needs the fail-closed change, to ship only with `20260827000003` in the coordinated release. Not touched this task.
+39. **Coordinated-release implications**: unchanged — runtime validation (once a disposable environment is available) remains a prerequisite this task could not satisfy; the Release Order in `PROFLOW_TODO.md` item 17 is unaffected.
 
 ### HE/EN
 
-23. **Cross-market readiness**: reconfirmed valid — the full HE/EN Surface Impact Matrix from the prior task (`PROFLOW_TODO.md` item 17) is unaffected by this task's changes (backend-only migration split, no frontend/Edge Function logic touched).
-24. **English verification limitation**: unchanged — no English surface was LIVE-VERIFIED this task (standing credentials gap); every EN-relevant claim remains CODE-VERIFIED only.
-25. **Market invariant check**: confirmed — no VAT/₪ logic introduced or touched; the migration package and its allocator remain fully market-neutral.
+40–42. **Unchanged from the prior report** — full Surface Impact Matrix in `PROFLOW_TODO.md` item 17 remains current; no English surface has been LIVE-verified; market invariants (no VAT/₪ in International) were not touched by this task.
 
 ### QA
 
-26. **eslint**: 0 errors, 6 warnings (3 real pre-existing + 3 duplicated under `pentest-source-review/`, unchanged, not this task's doing).
-27. **build**: succeeds, same pre-existing chunk-size advisory only.
-28. **tests**: 42/42 passing (21 real + 21 duplicated under `pentest-source-review/`, same known duplication pattern).
-29. **SQL validation classification**: **STATIC-ONLY — NO ISOLATED DB AVAILABLE.**
+43. **eslint**: not re-run this task — no code was changed (only this report file).
+44. **build**: not re-run this task.
+45. **tests**: not re-run this task.
 
-### LATEST REPORT WORKFLOW
+*(No local migration/application file was modified this task, so QA was not re-triggered — the previous task's clean QA result, 0 eslint errors/6 warnings, successful build, 42/42 tests passing, stands unchanged.)*
 
-30. **Report file created**: `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file).
-31. **`PROFLOW_PROJECT_CONTEXT.md` updated**: new §17.C "Claude Latest Report Workflow" — role, permanent update rule, secret-scan requirement, the LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE golden rule, trigger phrase, explicit note that it is not part of the five-document Bootstrap reading order.
-32. **`PROFLOW_CHAT_HANDOFF.md` updated**: new §15.A with the same workflow description (concise, cross-referenced rather than duplicated) plus a one-line pointer added to the existing §15 startup message.
-33. **Secret/privacy scan**: performed on all three files' diffs before staging — no passwords, API/service-role keys, tokens, private keys, customer data/documents, or sensitive pentest material found in any of the three. Confirmed documentation-only.
-34. **Exact staged files**: `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CHAT_HANDOFF.md` — staged explicitly by filename, never `git add .`/`-A`/`--all`; verified via `git diff --cached --name-only` before commit.
-35. **Documentation commit SHA**: recorded in the chat response after this file's own commit completes (this file is written and about to be committed as part of the same task — the SHA cannot self-reference its own commit and is reported separately, in the terminal, after `git commit` runs).
-36. **Push result**: recorded in the chat response after push.
-37. **local HEAD vs origin/main**: recorded in the chat response after push.
+### LATEST REPORT
 
-### WORKING TREE
-
-38. **Migration/application/.gitignore changes remain uncommitted**: confirmed — only `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CHAT_HANDOFF.md` are staged/committed this task. `supabase/migrations/` (including the new split files), `.gitignore`, and every application file remain local/uncommitted.
-39. **No local work lost**: confirmed — all pre-existing modified/untracked files from before this task remain present and unchanged in content (only the migration package files were edited, per this task's own explicit scope).
-40. **Final `git status --short`**: recorded in the chat response after commit/push (post-stage state differs from pre-stage state only in which files show as staged vs. modified — no file is removed from the working tree).
+46. **Secret/privacy scan**: performed on this file before staging — contains only the Production project's already-known, non-secret `ref`/name/region (already public knowledge within this project's own documentation and prior reports), no password, no API/service-role/anon key, no token, no connection string, no customer data. **PASSED.**
+47. **Exact staged file**: `PROFLOW_CLAUDE_LATEST_REPORT.md` only.
+48. **Report commit SHA**: recorded in the chat response after commit.
+49. **Push result**: recorded in the chat response after push.
+50. **HEAD vs origin/main**: recorded in the chat response after push.
 
 ### SAFETY
 
-41. **LIVE DB unchanged**: confirmed — zero database connections/queries were made this task at all (static review only, no `supabase db query`/`db push`/`db dump` executed).
-42. **Edge Functions unchanged**: confirmed — no `supabase functions deploy` or any Edge-Function-affecting command run.
-43. **David Aluminum untouched**: confirmed — not referenced, not queried, not accessed.
-44. **NO APPLICATION COMMIT**: confirmed — only the three documentation files above were committed.
-45. **NO APPLICATION PUSH**: confirmed — same three files only.
-46. **NO MIGRATION**: confirmed — no migration executed against any database, isolated or live.
-47. **NO DEPLOY**: confirmed.
-48. **NO LIVE**: confirmed — no production data, schema, config, Auth/RLS/Storage, or Edge Function was touched in any way.
+51. **Production DB unchanged**: confirmed — the only Supabase CLI command executed this task was the read-only `supabase projects list`; zero SQL of any kind was run.
+52. **Production Edge Functions unchanged**: confirmed — no `functions deploy` or related command run.
+53. **David Aluminum untouched**: confirmed — not referenced, not queried.
+54. **Application changes remain uncommitted**: confirmed.
+55. **Migration changes remain uncommitted**: confirmed — the `20260827000001a` split and all other migration files remain exactly as left by the prior task.
+56. **Final `git status --short`**: identical to the pre-task state (item 2 above) except this report file, which is staged/committed as authorized.
+
+57. **NO APPLICATION COMMIT** — confirmed.
+58. **NO MIGRATION COMMIT** — confirmed (migration files remain untracked/uncommitted).
+59. **NO DEPLOY** — confirmed.
+60. **NO PRODUCTION MIGRATION** — confirmed.
+61. **NO LIVE** — confirmed.
+
+### Next step
+
+Waiting for Owner to decide: (a) authorize creation of a disposable Supabase project (organization/region/db-password/size decisions above), after which this validation task can be re-run against it with genuine runtime results; or (b) accept the static-only validation already completed in the prior task as sufficient for now and proceed on that basis; or (c) provide an alternative already-available isolated Postgres-compatible environment this session hasn't detected. No runtime SQL will be executed against Production under any circumstance.
