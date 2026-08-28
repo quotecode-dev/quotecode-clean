@@ -38,7 +38,12 @@ export default function FinancesTab({
 }) {
   return (
     <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
+      {/* חוק ברזל (Global Surface Audit Part 8, אומת חי בסבב הזה): row-reverse
+          כאן היפך את הסדר הנכון - נמדד: כותרת ב-x≈451.5 (שמאל, שגוי), בורר
+          סוג-דוח ב-x≈1203 (ימין, שגוי) - זהה בדיוק לתקלה שכבר תוקנה
+          ב-QuotesTab.jsx. הוסר; סדר ה-DOM [כותרת, בורר] לבדו קובע תחת RTL
+          רגיל. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
          <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
            <BarChart3 size={18} color={NEON.emerald} strokeWidth={2.2} />
            {isHebrew ? 'הוצאות והכנסות ודוחות עסק' : 'Finances & Reports'}
@@ -80,15 +85,15 @@ export default function FinancesTab({
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color="#22c55e" />{t.totalRevenue}</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatNum(adminTotalRevenue)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatNum(adminTotalRevenue)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatNum(adminTotalExpenses)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatNum(adminTotalExpenses)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.sky}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.sky}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={adminNetProfit >= 0 ? NEON.sky : NEON.red} />{t.netProfit}</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? NEON.sky : NEON.red }}>{sym}{formatNum(adminNetProfit)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? NEON.sky : NEON.red }}>{sym}{formatNum(adminNetProfit)}</div>
         </div>
       </div>
 

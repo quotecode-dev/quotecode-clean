@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Users, Pencil, Trash2, Building2, Hash, Mail, Phone, MapPin, Tag, StickyNote } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
+import { formatAddress } from '../utils/addressFormat';
 
 export default function ClientsTab({
   filteredClients = [],
@@ -58,7 +59,7 @@ export default function ClientsTab({
 
   return (
     <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
         <h2 style={{ fontSize: '1.0rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
           <Users size={18} color={NEON.violetLight} strokeWidth={2.2} />
           {isHebrew ? 'ניהול ספר לקוחות (CRM)' : 'Clients Management'}
@@ -78,14 +79,31 @@ export default function ClientsTab({
         />
       </div>
 
+      {/* חוק ברזל (תיקון בעלים - רוחב אפליקציה מאומתת במובייל): הטבלה
+          שמרה minWidth קשיח של 450px, זהה בדסקטופ ובמובייל - במדידה חיה
+          ב-390px (רוחב זמין ~370px) זה גרם לגלישה אופקית קבועה בתוך
+          הטבלה (רוחב בפועל 453.5px), כפי שמעולם לא טופל בשום מעבר מובייל
+          קודם (בניגוד ל-Dashboard/Quote History, ש-CLIENTS/Finances/
+          Settings הוחרגו מהם במפורש). התיקון: minWidth מוקטן במובייל
+          בלבד (cli-table), וארבע העמודות הפחות-קריטיות (ח.פ/כתובת/סוג/
+          הערות) מוסתרות במובייל בלבד (cli-col-hide-mobile) - הנתונים
+          עצמם לא נמחקים מהמערכת, רק לא מוצגים בטבלה הצפופה הזו; כולם
+          עדיין נגישים דרך עריכת הלקוח. שם/אימייל/טלפון/פעולות (העמודות
+          המהותיות ביותר לזיהוי ויצירת קשר) נשארות גלויות תמיד. */}
+      <style>{`
+        @media (max-width: 640px) {
+          .cli-table { min-width: 0 !important; }
+          .cli-col-hide-mobile { display: none !important; }
+        }
+      `}</style>
       <div style={{ overflowX: 'auto', background: NEON.bgCard, borderRadius: '8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '450px' }}>
+        <table className="cli-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '450px' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('company_name')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} color={NEON.sky} />{isHebrew ? 'שם חברה / לקוח' : 'Company / Name'} {clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
-              <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('tax_id')}>
+              <th className="cli-col-hide-mobile" style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('tax_id')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Hash size={12} color={NEON.amber} />{isHebrew ? 'ח.פ / ת.ז' : 'Tax ID'} {clientSortField === 'tax_id' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('email')}>
@@ -94,13 +112,13 @@ export default function ClientsTab({
               <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('phone')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Phone size={12} color={NEON.emerald} />{isHebrew ? 'טלפון' : 'Phone'} {clientSortField === 'phone' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
-              <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('address')}>
+              <th className="cli-col-hide-mobile" style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('address')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} color={NEON.red} />{isHebrew ? 'כתובת' : 'Address'} {clientSortField === 'address' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
-              <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('client_type')}>
+              <th className="cli-col-hide-mobile" style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('client_type')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Tag size={12} color={NEON.violetLighter} />{isHebrew ? 'סוג לקוח' : 'Type'} {clientSortField === 'client_type' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
-              <th style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('notes')}>
+              <th className="cli-col-hide-mobile" style={{ padding: '6px', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleClientSort('notes')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><StickyNote size={12} color={NEON.amber} />{isHebrew ? 'הערות / הנחיות' : 'Notes'} {clientSortField === 'notes' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
               </th>
               <th style={{ padding: '6px' }}>{t.actions}</th>
@@ -126,11 +144,11 @@ export default function ClientsTab({
                   <React.Fragment key={client.id}>
                     <tr style={{ borderBottom: hasError ? 'none' : `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
                       <td style={{ padding: '8px 6px', fontWeight: '500', color: NEON.textPrimary }}>{client.company_name}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><span dir="ltr">{client.tax_id || '-'}</span></td>
+                      <td className="cli-col-hide-mobile" style={{ padding: '8px 6px', color: NEON.textSecondary }}><span dir="ltr">{client.tax_id || '-'}</span></td>
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.email || '-'}</td>
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{client.phone || '-'}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>{client.address || '-'}</td>
-                      <td style={{ padding: '8px 6px' }}>
+                      <td className="cli-col-hide-mobile" style={{ padding: '8px 6px', color: NEON.textSecondary }}>{client.address ? formatAddress(client.address, isHebrew) : '-'}</td>
+                      <td className="cli-col-hide-mobile" style={{ padding: '8px 6px' }}>
                         <span style={{
                           background: client.client_type === 'business' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.06)',
                           color: client.client_type === 'business' ? NEON.sky : NEON.textSecondary,
@@ -139,7 +157,7 @@ export default function ClientsTab({
                           {client.client_type === 'business' ? (isHebrew ? 'עסקי' : 'Business') : (isHebrew ? 'פרטי' : 'Private')}
                         </span>
                       </td>
-                      <td style={{ padding: '8px 6px', color: NEON.violetLight, fontWeight: '400' }}>
+                      <td className="cli-col-hide-mobile" style={{ padding: '8px 6px', color: NEON.violetLight, fontWeight: '400' }}>
                         {client.notes ? (
                           <span style={{ background: 'rgba(139, 92, 246, 0.15)', padding: '2px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>
                             {client.notes}

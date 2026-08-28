@@ -8,6 +8,7 @@ import { formatDateLocal } from '../utils/regionConfig';
 import { History, Download, Hash, Building2, AlignLeft, Banknote, Calendar, CircleDot, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
+import { formatQuoteFallback } from '../utils/quoteNumber';
 
 export default function QuotesTab({
   quotes,
@@ -258,7 +259,7 @@ export default function QuotesTab({
                 onClick={() => {
                   if (isLocked) return;
                   setOpenDropdownId(null);
-                  handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: quote.id.slice(0, 6), clientName: quote.clients?.company_name }));
+                  handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name }));
                 }}
                 style={{ width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? NEON.textMuted : NEON.red, opacity: isLocked ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
                 onMouseEnter={(e) => { if (!isLocked) e.target.style.background = 'rgba(220, 38, 38, 0.08)'; }}
@@ -375,7 +376,7 @@ export default function QuotesTab({
               rowsMeta.map(({ quote, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge }) => (
                 <tr key={quote.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
                   <td style={{ padding: '6px 8px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontWeight: '700', color: NEON.violet, direction: 'ltr' }}>
-                    #{quote.id.slice(0, 6)}
+                    {formatQuoteFallback(quote)}
                   </td>
                   <td style={{ padding: '6px 8px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontWeight: '700', color: NEON.textPrimary, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={quote.clients?.company_name || ''}>
                     {quote.clients?.company_name || 'N/A'}
@@ -385,11 +386,11 @@ export default function QuotesTab({
                   </td>
                   <td style={{ padding: '6px 8px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left' }}>
                     <div style={{ fontWeight: '800', color: NEON.textPrimary, fontSize: '0.9rem' }}>
-                      {quoteSym}{formatNum(quote.total)}
+                      <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
                     </div>
                     {isLocalIsraeliBusiness && isHebrew && (
                       <div style={{ fontSize: '0.6rem', color: NEON.textMuted, marginTop: '1px' }}>
-                        {isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(beforeVatAmount)}` : `Before VAT: ${quoteSym}${formatNum(beforeVatAmount)}`}
+                        {isHebrew ? <>לפני מע"מ: <span className="pf-money">{quoteSym}{formatNum(beforeVatAmount)}</span></> : <>Before VAT: <span className="pf-money">{quoteSym}{formatNum(beforeVatAmount)}</span></>}
                       </div>
                     )}
                   </td>
@@ -473,13 +474,13 @@ export default function QuotesTab({
                   {quote.clients?.company_name || 'N/A'}
                 </div>
                 <div style={{ fontWeight: '800', color: NEON.textPrimary, fontSize: '0.95rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {quoteSym}{formatNum(quote.total)}
+                  <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
-                  <span style={{ fontWeight: '700', color: NEON.violet, direction: 'ltr' }}>#{quote.id.slice(0, 6)}</span>
+                  <span style={{ fontWeight: '700', color: NEON.violet, direction: 'ltr' }}>{formatQuoteFallback(quote)}</span>
                   <span>·</span>
                   <span style={{ direction: 'ltr', whiteSpace: 'nowrap' }}>{formatDateLocal(quote.created_at, isHebrew, currency)}</span>
                   <span>·</span>

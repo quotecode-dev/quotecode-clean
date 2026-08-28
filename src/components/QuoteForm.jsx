@@ -24,6 +24,8 @@ export default function QuoteForm({
   clientTaxId, setClientTaxId,
   clientAddress, setClientAddress,
   quoteSubject, setQuoteSubject,
+  attnName, setAttnName,
+  attnRole, setAttnRole,
   currency,
   quoteStatus, setQuoteStatus,
   validUntil, setValidUntil,
@@ -290,7 +292,14 @@ export default function QuoteForm({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <div>
           <h2 style={{ marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '3px', ...neonGlowTextStyle }}>
-            {editingQuoteId ? `${isHebrew ? 'עריכת הצעה #' : 'Editing Quote #'}${editingQuoteId.slice(0, 6)}` : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
+            {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
+                slice(0,6) הוחלף ב-slice(0,8) - עקבי באורך עם formatQuoteFallback
+                הקנוני (משתמש בו עצמו בכוונה נמנע כאן: זו כותרת session-פנימית
+                לבעל העסק בזמן עריכה, לא תצוגת זהות-הצעה ללקוח, ו-editingQuoteId
+                כאן הוא רק ה-UUID הגולמי בלי quote_number מצורף - חיווט מלא
+                למספר האמיתי היה דורש prop חדש שלא קיים כרגע; מחוץ לתחום
+                המצומצם שהוגדר למשימה הזו). */}
+            {editingQuoteId ? `${isHebrew ? 'עריכת הצעה #' : 'Editing Quote #'}${editingQuoteId.slice(0, 8)}` : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
           </h2>
           <p style={{ color: NEON.textSecondary, margin: 0, fontSize: '0.8rem' }}>
             {isHebrew ? 'הזן את פרטי ההצעה ושמור את השינויים' : 'Enter the quote details and save changes'}
@@ -359,6 +368,22 @@ export default function QuoteForm({
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
             <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+          </div>
+
+          {/* Item 18 - Attention Contact ("לידי"/"Attn"), quote-level (not
+              client-level - a historical quote must keep showing who it was
+              addressed to even if the client's own contacts later change,
+              per the TODO's own explicit data principle). Both optional,
+              placed inside the same auto-wrapping grid as the fields above
+              so Mobile stacking is already handled for free - no extra
+              media query needed. */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'לידי (איש קשר, לא חובה)' : 'Attn (contact, optional)'}</label>
+            <input type="text" value={attnName || ''} onChange={(e) => setAttnName(e.target.value)} placeholder={isHebrew ? 'לדוגמה: שמעון לוי' : 'e.g. Simon Levy'} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'תפקיד / תואר (לא חובה)' : 'Role / Title (optional)'}</label>
+            <input type="text" value={attnRole || ''} onChange={(e) => setAttnRole(e.target.value)} placeholder={isHebrew ? 'לדוגמה: מנהל פרויקטים' : 'e.g. Project Manager'} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
         </div>
 
@@ -560,46 +585,77 @@ export default function QuoteForm({
                 />
                 <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
                 <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
-                <div style={{ padding: '7px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', color: NEON.textPrimary, textAlign: isHebrew ? 'left' : 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: isHebrew ? 'flex-start' : 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
+                {/* חוק ברזל (Money Alignment Fix, סבב זה): textAlign/justifyContent
+                    כאן היו מותנים ב-isHebrew ל-'left'/'flex-start' - שגוי,
+                    כי סכום כספי חייב תמיד להתיישר לימין הפיזי (שם נמצאות
+                    הספרות האחרונות/ערך-המקום), בלי קשר לשפה. עמודת ה-total
+                    כבר משותפת ברוחב בין שורות הפריטים (gridTemplateColumns
+                    עם יחידות fr קבועות על ההורה, לא auto מבוסס-תוכן) - כך
+                    שתיקון היישור בלבד (תמיד 'right'/'flex-end') מספיק כדי
+                    שהספרות יתיישרו לפי ערך-מקום בין שורות פריטים. */}
+                <div className="pf-money" style={{ padding: '7px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', color: NEON.textPrimary, textAlign: 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{sym}{formatNum(Number(item.quantity || 0) * Number(item.unit_price || 0))}</div>
                 {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} strokeWidth={3} /></button>}
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
+        {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
+            כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
+            משלה - כל שורה הייתה "קונטיינר flex" עצמאי, כך שרוחב עמודת הסכום
+            נקבע בנפרד לכל שורה (shrink-to-fit) ולא היה עמודה משותפת אחת -
+            תחת RTL, הסכום (הילד השני, "end" פיזית = שמאל) היה נדבק לקצה
+            השמאלי הקבוע של השורה שלו, כך שהקצה השמאלי (לא הימני, איפה
+            שהספרות בפועל) היה המשותף - בדיוק ההפך ממה שנדרש ליישור לפי
+            ערך-מקום (ראה .pf-money-row/.pf-money-cell למטה). הפתרון
+            המבני: כל שורות הטוטלים הן עכשיו ילדים ישירים של גריד אחד
+            משותף (grid-template-columns: 1fr auto) - כך שעמודת הסכום
+            (auto) מחושבת פעם אחת עבור כל השורות יחד, לא בנפרד לכל שורה;
+            כל תג <> (React Fragment) לא יוצר DOM node נפרד ולכן לא שובר
+            את שיתוף העמודה. textAlign:'right' על כל תא-סכום (לא מותנה
+            ב-isHebrew - סכום כספי תמיד מיושר לימין הפיזי, גם תחת LTR
+            (שם flex-end כבר יישר נכון קודם, ולא נפגע כאן)). קו הפרדה לפני
+            השורה הסופית הוא ילד-גריד נפרד שפורש שתי העמודות
+            (gridColumn:'1 / -1') כדי שהקו יהיה רציף על פני כל הרוחב, לא
+            שני קטעים נפרדים בכל תא. */}
+        <div className="pf-money-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '10px', borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
           {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
               (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
               החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
           {!(isLocalIsraeliBusiness && isHebrew && clientType === 'private') && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-              <span>{t.subtotal}</span>
-              <span>{sym}{formatNum(subtotal)}</span>
-            </div>
+            <>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNum(subtotal)}</span>
+            </>
           )}
-          {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.red, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span><span>-{sym}{formatNum(discountAmount)}</span></div>}
+          {discount > 0 && (
+            <>
+              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span>
+              <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{formatNum(discountAmount)}</span>
+            </>
+          )}
           {isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (
             // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
             // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
             // רק תוויות/סדר שונים; אין נוסחה חדשה. formatNumberLocal (לא
             // formatNum) כדי לא לאבד אגורות (254.24, לא 254.00).
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-                <span>סכום לפני מע"מ:</span>
-                <span>{sym}{formatNumberLocal(totalAmount - taxAmount, isHebrew)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-                <span>מע"מ (18%):</span>
-                <span>{sym}{formatNumberLocal(taxAmount, isHebrew)}</span>
-              </div>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>סכום לפני מע"מ:</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNumberLocal(totalAmount - taxAmount, isHebrew)}</span>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>מע"מ (18%):</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNumberLocal(taxAmount, isHebrew)}</span>
             </>
           ) : (
-            isLocalIsraeliBusiness && isHebrew && <div style={{ display: 'flex', justifyContent: 'space-between', color: NEON.textSecondary, fontSize: '0.8rem', flexDirection: isHebrew ? 'row-reverse' : 'row' }}><span>{t.vat}</span><span>{sym}{formatNum(taxAmount)}</span></div>
+            isLocalIsraeliBusiness && isHebrew && (
+              <>
+                <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
+                <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNum(taxAmount)}</span>
+              </>
+            )
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '800', marginTop: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-             <span style={{ ...neonGlowTextStyle }}>{t.totalAmount}</span>
-             <span style={{ color: NEON.violetLight }}>{sym}{formatNum(totalAmount)}</span>
-          </div>
+          <div style={{ gridColumn: '1 / -1', marginTop: '6px' }} />
+          <span style={{ ...neonGlowTextStyle, fontSize: '1rem', fontWeight: '800' }}>{t.totalAmount}</span>
+          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{formatNum(totalAmount)}</span>
         </div>
 
         <button type="submit" disabled={isTrialExpired && !isSuperAdmin} style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>

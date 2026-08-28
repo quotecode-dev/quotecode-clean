@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Phone } from 'lucide-react';
 import { LIGHT } from '../theme/neonTheme';
+import { formatQuoteNumber, formatQuoteFallback } from '../utils/quoteNumber';
+import { formatAddress } from '../utils/addressFormat';
 
 // חוק ברזל: "חייג/י אליי" הוא CTA טקסטואלי בלבד - המספר עצמו לעולם לא
 // מוצג *על גבי הכפתור* (מוצג כטקסט מידע נפרד למעלה, בדיוק כמו קודם) -
@@ -31,6 +33,15 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
 
   const dateStr = new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB');
   const validUntilStr = quote.valid_until ? new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB') : null;
+  // עדכון 2026-08-28 (Quote Number Transition audit): quote כאן מגיע מ-
+  // get-public-quote, וה-Edge Function הזו (בניגוד למקור הקודם שחשב
+  // שהעמודה עצמה לא קיימת) פשוט לא נפרסה מחדש עם quote_number ב-select
+  // שלה - ר' PROFLOW_TODO.md item 17. לכן quote.quote_number עדיין undefined
+  // כאן בפועל, וformattedNumber נשאר null, עד לפריסה מתואמת עתידית - לא
+  // עד ל-migration הזה של המאגר (שכלל לא נדרש כדי שהעמודה עצמה תתקיים).
+  // כל מקום קריאה נופל חזרה בבטחה לתצוגת ה-UUID המקוצר הקיימת, בלי צורך
+  // בשינוי נוסף כשה-Edge Function בסופו של דבר תיפרס.
+  const formattedNumber = formatQuoteNumber(quote.quote_number);
 
   if (isMobileView) {
     // חוק ברזל (תיקון בעלים - קומפוזיציית כותרת מובייל, העברה נוספת):
@@ -60,7 +71,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
               {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
               {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
               {bizEmail && <div>{bizEmail}</div>}
-              {bizAddress && <div>{bizAddress}</div>}
+              {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
             </div>
           </div>
 
@@ -75,7 +86,20 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
               </a>
             )}
             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.3', textAlign: isHebrew ? 'left' : 'right', whiteSpace: 'nowrap' }}>
-              <div style={{ fontWeight: '800' }}>#{quote.id?.slice(0, 8)}</div>
+              {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
+                  לפני התיקון, ענף ה-fallback (formattedNumber falsy - המצב
+                  היחיד הקיים בפועל היום, לפני הפעלת ה-migration) הציג רק
+                  hash גולמי בלי תווית "מספר הצעה" מעליו ובלי מרכוז - בניגוד
+                  לענף formattedNumber (שם התווית והמספר כן מוצגים ומורכזים
+                  יחד). עכשיו שני המצבים חולקים בדיוק את אותו מבנה - תווית
+                  "מספר הצעה"/"Quote Number" תמיד מוצגת, עם הערך (מספר אמיתי
+                  אחרי migration, או fallback עד אז) ממורכז מתחתיה - כך
+                  שברגע שה-migration יופעל, אותה קומפוזיציה בדיוק תתחיל
+                  להציג את המספר האמיתי בלי שינוי מבני נוסף. */}
+              <div style={{ textAlign: 'center', marginBottom: '1px' }}>
+                <div style={{ fontSize: '0.58rem', opacity: 0.85, fontWeight: '500' }}>{isHebrew ? 'מספר הצעה' : 'Quote Number'}</div>
+                <div style={{ fontWeight: '800', fontSize: '0.78rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
+              </div>
               <div>{isHebrew ? 'תאריך:' : 'Date:'} {dateStr}</div>
               {validUntilStr && (
                 <div style={{ color: '#fecaca', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}</div>
@@ -109,31 +133,62 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
             {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
             {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
             {bizEmail && <div>{bizEmail}</div>}
-            {bizAddress && <div>{bizAddress}</div>}
+            {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
+          </div>
+        </div>
+
+        {/* חוק ברזל (Global Surface Audit Part 10/12 - תיקון בעלים, סבב קודם):
+            ה-CTA "חייג/י אליי"/"Call me" ישב קודם בתוך עמודת פרטי-העסק
+            (הצד הראשי) - כלומר באותו צד כמו פרטי העסק, לא בצד הנגדי כפי
+            שנדרש. הענף Mobile למעלה כבר בנוי נכון (CTA בעמודה השנייה,
+            הנפרדת) - זהו אותו תיקון בדיוק לענף Desktop, שיושם ע"י הזזת
+            ה-<a> לעמודה השנייה (יחד עם תיבת פרטי ההצעה) במקום נטיעתו
+            בתוך עמודת פרטי-העסק. סדר ה-DOM [עמודת עסק, עמודת CTA+פרטים]
+            נשאר זהה לחלוטין ל-Mobile ולשאר הרכיב - תחת dir שמגיע מהעמוד
+            המארח, העמודה הראשונה (עסק) נופלת ל"התחלה" (ימין בעברית, שמאל
+            באנגלית) והשנייה (CTA+פרטים) ל"סוף" (שמאל בעברית - בדיוק מה
+            שהבעלים ביקש; ימין באנגלית - שיקוף טבעי עקבי, לא הפוך-מכני, זהה
+            ליחס שכבר קיים במובייל ולשאר הרכיב). רכיב משותף Local+
+            International - התיקון חל בו-זמנית על שתי השפות.
+            תיקון בעלים נוסף (הביקורת חזרה, סבב זה): בתוך העמודה השנייה
+            הזו, ה-CTA היה *לפני* תיבת מספר-ההצעה/תאריך (נמדד חי: CTA
+            top=75/bottom=104.19, תיבה top=112.19/bottom=204.19 - ה-CTA
+            מעל התיבה) - הבעלים רוצה את הסדר ההפוך: תיבת מספר-הצעה/תאריך
+            למעלה, ה-CTA מתחתיה. תוקן ע"י החלפת סדר שני הילדים בעמודה -
+            שינוי DOM בלבד, בלי שינוי style. המרכוז האופקי בין השניים כבר
+            נכון (alignItems:'center' על עמודת ה-flex ההורה - נמדד חי:
+            שניהם centerX=608.5 זהה) ולא נגע. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          {/* תיבת פרטי הצעת המחיר */}
+          <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.95)', padding: '10px 14px', borderRadius: '10px', minWidth: '170px' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1f1b2e', marginBottom: '3px' }}>{isHebrew ? 'הצעת מחיר' : 'Price Quote'}</div>
+            {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
+                אותו תיקון כמו בענף Mobile למעלה - התווית "מספר הצעה"/
+                "Quote Number" תמיד מוצגת, גם במצב ה-fallback (המצב היחיד
+                הקיים היום, לפני migration), במקום להעלם רק בגלל שאין עדיין
+                מספר אמיתי. */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.68rem', color: '#6b6580', fontWeight: '600' }}>{isHebrew ? 'מספר הצעה' : 'Quote Number'}</div>
+              <div style={{ color: LIGHT.violet, fontWeight: '800', fontFamily: 'monospace', fontSize: '1.05rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#6b6580', marginTop: '3px' }}>
+              {isHebrew ? 'תאריך:' : 'Date:'} {new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
+            </div>
+            {quote.valid_until && (
+              <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 'bold' }}>
+                {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
+              </div>
+            )}
           </div>
 
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.8rem', padding: '5px 12px', borderRadius: '999px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.8rem', padding: '5px 12px', borderRadius: '999px' }}
             >
               <Phone size={13} strokeWidth={2.4} />
               {isHebrew ? 'חייג/י אליי' : 'Call me'}
             </a>
-          )}
-        </div>
-
-        {/* תיבת פרטי הצעת המחיר */}
-        <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.95)', padding: '10px 14px', borderRadius: '10px', minWidth: '170px' }}>
-          <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1f1b2e', marginBottom: '3px' }}>{isHebrew ? 'הצעת מחיר' : 'Price Quote'}</div>
-          <div style={{ color: LIGHT.violet, fontWeight: 'bold', fontFamily: 'monospace' }}>#{quote.id?.slice(0, 8)}</div>
-          <div style={{ fontSize: '0.75rem', color: '#6b6580', marginTop: '3px' }}>
-            {isHebrew ? 'תאריך:' : 'Date:'} {new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
-          </div>
-          {quote.valid_until && (
-            <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 'bold' }}>
-              {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
-            </div>
           )}
         </div>
       </div>

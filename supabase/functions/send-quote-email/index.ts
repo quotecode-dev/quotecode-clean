@@ -117,10 +117,18 @@ serve(async (req) => {
       })
     }
 
+    // עדכון 2026-08-28 (Quote Number Transition audit): ההערה הקודמת כאן
+    // טענה ש-quote_number "עדיין לא קיים בסביבה החיה" - שגוי. הוא כבר קיים
+    // כעמודה integer NOT NULL (מקור שונה - global sequence קיים, לא ה-
+    // migration של המאגר - ר' PROFLOW_TODO.md item 17), כך שה-select הזה
+    // כבר מצליח היום. הסיבה ש-quoteNumberDisplay למטה לא מציג מספר אמיתי
+    // בפועל היא שה-Edge Function הזו עצמה לא נפרסה מחדש מאז שהשדה נוסף -
+    // יש לפרוס (supabase functions deploy send-quote-email) רק כחלק
+    // מהשחרור המתואם שמתואר ב-PROFLOW_TODO.md item 17, לא כצעד מבודד.
     const supabaseAdmin = createClient(SUPABASE_URL, SECRET_KEY)
     const { data: quoteRow } = await supabaseAdmin
       .from('quotes')
-      .select('user_id, currency, tax_rate, total, client_id')
+      .select('user_id, currency, tax_rate, total, client_id, quote_number')
       .eq('id', quoteId)
       .maybeSingle()
 
@@ -178,7 +186,17 @@ serve(async (req) => {
 
     const bizTitle = bizName || 'ProFlow';
     const clientDisplayName = clientCompanyName || (effectiveHebrew ? 'לקוח יקר' : 'Dear Client');
-    const displayTotal = Math.round(Number(quoteRow.total || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
+    // קודמת עשתה Math.round() כאן, ומחקה בשקט אגורות/סנטים מהסכום שמוצג
+    // במייל, לשני השווקים - קובץ Edge Function זה כבר LIVE-DEPLOYED, כך
+    // שמיילים אמיתיים ללקוחות כבר מציגים היום סכום מעוגל. תוקן להתאים בדיוק
+    // ל-formatMoney הקנוני (src/utils/money.js) - אין Math.round, האגורות/
+    // סנטים נשמרים. Deno Edge Functions לא יכולים לייבא מ-src/ (runtime
+    // נפרד מה-frontend build) - זהו עותק מכוון, שמור-בכוונה זהה ללוגיקה של
+    // formatMoney; כל שינוי עתידי ל-formatMoney חייב להיות משוכפל ידנית גם
+    // לכאן. תיקון זה הוא לוקאלי בלבד בקובץ זה - הפריסה (deploy) עצמה נשארת
+    // צעד עתידי נפרד, לא בוצעה בסבב הזה.
+    const displayTotal = Number(quoteRow.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
     // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור
@@ -188,9 +206,23 @@ serve(async (req) => {
       ? `${PROD_ORIGIN}/public-quote/${quoteId}`
       : `${PROD_ORIGIN}/en/public-quote/${quoteId}?lang=en`;
 
+    // חוק ברזל (item 17 + Quote Number Mobile/Surface Consistency, סבב זה):
+    // נופל בבטחה למספר ה-UUID המקוצר הקיים כל עוד quoteRow.quote_number לא
+    // קיים (לפני הפעלת ה-migration בסביבה החיה). התיקון הזה: הפונקציה
+    // הזו (Deno, runtime נפרד שלא יכול לייבא מ-src/utils/quoteNumber.js)
+    // שכפלה בעבר נפילת-חזרה עם 6 תווים + uppercase - שונה מ-8 התווים
+    // (ללא uppercase) שכל שאר הצרכנים באפליקציה כבר מאוחדים עליהם דרך
+    // formatQuoteFallback() - תוקן כאן לתואם בדיוק (8 תווים, ללא uppercase)
+    // כדי שאותו UUID יציג את אותו fallback string בכל משטח (Public Quote,
+    // Quote History, CSV, WhatsApp, ועכשיו גם כאן ב-subject המייל). שינוי
+    // עתידי לפורמט הקנוני ב-formatQuoteFallback() חייב להישמר מסונכרן
+    // ידנית גם כאן.
+    const quoteNumberDisplay = typeof quoteRow.quote_number === 'number'
+      ? `A${quoteRow.quote_number}`
+      : (quoteId ? `#${quoteId.slice(0, 8)}` : 'GENERAL');
     const subject = effectiveHebrew
-      ? `הצעת מחיר #${quoteId ? quoteId.slice(0, 6).toUpperCase() : 'GENERAL'} מ-${bizTitle}`
-      : `Quote #${quoteId ? quoteId.slice(0, 6).toUpperCase() : 'GENERAL'} from ${bizTitle}`;
+      ? `הצעת מחיר ${quoteNumberDisplay} מ-${bizTitle}`
+      : `Quote ${quoteNumberDisplay} from ${bizTitle}`;
 
     const headerHtml = validLogo
       ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${validLogo}" alt="${bizTitle}" style="max-height: 55px; object-fit: contain;" /></div>`

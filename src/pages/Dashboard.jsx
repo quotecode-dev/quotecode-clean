@@ -9,6 +9,8 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
+import { formatQuoteFallback } from '../utils/quoteNumber';
+import { formatMoney } from '../utils/money';
 import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
@@ -42,7 +44,15 @@ import {
   MessagesSquare, Accessibility as AccessibilityIcon, Package
 } from 'lucide-react';
 
-const formatNum = (val) => Math.round(Number(val || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
+// קודמת עשתה Math.round() לפני העיצוב, ומחקה בשקט אגורות/סנטים מכל מקום
+// שקורא ל-formatNum כאן (KPI הכנסות, היסטוריית הצעות, טופס יצירת הצעה,
+// קטלוג, פיננסים, ייצוא CSV, וואטסאפ) - formatNum כאן נשאר אותו שם/חתימה
+// (כדי לא לגעת בעשרות נקודות קריאה ו-props בקבצי-הבן) אבל מאציל עכשיו
+// ל-formatMoney הקנוני (utils/money.js) שאינו מעגל בכלל - האגורות/סנטים
+// נשמרים בכל מקום שמשתמש ב-formatNum הזה, כולל בעקיפין דרך props ל-
+// QuoteForm.jsx/QuotesTab.jsx/ServicesCatalog.jsx/FinancesTab.jsx.
+const formatNum = (val) => formatMoney(val);
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
 // שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
@@ -197,6 +207,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   });
 
   const [quoteSubject, setQuoteSubject] = useState('');
+  const [attnName, setAttnName] = useState('');
+  const [attnRole, setAttnRole] = useState('');
   const [quoteFiles, setQuoteFiles] = useState([]);
 
   // 🚨 חוק ברזל: אזור (country) הוא שדה משפטי/מס שנקבע אך ורק ע"י המנהל בטבלת
@@ -1043,10 +1055,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       );
       return;
     }
-    const idLabel = number || (quoteId ? quoteId.slice(0, 6) : '');
+    // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה): ה-fallback
+    // הפנימי כאן היה slice(0,6) גולמי - פורמט שונה מ-formatQuoteFallback
+    // הקנוני (8 תווים) שכל שאר האפליקציה כבר מאוחדת עליו. בפועל הקורא
+    // היחיד הקיים (QuotesTab.jsx) כבר מעביר number=formatQuoteFallback(quote)
+    // תמיד-אמיתי, כך שה-fallback הזה כבר לא הופעל בפועל - אבל תוקן בכל
+    // זאת להיות עקבי (משתמש ב-targetQuote שכבר נשלף למעלה) כדי שקורא
+    // עתידי כלשהו לא ייצור בטעות פורמט שלישי שונה.
+    //
+    // עדכון 2026-08-28 (Pre-Commit Release-Candidate Audit, HIGH-1 fix):
+    // idLabel כבר תמיד מגיע מפורמט מלא של formatQuoteFallback (או ישירות
+    // מ-number שכבר עבר דרכה ב-QuotesTab.jsx) - "A123" (מספר אמיתי) או
+    // "#abcd1234" (fallback) - שני המקרים כבר כוללים את התו הפותח שלהם.
+    // ה-"#" הקבוע שהיה כאן בתבנית ההודעה הוסיף תו כפול: "#A123" (שגוי) או
+    // "##abcd1234" (האש כפול) - בכל מחיקת הצעה, בשתי השפות. הוסר; ה-
+    // הודעה צורכת את idLabel בדיוק כפי שכבר מפורמט, בלי תו קידומת נוסף.
+    const idLabel = number || formatQuoteFallback(targetQuote || { id: quoteId });
     const message = isHebrew
-      ? (clientName ? `#${idLabel} · ${clientName} — ההצעה תימחק לצמיתות.` : `#${idLabel} — ההצעה תימחק לצמיתות.`)
-      : (clientName ? `#${idLabel} · ${clientName} — this quote will be permanently deleted.` : `#${idLabel} — this quote will be permanently deleted.`);
+      ? (clientName ? `${idLabel} · ${clientName} — ההצעה תימחק לצמיתות.` : `${idLabel} — ההצעה תימחק לצמיתות.`)
+      : (clientName ? `${idLabel} · ${clientName} — this quote will be permanently deleted.` : `${idLabel} — this quote will be permanently deleted.`);
     setPendingDelete({
       type: 'quote',
       id: quoteId,
@@ -1190,7 +1217,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     filteredQuotes.forEach((quote, i) => {
       const row = sheet.getRow(5 + i);
       const statusKey = quote.status ? quote.status.toLowerCase() : 'draft';
-      const quoteNumber = `#${quote.id.slice(0, 6)}`;
+      const quoteNumber = formatQuoteFallback(quote);
       const clientName = quote.clients?.company_name || '';
       const clientEmail = quote.clients?.email || '';
 
@@ -1461,9 +1488,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const senderName = bizName || 'ProFlow';
     // כמו הקישור והסמל למעלה - נוסח ההודעה נגזר מנתוני ההצעה עצמה
     // (isLocalQuote), לא משפת התצוגה הנוכחית של המשתמש המחובר.
+    // formatQuoteFallback משתמש ב-quote_number האמיתי כשקיים (יכול כבר
+    // להיות ערך אמיתי היום, ממקור global-sequence קיים-מראש - ר'
+    // PROFLOW_TODO.md item 17), ונופל בבטחה למספר ה-UUID המקוצר אחרת.
+    const proposalNumberDisplay = formatQuoteFallback(proposal);
     const text = isLocalQuote
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר #${proposal.id.slice(0, 6)} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
-      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote #${proposal.id.slice(0, 6)} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
+      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
+      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
     
     const url = phoneForUrl 
       ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
@@ -1716,6 +1747,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || quote.quote_subject || '');
+    setAttnName(quote.attn_name || '');
+    setAttnRole(quote.attn_role || '');
     
     const quoteCurr = quote.currency || (isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setCurrency(quoteCurr);
@@ -1745,7 +1778,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setQuoteFiles(attData ? attData.map(f => ({ ...f, size: f.file_size })) : []);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStatusMsg({ text: isHebrew ? `עורך הצעה #${quote.id.slice(0, 6)}...` : `Editing Quote #${quote.id.slice(0, 6)}...`, type: 'success' });
+    setStatusMsg({ text: isHebrew ? `עורך הצעה ${formatQuoteFallback(quote)}...` : `Editing Quote ${formatQuoteFallback(quote)}...`, type: 'success' });
   };
 
   // חוק ברזל (תיקון בעלים מאושר): setActiveTab('main') נוסף כאן כי ה-CTA
@@ -1765,6 +1798,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setClientTaxId('');
     setClientAddress('');
     setQuoteSubject('');
+    setAttnName('');
+    setAttnRole('');
     setValidUntil('');
     setDiscount('');
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
@@ -1784,6 +1819,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setClientTaxId(quote.clients?.tax_id || '');
     setClientAddress(quote.clients?.address || '');
     setQuoteSubject(quote.subject || quote.quote_subject || '');
+    setAttnName(quote.attn_name || '');
+    setAttnRole(quote.attn_role || '');
     
     // אם ההצעה המקורית הייתה ILS (למשל מלפני שהעסק סווג כ-International),
     // אין להעתיק זאת להצעה החדשה - מטבע לא חוקי לחשבון International.
@@ -1823,6 +1860,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setClientTaxId('');
     setClientAddress('');
     setQuoteSubject('');
+    setAttnName('');
+    setAttnRole('');
     setValidUntil('');
     setDiscount('');
     setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
@@ -2123,8 +2162,26 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // total_price ואין regeneration של quote_item id-ים על עריכה לא-פיננסית.
       let itemsForPersist = items;
 
+      // חוק ברזל (item 18 - Attn/לידי, חבילת יישום מקומית בלבד): attn_name/
+      // attn_role עדיין לא קיימות בסביבה החיה (ה-migration המקומי לא הופעל
+      // שם - ר' supabase/migrations/20260828000000_add_quote_attn_contact.sql).
+      // בניגוד ל-quote_number (RPC נפרד שנכשל בשקט), כאן מדובר בעמודות רגילות
+      // בתוך אותו INSERT/UPDATE, שיגרמו לכל הבקשה להיכשל אם העמודה לא קיימת -
+      // לכן: ניסיון ראשון כולל attn, ורק אם השגיאה מפורשות מזכירה attn_name/
+      // attn_role (זיהוי מדויק, לא בליעת שגיאות אחרות) - ניסיון חוזר זהה
+      // בלי השדות האלה, זהה-בייט להתנהגות הקודמת. ברגע שה-migration יופעל
+      // בסביבה החיה, הניסיון הראשון יתחיל להצליח אוטומטית בלי שינוי קוד נוסף.
+      const attnFields = { attn_name: attnName || null, attn_role: attnRole || null };
+      const isMissingAttnColumnError = (err) => {
+        const msg = String(err?.message || '');
+        return msg.includes('attn_name') || msg.includes('attn_role');
+      };
+
       if (editingQuoteId) {
-        const { error: updateError } = await supabase.from('quotes').update(quotePayload).eq('id', editingQuoteId);
+        let { error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields }).eq('id', editingQuoteId);
+        if (updateError && isMissingAttnColumnError(updateError)) {
+          ({ error: updateError } = await supabase.from('quotes').update(quotePayload).eq('id', editingQuoteId));
+        }
         if (updateError) throw updateError;
         quoteId = editingQuoteId;
 
@@ -2142,7 +2199,30 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           itemsForPersist = null;
         }
       } else {
-        const { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([quotePayload]).select();
+        // עדכון 2026-08-28 (Quote Number Transition audit): ההערה הקודמת כאן
+        // הניחה ש-quote_number "יישאר ללא ערך" כשה-RPC הזה נכשל - זה שגוי.
+        // allocate_quote_number(uuid) אכן לא קיימת עדיין בסביבה החיה, אז
+        // הקריאה נכשלת בשקט כמתואר, אבל quotes.quote_number עצמה כבר קיימת
+        // שם כעמודה integer NOT NULL עם DEFAULT מ-global sequence משלה
+        // (מנגנון קיים-מראש, לא של המאגר הזה - ר' PROFLOW_TODO.md item 17
+        // לפרטי ה-audit) - כך שה-INSERT ממשיך להצליח, אבל מקבל מספר גלובלי
+        // לא-מתוכנן במקום ליפול פשוט בלי מספר בכלל (זו התגלית "A90" המתועדת
+        // שם). ההתנהגות כאן נשארת בכוונה ללא שינוי בסבב הזה - שינוי לכישלון
+        // מבוקר (fail-closed) יהיה חלק מהשחרור המתואם העתידי, לא נכפה כאן
+        // נגד הסכימה החיה הנוכחית שעדיין לא עברה migration.
+        try {
+          const { data: allocatedNumber, error: allocError } = await supabase.rpc('allocate_quote_number', { p_user_id: session.user.id });
+          if (!allocError && typeof allocatedNumber === 'number') {
+            quotePayload.quote_number = allocatedNumber;
+          }
+        } catch {
+          // מכוון: שום דבר לא צריך לקרות כאן - ר' ההסבר למעלה.
+        }
+
+        let { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields }]).select();
+        if (quoteError && isMissingAttnColumnError(quoteError)) {
+          ({ data: quoteData, error: quoteError } = await supabase.from('quotes').insert([quotePayload]).select());
+        }
         if (quoteError) throw quoteError;
         quoteId = quoteData[0].id;
       }
@@ -2179,8 +2259,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
 
       setStatusMsg({
+        // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
+        // slice(0,6) גולמי הוחלף ב-formatQuoteFallback הקנוני (8 תווים,
+        // ומספר אמיתי אוטומטית אחרי migration) - editingOriginalQuote כבר
+        // קיים בהיקף (נשלף למעלה), ו-quote_number אינו משתנה בעריכה
+        // (immutability trigger), כך שהוא עדיין מייצג את ההצעה הנוכחית.
         text: editingQuoteId
-          ? (isHebrew ? `הצעת מחיר #${editingQuoteId.slice(0, 6)} עודכנה בהצלחה!` : `Quote #${editingQuoteId.slice(0, 6)} successfully updated!`)
+          ? (isHebrew ? `הצעת מחיר ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} עודכנה בהצלחה!` : `Quote ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} successfully updated!`)
           // מציגים את הסכום שבאמת נשמר (newQuoteFinancials.total) ולא את
           // totalAmount המחושב בגוף הקומפוננטה - עבור הצעה מקומית פרטית חדשה
           // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
@@ -2197,6 +2282,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setClientTaxId('');
       setClientAddress('');
       setQuoteSubject('');
+    setAttnName('');
+    setAttnRole('');
       setValidUntil('');
       setDiscount('');
       setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
@@ -2467,6 +2554,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            מוקטנים כאן כ-30% (padding/gap/גודל אייקון/גודל טקסט הערך) -
            הערכים והתוויות עצמם נשארים קריאים ולא משתנים בחישוב. */
         @media (max-width: 768px) {
+          /* חוק ברזל (תיקון בעלים - רוחב אפליקציה מאומתת במובייל): ה-
+             padding הקבוע 10px של מעטפת התוכן הראשית (.dash-main-content)
+             היה זהה בדסקטופ ובמובייל - במדידה חיה ב-390px נתן רוחב תוכן
+             370px (94.9%), מחוץ ליעד הבעלים 4-8px לצד (376-382px רוחב
+             תוכן). הוקטן כאן ל-6px רק מתחת ל-768px, בלי לגעת בערך
+             הדסקטופ המקורי (10px, לא במדיה query זו). */
+          .dash-main-content {
+            padding: 6px !important;
+          }
           .dash-kpi-grid {
             gap: 8px !important;
             margin-bottom: 10px !important;
@@ -2636,8 +2732,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         onConfirm={handleConfirmDelete}
       />
 
-      <div style={{ flex: '1 0 auto', padding: '10px' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      <div className="dash-main-content" style={{ flex: '1 0 auto', padding: '10px' }}>
+        {/* Owner correction (Baseline Closure Part 12 - Desktop content too wide,
+            same feedback as Public Quote Part 11): single shared content-width
+            wrapper for the whole authenticated app (Dashboard/Quotes/Clients/
+            Catalog/Finances/Settings all render inside this one div). No
+            media query here by design - on Mobile the viewport itself is
+            already narrower than the value below so this maxWidth never
+            engages there; Mobile width (dash-main-content padding etc.) is
+            untouched.
+            Third correction (Global Surface Audit + Implementation Pass,
+            Owner decision): this wrapper previously used its own
+            independently-chosen 1040px while Public Quote used 980px - the
+            Owner rejected that inconsistency and set one canonical shared
+            value, 980px, for both surfaces. Now references the single
+            shared token (--pf-desktop-content-width, src/index.css) instead
+            of a locally-duplicated literal - changing that one variable
+            updates both this wrapper and Public Quote HE/EN together,
+            structurally preventing the two from drifting apart again. */}
+        <div style={{ maxWidth: 'var(--pf-desktop-content-width)', margin: '0 auto' }}>
 
           <div className="dash-header-bar" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.gradient, padding: '14px 20px', borderRadius: '16px', marginBottom: '14px', flexWrap: 'wrap', gap: '10px', maxWidth: '100%', boxSizing: 'border-box', boxShadow: NEON.glow }}>
             {/* חוק ברזל (דרישת בעלים מפורשת): זהות בעל העסק - לא מותג ProFlow -
@@ -2874,7 +2987,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                       <div className="dash-kpi-label" style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{t.totalRevenue}</div>
-                      <div className="dash-kpi-value" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{sym}{formatNum(totalRevenue)}</div>
+                      <div className="dash-kpi-value pf-money" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{sym}{formatNum(totalRevenue)}</div>
                     </div>
                   </div>
                 </div>
@@ -2930,6 +3043,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               clientTaxId={clientTaxId} setClientTaxId={setClientTaxId}
               clientAddress={clientAddress} setClientAddress={setClientAddress}
               quoteSubject={quoteSubject} setQuoteSubject={setQuoteSubject}
+              attnName={attnName} setAttnName={setAttnName}
+              attnRole={attnRole} setAttnRole={setAttnRole}
               currency={currency} setCurrency={setCurrency}
               quoteStatus={quoteStatus} setQuoteStatus={setQuoteStatus}
               validUntil={validUntil} setValidUntil={setValidUntil}

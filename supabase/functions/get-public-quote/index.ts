@@ -68,11 +68,22 @@ serve(async (req) => {
       }
     }
 
+    // עדכון 2026-08-28 (Quote Number Transition audit): ההערה הקודמת כאן
+    // טענה ש-quote_number "עדיין לא קיים בסביבה החיה" וש-select עליו
+    // ייכשל - התברר שזה שגוי. quote_number כבר קיים בסביבה החיה כעמודה
+    // integer NOT NULL (מקור שונה לגמרי - global sequence, לא ה-migration
+    // של המאגר הזה - ר' PROFLOW_TODO.md item 17 לפרטי ה-audit), כך שה-
+    // select הזה כבר מצליח היום מבחינה טכנית. הסיבה שהתאמה לא מתבצעת בפועל
+    // היא ש-Edge Function הזו עצמה לא נפרסה מחדש מאז שהשדה נוסף כאן -
+    // הגרסה החיה עדיין רצה על קוד ישן בלי quote_number בכלל. יש לפרוס אותה
+    // (supabase functions deploy get-public-quote) רק כחלק מהשחרור המתואם
+    // שמתואר ב-PROFLOW_TODO.md item 17, לא כצעד מבודד.
     const { data: quote, error: quoteErr } = await adminClient
       .from('quotes')
       .select(`
         id, user_id, created_at, valid_until, tax_rate, subtotal, total,
         discount, terms, notes, subject, status, signature, currency, client_type,
+        quote_number, attn_name, attn_role,
         clients ( company_name, email, phone, address ),
         quote_items ( description, quantity, unit_price, total_price )
       `)
@@ -107,6 +118,9 @@ serve(async (req) => {
     return jsonResponse({
       quote: {
         id: quote.id,
+        quote_number: quote.quote_number,
+        attn_name: quote.attn_name,
+        attn_role: quote.attn_role,
         created_at: quote.created_at,
         valid_until: quote.valid_until,
         tax_rate: quote.tax_rate,

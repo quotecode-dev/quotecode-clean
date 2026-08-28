@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+/* Desktop Center-Axis / Scrollbar Stability Rule (Owner + ChatGPT approved,
+   Final Local Polish Pass). Root cause (live-measured, see PROFLOW_HANDOFF.md
+   §18.BL): Chromium reserves a ~15px scrollbar gutter from the layout
+   viewport (document.documentElement.clientWidth) only on pages tall enough
+   to actually need vertical scrolling, and only on the physical right edge -
+   a page using `display:flex; justify-content:center` (both Dashboard.jsx
+   and Public Quote) then centers on whatever layout width is left, so a
+   short page (no scrollbar) and a tall page (scrollbar present) center their
+   980px content on two different physical midpoints, ~7.5px apart (half the
+   scrollbar width). This is a page-content-height-driven effect, not a bug
+   in either page's own width/centering CSS - it can appear on ANY pair of
+   pages in this app, not just Dashboard-vs-Public-Quote specifically, so the
+   fix is global (html root), not scoped to one page.
+   `scrollbar-gutter: stable` reserves that same ~15px gutter UNCONDITIONALLY
+   - whether or not the page's content actually overflows - so
+   `clientWidth` (and therefore every centered layout's midpoint) is
+   identical regardless of a given page's own content height. Deliberate,
+   expected side effect: a short/non-scrolling page now always carries a
+   small blank gutter on the right where a scrollbar *would* go, rather than
+   using that space for content - this is the documented tradeoff of the
+   property and the only way to make the center axis content-height-
+   independent without a JS-measured/compensated layout. Root (`html`) level
+   is correct: this app has no custom app-level scroll container - every
+   page (Dashboard, Public Quote, landing pages, etc.) relies on the default
+   document-level vertical scroll, confirmed via a repo-wide search for
+   `overflow(-y)` on any top-level page wrapper (none found; the only
+   `overflow:auto/scroll` usages in the codebase are inside modals/widgets,
+   unrelated scroll contexts). Does not double up with `.pq-page`'s own
+   `overflowX:'auto'` item-table wrapper or any other inner scroll region -
+   this only affects the outermost page-level vertical scrollbar. No
+   measurable effect on Mobile browsers (overlay scrollbars there don't
+   consume layout width in the first place, so there is nothing for this
+   property to stabilize) - confirmed via live Mobile re-measurement showing
+   zero change. */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Rubik font-face declarations live in src/fonts.css, imported separately
    from main.jsx - see that file for why they can't live in this one. */
 
@@ -10,4 +48,79 @@
    somehow fails to parse/load, not the default. */
 *, body, html, button, input, select, textarea {
   font-family: 'Rubik', Arial, sans-serif !important;
+}
+
+/* Global Money Numeric Alignment Rule (permanent product rule - see
+   PROFLOW_PROJECT_CONTEXT.md's Global Money Display Rule section). A
+   monetary amount is numeric LTR content in every language, including
+   inside Hebrew RTL UI.
+   IMPORTANT CORRECTION (Owner visual rejection, second pass): tabular-nums
+   + direction:ltr alone are necessary but NOT sufficient for the real
+   requirement - PHYSICAL place-value alignment (units under units, tens
+   under tens, decimal point under decimal point) across a column of
+   amounts. This class only makes each individual amount's own digits
+   equal-width and LTR-ordered; it does nothing to pin a shared right edge
+   across sibling rows. That requires BOTH this class AND, at each call
+   site, physical text-align:'right' (never conditional on isHebrew - money
+   always right-anchors regardless of language) PLUS a shared/consistent
+   amount-column width across the sibling rows being aligned (a native
+   <table> or CSS grid column already provides this automatically; N
+   independent flex rows with justifyContent:'space-between' do NOT - under
+   RTL the amount, as the flex "end" item, pins its LEFT edge instead of
+   its right, which is the wrong edge for numeral alignment. Fixed this way
+   in PublicQuote.jsx's totals card/item table and QuoteForm.jsx - see
+   those files' own comments for the live-measured before/after evidence).
+   This class itself still governs the digits' own alignment behavior
+   (equal digit width, LTR order, bidi isolation) - one definition, used
+   everywhere, per the Global Surface Consistency Rule; it must always be
+   paired with physical text-align:'right' and a shared-width column at
+   the call site, not relied upon alone. */
+.pf-money {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Canonical shared Desktop content-width token (Owner decision, Global
+   Surface Audit follow-up: the authenticated app and Public Quote HE/EN
+   previously used two independently-chosen values, 1040px and 980px -
+   rejected by the Owner as an inconsistency).
+   PRODUCT RULE, CORRECTED (Owner + ChatGPT approved width-consistency
+   audit, third pass): --pf-desktop-content-width means the ACTUAL VISUAL
+   CONTENT width - the purple header/recipient/items-table/attachments/
+   terms sections a viewer actually sees - never an outer shell/wrapper
+   width. Dashboard.jsx's content wrapper has no extra padding layer
+   between the wrapper and its visible content, so applying the token to
+   that wrapper directly was already correct. Public Quote's white
+   document shell (.pq-card) DOES have its own decorative 40px padding +
+   1px border between the shell boundary and the visible content sections
+   inside it - applying the token directly to the shell (as a prior pass
+   did) made the shell 980px while the actual visible content inside it
+   was only 898px (980 - 2*40px padding - 2*1px border = 898px), an
+   82px/8.4% mismatch against Dashboard's true-980px content, live-measured
+   and confirmed at every Desktop breakpoint (1366/1440/1920) before this
+   correction. Fixed in PublicQuote.jsx/PublicQuoteEn.jsx: the shell's own
+   max-width now adds the padding+border budget back on top of the content
+   token via calc() (see --pf-doc-shell-padding/--pf-doc-shell-border-width
+   below) instead of using the raw content token directly - so the shell
+   becomes wider than 980px by exactly its own decorative inset, and the
+   content sections inside it (plain block children filling the shell's
+   content box) come out to exactly 980px automatically, with no change
+   needed to any individual section's own width. */
+:root {
+  --pf-desktop-content-width: 980px;
+  /* Public Quote document-shell decorative inset (Desktop only - the
+     Mobile @media (max-width:640px) override in PublicQuote.jsx/
+     PublicQuoteEn.jsx still hardcodes its own much smaller 2px padding
+     directly, intentionally not derived from this variable, since Mobile
+     has always been a separate, already-correct value with no
+     shell-vs-content mismatch to begin with). Kept as named variables
+     (not inlined into one calc literal) specifically so a future change
+     to the shell's padding or border cannot silently reintroduce the
+     shell/content mismatch this pass fixed - anyone changing the shell's
+     visual padding only has to change these two values, and every
+     calc() that derives the shell's outer max-width from the content
+     token stays correct automatically. */
+  --pf-doc-shell-padding: 40px;
+  --pf-doc-shell-border-width: 1px;
 }
