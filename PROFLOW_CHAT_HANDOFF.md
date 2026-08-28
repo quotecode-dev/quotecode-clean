@@ -293,6 +293,22 @@ Quote Number migration or related deployment is authorized.
 
 After that, continue toward the Pre-LIVE Gate.
 
+## 15.A Claude Latest Report Workflow (added 2026-08-28)
+
+`PROFLOW_CLAUDE_LATEST_REPORT.md` (repository root) holds only the newest
+completed Claude task's Final Report, so ChatGPT can read it straight from
+GitHub instead of the Owner copy/pasting it. When the Owner says "קלודי סיים
+- תקרא את הדוח האחרון" (or an unambiguous equivalent), retrieve and review
+that file.
+
+**Golden rule — LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** Same limitation
+as this file itself (§0 above): a report is a snapshot of the task that
+produced it, never proof of current filesystem/git/runtime state. Reconcile
+it against `PROFLOW_HANDOFF.md`/`PROFLOW_TODO.md`/`PROFLOW_PROJECT_CONTEXT.md`
+/`PROFLOW_ARCHITECTURE.md` and, when current state matters, fresh Claude/
+local working-tree evidence — never treat the report alone as sufficient.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §17.C.
+
 ## 15. New-chat startup instruction
 
 When a new ChatGPT conversation begins, the recommended Owner message is:
@@ -302,3 +318,6 @@ When a new ChatGPT conversation begins, the recommended Owner message is:
 > `PROFLOW_TODO.md` and `PROFLOW_ARCHITECTURE.md`. Do not propose
 > implementation changes until you understand the current state and open
 > blockers."
+
+Separately, "קלודי סיים - תקרא את הדוח האחרון" is a distinct, narrower
+trigger for retrieving Claude's newest task report specifically — see §15.A.
