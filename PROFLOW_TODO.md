@@ -543,7 +543,26 @@ Both fixes are narrow, within the already-approved architecture, and were re-ver
 
 ### ⚠️ Release Order SUPERSEDED (2026-08-28, Vercel Auto-Deploy Discovery) — see below before reading the original version
 
-The frontend release candidate (`ffc741d`) is now confirmed **live in Production** (Vercel auto-deploys every push to `main`, Owner-verified). This changes the release order materially: `Dashboard.jsx`'s `allocate_quote_number` RPC call is already live and unconditionally attempted on every quote creation — applying just the first migration will immediately activate real per-business numbering with no separate frontend deploy step needed, and the later DEFAULT-removal migration becomes lower-risk than originally planned (the frontend will already be supplying explicit values by then, no longer depending on the DEFAULT). The full rebuilt 12-step order (with preconditions/verification/STOP-conditions/user-visible-effects per step) is in `PROFLOW_CLAUDE_LATEST_REPORT.md`'s "Vercel Auto-Deploy Discovery" report — not duplicated here. The original order below is preserved for history; do not treat it as current.
+The frontend release candidate (`ffc741d`) is now confirmed **live in Production** (Vercel auto-deploys every push to `main`, Owner-verified). This changes the release order materially: `Dashboard.jsx`'s `allocate_quote_number` RPC call is already live and unconditionally attempted on every quote creation — applying just the first migration will immediately activate real per-business numbering with no separate frontend deploy step needed, and the later DEFAULT-removal migration becomes lower-risk than originally planned (the frontend will already be supplying explicit values by then, no longer depending on the DEFAULT).
+
+**⚠️ Documentation-quality finding (2026-08-28, Fresh Local-State Reconciliation task)**: the rebuilt 12-step order was previously written only into `PROFLOW_CLAUDE_LATEST_REPORT.md` — a report-transport bridge that gets fully overwritten by every subsequent task's report (by design, see that file's own header). It has since been overwritten twice by later, unrelated tasks (Continuity Branch Design, Continuity Activation) and **no longer exists in written form anywhere**. This was a genuine process gap: a Production release plan must not live solely in an ephemeral bridge document. **Reconstructed below** from the still-available facts (the original 11-step order immediately following, plus the correction paragraph above) — this is a reconstruction, not a byte-exact recovery of the lost report text, and should be re-reviewed by Owner/ChatGPT before being executed or treated as final. The original order below is preserved for history; do not treat it as current.
+
+### Release Order (current, reconstructed 2026-08-28 — supersedes both the original 11-step order below and the now-lost `LATEST_REPORT.md` version)
+
+1. Backup/preflight (full Supabase DB backup, verified restorable — see Part 28 checklist below).
+2. Apply `20260827000000` (creates `business_quote_sequences` table + `allocate_quote_number` RPC). **⚠️ This step alone immediately activates real per-business numbering in Production** — `Dashboard.jsx`'s create-flow already unconditionally calls `allocate_quote_number` on every quote creation (live since `ffc741d`), so no separate frontend deploy is needed for this effect to take hold.
+3. Apply `20260827000001` (`CREATE UNIQUE INDEX CONCURRENTLY`, its own migration file/transaction), then `202608270000015` (attach the `ADD CONSTRAINT`, idempotency-guarded).
+4. Run `quote_number_counter_init.sql` (seeds each business's counter from `GREATEST(100699, MAX(historical quote_number))`; manual script, not a tracked migration).
+5. Confirm allocator availability (`allocate_quote_number` callable, counters correctly seeded) before proceeding further.
+6. Apply `20260827000002` (immutability trigger) — may also be deployed independently/early since it has no dependency on the rest of the package and closes a real live gap on its own.
+7. Apply `20260827000003` (drop the `quote_number` column DEFAULT, revoke `anon`/`authenticated` sequence privileges) — now **lower risk** than originally planned, since the frontend is already supplying explicit values by this point (step 2).
+8. Deploy `get-public-quote` Edge Function.
+9. Deploy `send-quote-email` Edge Function.
+10. HE verification (Desktop + Mobile, Dashboard + Public Quote + email).
+11. EN verification (same surfaces — genuinely LIVE this time, credentials permitting).
+12. Rollback/forward-fix checkpoint — explicit go/no-go before declaring the release complete.
+
+Between steps 7 and 8-9, Dashboard/CSV/WhatsApp will show real numbers while Public Quote/email still show the stale fallback — this is the already-documented, accepted Rollback-Plan Case C (safe, self-contained, no data risk), not a blocker.
 
 ### Release Order (original version, written before the frontend was known to have auto-deployed — superseded above, preserved for history)
 
