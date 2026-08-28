@@ -278,6 +278,19 @@ pending. One agent-reported finding was checked and rejected as a misread. New
 permanent rule: `PROFLOW_PROJECT_CONTEXT.md` §17.H (Cross-Market Parity Gate).
 Full file-by-file ledger: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.E Two confirmed audit findings implemented + File-by-File Ledger rule (added 2026-08-28)
+
+Both MEDIUM findings from the cross-market audit (§10.D) were implemented and
+independently regression-verified by Agent HE + Agent EN with zero regressions
+found on either side: (1) `PublicQuote.jsx` now imports the canonical
+`formatMoney` instead of a private duplicate; (2) `addressFormat.js`'s Hebrew
+branch now includes the State/Province field instead of silently dropping it.
+**Source changes remain LOCAL/UNCOMMITTED** - Owner + ChatGPT review requested
+before any application commit. New permanent reporting rule: for cross-market
+work, every report requires a file-by-file HE/EN counterpart ledger, not just a
+summary matrix - full rule `PROFLOW_PROJECT_CONTEXT.md` §17.I. Full ledger for
+this pass: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using

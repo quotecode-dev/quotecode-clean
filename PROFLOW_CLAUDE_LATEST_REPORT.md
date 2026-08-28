@@ -6,175 +6,137 @@
 
 ---
 
-## Task: PROFLOW — Full Accumulated HE/EN Cross-Market Regression Audit + Permanent Parity-Gate Documentation
+## Task: PROFLOW — Implementation of Confirmed HE/EN Audit Findings + Regression Verification + Permanent Ledger Rule
 
-**Effort level**: HIGH. **Owner + ChatGPT approved.** AUDIT ONLY — no discovered fix was implemented. Execution used the new Claude Lead + parallel-agent model: Agent HE (Local/Hebrew/RTL) and Agent EN (International/English/LTR) ran independently in parallel; Claude Lead ran the shared-core audit, QA, verified the agents' two candidate defects independently, and reconciled everything below.
+**Effort level**: HIGH. **Owner + ChatGPT approved.** LOCAL / TEST-SAFE only — no Production, no LIVE deployment, no Production DB mutation.
 
-**Pre-task git baseline**: `HEAD == origin/main == 65a0171b39645abddef18ff203681b258ab93e13`, unchanged at report time. Accumulated (uncommitted, working-tree-only) scope: `.gitignore`, `src/components/ClientsTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/PublicQuoteHeader.jsx`, `src/components/QuoteForm.jsx`, `src/components/QuotesTab.jsx`, `src/index.css`, `src/pages/Dashboard.jsx`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `supabase/functions/get-public-quote/index.ts`, `supabase/functions/send-quote-email/index.ts` (12 files changed, 923 insertions / 171 deletions vs. last commit) plus untracked `src/utils/addressFormat.js`, `src/utils/money.js`, `src/utils/quoteNumber.js`, `supabase/migrations/` (6 files), `supabase/quote_number_backfill.sql`, `supabase/quote_number_counter_init.sql`.
+### 1. Fresh Git Baseline
 
-## 1. Executive HE/EN Parity Summary
+`HEAD == origin/main == cfa30dbaf891918f35a51513af1aaae0642e1715` at task start, unchanged throughout (no commit/push of application source performed this task, per explicit instruction).
 
-**Overall: READY, with one confirmed MEDIUM gap and no CRITICAL/HIGH findings on either market.** Every accumulated change was independently audited by both agents. No VAT/₪/Hebrew leakage was found anywhere on the English side. No RTL/structural regression was found anywhere on the Hebrew side. Shared-core (DB schema, allocator RPC, canonical formatters, CSS tokens) is genuinely single-source with one drift-risk exception (`PublicQuote.jsx`'s private money formatter, see below). One agent-reported defect was independently verified and **rejected** as a misread (see §4). One agent-reported defect was independently verified and **confirmed real** (State/Province field silently dropped from Hebrew address display). Nothing here blocks continued local development; the pre-existing "Edge Functions not yet redeployed" item remains the only thing blocking real-world quote-number/Attn visibility on Public Quote/email, and it is a shared (not per-market) blocker, already tracked in `PROFLOW_TODO.md` item 17's Release Order.
+### 2. Team Execution
 
-## 2. Full File-by-File HE/EN Change Ledger
+- **Claude Lead**: fresh-state reconciliation, both source-fix implementations (serial, shared-core mutation), pre/post QA, shared-core Quote Number regression check, full reconciliation of both agents' reports, final verdict, documentation, this report.
+- **Agent HE**: independent post-implementation Local/Hebrew/RTL regression verification.
+- **Agent EN**: independent post-implementation International/English/LTR regression verification.
 
-### `src/pages/Dashboard.jsx` (shared, market-neutral — both HE/EN paths live in one file, gated by `isLocalIsraeliBusiness`/`isHebrew`/`isLocalQuote`)
-**Change/concept**: desktop-content-width token adoption, Quote Number fallback unification (4 call sites), Attn field persistence (fail-open retry), `allocate_quote_number` RPC call (silent-fallback), CSV/XLSX export, WhatsApp share text.
-- **HE**: `₪` literal at CSV export (line ~1220), VAT label, `isLocalQuote` branch of WhatsApp text — all CODE-VERIFIED (Agent HE).
-- **EN**: `else`/`!isLocalIsraeliBusiness` branches use `INTL_CURRENCY_SYMBOLS` safe-fallback to USD, never ₪; no VAT text in EN WhatsApp branch — CODE-VERIFIED (Agent EN).
-- **Parity result**: READY.
-- **Shared core**: same file, same conditionals, same `formatQuoteFallback`/`formatMoney` utilities for both markets — single implementation.
-- **Gap**: none functional. One **LOW cosmetic** item: two new lines (`setAttnName('')`/`setAttnRole('')`) in the post-save form-reset block are indented 4 spaces vs. the surrounding 6-space sibling indentation — whitespace only, not market-specific, no behavioral effect.
-- **Required action**: fix indentation to match siblings (cosmetic, not implemented per audit scope).
+Both agents ran in parallel, read-only, with no browser tool and no DB access; neither touched any file.
 
-### `src/pages/PublicQuote.jsx` (HE) ↔ `src/pages/PublicQuoteEn.jsx` (EN)
-**Change/concept**: money-alignment CSS Grid conversion, Call CTA reposition, `--pf-desktop-content-width` shell-width `calc()` formula, recipient/Attn display, address formatting, Quote Number label+value.
-- **HE** (`PublicQuote.jsx`): totals card converted to CSS Grid with physical `textAlign:'right'`; `currencySymbol='₪'`; VAT/net breakdown gated correctly by `isAmbiguousClientType`; shell `calc()` width formula present and correct; Attn block ("לידי:") correct; **does NOT import the canonical `formatMoney` utility** — has its own private, functionally-identical inline formatter (`Number(val||0).toLocaleString('en-US',{...})`) — CODE-VERIFIED (Claude Lead, independently confirmed via direct file read).
-- **EN** (`PublicQuoteEn.jsx`): totals card intentionally left as flex (already correct under LTR, not converted to Grid); currency resolved via `USD/EUR/GBP` allow-list, defaults USD, never ₪; no VAT UI element anywhere on the page (confirmed via grep, only match is a comment documenting the absence); shell `calc()` formula present, using the same named CSS variables as HE (previously-missing `border` on this file's shell, fixed in an earlier pass, reconfirmed present); Attn block ("To:"/"Attn:") correct; **correctly imports and uses the canonical `formatMoney`** — CODE-VERIFIED (Agent EN).
-- **Parity result**: READY, with one **MEDIUM shared-core finding**: `PublicQuote.jsx` duplicates `formatMoney`'s exact logic instead of importing it (unlike `PublicQuoteEn.jsx` and `Dashboard.jsx`, both of which correctly consolidated). No current behavioral bug (the duplicate is byte-for-byte equivalent to the shared utility today) — a drift risk if `money.js` is ever changed without updating this file too.
-- **Shared core**: money alignment CSS Grid pattern, shell-width `calc()` formula, and CSS tokens are genuinely shared; the money *formatter function* itself is not (see above).
-- **Gap**: money formatter duplication (HE only). Totals-card layout intentionally differs (Grid vs. flex) — correctly market-specific, not a gap, since both are independently correct under their own direction.
-- **Required action**: replace `PublicQuote.jsx`'s local `formatNum` with `import { formatMoney } from '../utils/money'; const formatNum = (val) => formatMoney(val);` — not implemented per audit scope.
+### 3. Exact Source Files Modified
 
-### `src/components/PublicQuoteHeader.jsx` (shared component, both HE/EN branches in one file)
-**Change/concept**: unified quote-number label+value structure (always-shown label, real-number-or-fallback value) across Mobile and Desktop compositions.
-- **HE IMPACT**: label "מספר הצעה" always rendered (Mobile line ~99-102, Desktop ~170-173), value `formattedNumber || formatQuoteFallback(quote)` — CODE-VERIFIED (Agent HE).
-- **EN IMPACT**: label exactly "Quote Number" (not "Quote No.") always rendered, same value expression, same structure — CODE-VERIFIED (Agent EN).
-- **Parity result**: READY. Both agents independently confirmed the label/value structure is byte-identical in shape between branches, differing only in label text and RTL/LTR-specific alignment properties.
-- **Shared core**: one component, one `formatQuoteNumber`/`formatQuoteFallback` import, no duplicated logic.
-- **Gap**: none confirmed. Agent HE flagged the file's own header comment (lines 36-43) as contradicting current `get-public-quote/index.ts` content — **independently verified by Claude Lead and REJECTED**: the comment specifically states the Edge Function "hasn't been *redeployed*" (a deployment-status claim, confirmed still accurate via this session's own `supabase functions list` check showing the deployed version predates the local fix), not a claim about the local source file's content. Agent HE's comparison was against the wrong reference point. No documentation defect exists here.
-- **Required action**: none.
+`src/pages/PublicQuote.jsx`, `src/utils/addressFormat.js` — both **LOCAL/UNCOMMITTED**, per explicit instruction not to commit application changes this task.
 
-### `src/components/QuoteForm.jsx` (shared, both branches in one file)
-**Change/concept**: totals-preview CSS Grid conversion (money alignment), Attn field entry, item-row `textAlign` un-conditionalized, "Editing Quote #" header length fix.
-- **HE**: VAT/מע"מ rows in the totals grid gated by `isLocalIsraeliBusiness && isHebrew`, Hebrew Attn labels ("לידי (איש קשר, לא חובה)" / "תפקיד / תואר") — CODE-VERIFIED (Agent HE, cross-referenced independently by Agent EN at the same lines).
-- **EN**: same VAT gate correctly never renders for EN (Agent EN independently confirmed at the same line numbers as Agent HE — cross-verified match); English Attn labels ("Attn (contact, optional)" / "Role / Title (optional)"); item-row `textAlign` now unconditionally `'right'`, correct under LTR (was already correct, unaffected by the change) — CODE-VERIFIED (Agent EN).
-- **Parity result**: READY.
-- **Shared core**: one CSS Grid block, one set of conditionals, both markets share the exact same fix.
-- **Gap**: "Editing Quote #" header uses `editingQuoteId.slice(0,8)` (raw UUID) instead of the canonical `formatQuoteFallback` — a deliberate, documented scope-limit from an earlier pass (internal session label, not customer-facing), consistent length across both markets. Not a parity gap (applies identically to both).
-- **Required action**: none (pre-existing documented decision, not part of this audit's findings).
+### 4. Confirmed Fix #1 Implementation
 
-### `src/components/QuotesTab.jsx` (shared, both branches in one file)
-**Change/concept**: Quote Number fallback unification (Desktop table + Mobile cards + delete-confirmation).
-- **HE**: `formatQuoteFallback(quote)` used consistently at all 3 call sites — CODE-VERIFIED (Agent HE).
-- **EN**: same call sites, same function, confirmed by Agent EN independently.
-- **Parity result**: READY.
-- **Shared core**: single formatter, single component, no duplication.
-- **Gap**: **pre-existing, out of this diff's scope** (confirmed via diff not touching this line) — `QuotesTab.jsx`'s Quote History "before VAT" mini-line hardcodes a `1.18` divisor for the private-client branch instead of deriving it from the quote's own stored `tax_rate` (as `PublicQuote.jsx` correctly does via `tax_rate ?? 0.18`). Flagged by Agent HE for awareness; not part of the accumulated change-set under audit, so not scored as a defect of this pass. A separate column header ("# Order"/"מספר הזמנה") is a different, pre-existing label unrelated to the "Quote Number" requirement — not a defect.
-- **Required action**: none from this audit (the 1.18-hardcode item may warrant its own future, separately-scoped task).
+`src/pages/PublicQuote.jsx`: replaced the file's private inline money formatter with a delegation to the canonical `src/utils/money.js`'s `formatMoney`:
+```js
+import { formatMoney } from '../utils/money';
+...
+const formatNum = (val) => formatMoney(val);
+```
+Verified before implementing that `formatNum` sits strictly *downstream* of the already-rounded whole-shekel display logic (`finalTotalRounded`/`netAmountDisplay`/`vatAmountDisplay`, all computed via `Math.round` earlier in the file, entirely untouched) — the swap changes zero rounding behavior, only removes a duplicate implementation. No totals-card redesign; no change to the intentionally-different HE-vs-EN layout.
 
-### `src/components/ClientsTab.jsx` (shared, market-neutral)
-**Change/concept**: mobile responsive column-hiding, `formatAddress` adoption.
-- **HE/EN**: `formatAddress(client.address, isHebrew)` correctly market-neutral, mobile column-hiding structurally identical for both (data remains reachable via edit modal) — CODE-VERIFIED both agents.
-- **Parity result**: READY.
-- **Shared core**: single component, single utility call.
-- **Gap**: none.
+### 5. Confirmed Fix #2 Implementation
 
-### `src/components/FinancesTab.jsx` (shared, market-neutral)
-**Change/concept**: `.pf-money` class addition to 3 KPI values, `row-reverse` RTL bug removal.
-- **HE/EN**: fix removes a `flexDirection: isHebrew ? 'row-reverse' : 'row'` that was inverting the correct DOM-order-driven RTL layout — applies identically to both directions (same class of bug already fixed in `QuotesTab.jsx` previously) — CODE-VERIFIED both agents.
-- **Parity result**: READY.
-- **Shared core**: single component.
-- **Gap**: none.
+`src/utils/addressFormat.js`: the Hebrew branch of `formatAddress` previously silently dropped the `state`/"מדינה" field. Changed:
+```js
+// before: const cityZip = [city, zip].filter(Boolean).join(' ');
+const cityStateZip = [city, state, zip].filter(Boolean).join(' ');
+return [street, cityStateZip].filter(Boolean).join(', ');
+```
+`state` inserted between `city` and `zip`, space-separated (matching the existing convention). `.filter(Boolean)` guarantees byte-identical output when `state` is empty (today's common case) and correctly includes it, with no malformed whitespace or stray commas, when populated. International branch untouched. No new address schema invented; no stored-data format changed (display-only).
 
-### `src/utils/money.js` (shared utility, market-neutral)
-**Change/concept**: canonical, non-rounding money formatter, replacing 3+ previously-scattered independent implementations.
-- **HE/EN**: consumed correctly by `Dashboard.jsx` and `PublicQuoteEn.jsx`; **NOT consumed by `PublicQuote.jsx`** (see that file's ledger entry above — the one confirmed MEDIUM finding of this audit).
-- **Parity result**: CHANGE REQUIRED (HE side only — `PublicQuote.jsx`'s non-adoption).
-- **Shared core**: designed to be single-source; one consumer (HE Public Quote) doesn't use it yet.
+### 6. Agent HE Regression Result
 
-### `src/utils/quoteNumber.js` (shared utility, market-neutral)
-**Change/concept**: `formatQuoteNumber`/`formatQuoteFallback` — single source of truth for the `"A"+number` format and the canonical 8-char fallback.
-- **HE/EN**: consumed identically and correctly by every known consumer in both markets (`QuotesTab.jsx`, `Dashboard.jsx`, `PublicQuoteHeader.jsx`, `send-quote-email/index.ts`'s manually-synced Deno equivalent) — CODE-VERIFIED both agents, cross-confirmed.
-- **Parity result**: READY.
-- **Shared core**: genuinely single-source, no drift found.
+**PASS on both fixes, CODE-VERIFIED.** Hand-traced Fix #1 (`total=2505.49` → `finalTotalRounded=2505` → `"2,505.00"`, identical to prior output); confirmed all 9 `formatNum(...)` call sites in `PublicQuote.jsx` receive unchanged arguments. Hand-traced Fix #2 across 3 cases (state empty, state populated, city empty + state populated) — all correct, no malformed output. Confirmed VAT/net computation logic (`isAmbiguousClientType`, `isPrivateDisplay`, `netAmountDisplay`, `vatAmountDisplay`) completely untouched by either fix. Confirmed neither fix touched CSS/responsive code — Desktop/Mobile unaffected by construction. Zero regression findings.
 
-### `src/utils/addressFormat.js` (shared utility, internally market-branching by design)
-**Change/concept**: canonical address formatter, replacing raw `.replace('|', ',')` duplication.
-- **HE branch** (`isHebrew=true`): "street, city zip" — **deliberately and silently drops the `state`/`מדינה` field** that `QuoteForm.jsx` (line 457, pre-existing, both markets) collects into the same combined address string. **CONFIRMED via direct file read (Claude Lead)**: `QuoteForm.jsx:457` has a live "מדינה / מחוז" / "State / Province" input for both markets; `addressFormat.js:26-31`'s Hebrew branch only destructures `street`/`city`/`zip`, never `state`. A Hebrew/Local user who fills that field will never see it reflected on `PublicQuote.jsx` or `ClientsTab.jsx` — the value is stored but invisible in HE display.
-- **EN branch** (`isHebrew=false`): "Street, City, State Zip" — correctly includes `state` — CODE-VERIFIED (Agent EN).
-- **Parity result**: **CHANGE REQUIRED (HE side)**. This is the audit's one confirmed real defect (MEDIUM severity — see §4).
-- **Shared core**: one function, two internally-correct-looking but asymmetric branches (EN keeps a field HE silently drops) — this is exactly the class of gap the Cross-Market Parity Gate exists to catch.
+### 7. Agent EN Regression Result
 
-### `supabase/functions/get-public-quote/index.ts` (shared Edge Function, market-neutral)
-**Change/concept**: adds `quote_number`, `attn_name`, `attn_role` to the `.select()` and response payload.
-- **HE/EN**: identical select/response shape serves both markets — CODE-VERIFIED both agents.
-- **Parity result**: READY (local source). **BLOCKED (deployed/live behavior)** — the currently-deployed version of this function predates this change (confirmed via `supabase functions list` in an earlier task: last deployed 2026-08-25, before the local edit) and does not return these fields. This is a **shared, not per-market**, blocker — both agents flagged it; reported once here to avoid double-counting.
-- **Shared core**: single function, single response shape.
+**PASS on both fixes, CODE-VERIFIED.** Confirmed `PublicQuoteEn.jsx` was not modified this task (corroborated by file-modification timestamps: `PublicQuote.jsx`/`addressFormat.js` both edited in this task's exact window; `PublicQuoteEn.jsx`/`money.js`/`PublicQuoteHeader.jsx`/`Dashboard.jsx`/`ClientsTab.jsx` all untouched, edited hours earlier) and already correctly used `formatMoney`. Confirmed the International branch of `addressFormat.js` is byte-identical to before (only the `if (isHebrew)` block was edited) via 2 hand-traced examples (UK no-state, US with-state). Confirmed zero VAT/₪/Hebrew/RTL leakage introduced by either fix. Zero regression findings. One **pre-existing, non-regressive boundary condition** flagged: a legacy/malformed `address` string with fewer than 2 `|`-separated parts bypasses the Hebrew branch's new state-aware logic entirely, via the file's own pre-existing raw-fallback guard (unrelated to this fix, worth a future data check only).
 
-### `supabase/functions/send-quote-email/index.ts` (shared Edge Function, internally market-branching via `resolveEmailRegion`)
-**Change/concept**: quote-number fallback format fix (8-char, no uppercase, matching `formatQuoteFallback`), money-rounding removal.
-- **HE**: `resolveEmailRegion` forces ₪/Hebrew for Local accounts regardless of a stray `quote.currency` value (fail-safe) — CODE-VERIFIED (Agent HE).
-- **EN**: English template has no VAT reference; currency resolved via the same single `resolveEmailRegion()` call, so "English + ₪" cannot occur — CODE-VERIFIED (Agent EN).
-- **Parity result**: READY (local source). **BLOCKED (deployed/live behavior)** — same shared blocker as `get-public-quote` above (deployed version predates the fix, last deployed 2026-08-25). Reported once, not double-counted.
-- **Shared core**: one region-resolution function gates both markets from a single source of truth; this Deno function cannot import `src/utils/quoteNumber.js` directly (separate runtime), so its fallback format is a manually-kept-in-sync duplicate — documented as such, not a hidden drift risk.
+### 8. Bidirectional HE↔EN Parity Result
 
-### `supabase/migrations/*.sql` + `supabase/quote_number_counter_init.sql` (shared DB layer)
-**Change/concept**: per-business Quote Number allocator (`business_quote_sequences`, `allocate_quote_number()`), uniqueness constraint, immutability trigger, DEFAULT removal — the package runtime-validated in isolation in a prior task (two real defects found and fixed there: counter-seeding off-by-one, `anon` EXECUTE gap).
-- **HE/EN**: no market branching of any kind found anywhere in this SQL (confirmed via repo-wide grep for `isHebrew`/`hebrew`/`isLocal`/`market` across `supabase/migrations/` — zero matches). `quote_number` allocation is fully market-neutral by design; presentation (label text only) is the sole market-specific layer, living entirely in the application files above.
-- **Parity result**: READY (design). Still NOT applied to Production (unchanged from the prior validation task's status).
-- **Shared core**: genuinely single-source — this is the cleanest part of the whole accumulated change-set from a shared-core-discipline standpoint.
+Both fixes: **READY, parity confirmed bidirectionally.** Fix #1 has no EN counterpart to check (the file it changed, `PublicQuote.jsx`, is Local/ILS-exclusive by construction — `isHebrew`/`currencySymbol` are hardcoded constants, no market branching exists in the file) — its EN "counterpart" is simply confirming `PublicQuoteEn.jsx` was untouched and already correct, which both agents independently confirmed. Fix #2's HE change (state now included) was explicitly checked against its EN counterpart (state already included, confirmed unchanged) in both directions by both agents independently.
 
-### `src/index.css` (shared tokens, market-neutral)
-**Change/concept**: `--pf-desktop-content-width`, `--pf-doc-shell-padding`, `--pf-doc-shell-border-width`, `.pf-money`, `html { scrollbar-gutter: stable }`.
-- **HE/EN**: all defined on bare `:root`/universal selectors, not scoped to any Hebrew-only selector — CODE-VERIFIED (Agent EN, explicitly checked for accidental HE-only scoping; none found).
-- **Parity result**: READY.
-- **Shared core**: genuinely single-source CSS tokens, consumed identically by `PublicQuote.jsx` and `PublicQuoteEn.jsx` via the same `calc()` formula and variable names (cross-confirmed by both agents independently, no divergence).
+### 9. Full File-by-File HE/EN Change Ledger
 
-### `.gitignore`
-Not application-relevant to HE/EN parity (adds `pentest-source-review/` exclusion only). NOT APPLICABLE.
+**FILE**: `src/pages/PublicQuote.jsx`
+**CHANGE/CONCEPT**: money formatter consolidation (private duplicate → canonical `formatMoney`).
+**HE/LOCAL**: exact implementation — `import { formatMoney } from '../utils/money'; const formatNum = (val) => formatMoney(val);`. Affected surfaces: item price/total, subtotal, discount, net, VAT-display, final total (9 call sites). Hebrew behavior: unaffected (pure formatter swap). RTL: unaffected (no JSX/markup touched). Currency: ₪, hardcoded, unaffected. VAT: computation logic upstream, completely untouched. Desktop/Mobile: unaffected by construction (no CSS touched). Verification: CODE-VERIFIED (Claude Lead + Agent HE, hand-traced).
+**EN/INTERNATIONAL**: no direct counterpart — this file has no market branching, it is Local/ILS-exclusive by construction. Corresponding file `PublicQuoteEn.jsx` was confirmed NOT modified and already used the canonical formatter (pre-existing, from an earlier Money Consolidation pass). English behavior: N/A (file not touched). LTR: N/A. Currency: N/A. VAT-absence: N/A (page has no VAT anywhere, confirmed by a prior audit, unaffected by this task). Desktop/Mobile: N/A. Verification: CODE-VERIFIED (Agent EN, confirmed via direct read + file-timestamp corroboration).
+**PARITY RESULT**: NOT APPLICABLE for cross-file comparison (file is market-exclusive by design) / READY for the shared-utility relationship (both HE and EN pages now correctly consume the same `formatMoney`).
+**SHARED CORE**: `formatMoney` (`src/utils/money.js`) — now genuinely single-source for both `PublicQuote.jsx` and `PublicQuoteEn.jsx` (previously only the latter).
+**GAP**: none remaining.
+**REQUIRED ACTION**: none — fix complete, pending commit authorization.
 
-## 3. Cross-Market Surface Matrix (condensed — see §2 for full detail per file)
+**FILE**: `src/utils/addressFormat.js`
+**CHANGE/CONCEPT**: Hebrew branch of `formatAddress` now includes the State/Province field.
+**HE/LOCAL**: exact implementation — `[city, state, zip].filter(Boolean).join(' ')` replacing `[city, zip].filter(Boolean).join(' ')`. Affected surfaces: `PublicQuote.jsx` recipient block, `PublicQuoteHeader.jsx` business-address display (both Mobile/Desktop branches), `ClientsTab.jsx` address column. Hebrew behavior: "street, city state zip" when state populated, byte-identical to before when empty. RTL: unaffected (string content only). Currency: N/A. VAT: N/A. Desktop/Mobile: unaffected by construction. Verification: CODE-VERIFIED (Claude Lead + Agent HE, 3 hand-traced cases).
+**EN/INTERNATIONAL**: counterpart branch (`else`) was already correctly including `state` before this task and was confirmed **untouched** by this edit — only the `if (isHebrew)` block was modified. Affected surfaces: same 3 shared consumers, English branch. English behavior: unaffected. LTR: unaffected. Currency: N/A. VAT-absence: N/A. Desktop/Mobile: unaffected by construction. Verification: CODE-VERIFIED (Agent EN, 2 hand-traced examples: UK no-state, US with-state).
+**PARITY RESULT**: READY — the asymmetry that prompted this fix (EN kept `state`, HE dropped it) is now resolved; both branches include `state` using their own market-appropriate ordering/punctuation convention.
+**SHARED CORE**: one function, two branches, both now feature-complete with respect to `state`. Shared guard clauses (`if (!rawAddress)`, `if (parts.length < 2)`) and the `[street, city, state, zip] = parts.map(...)` destructuring — confirmed unchanged, feed both branches identically.
+**GAP**: one pre-existing, non-regressive boundary condition — a malformed `address` string with fewer than 2 `|`-separated parts bypasses both branches' logic via the shared raw-fallback guard (unrelated to this fix).
+**REQUIRED ACTION**: none for this fix; optionally, a future separately-scoped task could audit for any malformed legacy address records if the Owner wants that boundary condition addressed.
 
-| Surface/Concept | HE Status | HE Verif. | EN Status | EN Verif. | Shared-Core | Notes |
-|---|---|---|---|---|---|---|
-| Money alignment/formatting | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Partial (see `PublicQuote.jsx` gap) | HE Public Quote doesn't consume the shared formatter function (functionally equivalent today) |
-| Desktop content width (980px) | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Yes | Same token, same `calc()` formula, cross-confirmed by both agents |
-| Quote Number label+value | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Yes | Structure byte-identical between branches |
-| Quote Number allocation (DB) | READY (design) | CODE-VERIFIED | READY (design) | CODE-VERIFIED | Yes | Runtime-validated in isolation in a prior task; not applied live |
-| Attn/recipient fields | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Yes | Same migration, same fail-open retry logic |
-| Address formatting | **CHANGE REQUIRED** | CODE-VERIFIED | READY | CODE-VERIFIED | Partial | HE branch silently drops State/Province; EN branch keeps it |
-| VAT display gating | READY | CODE-VERIFIED | READY (absent) | CODE-VERIFIED | Yes | Double-gated `isLocalIsraeliBusiness && isHebrew` everywhere checked; zero leakage found |
-| RTL/LTR structural integrity | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Yes | No `row-reverse` misuse remaining in touched files |
-| Edge Function data contract (local source) | READY | CODE-VERIFIED | READY | CODE-VERIFIED | Yes | Both fields present in both functions' local source |
-| Edge Function deployed/live behavior | BLOCKED | LIVE-NOT-AVAILABLE | BLOCKED | LIVE-NOT-AVAILABLE | Yes (shared blocker) | Deployed versions predate the local fix; not this session's job to deploy |
-| Live/browser rendering | NOT TESTED | LIVE-NOT-AVAILABLE | NOT TESTED | LIVE-NOT-AVAILABLE | — | No browser tool available to either agent this task; standing EN credentials gap unchanged |
+**FILE**: `src/components/PublicQuoteHeader.jsx` (shared, unmodified this task, indirectly affected by Fix #2)
+**HE IMPACT**: business-address display via `formatAddress(bizAddress, isHebrew)` (Mobile + Desktop branches) now automatically benefits from Fix #2 — no code change needed here, confirmed by both agents.
+**EN IMPACT**: same call site with `isHebrew=false`, confirmed routes into the unchanged International branch — no regression.
+**PARITY RESULT**: READY (indirect benefit, both markets confirmed).
 
-## 4. Findings by Severity
+**FILE**: `src/components/ClientsTab.jsx` (shared, unmodified this task, indirectly affected by Fix #2)
+**HE IMPACT**: address column via `formatAddress(client.address, isHebrew)` now automatically benefits from Fix #2.
+**EN IMPACT**: same call site, confirmed routes into the unchanged International branch — English clients' `state` (e.g. "NY") continues to render correctly via pre-existing logic, not the new code.
+**PARITY RESULT**: READY.
 
-- **MEDIUM** — `src/utils/addressFormat.js`'s Hebrew branch silently drops the `state`/`מדינה` field that `QuoteForm.jsx` collects for both markets. Affected market: HE only. Affected surfaces: `PublicQuote.jsx` recipient display, `ClientsTab.jsx` address column. Root cause: the Hebrew formatting convention ("street, city zip") was designed without a state/province slot; EN's convention ("Street, City, State Zip") naturally has one. Shared-core: partially — one shared function, two asymmetric branches. Regression risk: none (this pre-dates and is not worsened by the accumulated diff — actually an improvement over the prior raw-pipe-delimited display). Smallest safe fix: either (a) hide/relabel the State field for Local/Hebrew quotes in `QuoteForm.jsx`, or (b) fold `state` into the Hebrew `formatAddress` branch (e.g. appended after city/zip) if the product wants it visible — **not implemented, per audit scope**. Verification needed after fix: CODE + one live check that a filled State/Province value now appears on a Hebrew Public Quote page.
-- **MEDIUM** — `src/pages/PublicQuote.jsx` maintains a private, functionally-identical duplicate of `src/utils/money.js`'s `formatMoney` instead of importing it. Affected market: HE only (shared-core drift risk). No current behavioral bug. Smallest safe fix: replace the local `formatNum` with an import — **not implemented, per audit scope**.
-- **LOW** — pre-existing (not part of this diff), `QuotesTab.jsx`'s "before VAT" mini-line hardcodes a `1.18` divisor instead of the quote's own `tax_rate`. Flagged for awareness only; out of this audit's scope since it predates the accumulated change-set.
-- **LOW** — cosmetic indentation-only inconsistency in `Dashboard.jsx`'s post-save form-reset block (2 lines at 4-space vs. sibling 6-space indent). No behavioral effect, not market-specific.
-- **REJECTED (not a defect)** — Agent HE's claim that `PublicQuoteHeader.jsx`'s header comment contradicts `get-public-quote/index.ts`. Independently verified by Claude Lead: the comment correctly describes *deployment* status (still accurate), and Agent HE's comparison was against the wrong reference (local source-file content, not deployment state).
+**FILE**: `src/pages/Dashboard.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/utils/money.js` (all confirmed untouched)
+**PARITY RESULT**: NOT APPLICABLE to this task's ledger — explicitly confirmed unmodified by both agents (corroborated via file-modification timestamps), included here only to record that "unmodified" was verified, not assumed.
 
-No CRITICAL or HIGH findings. No VAT/₪/Hebrew-leakage defect found in either direction.
+### 10. Quote Number Regression Result
 
-## 5. Exact Required Fixes (NOT IMPLEMENTED — audit only)
+**NOT AFFECTED — CODE-VERIFIED.** Neither fix touches `src/utils/quoteNumber.js`. `PublicQuote.jsx` itself has zero direct `quote_number` references (confirmed via grep — that logic lives entirely in `PublicQuoteHeader.jsx`, untouched by either fix). No DB access performed or needed for this check. The known deployed-Edge-Function blocker (`get-public-quote`/`send-quote-email` not yet redeployed) remains exactly as before — OPEN, unaffected by this task.
 
-1. `src/utils/addressFormat.js` — decide and implement State/Province handling for the Hebrew branch (owner decision needed on whether to surface it or intentionally hide the input for Local quotes).
-2. `src/pages/PublicQuote.jsx` — replace local `formatNum` with the canonical `formatMoney` import.
-3. (Optional, low-priority, separately scoped) `Dashboard.jsx` — fix 2-line indentation.
-4. (Optional, low-priority, separately scoped, pre-existing) `QuotesTab.jsx` — derive the "before VAT" divisor from `tax_rate` instead of a hardcoded 1.18.
+### 11–19. Language / RTL-LTR / Currency / VAT / Region / Address-format / Money-format / Desktop / Mobile Results
 
-## 6. Verification Gaps / LIVE-NOT-AVAILABLE
+All covered in full per-file detail in §9 above; summary: **all READY, zero regressions, zero VAT/₪/Hebrew/RTL leakage found by either agent.**
 
-- No browser/live verification was performed by either agent or Claude Lead this task (out of scope — audit was explicitly code-only; no browser tool was given to the agents; live verification requires TEST-account creation/cleanup discipline better reserved for an implementation task).
-- English/International LIVE verification remains unavailable for this entire engagement (standing credentials gap, unchanged, not this task's to resolve).
-- Both Edge Functions' *deployed* behavior is LIVE-NOT-AVAILABLE to confirm further than what `supabase functions list` metadata already showed in a prior task (deployed versions predate the local fixes).
+### 20. New Findings
 
-## 7. QA / Git / Safety Results
+None discovered during implementation or verification beyond the one pre-existing boundary condition already noted in §7/§9 (not silently fixed — reported only, per this task's explicit instruction not to opportunistically fix unrelated items).
 
-- **eslint**: 0 errors, 6 warnings (3 real pre-existing + 3 duplicated under `pentest-source-review/`, unchanged).
+### 21. Known Edge Function Deployment Blocker
+
+Unchanged, still OPEN: the currently-deployed `get-public-quote`/`send-quote-email` Edge Functions predate the local source's `quote_number`/`attn_name`/`attn_role` additions from an earlier task. Not touched, not deployed, this task.
+
+### 22–24. QA
+
+- **eslint**: 0 errors, 6 warnings (3 real + 3 duplicated under `pentest-source-review/`, unchanged).
 - **build**: succeeds, same pre-existing chunk-size advisory only.
-- **tests**: 42/42 passing (21 real + 21 duplicated under `pentest-source-review/`).
-- **Repo-wide market-branching search in `supabase/migrations/`**: zero matches for `isHebrew`/`hebrew`/`isLocal`/`market` — confirms the DB layer is genuinely market-neutral.
-- **git status before/after**: identical — no application/migration file was modified by this audit (read-only, as required).
-- **Documentation changed this task**: `PROFLOW_PROJECT_CONTEXT.md` (new §17.H Permanent Cross-Market Parity Gate), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_HANDOFF.md`/`PROFLOW_TODO.md`/`PROFLOW_CHAT_HANDOFF.md` reconciled — see chat response for exact staged set. `PROFLOW_ARCHITECTURE.md` reviewed, not changed (audit findings/process belong in HANDOFF/TODO, not permanent architecture).
-- **Secret/privacy scan**: performed on every changed file — no password, API/service-role/anon key, token, connection string, or customer data. **PASSED.**
-- **Exact staged files / commit SHA / push result / HEAD vs origin/main**: recorded in the chat response after staging/commit/push.
-- **Application changes remain uncommitted**: confirmed — no `src/`/`supabase/functions/`/`supabase/migrations/` file was touched by this audit.
-- **Migration changes remain uncommitted**: confirmed.
-- **Final `git status --short`**: recorded in the chat response after the documentation commit.
+- **tests**: 42/42 passing (21 real + 21 duplicated under `pentest-source-review/`, unchanged).
 
-**NO APPLICATION COMMIT. NO MIGRATION COMMIT. NO DB MUTATION. NO DEPLOY. NO LIVE.**
+### 25–26. Permanent Rules Documented
+
+`PROFLOW_PROJECT_CONTEXT.md` §17.I "Permanent File-by-File HE/EN Change Ledger + Reporting Completion Gate" — documents the mandatory per-file ledger format, the bidirectional-counterpart rule, insufficient-verification-language list, and the 10-point Reporting Completion Gate.
+
+### 27. Exact Documentation Files Changed
+
+`PROFLOW_PROJECT_CONTEXT.md` (new §17.I), `PROFLOW_CHAT_HANDOFF.md` (new §10.E), `PROFLOW_HANDOFF.md` (new §18.BT entry + top-block pointer update), `PROFLOW_TODO.md` (item 10 updated — both findings marked implemented-locally-uncommitted), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_ARCHITECTURE.md` reviewed, not changed (implementation record belongs in HANDOFF/TODO, not permanent architecture).
+
+### 28. Secret/Privacy Scan
+
+Performed on every changed file (documentation and the two source files) — no password, API/service-role/anon key, token, connection string, or customer data found anywhere. **PASSED.**
+
+### 29–32. Staging / Commit / Push / HEAD
+
+Recorded in the chat response after staging/commit/push, per the standing 6-file documentation allowlist — **source files (`PublicQuote.jsx`, `addressFormat.js`) explicitly excluded from staging**, per this task's explicit no-application-commit instruction.
+
+### 33–34. Application/Migration State
+
+**Application/source changes remain LOCAL/UNCOMMITTED** — confirmed, `src/pages/PublicQuote.jsx` and `src/utils/addressFormat.js` were deliberately never staged. **Migration changes remain LOCAL/UNCOMMITTED** — confirmed, untouched by this task.
+
+### 35. Final `git status --short`
+
+Recorded in the chat response after the documentation commit.
+
+### 36–42. Safety Confirmations
+
+**NO APPLICATION COMMIT. NO APPLICATION PUSH. NO MIGRATION COMMIT. NO DB MUTATION. NO EDGE FUNCTION DEPLOY. NO VERCEL DEPLOY. NO LIVE.**
