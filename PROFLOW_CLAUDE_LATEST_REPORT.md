@@ -6,137 +6,197 @@
 
 ---
 
-## Task: PROFLOW — Implementation of Confirmed HE/EN Audit Findings + Regression Verification + Permanent Ledger Rule
+## Task: PROFLOW — Pre-Commit Release-Candidate Audit
 
-**Effort level**: HIGH. **Owner + ChatGPT approved.** LOCAL / TEST-SAFE only — no Production, no LIVE deployment, no Production DB mutation.
+**Effort level**: MAXIMUM. **Owner + ChatGPT approved.** AUDIT ONLY — no fix, no commit, no deploy, no LIVE.
+
+## Executive Verdict
+
+**NOT APPLICATION COMMIT READY.** One new, independently-confirmed **HIGH** defect exists in the current release candidate (delete-confirmation dialog double-prefixes the quote number on every deletion, both markets). Everything else audited across the entire accumulated release candidate is **READY** — zero CRITICAL findings, zero VAT/₪/Hebrew/RTL leakage on either market, migration package remains drift-free since its disposable-environment runtime validation, both Edge Functions' local source confirmed complete (deployed versions confirmed still stale, a known and already-tracked blocker). Recommend a small, tightly-scoped fix-and-reverify pass for the one HIGH defect before requesting commit authorization.
 
 ### 1. Fresh Git Baseline
 
-`HEAD == origin/main == cfa30dbaf891918f35a51513af1aaae0642e1715` at task start, unchanged throughout (no commit/push of application source performed this task, per explicit instruction).
+`HEAD == origin/main == a10a324bddff779776e8e5ff6dc08c147ee90d1d`, unchanged throughout.
 
-### 2. Team Execution
+### 2. Exact Release-Candidate File Inventory
 
-- **Claude Lead**: fresh-state reconciliation, both source-fix implementations (serial, shared-core mutation), pre/post QA, shared-core Quote Number regression check, full reconciliation of both agents' reports, final verdict, documentation, this report.
-- **Agent HE**: independent post-implementation Local/Hebrew/RTL regression verification.
-- **Agent EN**: independent post-implementation International/English/LTR regression verification.
+12 files changed vs. last commit (933 insertions, 172 deletions): `.gitignore`, `src/components/ClientsTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/PublicQuoteHeader.jsx`, `src/components/QuoteForm.jsx`, `src/components/QuotesTab.jsx`, `src/index.css`, `src/pages/Dashboard.jsx`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `supabase/functions/get-public-quote/index.ts`, `supabase/functions/send-quote-email/index.ts`. Plus 6 untracked: `src/utils/addressFormat.js`, `src/utils/money.js`, `src/utils/quoteNumber.js`, `supabase/migrations/` (6 files), `supabase/quote_number_backfill.sql`, `supabase/quote_number_counter_init.sql`.
 
-Both agents ran in parallel, read-only, with no browser tool and no DB access; neither touched any file.
+### 3. Classification
 
-### 3. Exact Source Files Modified
+- **INTENDED RELEASE FILE** (application/frontend/Edge Function source): all 14 files listed above except `.gitignore` and the migration/counter-init/backfill SQL.
+- **NEEDS OWNER DECISION** (DB layer — prepared, runtime-validated in isolation, requires a separate LIVE authorization distinct from "commit the source"): all 6 `supabase/migrations/*.sql` files, `supabase/quote_number_counter_init.sql`, `supabase/quote_number_backfill.sql` (retired stub).
+- **NOT PART OF THIS RELEASE CANDIDATE** (separate, already-authorized safety fix, unrelated to the HE/EN/Quote-Number work): `.gitignore`.
 
-`src/pages/PublicQuote.jsx`, `src/utils/addressFormat.js` — both **LOCAL/UNCOMMITTED**, per explicit instruction not to commit application changes this task.
+### 4. Agent HE Verdict
 
-### 4. Confirmed Fix #1 Implementation
+**CHANGE REQUIRED.** Audited all 14 application files exhaustively (full-content reads, not diff summaries). RTL mirroring, money-column alignment, whole-shekel VAT rounding reconciliation (hand-verified the reconstruction math), Quote Number fallback consistency, Attn fields, and Hebrew address formatting (including the State/Province fix) all check out. Found and reported the one HIGH defect (§9 below) plus 2 LOW cosmetic items (dead `.pq-totals-grid` className with no matching CSS rule; indentation drift in `Dashboard.jsx`'s reset block).
 
-`src/pages/PublicQuote.jsx`: replaced the file's private inline money formatter with a delegation to the canonical `src/utils/money.js`'s `formatMoney`:
-```js
-import { formatMoney } from '../utils/money';
-...
-const formatNum = (val) => formatMoney(val);
-```
-Verified before implementing that `formatNum` sits strictly *downstream* of the already-rounded whole-shekel display logic (`finalTotalRounded`/`netAmountDisplay`/`vatAmountDisplay`, all computed via `Math.round` earlier in the file, entirely untouched) — the swap changes zero rounding behavior, only removes a duplicate implementation. No totals-card redesign; no change to the intentionally-different HE-vs-EN layout.
+### 5. Agent EN Verdict
 
-### 5. Confirmed Fix #2 Implementation
+**READY.** Audited all 14 application files exhaustively. Zero VAT/₪/Hebrew/RTL leakage found anywhere. Confirmed the shared `--pf-desktop-content-width`/`.pf-money` tokens are market-neutral; confirmed `PublicQuoteEn.jsx`'s Desktop shell border/width `calc()` fix is present; confirmed every VAT-shaped UI element remains double-gated `isLocalIsraeliBusiness && isHebrew`. Independently found the same LOW indentation drift Agent HE found (cross-confirmed), plus reconfirmed the same Edge Function deploy-status gap.
 
-`src/utils/addressFormat.js`: the Hebrew branch of `formatAddress` previously silently dropped the `state`/"מדינה" field. Changed:
-```js
-// before: const cityZip = [city, zip].filter(Boolean).join(' ');
-const cityStateZip = [city, state, zip].filter(Boolean).join(' ');
-return [street, cityStateZip].filter(Boolean).join(', ');
-```
-`state` inserted between `city` and `zip`, space-separated (matching the existing convention). `.filter(Boolean)` guarantees byte-identical output when `state` is empty (today's common case) and correctly includes it, with no malformed whitespace or stray commas, when populated. International branch untouched. No new address schema invented; no stored-data format changed (display-only).
+### 6. Claude Lead Shared-Core Verdict
 
-### 6. Agent HE Regression Result
+**READY.** One shared allocator/DB architecture confirmed (no HE/EN branching anywhere in `supabase/migrations/` — reconfirmed via repo-wide grep, zero matches). `src/utils/money.js`, `src/utils/quoteNumber.js`, `src/utils/addressFormat.js` are genuinely single-source, consumed correctly by both markets (the two drift issues from the prior audit — `PublicQuote.jsx`'s duplicate formatter, `addressFormat.js`'s dropped state field — are both already fixed in this release candidate, confirmed present via direct file read). `src/index.css` tokens confirmed market-neutral. Both prior disposable-environment fixes (counter-seeding formula, `anon` privilege revoke) reconfirmed still present in `supabase/migrations/20260827000000_add_quote_number_sequence.sql` and `supabase/quote_number_counter_init.sql` via direct grep — zero drift since that validation pass.
 
-**PASS on both fixes, CODE-VERIFIED.** Hand-traced Fix #1 (`total=2505.49` → `finalTotalRounded=2505` → `"2,505.00"`, identical to prior output); confirmed all 9 `formatNum(...)` call sites in `PublicQuote.jsx` receive unchanged arguments. Hand-traced Fix #2 across 3 cases (state empty, state populated, city empty + state populated) — all correct, no malformed output. Confirmed VAT/net computation logic (`isAmbiguousClientType`, `isPrivateDisplay`, `netAmountDisplay`, `vatAmountDisplay`) completely untouched by either fix. Confirmed neither fix touched CSS/responsive code — Desktop/Mobile unaffected by construction. Zero regression findings.
+### 7. Full File-by-File HE/EN Ledger
 
-### 7. Agent EN Regression Result
+**FILE**: `src/pages/Dashboard.jsx`
+**PURPOSE**: authenticated app shell — Quote History, creation/edit/duplicate/delete, CSV export, WhatsApp, Quote Number allocation call site, Attn persistence.
+**HE IMPACT**: `₪`/VAT correctly gated on `isLocalIsraeliBusiness`; `formatQuoteFallback` used consistently; Attn fail-open retry logic correct. Status: HE CHANGE REQUIRED (see HIGH-1 below — the defect is in this file, shared code path, not Hebrew-specific logic). Verification: CODE-VERIFIED.
+**EN IMPACT**: `INTL_CURRENCY_SYMBOLS` (USD/EUR/GBP) safe-fallback, never ₪; every VAT/currency branch point explicitly gated; `allocate_quote_number` RPC call market-neutral. Status: EN READY (same HIGH-1 defect applies equally — see below, not EN-specific). Verification: CODE-VERIFIED.
+**SHARED CORE**: one file, one set of conditionals for both markets.
+**PARITY RESULT**: READY except for HIGH-1, which affects both markets identically (not a parity gap — a shared bug).
+**RELEASE STATUS**: CHANGE REQUIRED.
+**REMAINING ACTION**: fix HIGH-1 (§9).
 
-**PASS on both fixes, CODE-VERIFIED.** Confirmed `PublicQuoteEn.jsx` was not modified this task (corroborated by file-modification timestamps: `PublicQuote.jsx`/`addressFormat.js` both edited in this task's exact window; `PublicQuoteEn.jsx`/`money.js`/`PublicQuoteHeader.jsx`/`Dashboard.jsx`/`ClientsTab.jsx` all untouched, edited hours earlier) and already correctly used `formatMoney`. Confirmed the International branch of `addressFormat.js` is byte-identical to before (only the `if (isHebrew)` block was edited) via 2 hand-traced examples (UK no-state, US with-state). Confirmed zero VAT/₪/Hebrew/RTL leakage introduced by either fix. Zero regression findings. One **pre-existing, non-regressive boundary condition** flagged: a legacy/malformed `address` string with fewer than 2 `|`-separated parts bypasses the Hebrew branch's new state-aware logic entirely, via the file's own pre-existing raw-fallback guard (unrelated to this fix, worth a future data check only).
-
-### 8. Bidirectional HE↔EN Parity Result
-
-Both fixes: **READY, parity confirmed bidirectionally.** Fix #1 has no EN counterpart to check (the file it changed, `PublicQuote.jsx`, is Local/ILS-exclusive by construction — `isHebrew`/`currencySymbol` are hardcoded constants, no market branching exists in the file) — its EN "counterpart" is simply confirming `PublicQuoteEn.jsx` was untouched and already correct, which both agents independently confirmed. Fix #2's HE change (state now included) was explicitly checked against its EN counterpart (state already included, confirmed unchanged) in both directions by both agents independently.
-
-### 9. Full File-by-File HE/EN Change Ledger
-
-**FILE**: `src/pages/PublicQuote.jsx`
-**CHANGE/CONCEPT**: money formatter consolidation (private duplicate → canonical `formatMoney`).
-**HE/LOCAL**: exact implementation — `import { formatMoney } from '../utils/money'; const formatNum = (val) => formatMoney(val);`. Affected surfaces: item price/total, subtotal, discount, net, VAT-display, final total (9 call sites). Hebrew behavior: unaffected (pure formatter swap). RTL: unaffected (no JSX/markup touched). Currency: ₪, hardcoded, unaffected. VAT: computation logic upstream, completely untouched. Desktop/Mobile: unaffected by construction (no CSS touched). Verification: CODE-VERIFIED (Claude Lead + Agent HE, hand-traced).
-**EN/INTERNATIONAL**: no direct counterpart — this file has no market branching, it is Local/ILS-exclusive by construction. Corresponding file `PublicQuoteEn.jsx` was confirmed NOT modified and already used the canonical formatter (pre-existing, from an earlier Money Consolidation pass). English behavior: N/A (file not touched). LTR: N/A. Currency: N/A. VAT-absence: N/A (page has no VAT anywhere, confirmed by a prior audit, unaffected by this task). Desktop/Mobile: N/A. Verification: CODE-VERIFIED (Agent EN, confirmed via direct read + file-timestamp corroboration).
-**PARITY RESULT**: NOT APPLICABLE for cross-file comparison (file is market-exclusive by design) / READY for the shared-utility relationship (both HE and EN pages now correctly consume the same `formatMoney`).
-**SHARED CORE**: `formatMoney` (`src/utils/money.js`) — now genuinely single-source for both `PublicQuote.jsx` and `PublicQuoteEn.jsx` (previously only the latter).
-**GAP**: none remaining.
-**REQUIRED ACTION**: none — fix complete, pending commit authorization.
-
-**FILE**: `src/utils/addressFormat.js`
-**CHANGE/CONCEPT**: Hebrew branch of `formatAddress` now includes the State/Province field.
-**HE/LOCAL**: exact implementation — `[city, state, zip].filter(Boolean).join(' ')` replacing `[city, zip].filter(Boolean).join(' ')`. Affected surfaces: `PublicQuote.jsx` recipient block, `PublicQuoteHeader.jsx` business-address display (both Mobile/Desktop branches), `ClientsTab.jsx` address column. Hebrew behavior: "street, city state zip" when state populated, byte-identical to before when empty. RTL: unaffected (string content only). Currency: N/A. VAT: N/A. Desktop/Mobile: unaffected by construction. Verification: CODE-VERIFIED (Claude Lead + Agent HE, 3 hand-traced cases).
-**EN/INTERNATIONAL**: counterpart branch (`else`) was already correctly including `state` before this task and was confirmed **untouched** by this edit — only the `if (isHebrew)` block was modified. Affected surfaces: same 3 shared consumers, English branch. English behavior: unaffected. LTR: unaffected. Currency: N/A. VAT-absence: N/A. Desktop/Mobile: unaffected by construction. Verification: CODE-VERIFIED (Agent EN, 2 hand-traced examples: UK no-state, US with-state).
-**PARITY RESULT**: READY — the asymmetry that prompted this fix (EN kept `state`, HE dropped it) is now resolved; both branches include `state` using their own market-appropriate ordering/punctuation convention.
-**SHARED CORE**: one function, two branches, both now feature-complete with respect to `state`. Shared guard clauses (`if (!rawAddress)`, `if (parts.length < 2)`) and the `[street, city, state, zip] = parts.map(...)` destructuring — confirmed unchanged, feed both branches identically.
-**GAP**: one pre-existing, non-regressive boundary condition — a malformed `address` string with fewer than 2 `|`-separated parts bypasses both branches' logic via the shared raw-fallback guard (unrelated to this fix).
-**REQUIRED ACTION**: none for this fix; optionally, a future separately-scoped task could audit for any malformed legacy address records if the Owner wants that boundary condition addressed.
-
-**FILE**: `src/components/PublicQuoteHeader.jsx` (shared, unmodified this task, indirectly affected by Fix #2)
-**HE IMPACT**: business-address display via `formatAddress(bizAddress, isHebrew)` (Mobile + Desktop branches) now automatically benefits from Fix #2 — no code change needed here, confirmed by both agents.
-**EN IMPACT**: same call site with `isHebrew=false`, confirmed routes into the unchanged International branch — no regression.
-**PARITY RESULT**: READY (indirect benefit, both markets confirmed).
-
-**FILE**: `src/components/ClientsTab.jsx` (shared, unmodified this task, indirectly affected by Fix #2)
-**HE IMPACT**: address column via `formatAddress(client.address, isHebrew)` now automatically benefits from Fix #2.
-**EN IMPACT**: same call site, confirmed routes into the unchanged International branch — English clients' `state` (e.g. "NY") continues to render correctly via pre-existing logic, not the new code.
+**FILE**: `src/pages/PublicQuote.jsx` ↔ `src/pages/PublicQuoteEn.jsx`
+**PURPOSE**: the two markets' Public Quote pages.
+**HE IMPACT** (`PublicQuote.jsx`): money-alignment CSS Grid, whole-shekel rounding math hand-verified correct and untouched by this pass's own money-formatter fix, Attn/recipient block, Hebrew address formatting (now state-aware), Desktop shell `calc()` width — all confirmed. Status: HE READY (code) / LIVE-NOT-AVAILABLE (visual render). Verification: CODE-VERIFIED.
+**EN IMPACT** (`PublicQuoteEn.jsx`): `formatMoney` correctly used; zero VAT UI anywhere on the page (confirmed); Desktop shell border/width fix present; Attn/recipient/Terms/Notes parity confirmed. Status: EN READY. Verification: CODE-VERIFIED.
+**SHARED CORE**: money-alignment pattern and shell-width `calc()` formula shared via CSS tokens; totals-card layout intentionally differs (Grid vs. flex — both correct under their own direction, not a gap).
 **PARITY RESULT**: READY.
+**RELEASE STATUS**: READY.
+**REMAINING ACTION**: none.
 
-**FILE**: `src/pages/Dashboard.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/utils/money.js` (all confirmed untouched)
-**PARITY RESULT**: NOT APPLICABLE to this task's ledger — explicitly confirmed unmodified by both agents (corroborated via file-modification timestamps), included here only to record that "unmodified" was verified, not assumed.
+**FILE**: `src/components/PublicQuoteHeader.jsx` (shared)
+**PURPOSE**: quote-number label+value, business-address display, Mobile+Desktop composition.
+**HE IMPACT**: "מספר הצעה" label always shown (real+fallback, both viewports); Hebrew address via `formatAddress(bizAddress, true)`. Status: HE READY (code) / LIVE-NOT-AVAILABLE (real quote-number display, blocked by Edge Function deploy gap only). Verification: CODE-VERIFIED.
+**EN IMPACT**: "Quote Number" label exact-match (both viewports); English address via `formatAddress(bizAddress, false)`. Status: EN READY. Verification: CODE-VERIFIED.
+**SHARED CORE**: one component, both branches structurally identical in shape.
+**PARITY RESULT**: READY.
+**RELEASE STATUS**: READY.
+**REMAINING ACTION**: none (deploy-gap tracked separately, §10).
 
-### 10. Quote Number Regression Result
+**FILE**: `src/components/QuoteForm.jsx` (shared)
+**PURPOSE**: quote creation/editing — item entry, totals preview, Attn fields.
+**HE IMPACT**: VAT rows correctly rendered only for `isLocalIsraeliBusiness && isHebrew`; totals CSS-Grid conversion verified correct under the inherited `dir="rtl"`; Hebrew Attn labels correct. Status: HE READY. Verification: CODE-VERIFIED.
+**EN IMPACT**: same VAT gate confirmed never renders for EN (cross-confirmed by both agents independently at the same lines); English Attn labels correct; grid layout LTR-safe. Status: EN READY. Verification: CODE-VERIFIED.
+**SHARED CORE**: one grid block, one set of conditionals.
+**PARITY RESULT**: READY.
+**RELEASE STATUS**: READY.
+**REMAINING ACTION**: none.
 
-**NOT AFFECTED — CODE-VERIFIED.** Neither fix touches `src/utils/quoteNumber.js`. `PublicQuote.jsx` itself has zero direct `quote_number` references (confirmed via grep — that logic lives entirely in `PublicQuoteHeader.jsx`, untouched by either fix). No DB access performed or needed for this check. The known deployed-Edge-Function blocker (`get-public-quote`/`send-quote-email` not yet redeployed) remains exactly as before — OPEN, unaffected by this task.
+**FILE**: `src/components/QuotesTab.jsx` (shared)
+**PURPOSE**: Quote History Desktop table + Mobile cards, delete-confirmation trigger.
+**HE IMPACT**: `formatQuoteFallback` used consistently for display; **this file's delete-confirmation call site is the trigger for HIGH-1** (the bug itself lives in the receiving `Dashboard.jsx` code, but this file's `{ number: formatQuoteFallback(quote), ... }` call is the input that exposes it). Status: HE CHANGE REQUIRED (via HIGH-1). Verification: CODE-VERIFIED.
+**EN IMPACT**: "before VAT" row correctly gated off for EN; same HIGH-1 exposure (message template is shared, not Hebrew-specific). Status: EN CHANGE REQUIRED (via HIGH-1). Verification: CODE-VERIFIED.
+**SHARED CORE**: one component; the actual defect is in `Dashboard.jsx`, not this file.
+**PARITY RESULT**: READY except HIGH-1 (affects both markets equally).
+**RELEASE STATUS**: CHANGE REQUIRED (dependent on Dashboard.jsx fix).
+**REMAINING ACTION**: none in this file itself — fix belongs in `Dashboard.jsx`.
 
-### 11–19. Language / RTL-LTR / Currency / VAT / Region / Address-format / Money-format / Desktop / Mobile Results
+**FILE**: `src/components/ClientsTab.jsx`, `src/components/FinancesTab.jsx` (shared, market-neutral)
+**PURPOSE**: mobile responsive fixes, `.pf-money`/`formatAddress` adoption, `row-reverse` RTL bug removal.
+**HE IMPACT**: `row-reverse` removals verified correct against each file's actual DOM structure (ClientsTab's removed instance confirmed to have been a no-op on a single-child row; FinancesTab's confirmed against a genuine 2-child header where the bug was real). Status: HE READY. Verification: CODE-VERIFIED.
+**EN IMPACT**: changes confirmed additive/cosmetic only, no currency/VAT logic touched, default `'row'` already correct for LTR. Status: EN READY. Verification: CODE-VERIFIED.
+**SHARED CORE**: single components, market-neutral.
+**PARITY RESULT**: READY.
+**RELEASE STATUS**: READY.
+**REMAINING ACTION**: none.
 
-All covered in full per-file detail in §9 above; summary: **all READY, zero regressions, zero VAT/₪/Hebrew/RTL leakage found by either agent.**
+**FILE**: `src/index.css` (shared, market-neutral)
+**PURPOSE**: `.pf-money`, `--pf-desktop-content-width`, `--pf-doc-shell-*`, `scrollbar-gutter: stable`.
+**HE/EN IMPACT**: confirmed defined at global/`:root`/`html` scope by both agents independently — not scoped to any market-specific selector.
+**SHARED CORE**: fully shared.
+**PARITY RESULT**: READY.
+**RELEASE STATUS**: READY.
 
-### 20. New Findings
+**FILE**: `src/utils/money.js`, `src/utils/quoteNumber.js` (shared utilities, market-neutral)
+**PARITY RESULT**: READY. Both fully market-neutral, no branching, correctly consumed by all known call sites in both markets.
+**RELEASE STATUS**: READY.
 
-None discovered during implementation or verification beyond the one pre-existing boundary condition already noted in §7/§9 (not silently fixed — reported only, per this task's explicit instruction not to opportunistically fix unrelated items).
+**FILE**: `src/utils/addressFormat.js` (shared, internally market-branching by design)
+**HE IMPACT**: Hebrew branch now includes `state` (this release candidate's own fix, re-confirmed present and correct). Status: HE READY.
+**EN IMPACT**: International branch confirmed unchanged/still-correct. Status: EN READY.
+**PARITY RESULT**: READY (the asymmetry this release candidate fixed is resolved).
+**RELEASE STATUS**: READY.
 
-### 21. Known Edge Function Deployment Blocker
+**FILE**: `supabase/functions/get-public-quote/index.ts`, `supabase/functions/send-quote-email/index.ts` (shared Edge Functions)
+**PURPOSE**: public-facing quote data API, quote-email delivery.
+**HE IMPACT**: local source selects/returns `quote_number`/`attn_name`/`attn_role`; Hebrew email template correct, fallback format matches canonical 8-char no-uppercase. Status: HE READY (code) / LIVE-NOT-AVAILABLE (deployed version stale). Verification: CODE-VERIFIED.
+**EN IMPACT**: same payload shape serves EN identically; English email template confirmed zero VAT reference; `resolveEmailRegion()` structurally prevents "English + ₪". Status: EN READY (code) / LIVE-NOT-AVAILABLE (same deploy gap). Verification: CODE-VERIFIED.
+**SHARED CORE**: fully shared functions/response shapes.
+**PARITY RESULT**: READY (local source). BLOCKED (deployed/live) — shared, not per-market, blocker.
+**RELEASE STATUS**: BLOCKED pending deploy (tracked, not a code defect).
+**REMAINING ACTION**: deploy both functions as part of the coordinated release (§8), not before.
 
-Unchanged, still OPEN: the currently-deployed `get-public-quote`/`send-quote-email` Edge Functions predate the local source's `quote_number`/`attn_name`/`attn_role` additions from an earlier task. Not touched, not deployed, this task.
+### 8. Migration Release Audit (READ-ONLY, not executed)
 
-### 22–24. QA
+**Order**: `20260827000000` (allocator table+function) → `20260827000001` (CONCURRENTLY index) → `202608270000015` (attach unique constraint) → `20260827000002` (immutability trigger) → `quote_number_counter_init.sql` (manual, outside `migrations/`) → `20260827000003` (drop global DEFAULT, last).
+**Dependencies**: `202608270000015` requires `20260827000001`'s index to already exist. `20260827000003` has a hard release-coordination dependency on the frontend fail-closed deploy landing in the same window (§8 Release Order below).
+**Idempotency**: `20260827000000`/`20260827000001`/`20260827000002`/`20260827000003` all safely re-runnable (`IF NOT EXISTS`/`CREATE OR REPLACE`/no-op `DROP DEFAULT`+`REVOKE`). `202608270000015` re-runnable via its own `DO`-block existence guard. `quote_number_counter_init.sql` genuinely idempotent (`GREATEST`, never moves backward) — all reconfirmed via direct file read this pass, unchanged since the disposable-environment validation.
+**Privilege grants/revokes**: `allocate_quote_number` — `authenticated` only; `anon`/`service_role`/`PUBLIC` all explicitly revoked (the fix found and applied during disposable-environment testing, reconfirmed present via grep this pass).
+**RLS**: `business_quote_sequences` — enabled, zero client policies (default-deny) except one read-only super-admin policy.
+**Allocator behavior, historical preservation, first-managed-number=A100700, high-water behavior, no-reuse, immutability, per-business uniqueness, cross-business same-number allowance, fail-closed behavior**: all **TEST-VERIFIED** (disposable `quotecode-test` project, fictional data, prior task) — distinct from **PRODUCTION-NOT-YET-EXECUTED** (nothing has been applied to the real Production database; this remains true today, reconfirmed via this task's own read-only review, no new DB access performed).
+**Rollback/recovery**: documented per-migration-file (each file's own header comment) and in `PROFLOW_TODO.md` item 17's existing Rollback/Forward-Fix plan — unchanged, still current.
 
-- **eslint**: 0 errors, 6 warnings (3 real + 3 duplicated under `pentest-source-review/`, unchanged).
-- **build**: succeeds, same pre-existing chunk-size advisory only.
-- **tests**: 42/42 passing (21 real + 21 duplicated under `pentest-source-review/`, unchanged).
+### 9. Findings
 
-### 25–26. Permanent Rules Documented
+- **HIGH-1 — `src/pages/Dashboard.jsx:1065-1068`, both markets.** Delete-confirmation dialog double-prefixes the quote number: `idLabel = number || formatQuoteFallback(...)` is already fully-prefixed (`"A123"` or `"#abcd1234"`); the message templates at lines 1067-1068 (`isHebrew` and English branches alike) unconditionally prepend a literal `#` on top, producing `"#A123"` or `"##abcd1234"`. Triggered from `src/components/QuotesTab.jsx:262`'s `{ number: formatQuoteFallback(quote), ... }` call. **Independently verified by Claude Lead via direct code read** (not accepted from the agent report alone). Root cause: unintended side effect of the earlier "Quote Number Mobile/Surface Consistency" pass's fallback-unification fix (confirmed via that code's own comment history) — a defect within this same release candidate. Risk: guaranteed-visible on every quote deletion; not a data-safety issue (deletion itself functions correctly). Smallest safe fix: remove the hardcoded `#` from both template-literal branches. Required re-verification after fix: re-run both agents' delete-confirmation check, confirm `"A123"`/`"#abcd1234"` render correctly with no double-prefix, both markets.
+- **LOW — `src/pages/PublicQuote.jsx:496`.** Dead className `pq-totals-grid` — no matching CSS rule exists anywhere (all grid styling is inline). Cosmetic only, zero functional effect.
+- **LOW — `src/pages/Dashboard.jsx` post-save reset block (~lines 205-206 and the analogous block found again by Agent EN).** Indentation drift (4-space vs. sibling 6-space), independently found by both agents. Zero functional effect (JS ignores indentation).
+- **LOW (already tracked, reconfirmed, not new)** — both Edge Functions not yet redeployed (§7, §10).
 
-`PROFLOW_PROJECT_CONTEXT.md` §17.I "Permanent File-by-File HE/EN Change Ledger + Reporting Completion Gate" — documents the mandatory per-file ledger format, the bidirectional-counterpart rule, insufficient-verification-language list, and the 10-point Reporting Completion Gate.
+No CRITICAL findings. No new MEDIUM findings (both MEDIUM findings from the prior audit — money-formatter duplication, address state-field drop — are confirmed already fixed in this release candidate, §6/§7).
 
-### 27. Exact Documentation Files Changed
+### 10. TEST Evidence Reconciliation
 
-`PROFLOW_PROJECT_CONTEXT.md` (new §17.I), `PROFLOW_CHAT_HANDOFF.md` (new §10.E), `PROFLOW_HANDOFF.md` (new §18.BT entry + top-block pointer update), `PROFLOW_TODO.md` (item 10 updated — both findings marked implemented-locally-uncommitted), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_ARCHITECTURE.md` reviewed, not changed (implementation record belongs in HANDOFF/TODO, not permanent architecture).
+All DB-layer invariants (allocator atomicity, uniqueness, immutability, historical preservation, fail-closed behavior, counter-seeding correctness post-fix) are **TEST-VERIFIED** against the disposable `quotecode-test` project with fictional data — genuinely executed, not merely designed. **PRODUCTION-NOT-YET-EXECUTED** for all of it — nothing has touched the real database. Both Edge Functions' **local source** is confirmed complete and correct (this task); their **deployed** versions are confirmed unchanged/stale (`supabase functions list` metadata re-checked this task, identical to the prior check).
 
-### 28. Secret/Privacy Scan
+### 11. Exact Safest Release Order (PLAN ONLY — not executed)
 
-Performed on every changed file (documentation and the two source files) — no password, API/service-role/anon key, token, connection string, or customer data found anywhere. **PASSED.**
+1. **Backup/preflight** — full Production DB backup, verified restorable. *Dependency*: none. *Expected result*: restorable snapshot exists. *Verification*: confirm backup + restore procedure understood. *STOP condition*: backup not verifiable → STOP, do not proceed. *User-visible change*: none.
+2. **Application commit** (separately authorized — NOT this pass's authorization) — commit + push the 14 reviewed application/Edge-Function source files. *Dependency*: Owner + ChatGPT explicit commit authorization, and HIGH-1 fixed+reverified first. *Expected result*: `main` reflects reviewed source. *Verification*: build/lint/test post-commit. *STOP condition*: any post-commit CI/QA failure → revert. *User-visible change*: none (not deployed yet).
+3. **DB transition, part 1** — apply `20260827000000` → `20260827000001` → `202608270000015` → `20260827000002`, in that exact order. *Dependency*: step 1. *Expected result*: allocator objects exist; global-sequence DEFAULT still active (unchanged behavior). *Verification*: direct schema query confirming each object; spot-check existing `quote_number` values untouched. *STOP condition*: any migration fails → STOP, use that file's own documented rollback SQL, do not proceed. *User-visible change*: none (RLS default-deny, existing quote creation behavior unchanged).
+4. **Counter initialization** — run `quote_number_counter_init.sql` manually (never via `db push`). *Dependency*: step 3. *Expected result*: every business with historical quotes gets a seeded counter row. *Verification*: query `business_quote_sequences` after; confirm `quotes` table byte-identical before/after. *STOP condition*: any `quotes.quote_number` value changes → STOP immediately, treat as CRITICAL, escalate rather than auto-rollback. *User-visible change*: none yet.
+5. **DB transition, part 2** — apply `20260827000003` (drop global DEFAULT + revoke sequence privileges). *Dependency*: steps 3–4 complete; frontend fail-closed deploy (step 6) ready to ship in the same window — this is the one hard-coordination step. *Expected result*: `quote_number` no longer auto-assigns; an INSERT omitting it now fails `NOT NULL`. *Verification*: confirm `column_default` is NULL, `is_nullable` still `NO`. *STOP condition*: if step 6 cannot ship in the same window, do not apply this step yet, or accept and communicate a brief quote-creation-outage window — Owner decision. *User-visible change*: **YES, highest-risk step** — if step 6 isn't simultaneous, all quote creation fails until it is.
+6. **Frontend fail-closed deploy** — ship the (not-yet-written) change making quote creation depend on `allocate_quote_number` succeeding, replacing today's silent-fallback. *Dependency*: step 5. *Expected result*: new quotes get real per-business numbers; genuine allocator failure surfaces as a creation error. *Verification*: create one real test quote per market. *STOP condition*: quote creation broken post-deploy → emergency rollback via `20260827000003`'s own documented rollback SQL (restores the old global DEFAULT as a stopgap). *User-visible change*: **YES**.
+7. **Deploy `get-public-quote`**. *Dependency*: none strictly, grouped for the visibility goal. *Expected result*: Public Quote pages start returning real `quote_number`. *Verification*: fetch a known quote's public page. *STOP condition*: redeploy previous version if broken. *User-visible change*: **YES**.
+8. **Deploy `send-quote-email`**. Same shape as step 7, for email subject lines. *User-visible change*: **YES**.
+9. **HE full regression** (all surfaces, both viewports) — live verification, real HE test account.
+10. **EN full regression** — live verification, real EN test account (subject to the standing credentials-availability gap).
+11. **Desktop + Mobile verification**, both markets.
+12. **Rollback/forward-fix checkpoint** — explicit Owner go/no-go before declaring the release complete. Once any real `A100700+` number has been issued, prefer forward-fix over destructive rollback (per the existing Rollback/Forward-Fix plan, `PROFLOW_TODO.md` item 17, unchanged).
 
-### 29–32. Staging / Commit / Push / HEAD
+### 12. Remaining Blockers
 
-Recorded in the chat response after staging/commit/push, per the standing 6-file documentation allowlist — **source files (`PublicQuote.jsx`, `addressFormat.js`) explicitly excluded from staging**, per this task's explicit no-application-commit instruction.
+1. **HIGH-1** (§9) — must be fixed and reverified before commit.
+2. **Edge Function deploy** — tracked, not blocking commit itself, blocking the *visible* Quote Number/Attn feature until deployed as part of the coordinated release.
+3. **Production DB migration authorization** — separate from application commit, requires its own explicit Owner + ChatGPT go-ahead per the Release Order above.
 
-### 33–34. Application/Migration State
+### 13. Commit-Readiness Verdict
 
-**Application/source changes remain LOCAL/UNCOMMITTED** — confirmed, `src/pages/PublicQuote.jsx` and `src/utils/addressFormat.js` were deliberately never staged. **Migration changes remain LOCAL/UNCOMMITTED** — confirmed, untouched by this task.
+**NOT APPLICATION COMMIT READY.** One confirmed HIGH defect (§9, HIGH-1) exists in the current release candidate. Recommend: (a) authorize a small, tightly-scoped fix-and-reverify pass for HIGH-1 only; (b) re-run this audit's delete-confirmation check (both agents or a targeted spot-check) after the fix; (c) then reconsider commit authorization. This verdict concerns **commit only** — it does not authorize deployment or LIVE even if resolved.
 
-### 35. Final `git status --short`
+### 14–18. HE Language/RTL/ILS/VAT, EN Language/LTR/Currency/No-VAT, Desktop, Mobile, Email/WhatsApp/CSV Results
+
+All covered in full per-file detail in §7; summary: **READY across the board except HIGH-1** (§9), which is a shared, market-neutral defect, not a parity gap. Desktop/Mobile: neither agent found any responsive/CSS regression; both fixes and the whole release candidate's CSS changes were confirmed market-neutral and correctly scoped.
+
+### 19. QA
+
+- **eslint**: 0 errors, 6 warnings (unchanged).
+- **build**: succeeds, same pre-existing advisory only.
+- **tests**: 42/42 passing (unchanged).
+- **`supabase functions list`**: re-confirmed both Edge Functions' deployed metadata unchanged since the prior check (no drift).
+
+### 20–23. Documentation
+
+New permanent rules referenced (not re-created this task): `PROFLOW_PROJECT_CONTEXT.md` §17.H (Cross-Market Parity Gate), §17.I (File-by-File Ledger + Reporting Completion Gate) — both already in force from prior tasks, applied here. Documents changed this task: `PROFLOW_TODO.md` (item 17 — new HIGH-1 finding recorded), `PROFLOW_HANDOFF.md` (new §18.BU entry + top-block pointer), `PROFLOW_CHAT_HANDOFF.md` (new §10.F), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). `PROFLOW_ARCHITECTURE.md`/`PROFLOW_PROJECT_CONTEXT.md` reviewed, not changed (no new permanent architecture/rule needed — this task applies existing rules, doesn't add new ones).
+
+### 24. Secret/Privacy Scan
+
+Performed on every changed documentation file — no password, API/service-role/anon key, token, connection string, or customer data found. **PASSED.**
+
+### 25. Staged Documentation / Commit / Push
+
+Recorded in the chat response after staging/commit/push, per the standing documentation allowlist. **No application/migration file staged or committed** — none was modified by this audit in the first place (read-only).
+
+### 26. Final `git status --short`
 
 Recorded in the chat response after the documentation commit.
 
-### 36–42. Safety Confirmations
+---
 
-**NO APPLICATION COMMIT. NO APPLICATION PUSH. NO MIGRATION COMMIT. NO DB MUTATION. NO EDGE FUNCTION DEPLOY. NO VERCEL DEPLOY. NO LIVE.**
+**NO APPLICATION COMMIT. NO APPLICATION PUSH. NO MIGRATION COMMIT. NO DB MUTATION. NO EDGE FUNCTION DEPLOY. NO VERCEL DEPLOY. NO PRODUCTION. NO LIVE.**

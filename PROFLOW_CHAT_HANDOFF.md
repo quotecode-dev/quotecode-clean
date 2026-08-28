@@ -291,6 +291,19 @@ work, every report requires a file-by-file HE/EN counterpart ledger, not just a
 summary matrix - full rule `PROFLOW_PROJECT_CONTEXT.md` §17.I. Full ledger for
 this pass: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.F Pre-commit release-candidate audit — NOT COMMIT READY (added 2026-08-28)
+
+Full audit of the entire accumulated release candidate before considering an
+application commit. Verdict: **NOT APPLICATION COMMIT READY.** One new,
+independently-confirmed HIGH defect: `Dashboard.jsx`'s delete-confirmation
+dialog double-prefixes the quote number on every deletion, both markets
+(`"#A123"`/`"##abcd1234"` instead of `"A123"`/`"#abcd1234"`) - a side effect of
+an earlier fix within this same release candidate. Trivial fix (remove one
+hardcoded `#`), not applied - read-only audit. Everything else: READY, zero
+VAT/₪/Hebrew leakage. Full ledger + release-order plan:
+`PROFLOW_CLAUDE_LATEST_REPORT.md`. Recommend a small fix-and-reverify pass
+before requesting commit authorization.
+
 ## 11. Security review
 
 Owner's son is performing an authorized defensive security review using
