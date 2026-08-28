@@ -19,6 +19,15 @@ ProFlow — cloud-based SaaS business-management and quoting platform. Business 
 
 No standalone version-number marker is maintained in this file — current project state is tracked via `PROFLOW_HANDOFF.md`'s own `HEAD == origin/main == <hash>` convention and `PROFLOW_PROJECT_CONTEXT.md`'s checkpoint, not a `vXX.X` label here.
 
+## 1.A Supabase Environments (added 2026-08-28)
+
+**REPO/CLI VERIFIED**: two Supabase projects exist, both in organization `smcrpeczwtpujpnhurwz`, region `eu-central-1` (Central EU/Frankfurt):
+
+- **Production**: ref `ixabnzhjeqevtbhdfswv` (name `quotecode`), created 2026-07-27 — the real, deployed backend for the live application.
+- **TEST**: ref `ljfizgrdyzxddswcedwr` (name `quotecode-test`), created 2026-08-27 — disposable/isolated, no GitHub repository connected, no migrations applied by default, intended only for runtime migration/schema validation before a change is ever authorized against Production. Contains fictional test data only (see `PROFLOW_HANDOFF.md`'s Disposable Supabase Runtime Migration Validation entry) — never real customer data, never David Aluminum.
+
+See `PROFLOW_PROJECT_CONTEXT.md` §17.D for the permanent TEST ≠ PRODUCTION target-guard rule governing any future use of the TEST project.
+
 ## 2. Domain / Deployment
 
 **REPO VERIFIED / OWNER-OBSERVED**: canonical production domain is `https://www.quotecodepro.com/`. `https://quotecode.vercel.app/` also currently serves ProFlow directly — no redirect between the two domains exists in application code or Vercel configuration. Removal/redirection of the old Vercel domain is a **separate, independently-scoped issue**, not bundled into any current workstream. A repo-wide grep found **zero references to `vercel.app` anywhere in `src/` or `supabase/`** — nothing in application code depends on that domain.
@@ -144,6 +153,20 @@ Authorization roles are **completely separate** from subscription plans (§16) �
 ## 14. Public Quote / Storage Architecture
 
 **REPO VERIFIED**: public quote pages are served via `SmartPublicQuote`/`PublicQuote`/`PublicQuoteEn`, resolved by ID through the `get-public-quote` Edge Function (fully anonymous — no role/auth check of any kind found in that function). Quote file attachments (`quote_attachments` table) reference objects in a Supabase Storage bucket (`quote-files`, paths prefixed by `user_id`). **Known, documented, still-open gaps** (not fixed, not to be fixed opportunistically): no owner DELETE/UPDATE policy currently exists on `storage.objects` for this bucket at all (a live test confirmed `403` on a normal authenticated delete attempt); no code path anywhere (including the user-deletion Edge Functions) ever deletes the underlying Storage file objects — only the database metadata row is removed, meaning deleted accounts likely leave orphaned Storage files behind if they ever uploaded attachments.
+
+## 14.A Quote Number Architecture (Business/Display Identifier)
+
+**LIVE VERIFIED (2026-08-28, direct schema/RLS/trigger introspection)**: `quotes.quote_number` already exists live as `integer NOT NULL DEFAULT nextval('quotes_quote_number_seq'::regclass)` — a single **global** sequence shared across every business (not per-business, not this repository's own design). No unique constraint, no allocation RPC, no quote_number-specific immutability trigger exists live. `quotes.id` (UUID) remains, and will always remain, the sole technical/routing/security identifier — `quote_number` is purely a customer-facing display value, never used for authorization or routing.
+
+**Target architecture (DESIGN, local package prepared, NOT applied live)**: per-business allocation via a dedicated `business_quote_sequences` counter table (`user_id` PK, RLS default-deny, one super-admin read policy) plus a `SECURITY DEFINER` `allocate_quote_number(uuid)` function as the sole write path (atomic `INSERT ... ON CONFLICT ... DO UPDATE ... RETURNING`, re-validates `auth.uid()`). First managed allocation per business = `100700`, displayed as `A100700`. A `UNIQUE (user_id, quote_number)` index (built `CONCURRENTLY`) and a dedicated immutability trigger (blocks any post-assignment change, narrow `service_role` bypass reserved for forward-fix) complete the target state. See `supabase/migrations/20260827000000`–`20260827000003` and `supabase/quote_number_counter_init.sql`.
+
+**Historical Number Preservation (permanent design rule)**: quotes numbered under the pre-transition global sequence (e.g. `A11`, `A56`, `A90`) are never renumbered, reinterpreted, or reassigned once the per-business scheme goes live — they remain permanent historical identifiers. Only quotes created after the transition receive numbers from the new per-business `A100700+` sequence. It is intentional and expected for an older quote to show `A90` while a newer one from the same business shows `A100700` — no fake continuity is manufactured.
+
+**Display**: canonical formatting lives in `src/utils/quoteNumber.js` (`formatQuoteNumber`/`formatQuoteFallback`) — market-neutral, consumed identically by both `PublicQuote.jsx` (Hebrew, "מספר הצעה") and `PublicQuoteEn.jsx`/`PublicQuoteHeader.jsx` (English, "Quote Number"); only the label text is market-conditional, never the underlying value or allocation logic. Full HE/EN cross-surface status: `PROFLOW_TODO.md` item 17.
+
+**Known live gap (flagged, not yet fixed)**: because no quote_number-specific immutability trigger exists live yet, an authenticated owner can currently change their own quote's `quote_number` via a plain `UPDATE`, for any quote not yet approved/paid/signed. Closed by the prepared (not-yet-applied) `20260827000002` migration.
+
+**Deployment desync (proven)**: local `get-public-quote`/`send-quote-email` Edge Function source already selects `quote_number`; the currently-deployed versions of both (last deployed 2026-08-25, per `supabase functions list`) predate that change and do not return it — this is why Dashboard can already show a real number (e.g. "A90") while the same quote's own Public Quote page and emailed subject line still show the fallback hash. Not deployed by any task to date; a coordinated future release is required (`PROFLOW_TODO.md` item 17).
 
 ## 15. SEO / Routing
 

@@ -206,6 +206,29 @@ This contract exists so the owner never has to type more than the magic phrase i
 
 **Trigger**: the Owner may say "קלודי סיים — תקרא את הדוח האחרון" (or an unambiguous equivalent) to have ChatGPT retrieve and review this file from GitHub. This file is never part of the five-document Bootstrap reading order (§0.A, §1, §17) — it is a lightweight, on-demand bridge, not a standing reading requirement for every new session.
 
+### 17.D TEST Environment / Production Target Guard (added 2026-08-28 — Disposable Supabase Runtime Migration Validation task)
+
+A second, disposable Supabase project exists specifically for isolated runtime validation:
+
+- **PRODUCTION**: `ixabnzhjeqevtbhdfswv` (name `quotecode`), region `eu-central-1`, created 2026-07-27 — the real live project, used by the deployed application.
+- **TEST**: `ljfizgrdyzxddswcedwr` (name `quotecode-test`), region `eu-central-1` (Central EU/Frankfurt), created 2026-08-27 — disposable/isolated, no GitHub repository connected, intended only for migration/runtime validation before any Production change. These project refs are not secrets and may be recorded here; database passwords, API keys, service_role keys, and access/refresh tokens must never be recorded in any ProFlow document.
+
+**Permanent rule — TEST ≠ PRODUCTION.** Before any mutating operation in a validation task, the target project ref must be explicitly checked against the two refs above. `supabase projects list` (read-only) or the local link state (`supabase/.temp/project-ref`) can confirm which is currently targeted. Prefer explicit `--project-ref <ref>` targeting over relying on whatever the CLI happens to have linked, since the link state is a piece of local, easily-stale configuration, not a safety guarantee by itself. If a validation task must temporarily change the local CLI link (e.g. via `supabase link --project-ref ...`), it must record the original link state first and restore it before finishing — check both `supabase/.temp/project-ref` and the git-tracked `supabase/.temp/linked-project.json`, which independently caches the same information and must also be restored (via `git checkout -- supabase/.temp/linked-project.json` if it was already committed pointing at Production, since a local Supabase CLI link/relink operation modifies it directly). If target identity is ever ambiguous, STOP.
+
+The TEST environment must never contain real customer data unless the Owner explicitly authorizes a specific, future, controlled test using real (non-David-Aluminum) data. David Aluminum must never be copied into, or used for, migration validation of any kind.
+
+### 17.E Permanent Documentation Sync Rule (added 2026-08-28)
+
+At the end of every completed Claude task on this project: (A) update `PROFLOW_CLAUDE_LATEST_REPORT.md` with that task's Final Report (§17.C); (B) review all five canonical documents (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`); (C) reconcile any document that genuinely changed because of completed/verified work in that task, before considering the task finished.
+
+**A modified file is never, by itself, authorization to commit it.** Before staging any documentation change, verify it is intentional, current, accurate, documentation-only, and consistent with both the completed task and the other canonical documents.
+
+**Documentation secret/privacy gate**: before staging any documentation, scan every diff for passwords, API/service-role/anon keys, access/refresh tokens, private keys, credentials, connection strings containing secrets, customer/private data or documents, sensitive production data, and sensitive pentest material. If unsafe content exists and cannot be safely sanitized, do not push that document — report the blocker instead.
+
+**Standing documentation-only commit scope**: when a task's own instructions authorize a documentation snapshot commit, the allowed file set is exactly `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` — never application source, migrations, Edge Functions, SQL scripts, `.gitignore`, configuration, pentest artifacts, or environment files, and never via `git add .`/`-A`/`--all`. Verify `git diff --cached --name-only` belongs entirely to this set before committing.
+
+**Golden rules**: DOCUMENTATION SYNC AUTHORIZATION ≠ APPLICATION COMMIT AUTHORIZATION. A MODIFIED FILE ≠ AUTHORIZATION TO COMMIT IT. LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE (§17.C). TEST ≠ PRODUCTION (§17.D). NO SECRET MAY ENTER THE DOCUMENTATION SNAPSHOT.
+
 ### 18. Working-Tree-vs-GitHub Freshness Rule (added P0.3)
 
 A session must distinguish between (A) repository **working-tree** state as reported by the coding agent (Claude) during a task, and (B) the latest **committed and pushed** GitHub state that a GitHub connector can actually read. **A GitHub connector reading a file does not prove that recently-discussed local changes are already in GitHub.** Never claim GitHub contains a documentation update until that update has actually been committed and pushed — confirmed by an explicit `git status`/push report, not assumed. When a coding-agent report says files are modified/untracked but not committed, a session with GitHub read access must understand that GitHub may still expose the **previous, older** version of that file, and a fetch returning a 404 for a brand-new not-yet-committed file (or stale content for a modified-but-uncommitted one) is **expected, correct connector behavior — not a connector failure.**

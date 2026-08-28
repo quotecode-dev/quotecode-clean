@@ -151,33 +151,47 @@ Intended architecture:
 - Deletion never reuses a number.
 - Duplicate gets a fresh number.
 
-**IMPORTANT**: the repository contains a prepared A100700 migration package
-that has **NOT** been authorized/applied by this workflow.
+**Status as of 2026-08-28 (updated, supersedes every earlier version of this
+section)**: what started as a surprise ("A90" appearing in Dashboard for a
+disposable TEST quote, with the local migration package still unapplied) has
+since gone through a full read-only LIVE audit, a local redesign, and a real
+runtime validation in an isolated disposable Supabase project. Sequence of
+events:
 
-**HOWEVER**: on 2026-08-28 a newly-created LIVE TEST quote unexpectedly
-displayed **A90** in Dashboard.
+1. A newly-created LIVE TEST quote unexpectedly displayed **A90** in
+   Dashboard, proving a real `quote_number` mechanism already existed in
+   LIVE, independent of this repo's own (then-unapplied) migration package.
+2. A dedicated **read-only** audit proved the mechanism: `quotes.quote_number`
+   already exists live as `integer NOT NULL DEFAULT nextval(quotes_quote_number_seq)`
+   - one **global** sequence shared by every business, not per-business, not
+   this repo's design.
+3. The local migration package was **redesigned** against those confirmed
+   facts (still local only, nothing applied live).
+4. That redesigned package was then **runtime-validated** against a
+   disposable Supabase project (`quotecode-test`, see §10.A) using fictional
+   data. Two genuine defects were found and fixed through this testing (not
+   caught by static review alone): (a) a per-business counter-seeding
+   off-by-one that would have made every business with historical quotes
+   skip A100700 and start at A100701; (b) `anon` unexpectedly retaining
+   `EXECUTE` on the allocator RPC due to a Supabase platform default that a
+   plain `REVOKE ... FROM PUBLIC` doesn't reach. Both fixed and re-verified.
 
-This proves that a real `quote_number` mechanism already exists in LIVE,
-independently of the currently-unapplied local migration package.
-
-At the same time, that quote's Public Quote page still displayed the
-UUID/hash fallback.
-
-**Root observation**: the currently-deployed `get-public-quote` Edge Function
-does not return the `quote_number` field, while the local source already
-contains support for it.
-
-**THIS IS NOW A PRE-LIVE AUDIT BLOCKER.**
+**Current state**: the transition package is **runtime-validated in
+isolation** - a meaningfully stronger status than "designed" or
+"static-reviewed." **Nothing has been applied to LIVE.** The known,
+still-open cross-surface split remains: the currently-deployed
+`get-public-quote`/`send-quote-email` Edge Functions still don't return
+`quote_number` (their local source does; neither has been redeployed).
 
 **DO NOT**:
-- apply the prepared A100700 migrations;
-- assume LIVE schema matches the local migration package;
-- attempt to "fix" A90;
-- deploy the local Edge Function merely to make the number appear.
-
-**FIRST** perform a separately-authorized READ-ONLY audit of the existing
-LIVE `quote_number` architecture and compare it to the prepared local
-package.
+- apply the migration package to Production without a separate, explicit
+  Owner authorization for that exact action;
+- assume the disposable-environment validation alone is sufficient
+  authorization for a LIVE migration;
+- attempt to "fix" A90 (historical numbers are permanently preserved, never
+  renumbered);
+- deploy either Edge Function outside the coordinated release order
+  documented in `PROFLOW_TODO.md` item 17.
 
 ## 9. Quote Number UI state
 
@@ -215,6 +229,16 @@ Still open and must not be falsely closed:
 - Moving/announcement banner content/admin-source decision.
 - Genuine International live visual QA when an appropriate user becomes
   available.
+
+## 10.A Disposable TEST Supabase environment (added 2026-08-28)
+
+A second Supabase project now exists for isolated runtime validation: `quotecode-test`
+(ref `ljfizgrdyzxddswcedwr`, Central EU/Frankfurt, created 2026-08-27) - separate from
+Production (`quotecode`, ref `ixabnzhjeqevtbhdfswv`). Used to runtime-validate the
+Quote Number transition package with fictional data only (never real customers, never
+David Aluminum). Two genuine defects were found and fixed via this testing that static
+review alone had missed - see `PROFLOW_HANDOFF.md`'s Disposable Supabase Runtime
+Migration Validation entry. Full permanent rule: `PROFLOW_PROJECT_CONTEXT.md` §17.D.
 
 ## 11. Security review
 
@@ -282,14 +306,17 @@ As of this snapshot:
 - Scrollbar center-axis issue: implemented and measured resolved.
 - Mobile Quote Number label/surface consistency: implemented locally.
 - English live visual QA: unavailable.
+- Quote Number: LIVE architecture audited (read-only), local package redesigned, then **runtime-validated in an isolated disposable Supabase project** (`quotecode-test`) - two real defects found and fixed through that testing (§8, §10.A). Still nothing applied to Production.
 - Application code: still uncommitted/unpushed.
 - No application deployment.
 - No DB migration.
 - No LIVE release.
 
-**NEXT PRIORITY**: perform a dedicated READ-ONLY audit of the unexpected
-existing LIVE `quote_number` architecture represented by A90 BEFORE any
-Quote Number migration or related deployment is authorized.
+**NEXT PRIORITY**: Owner decision on whether to authorize applying the
+now runtime-validated Quote Number transition package to Production (per
+the coordinated Release Order in `PROFLOW_TODO.md` item 17 - backup first,
+DB migration, then frontend fail-closed change, then both Edge Function
+redeployments, in that order, with HE+EN verification at each stage).
 
 After that, continue toward the Pre-LIVE Gate.
 
