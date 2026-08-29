@@ -6,146 +6,131 @@
 
 ---
 
-## Task: PROFLOW — Step 3 Attn Migration Rehearsal on TEST Only (No Production Mutation)
+## Task: PROFLOW — Fresh Production Backup Only (Pre-Step-3 Safety Snapshot)
 
 ### 1. Effort Level + Reason
 
-**HIGH.** Owner + ChatGPT explicit authorization to execute the Step 3 Attn migration rehearsal against the isolated `quotecode-test` project only, under the permanent TEST-FIRST rule. Production required to remain strictly read-only throughout.
+**HIGH.** Owner + ChatGPT explicit authorization for ONLY a fresh Production database backup and restore verification, as the immediate safety snapshot before any possible future Step 3 Production migration. This task does NOT authorize Step 3.
 
 ### 2. Fresh Local/Git State
 
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: identical to every prior task's baseline (`.gitignore` + six `PROFLOW_*.md` modified, three untracked migration-package items) — no drift. Continuity worktree: `HEAD == origin/proflow-continuity == 4306e209911a0a11b68ee0386f907d14332350a2` (the Step 3 pre-flight audit record), clean. Both freshly re-verified against all six continuity documents before any work began.
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: identical to every prior task's baseline — no drift. Continuity worktree: `HEAD == origin/proflow-continuity == 230ea740c1436a7205eef76283209aa0bd7be222` (the Step 3 TEST rehearsal record), clean. Both freshly re-verified against all six continuity documents before any work began.
 
-### 3. Fresh Production Identity — READ-ONLY Confirmation
+### 3. Fresh Production Identity
 
-`ixabnzhjeqevtbhdfswv` — name `quotecode`, `linked: true` at task start (via `supabase projects list`). Production access this task was limited to exactly two read-only `supabase projects list` calls (before and after the TEST work) — no `SELECT`, no mutation, no other interaction with Production at any point.
+`ixabnzhjeqevtbhdfswv` — name `quotecode`, `linked: true`, freshly re-confirmed as the backup **source**. `quotecode-test` (`ljfizgrdyzxddswcedwr`) confirmed `linked: false`. No restore target was ever Production or TEST.
 
-### 4. Fresh TEST Identity
+### 4. Docker Availability
 
-`ljfizgrdyzxddswcedwr` — name `quotecode-test`, region `eu-central-1`, Postgres `17.6.1.166`, `linked: false` at task start. **Target guard**: the CLI was explicitly re-linked via `supabase link --project-ref ljfizgrdyzxddswcedwr`, then `supabase projects list` was re-run and confirmed `quotecode-test: linked:true` / `quotecode: linked:false` **before** any `--linked` query was issued. `db push`/`db dump`-class commands used explicit `--project-ref ljfizgrdyzxddswcedwr` directly (never requiring `--linked` at all). At task end, the CLI was re-linked back to `ixabnzhjeqevtbhdfswv` and freshly confirmed restored — matching the exact pre-task state.
+Confirmed working (`docker version` → Server `29.7.2`), consistent with every prior task since the Docker-install correction.
 
-### 5. Exact Migration Executed
+### 5. Backup Mechanism Used
 
-`supabase/migrations/20260828000000_add_quote_attn_contact.sql` — rehearsed (see item 9 for why "executed" doesn't literally apply here).
+Real (non-dry-run) `supabase db dump --linked` for schema, then `supabase db dump --linked --data-only --use-copy` for data. `--dry-run` was never used, per the permanent lesson from the original credential-exposure incident.
 
-### 6. Exact Target Proof
+### 6. Backup Start/End Timestamps
 
-Every mutating SQL statement this task (`INSERT`/`UPDATE`/`DELETE`, all against `public.quotes`) was issued via `supabase db query --linked` **only after** the target-guard confirmation in item 4 above. No mutating statement was ever issued while the CLI was linked to Production.
+Start (filename timestamp): `2026-08-29T20:18:56Z`. Schema file completion: `2026-08-29T20:19:24Z`. Data file completion (end): `2026-08-29T20:19:41Z`.
 
-### 7. Migration Mechanism Used
+### 7. Exact Backup Paths
 
-`supabase db push --project-ref ljfizgrdyzxddswcedwr --dry-run` (first, to inspect pending state safely) → found nothing pending → no actual `db push` was needed or run, since the migration was already applied (see item 9).
+- `.../scratchpad/proflow-backups/proflow-production-schema-20260829-201856Z.sql`
+- `.../scratchpad/proflow-backups/proflow-production-data-20260829-201856Z.sql`
 
-### 8. Schema Before/After
+Both outside the repository (session scratchpad directory).
 
-**Before this task** (per fresh inspection): `attn_name`/`attn_role` already existed on `quotecode-test`'s `public.quotes` — `text`, nullable, no default. **After this task**: identical — no schema change was made by this task itself, since none was needed.
+### 8. Backup Formats
 
-### 9. Confirmation No Unrelated Migration Was Applied
+Plain-text SQL: schema-only DDL dump; data-only dump using `COPY` statements (`--use-copy`). Scoped to `public` schema (Supabase-internal platform schemas excluded by the CLI's own standard exclusion list — same limitation already documented for Step 2, not re-derived here).
 
-**Confirmed, and a genuine finding surfaced**: `supabase migration list --project-ref ljfizgrdyzxddswcedwr` showed all six local migration files (including `20260828000000`) already present in TEST's remote migration history. `supabase db push --project-ref ljfizgrdyzxddswcedwr --dry-run` returned `{"upToDate":true,"migrations":[]}` — zero migrations pending, confirming nothing (related or unrelated) was pushed by this task. This migration was already applied to TEST prior to this task, undocumented elsewhere — recorded now for the first time.
+### 9. File Sizes
 
-### 10. CREATE Persistence Result
+Schema: 34,242 bytes. Data: 1,569,581 bytes.
 
-**PASS.** Inserted a disposable fictional-data quote (`user_id 'a0000000-0000-0000-0000-00000000000a'`, `quote_number 999001`, `attn_name 'Test Contact Alpha'`, `attn_role 'QA Reviewer'`) — both fields persisted and returned correctly.
+### 10. SHA-256 Values
 
-### 11. READ Result
+Schema: `b8defc86b3731c598ac5a465d8a109e6ad1b38414a5396ff2b4e5afb05bfdcd9` — **byte-identical to the Step 2 backup's schema file**, confirming zero Production schema drift since. Data: `2bd0d0f3cc94a701eb79d43ed7fecea3e459f70e7bf096c832334ae45ea0fcf6`. Both independently re-verified byte-identical inside the restore container after `docker cp`.
 
-**PASS.** A fresh, independent `SELECT` (not relying on the INSERT's own `RETURNING`) confirmed the exact same values.
+### 11. Confirmation Files Are Outside Git
 
-### 12. UPDATE Result
+`git status --short` before and after this task is identical (no new entries). `git check-ignore -v` on the backup path returned "outside repository" — confirmed by Git itself.
 
-**PASS.** Updated both fields on the same still-draft quote (`'Test Contact Beta Updated'` / `'QA Lead Updated'`) — a second independent fresh `SELECT` confirmed the update persisted.
+### 12. Exact Disposable Restore Target
 
-### 13. NULL/Optional Behavior Result
+A second disposable, throwaway local Docker container (`postgres:17`, name `proflow-restore-verify-2`, `--rm`, no persistent volume). Confirmed empty (0 tables) before any restore activity. Never Production, never `quotecode-test`.
 
-**PASS.** A quote with both fields `NULL` inserted cleanly (valid row). A separate quote with `attn_name` populated and `attn_role` left `NULL` inserted cleanly — matches the frontend's independently-gated render logic (`quote.attn_name &&` / `quote.attn_role &&`, confirmed in the prior pre-flight audit) with genuine DB-level evidence.
+### 13. Restore Method
 
-### 14. Immutability Result — NOT TESTED (reason recorded)
+Backup files copied into the container via `docker cp` (checksum-verified post-copy); schema loaded via `psql -f /tmp/schema.sql`, then data via `psql -f /tmp/data.sql`, both executed inside the container against its own local database only.
 
-`quotecode-test` carries only this repo's own tracked migration triggers, including `protect_quote_number_immutability` (source directly re-read: guards `quote_number` only). It does **not** have Production's `guard_quote_immutability` general-content trigger, which pre-exists on Production outside any tracked migration file and therefore cannot exist on a TEST project built purely from this repo's migration set. Per this task's own explicit instruction not to force or invent an unsupported locked-state test, this is correctly reported as **NOT TESTED** here. The Production pre-flight audit's own conclusion on this exact point (§18.CD — direct read of Production's actual trigger source, confirming automatic composite-type extension to the new columns) stands independently and is unaffected by this TEST-side limitation.
+### 14. Restore Result
 
-### 15. Agent HE Verdict
+**Successful for all application content.** 9 tables, 3 sequences, 12 functions, 5 triggers created; all 9 tables' data loaded. 123 (schema) + 30 (data) errors occurred, every one reconfirmed as the same known Supabase-platform-only class already fully classified in the Step 2 restore (`anon`/`authenticated`/`service_role` roles; `auth`/`extensions`/`storage` schemas; `supabase_realtime` publication; platform extensions) — zero errors touched any `public`-schema table, data row, function, or trigger.
 
-**Reused from the immediately-prior pre-flight audit task (§18.CD), not re-run** — see item 17 for the explicit reasoning. That review found no genuine defect or Hebrew/RTL-specific risk in this exact migration's frontend code.
+### 15. Structural/Schema Verification
 
-### 16. Agent EN Verdict
+Table list, sequence/function/trigger counts, and `quotes` table structure (`quote_number integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')` — DEFAULT still present, confirming Step 3/DEFAULT-removal has not been applied) all confirmed identical to the Step 2 restore's structural profile — no drift.
 
-**Reused from the immediately-prior pre-flight audit task (§18.CD), not re-run** — see item 17. That review found no genuine defect or English/International-specific risk, explicitly noting CODE-VERIFIED-only status given the standing EN live-credentials gap.
+### 16. Aggregate Consistency Checks
 
-### 17. Claude Lead Reconciled Verdict
+Row counts per table identical to Step 2 (`business_settings` 12, `chat_logs` 77, `clients` 24, `expenses` 1, `quote_attachments` 3, `quotecode_documents` 6, `quote_items` 32, `quotes` 23, `services` 12). Aggregate cross-check on `quotes` identical to Step 2: 7 distinct businesses, `quote_number` range 11–89, `quotes_quote_number_seq.last_value = 90`. **This identical profile is itself meaningful evidence**: it confirms Production has had no material data change since the Step 2 backup two tasks ago — the backup is current and representative, not just mechanically re-verified.
 
-**Explicit reuse decision, stated transparently, not a silent skip.** No application/frontend code has changed since §18.CD's agent reviews — confirmed via `git status --short`, identical to this task's own baseline. Re-spawning agents against byte-identical, already-reviewed code would duplicate work for zero new evidence, contrary to this task's own "don't multiply work unnecessarily" instruction. Instead, this task's **new** TEST-level evidence (items 10-13) was incorporated directly: all functional tests used plain-text values with no currency/VAT/₪/locale-conditional code path anywhere near them, confirmed now at the SQL/data level in addition to the earlier code-level review — the two are mutually consistent, no contradiction. Owner/ChatGPT may request a fresh agent pass if this reasoning is not accepted.
+### 17. Warnings/Errors Classification
 
-### 18. Security/RLS/Grants Impact
+153 total restore-time messages (123 + 30), all classified as expected Supabase-platform-only objects unavailable in a bare Postgres image — same taxonomy as Step 2, independently re-confirmed this task via the same exclusion-filtering method. Zero unexplained errors.
 
-**TEST's configuration is explicitly not representative of Production and is reported as such, not conflated with it.** TEST's `quotes` table currently has zero RLS policies and grants `anon` full table privileges (`SELECT`/`INSERT`/`UPDATE`/`DELETE`/etc.) — a deliberately minimal disposable-fixture configuration built for functional testing, not a security-parity clone. Production's actual RLS (one blanket owner-scoped policy) and grants (no `anon`) were already directly confirmed in the prior pre-flight audit (§18.CD) and remain the authoritative security conclusion — unaffected by TEST's differing setup, which this task did not need to and did not change.
+### 18. Primary Verdict
 
-### 19. Warnings/Errors
+**FRESH PRE-STEP-3 BACKUP: PASS**
 
-None. Every SQL statement this task executed returned exactly the expected result with no error, no warning, no unexpected row count.
+### 19. Confirmation Step 3 WAS NOT EXECUTED
 
-### 20. Primary TEST Rehearsal Verdict
+Confirmed. No `supabase db push`, no `ALTER TABLE`, no migration execution of any kind.
 
-**STEP 3 TEST REHEARSAL: PASS WITH CONDITIONS**
+### 20. Confirmation Production WAS NOT MUTATED
 
-Condition: the immutability interaction is verified only via direct Production trigger-source analysis (§18.CD), not via a live TEST behavioral test (TEST's fixture doesn't support it) — a well-founded conclusion given the trigger source was read directly and the underlying Postgres composite-type behavior is well-defined, but flagged explicitly so Owner/ChatGPT can weigh it rather than assume a full live rehearsal occurred on every point.
+Confirmed. Production access this task was limited to `supabase projects list` (identity check) and the two `supabase db dump` export calls — both read-only export operations. Zero `INSERT`/`UPDATE`/`DELETE`/`ALTER`/`CREATE`/`DROP` issued against Production.
 
-### 21. Confirmation Production WAS NOT MUTATED
+### 21. Exact Documentation Files Changed
 
-Confirmed. Production access this task was limited to two read-only `supabase projects list` calls (identity check before, restoration confirmation after). Zero `SELECT`/`INSERT`/`UPDATE`/`DELETE`/`ALTER`/`CREATE`/`DROP`/`db push`/`db query` was ever issued while the CLI was linked to Production.
+`PROFLOW_TODO.md` (canonical Step 3 line extended with the fresh-backup result, condition #1 marked satisfied), `PROFLOW_HANDOFF.md` (new §18.CF entry), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
 
-### 22. Confirmation No Release Step 4+ Was Executed
-
-Confirmed. No Quote Number migration, no counter initialization, no DEFAULT removal, no Edge Function deploy, no application modification, no application commit, no `main` commit/push, no Vercel action.
-
-### 23. Exact Documentation Files Changed
-
-`PROFLOW_TODO.md` (canonical Step 3 line extended with the TEST rehearsal result), `PROFLOW_HANDOFF.md` (new §18.CE entry — full rehearsal record), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
-
-### 24. File-by-File Ledger
+### 22. File-by-File Ledger
 
 | FILE | WHAT CHANGED | WHY | SOURCE/EVIDENCE | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | Canonical Step 3 line extended: ✅ TEST REHEARSAL: PASS WITH CONDITIONS, full summary including the "already applied" finding and the NOT TESTED immutability caveat | Record the rehearsal result against the canonical release plan | This task's direct TEST-project queries and functional tests | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CE entry — full rehearsal record, target-guard detail, the pre-existing-migration finding, all functional test results, and the HE/EN reuse-decision reasoning | Standing chronological-record pattern; the reuse decision needed explicit justification | This task's own command outputs | DONE |
+| `PROFLOW_TODO.md` | Canonical Step 3 line extended: fresh backup PASS recorded, condition #1 marked satisfied | Record the safety-snapshot result and update the release plan's satisfied-conditions state | This task's own `supabase db dump`/Docker restore commands and output | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CF entry — full fresh-backup and restore-verification record, including the identical-profile freshness signal | Standing chronological-record pattern | This task's own command outputs | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file — full Final Report for this task | Standing rule | — | DONE |
-| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no Step 3/TEST-rehearsal content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no Step 3/TEST-rehearsal content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no Step 3/TEST-rehearsal content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
 
-### 25. Secret/Privacy Scan Result
+### 23. Secret/Privacy Scan Result
 
-No credential was printed to terminal output this task (`db query --linked`, `db push --dry-run`, `projects list`, and `link` all returned only schema/data/metadata, consistent with the established safe pattern — `db dump --dry-run` remains the only known credential-printing command and was not used). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (rule names, project refs which are non-secret identifiers, SQL keywords) — no actual secret value present. **PASSED.**
+No credential was printed to terminal output this task (`--dry-run` never used on `db dump`). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (rule names, checksums, table/function names) — no actual secret value present. **PASSED.**
 
-### 26. Fresh Git State at Task End
+### 24. Fresh Git State at Task End
 
 Recorded in the chat response following this report.
 
-### 27. Confirmation Main/Application Remained Untouched
+### 25. Confirmation Main/Application Remained Untouched
 
-`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; no application source file was read for modification, edited, staged, committed, or pushed — this was a pure DB-level rehearsal with zero code execution.
-
-### 28. Recommended Next Step — PLAN ONLY, NOT EXECUTED
-
-Owner + ChatGPT review this report. If accepted, the next action would be a **separate, explicit authorization for Production Step 3 execution**, incorporating the two conditions already recorded in the pre-flight audit (§18.CD: fresh backup immediately before execution; functional-verification method decision — now informed by this task, which demonstrates the schema-level mechanism works correctly, with the immutability interaction resting on code-level analysis rather than a live behavioral test). No further TEST or Production action is proposed to happen automatically from this report alone.
+`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; all git operations this task targeted the separate `proflow-continuity` worktree exclusively. No application source file was edited, staged, committed, or pushed.
 
 ---
 
-**STEP 3 TEST REHEARSAL: PASS WITH CONDITIONS.** Production Step 3 was **NOT executed**.
+**FRESH PRE-STEP-3 BACKUP: PASS.** Both pre-flight conditions from the original Step 3 audit (§18.CD) are now satisfied — a fresh, current, restore-verified Production backup exists, and the functional-verification approach was addressed via the TEST rehearsal (§18.CE). **Step 3 itself remains NOT executed against Production and still requires its own separate, explicit Owner + ChatGPT authorization** — satisfying these conditions is not that authorization.
 
-NO PRODUCTION MUTATION
-NO PRODUCTION MIGRATION
-NO PRODUCTION INSERT/UPDATE/DELETE
-NO PRODUCTION ALTER/CREATE/DROP
+NO STEP 3 MIGRATION
+NO ATTN MIGRATION
 NO QUOTE NUMBER MIGRATION
-NO COUNTER INITIALIZATION
-NO DEFAULT REMOVAL
-NO EDGE FUNCTION DEPLOYMENT
+NO PRODUCTION MUTATION
+NO PRODUCTION RESTORE
+NO EDGE FUNCTION DEPLOY
 NO APPLICATION MODIFICATION
 NO APPLICATION COMMIT
 NO MAIN COMMIT
 NO MAIN PUSH
 NO VERCEL ACTION
-NO RELEASE STEP 4 OR LATER
-NO REAL-CUSTOMER TEST
-NO DAVID ALUMINUM TEST
+NO STEP 4+
