@@ -4,174 +4,212 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE either. See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-**No secrets appear in this file** — no passwords, no anon/service-role keys.
+**No secrets appear in this file.**
 
 ---
 
-## Task: PROFLOW — Local→TEST Supabase Separation + Live-International Visual Identification Audit (Read-Only)
+## Task: PROFLOW — Full Runtime TEST Environment Build Plan (PLAN ONLY, NO IMPLEMENTATION)
 
-### 1. Effort Level + Reason
+**Effort level**: HIGH. Owner + ChatGPT explicit authorization to produce the exact implementation plan to turn `quotecode-test` into a safe, functional, full-runtime ProFlow TEST environment. **Nothing implemented.**
 
-**HIGH.** Owner + ChatGPT explicit authorization for a READ-ONLY architecture/safety audit covering two subjects: (A) how to make local dev use `quotecode-test` instead of Production safely, and (B) how to make the real live International account visually unmistakable in the Admin panel without touching its Auth identity. No implementation authorized.
+**FINAL VERDICT: FULL RUNTIME TEST BUILD: READY WITH BLOCKERS**
 
-### 2. Fresh Git/Local State
+---
 
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short` identical to every prior task's baseline, before and after. Continuity: `HEAD == origin/proflow-continuity == 33bd9e70071d0f2f4237336d5ee229cf99cd0e37`, clean. Dev processes confirmed still running (PID 21028/5184, PID 17520/5186), untouched. Env files present: `.env` and `.env.example` only — no `.env.local`/`.env.[mode]` files exist yet. `.gitignore` already covers `.env`, `.env.local`, `.env.*.local` (confirmed, lines 30-32) — Vite's standard local-override mechanism is already safely gitignored and unused. CLI link state: Production before this task, briefly switched to TEST (confirmed via `projects list` before any query) for the read-only readiness audit, then restored to Production and freshly re-confirmed at task end.
+### 1. Fresh State
 
-### 3. Current Supabase Backend Used by 5184/5186
+- **Documented state**: matched all six continuity documents exactly, no drift, at task start and end.
+- **Current local repository state**: `main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. `git status --short` identical to every prior task's baseline.
+- **Production state**: read-only inspected fresh this task (full inventory below) — genuinely current, not assumed from prior tasks.
+- **`quotecode-test` state**: read-only re-inspected fresh this task, confirmed identical to the immediately preceding audit (§18.CJ) — no drift, no mutation occurred between tasks.
+- **Facts verified fresh in this task**: the entire Production inventory in §2 below, plus a fresh re-check of TEST's 2-table/3-function/0-storage-bucket state.
+- Target guard: explicit `supabase link --project-ref ljfizgrdyzxddswcedwr` + fresh `projects list` confirmation before every TEST query; CLI relinked to Production and freshly confirmed restored at task end.
 
-`.env`'s `VITE_SUPABASE_URL` = `https://ixabnzhjeqevtbhdfswv.supabase.co` — **Production**. Both 5184 and 5186 run `npm run dev` from the identical working directory with no mode flag, so both load the same `.env` and both currently point at Production — confirmed identical.
+### 2. Production vs TEST Inventory
 
-### 4. Current HE/EN Selection Mechanism
+**Production (`ixabnzhjeqevtbhdfswv`) — full inventory, freshly queried:**
 
-Unrelated to the Supabase backend entirely. `src/main.jsx` picks `<AppGlobal/>` vs `<AppLocal/>` per-visit via `?lang=` → URL path → per-origin `localStorage` → `navigator.language` (established in the prior 5186 diagnostic, §18.CH — not re-derived here). Both agents this task independently confirmed: switching the Supabase target has zero interaction with this logic.
+- **9 tables**: `business_settings`, `chat_logs`, `clients`, `expenses`, `quote_attachments`, `quote_items`, `quotecode_documents`, `quotes`, `services` — full column/type/nullable/default list captured for every table.
+- **Constraints**: 9 primary keys, 6 foreign keys (`business_settings.user_id`→`auth.users`, `clients.user_id`→`auth.users`, `expenses.user_id`→`auth.users` `ON DELETE CASCADE`, `quote_attachments.quote_id`→`quotes` `ON DELETE CASCADE`, `quote_items.quote_id`→`quotes` `ON DELETE CASCADE`, `quotes.client_id`→`clients` `ON DELETE CASCADE`, `quotes.user_id`→`auth.users`), 1 unique constraint (`business_settings.user_id`). **No unique constraint on `quotes(user_id, quote_number)` exists yet** — confirms the Quote-Number migration chain (canonical Step 4) has not been applied to Production, consistent with everything already documented.
+- **RLS**: enabled on **all 9 tables**. 24 policies total across the 9 tables, full list captured (notably: `quotecode_documents` and parts of `expenses` intentionally allow broad/public access by design — pre-existing Production behavior, not a gap).
+- **Grants**: `anon` holds full table-level grants on `expenses`, `quotecode_documents`, `services` (pre-existing, RLS-gated); no `anon` grant on `business_settings`/`chat_logs`/`clients`/`quote_attachments`/`quote_items`/`quotes`.
+- **Functions (12, all `SECURITY DEFINER`)**: `approve_quote_public` (2 overloads, legacy — confirmed via Agent HE **not called by any current frontend code**), `guard_business_settings_plan_trial`, `guard_quote_child_immutability`, `guard_quote_immutability`, `guard_quote_immutability_delete`, `handle_user_migration`, `increment_quote_views`, `is_admin`, `is_super_admin`, `public_approve_quote` (the one actually called by `PublicQuote.jsx`/`PublicQuoteEn.jsx`), `public_increment_quote_view`. Four functions (`approve_quote_public` both overloads, `handle_user_migration`, `increment_quote_views`) have **no explicit `search_path` set** — a pre-existing Production characteristic to replicate faithfully, not "fix" in TEST (would create drift).
+- **Triggers**: `guard_business_settings_plan_trial_update`, `guard_quote_attachments_immutability`, `guard_quote_items_immutability`, `guard_quote_immutability_delete_trigger`, `guard_quote_immutability_update`, and critically **`on_auth_user_created_migration`** on `auth.users` (AFTER INSERT OR UPDATE, calls `handle_user_migration()`) — a legacy safety-net that re-links business data to a new `user_id` if a matching `business_settings.email` exists under an old `user_id`; confirmed by Agent HE as **not exercised by normal fresh signups**, present-but-inert for TEST purposes.
+- **Sequences**: `business_settings_id_seq`, `quotes_quote_number_seq` (last_value 90 — the live global sequence powering `quotes.quote_number`'s `DEFAULT`), `services_id_seq`.
+- **Storage**: 1 bucket `quote-files` (public), 2 object policies (`authenticated` INSERT, `public` SELECT).
+- **Edge Functions (11 deployed)**: `clever-processor`, `send-welcome-email`, `send-quote-email`, `chat-ai`, `admin-delete-user`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook`, `billing-checkout-stub`, `get-public-quote`, `admin-cleanup-user-quotes`.
 
-### 5. Current Env Precedence
+**`quotecode-test` (`ljfizgrdyzxddswcedwr`) — full inventory, freshly re-queried, unchanged from the prior audit:**
 
-Vite's standard, unmodified precedence applies (nothing in this repo overrides it): for a given `--mode` (default `development`), Vite loads `.env` → `.env.local` → `.env.[mode]` → `.env.[mode].local`, later files overriding earlier ones. `.env.local` and `.env.[mode].local` are already gitignored; `.env.[mode]` (without `.local`) is **not** currently covered by `.gitignore` and should never be used for secrets.
+- **2 tables only**: `business_quote_sequences`, `quotes` (9 columns — just the item-17/18 additions, missing 14 of Production's 23 `quotes` columns and all 7 other tables entirely).
+- **RLS**: enabled on `business_quote_sequences`, **disabled** on `quotes`.
+- **Grants**: `anon` holds full grants on `quotes` (no RLS to gate it).
+- **3 functions**: `allocate_quote_number`, `is_super_admin` (**`SECURITY DEFINER = false`** — drifted from Production's `true`), `protect_quote_number_immutability`.
+- **Storage**: 0 buckets.
+- **Edge Functions**: 0 deployed.
+- **Auth users**: 5 synthetic `fixture-business-{a..e}@example.invalid` accounts only.
 
-### 6. Current Production-vs-TEST Credential Mapping
+### 3. Authoritative-Source Matrix
 
-All four named `.env` test-credential pairs (`PROFLOW_TEST_USER1_*`, `PROFLOW_TEST_USER2_*`, `PROFLOW_TEST_ADMIN_*`, `PROFLOW_TEST_INTL_*`) are **Production-backed** — confirmed directly against `auth.users`/`business_settings` in an earlier task this session. None exist in `quotecode-test` (confirmed this task: `auth.users` in `quotecode-test` contains only 5 synthetic `fixture-business-{a..e}@example.invalid` rows, unrelated to any named credential). No passwords reproduced here, per this task's own instruction.
-
-### 7. Local→TEST Architecture Options
-
-**Option A — Dedicated Vite mode + local-only env file.** `npm run dev -- --mode localtest --host --port 5186 --strictPort` (note: avoid naming the mode `test` — Vite/Vitest reserve special meaning for mode `test`, and this repo's own `vite.config.js` already configures Vitest; a collision would be confusing) with a new, local-only `.env.localtest.local` containing `quotecode-test`'s URL/anon key. File: local-only, already covered by the existing `.env.*.local` gitignore pattern — zero risk of accidental commit. Risk of LIVE pointing at TEST: none — Vercel Production builds pull env vars from Vercel's own dashboard config, never from this local file. Risk of LOCAL reverting to Production: only if the `--mode` flag is omitted, which is exactly today's status quo — not a new risk. Impact on 5184/5186: can be applied **asymmetrically** — keep 5184 (Hebrew, already firewall-approved, already Owner-phone-verified) on Production unchanged, point only 5186 (International) at TEST — directly targets the account this whole audit is about, without touching what already works. Impact on HE/EN: none (confirmed by both agents). Impact on Auth: entirely separate Auth user pool — none of the four existing `.env` credentials would work against TEST; a genuinely TEST-native Auth user would need to be created there separately (out of this task's scope). Impact on Edge Functions: `quotecode-test` has **zero** deployed Edge Functions (confirmed this task) — any feature depending on `get-public-quote`/`send-quote-email`/`chat-ai`/etc. would fail until those are deployed there too. Impact on password reset/email confirmation and Supabase redirects: **UNKNOWN/REQUIRES VERIFICATION** — Auth-service-level settings (email confirmation toggle, redirect-URL allowlist) are not readable via this CLI session without Dashboard access; almost certainly not yet configured for local LAN URLs, since `quotecode-test` was built only for DB-migration rehearsal. Impact on RLS/data visibility: **real gap found** — RLS is currently disabled on `quotecode-test`'s `quotes` table and `anon` holds full grants; low real-world risk today (only synthetic fixture data, no real customers), but must be fixed before genuine interactive testing, since the anon key ships client-side and is effectively public. Rollback: trivial — delete the local file or omit `--mode`. Vite restart: **required** (env vars are read once at server startup). Code changes: **none**.
-
-**Option B — Plain `.env.local` (unconditional, no mode).** Same mechanism, but applies to every `npm run dev` invocation regardless of port/mode — would point 5184 (Hebrew) at TEST too, unless combined with a mode override to selectively revert it, which is more moving parts for a worse default. Less flexible than Option A for no benefit; not recommended as primary.
-
-**Option C — Named npm script wrapper** (e.g. `"dev:test": "vite --mode localtest --host --port 5186 --strictPort"`). Same underlying mechanism as Option A, wrapped for convenience — but requires editing the tracked `package.json`, which this task's own absolute prohibitions forbid ("NO package/script change"). Worth adopting later as a pure convenience layer over Option A, with its own separate authorization.
-
-**Option D — Other repo-supported mechanism.** None found; Vite's own env-mode system (Option A) is already the standard, idiomatic, zero-new-dependency mechanism.
-
-### 8. Recommended Architecture
-
-**Option A, applied asymmetrically**: keep 5184 on Production (unchanged, already working), point only 5186 at `quotecode-test` via `--mode localtest` + a new local-only `.env.localtest.local`. Zero code change, zero risk to the committed config, trivially reversible. **Conditioned** on the TEST-environment buildout in item 9 below before it would produce a genuinely usable app.
-
-### 9. TEST Runtime Readiness Matrix
-
-| Dependency | Status | Evidence |
+| Object | Category | Notes |
 |---|---|---|
-| Auth configuration (email confirmation, redirect allowlist) | **UNKNOWN / REQUIRES VERIFICATION** | Not readable via CLI without Dashboard access |
-| `business_settings` schema | **MISSING** | Table does not exist in `quotecode-test` |
-| `quotes` schema | **PARTIAL** | Table exists but only 9 of Production's 23 columns (the item-17/18 additions only — no `client_id`, `currency`, `subtotal`, `total`, `terms`, etc.) |
-| `clients` schema | **MISSING** | Table does not exist |
-| Other core tables (`services`, `expenses`, `quote_items`, `quote_attachments`, `chat_logs`, `quotecode_documents`) | **MISSING** | None exist — confirmed via `pg_tables`, only `business_quote_sequences` + `quotes` present |
-| RLS policies | **MISSING / DISABLED** | RLS explicitly `false` on `quotes`; `pg_policies` empty |
-| Helper functions | **PARTIAL** | Only `allocate_quote_number`, `is_super_admin`, `protect_quote_number_immutability` exist (3 of ~12) — `is_admin`, `guard_quote_immutability`(`_delete`), `approve_quote_public`, `public_approve_quote`, `increment_quote_views`, `public_increment_quote_view`, `handle_user_migration` all absent |
-| Triggers | **PARTIAL** | Only the quote-number-immutability trigger exists; the general content-immutability trigger (pre-existing on Production, never captured in any tracked migration) is absent |
-| Edge Functions | **MISSING** | `supabase functions list --project-ref ljfizgrdyzxddswcedwr` returns zero functions |
-| Storage dependencies | **MISSING** | `storage.buckets` is empty — no `quote-files` bucket |
-| Required migrations (this repo's own 6 tracked files) | **READY** | All 6 confirmed applied via `migration list` |
-| Seed/test fixtures | **PARTIAL** | 5 synthetic `fixture-business-*` accounts exist, but none configured for interactive Auth-based testing (no matching real login credentials) |
-| Public/anon grants | **PARTIAL, NEEDS HARDENING** | `anon` holds full table-level grants on `quotes` — appropriate for the original disposable-migration-only use case, not for interactive multi-user testing |
-| Email-confirmation behavior | **UNKNOWN / REQUIRES VERIFICATION** | Not inspectable via CLI |
-| Redirect configuration | **UNKNOWN / REQUIRES VERIFICATION** | Not inspectable via CLI |
+| Entire base schema (8 of 9 tables, `quotes`' original 23 columns, all RLS policies except the quote-number ones, all 9 non-quote-number functions, `on_auth_user_created_migration` trigger, storage bucket+policies) | **B — Production only** | Not represented in any tracked `supabase/migrations/*.sql` file. This predates the repo's own migration history entirely. |
+| `quotes_quote_number_seq` + `quotes.quote_number`'s live `DEFAULT nextval(...)` | **B — Production only** | The repo's own `20260827000000_add_quote_number_sequence.sql` explicitly does not touch this column (confirmed by its own header comment) — Agent EN independently confirmed this is a genuine untracked dependency needed by both `get-public-quote` and `send-quote-email`. |
+| The 6 tracked quote-number/attn migrations (`20260827000000`→`20260827000003`, `202608270000015`, `20260828000000`) | **C — both, and identical (on TEST only)** | Confirmed applied to `quotecode-test`; confirmed **not** applied to Production (canonical Steps 3–4 remain unexecuted, per `PROFLOW_TODO.md`). |
+| `is_super_admin` function | **D — both, but drifted** | Exists on both, but `SECURITY DEFINER` is `true` on Production, `false` on `quotecode-test`. |
+| `get-public-quote`, `send-quote-email`, `chat-ai`, `admin-delete-user`, `admin-cleanup-user-quotes`, `billing-checkout-stub`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook` (9 Edge Functions) | **C on repo/Production, D vs. `quotecode-test`** | Source tracked in `supabase/functions/`; deployed to Production (some versions stale relative to local source — `get-public-quote`/`send-quote-email` confirmed last deployed 2026-08-25, predating local quote_number/Attn changes); **zero deployed to `quotecode-test`**. |
+| `clever-processor`, `send-welcome-email` (2 Edge Functions) | **B — Production only** | Deployed via a different, untracked mechanism (their `entrypoint_path` doesn't match the repo's `supabase/functions/` structure like the other 9 do) — no local source exists at all. Agent EN confirmed `send-welcome-email` is not invoked by any signup flow in tracked code — orphaned, not a flow blocker, but its own definition is unrecoverable from Git. |
+| Auth-service settings (email confirmation, redirect-URL allowlist, SMTP behavior) | **E — unknown** | Not queryable via SQL or this CLI session for either project; would need direct Dashboard comparison. |
 
-**Bottom line**: `quotecode-test` was purpose-built solely for isolated DB-migration rehearsal (Steps 2/3 of the Production release). It is **far** from a full app-runtime TEST environment — this task's own explicit warning not to assume otherwise is confirmed accurate.
+**Conclusion**: TEST **cannot** currently be built reproducibly from Git alone — the overwhelming majority of required objects are category B (Production-only, undocumented). This is the central, first-order finding driving the phase ordering below.
 
-### 10. Auth/Redirect Implications
+### 4. Schema Drift
 
-Covered in item 9 — both classified `UNKNOWN / REQUIRES VERIFICATION`, since Supabase Auth-service settings are not queryable via SQL and this CLI session has no read path to the Dashboard-level config for a remote project. Would need direct Dashboard inspection (by the Owner, or a future session with different access) before relying on Auth flows (signup confirmation, password reset) against `quotecode-test`.
+Beyond the wholesale absence covered above, the one direct like-for-like drift found: `is_super_admin`'s `SECURITY DEFINER` flag (Production `true`, TEST `false`) — see §3.
 
-### 11. Edge Function Implications
+### 5. Security/RLS Gaps (TEST)
 
-Zero Edge Functions deployed to `quotecode-test` (confirmed via `supabase functions list`). Any feature depending on one (Public Quote page rendering, quote-email sending, AI chat, admin actions) would fail entirely if the frontend pointed there without first deploying equivalents — a real, non-trivial prerequisite, separate from the DB-schema gap.
+RLS disabled on `quotes` in TEST with `anon` holding full grants — the exact opposite of Production's posture (RLS enabled, no `anon` grant) for that table. Must be corrected as part of the schema-capture work, not left as-is merely because TEST data is synthetic (per the task's own explicit instruction).
 
-### 12. HE Agent Verdict
+### 6. Storage Gaps (TEST)
 
-No Hebrew/RTL-specific concern found. The Supabase-target switch is confirmed purely a backend concern, orthogonal to language logic — nothing in `AppLocal.jsx`/`main.jsx` assumes a specific project. The `business_settings` auto-init failure mode (missing table) would break Local and International signups identically, not differently. `business_quote_sequences`/`allocate_quote_number` is confirmed market-neutral (applies to all businesses, not an Israel-only mechanism).
+Zero buckets exist. `quote-files` (public, with its 2 policies) must be created for any attachment-related or Public-Quote-attachment testing to function.
 
-### 13. EN Agent Verdict
+### 7. Edge Function Matrix
 
-Confirms the same architectural neutrality from the English/International side — `AppGlobal.jsx`/`LandingGlobal.jsx` have no Supabase-project dependency. Confirmed the bare `quotecode-test` schema would block signup universally (both markets) via the same fail-closed error path in `Dashboard.jsx` — not International-specific, and no VAT-leakage risk since the failure happens before any row (or VAT logic) executes. Independently confirmed Claude Lead's assessment that no existing Admin-UI field can double as a "genuinely real vs. test" signal. Pinpointed the exact leakage-risk files to check before any future admin-only field is added: `supabase/functions/get-public-quote/index.ts:97-98` and `send-quote-email/index.ts:153-154` (both already use narrow explicit `select()` allowlists — good precedent, a new field wouldn't leak unless someone later changes these to `select('*')`), plus `PublicQuoteEn.jsx`, `PublicQuote.jsx`, `PublicQuoteHeader.jsx` as the customer-facing renderers that must never read such a field.
+| Function | Classification | Tracked source? | Side-effect risk |
+|---|---|---|---|
+| `get-public-quote` | **REQUIRED FOR BASIC TEST** | Yes | None — pure read |
+| `send-quote-email` | **REQUIRED FOR BASIC TEST** | Yes | **Sends a real email via Resend** (`RESEND_API_KEY`) — must be restricted to Owner-controlled test addresses or a Resend test/sandbox key before use |
+| `chat-ai` | REQUIRED FOR FULL TEST (only if AI chat itself is being tested) | Yes | Real AI-API billing/cost per call — use sparingly |
+| `admin-delete-user`, `admin-cleanup-user-quotes` | REQUIRED FOR FULL TEST (only for Admin-panel testing) | Yes | Destructive by design (delete operations) — inherently safe in TEST since all data there is synthetic |
+| `billing-checkout-stub`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook` | NOT REQUIRED for core application-flow testing | Yes | `send-*-email` functions carry the same real-email caveat as `send-quote-email` if ever exercised |
+| `clever-processor`, `send-welcome-email` | NOT REQUIRED (confirmed unused in tracked signup flow) | **No — untracked** | Unknown; not invoked by any current code path |
 
-### 14. Claude Lead Reconciliation
+**Deployment-version decision needed**: the currently-*deployed* versions of `get-public-quote`/`send-quote-email` on Production predate the local quote-number/Attn work — recommend deploying the current **local tracked source** to `quotecode-test` (not a copy of Production's stale deployed version), since testing the newer code is the actual purpose.
 
-No disagreement between agents — both confirm the Supabase-target-switch design is language-neutral, and both independently validated the TEST-readiness gaps affect Local and International equally, not asymmetrically. Combined verdict below.
+### 8. Auth Requirements
 
-### 15. International TEST-Account Recommendation
+Cannot be verified or configured via this CLI session. **Owner Dashboard checklist for `quotecode-test`** (future, not performed here):
+- Confirm email/password Auth provider is enabled.
+- Configure the Auth redirect-URL allowlist to include local LAN test URLs — at minimum `http://192.168.1.189:5186/*` (and `5184` if ever dual-purposed), matching the exact pattern already configured for Production per `PROFLOW_HANDOFF.md`'s existing redirect documentation.
+- Decide/confirm email-confirmation-required behavior (recommend: disabled or auto-confirmed for TEST, to avoid needing real inbox access for synthetic test accounts) — Owner decision, not Claude's to set.
+- Confirm password-reset email behavior (will use Supabase's default sender unless custom SMTP is configured for this project — likely not yet configured).
 
-**Compared**: (A) dedicated International account in a real TEST Supabase runtime — the correct long-term destination, but blocked today on the extensive readiness gaps in item 9; not creatable meaningfully until those are addressed. (B) dedicated synthetic International account inside Production — technically simpler right now (Production already has full schema/functions/Edge Functions/Auth config working), but directly conflicts with the entire point of this audit (minimizing Production testing) and was already the subject of the immediately preceding task's BLOCKED verdict for exactly this reason. (C) no other safer mechanism identified. **Recommendation**: pursue (A) as the target end-state — implement Option A's local→TEST pointing mechanism, then separately and explicitly address the readiness matrix (schema, RLS, functions, Edge Functions, Auth config) as its own authorized body of work, then create one dedicated International TEST Auth user natively in `quotecode-test`. No account created by this task.
+### 9. Synthetic-Data Policy
 
-### 16. Admin-Only LIVE-International Visual-Identification Options
+**No real Auth users, emails, passwords, customers, businesses, quotes, attachments, chat history, expenses, documents, sessions, tokens, or secrets may ever be copied into TEST.** Structure only. Three future synthetic accounts specified (none created by this task):
+- **Local/HE TEST user** — fictional Hebrew business, `country='Local'`, `currency='ILS'`.
+- **International/EN TEST user** — fictional business, `country='International'`, `currency` one of USD/EUR/GBP.
+- **TEST Admin** (if Admin-panel testing is desired) — `role='super_admin'` equivalent, fictional identity.
 
-1. **Admin-only display label from existing data** — **already exists today, zero risk, zero change**: `AdminUsersTab.jsx` and `UserDetailsModal.jsx` both already render `business_name` + `country` (with an "Intl"/"LCL" tag), confirmed by direct read and by Agent EN. This alone shows "International" but cannot express "definitely real, not test," since no field currently carries that intent.
-2. **Business-name change in data** — **NOT SAFE, rejected**: `business_name` is customer-facing (appears in quotes, Public Quote pages, and emails sent to real clients) — embedding an internal label there would leak into real customer-facing output.
-3. **New admin-only alias/nickname field** (e.g. a small `business_settings` boolean/text column, rendered only in Admin UI) — **safe in principle**, small and additive, zero Auth/customer-facing impact if the leakage-risk files named in item 13 are respected — but is a schema change, requiring its own separate future authorization; not created by this task.
-4. **UI-only visual badge based on known account/market state** — two variants: (a) built on option 3's new field (robust, needs the schema change) or (b) a purely client-side hardcoded email match with zero DB change (technically zero-risk to data, but architecturally fragile/a magic-constant anti-pattern, not recommended as a lasting solution, acceptable only as a stopgap if option 3 is rejected).
-5. **Email alias / Auth identity change** — **NOT appropriate, explicitly rejected**: this is the Owner's real login credential for his real account; changing it would disrupt his actual real-world usage, risks breaking anything tied to that email, and doesn't even solve the stated problem — Auth login identity is orthogonal to Admin-panel visual identification. Do not conflate the two.
+Per Agent HE's finding: any manually-inserted `business_settings` row for these accounts (if not created via the normal app signup flow) must satisfy the RLS INSERT policy's exact condition — `plan='pro'` with `trial_ends_at` within ~14 days of insert time (the actual, only payload shape `Dashboard.jsx`'s real signup flow produces for both markets).
 
-### 17. Explicit Recommendation Regarding Email/Auth Aliasing
+### 10. HE Requirements (Agent HE, full findings)
 
-**Do not pursue.** As explained above, it solves the wrong layer of the problem (login credential, not admin display) while introducing real risk to the Owner's actual working account.
+Confirmed exact `business_settings` INSERT payload for Local signup (`user_id`, `email`, `business_name`, `country='Local'`, `currency='ILS'`, `plan='pro'`, `role='user'`, `default_terms`, `trial_ends_at`, `last_sign_in`). VAT correctness depends only on `quotes.client_type` and `quotes.tax_rate` (both plain columns, no separate config table — VAT rate 18% is a hardcoded frontend constant). Confirmed the frontend calls only `public_approve_quote(p_quote_id, p_signature_data_url)` — the legacy `approve_quote_public` overloads are dead code from the frontend's perspective and are **not required** for TEST to support the real approval flow. `on_auth_user_created_migration` confirmed inert for fresh TEST signups.
 
-### 18. Safest Next Implementation Step — PLAN ONLY, NOT EXECUTED
+### 11. EN Requirements (Agent EN, full findings)
 
-If Owner + ChatGPT approve: (1) create the local-only `.env.localtest.local` (Option A) pointing 5186 at `quotecode-test`, restart that one dev process — zero code change, immediately reversible; (2) separately authorize the TEST-readiness buildout (schema/RLS/functions/Edge Functions/Auth config) as its own scoped body of work before relying on it for interactive testing; (3) once ready, create one dedicated International TEST Auth user natively in `quotecode-test`; (4) separately, if desired, authorize a small additive `business_settings` admin-only field (option 16.3) for the Admin-panel visual label, respecting the leakage-risk files named above.
+Confirmed the International signup payload differs from Local only in `currency`/`default_terms` — the RLS-relevant `plan`/`trial_ends_at` shape is identical, so no International-specific RLS gap exists. Confirmed no exchange-rate/currency-config table exists anywhere — currency handling is entirely `business_settings.currency`+hardcoded symbol maps. **Identified the `quotes_quote_number_seq` untracked-dependency finding** (§3) via direct read of both Edge Functions' own audit comments. Confirmed `send-welcome-email` is not invoked in any signup path (Local or International) — its untracked source is a footnote, not a blocker. Confirmed the International-must-never-show-VAT invariant is purely frontend-conditional (`QuoteForm.jsx`), with no backend/DB enforcement — TEST needs no special backend safeguard for it.
 
-### 19. Exact STOP Conditions
+### 12. Recommended Build Strategy
 
-None triggered this task — this was a complete, evidence-based audit with no ambiguous target identity, no unexpected mutation risk encountered, and no point requiring an unplanned halt.
+**Hybrid, closest to Option B+A**: (1) schema-only extraction from Production via `supabase db dump --linked --schema-only` targeting **only the objects genuinely needed** (not a blind full dump — filtered/reviewed against this task's own inventory), (2) manually reviewed and converted into new, clean, idempotent tracked migration files (mirroring the same style/discipline already used for the 6 existing quote-number/attn migrations — `IF NOT EXISTS` guards, explicit rollback comments, no data), (3) applied to `quotecode-test` via `supabase db push`, never to Production (Production already has this schema natively — reapplying would be redundant and risky). This directly answers §6's own question: after this work, TEST **would** become reproducible from Git, closing the current category-B gap. Rejected: a blind `pg_dump`-and-restore of Production's full schema, since that would import undocumented objects wholesale without the review/reconciliation step this task's own §6 explicitly requires, and would risk carrying over Production-specific artifacts inappropriate for a disposable TEST project.
 
-### 20. Confirmation No Files/Config/Env/Accounts/DB Were Changed
+### 13. Ordered Implementation Phases
 
-Confirmed. `.env`/`.env.local`/`vite.config.js`/`package.json` were read-only inspected, never written. No Auth user created, no password reset, no TEST or Production DB mutation (every query issued was read-only `SELECT`/`count`/metadata). CLI link state fully restored to its pre-task value (Production), freshly re-confirmed.
+Building on the Owner's own suggested skeleton, adjusted per fresh evidence (a schema-capture phase must precede the TEST build, since almost nothing is currently reproducible from Git):
 
-### 21. Exact Documentation Files Changed
+**Phase 1 — Capture/reconcile schema into new tracked migrations.** Scope: author new migration file(s) for the base schema (8 missing tables, `quotes`' remaining 14 columns, all RLS policies, functions, triggers, storage bucket+policies, `quotes_quote_number_seq`+its DEFAULT), reviewed against this task's own inventory and the `is_super_admin` drift. Environment: local file authoring only, informed by read-only Production queries (already done this task). Expected mutation: **new local files only, zero DB mutation anywhere.** Validation: `supabase db push --project-ref ljfizgrdyzxddswcedwr --dry-run` shows exactly the expected new objects. HE check: schema includes everything Agent HE's flow needs (§10). EN check: schema includes everything Agent EN's flow needs (§11), including `quotes_quote_number_seq`. Rollback: delete the new files, nothing was ever applied. STOP condition: any Production object that can't be faithfully expressed in SQL (none currently expected, but must be confirmed during authoring). **Owner authorization required**: yes — this task authorizes planning only, not file authoring.
 
-`PROFLOW_TODO.md`, `PROFLOW_HANDOFF.md` (new entry), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
+**Phase 2 — Apply captured schema to `quotecode-test` only.** Environment: `quotecode-test`, via `supabase db push --project-ref ljfizgrdyzxddswcedwr` (never `--linked` while linked to Production; explicit target-guard confirmation required as established in every prior task). Expected mutation: TEST gains the full 9-table schema, structure only, zero data. Validation: re-run this task's own inventory queries against TEST, diff against Production's captured inventory (§2). Rollback: TEST is disposable — a targeted `DROP`/re-migrate or, in the worst case, project-level reset is acceptable (low stakes, no real data). STOP condition: any migration failure — investigate before continuing. **Owner authorization required**: yes, separate and explicit.
 
-### 22. File-by-File HE/EN Ledger
+**Phase 3 — TEST security/RLS verification.** Scope: confirm RLS is enabled on all 9 tables post-Phase-2 with policies matching Production, confirm `anon` grants match Production's exact per-table pattern (full on `expenses`/`quotecode_documents`/`services` only, none elsewhere). Validation: re-run the RLS/grants queries from §2, diff against Production. HE/EN checks: N/A yet (no data). Rollback: adjust policies/grants via a follow-up migration. STOP condition: any table ends up more permissive than intended. **Owner authorization required**: likely covered by Phase 1's migration content itself if RLS/grants are included there — confirm during Phase 1 review.
+
+**Phase 4 — Storage.** Scope: create the `quote-files` bucket (public) + 2 object policies in TEST, matching Production exactly. Likely folded into Phase 1's migration (storage.buckets is a regular table, insertable via SQL) — called out as its own explicit validation gate per the Owner's requested phase skeleton. Rollback: drop the bucket. STOP condition: bucket creation via SQL insert into `storage.buckets` behaves unexpectedly (Supabase sometimes has platform-level bucket provisioning quirks — verify). **Owner authorization required**: yes, if not already covered by Phase 1's authorization.
+
+**Phase 5 — Edge Functions.** Scope: deploy `get-public-quote` and `send-quote-email` (current local tracked source, not Production's stale deployed version) to `quotecode-test` first (REQUIRED FOR BASIC TEST); `chat-ai`/admin functions only if/when Full Test is desired. Environment/secrets by name only (no values): `SUPABASE_URL`, `SUPABASE_SECRET_KEYS` (or equivalent service-role secret), `SUPABASE_ANON_KEY`, `RESEND_API_KEY` for `send-quote-email`. Real-world side-effect mitigation: restrict `send-quote-email` testing to Owner-controlled inboxes, or obtain a Resend sandbox/test key before deploying. Validation: invoke each deployed function against a synthetic TEST quote once Phase 7's accounts exist. Rollback: `supabase functions delete` (not exercised by this task). STOP condition: any function deploy requires a secret this task cannot name without exposing a value — none currently expected, since all four secrets above are already known-by-name from the existing Production deployment. **Owner authorization required**: yes, separate and explicit (this is the first Edge Function deploy of this engagement to any project).
+
+**Phase 6 — Auth configuration (manual, Dashboard-only).** Scope: the Owner personally completes the checklist in §8 directly in the `quotecode-test` Supabase Dashboard — not automatable from this CLI session. Validation: attempt a test signup once Phase 8 connects local dev to TEST. STOP condition: redirect URLs misconfigured causing Auth email links to fail — diagnosable only after Phase 8. **Owner authorization**: this phase IS the Owner's own action, no Claude authorization needed, but should be sequenced here.
+
+**Phase 7 — Synthetic TEST accounts.** Scope: create the three accounts named in §9, natively in `quotecode-test`'s own Auth (never reusing Production credentials). Validation: each account's `business_settings` row satisfies the RLS INSERT policy (§9). Rollback: delete the Auth users (trivial, synthetic data only). STOP condition: RLS policy rejects the insert — revisit Phase 1's captured policy definition. **Owner authorization required**: yes — explicit "create these 3 accounts in TEST" authorization, separate from everything above.
+
+**Phase 8 — Local Vite → TEST connection.** Scope: create the local-only `.env.localtest.local` (per the prior task's §18.CJ Option A design) and start 5186 with `--mode localtest`, pointing only that port at TEST — 5184 stays on Production. Validation: app loads without the "missing table" errors seen in earlier diagnostics. Rollback: delete the file, restart without `--mode`. STOP condition: any unexpected Production-pointing behavior (verify `VITE_SUPABASE_URL` resolved correctly before testing). **Owner authorization required**: yes, separate — this is the actual runtime-target change.
+
+**Phase 9 — HE smoke test.** Scope: log in as the Local/HE TEST account, create a quote, verify ILS/VAT display correctness, verify Public Quote page loads (via the now-deployed `get-public-quote`), verify the approval/signature flow (`public_approve_quote`), verify `send-quote-email` behavior stays within the side-effect mitigation from Phase 5. Agent HE re-engaged at execution time to independently verify. Rollback: delete the synthetic test quote/data. STOP condition: any VAT/RTL/ILS-market-isolation violation. **Owner authorization required**: yes, to execute this smoke test itself.
+
+**Phase 10 — EN smoke test.** Scope: same as Phase 9 for the International/EN TEST account — explicit negative checks for VAT/₪ leakage, correct USD/EUR/GBP display. Agent EN re-engaged at execution time. Rollback/STOP: same pattern as Phase 9. **Owner authorization required**: yes.
+
+### 14. Validation Gates
+
+Each phase above carries its own explicit validation step (re-query and diff against the Production inventory captured this task, or a functional smoke check) — no phase is considered complete without its stated validation passing.
+
+### 15. Rollback Strategy
+
+Summarized per-phase above; general principle: Phases 1 (file authoring) and 8 (env file) are trivially reversible (delete a file); Phases 2–5 and 7 operate exclusively against the disposable, isolated `quotecode-test` project, where a full project-level reset is an acceptable last-resort rollback (unlike Production, where this class of action would never be acceptable); Phase 6 is a manual Dashboard action with its own undo via the same UI.
+
+### 16. Exact Owner Approval Gates
+
+Every phase above is marked with its own required authorization — **none of Phases 1–10 may proceed without a separate, explicit Owner + ChatGPT authorization naming that exact phase**, consistent with this task's own instruction that this is plan-only.
+
+### 17. Production Protection Confirmation
+
+Confirmed throughout: Production was accessed exclusively read-only this task (all queries were `SELECT`/metadata calls); `minhatshay@gmail.com` and David Aluminum were not touched, queried, or referenced beyond their already-documented protected status; no Production secret value was ever printed or written; no plan phase above targets Production for any mutation — Phase 1's captured migrations are explicitly scoped to apply to `quotecode-test` only (§12).
+
+### 18. Admin-Badge Deferred-Item Confirmation
+
+Recorded as its own, separate, deferred future item (per §18.CJ) — **not** implemented or mixed into this TEST-build plan. Current recommendation stands unchanged: do not change `minhatshay@gmail.com`'s Auth identity, do not alter customer-facing `business_name`; the preferred future solution remains an Admin-only visual marker with no customer-facing exposure, its own future authorization.
+
+### 19. File-by-File Ledger
 
 | FILE | WHAT CHANGED | HE IMPACT | EN IMPACT | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | New section recording this audit's findings and recommendation | None — architecture-only | None — architecture-only | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CJ entry — full audit record | None | None | DONE |
+| `PROFLOW_TODO.md` | New entry recording this build plan and its verdict | None — plan document | None — plan document | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CK entry — full plan record | None | None | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file | None | None | DONE |
-| Any application file (`src/**`, `supabase/functions/**`) | **None changed** | N/A | N/A | ZERO MODIFIED — confirmed via `git status --short` identical before/after |
+| Any application/migration/config file | **None changed** | N/A | N/A | ZERO MODIFIED — confirmed via `git status --short` identical before/after |
 
-### 23. Secret/Privacy Scan Result
+### 20. Secret/Privacy Scan
 
-No password, access token, API key, service-role key, or anon key value appears anywhere in this report or the two documentation entries. Project refs (`ixabnzhjeqevtbhdfswv`, `ljfizgrdyzxddswcedwr`) are non-secret identifiers already used throughout prior documentation. **PASSED.**
+No password, access token, API key, service-role key, or anon key value appears anywhere in this report or the documentation entries. Edge Function secrets are named by variable name only (`SUPABASE_URL`, `SUPABASE_SECRET_KEYS`, `SUPABASE_ANON_KEY`, `RESEND_API_KEY`), never values. Project refs are non-secret identifiers already used throughout. **PASSED.**
 
-### 24. Fresh Git State at Task End
+### 21. Final Git State
 
 Recorded in the chat response following this report.
 
-### 25. Confirmation Production Remained Unmodified
+### 22. Final Verdict
 
-Confirmed. All Production interaction this task was limited to the identity-preserving `supabase link`/`projects list` calls (to switch to TEST and back) — zero queries were issued against Production this task (the relevant Production facts were already established in the immediately preceding task and were not re-queried here).
+**FULL RUNTIME TEST BUILD: READY WITH BLOCKERS**
+
+**Every blocker, explicitly**:
+1. The base application schema (8 of 9 tables, most of `quotes`, all RLS/functions/triggers except quote-number-specific ones, storage bucket) exists **only** in Production, undocumented in Git — must be captured into new tracked migrations (Phase 1) before anything else can proceed reproducibly.
+2. `quotes_quote_number_seq` and `quotes.quote_number`'s live `DEFAULT` are likewise untracked and required by both public-facing Edge Functions.
+3. `is_super_admin`'s `SECURITY DEFINER` flag is drifted between Production and TEST — must be corrected during capture.
+4. `quotecode-test`'s current RLS/grants posture on `quotes` is unsafe relative to Production's pattern — must be hardened, not left as-is.
+5. Zero Edge Functions and zero storage buckets exist in `quotecode-test` — both must be built.
+6. Auth-service configuration (redirects, email confirmation) is unverifiable from this CLI session — requires manual Owner Dashboard action.
+7. `clever-processor` and `send-welcome-email` have no recoverable source at all — confirmed non-blocking (unused in tracked flows) but permanently unreproducible from Git as-is.
+
+None of these blockers are unsolvable — each has a named phase and owner in the plan above — but every one requires its own separate, explicit future authorization before this environment becomes usable.
 
 ---
 
-## Primary Verdicts
+**PLAN COMPLETE. NOTHING IMPLEMENTED.**
 
-**LOCAL→TEST SEPARATION: READY WITH CONDITIONS**
-
-The pointing mechanism itself (Option A) is fully designed, low-risk, and ready to implement on its own explicit authorization. It is conditioned on a substantial, separately-scoped TEST-environment buildout (missing schema/RLS/functions/Edge Functions/Auth config, per the readiness matrix) before it would support genuinely meaningful interactive testing.
-
-**LIVE INTERNATIONAL IDENTIFICATION: SAFE ADMIN-ONLY OPTION EXISTS**
-
-Today, with zero change: the Admin UI already displays `business_name` + `country`. For a genuine "LIVE, not TEST" distinction, a small additive admin-only field (option 16.3) is the safe path, pending its own separate authorization — email/Auth aliasing is explicitly not appropriate.
-
-NO IMPLEMENTATION PERFORMED
-NO `.ENV` MODIFICATION
-NO `.ENV.LOCAL` CREATION
-NO VITE CONFIG CHANGE
-NO PACKAGE/SCRIPT CHANGE
-NO CODE CHANGE
-NO AUTH USER CREATION
-NO PASSWORD RESET/CHANGE
-NO TEST DB MUTATION
-NO PRODUCTION DB MUTATION
-NO MIGRATION
-NO EDGE FUNCTION DEPLOY
-NO SUPABASE REDIRECT/CONFIG CHANGE
-NO FIREWALL CHANGE
-NO STEP 3
-NO GIT ADD
-NO COMMIT
-NO MAIN PUSH
+NO PRODUCTION MUTATION
+NO TEST MUTATION
+NO SCHEMA CHANGES
+NO MIGRATIONS APPLIED
+NO AUTH CHANGES
+NO USER CREATION
+NO STORAGE CHANGES
+NO EDGE FUNCTION DEPLOYMENT
+NO `.ENV` CHANGES
+NO VITE CHANGES
+NO APPLICATION-CODE CHANGES
+NO COMMIT/PUSH TO MAIN
 NO VERCEL ACTION
+NO STEP 3
+NO QUOTE NUMBER PRODUCTION MIGRATION
 NO REAL-CUSTOMER TESTING
