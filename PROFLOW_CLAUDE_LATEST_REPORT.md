@@ -6,131 +6,107 @@
 
 ---
 
-## Task: PROFLOW — Fresh Production Backup Only (Pre-Step-3 Safety Snapshot)
+## Task: PROFLOW — Local Dev Server Diagnostic + Restore Only (Runtime, No Code/DB/Live Change)
 
-### 1. Effort Level + Reason
+### Effort Level + Reason
 
-**HIGH.** Owner + ChatGPT explicit authorization for ONLY a fresh Production database backup and restore verification, as the immediate safety snapshot before any possible future Step 3 Production migration. This task does NOT authorize Step 3.
+**MEDIUM.** Owner + ChatGPT explicit authorization to diagnose and restore ONLY the existing local ProFlow development server so the Owner can again access the local working-tree build from his LAN, after neither `http://192.168.1.189:5184` nor `:5186` responded following a machine restart during Docker/virtualization setup. NOT authorization for any application, database, migration, deployment, commit, push, or Production change.
 
-### 2. Fresh Local/Git State
+### Fresh Local State
 
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: identical to every prior task's baseline — no drift. Continuity worktree: `HEAD == origin/proflow-continuity == 230ea740c1436a7205eef76283209aa0bd7be222` (the Step 3 TEST rehearsal record), clean. Both freshly re-verified against all six continuity documents before any work began.
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: identical to every prior task's baseline (`.gitignore` + six `PROFLOW_*.md` modified, three untracked migration-package items) — no drift, before or after this task. LAN IPv4 freshly confirmed via `Get-NetIPAddress`: `192.168.1.189` — unchanged by the restart.
 
-### 3. Fresh Production Identity
+### Diagnosis
 
-`ixabnzhjeqevtbhdfswv` — name `quotecode`, `linked: true`, freshly re-confirmed as the backup **source**. `quotecode-test` (`ljfizgrdyzxddswcedwr`) confirmed `linked: false`. No restore target was ever Production or TEST.
+`Get-NetTCPConnection` checked on ports 5183/5184/5185/5186 — **none listening**. `tasklist /FI "IMAGENAME eq node.exe"` — **zero Node processes running at all**. Root cause: simple — both previously-running Vite dev server processes were stopped by the machine restart (a dev-only `npm run dev` process has no auto-restart mechanism), nothing more complex. No evidence found that Docker/WSL/networking-stack changes interfered — the downtime is fully explained by "process didn't survive the reboot."
 
-### 4. Docker Availability
+**Firewall check**: PowerShell's `Get-NetFirewallRule`/`Get-NetFirewallPortFilter` — "Access is denied" (same elevation limitation already documented in `PROFLOW_HANDOFF.md` §18.BC, unchanged, reconfirmed this task). `netsh advfirewall firewall show rule name=all dir=in verbose` (lower-privilege, works without elevation, per the same technique already proven in §18.BC) — `"Vite Dev Server 5184"` rule **confirmed still present**, unaffected by the restart; **no rule exists for 5186**, exactly the same pre-existing gap already documented in §18.BC, not new, not caused by this restart, and this session still cannot create one.
 
-Confirmed working (`docker version` → Server `29.7.2`), consistent with every prior task since the Docker-install correction.
+### Restore — Runtime Only
 
-### 5. Backup Mechanism Used
+Both servers restarted using the **exact commands already established** in `PROFLOW_HANDOFF.md` §18.BC — nothing invented, no new configuration:
 
-Real (non-dry-run) `supabase db dump --linked` for schema, then `supabase db dump --linked --data-only --use-copy` for data. `--dry-run` was never used, per the permanent lesson from the original credential-exposure incident.
+- `npm run dev -- --host --port 5184 --strictPort` → new background process, **PID 21028**, ready in 855ms.
+- `npm run dev -- --host --port 5186 --strictPort` → new independent background process, **PID 17520**, ready in 516ms, without touching or restarting the 5184 process.
 
-### 6. Backup Start/End Timestamps
+No `package.json`/Vite config file was read for editing or modified. No package installed or updated. No new dev configuration created. No unrelated process was killed.
 
-Start (filename timestamp): `2026-08-29T20:18:56Z`. Schema file completion: `2026-08-29T20:19:24Z`. Data file completion (end): `2026-08-29T20:19:41Z`.
+### Verify
 
-### 7. Exact Backup Paths
+**A. Local machine**: `localhost:5184` → HTTP 200; `localhost:5186` → HTTP 200.
 
-- `.../scratchpad/proflow-backups/proflow-production-schema-20260829-201856Z.sql`
-- `.../scratchpad/proflow-backups/proflow-production-data-20260829-201856Z.sql`
+**B. Application**: response body confirmed genuine Vite-served React app (React-refresh injection present, correct `<!doctype html>`) on both — not an error page, no fatal startup error in either process's log.
 
-Both outside the repository (session scratchpad directory).
+**C. LAN**:
+- `http://192.168.1.189:5184/` — HTTP 200 (verified from this machine). Firewall rule present (confirmed above) — this matches the configuration under which the Owner previously verified physical-phone access, so LAN/phone access is expected to work, but **the Owner should personally re-confirm from a physical device** — no physical-phone verification was performed or claimed by this session.
+- `http://192.168.1.189:5186/` — HTTP 200 (verified from this machine, **PC-level only**). This does **not** prove phone/external-device reachability — Windows Firewall generally does not block loopback-originated traffic to the machine's own LAN IP the way it blocks an actual external device, and no 5186 firewall rule exists. 5186 remains in exactly its previously-documented state: PC-level ready, phone/LAN access still blocked pending the same firewall rule this session still cannot create.
+- `Get-NetTCPConnection` confirms port 5184 bound on `::` (all interfaces), consistent with the successful LAN-IP response.
 
-### 8. Backup Formats
+### Important State Distinction
 
-Plain-text SQL: schema-only DDL dump; data-only dump using `COPY` statements (`--use-copy`). Scoped to `public` schema (Supabase-internal platform schemas excluded by the CLI's own standard exclusion list — same limitation already documented for Step 2, not re-derived here).
+This is the **LOCAL WORKING TREE only** — currently serving `main`'s committed content (no application file is presently modified in the working tree, confirmed via `git status --short`) — via a runtime-only `vite` process. This is **not** a deployment, **not** a TEST Supabase change, **not** a Production frontend change, and **not** a Production Supabase change. No DB write of any kind was performed to verify the server.
 
-### 9. File Sizes
+### Result
 
-Schema: 34,242 bytes. Data: 1,569,581 bytes.
+**LOCAL DEV SERVER: RESTORED**
 
-### 10. SHA-256 Values
+- **Root cause**: both dev server processes simply stopped when the machine restarted; no other factor involved.
+- **Current LAN IPv4**: `192.168.1.189` (unchanged).
+- **Exact running ports**: `5184` and `5186`.
+- **Exact Owner LAN URLs**: `http://192.168.1.189:5184/` and `http://192.168.1.189:5186/`.
+- **Process/server started**: two independent `node` processes running `vite --host --port <5184|5186> --strictPort` (PIDs 21028 and 17520).
+- **Localhost verification**: both PASS (HTTP 200, genuine app content).
+- **LAN-interface verification**: both PASS at the PC level; 5184's firewall rule is present (phone access expected to work, Owner to confirm); 5186's firewall rule is still absent (pre-existing, unchanged limitation — PC-level only until a human with elevation creates it).
+- **Docker/WSL relevance**: none found — the downtime was caused simply by the dev process not restarting on its own, unrelated to the Docker/virtualization install that prompted the machine restart.
+- **Confirmation no project files changed**: `git status --short` identical before and after this task.
+- **Confirmation no DB/environment was mutated**: no Supabase command of any kind was issued this task (Production or TEST); `.env` untouched.
+- **Confirmation Production was untouched**: no Production interaction of any kind this task — purely local process/network diagnostics.
 
-Schema: `b8defc86b3731c598ac5a465d8a109e6ad1b38414a5396ff2b4e5afb05bfdcd9` — **byte-identical to the Step 2 backup's schema file**, confirming zero Production schema drift since. Data: `2bd0d0f3cc94a701eb79d43ed7fecea3e459f70e7bf096c832334ae45ea0fcf6`. Both independently re-verified byte-identical inside the restore container after `docker cp`.
+### Documentation
 
-### 11. Confirmation Files Are Outside Git
+**Exact documentation files changed**: `PROFLOW_TODO.md` (§E of the QA/Release Track section — dual local TEST origins note updated to record the 2026-08-29 restart/restore, underlying facts unchanged), `PROFLOW_HANDOFF.md` (new §18.CG entry — full diagnostic and restore record), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
 
-`git status --short` before and after this task is identical (no new entries). `git check-ignore -v` on the backup path returned "outside repository" — confirmed by Git itself.
-
-### 12. Exact Disposable Restore Target
-
-A second disposable, throwaway local Docker container (`postgres:17`, name `proflow-restore-verify-2`, `--rm`, no persistent volume). Confirmed empty (0 tables) before any restore activity. Never Production, never `quotecode-test`.
-
-### 13. Restore Method
-
-Backup files copied into the container via `docker cp` (checksum-verified post-copy); schema loaded via `psql -f /tmp/schema.sql`, then data via `psql -f /tmp/data.sql`, both executed inside the container against its own local database only.
-
-### 14. Restore Result
-
-**Successful for all application content.** 9 tables, 3 sequences, 12 functions, 5 triggers created; all 9 tables' data loaded. 123 (schema) + 30 (data) errors occurred, every one reconfirmed as the same known Supabase-platform-only class already fully classified in the Step 2 restore (`anon`/`authenticated`/`service_role` roles; `auth`/`extensions`/`storage` schemas; `supabase_realtime` publication; platform extensions) — zero errors touched any `public`-schema table, data row, function, or trigger.
-
-### 15. Structural/Schema Verification
-
-Table list, sequence/function/trigger counts, and `quotes` table structure (`quote_number integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')` — DEFAULT still present, confirming Step 3/DEFAULT-removal has not been applied) all confirmed identical to the Step 2 restore's structural profile — no drift.
-
-### 16. Aggregate Consistency Checks
-
-Row counts per table identical to Step 2 (`business_settings` 12, `chat_logs` 77, `clients` 24, `expenses` 1, `quote_attachments` 3, `quotecode_documents` 6, `quote_items` 32, `quotes` 23, `services` 12). Aggregate cross-check on `quotes` identical to Step 2: 7 distinct businesses, `quote_number` range 11–89, `quotes_quote_number_seq.last_value = 90`. **This identical profile is itself meaningful evidence**: it confirms Production has had no material data change since the Step 2 backup two tasks ago — the backup is current and representative, not just mechanically re-verified.
-
-### 17. Warnings/Errors Classification
-
-153 total restore-time messages (123 + 30), all classified as expected Supabase-platform-only objects unavailable in a bare Postgres image — same taxonomy as Step 2, independently re-confirmed this task via the same exclusion-filtering method. Zero unexplained errors.
-
-### 18. Primary Verdict
-
-**FRESH PRE-STEP-3 BACKUP: PASS**
-
-### 19. Confirmation Step 3 WAS NOT EXECUTED
-
-Confirmed. No `supabase db push`, no `ALTER TABLE`, no migration execution of any kind.
-
-### 20. Confirmation Production WAS NOT MUTATED
-
-Confirmed. Production access this task was limited to `supabase projects list` (identity check) and the two `supabase db dump` export calls — both read-only export operations. Zero `INSERT`/`UPDATE`/`DELETE`/`ALTER`/`CREATE`/`DROP` issued against Production.
-
-### 21. Exact Documentation Files Changed
-
-`PROFLOW_TODO.md` (canonical Step 3 line extended with the fresh-backup result, condition #1 marked satisfied), `PROFLOW_HANDOFF.md` (new §18.CF entry), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
-
-### 22. File-by-File Ledger
+### File-by-File Ledger
 
 | FILE | WHAT CHANGED | WHY | SOURCE/EVIDENCE | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | Canonical Step 3 line extended: fresh backup PASS recorded, condition #1 marked satisfied | Record the safety-snapshot result and update the release plan's satisfied-conditions state | This task's own `supabase db dump`/Docker restore commands and output | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CF entry — full fresh-backup and restore-verification record, including the identical-profile freshness signal | Standing chronological-record pattern | This task's own command outputs | DONE |
+| `PROFLOW_TODO.md` | §E dual-origin note annotated with the 2026-08-29 restart/restore event and the reconfirmed firewall state for both ports | Keep the QA infrastructure status current without duplicating or contradicting the original §18.BC setup facts | This task's own `netsh`/process/HTTP checks | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CG entry — full diagnosis, restore, and verification record | Standing chronological-record pattern | This task's own command outputs | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file — full Final Report for this task | Standing rule | — | DONE |
-| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no backup-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
 
-### 23. Secret/Privacy Scan Result
+### Secret/Privacy Scan Result
 
-No credential was printed to terminal output this task (`--dry-run` never used on `db dump`). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (rule names, checksums, table/function names) — no actual secret value present. **PASSED.**
+No credential was involved in this task at all (pure local process/network diagnostics, no Supabase/CLI credential path touched). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (rule names, process/port numbers, PIDs — none of which are secrets) — no actual secret value present. **PASSED.**
 
-### 24. Fresh Git State at Task End
+### Fresh Git State at Task End
 
 Recorded in the chat response following this report.
 
-### 25. Confirmation Main/Application Remained Untouched
+### Confirmation Main/Application Remained Untouched
 
-`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; all git operations this task targeted the separate `proflow-continuity` worktree exclusively. No application source file was edited, staged, committed, or pushed.
+`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; no application source, config, or package file was read for editing, edited, staged, committed, or pushed.
 
 ---
 
-**FRESH PRE-STEP-3 BACKUP: PASS.** Both pre-flight conditions from the original Step 3 audit (§18.CD) are now satisfied — a fresh, current, restore-verified Production backup exists, and the functional-verification approach was addressed via the TEST rehearsal (§18.CE). **Step 3 itself remains NOT executed against Production and still requires its own separate, explicit Owner + ChatGPT authorization** — satisfying these conditions is not that authorization.
+**LOCAL DEV SERVER: RESTORED.**
 
-NO STEP 3 MIGRATION
-NO ATTN MIGRATION
-NO QUOTE NUMBER MIGRATION
-NO PRODUCTION MUTATION
-NO PRODUCTION RESTORE
+NO SOURCE-CODE MODIFICATION
+NO CONFIG-FILE MODIFICATION
+NO PACKAGE MODIFICATION
+NO NPM INSTALL/UPDATE
+NO MIGRATION
+NO SUPABASE DB MUTATION (PRODUCTION OR TEST)
 NO EDGE FUNCTION DEPLOY
-NO APPLICATION MODIFICATION
+NO VERCEL ACTION
+NO GIT ADD
 NO APPLICATION COMMIT
 NO MAIN COMMIT
 NO MAIN PUSH
-NO VERCEL ACTION
-NO STEP 4+
+NO RESET/RESTORE/STASH/CLEAN
+NO DELETION OF PRE-EXISTING WORK
+NO STEP 3 EXECUTION
+NO QUOTE NUMBER MIGRATION
+NO CUSTOMER TESTING
