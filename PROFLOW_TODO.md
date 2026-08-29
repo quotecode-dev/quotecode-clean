@@ -59,13 +59,13 @@ Do **not** stop an entire task/workstream because of one isolated question — r
 
 ---
 
-## 1. Super Admin UI and Permissions
+## 1. Super Admin — Security / Permissions Hardening (Backend/Access-Control Layer Only)
 
-**Status: 🟢 COMPLETE / VERIFIED**
+**Status: 🟢 COMPLETE / VERIFIED — SECURITY/PERMISSIONS SCOPE ONLY. This item does NOT cover the Admin UI's visual design or its full functional behavior — see the clarification below.**
 
-Substantial Admin UI, permission hardening, and security work has already been completed and verified. Do not reopen this area without a defined reason. Future changes anywhere in the app must preserve the verified permission/security mechanisms already in place (role model, RLS, `is_admin()`/`is_super_admin()` helpers — see `PROFLOW_PROJECT_CONTEXT.md` §13–§15).
+**🔴 CLARIFICATION (2026-08-30, Migration Order Resolution Audit + TODO Corrections task) — read before assuming any part of the Admin interface is "done" because this item says COMPLETE.** This item's COMPLETE status has always meant, and only ever meant, the **backend security/access-control layer**: role model, RLS, `is_admin()`/`is_super_admin()` helpers (see `PROFLOW_PROJECT_CONTEXT.md` §13–§15) — genuinely completed and verified, do not reopen this specific layer without a defined reason, and future changes anywhere in the app must preserve these verified mechanisms. **It has never meant, and must never be read as implying, that the Admin UI's visual design or full functional behavior is complete.** The Admin interface's visual/redesign work is tracked separately and remains **PARTIAL/OPEN** (item 14.C — light-theme visual pass only, structurally partial, live-verification still blocked). The Admin interface's full **functional** behavior (every control, state, and flow actually working end-to-end) has never been comprehensively audited at all — see the new item 22 (Full Admin Functional Audit) below, which is OPEN and NOT started.
 
-**Important (owner-clarified)**: TEST-account QA inconsistencies (e.g. the `PROFLOW_TEST_ADMIN` browser-harness login/action classifier behavior documented across `PROFLOW_HANDOFF.md` §18.AO/§18.AQ/§18.BB) are a TEST-tooling/QA-process observation only — they do NOT reopen this completed Super Admin project itself.
+**Important (owner-clarified)**: TEST-account QA inconsistencies (e.g. the `PROFLOW_TEST_ADMIN` browser-harness login/action classifier behavior documented across `PROFLOW_HANDOFF.md` §18.AO/§18.AQ/§18.BB) are a TEST-tooling/QA-process observation only — they do NOT reopen this completed security/permissions layer itself.
 
 ## 2. AI Chat — Local / International / Four Contexts
 
@@ -223,6 +223,8 @@ Required pre-change audit: UI, validation, DB/schema, mail sending, bounce handl
 
 **🔴 PHASE 2 ATTEMPTED — BLOCKED BY MIGRATION HISTORY ORDER (2026-08-30, Full Runtime TEST Build Phase 2 task) — PHASE 2 TEST DATABASE BUILD: BLOCKED, NOT APPLIED.** Owner + ChatGPT authorized applying exactly three of the four PASS-verified Phase-1 files (`20260826000000`/`20260826000001`/`20260826000002`, explicitly excluding the storage file) to `quotecode-test` only. Target guard passed cleanly (CLI linked to TEST, confirmed `linked:true`/Production `linked:false`, two independent facts matched documented baseline). A full pre-mutation safety snapshot was taken outside the repo (schema dump, data dump, migration history, table/function/policy/grant state, SHA-256 checksums). **The task's own mandatory migration-history preflight then found the exact blocking condition it was written to catch**: `supabase db push --dry-run` refused to proceed, returning `LegacyDbPushMissingRemoteError` — the four `20260826*` Phase-1 files are chronologically timestamped *before* the already-applied `20260827*`/`20260828*` Quote Number/Attn chain on `quotecode-test`, and the CLI requires `--include-all` to push migrations out of order. Per the task's own explicit "do not improvise" instruction, no `--include-all`, no `supabase migration repair`, no manual migration-history edit, and no direct `psql` apply outside migration tracking was attempted. **Nothing was applied to TEST. Production was never queried beyond identity/link metadata.** CLI link restored to its exact pre-task state (Production `linked:true`) and verified. Full detail and the three resolution options identified (re-authorize `--include-all` explicitly with a decision on the storage file; re-timestamp the Phase-1 files to sort after the existing chain; or separately authorize a non-CLI-tracked manual apply) in `PROFLOW_HANDOFF.md` §18.CO and `PROFLOW_CLAUDE_LATEST_REPORT.md`. **Awaiting Owner + ChatGPT decision on how to resolve before Phase 2 can be reattempted.**
 
+**✅ RESOLUTION AUDIT COMPLETE, READ-ONLY (2026-08-30, Migration Order Resolution Audit task) — MIGRATION ORDER RESOLUTION: RETIMESTAMP RECOMMENDED.** A full technical audit (content-collision check, internal-dependency check, `quote_number`/identity-column-default safety check, Production-risk check) found retimestamping the four Phase-1 files to sort after the already-applied `20260827*`/`20260828*` chain (proposed: `20260830000000`–`20260830000003`, preserving their exact internal relative order) is safe for `quotecode-test`'s current state — zero function/trigger/policy name collisions with the existing chain (except the already-known, already-intentional `is_super_admin` parity fix), and the `quote_number` column handling is a guaranteed safe no-op regardless of order (Postgres only evaluates `ADD COLUMN IF NOT EXISTS ... DEFAULT` when the column doesn't yet exist, and it already does on TEST). **One real, documented tradeoff found**: retimestamping narrows these files from their originally-intended dual purpose (TEST bootstrap **and** general-purpose blank-future-project replay) down to TEST-bootstrap-only, since a genuinely blank project would still need Files 00–02 to run *before* the chain, not after. No rename was performed — audit only. Full 28-item analysis in `PROFLOW_HANDOFF.md` §18.CP and `PROFLOW_CLAUDE_LATEST_REPORT.md`. **Awaiting Owner + ChatGPT authorization before any actual rename or re-attempted Phase 2.**
+
 **F. English independent verification**: remains required and currently **blocked** wherever noted above (Public Quote Mobile width/header, Hot Quote purple emphasis, Dashboard login-toast/Trial/KPI) — no confirmed non-admin International TEST account credentials have been available in the sessions that did this work. Code is structurally symmetric (shared components, parallel `isHebrew` ternaries, the same DOM-order RTL/LTR mirroring technique used throughout the project) but this is explicitly **not** treated as a substitute for live English verification, per Permanent Rule §37.
 
 **G. Newly-codified future TODO items (17/18/19)**: Business Quote Numbering (per-business sequential numbers starting `A100700`), Quote Attention Contact ("לידי"/"Attn"), and Public Quote English Terms/Notes Parity were added to the Master Product TODO section above this checkpoint. All three are **read-only-audit-first, not yet implemented, and explicitly not authorized by being recorded** — none of them are part of the current implementation pass or any pass already done.
@@ -368,6 +370,24 @@ Purpose: a visual/UX redesign covering three related but distinct surfaces. Owne
   4. **⚠️ Major unplanned discovery, made while live-verifying this fix - see item 17's own urgent correction above for full detail**: a real disposable TEST quote immediately displayed as "A90" (a genuine live `quote_number`, not this repo's own unapplied migration - re-confirmed via `supabase migration list` at the same time) in Dashboard, while its own Public Quote page still showed the `#<hash>` fallback - because the live-deployed `get-public-quote` Edge Function has never been redeployed with the `quote_number` select this repo's local source has carried for several passes. This is the exact cross-surface split item 17's "coordinated release requirement" was written to prevent, confirmed now to already be happening live, driven by a mechanism this repository did not create and has not yet identified. **Flagged prominently, not fixed** (fixing it would mean either a DB investigation or an Edge Function deploy, both outside this task's explicit authorization) - requires a dedicated, separately-authorized follow-up audit before any further item-17 work.
 - **LIVE VERIFICATION (thirteenth pass)**: Hebrew — **PASS** on both fixes. Scrollbar-gutter: Dashboard centerX now measures 675.5/712.5/952.5 at 1366/1440/1920 - an **exact** match (0px difference, not just sub-pixel tolerance) to Public Quote's own 675.5/712.5/952.5 at the same breakpoints, versus the prior 7.5px gap. Mobile re-confirmed unaffected at 360/390/430 on both surfaces (unchanged widths, zero overflow) - `scrollbar-gutter` has no effect on Mobile's overlay scrollbars by design. Quote number: label+value composition confirmed present and centered on both Desktop (real disposable TEST quote, `PROFLOW_TEST_INTL`) and Mobile (360/390/430, zero overflow, header height 93.6px - the necessary small increase from adding the previously-missing label line to the fallback case, not an unnecessary one); the real-`quote_number` branch's composition was also live-observed for the first time via the "A90" discovery (an unplanned but genuine confirmation that the label/centering structure works correctly for a real number, not just the fallback). English — code-verified only (shared `PublicQuoteHeader.jsx` component, `isHebrew`-conditional label text confirmed correct via source read: "Quote Number" wording, no VAT/₪/Hebrew leakage in the changed lines) - **LIVE-NOT-AVAILABLE**, same standing credentials gap as every prior pass this engagement; not blocking this task per its own explicit instruction.
 - **OWNER FINAL VISUAL ACCEPTANCE**: 🔴 PENDING — this pass's fixes have not yet been reviewed by the Owner.
+
+**OPEN FOLLOW-UP (added 2026-08-30, Migration Order Resolution Audit + TODO Corrections task) — Public Quote bottom action buttons. Status: 🔴 OPEN / NOT IMPLEMENTED.**
+
+Owner-approved set of three bottom action buttons for the Public Quote page, one per market:
+
+- **HE / Local**: "הורד כ-PDF" (Download as PDF — maqaf/hyphen included per Hebrew orthography convention for a single-letter prefix attaching to a Latin acronym), "**חייג/י אליי**" (Call me — exact wording, must be preserved verbatim, do not rephrase), "הדפס מסמך" (Print document).
+- **EN / International**: functionally equivalent English actions (Download PDF / Call Me / Print Document), with full HE/EN functional parity — same three actions available on both markets, translated appropriately, not a reduced or expanded set on either side.
+
+**Layout intent supplied by Owner** (conceptual, not yet a finished visual spec): Download PDF on one side, "Call me" in the middle, Print document on the opposite side. **Exact final left/right placement must be derived from RTL/LTR direction, never by blindly copying one market's physical left/right onto the other** — same discipline already established for item 20's banner-direction and item 21's slider-direction requirements (physical placement mirrors between Hebrew RTL and English LTR; do not hardcode one market's physical side into both).
+
+**Required safeguards, must hold throughout implementation**:
+- Do not alter quote calculations.
+- Do not alter signature/approval logic.
+- Do not alter quote locking (immutability once approved/paid/signed).
+- No market/currency leakage (no ₪ on English, no USD/EUR/GBP-only wording on Hebrew).
+- Owner visual acceptance required before this is considered LIVE-ready, consistent with every other Public Quote visual item in this section.
+
+**No implementation authorized by recording this item.**
 
 ### 14.B Business Owner Dashboard — Desktop + Mobile
 
@@ -810,6 +830,68 @@ Desktop + Mobile must eventually be independently verified (not assumed from one
 **Exact visual design must be reviewed/approved before implementation** — this entry records the behavioral specification only, not a finished design.
 
 **No implementation authorized by recording this item.**
+
+## 22. Full Admin Functional Audit (added 2026-08-30, Migration Order Resolution Audit + TODO Corrections task)
+
+**Status: 🔴 OPEN / NOT STARTED. AUDIT ONLY when eventually authorized — this entry is a backlog record, not an authorization to begin.**
+
+**Why this item exists**: item 1 (Super Admin security/permissions hardening) is COMPLETE and VERIFIED, but only for the backend access-control layer. Item 14.C (Admin visual redesign) is PARTIAL. Neither of those covers whether every individual control in the Admin UI actually *works* end-to-end. No such comprehensive functional audit has been performed at any point in this engagement. This item exists specifically to close that gap and to prevent item 1's COMPLETE status from ever being read as covering it.
+
+**Scope — the complete Admin UI inventory, not a selective sample**. When this audit is eventually authorized, it must cover every one of the following present in the Admin UI:
+- every button
+- every tab
+- every menu
+- every filter
+- every search
+- every dropdown
+- every modal
+- every link
+- every CTA
+- every save/cancel action
+- pagination, if present
+- sorting, if present
+- role-dependent controls
+- user/business management
+- trial/subscription controls
+- AI Support Logs
+- admin indicators/counters
+- destructive actions
+- loading states
+- disabled states
+- success states
+- error states
+- empty states
+- permission-denied states
+- responsive/mobile behavior where applicable
+
+**🔴 Safety note — do not read this item as pre-authorizing any risky action**: recording this audit item does **not** automatically authorize destructive or Production-affecting actions. When this audit is eventually performed, active/interactive testing must use isolated TEST users/data wherever possible, and any operation with real destructive or Production-affecting potential requires its own separate, explicit authorization before being exercised — exactly like every other risky-action rule already standing in this engagement (see `PROFLOW_PROJECT_CONTEXT.md`'s Permanent Rules).
+
+**No implementation, and no audit execution, is authorized by recording this item.**
+
+---
+
+## FUTURE PRODUCT IDEAS — OWNER DECISION REQUIRED (added 2026-08-30, Migration Order Resolution Audit + TODO Corrections task)
+
+**🔴 THESE ARE IDEAS ONLY. They are NOT approved features. They are NOT authorization to implement anything below. None of these may be added to the current execution queue unless the Owner explicitly prioritizes one later, at which point it would need its own separate, fully-scoped backlog item like every other item in this document.**
+
+1. **Smart quote follow-up**: detect viewed-but-not-signed quotes and prompt/send a follow-up.
+2. **Lightweight Sales Pipeline**: Draft → Sent → Viewed → Follow-up → Approved → Rejected/Expired.
+3. **Smart owner notifications**: quote viewed, viewed multiple times, signed, expiring, no response.
+4. **WhatsApp quote workflow**: send a quote via WhatsApp with a prebuilt, market-appropriate message.
+5. **Duplicate Quote / Create Similar.**
+6. **Reusable Quote Templates.**
+7. **Optional items / alternatives inside a quote.**
+8. **Deposit / payment after quote approval.**
+9. **Client/Quote Activity Timeline**: created, sent, viewed, followed up, signed, etc.
+10. **Sales analytics**: close rate, average time to approval, open quote value, non-responsive customers, monthly conversion, top-performing services.
+11. **Internal reminders/tasks**: e.g. remind the owner to call a customer.
+12. **Quote expiration / validity date** + reminders / extension.
+13. **Quote version history** before final approval/signature.
+14. **Lightweight Client Portal**: quotes, status, documents, signatures, payments.
+15. **Product-integrated AI**: generate a quote from a description, improve wording, Terms assistance, missing-item detection, conversation-to-quote, follow-up suggestions.
+16. **"What needs your attention today?" Dashboard**: an actionable queue such as viewed-not-signed, expiring, repeated views, follow-ups due.
+
+**Recommended high-value cluster for future Owner consideration** (recorded as a suggestion only, not a decision): **Smart Follow-up + WhatsApp + Lightweight Sales Pipeline** — these three ideas (1, 4, 2) reinforce each other functionally (the pipeline needs the follow-up detection to know when a stage is stale; WhatsApp is the most natural channel for the follow-up itself in both markets) and would likely deliver the most owner-visible value as a single future cluster if the Owner chooses to prioritize this direction. **This is not a plan, not a scoped item, and not authorized work.**
 
 ---
 
