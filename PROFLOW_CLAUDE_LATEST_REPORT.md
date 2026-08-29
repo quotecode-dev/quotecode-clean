@@ -8,208 +8,190 @@
 
 ---
 
-## Task: PROFLOW — Full Runtime TEST Environment Build Plan (PLAN ONLY, NO IMPLEMENTATION)
+## Task: PROFLOW — Full Runtime TEST Build, Phase 1: Capture + Reconcile Production Schema into Tracked Migrations
 
-**Effort level**: HIGH. Owner + ChatGPT explicit authorization to produce the exact implementation plan to turn `quotecode-test` into a safe, functional, full-runtime ProFlow TEST environment. **Nothing implemented.**
+**Effort level**: HIGH. Owner + ChatGPT explicit authorization for Phase 1 ONLY of the approved plan — local file creation/editing only, no database mutation anywhere.
 
-**FINAL VERDICT: FULL RUNTIME TEST BUILD: READY WITH BLOCKERS**
+**PRIMARY VERDICT: PHASE 1 SCHEMA CAPTURE: READY FOR REVIEW**
 
 ---
 
-### 1. Fresh State
+### 1. Effort Level + Reason
 
-- **Documented state**: matched all six continuity documents exactly, no drift, at task start and end.
-- **Current local repository state**: `main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. `git status --short` identical to every prior task's baseline.
-- **Production state**: read-only inspected fresh this task (full inventory below) — genuinely current, not assumed from prior tasks.
-- **`quotecode-test` state**: read-only re-inspected fresh this task, confirmed identical to the immediately preceding audit (§18.CJ) — no drift, no mutation occurred between tasks.
-- **Facts verified fresh in this task**: the entire Production inventory in §2 below, plus a fresh re-check of TEST's 2-table/3-function/0-storage-bucket state.
-- Target guard: explicit `supabase link --project-ref ljfizgrdyzxddswcedwr` + fresh `projects list` confirmation before every TEST query; CLI relinked to Production and freshly confirmed restored at task end.
+HIGH — this is the first, foundational phase of a multi-phase Production→TEST parity build, touching the entire base application schema captured from live introspection; correctness here gates every later phase.
 
-### 2. Production vs TEST Inventory
+### 2. Fresh Local/Git State
 
-**Production (`ixabnzhjeqevtbhdfswv`) — full inventory, freshly queried:**
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. `git status --short` before and after: identical baseline (`.gitignore` + six `PROFLOW_*.md` modified, `supabase/migrations/` untracked directory, two other untracked SQL files) — the four new files this task added live inside the already-untracked `supabase/migrations/` directory, so they produce no new top-level `git status` line.
 
-- **9 tables**: `business_settings`, `chat_logs`, `clients`, `expenses`, `quote_attachments`, `quote_items`, `quotecode_documents`, `quotes`, `services` — full column/type/nullable/default list captured for every table.
-- **Constraints**: 9 primary keys, 6 foreign keys (`business_settings.user_id`→`auth.users`, `clients.user_id`→`auth.users`, `expenses.user_id`→`auth.users` `ON DELETE CASCADE`, `quote_attachments.quote_id`→`quotes` `ON DELETE CASCADE`, `quote_items.quote_id`→`quotes` `ON DELETE CASCADE`, `quotes.client_id`→`clients` `ON DELETE CASCADE`, `quotes.user_id`→`auth.users`), 1 unique constraint (`business_settings.user_id`). **No unique constraint on `quotes(user_id, quote_number)` exists yet** — confirms the Quote-Number migration chain (canonical Step 4) has not been applied to Production, consistent with everything already documented.
-- **RLS**: enabled on **all 9 tables**. 24 policies total across the 9 tables, full list captured (notably: `quotecode_documents` and parts of `expenses` intentionally allow broad/public access by design — pre-existing Production behavior, not a gap).
-- **Grants**: `anon` holds full table-level grants on `expenses`, `quotecode_documents`, `services` (pre-existing, RLS-gated); no `anon` grant on `business_settings`/`chat_logs`/`clients`/`quote_attachments`/`quote_items`/`quotes`.
-- **Functions (12, all `SECURITY DEFINER`)**: `approve_quote_public` (2 overloads, legacy — confirmed via Agent HE **not called by any current frontend code**), `guard_business_settings_plan_trial`, `guard_quote_child_immutability`, `guard_quote_immutability`, `guard_quote_immutability_delete`, `handle_user_migration`, `increment_quote_views`, `is_admin`, `is_super_admin`, `public_approve_quote` (the one actually called by `PublicQuote.jsx`/`PublicQuoteEn.jsx`), `public_increment_quote_view`. Four functions (`approve_quote_public` both overloads, `handle_user_migration`, `increment_quote_views`) have **no explicit `search_path` set** — a pre-existing Production characteristic to replicate faithfully, not "fix" in TEST (would create drift).
-- **Triggers**: `guard_business_settings_plan_trial_update`, `guard_quote_attachments_immutability`, `guard_quote_items_immutability`, `guard_quote_immutability_delete_trigger`, `guard_quote_immutability_update`, and critically **`on_auth_user_created_migration`** on `auth.users` (AFTER INSERT OR UPDATE, calls `handle_user_migration()`) — a legacy safety-net that re-links business data to a new `user_id` if a matching `business_settings.email` exists under an old `user_id`; confirmed by Agent HE as **not exercised by normal fresh signups**, present-but-inert for TEST purposes.
-- **Sequences**: `business_settings_id_seq`, `quotes_quote_number_seq` (last_value 90 — the live global sequence powering `quotes.quote_number`'s `DEFAULT`), `services_id_seq`.
-- **Storage**: 1 bucket `quote-files` (public), 2 object policies (`authenticated` INSERT, `public` SELECT).
-- **Edge Functions (11 deployed)**: `clever-processor`, `send-welcome-email`, `send-quote-email`, `chat-ai`, `admin-delete-user`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook`, `billing-checkout-stub`, `get-public-quote`, `admin-cleanup-user-quotes`.
+### 3. Fresh Production Identity
 
-**`quotecode-test` (`ljfizgrdyzxddswcedwr`) — full inventory, freshly re-queried, unchanged from the prior audit:**
+`ixabnzhjeqevtbhdfswv` — `quotecode`, freshly confirmed `linked: true` at task start. **Read-only for the entire task** — every query issued was `SELECT`/`pg_get_functiondef`/metadata; zero `INSERT`/`UPDATE`/`DELETE`/`ALTER`/`CREATE`/`DROP` issued against it.
 
-- **2 tables only**: `business_quote_sequences`, `quotes` (9 columns — just the item-17/18 additions, missing 14 of Production's 23 `quotes` columns and all 7 other tables entirely).
-- **RLS**: enabled on `business_quote_sequences`, **disabled** on `quotes`.
-- **Grants**: `anon` holds full grants on `quotes` (no RLS to gate it).
-- **3 functions**: `allocate_quote_number`, `is_super_admin` (**`SECURITY DEFINER = false`** — drifted from Production's `true`), `protect_quote_number_immutability`.
-- **Storage**: 0 buckets.
-- **Edge Functions**: 0 deployed.
-- **Auth users**: 5 synthetic `fixture-business-{a..e}@example.invalid` accounts only.
+### 4. Fresh TEST Identity
 
-### 3. Authoritative-Source Matrix
+`ljfizgrdyzxddswcedwr` — `quotecode-test`, confirmed `linked: false` throughout (never linked to or queried this task — Phase 1 required only Production introspection; the disposable local Docker container used for validation, see §19, is a separate, unrelated, throwaway environment).
 
-| Object | Category | Notes |
-|---|---|---|
-| Entire base schema (8 of 9 tables, `quotes`' original 23 columns, all RLS policies except the quote-number ones, all 9 non-quote-number functions, `on_auth_user_created_migration` trigger, storage bucket+policies) | **B — Production only** | Not represented in any tracked `supabase/migrations/*.sql` file. This predates the repo's own migration history entirely. |
-| `quotes_quote_number_seq` + `quotes.quote_number`'s live `DEFAULT nextval(...)` | **B — Production only** | The repo's own `20260827000000_add_quote_number_sequence.sql` explicitly does not touch this column (confirmed by its own header comment) — Agent EN independently confirmed this is a genuine untracked dependency needed by both `get-public-quote` and `send-quote-email`. |
-| The 6 tracked quote-number/attn migrations (`20260827000000`→`20260827000003`, `202608270000015`, `20260828000000`) | **C — both, and identical (on TEST only)** | Confirmed applied to `quotecode-test`; confirmed **not** applied to Production (canonical Steps 3–4 remain unexecuted, per `PROFLOW_TODO.md`). |
-| `is_super_admin` function | **D — both, but drifted** | Exists on both, but `SECURITY DEFINER` is `true` on Production, `false` on `quotecode-test`. |
-| `get-public-quote`, `send-quote-email`, `chat-ai`, `admin-delete-user`, `admin-cleanup-user-quotes`, `billing-checkout-stub`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook` (9 Edge Functions) | **C on repo/Production, D vs. `quotecode-test`** | Source tracked in `supabase/functions/`; deployed to Production (some versions stale relative to local source — `get-public-quote`/`send-quote-email` confirmed last deployed 2026-08-25, predating local quote_number/Attn changes); **zero deployed to `quotecode-test`**. |
-| `clever-processor`, `send-welcome-email` (2 Edge Functions) | **B — Production only** | Deployed via a different, untracked mechanism (their `entrypoint_path` doesn't match the repo's `supabase/functions/` structure like the other 9 do) — no local source exists at all. Agent EN confirmed `send-welcome-email` is not invoked by any signup flow in tracked code — orphaned, not a flow blocker, but its own definition is unrecoverable from Git. |
-| Auth-service settings (email confirmation, redirect-URL allowlist, SMTP behavior) | **E — unknown** | Not queryable via SQL or this CLI session for either project; would need direct Dashboard comparison. |
+### 5. Exact Existing Migration Inventory (before this task)
 
-**Conclusion**: TEST **cannot** currently be built reproducibly from Git alone — the overwhelming majority of required objects are category B (Production-only, undocumented). This is the central, first-order finding driving the phase ordering below.
+Six tracked files: `20260827000000_add_quote_number_sequence.sql`, `20260827000001_add_quote_number_unique_index.sql`, `202608270000015_attach_quote_number_unique_constraint.sql`, `20260827000002_protect_quote_number_immutability.sql`, `20260827000003_drop_quote_number_default.sql`, `20260828000000_add_quote_attn_contact.sql` — all read in full before drafting anything new, to guarantee no duplication/conflict.
 
-### 4. Schema Drift
+### 6. Exact NEW Migration Files Created
 
-Beyond the wholesale absence covered above, the one direct like-for-like drift found: `is_super_admin`'s `SECURITY DEFINER` flag (Production `true`, TEST `false`) — see §3.
+Four new files, timestamped `20260826xxxxxx` (deliberately earlier than the existing `20260827xxxxxx` files, since those assume `quotes`/`auth.users` already exist):
 
-### 5. Security/RLS Gaps (TEST)
+1. `20260826000000_capture_base_schema_tables.sql` — 8 new tables + `quotes`' remaining 14 base columns (via `ADD COLUMN IF NOT EXISTS`, reconciled against TEST's already-partial state) + `quotes_quote_number_seq` + the `quote_status` enum + all PK/FK/UNIQUE constraints.
+2. `20260826000001_capture_base_functions_triggers.sql` — 10 functions (`is_admin`, `is_super_admin`, `guard_business_settings_plan_trial`, `guard_quote_child_immutability`, `guard_quote_immutability`, `guard_quote_immutability_delete`, `handle_user_migration`, `increment_quote_views`, `public_approve_quote`, `public_increment_quote_view`) + 6 triggers, including `on_auth_user_created_migration` on `auth.users`.
+3. `20260826000002_capture_base_rls_grants.sql` — RLS enable on all 9 tables + 24 policies + full table-grant reconciliation (`anon`/`authenticated`).
+4. `20260826000003_capture_base_storage.sql` — `quote-files` bucket + its 2 object policies, kept isolated so it can be applied with or separately from Parts 1–3 in a future phase.
 
-RLS disabled on `quotes` in TEST with `anon` holding full grants — the exact opposite of Production's posture (RLS enabled, no `anon` grant) for that table. Must be corrected as part of the schema-capture work, not left as-is merely because TEST data is synthetic (per the task's own explicit instruction).
+### 7. Object-by-Object Coverage
 
-### 6. Storage Gaps (TEST)
+Complete — every table, column, constraint, index, sequence, function, trigger, RLS policy, table grant, and storage object identified in the fresh Production inventory (§18.CK) is either captured in one of the four files above or explicitly, individually flagged as intentionally deferred (§8).
 
-Zero buckets exist. `quote-files` (public, with its 2 policies) must be created for any attachment-related or Public-Quote-attachment testing to function.
+### 8. Objects Intentionally Deferred
 
-### 7. Edge Function Matrix
+- **The two legacy `approve_quote_public` overloads** (`uuid` and `uuid, text` signatures) — confirmed via Agent HE's direct grep (this task and the prior planning task) to have zero call sites in `src/`. Omitted per this task's own "capture only what's currently required, not every historical/unused object" instruction — documented explicitly in the functions file's own header, not silently dropped.
+- **`clever-processor`/`send-welcome-email` Edge Functions** — no tracked source exists anywhere (confirmed in the prior planning task); Phase 1 is DB-schema-only and does not touch Edge Functions at all, per this task's own explicit §10 boundary.
+- **Synthetic TEST account seeding** — explicitly out of scope for Phase 1 per §13 of this task's own instructions.
 
-| Function | Classification | Tracked source? | Side-effect risk |
-|---|---|---|---|
-| `get-public-quote` | **REQUIRED FOR BASIC TEST** | Yes | None — pure read |
-| `send-quote-email` | **REQUIRED FOR BASIC TEST** | Yes | **Sends a real email via Resend** (`RESEND_API_KEY`) — must be restricted to Owner-controlled test addresses or a Resend test/sandbox key before use |
-| `chat-ai` | REQUIRED FOR FULL TEST (only if AI chat itself is being tested) | Yes | Real AI-API billing/cost per call — use sparingly |
-| `admin-delete-user`, `admin-cleanup-user-quotes` | REQUIRED FOR FULL TEST (only for Admin-panel testing) | Yes | Destructive by design (delete operations) — inherently safe in TEST since all data there is synthetic |
-| `billing-checkout-stub`, `send-trial-expiration-email`, `send-subscription-expiration-email`, `resend-email-webhook` | NOT REQUIRED for core application-flow testing | Yes | `send-*-email` functions carry the same real-email caveat as `send-quote-email` if ever exercised |
-| `clever-processor`, `send-welcome-email` | NOT REQUIRED (confirmed unused in tracked signup flow) | **No — untracked** | Unknown; not invoked by any current code path |
+### 9. Production-Only Objects Now Captured
 
-**Deployment-version decision needed**: the currently-*deployed* versions of `get-public-quote`/`send-quote-email` on Production predate the local quote-number/Attn work — recommend deploying the current **local tracked source** to `quotecode-test` (not a copy of Production's stale deployed version), since testing the newer code is the actual purpose.
+The entire base schema layer that existed only in Production prior to this task: 8 tables, `quotes`' 14 missing base columns, `quotes_quote_number_seq` (reconciled against the already-tracked quote-number chain — see §12), `quote_status` enum, 10 functions, 6 triggers, 24 RLS policies, full table-grant state, 1 storage bucket + 2 policies.
 
-### 8. Auth Requirements
+### 10. Existing Migrations Reused
 
-Cannot be verified or configured via this CLI session. **Owner Dashboard checklist for `quotecode-test`** (future, not performed here):
-- Confirm email/password Auth provider is enabled.
-- Configure the Auth redirect-URL allowlist to include local LAN test URLs — at minimum `http://192.168.1.189:5186/*` (and `5184` if ever dual-purposed), matching the exact pattern already configured for Production per `PROFLOW_HANDOFF.md`'s existing redirect documentation.
-- Decide/confirm email-confirmation-required behavior (recommend: disabled or auto-confirmed for TEST, to avoid needing real inbox access for synthetic test accounts) — Owner decision, not Claude's to set.
-- Confirm password-reset email behavior (will use Supabase's default sender unless custom SMTP is configured for this project — likely not yet configured).
+All six existing tracked migrations were read in full and left completely untouched — no new file duplicates or conflicts with any object they define (`business_quote_sequences`, `allocate_quote_number`, the quote-number unique index/constraint, `protect_quote_number_immutability`, the DEFAULT-drop, `attn_name`/`attn_role`). The new capture package is purely additive alongside them.
 
-### 9. Synthetic-Data Policy
+### 11. Drift/Conflict Findings
 
-**No real Auth users, emails, passwords, customers, businesses, quotes, attachments, chat history, expenses, documents, sessions, tokens, or secrets may ever be copied into TEST.** Structure only. Three future synthetic accounts specified (none created by this task):
-- **Local/HE TEST user** — fictional Hebrew business, `country='Local'`, `currency='ILS'`.
-- **International/EN TEST user** — fictional business, `country='International'`, `currency` one of USD/EUR/GBP.
-- **TEST Admin** (if Admin-panel testing is desired) — `role='super_admin'` equivalent, fictional identity.
+1. **`is_super_admin` `SECURITY DEFINER` drift** (Production `true`, `quotecode-test` `false`) — the new capture file's `CREATE OR REPLACE FUNCTION` will correct this as an intended side effect once Phase 2 applies it; documented explicitly in the function's own `COMMENT`, not a silent fix.
+2. **🔴 `business_settings` grant/RLS anomaly, the most significant finding this task** — `authenticated` has only `SELECT` at the table-grant level on `business_settings` in Production (independently confirmed via `has_table_privilege()`, not just `information_schema`), which is in apparent tension with (a) `Dashboard.jsx`'s direct client-side `.insert()` call — the single, shared signup path for both Local and International accounts — and (b) this table's own RLS INSERT/UPDATE policies, which are unreachable without a base grant permitting the operation first. **Both agents independently confirmed this affects Local and International identically** — not a market-specific issue. Captured **faithfully as-is** (not silently corrected), flagged prominently in the migration file's own header and here, for Owner + ChatGPT to determine whether this is a genuine live Production gap or something this read-only introspection missed. **No Production mutation was made or proposed to investigate/resolve this** — outside this task's read-only authorization.
+3. **`quotecode-test`'s own `quotes`/`quotes_quote_number_seq` origin** — confirmed this task (via `pg_depend`) to be `SERIAL`-style column-owned, created by an untracked, ad-hoc bootstrap step from an earlier disposable-validation task, not by any tracked migration. The new capture file's `ADD COLUMN IF NOT EXISTS`-based design correctly treats this as already-present and leaves it untouched (see §12).
+4. **Redundant `business_settings_user_id_idx`** — a second, functionally-duplicate unique index alongside the named `business_settings_user_id_unique` constraint. Pre-existing Production accretion, faithfully left as a single mechanism (the constraint) rather than recreating the redundancy — noted explicitly in the tables file, not silently dropped either.
+5. **Agent HE's additional finding**: `business_settings`' INSERT-restriction policy (plan/trial-gated) is technically bypassable via two broader, permissive `FOR ALL`/plain-ownership sibling policies (RLS policies combine via OR by default) — a pre-existing Production characteristic, faithfully captured, not a Phase-1-introduced issue.
 
-Per Agent HE's finding: any manually-inserted `business_settings` row for these accounts (if not created via the normal app signup flow) must satisfy the RLS INSERT policy's exact condition — `plan='pro'` with `trial_ends_at` within ~14 days of insert time (the actual, only payload shape `Dashboard.jsx`'s real signup flow produces for both markets).
+### 12. Sequence/Default Handling
 
-### 10. HE Requirements (Agent HE, full findings)
+`quotes.quote_number` was **deliberately excluded** from the base-column backfill list. `quotes_quote_number_seq` is created via `CREATE SEQUENCE IF NOT EXISTS` (a safe no-op on `quotecode-test`, where it already exists); the column's `DEFAULT nextval(...)` is embedded **only** inside the `ADD COLUMN IF NOT EXISTS` clause itself, which — by Postgres semantics — only ever fires if the column doesn't already exist. This means: on a genuinely blank future project, the column is created matching Production's current pre-cutover baseline (`DEFAULT nextval(...)`); on `quotecode-test`, where the column already exists in its post-cutover state (`NOT NULL`, no default, per the already-applied `20260827000003`), this statement is a **guaranteed no-op for that specific column**, correctly never reintroducing the removed default. This exact design was independently proposed to satisfy this task's own explicit §6 instruction not to silently reimplement or disturb the Quote Number release-order semantics — verified correct via the Docker static-validation pass (§19).
 
-Confirmed exact `business_settings` INSERT payload for Local signup (`user_id`, `email`, `business_name`, `country='Local'`, `currency='ILS'`, `plan='pro'`, `role='user'`, `default_terms`, `trial_ends_at`, `last_sign_in`). VAT correctness depends only on `quotes.client_type` and `quotes.tax_rate` (both plain columns, no separate config table — VAT rate 18% is a hardcoded frontend constant). Confirmed the frontend calls only `public_approve_quote(p_quote_id, p_signature_data_url)` — the legacy `approve_quote_public` overloads are dead code from the frontend's perspective and are **not required** for TEST to support the real approval flow. `on_auth_user_created_migration` confirmed inert for fresh TEST signups.
+### 13. RLS/Policy/Grant Coverage
 
-### 11. EN Requirements (Agent EN, full findings)
+Complete — RLS enabled on all 9 tables (matching Production's own posture exactly, and correcting `quotecode-test`'s current disabled-RLS-on-`quotes` gap as an in-scope, intentional hardening per this task's own §8 instruction not to leave TEST less safe than Production); all 24 policies captured verbatim (name, command, roles, `USING`/`WITH CHECK` expressions); table grants reconciled per-table exactly matching Production's real, current state — including the two tables (`expenses`, `quotecode_documents`, `services`) where `anon` genuinely holds full grants by original design, faithfully replicated, not treated as a gap.
 
-Confirmed the International signup payload differs from Local only in `currency`/`default_terms` — the RLS-relevant `plan`/`trial_ends_at` shape is identical, so no International-specific RLS gap exists. Confirmed no exchange-rate/currency-config table exists anywhere — currency handling is entirely `business_settings.currency`+hardcoded symbol maps. **Identified the `quotes_quote_number_seq` untracked-dependency finding** (§3) via direct read of both Edge Functions' own audit comments. Confirmed `send-welcome-email` is not invoked in any signup path (Local or International) — its untracked source is a footnote, not a blocker. Confirmed the International-must-never-show-VAT invariant is purely frontend-conditional (`QuoteForm.jsx`), with no backend/DB enforcement — TEST needs no special backend safeguard for it.
+### 14. Functions/Triggers Coverage
 
-### 12. Recommended Build Strategy
+Complete — all 10 in-scope functions and all 6 triggers captured verbatim from `pg_get_functiondef()`/`pg_get_triggerdef()` output (not paraphrased or reconstructed from memory), including the intentionally-faithful preservation of two pre-existing characteristics that might otherwise look like oversights: `handle_user_migration()`/`increment_quote_views()` having no explicit `search_path`, and `guard_quote_child_immutability()`'s `service_role` bypass applying to `DELETE` only.
 
-**Hybrid, closest to Option B+A**: (1) schema-only extraction from Production via `supabase db dump --linked --schema-only` targeting **only the objects genuinely needed** (not a blind full dump — filtered/reviewed against this task's own inventory), (2) manually reviewed and converted into new, clean, idempotent tracked migration files (mirroring the same style/discipline already used for the 6 existing quote-number/attn migrations — `IF NOT EXISTS` guards, explicit rollback comments, no data), (3) applied to `quotecode-test` via `supabase db push`, never to Production (Production already has this schema natively — reapplying would be redundant and risky). This directly answers §6's own question: after this work, TEST **would** become reproducible from Git, closing the current category-B gap. Rejected: a blind `pg_dump`-and-restore of Production's full schema, since that would import undocumented objects wholesale without the review/reconciliation step this task's own §6 explicitly requires, and would risk carrying over Production-specific artifacts inappropriate for a disposable TEST project.
+### 15. Storage Treatment
 
-### 13. Ordered Implementation Phases
+Captured in its own isolated file (`20260826000003_capture_base_storage.sql`) per this task's own explicit permission to keep it separable from the core DB-schema files. Both object policies captured with their **exact** `USING`/`WITH CHECK` bodies — a follow-up query this task caught that the INSERT policy also enforces per-user folder ownership (`(storage.foldername(name))[1] = auth.uid()::text`), which an initial draft had missed; corrected before finalizing, not left as an assumed guess.
 
-Building on the Owner's own suggested skeleton, adjusted per fresh evidence (a schema-capture phase must precede the TEST build, since almost nothing is currently reproducible from Git):
+### 16. HE Agent Verdict
 
-**Phase 1 — Capture/reconcile schema into new tracked migrations.** Scope: author new migration file(s) for the base schema (8 missing tables, `quotes`' remaining 14 columns, all RLS policies, functions, triggers, storage bucket+policies, `quotes_quote_number_seq`+its DEFAULT), reviewed against this task's own inventory and the `is_super_admin` drift. Environment: local file authoring only, informed by read-only Production queries (already done this task). Expected mutation: **new local files only, zero DB mutation anywhere.** Validation: `supabase db push --project-ref ljfizgrdyzxddswcedwr --dry-run` shows exactly the expected new objects. HE check: schema includes everything Agent HE's flow needs (§10). EN check: schema includes everything Agent EN's flow needs (§11), including `quotes_quote_number_seq`. Rollback: delete the new files, nothing was ever applied. STOP condition: any Production object that can't be faithfully expressed in SQL (none currently expected, but must be confirmed during authoring). **Owner authorization required**: yes — this task authorizes planning only, not file authoring.
+**No Hebrew/Local-specific gap found.** Confirmed the `business_settings` INSERT policy correctly permits the real Local signup payload; confirmed no market-specific hardcoding anywhere in the 4 files; confirmed `quotes.client_type`/`tax_rate` present and correctly typed for VAT calculation; confirmed the immutability triggers are market-neutral; confirmed the flagged grant anomaly affects both markets identically, not Local-specific. Additionally surfaced the permissive-OR policy-overlap nuance in §11 item 5.
 
-**Phase 2 — Apply captured schema to `quotecode-test` only.** Environment: `quotecode-test`, via `supabase db push --project-ref ljfizgrdyzxddswcedwr` (never `--linked` while linked to Production; explicit target-guard confirmation required as established in every prior task). Expected mutation: TEST gains the full 9-table schema, structure only, zero data. Validation: re-run this task's own inventory queries against TEST, diff against Production's captured inventory (§2). Rollback: TEST is disposable — a targeted `DROP`/re-migrate or, in the worst case, project-level reset is acceptable (low stakes, no real data). STOP condition: any migration failure — investigate before continuing. **Owner authorization required**: yes, separate and explicit.
+### 17. EN Agent Verdict
 
-**Phase 3 — TEST security/RLS verification.** Scope: confirm RLS is enabled on all 9 tables post-Phase-2 with policies matching Production, confirm `anon` grants match Production's exact per-table pattern (full on `expenses`/`quotecode_documents`/`services` only, none elsewhere). Validation: re-run the RLS/grants queries from §2, diff against Production. HE/EN checks: N/A yet (no data). Rollback: adjust policies/grants via a follow-up migration. STOP condition: any table ends up more permissive than intended. **Owner authorization required**: likely covered by Phase 1's migration content itself if RLS/grants are included there — confirm during Phase 1 review.
+**No International/English-specific gap found.** Confirmed the same INSERT policy correctly permits the real International signup payload (policy is market-blind by design); confirmed `business_settings.currency`/`country` defaults (`'USD'`/`'Unknown'`) are unbiased, not accidentally Local-leaning; confirmed `quotes.currency`/`tax_rate` support unconstrained International values with zero backend VAT enforcement; confirmed the storage upload policy is purely UID-keyed, no market-specific folder logic; confirmed the flagged grant anomaly affects both markets identically. One premise correction offered: real International signups always insert `currency:'USD'` at creation time (EUR/GBP arise only via later user edits) — noted, does not affect policy correctness since the policy never gates on currency.
 
-**Phase 4 — Storage.** Scope: create the `quote-files` bucket (public) + 2 object policies in TEST, matching Production exactly. Likely folded into Phase 1's migration (storage.buckets is a regular table, insertable via SQL) — called out as its own explicit validation gate per the Owner's requested phase skeleton. Rollback: drop the bucket. STOP condition: bucket creation via SQL insert into `storage.buckets` behaves unexpectedly (Supabase sometimes has platform-level bucket provisioning quirks — verify). **Owner authorization required**: yes, if not already covered by Phase 1's authorization.
+### 18. Claude Lead Reconciliation
 
-**Phase 5 — Edge Functions.** Scope: deploy `get-public-quote` and `send-quote-email` (current local tracked source, not Production's stale deployed version) to `quotecode-test` first (REQUIRED FOR BASIC TEST); `chat-ai`/admin functions only if/when Full Test is desired. Environment/secrets by name only (no values): `SUPABASE_URL`, `SUPABASE_SECRET_KEYS` (or equivalent service-role secret), `SUPABASE_ANON_KEY`, `RESEND_API_KEY` for `send-quote-email`. Real-world side-effect mitigation: restrict `send-quote-email` testing to Owner-controlled inboxes, or obtain a Resend sandbox/test key before deploying. Validation: invoke each deployed function against a synthetic TEST quote once Phase 7's accounts exist. Rollback: `supabase functions delete` (not exercised by this task). STOP condition: any function deploy requires a secret this task cannot name without exposing a value — none currently expected, since all four secrets above are already known-by-name from the existing Production deployment. **Owner authorization required**: yes, separate and explicit (this is the first Edge Function deploy of this engagement to any project).
+No disagreement between agents to resolve — both independently confirmed full market coverage and independently converged on the same conclusion about the flagged grant anomaly (affects both markets identically). The migration package is considered market-neutral and complete for both HE and EN purposes, pending Owner + ChatGPT's own review of the flagged anomaly.
 
-**Phase 6 — Auth configuration (manual, Dashboard-only).** Scope: the Owner personally completes the checklist in §8 directly in the `quotecode-test` Supabase Dashboard — not automatable from this CLI session. Validation: attempt a test signup once Phase 8 connects local dev to TEST. STOP condition: redirect URLs misconfigured causing Auth email links to fail — diagnosable only after Phase 8. **Owner authorization**: this phase IS the Owner's own action, no Claude authorization needed, but should be sequenced here.
+### 19. Static/Local Validation Performed
 
-**Phase 7 — Synthetic TEST accounts.** Scope: create the three accounts named in §9, natively in `quotecode-test`'s own Auth (never reusing Production credentials). Validation: each account's `business_settings` row satisfies the RLS INSERT policy (§9). Rollback: delete the Auth users (trivial, synthetic data only). STOP condition: RLS policy rejects the insert — revisit Phase 1's captured policy definition. **Owner authorization required**: yes — explicit "create these 3 accounts in TEST" authorization, separate from everything above.
+**Genuine, executed validation, not just manual review**: a disposable local Docker Postgres 17 container (`proflow-phase1-validate`, `--rm`, destroyed after use) was created with minimal `auth`/`storage` schema stubs (just enough structure — `auth.users`, `auth.uid()`/`auth.role()`, `storage.buckets`/`storage.objects`/`storage.foldername()`, and the three Supabase roles — for the four new files' own statements to execute against, not a full Supabase emulation). All four files were applied in order:
+- **First pass** caught one genuine bug: the `quote_status` enum type was referenced in an `ADD COLUMN ... DEFAULT 'draft'::quote_status` clause before being created — **fixed** by moving the enum's `CREATE TYPE` guard earlier in the same file, before its first use.
+- **Second pass** (after the fix): all four files applied with **zero errors**.
+- **Re-run pass** (applying all four files a second time, without resetting): **zero errors** — confirmed genuinely idempotent, not just idempotent-by-construction-assumption.
+- **Structural diff against the Production inventory**: resulting schema showed **9 tables** (exact match), **RLS enabled on all 9** (exact match), **6 triggers** (exact match), **26 policies** total — 24 public + 2 storage (exact match), **23 columns on `quotes`** (exact match). The inflated raw function count (46) is an artifact of the `pgcrypto` extension's own bundled functions installed for the validation stub, not a real discrepancy — the migration package's own authored functions number exactly 10, as intended.
 
-**Phase 8 — Local Vite → TEST connection.** Scope: create the local-only `.env.localtest.local` (per the prior task's §18.CJ Option A design) and start 5186 with `--mode localtest`, pointing only that port at TEST — 5184 stays on Production. Validation: app loads without the "missing table" errors seen in earlier diagnostics. Rollback: delete the file, restart without `--mode`. STOP condition: any unexpected Production-pointing behavior (verify `VITE_SUPABASE_URL` resolved correctly before testing). **Owner authorization required**: yes, separate — this is the actual runtime-target change.
+### 20. Docker/Local Postgres Usage
 
-**Phase 9 — HE smoke test.** Scope: log in as the Local/HE TEST account, create a quote, verify ILS/VAT display correctness, verify Public Quote page loads (via the now-deployed `get-public-quote`), verify the approval/signature flow (`public_approve_quote`), verify `send-quote-email` behavior stays within the side-effect mitigation from Phase 5. Agent HE re-engaged at execution time to independently verify. Rollback: delete the synthetic test quote/data. STOP condition: any VAT/RTL/ILS-market-isolation violation. **Owner authorization required**: yes, to execute this smoke test itself.
+One disposable container, `postgres:17`, name `proflow-phase1-validate`, `--rm` (auto-removed on stop), no persistent volume, never connected to `quotecode-test` or Production in any way. Confirmed stopped and fully removed (`docker ps -a` zero matches) before this report was written.
 
-**Phase 10 — EN smoke test.** Scope: same as Phase 9 for the International/EN TEST account — explicit negative checks for VAT/₪ leakage, correct USD/EUR/GBP display. Agent EN re-engaged at execution time. Rollback/STOP: same pattern as Phase 9. **Owner authorization required**: yes.
+### 21. Exact STOP Conditions
 
-### 14. Validation Gates
+None triggered — the one genuine issue found (the enum-ordering bug) was a Phase-1-internal authoring error, fully resolved and re-validated within this same task's own scope, not a condition requiring escalation to Owner before proceeding. The `business_settings` grant anomaly (§11 item 2) is flagged prominently but does not block Phase 1's own deliverable (a reviewable, structurally-validated migration package) — it is a decision point for Phase 2 planning, not a Phase 1 blocker.
 
-Each phase above carries its own explicit validation step (re-query and diff against the Production inventory captured this task, or a functional smoke check) — no phase is considered complete without its stated validation passing.
+### 22. Primary Phase 1 Verdict
 
-### 15. Rollback Strategy
+**PHASE 1 SCHEMA CAPTURE: READY FOR REVIEW**
 
-Summarized per-phase above; general principle: Phases 1 (file authoring) and 8 (env file) are trivially reversible (delete a file); Phases 2–5 and 7 operate exclusively against the disposable, isolated `quotecode-test` project, where a full project-level reset is an acceptable last-resort rollback (unlike Production, where this class of action would never be acceptable); Phase 6 is a manual Dashboard action with its own undo via the same UI.
+### 23. Confirmation NOTHING Was Applied to TEST
 
-### 16. Exact Owner Approval Gates
+Confirmed. `quotecode-test` was never linked to or queried this task at all — Phase 1 required only Production introspection (already established in the prior planning task, re-verified only where genuinely needed, e.g. the sequence-ownership check).
 
-Every phase above is marked with its own required authorization — **none of Phases 1–10 may proceed without a separate, explicit Owner + ChatGPT authorization naming that exact phase**, consistent with this task's own instruction that this is plan-only.
+### 24. Confirmation Production Was Not Mutated
 
-### 17. Production Protection Confirmation
+Confirmed. Every command issued against Production this task was read-only (`SELECT`, `pg_get_functiondef`, `has_table_privilege`, `pg_depend` introspection, `information_schema` queries). Zero mutating statements.
 
-Confirmed throughout: Production was accessed exclusively read-only this task (all queries were `SELECT`/metadata calls); `minhatshay@gmail.com` and David Aluminum were not touched, queried, or referenced beyond their already-documented protected status; no Production secret value was ever printed or written; no plan phase above targets Production for any mutation — Phase 1's captured migrations are explicitly scoped to apply to `quotecode-test` only (§12).
+### 25. Confirmation Step 3 Was Not Executed
 
-### 18. Admin-Badge Deferred-Item Confirmation
+Confirmed. No Attn migration, no Quote Number migration, nothing from the canonical Production Release Order was touched — this task operated entirely on new, separate, local-only capture files.
 
-Recorded as its own, separate, deferred future item (per §18.CJ) — **not** implemented or mixed into this TEST-build plan. Current recommendation stands unchanged: do not change `minhatshay@gmail.com`'s Auth identity, do not alter customer-facing `business_name`; the preferred future solution remains an Admin-only visual marker with no customer-facing exposure, its own future authorization.
+### 26. Confirmation Quote Number Production Migration Was Not Executed
 
-### 19. File-by-File Ledger
+Confirmed — see §25; additionally, §12 above documents the specific design ensuring the new capture files cannot inadvertently disturb the existing Quote Number chain's release-order semantics even once Phase 2 eventually applies them to TEST.
+
+### 27. Exact Files Changed
+
+Four new files created (all under `supabase/migrations/`, all local-only, none committed):
+- `20260826000000_capture_base_schema_tables.sql`
+- `20260826000001_capture_base_functions_triggers.sql`
+- `20260826000002_capture_base_rls_grants.sql`
+- `20260826000003_capture_base_storage.sql`
+
+Documentation: `PROFLOW_TODO.md`, `PROFLOW_HANDOFF.md` (new §18.CL entry), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report).
+
+### 28. File-by-File HE/EN Ledger
 
 | FILE | WHAT CHANGED | HE IMPACT | EN IMPACT | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | New entry recording this build plan and its verdict | None — plan document | None — plan document | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CK entry — full plan record | None | None | DONE |
+| `supabase/migrations/20260826000000_capture_base_schema_tables.sql` | New — base tables/columns/constraints/sequence | None — market-neutral schema, confirmed by Agent HE | None — market-neutral schema, confirmed by Agent EN | NEW, LOCAL ONLY, NOT APPLIED |
+| `supabase/migrations/20260826000001_capture_base_functions_triggers.sql` | New — functions/triggers | None — confirmed market-neutral by Agent HE | None — confirmed market-neutral by Agent EN | NEW, LOCAL ONLY, NOT APPLIED |
+| `supabase/migrations/20260826000002_capture_base_rls_grants.sql` | New — RLS/policies/grants | None — INSERT policy confirmed to permit real Local payload | None — INSERT policy confirmed to permit real International payload | NEW, LOCAL ONLY, NOT APPLIED |
+| `supabase/migrations/20260826000003_capture_base_storage.sql` | New — storage bucket/policies | None — UID-keyed, no market logic | None — UID-keyed, no market logic | NEW, LOCAL ONLY, NOT APPLIED |
+| `PROFLOW_TODO.md` | New entry recording Phase 1 completion and verdict | None — plan document | None — plan document | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CL entry — full Phase 1 record | None | None | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file | None | None | DONE |
-| Any application/migration/config file | **None changed** | N/A | N/A | ZERO MODIFIED — confirmed via `git status --short` identical before/after |
 
-### 20. Secret/Privacy Scan
+### 29. Secret/Privacy Scan
 
-No password, access token, API key, service-role key, or anon key value appears anywhere in this report or the documentation entries. Edge Function secrets are named by variable name only (`SUPABASE_URL`, `SUPABASE_SECRET_KEYS`, `SUPABASE_ANON_KEY`, `RESEND_API_KEY`), never values. Project refs are non-secret identifiers already used throughout. **PASSED.**
+No password, access token, API key, service-role key, or anon key value appears anywhere in the four new migration files or the documentation entries — all captured SQL is schema/structure/policy-logic only, zero credential material of any kind. Project refs are non-secret identifiers. **PASSED.**
 
-### 21. Final Git State
+### 30. Fresh Git State at Task End
 
 Recorded in the chat response following this report.
 
-### 22. Final Verdict
+### 31. Confirmation No Commit/Push/Main/Vercel Action Occurred
 
-**FULL RUNTIME TEST BUILD: READY WITH BLOCKERS**
-
-**Every blocker, explicitly**:
-1. The base application schema (8 of 9 tables, most of `quotes`, all RLS/functions/triggers except quote-number-specific ones, storage bucket) exists **only** in Production, undocumented in Git — must be captured into new tracked migrations (Phase 1) before anything else can proceed reproducibly.
-2. `quotes_quote_number_seq` and `quotes.quote_number`'s live `DEFAULT` are likewise untracked and required by both public-facing Edge Functions.
-3. `is_super_admin`'s `SECURITY DEFINER` flag is drifted between Production and TEST — must be corrected during capture.
-4. `quotecode-test`'s current RLS/grants posture on `quotes` is unsafe relative to Production's pattern — must be hardened, not left as-is.
-5. Zero Edge Functions and zero storage buckets exist in `quotecode-test` — both must be built.
-6. Auth-service configuration (redirects, email confirmation) is unverifiable from this CLI session — requires manual Owner Dashboard action.
-7. `clever-processor` and `send-welcome-email` have no recoverable source at all — confirmed non-blocking (unused in tracked flows) but permanently unreproducible from Git as-is.
-
-None of these blockers are unsolvable — each has a named phase and owner in the plan above — but every one requires its own separate, explicit future authorization before this environment becomes usable.
+Confirmed. The four new migration files remain untracked local files (inside the already-untracked `supabase/migrations/` directory). No `git add` of application/migration files was performed this task (only the three documentation files were staged for the continuity sync, per the standing rule). No commit, push, or Vercel-relevant action touched `main` or any application file.
 
 ---
 
-**PLAN COMPLETE. NOTHING IMPLEMENTED.**
+**PHASE 1 SCHEMA CAPTURE: READY FOR REVIEW.**
 
 NO PRODUCTION MUTATION
 NO TEST MUTATION
-NO SCHEMA CHANGES
-NO MIGRATIONS APPLIED
-NO AUTH CHANGES
+NO `SUPABASE DB PUSH`
+NO REMOTE SQL MUTATION
+NO MIGRATION APPLY
+NO AUTH CHANGE
 NO USER CREATION
-NO STORAGE CHANGES
-NO EDGE FUNCTION DEPLOYMENT
-NO `.ENV` CHANGES
-NO VITE CHANGES
-NO APPLICATION-CODE CHANGES
-NO COMMIT/PUSH TO MAIN
-NO VERCEL ACTION
+NO STORAGE REMOTE CHANGE
+NO EDGE FUNCTION DEPLOY
+NO `.ENV` MODIFICATION
+NO VITE MODIFICATION
+NO APPLICATION SOURCE MODIFICATION
 NO STEP 3
-NO QUOTE NUMBER PRODUCTION MIGRATION
+NO PRODUCTION QUOTE NUMBER MIGRATION
+NO COUNTER INITIALIZATION
+NO DEFAULT REMOVAL
+NO COMMIT
+NO PUSH TO MAIN
+NO VERCEL ACTION
 NO REAL-CUSTOMER TESTING
+NO DAVID ALUMINUM
+NO minhatshay@gmail.com TESTING
