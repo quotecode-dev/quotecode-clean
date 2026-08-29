@@ -2,6 +2,8 @@
 
 ## ⚠️ NEW CHAT / SESSION: READ THIS ENTIRE FILE FIRST
 
+**PERMANENT SIX-FILE CONTINUITY RULE (see §0.B below for the full rule): this project maintains exactly SIX canonical continuity documents, always read together from the `proflow-continuity` ref, never from `main`, a stale upload, or chat memory.** Earlier wording throughout this project's documentation (in this file and others) has referred to "four" or "five" documents at various points in its history, as the set genuinely grew from three to six over time. §0.B is the current, authoritative statement — treat any "four"/"five" phrasing found elsewhere (including deeper in this very file) as superseded by §0.B, not as a live inconsistency to re-litigate.
+
 **THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
 
 **THEN READ `PROFLOW_ARCHITECTURE.md`.**
@@ -10,7 +12,9 @@
 
 **THEN READ `PROFLOW_TODO.md`** — the authoritative living backlog; identify the current owner-approved priority before beginning any workstream.
 
-**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL FIVE ARE UNDERSTOOD AND THE LOCAL WORKING TREE HAS BEEN FRESHLY VERIFIED** (§17.B).
+**THEN READ `PROFLOW_CLAUDE_LATEST_REPORT.md`** — the newest completed task's Final Report (report-transport bridge, not a standing bootstrap requirement on its own, but part of the six-file set — see §17.C and §0.B).
+
+**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL SIX ARE UNDERSTOOD AND THE LOCAL WORKING TREE HAS BEEN FRESHLY VERIFIED** (§17.B, §0.B).
 
 **RESUME FROM THE CURRENT EXACT CHECKPOINT (§28 below) — DO NOT RESTART FROM ZERO.**
 
@@ -44,22 +48,55 @@ Every new session must, before proposing or executing anything:
 
 ### 0.A Document Hierarchy & Conflict Resolution
 
-Five permanent documents, each with a distinct role — do not blur them:
+Six permanent documents, each with a distinct role — do not blur them. (This list grew from three, to four, to five, to six over this project's history — earlier sections throughout ProFlow's documentation, including further down in this very file, may still say "four" or "five"; §0.B below is the current, authoritative statement and supersedes all of them.)
 
 1. **`PROFLOW_PROJECT_CONTEXT.md`** (this file) — current operational truth: rules, owner decisions, current state, authorization state, open issues, the exact current checkpoint.
-2. **`PROFLOW_CHAT_HANDOFF.md`** — a ChatGPT-conversation continuity snapshot: working relationship, accepted product/visual state, current resume point. It exists to orient a brand-new ChatGPT conversation quickly; it supplements documents 1/3/4/5 and never overrides them, and it is never proof of current filesystem/git/runtime state by itself (see §17.B).
+2. **`PROFLOW_CHAT_HANDOFF.md`** — a ChatGPT-conversation continuity snapshot: working relationship, accepted product/visual state, current resume point. It exists to orient a brand-new ChatGPT conversation quickly; it supplements the other five documents and never overrides them, and it is never proof of current filesystem/git/runtime state by itself (see §17.B).
 3. **`PROFLOW_ARCHITECTURE.md`** — current technical/product architecture: how the system is built and intended to behave.
 4. **`PROFLOW_HANDOFF.md`** — detailed engineering history: audits, incidents, migrations, fixes, verification evidence, chronology.
 5. **`PROFLOW_TODO.md`** — the authoritative living work backlog/roadmap: every known work item, its status, dependencies, and verification requirements (see §35).
+6. **`PROFLOW_CLAUDE_LATEST_REPORT.md`** — a report-transport/review bridge holding only the newest completed Claude task's Final Report, so ChatGPT can read it directly from GitHub. Never authoritative for architecture, backlog, or historical claims — documents 1/3/4/5 govern those — and never proof of current filesystem/git/runtime state by itself (see §17.C).
 
-**If the five documents appear inconsistent**, resolve as follows:
+**If the six documents appear inconsistent**, resolve as follows:
 
 - **A.** First determine whether the difference is *current state* vs. *historical record* — a lot of apparent conflict is just one document describing an earlier state that has since changed.
 - **B.** For current authorization, current owner instructions, current workflow, the current checkpoint, and what is/isn't approved — **`PROFLOW_PROJECT_CONTEXT.md` is authoritative.**
 - **C.** For current technical implementation claims — do **not** blindly trust either `PROFLOW_PROJECT_CONTEXT.md` or `PROFLOW_ARCHITECTURE.md` merely by precedence; verify against the repository or live evidence.
 - **D.** `PROFLOW_HANDOFF.md` preserves historical evidence — it is never rewritten merely to make old sections match current architecture.
 - **E.** If `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md` both claim current technical truth and genuinely conflict, repository/live evidence decides — not document priority.
-- **F.** `PROFLOW_CHAT_HANDOFF.md` is never authoritative on its own for architecture, backlog status, or historical claims — documents 1/3/4/5 govern those. It is useful only as a fast orientation snapshot and must always be verified against a fresh local working-tree check before it informs any implementation decision (§17.B).
+- **F.** `PROFLOW_CHAT_HANDOFF.md` and `PROFLOW_CLAUDE_LATEST_REPORT.md` are never authoritative on their own for architecture, backlog status, or historical claims — documents 1/3/4/5 govern those. Each is useful only as a fast orientation/transport snapshot and must always be verified against a fresh local working-tree check before it informs any implementation decision (§17.B, §17.C).
+
+### 0.B PERMANENT SIX-FILE CONTINUITY RULE (added 2026-08-30 — Continuity Integrity Audit task)
+
+**This is the single, current, authoritative statement of the six-file continuity system. It supersedes any "three"/"four"/"five"-document phrasing found anywhere else in this file or in the other five canonical documents — those are historical artifacts of how this system grew over time, not active inconsistencies requiring further correction.**
+
+**A. The six canonical files** (see §0.A for each one's distinct role): `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_TODO.md`. They are transported via the dedicated `proflow-continuity` branch/ref (§17.J) — always read from that ref, never from `main`, a stale upload, or chat memory (see §0.C, Bootstrap Safety, below).
+
+**B. Every meaningful ProFlow action, decision, test, discovery, implementation, environment change, status change, approval, blocker, or completed phase must be reconciled against all six canonical files before a task is considered closed.** "Reconciled" means each file is individually reviewed for whether it needs an update — not that all six are blindly edited every time.
+
+**C. Each of the six files must receive exactly one status at the end of every meaningful task**: `UPDATED` or `REVIEWED — NO CHANGE REQUIRED`. If a file is not changed, the closing report must still explicitly confirm it was reviewed and briefly state why no update was required. No file may be silently skipped.
+
+**D. Mandatory Six-File Continuity Ledger.** Every future meaningful task's Final Report must end with a **SIX-FILE CONTINUITY LEDGER** listing all six files individually, each with `FILE:` / `STATUS:` / `REASON:`. This is mandatory even when only one document actually required an edit — a task is not considered fully closed without it.
+
+**E. Do not blindly edit all six merely to produce six diffs.** The goal is **ALL SIX REVIEWED EVERY TIME**, not **ALL SIX MODIFIED EVERY TIME.** Only modify a document when its own distinct responsibility (§0.A) genuinely requires a content change for the work just completed.
+
+**F. Claude Task Template Rule.** Every future ProFlow task, however it is issued, should include: an explicit `EFFORT LEVEL` (§38); Agent HE responsibility where the task touches Local/Israel implications; Agent EN responsibility where it touches International implications; a Claude Lead reconciliation step; a Fresh Local State requirement (§17.B/§18); an explicit Owner-authorization boundary; an explicit TEST-vs-Production boundary (§17.D); an explicit commit/push/deploy/LIVE-authorization boundary (§17.E/§21/§36); a File-by-File HE/EN Ledger where the task affects both markets (§17.I); and the Six-File Continuity Ledger (D above). This exists so these requirements do not depend on any future session remembering to restate them — a task missing one of these elements does not remove the requirement, Claude should still apply it.
+
+**G. HE/EN Permanent Ownership, reconfirmed.** Agent HE owns Local/Israel implications; Agent EN owns International implications; Claude Lead owns shared architecture and reconciliation (§17.F/§17.G unchanged, restated here for discoverability from this new section). The HE/EN split is a review/verification-ownership split, never a license to fork shared source into duplicate market-specific files — shared files remain shared, and every shared change must be checked for both markets (§17.G already states this in full; this paragraph does not alter it).
+
+**H. Status-terminology discipline.** The following states are related but never interchangeable, and no ProFlow document may use them as synonyms: **documented** (written down, not independently verified); **implemented locally** (code/config exists in the working tree, not yet committed); **tested locally** (verified via lint/build/unit test/Docker/disposable environment, not against real TEST or Production); **committed** (a local Git commit exists, not yet pushed); **pushed** (present on a remote ref — state exactly which ref, since `main` and `proflow-continuity` carry very different consequences per §17.E/§17.J); **deployed** (Vercel has built and served it, or an Edge Function has been `functions deploy`'d — a consequence of a `main` push, never automatic from a `proflow-continuity` push); **applied to TEST** (a migration/SQL change has actually run against `quotecode-test`, confirmed via `supabase migration list`/a live query, not merely dry-run-proposed); **deployed to Production** (the equivalent action against `ixabnzhjeqevtbhdfswv` — always requires its own separate, explicit authorization, §17.D/§36); **LIVE authorized** (the Owner has explicitly approved a specific action for Production/LIVE — an authorization state, not yet an event); **verified LIVE** (the Owner or an agent has confirmed the authorized, deployed change actually behaves correctly against Production/LIVE). A report claiming any one of these must not be read, or written, as implying any other in this list — e.g. "tested locally" never implies "applied to TEST"; "committed" never implies "pushed"; "pushed to `proflow-continuity`" never implies "deployed."
+
+**I. Production safety, reconfirmed.** `commit ≠ push`. `push ≠ deploy` (and which ref was pushed matters enormously, per H above). `deploy ≠ LIVE authorization`. No Production mutation may ever occur merely because code or migrations exist locally or in any Git ref — explicit Owner authorization, per the established release rules (§17.D, §17.E, §36), remains required in every case, without exception.
+
+### 0.C Bootstrap Safety — Introduction Must Not Substitute for the Six Files (added 2026-08-30 — Continuity Integrity Audit task)
+
+Any future ChatGPT bootstrap/Introduction instruction (an external, ChatGPT-maintained document, not part of this repository's six-file set — see §15.B's note about it in `PROFLOW_CHAT_HANDOFF.md`) **must begin by reading all six canonical files from `ref = proflow-continuity`** on GitHub. It must **not** substitute `main`, the default branch, a stale uploaded copy, chat memory, or a previous report for that read. **If all six files cannot be read from `proflow-continuity`, the bootstrap must STOP and report exactly:**
+
+```
+CONTINUITY BOOTSTRAP INCOMPLETE
+```
+
+**No guessing, and no partial resume from whatever subset was readable.** The Introduction/bootstrap instruction is a *procedure* for finding and reading the six canonical files — it is never itself a substitute for them, and it must never be treated as if it already contains the current project state.
 
 ### 2. Resume — Do Not Restart
 
@@ -785,7 +822,7 @@ Purpose: avoid losing important project knowledge while preserving the strict re
 
 **Owner decision, standing rule, applies to every future task on this project — not a one-time instruction, does not expire.** Introduced during the Baseline Closure Pass (2026-08-28).
 
-**A. Before any code change on a new task**, read all four project documents in full: `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_HANDOFF.md`, `PROJECT_CONTEXT.md` (if present as a separate file from this one in a given checkout), and `PROFLOW_TODO.md` — with **special emphasis on `PROFLOW_TODO.md`**, since it is the backlog most likely to contain overlapping, already-scoped, or already-answered work relevant to the new task.
+**A. Before any code change on a new task**, read all six canonical project documents in full (§0.A/§0.B): `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, and `PROFLOW_CLAUDE_LATEST_REPORT.md` — with **special emphasis on `PROFLOW_TODO.md`**, since it is the backlog most likely to contain overlapping, already-scoped, or already-answered work relevant to the new task. **[Corrected 2026-08-30 — Continuity Integrity Audit task: this rule previously contained a broken, self-referential "four documents" list that erroneously named a second, separate "`PROJECT_CONTEXT.md`" file and omitted `PROFLOW_ARCHITECTURE.md`/`PROFLOW_CHAT_HANDOFF.md`/`PROFLOW_CLAUDE_LATEST_REPORT.md` entirely — a drafting error, not an intentional narrower scope. This is now consistent with §0.A/§0.B's six-file statement.]**
 
 **B. Identify overlapping TODO items** before starting implementation. If the new task substantially overlaps an existing OPEN/PARTIAL TODO item, fold the overlapping work in safely (implement it together, don't duplicate effort or create a second parallel description of the same gap) rather than treating the new task as if the backlog didn't already know about it.
 

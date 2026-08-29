@@ -2,10 +2,14 @@
 
 This file is a dedicated continuity snapshot so a **new** ChatGPT conversation
 can resume this project safely even if the current conversation reaches its
-limit. It complements, but does **not** replace, the four canonical project
-documents:
+limit. It complements, but does **not** replace, the six canonical project
+documents (see `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B for the current,
+authoritative statement — earlier wording here saying "four" is superseded,
+not a live inconsistency):
 
 - `PROFLOW_ARCHITECTURE.md`
+- `PROFLOW_CHAT_HANDOFF.md` (this file)
+- `PROFLOW_CLAUDE_LATEST_REPORT.md`
 - `PROFLOW_HANDOFF.md`
 - `PROFLOW_PROJECT_CONTEXT.md`
 - `PROFLOW_TODO.md`
@@ -229,6 +233,81 @@ Still open and must not be falsely closed:
 - Moving/announcement banner content/admin-source decision.
 - Genuine International live visual QA when an appropriate user becomes
   available.
+- **Full Runtime TEST Environment Build (added 2026-08-30, see §10.J below)**
+  — a separate, later workstream from the Quote Number/HE-EN release
+  candidate above. Four base-schema capture migrations exist locally,
+  retimestamped and dry-run-verified against `quotecode-test`, but **not yet
+  applied anywhere**. Do not conflate this with the Quote Number migration
+  package described in §8 above — they are different files, different
+  target environments at this stage, and different authorization states.
+
+## 10.J Full Runtime TEST Environment Build — Phase 1/Phase 2/Retimestamp (added 2026-08-30)
+
+A separate workstream from the Quote Number/HE-EN release candidate (§8):
+building a second Supabase project, `quotecode-test`
+(`ljfizgrdyzxddswcedwr`), into a genuinely functional runtime TEST
+environment — starting from the discovery that almost ProFlow's entire base
+schema exists only on Production, never captured in any tracked migration.
+
+**Sequence** (full detail: `PROFLOW_HANDOFF.md` §18.CC–§18.CQ):
+1. Production DB backup/restore verification retry — PASS (Docker installed).
+2. Release Order Step 3 (Attn migration) pre-flight audit + TEST rehearsal —
+   GO WITH CONDITIONS / PASS WITH CONDITIONS. Step 3 itself still NOT
+   executed against Production.
+3. A full 10-phase Build Plan produced (plan only).
+4. **Phase 1 executed**: four new local-only migration files authored,
+   capturing Production's entire previously-untracked base schema (tables,
+   functions/triggers, RLS/grants, storage), Docker-validated.
+5. **Deep Review** found 3 real bugs in the draft package (identity-column
+   generation mode, missing `business_settings` column-level grants, a
+   missing `AS RESTRICTIVE` keyword that would have silently defeated the
+   signup guard) — also resolved an earlier misdiagnosed "anomaly" and
+   corrected an earlier "RLS bypassable" misread.
+6. **All 3 fixes applied and re-validated** (two Docker apply passes plus a
+   7-test targeted permission/RLS proof, both Agent HE and Agent EN PASS) —
+   **MIGRATION PACKAGE: PASS, READY FOR PHASE 2 REVIEW.**
+7. **Phase 2 (apply to `quotecode-test`) attempted and BLOCKED**: the CLI's
+   own migration-history-order check (`LegacyDbPushMissingRemoteError`)
+   required `--include-all` to proceed, since the four capture files are
+   timestamped earlier than the already-applied Quote-Number/Attn chain on
+   `quotecode-test`. Per the task's own "do not improvise" rule, this
+   stopped cleanly — **zero mutation occurred.**
+8. A read-only audit recommended **retimestamping** the four files (rather
+   than using `--include-all`) as the safest resolution, plus several
+   documentation-only TODO corrections (see §10.K below).
+9. **The retimestamp was executed**: `20260826000000-3` → `20260830000000-3`
+   (content byte-identical, SHA-256-verified, headers strengthened into an
+   explicit "TEST/BOOTSTRAP — NOT A PRODUCTION FORWARD-MIGRATION PATH"
+   warning), and a non-mutating dry-run confirmed the ordering blocker is
+   now resolved (no `--include-all` required, existing chain migrations
+   correctly not re-proposed). **RETIMESTAMP + DRY-RUN: PASS — PHASE 2
+   ORDER BLOCKER RESOLVED.**
+
+**Current state**: nothing has been applied to `quotecode-test` or
+Production from this package at any point in this sequence — every step
+either was read-only, or stopped cleanly before mutating. **Phase 2 (the
+actual apply) remains its own separate, unauthorized future step**, now
+mechanically unblocked but still requiring its own explicit Owner + ChatGPT
+authorization before proceeding — the retimestamp resolved *how* it could
+work, not *whether* it is authorized yet. Storage (the fourth file) is
+explicitly excluded from Phase 2's own scope regardless, remaining a
+separate future phase.
+
+## 10.K TODO Backlog Corrections (added 2026-08-30, same task as §10.J item 8)
+
+Documentation-only additions to `PROFLOW_TODO.md`, unrelated in content to
+the migration work above but authorized in the same task: (1) item 1
+(Super Admin) retitled/clarified to cover only the backend
+security/permissions layer, explicitly not the full Admin UI (see the new
+item 22 below); (2) new item 22, "Full Admin Functional Audit" — OPEN, not
+started, full inventory of every Admin UI control/state, with an explicit
+note that recording it does not pre-authorize any destructive/Production
+action; (3) a new OPEN follow-up under item 14.A for three Public Quote
+bottom action buttons (HE: "הורד כ-PDF" / "**חייג/י אליי**" (Owner's exact
+wording, preserved verbatim) / "הדפס מסמך"; EN: full functional parity),
+not implemented; (4) a new "Future Product Ideas — Owner Decision Required"
+section recording 16 product ideas, explicitly marked as ideas only, not
+authorized, not queued for implementation.
 
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
@@ -400,9 +479,11 @@ Supabase session/origin review.
 
 ## 13. Documentation state
 
-Canonical technical/project documents:
+Canonical technical/project documents (six total — see `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B):
 
 - `PROFLOW_ARCHITECTURE.md`
+- `PROFLOW_CHAT_HANDOFF.md` (this file)
+- `PROFLOW_CLAUDE_LATEST_REPORT.md`
 - `PROFLOW_HANDOFF.md`
 - `PROFLOW_PROJECT_CONTEXT.md`
 - `PROFLOW_TODO.md`
@@ -418,7 +499,7 @@ commit.
 
 ## 14. Current resume point
 
-As of this snapshot:
+**🟢 UPDATED 2026-08-30 — read this paragraph first, then the rest of this section for the still-accurate older Quote-Number/HE-EN release-candidate state below.** The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: retimestamp of the four Phase-1 capture migrations executed and dry-run-verified (PASS — PHASE 2 ORDER BLOCKER RESOLVED), nothing applied to `quotecode-test` or Production yet, Phase 2 apply itself still unauthorized. `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Separately, several TODO backlog corrections were made (§10.K) — documentation only, nothing implemented. **NEXT ACTION**: awaiting Owner + ChatGPT review of the retimestamp result before Phase 2 (or Storage/Auth/Edge/user-creation work) may proceed. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update:
 
 - Hebrew money alignment: Owner visually accepted.
 - 980px visual content architecture: Owner + ChatGPT accepted.
