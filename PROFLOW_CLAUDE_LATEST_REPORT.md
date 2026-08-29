@@ -6,66 +6,112 @@
 
 ---
 
-## Task: PROFLOW — Production DB Backup + Restore Verification (Canonical Release Order Step 2 ONLY)
+## Task: PROFLOW — Retry Canonical Release Order Step 2 (Production DB Backup + Restore Verification)
 
-**Effort level**: HIGH. **Owner + ChatGPT explicitly approved — STEP 2 ONLY**, no other release step authorized.
+**Effort level**: HIGH. **Owner + ChatGPT explicit authorization — STEP 2 ONLY.** No other release step authorized or executed.
 
-**Result: STEP 2: FAIL — no available backup mechanism could actually run in this execution environment.** This is a tooling/environment blocker, not a Production data/schema/code issue.
+**Result: STEP 2: PASS.**
 
-### 1. Production Project Identity (sanitized)
+### 1. Fresh Local State at Task Start
 
-`ixabnzhjeqevtbhdfswv` — name `quotecode`, region `eu-central-1`, Postgres `17.6.1.147`, status `ACTIVE_HEALTHY` — freshly re-verified via `supabase projects list` this task (no credentials printed by that command). Matches every prior documentation reference. No password/token/connection-string was included in this identification.
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: `.gitignore` + six `PROFLOW_*.md` modified, three untracked migration-package items — identical to every prior task's baseline. Continuity worktree: `HEAD == origin/proflow-continuity == eafd08ad864abc5a95cd2143a4b44532d36a26d2` (the prior §18.CB FAIL record), clean. Both freshly re-verified, matching the continuity documents with no conflict — bootstrap reconciliation confirmed clean before any technical work began.
 
-### 2–3. Backup Mechanism Selected / Why
+### 2. Confirmed Production Project Identity (sanitized)
 
-**None could be executed.** Both audited mechanisms were blocked:
-- **(A) `supabase db dump --linked`**: the CLI's actual (non-dry-run) execution shells out to a Docker container to run `pg_dump` — Docker Desktop is not installed in this environment (confirmed via direct `docker --version` check and the CLI's own runtime error, `LegacyDockerRunError`).
-- **(B) Supabase managed physical/PITR backup** (`supabase backups list --project-ref ixabnzhjeqevtbhdfswv`): returned `pitr_enabled: false, backups: []` — not enabled for this project's current plan/configuration.
-- No standalone `pg_dump`/`pg_restore`/`psql` binaries exist on this machine outside the Supabase CLI's own (Docker-dependent) tooling.
+`ixabnzhjeqevtbhdfswv` — name `quotecode`, region `eu-central-1`, Postgres `17.6.1.147`, `linked: true`, freshly re-verified via `supabase projects list`. The only linked project; `quotecode-test` (`ljfizgrdyzxddswcedwr`) confirmed `linked: false` and never targeted.
 
-Per this task's own explicit instruction ("If the available tooling cannot safely produce a full restorable backup: STOP and report the blocker. Do not improvise."), no workaround was attempted — no Docker installation, no ad-hoc export script, no alternate unapproved method.
+### 3. Docker Availability / Result
 
-### 4–8. Backup Start/End Time, File Path, Format, Size, SHA-256
+`docker version` returned real Client (29.7.2) and Server (Docker Desktop 4.88.1, Engine 29.7.2) information — daemon reachable and working. This resolves the exact blocker recorded in the prior Step 2 attempt (§18.CB).
 
-**Not applicable — no backup was successfully created.** One attempt via mechanism (A) produced a 0-byte stub file (`.../scratchpad/proflow-backups/proflow-production-schema-20260828-140902Z.sql`, outside the repository) before failing with the Docker error; this empty stub was deleted immediately and is not a backup.
+### 4. Exact Backup Mechanism Used
 
-### 9. Confirmation Backup Is Outside Git / Not Staged
+Real (non-dry-run) `supabase db dump --linked` for schema, then `supabase db dump --linked --data-only --use-copy` for data. **`--dry-run` was never used**, per the permanent lesson recorded after the prior attempt's credential-exposure incident. Docker pulled `public.ecr.aws/supabase/postgres:17.6.1.147` (matching Production's own engine version) to execute both dumps.
 
-N/A (no backup exists). The one empty stub that briefly existed was created entirely outside the repository (session scratchpad directory) and was deleted before this task's git-state check; `git status --short` in the primary tree is byte-identical to this task's own fresh baseline at start (confirmed below, item 24).
+### 5. Backup Start/End Time
 
-### 10–16. Restore Target / Result / Checks
+Start (filename timestamp, immediately before first dump): `2026-08-29T19:33:44Z`. Schema dump file completion: `2026-08-29T19:34:56Z`. Data dump file completion: `2026-08-29T19:35:14Z` (end).
 
-**Not reached.** With no backup created, no restore attempt was made and none could have been meaningfully verified. Restore target evaluation (local disposable PostgreSQL vs. reusing `quotecode-test`) was not performed since it was moot without a backup to restore.
+### 6. Backup Path
 
-### 17. STEP 2 Verdict
+Both outside the repository, in the session scratchpad directory:
+- `.../scratchpad/proflow-backups/proflow-production-schema-20260829-193344Z.sql`
+- `.../scratchpad/proflow-backups/proflow-production-data-20260829-193344Z.sql`
 
-**STEP 2: FAIL**
+### 7. Backup Format/Type
 
-(Not "BACKUP CREATED — RESTORE VERIFICATION BLOCKED" — that phrasing implies the backup itself succeeded. It did not. The backup creation step failed outright due to environment tooling limitations.)
+Plain-text SQL (`pg_dump` default format) — schema-only DDL dump and a separate data-only dump using `COPY` statements (`--use-copy`), scoped to the `public` schema (internal Supabase platform schemas excluded by the CLI's own standard exclusion list).
 
-### 18. Current Production Release State
+### 8. Backup File Size
 
-Unchanged from before this task. **DEGRADED BUT SAFE** (re-confirmed, no new evidence changes it — see item 21 wording below). No release step beyond the already-satisfied Step 1 (Owner timing decision) has been completed. Step 2 remains the current blocker for the entire release.
+Schema: 34,242 bytes. Data: 1,568,848 bytes.
 
-### 19. Confirmation Step 3 Was NOT Executed
+### 9. Backup SHA-256
 
-Confirmed — no Attn migration, no Quote Number migration, no counter initialization, no DEFAULT removal, no RPC/RLS/grants change, no Edge Function deploy, no application change of any kind was performed or attempted this task, independent of Step 2's outcome.
+Schema: `b8defc86b3731c598ac5a465d8a109e6ad1b38414a5396ff2b4e5afb05bfdcd9`
+Data: `d9aaef0a715e2407f8d45ae9010f9f350295c7f41bba350427cfb25691a74ff5`
+Both independently re-verified byte-identical inside the restore container after `docker cp`.
+
+### 10. Confirmation Backup Is Outside Git and Not Staged
+
+`git status --short` before and after this task is identical (no new entries). `git check-ignore -v` on the backup file path returned "outside repository" — confirmed by Git itself, not by path inspection alone.
+
+### 11. Exact Isolated Restore Target
+
+A disposable, throwaway local Docker container (`postgres:17`, name `proflow-restore-verify`, `--rm`, no persistent volume). Confirmed empty (0 tables in `public`) before any restore activity. Never Production, never `quotecode-test`.
+
+### 12. Restore Method
+
+Backup files copied into the container via `docker cp` (checksum-verified post-copy); schema loaded via `psql -f /tmp/schema.sql`, then data via `psql -f /tmp/data.sql`, both executed inside the container against its own local database only.
+
+### 13. Restore Result
+
+**Successful for all application content.** 9 tables, 3 sequences, 12 functions, 5 triggers created; all 9 `COPY` data-loads for the 9 application tables completed (row counts below). 123 (schema) + 30 (data) non-fatal errors occurred, and every single one was independently confirmed to be a Supabase-platform-only object unavailable in a bare Postgres image (`anon`/`authenticated`/`service_role` roles; `auth`/`extensions`/`storage` schemas; `supabase_realtime` publication; `pgjwt`/`pg_net`/`supabase_vault` extensions) — zero errors touched any `public`-schema table, data row, function, or trigger.
+
+### 14. Structural/Schema Verification Performed
+
+- Table list (`pg_tables`): `business_settings`, `chat_logs`, `clients`, `expenses`, `quote_attachments`, `quote_items`, `quotecode_documents`, `quotes`, `services` — matches the documented live schema exactly.
+- Sequences: `business_settings_id_seq`, `quotes_quote_number_seq`, `services_id_seq`.
+- Functions (12): includes `approve_quote_public`, `guard_quote_immutability`/`_delete`, `is_admin`, `is_super_admin`, `handle_user_migration`, etc. — no `allocate_quote_number` present, consistent with the documented "not yet migrated" live state.
+- Triggers (5): immutability guards on `quotes`, `quote_items`, `quote_attachments`, `business_settings`.
+- `quotes` table structure (`\d quotes`): `quote_number integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')` confirmed present exactly as documented in the original LIVE audit (§18.BN).
+- All 24 `CREATE POLICY` statements confirmed present in the backup file content itself (direct grep), even though most could not structurally apply in this bare-Postgres target (they reference `auth.uid()`/`authenticated`, platform-provided objects) — the backup **captures** RLS policy definitions; a bare-Postgres restore target simply cannot **apply** them without the Supabase Auth layer. This is stated explicitly per the authorizing task's own requirement not to overstate what a plain PostgreSQL dump captures vs. Supabase platform components.
+
+### 15. Additional Consistency Checks Performed
+
+Row counts per table (`business_settings` 12, `chat_logs` 77, `clients` 24, `expenses` 1, `quote_attachments` 3, `quotecode_documents` 6, `quote_items` 32, `quotes` 23, `services` 12). Aggregate-only cross-check on `quotes`: 7 distinct `user_id`s, `quote_number` range 11–89, `quotes_quote_number_seq.last_value = 90` — an **exact independent match** to the original live-audit finding recorded in `PROFLOW_HANDOFF.md` §18.BN ("23 historical quotes across 7 distinct user_ids... last_value=90"), now reproduced via a completely different method (full dump+restore rather than a direct `SELECT`). This is strong evidence the backup genuinely reflects live Production state. No customer names/emails/addresses/quote content were displayed in any command output — aggregate counts and metadata only, per the task's explicit requirement.
+
+### 16. Warnings/Errors Encountered
+
+123 + 30 = 153 total restore-time errors, all explained and attributed to Supabase-platform-only objects (see item 13). Zero unexplained errors. Zero errors touching application data or schema.
+
+### 17. Final Verdict
+
+**STEP 2: PASS**
+
+### 18. Confirmation STEP 3 Was NOT Executed
+
+Confirmed. No Attn migration, no Quote Number migration, no counter initialization, no DEFAULT removal, no RPC/RLS/grants change on Production, no Edge Function deploy, no application change of any kind.
+
+### 19. Confirmation Production Was Not Mutated
+
+Production access this task was limited to exactly three read/export operations: `supabase projects list` (identity check), `supabase db dump --linked` (schema export), `supabase db dump --linked --data-only --use-copy` (data export). All are read-only export operations against Production — no `INSERT`/`UPDATE`/`DELETE`/`ALTER`/`CREATE`/`DROP`/`db push` was ever issued against Production.
 
 ### 20. Documentation Files Changed
 
-`PROFLOW_TODO.md` (canonical Step 2 line annotated with the FAIL status and full reasoning), `PROFLOW_HANDOFF.md` (new §18.CB entry — full incident record including the secret-handling lesson below), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
+`PROFLOW_TODO.md` (canonical Step 2 line updated FAIL → PASS with full result summary), `PROFLOW_HANDOFF.md` (new §18.CC entry — full restore-verification record), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
 
 ### 21. Secret/Privacy Scan Result
 
-**⚠️ A live database credential was printed to terminal output during this task** (not written to any file, report, or documentation) — see the full account in §18.CB of `PROFLOW_HANDOFF.md`. It was surfaced transparently to the Owner mid-task via an explicit question; Owner chose to proceed without rotation, given it is a short-lived, CLI-session-scoped pooler credential (not the account's primary DB password or a service-role/API key). **Separately**, the standard pre-sync diff scan on the three changed documentation files (password/API-key/service-role-key/token/JWT/private-key/connection-string patterns) found only narrative/conceptual matches (rule names, migration/column names) — no actual secret value present in any file being committed. **PASSED for documentation-sync purposes**; the terminal-output exposure is recorded as its own incident, not swept into this pass/fail line.
+No credential was printed to terminal output this task (the prior attempt's `--dry-run` mistake was not repeated). Standard pre-sync diff scan on the three changed documentation files (password/API-key/service-role-key/token/JWT/private-key/connection-string patterns) found only narrative/conceptual matches (rule names, checksum values, migration/table names) — no actual secret value present in any file being committed. **PASSED.**
 
-### 22–23. Continuity Commit SHA / Push Result
+### 22. Fresh Git State at Task End
 
 Recorded in the chat response following this report.
 
-### 24. Proof `main` Remained Untouched
+### 23. Confirmation Application/`main` Remained Untouched
 
-Fresh `main` HEAD/`origin/main` at task start: `17ac4d3a950d96f4167f9b320c82b4798382d621` (both). `git status --short` at task start and at this report's writing are identical (`.gitignore` + six `PROFLOW_*.md` modified locally, three untracked migration-package items — no new entries, no application file touched). All git operations this task targeted the separate `proflow-continuity` worktree exclusively. Final confirmation recorded in the chat response following this report.
+`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; all git operations this task targeted the separate `proflow-continuity` worktree exclusively. No application source file was read, edited, staged, committed, or pushed.
 
 ---
 
@@ -73,8 +119,8 @@ Fresh `main` HEAD/`origin/main` at task start: `17ac4d3a950d96f4167f9b320c82b479
 
 | FILE | WHAT CHANGED | WHY | SOURCE/EVIDENCE | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | Canonical Step 2 line annotated: 🔴 STATUS NOT SATISFIED — FAIL, with the full backup-method-audit reasoning and remediation options | Record the real, current blocker on the release's next step so a future session doesn't re-attempt the same blocked mechanisms without first resolving the Docker/PITR gap | `supabase db dump`/`supabase backups list` command output this task | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CB entry — full incident record: backup-method audit, STEP 2 FAIL verdict, the mid-task credential-exposure incident and Owner's decision, permanent lesson against using `--dry-run` on `supabase db dump` again | Standing chronological-record pattern; the `--dry-run` lesson is safety-critical and must survive to future sessions | This task's own command outputs and the mid-task user question/answer | DONE |
+| `PROFLOW_TODO.md` | Canonical Step 2 line updated from 🔴 FAIL to ✅ PASS, with backup/restore result summary | Step 2 is no longer the release blocker — record the genuine, verified result | This task's own `supabase db dump`/Docker restore commands and output | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CC entry — full backup creation, restore, and verification record, including the independent cross-validation against §18.BN's original A90 finding | Standing chronological-record pattern; the cross-validation is a genuinely significant new fact worth preserving | This task's own command outputs (`docker`, `psql`, `supabase` CLI) | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file — full Final Report for this task | Standing rule | — | DONE |
 | `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no backup-mechanism content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
 | `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no backup-mechanism content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
@@ -82,21 +128,16 @@ Fresh `main` HEAD/`origin/main` at task start: `17ac4d3a950d96f4167f9b320c82b479
 
 ---
 
-**PRODUCTION DB BACKUP + RESTORE VERIFICATION TASK COMPLETE.**
+**STEP 2: PASS — Production database backup created and genuinely restore-verified.** This step is no longer the release blocker. The next canonical step (Step 3: Attn-columns migration) requires its own separate, explicit Owner + ChatGPT authorization — **not granted or executed by this task.**
 
-**STEP 2: FAIL — no available backup mechanism (Docker-dependent `pg_dump`, or Supabase managed PITR) could actually execute in this environment. Step 2 remains the current blocker; a human must resolve the tooling gap (install Docker, enable PITR, or use a different environment) before this step can be retried.**
-
-NO PRODUCTION DB MUTATION OTHER THAN READ/EXPORT ACTIVITY REQUIRED FOR BACKUP
-NO PRODUCTION RESTORE
-NO MIGRATION EXECUTION
 NO ATTN MIGRATION
 NO QUOTE NUMBER MIGRATION
-NO COUNTER INITIALIZATION
-NO DEFAULT REMOVAL
+NO PRODUCTION DB MUTATION
+NO PRODUCTION RESTORE
 NO EDGE FUNCTION DEPLOY
-NO APPLICATION SOURCE CHANGE
+NO APPLICATION CHANGE
 NO APPLICATION COMMIT
 NO MAIN COMMIT
 NO MAIN PUSH
 NO VERCEL CHANGE
-NO ADDITIONAL LIVE RELEASE STEP
+NO STEP 3
