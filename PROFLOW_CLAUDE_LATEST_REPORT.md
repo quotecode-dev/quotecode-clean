@@ -6,80 +6,104 @@
 
 ---
 
-## Task: PROFLOW — Local Dev Server Diagnostic + Restore Only (Runtime, No Code/DB/Live Change)
+## Task: PROFLOW — EN / Port 5186 White-Screen Diagnostic (Read-Only, No Fix)
 
-### Effort Level + Reason
+**Effort level**: HIGH. Owner + ChatGPT explicit authorization for READ-ONLY diagnosis only — no fix implemented, no code/config/DB/firewall/server change.
 
-**MEDIUM.** Owner + ChatGPT explicit authorization to diagnose and restore ONLY the existing local ProFlow development server so the Owner can again access the local working-tree build from his LAN, after neither `http://192.168.1.189:5184` nor `:5186` responded following a machine restart during Docker/virtualization setup. NOT authorization for any application, database, migration, deployment, commit, push, or Production change.
+**Primary verdict: 5186 WHITE SCREEN: PROBABLE ROOT CAUSE**
 
-### Fresh Local State
+### Fresh Local/Runtime State
 
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short`: identical to every prior task's baseline (`.gitignore` + six `PROFLOW_*.md` modified, three untracked migration-package items) — no drift, before or after this task. LAN IPv4 freshly confirmed via `Get-NetIPAddress`: `192.168.1.189` — unchanged by the restart.
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. `git status --short` identical to every prior task's baseline, before and after. Both dev processes confirmed still running at task start, same PIDs as the immediately-prior restore task (21028/5184, 17520/5186) — neither restarted for this diagnostic, per the task's own "don't alter evidence unnecessarily" instruction. LAN IPv4 unchanged: `192.168.1.189`.
 
-### Diagnosis
+### 1. Is 5186 Genuinely an EN/International Environment?
 
-`Get-NetTCPConnection` checked on ports 5183/5184/5185/5186 — **none listening**. `tasklist /FI "IMAGENAME eq node.exe"` — **zero Node processes running at all**. Root cause: simple — both previously-running Vite dev server processes were stopped by the machine restart (a dev-only `npm run dev` process has no auto-restart mechanism), nothing more complex. No evidence found that Docker/WSL/networking-stack changes interfered — the downtime is fully explained by "process didn't survive the reboot."
+**No — confirmed, not merely suspected.** `src/App.jsx` (which contains its own `RootHandler`/language logic) is **dead code**, imported nowhere in `src/` (confirmed via repo-wide grep). The real entry point, fetched directly from the running server, is `src/main.jsx`, which picks `<AppGlobal/>` (English) vs `<AppLocal/>` (Hebrew) **per visit**, via: `?lang=` query → URL path prefix (`/en`/`/he`) → `localStorage['proflow_lang']` (per-origin, empty on a new port) → a `proflow_geo_country` cookie (absent in local dev) → finally `!navigator.language.startsWith('he')`. Nothing about port 5186 itself selects English. The Owner's own PC observation — bare `5186/` root rendering Hebrew, not English — directly confirms this mechanism in practice, not just in source.
 
-**Firewall check**: PowerShell's `Get-NetFirewallRule`/`Get-NetFirewallPortFilter` — "Access is denied" (same elevation limitation already documented in `PROFLOW_HANDOFF.md` §18.BC, unchanged, reconfirmed this task). `netsh advfirewall firewall show rule name=all dir=in verbose` (lower-privilege, works without elevation, per the same technique already proven in §18.BC) — `"Vite Dev Server 5184"` rule **confirmed still present**, unaffected by the restart; **no rule exists for 5186**, exactly the same pre-existing gap already documented in §18.BC, not new, not caused by this restart, and this session still cannot create one.
+### 2. Exact Difference Between 5184 and 5186
 
-### Restore — Runtime Only
+**None, at the infrastructure level.** Both are `npm run dev -- --host --port <port> --strictPort` from the identical working directory — identical source, identical `.env`, identical build, identical Vite config. The only per-origin difference is `localStorage` state (empty on a first visit to either) and which port the HMR WebSocket targets (default, client-detected, no override in `vite.config.js`).
 
-Both servers restarted using the **exact commands already established** in `PROFLOW_HANDOFF.md` §18.BC — nothing invented, no new configuration:
+### 3. Category of Issue
 
-- `npm run dev -- --host --port 5184 --strictPort` → new background process, **PID 21028**, ready in 855ms.
-- `npm run dev -- --host --port 5186 --strictPort` → new independent background process, **PID 17520**, ready in 516ms, without touching or restarting the 5184 process.
+**Not** networking, **not** firewall (Owner already created the missing rule; HTTP requests succeeded — see below), **not** asset loading (all assets verified 200 OK with real content), **not** Vite/runtime config (no HMR override, no build-pipeline asymmetry). **Most likely**: browser/runtime — a genuine mobile-browser-specific JS exception, of unknown exact origin, that the app's total lack of a React ErrorBoundary turns into a silent, fully blank page.
 
-No `package.json`/Vite config file was read for editing or modified. No package installed or updated. No new dev configuration created. No unrelated process was killed.
+### 4. Exact Evidence
 
-### Verify
+- `curl` from the LAN IP: `5184/`, `5186/`, `5186/en` all return HTTP 200, byte-identical headers/`Content-Length`/`Etag` (expected SPA behavior).
+- `/src/main.jsx`, `/@vite/client`, `/@react-refresh` on 5186 all return HTTP 200 with real, non-empty JS (fetched and read directly, not just status-checked).
+- Repo-wide grep for `5184|5186|localhost:51|192.168.1.189` in `src/` — zero matches (no hardcoded port/IP assumption).
+- `vite.config.js` — no HMR host/port override, plain `react()` plugin, single build pipeline for both branches.
+- Owner-observed: PC bare `5186/` root → Hebrew landing page (not English) — direct confirmation of item 1 above.
+- Owner-observed: phone `5186/` → blank/white page, reproduced on a second attempt after the firewall rule was created.
+- Since the Owner reports a *rendered blank page*, not a connection failure/timeout, the HTTP layer evidently succeeded — the failure is downstream of network delivery, in JS execution or render.
+- Live browser-console inspection via browser-harness was **attempted and unavailable this session** (`--doctor` confirms Chrome running, daemon/connection not reachable) — the same class of live-browser-verification limitation already documented elsewhere in this engagement.
 
-**A. Local machine**: `localhost:5184` → HTTP 200; `localhost:5186` → HTTP 200.
+### 5. Agent EN Verdict
 
-**B. Application**: response body confirmed genuine Vite-served React app (React-refresh injection present, correct `<!doctype html>`) on both — not an error page, no fatal startup error in either process's log.
+Full read of `src/global/AppGlobal.jsx` and `src/pages/LandingGlobal.jsx`, plus every shared utility either imports (`seoMeta.js`, `neonTheme.js`, `AIChatWidget.jsx`, `AccessibilityModal.jsx`, `ProFlowLogo.jsx`, `shared/supabase.js`). **No AppGlobal-specific defect found.** The one genuine asymmetry versus Hebrew — a currency/timezone `useEffect` using `navigator.language`/`Intl.DateTimeFormat` — is wrapped in `try/catch` with a safe fallback. Supabase auth init is byte-for-byte the same pattern in both branches. Build/transform pipeline identical. **Separately flagged, general (not English-specific) finding**: no React ErrorBoundary exists anywhere in `main.jsx`/`AppGlobal`/`AppLocal` — any uncaught exception in *either* branch's render/effects unmounts to a genuinely blank `#root`, with zero visible fallback.
 
-**C. LAN**:
-- `http://192.168.1.189:5184/` — HTTP 200 (verified from this machine). Firewall rule present (confirmed above) — this matches the configuration under which the Owner previously verified physical-phone access, so LAN/phone access is expected to work, but **the Owner should personally re-confirm from a physical device** — no physical-phone verification was performed or claimed by this session.
-- `http://192.168.1.189:5186/` — HTTP 200 (verified from this machine, **PC-level only**). This does **not** prove phone/external-device reachability — Windows Firewall generally does not block loopback-originated traffic to the machine's own LAN IP the way it blocks an actual external device, and no 5186 firewall rule exists. 5186 remains in exactly its previously-documented state: PC-level ready, phone/LAN access still blocked pending the same firewall rule this session still cannot create.
-- `Get-NetTCPConnection` confirms port 5184 bound on `::` (all interfaces), consistent with the successful LAN-IP response.
+### 6. Agent HE Baseline Result
 
-### Important State Distinction
+Full read of `src/local/AppLocal.jsx`/`src/pages/LandingLocal.jsx`. Confirms the Hebrew path's first render is fully synchronous and local-state-driven; the one async operation (Supabase session fetch) is strictly non-blocking (fire-and-forget, no loading gate); routing (including the catch-all `*`) never resolves to an empty tree. This is the working baseline 5184 already demonstrates on the phone.
 
-This is the **LOCAL WORKING TREE only** — currently serving `main`'s committed content (no application file is presently modified in the working tree, confirmed via `git status --short`) — via a runtime-only `vite` process. This is **not** a deployment, **not** a TEST Supabase change, **not** a Production frontend change, and **not** a Production Supabase change. No DB write of any kind was performed to verify the server.
+### 7. Claude Lead Reconciled Diagnosis
 
-### Result
+No disagreement between agents to resolve. Combining all evidence:
 
-**LOCAL DEV SERVER: RESTORED**
+1. **Confirmed** — 5186's bare-root visit almost certainly resolved to the same Hebrew/`AppLocal` branch already proven working on 5184 (same phone, same browser-language default, now directly confirmed on the PC) — the reported blank screen is likely **not** an English-specific rendering defect at all.
+2. **Confirmed** — no code-level asymmetry exists that would make either language branch structurally more crash-prone than the other.
+3. **Confirmed, and the most likely explanatory mechanism** — the total absence of an ErrorBoundary means *any* uncaught exception specific to this phone's real mobile browser engine (genuinely untested until now — every prior "Mobile" verification in this engagement, HE or EN, was CDP-viewport-emulated desktop Chrome, never a physical device) would produce exactly this symptom, with zero visible error for the Owner to report or for Claude to reconstruct after the fact.
+4. **Inferred, unverified** — this was also the very first request to port 5186 through its brand-new firewall rule from an external device; a transient/stale-tab factor from an earlier pre-firewall-rule attempt cannot be ruled out without the Owner trying a fresh reload/new tab.
 
-- **Root cause**: both dev server processes simply stopped when the machine restarted; no other factor involved.
-- **Current LAN IPv4**: `192.168.1.189` (unchanged).
-- **Exact running ports**: `5184` and `5186`.
-- **Exact Owner LAN URLs**: `http://192.168.1.189:5184/` and `http://192.168.1.189:5186/`.
-- **Process/server started**: two independent `node` processes running `vite --host --port <5184|5186> --strictPort` (PIDs 21028 and 17520).
-- **Localhost verification**: both PASS (HTTP 200, genuine app content).
-- **LAN-interface verification**: both PASS at the PC level; 5184's firewall rule is present (phone access expected to work, Owner to confirm); 5186's firewall rule is still absent (pre-existing, unchanged limitation — PC-level only until a human with elevation creates it).
-- **Docker/WSL relevance**: none found — the downtime was caused simply by the dev process not restarting on its own, unrelated to the Docker/virtualization install that prompted the machine restart.
-- **Confirmation no project files changed**: `git status --short` identical before and after this task.
-- **Confirmation no DB/environment was mutated**: no Supabase command of any kind was issued this task (Production or TEST); `.env` untouched.
-- **Confirmation Production was untouched**: no Production interaction of any kind this task — purely local process/network diagnostics.
+**Classification: PROBABLE ROOT CAUSE** — not "IDENTIFIED" (the exact triggering exception was not directly observed, live console access being unavailable this session), not "INSUFFICIENT EVIDENCE" (the converging evidence supports a well-reasoned, named primary hypothesis).
 
-### Documentation
+### 8. Safest Proposed Fix — PLAN ONLY, NOT EXECUTED
 
-**Exact documentation files changed**: `PROFLOW_TODO.md` (§E of the QA/Release Track section — dual local TEST origins note updated to record the 2026-08-29 restart/restore, underlying facts unchanged), `PROFLOW_HANDOFF.md` (new §18.CG entry — full diagnostic and restore record), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
+(a) Test explicitly via `http://192.168.1.189:5186/en` (bypassing the unreliable bare-root auto-detection) to directly isolate whether `AppGlobal` renders correctly on the phone once definitively selected — this alone would be diagnostic, not a fix, and needs no code change.
+
+(b) If it still blanks: add a top-level React ErrorBoundary wrapping `main.jsx`'s render call — a small, low-risk, market-neutral change (affects both branches identically, changes nothing on success, only prevents a silent full blank-out on failure and would surface the real exception for a future diagnosis).
+
+### 9. What the Proposed Fix Would Require
+
+Item (a) is a **runtime-only verification** (just visiting a different URL, no change of any kind). Item (b) would be an **application-code change** — requires its own separate, explicit Owner + ChatGPT authorization per this project's standing rules; not authorized or implied by this diagnostic task.
+
+### 10. Risks and Regression Scope
+
+Item (a): zero risk, pure observation. Item (b): very low risk and inherently market-neutral (one shared entry file, wraps the whole tree once, no per-branch logic divergence) — but still requires the standing HE/EN independent-verification and Owner sign-off discipline like any other code change, per Permanent Rule §37, before being considered for implementation.
+
+---
+
+## Evidence Classification (per this task's own explicit requirement)
+
+**VERIFIED** (reproduced/observed via available tooling): `src/App.jsx` is dead code; `src/main.jsx`'s exact language-selection logic; identical HTTP/asset delivery on both ports; no hardcoded port/IP references; no HMR config override; no code-level asymmetry between `AppGlobal`/`AppLocal`; no ErrorBoundary anywhere in the render tree.
+
+**INFERRED** (strongly suggested by comparison, not directly observed): the phone's specific 5186 visit resolved to the Hebrew branch; a genuine mobile-browser-engine exception is the most likely trigger; a possible stale-tab/first-connection factor.
+
+**OWNER-OBSERVED** (reported by the Owner, not independently reproduced by Claude): 5184 renders correctly on the physical phone; 5186 produces a blank/white page on the physical phone, reproduced on a second attempt after the firewall rule was created; on the PC, bare `5186/` root loads the Hebrew landing page instead of English.
+
+---
+
+## Documentation
+
+**Exact documentation files changed**: `PROFLOW_TODO.md` (§E dual-origin section — a correction note added recording this diagnosis, underlying facts otherwise unchanged), `PROFLOW_HANDOFF.md` (new §18.CH entry — full diagnostic record), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report). `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md` — reviewed, genuinely not required this task.
 
 ### File-by-File Ledger
 
 | FILE | WHAT CHANGED | WHY | SOURCE/EVIDENCE | STATUS |
 |---|---|---|---|---|
-| `PROFLOW_TODO.md` | §E dual-origin note annotated with the 2026-08-29 restart/restore event and the reconfirmed firewall state for both ports | Keep the QA infrastructure status current without duplicating or contradicting the original §18.BC setup facts | This task's own `netsh`/process/HTTP checks | DONE |
-| `PROFLOW_HANDOFF.md` | New §18.CG entry — full diagnosis, restore, and verification record | Standing chronological-record pattern | This task's own command outputs | DONE |
+| `PROFLOW_TODO.md` | §E annotated with a correction note: 5186 is not a genuine English environment by construction, plus the diagnosis pointer | Prevent future sessions from repeating the "5186 = English" assumption that produced this confusing symptom | This task's own source reads and Owner-observed evidence | DONE |
+| `PROFLOW_HANDOFF.md` | New §18.CH entry — full diagnostic record: architecture finding, network/asset evidence, both agent verdicts, Lead reconciliation, proposed (unexecuted) fix plan | Standing chronological-record pattern | This task's own investigation and both agents' reports | DONE |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | This file — full Final Report for this task | Standing rule | — | DONE |
-| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
-| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no dev-server-specific content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_PROJECT_CONTEXT.md` | Nothing this task | Reviewed — no dev-server/routing content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_ARCHITECTURE.md` | Nothing this task | Reviewed — no dev-server/routing content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+| `PROFLOW_CHAT_HANDOFF.md` | Nothing this task | Reviewed — no dev-server/routing content, genuinely not required | Grep, no match | REVIEWED, NOT CHANGED |
+
+**HE/EN application-file ledger — explicitly confirming no implementation occurred**: **zero** market application files (`src/App.jsx`, `src/main.jsx`, `src/global/AppGlobal.jsx`, `src/local/AppLocal.jsx`, `src/pages/LandingGlobal.jsx`, `src/pages/LandingLocal.jsx`, or any shared utility) were edited, staged, or modified in any way — all were opened via `Read`/`Grep`/agent investigation only. `git status --short` before and after this task is identical, confirming this directly.
 
 ### Secret/Privacy Scan Result
 
-No credential was involved in this task at all (pure local process/network diagnostics, no Supabase/CLI credential path touched). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (rule names, process/port numbers, PIDs — none of which are secrets) — no actual secret value present. **PASSED.**
+No credential was involved in this task at all (pure local HTTP/source-code diagnostics, no Supabase/CLI credential path touched). Standard pre-sync diff scan on the three changed documentation files found only narrative/conceptual matches (file names, port numbers, PIDs, code excerpts — none of which are secrets) — no actual secret value present. **PASSED.**
 
 ### Fresh Git State at Task End
 
@@ -87,26 +111,28 @@ Recorded in the chat response following this report.
 
 ### Confirmation Main/Application Remained Untouched
 
-`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; no application source, config, or package file was read for editing, edited, staged, committed, or pushed.
+`main` HEAD/`origin/main` unchanged (`17ac4d3`) throughout; no application source, config, or package file was edited, staged, committed, or pushed — this was a pure read-only diagnostic with zero code execution changes.
 
 ---
 
-**LOCAL DEV SERVER: RESTORED.**
+**5186 WHITE SCREEN: PROBABLE ROOT CAUSE.**
 
-NO SOURCE-CODE MODIFICATION
-NO CONFIG-FILE MODIFICATION
+NO FIX IMPLEMENTED
+NO SOURCE MODIFICATION
+NO CONFIGURATION MODIFICATION
 NO PACKAGE MODIFICATION
 NO NPM INSTALL/UPDATE
-NO MIGRATION
+NO FIREWALL MODIFICATION
+NO SERVER RESTART
 NO SUPABASE DB MUTATION (PRODUCTION OR TEST)
-NO EDGE FUNCTION DEPLOY
+NO MIGRATION
+NO STEP 3
+NO QUOTE NUMBER MIGRATION
+NO EDGE FUNCTION DEPLOYMENT
 NO VERCEL ACTION
 NO GIT ADD
 NO APPLICATION COMMIT
 NO MAIN COMMIT
 NO MAIN PUSH
 NO RESET/RESTORE/STASH/CLEAN
-NO DELETION OF PRE-EXISTING WORK
-NO STEP 3 EXECUTION
-NO QUOTE NUMBER MIGRATION
 NO CUSTOMER TESTING
