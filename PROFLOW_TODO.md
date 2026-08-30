@@ -1120,7 +1120,7 @@ Full detail: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
 **No implementation, and no audit execution, is authorized by recording this item** — same standing safety note as item 22.
 
-## 30. Industry / Measurement / Pricing Engine — Future Product Concept (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Documentation-Only Product Direction Update task — Owner-approved future concept, DOCUMENTATION ONLY, not scoped, not authorized for implementation)
+## 30. Structured Quote Items / Industry / Measurement / Pricing Engine — Future Product Concept (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Documentation-Only Product Direction Update task; extended again 2026-08-30, Structured Quote Architecture Correction task — Owner-approved future concept, DOCUMENTATION ONLY, not scoped, not authorized for implementation)
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED. Design + audit required BEFORE any implementation.**
 
@@ -1159,27 +1159,55 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **No implementation, and no design work, is authorized by recording this item.**
 
-## 31. Additional Notes — Future Multi-Column Display (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Trial Expiration -> FREE task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
+### 30.C Structured Quote Items — Project → Section → Items Belongs in the Quote Body (added 2026-08-30, Structured Quote Architecture Correction task — CORRECTS the previous placement of this concept under Item 31)
+
+**🟡 CORRECTION**: an earlier documentation pass (Trial Expiration → FREE task) placed a "Project → Section → Items" semantic hierarchy under Item 31 (Additional Notes). After reconsidering the real David Aluminum quote example, the Owner + ChatGPT corrected this: **that hierarchy conceptually belongs in the MAIN QUOTE BODY / this future structured-quote engine (Item 30), not in Additional Notes.** Item 31's own entry has been corrected accordingly (see below) — this subsection is the new, correct home for the concept. No implementation occurred under either the original or corrected placement; this is a pure documentation relocation.
+
+**Conceptual hierarchy**: `QUOTE → optional PROJECT/JOB identity → optional SECTION/GROUP → STRUCTURED ITEMS → item measurement/input data → item pricing method → calculated item total → quote totals/tax`.
+
+**Illustrative examples only — architecture must remain fully generic, never designed for one specific industry**:
+- *Aluminum contractor*: Project "Holon Project" → Section "Apartment 33" → Items (1. Window/display item — dimensions — pricing formula; 2. Window item — dimensions — pricing formula; 3. Screen — dimensions — pricing formula) → next Section "Apartment 32" → its own items.
+- *Carpenter*: Project "Apartment Renovation" → Section "Master Bedroom" → Items (1. Wall cabinet — `3.2 m × price per meter`; 2. Handles — `quantity × unit price`; 3. Installation — fixed/global price).
+- *IT business*: Project "Branch Upgrade" → Section "Tel Aviv Branch" → Items (1. Network cabinet — fixed price; 2. Technician work — `hours × hourly rate`; 3. Cable — `length × rate`).
+
+**Project and Section MUST be optional — never a forced structure.** The future UI must expose only the complexity a given business/quote actually needs:
+- A simple seller may need only `Item → quantity → price`.
+- A lawyer may need only `Service → hours → rate`.
+- A carpenter may sometimes need `Section → structured/mixed items` without ever needing a Project level.
+- An aluminum contractor may need the full `Project → Section → measured structured items` depth.
+- A weight-based business may need only `Item → weight → rate per weight unit`.
+
+**Relationship to Item 30's other sub-items**: this hierarchy is the "quote body" backbone that Items 30.A (AI Chat awareness) and 30.B (mixed pricing, "Industry is not pricing model") already apply to — 30.A's AI Chat awareness must extend to understanding Project/Section/Item context where present (not just measurement/pricing basis alone), and 30.B's per-item pricing-method rule applies at the Items level of this hierarchy specifically, never forced upward onto Section/Project headings.
+
+**Business/Catalog/Item defaults hierarchy (already recorded via 30.B, reconfirmed here for the full structured-items context)**: `Industry preset → Business defaults → Catalog/item defaults where applicable → Per-quote-item pricing method → User override`. Defaults must save work; defaults must never become irreversible locks.
+
+**Financial calculation correctness — explicit test-case list required before implementation** (extends the formula-matrix/conversion-matrix/rounding-policy requirement already recorded above): future automated financial-correctness tests must explicitly cover, at minimum — mm/cm/m conversions; in/ft conversions; kg/lb conversions; area calculations; quantity multipliers; decimal values; zero values; large values; rounding boundaries; tax calculations; and mixed-pricing totals within the same quote. No silent or ambiguous financial calculations.
+
+**Snapshot/historical integrity, restated for structured items specifically**: a structured item's original entered value, original entered unit, pricing method, rate, quantity, calculated value, currency, and tax context must all be snapshotted at the time the quote is saved, exactly as entered — changing a business or catalog default later must never rewrite an old quote's already-saved items. Same discipline, same reasoning, as the existing `36 in` → must-not-silently-become `91.44 cm` example already recorded above.
+
+**Backward compatibility, explicit requirement**: future Item 30 design must explicitly audit backward compatibility — existing quotes (and their existing free-text Additional Notes, per Item 31) must remain readable and correct. No destructive migration. No automatic semantic parsing of old Notes into structured items without a separately-approved design of its own.
+
+**Future accounting/invoice readiness cross-reference**: this structured-items architecture should, where reasonably possible, avoid unnecessarily blocking the already-documented future Invoice/Accounting Document Readiness direction (item 32) — without introducing any premature accounting complexity now. See item 32 for the full, separately-recorded, NOT-authorized future direction.
+
+**No implementation, and no design work, is authorized by recording this item.**
+
+## 31. Additional Notes — Future Presentation, Genuinely Supplemental Free Text (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Trial Expiration -> FREE task; CORRECTED 2026-08-30, Structured Quote Architecture Correction task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED.**
 
+**🟡 CORRECTION (2026-08-30, Structured Quote Architecture Correction task)**: the previous "B. Semantic hierarchy — Project → Section → Items" clause recorded here has been **removed and relocated** — after reconsidering the real David Aluminum quote example, the Owner + ChatGPT determined that a Project/Section/structured-Items hierarchy conceptually belongs in the **main quote body / future structured-quote engine**, not in Additional Notes. That concept now lives at `PROFLOW_TODO.md` item 30.C. **Additional Notes should remain genuinely supplemental free-text information** — examples: "price excludes electrical work," "final measurements will be taken before manufacturing," "site access must be coordinated," delivery information, special conditions, other explanatory notes. Do not treat Additional Notes as the future structured-items data model. No existing Notes are migrated by this correction — nothing was implemented under the prior (now-corrected) placement either, so there is nothing to undo beyond the documentation itself.
+
 **Current storage, confirmed by audit**: `quote.notes` is a single free-text field, rendered today as one unstructured block (`white-space: pre-wrap`, preserving the user's own line breaks) on both `PublicQuote.jsx` and `PublicQuoteEn.jsx` — there is no existing structured list/array of individual note items.
 
-**Future requirement, Desktop**: automatically numbered items (the Owner prefers automatic numbering over requiring the user to type `1/2/3` themselves), balanced across up to 3 columns where appropriate, preserving reading order, with long items wrapping inside their own cell — no horizontal page overflow.
+**Future requirement, Desktop — 🟡 re-scoped, no longer a mandate**: automatic numbering (the Owner prefers automatic numbering over requiring the user to type `1/2/3` themselves) remains a candidate idea **if** future Additional Notes are ever represented as multiple distinct entries — but the previously-discussed 3-column desktop layout is **no longer an implementation mandate**. Do not assume every free-text Notes block should automatically be parsed into numbered entries; whether structuring is appropriate at all, and if so what layout, must be re-evaluated during Item 31's own future audit/design pass — do not build sophisticated Notes presentation merely to solve information that properly belongs in Item 30's structured quote items instead.
 
 **Future requirement, Mobile**: a responsive presentation prioritizing readability — normally a single column, or another safe responsive layout only if separately approved later.
 
-**Required before implementation**: an audit of exactly how Additional Notes are stored and parsed today (confirmed above as a single unstructured text block) and a backward-compatibility plan for every existing quote's `notes` value under whatever new structured/numbered representation is eventually chosen.
+**Required before implementation**: an audit of exactly how Additional Notes are stored and parsed today (confirmed above as a single unstructured text block) and a backward-compatibility plan for every existing quote's `notes` value under whatever new structured/numbered representation is eventually chosen. No automatic semantic parsing of old Notes without separately-approved design; no destructive migration.
 
-**Design clarifications (added 2026-08-30, Trial Expiration -> FREE task, documentation only — no implementation in either the originating task or this extension)**:
+**Purple sequence-number styling, preserved as a still-relevant future presentation concept where appropriate**: only the sequence marker itself (`1.`, `2.`, `3.`, ...) should render in ProFlow purple — the item's own content text stays the normal body text color. Concept: `1. <normal text>` / `2. <normal text>` / `3. <normal text>`, where only `1.`/`2.`/`3.` carry the purple accent. This applies only if/when Item 31's future design actually decides to number multiple Notes entries — it is not itself a decision that such numbering will happen.
 
-**A. Purple sequence-number styling**: only the sequence marker itself (`1.`, `2.`, `3.`, ...) should render in ProFlow purple — the item's own content text stays the normal body text color. Concept: `1. <normal text>` / `2. <normal text>` / `3. <normal text>`, where only `1.`/`2.`/`3.` carry the purple accent.
-
-**B. Semantic hierarchy — Project → Section → Items**: Additional Notes may contain a real semantic structure beyond a flat numbered list, e.g. (Owner's own example, translated): a Project heading ("Project: Holon Project"), a Section heading under it ("Section: Apartment 33"), then individual Items under that Section ("Vitrine ...", "Window ..."). Automatic sequence numbering (per requirement A/desktop 3-column layout above) belongs to the **Items** level specifically — Project and Section headings are not automatically numbered.
-
-**C. The hierarchy must stay generic — not aluminum/industry-specific.** Example possible Section groupings (non-exhaustive, illustrative only, not a fixed enum): apartment, floor, room, branch, site, department, phase, or any other business-specific grouping the eventual design allows for.
-
-**D. Must be designed together with future Item 30 awareness.** Do not rush into converting today's free-text textarea into a rigid schema that could conflict with the future Industry/Measurement/Pricing Engine (item 30) — a full audit/design pass is required before implementation, and that design should account for both item 31's own hierarchy needs and item 30's eventual data model, rather than choosing a structure for one in isolation that later has to be reworked for the other.
+**Must be designed together with future Item 30 awareness.** Do not rush into converting today's free-text textarea into a rigid schema that could conflict with the future Structured Quote Items / Industry / Measurement / Pricing Engine (item 30, including 30.C) — a full audit/design pass is required before implementation.
 
 **No implementation, and no design work, is authorized by recording this item — this update is documentation only, same as the item's original recording.**
 

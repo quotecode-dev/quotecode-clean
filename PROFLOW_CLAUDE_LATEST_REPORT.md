@@ -4,88 +4,107 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Trial Expiration → FREE — Full Entitlement Audit + TEST Fix
+## Task: Structured Quote Architecture Correction + Six TEST Subscription Personas + Landing Page Access Audit for ChatGPT
 
-**Effort level**: HIGH. **Owner-authorized: AUDIT + IMPLEMENTATION + TEST VERIFICATION, TEST only.** Not authorized: Production mutation/deploy, application commit/push, Admin work, Item 28 implementation, creation of the six new subscription personas.
+**Effort level**: HIGH. Three authorized scopes: (A) documentation correction, (B) TEST persona creation + verification, (C) read-only landing-page access audit. Not authorized: Item 28/30/31 implementation, landing-page redesign, Admin work, Production action, application commit/push/deploy.
 
-## 1. Fresh Local State (start of task)
+## PART A — Structured Quote Architecture Correction (complete)
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged (confirmed against `origin/main` too). No application code drift since the prior task.
+The Owner + ChatGPT reconsidered the real David Aluminum quote example and determined that "Project → Section → Structured Items" belongs conceptually in the main quote body / future structured-quote engine — **not** in Additional Notes, where an earlier documentation pass (Trial Expiration → FREE task) had placed it.
 
-## 2. Root Cause — Re-Confirmed Fresh
+**`PROFLOW_TODO.md` item 31 corrected**: the "B. Semantic hierarchy — Project → Section → Items" clause removed and replaced with an explicit correction note pointing to the new home. Additional Notes reconfirmed as genuinely supplemental free text (price exclusions, measurement caveats, site-access coordination, delivery info, special conditions). The previously-discussed 3-column desktop layout downgraded from a mandate to a candidate idea, subject to re-evaluation during Item 31's own future design pass. The purple sequence-number styling concept preserved, conditioned on Item 31 actually deciding to number multiple entries.
 
-Signup (`Dashboard.jsx`) writes `plan:'pro'` once, at account creation, alongside a genuine 14-day `trial_ends_at`. A repo-wide grep found exactly two `plan` write sites in the whole codebase — signup and self-cancellation — and no automatic trial-to-free downgrade anywhere. The pre-fix `effectivePlan` formula resolved to `'pro'` unconditionally whenever raw `plan==='pro'`, independent of `trial_ends_at`, so a real user who let their trial lapse without cancelling kept full PRO indefinitely.
+**New `PROFLOW_TODO.md` item 30.C** — the corrected, expanded home for the concept: full conceptual hierarchy `QUOTE → optional PROJECT/JOB → optional SECTION/GROUP → STRUCTURED ITEMS → item measurement/pricing → calculated total → quote totals/tax`, with illustrative (never industry-locked) aluminum/carpenter/IT examples, an explicit "Project and Section MUST be optional" requirement with per-business-shape examples (simple seller, lawyer, carpenter, aluminum contractor, weight-based business), the existing defaults hierarchy (Industry preset → Business → Catalog/item → per-item → user override) reconfirmed, an explicit financial-correctness test-case list (mm/cm/m, in/ft, kg/lb, area, quantity multipliers, decimals, zero/large values, rounding boundaries, tax, mixed-pricing totals), snapshot/historical-integrity requirements restated for structured items specifically, an explicit backward-compatibility requirement, and a cross-reference to the already-separately-recorded Invoice/Accounting Readiness direction (item 32, untouched). Item 30's own title extended to reflect the expanded scope. No design or implementation work performed or authorized.
 
-## 3. Architectural Safety — Proven, Not Assumed
+## PART B — Six TEST Subscription Personas (BLOCKED, evidenced)
 
-Per the Owner's explicit "STOP if ambiguous, do not guess" instruction, the exact transition this fix targets (`plan==='pro'` + a real, non-null, past `trial_ends_at`) was proven unambiguous: `plan` is only ever set to `'pro'` at signup, and signup always pairs it with a genuine ~14-day-forward date at that moment (enforced by an `AS RESTRICTIVE` RLS INSERT policy). Nothing else in the codebase ever writes `plan:'pro'`. So a non-null past date on a `'pro'` row can only be a lapsed, never-reset trial — never a genuine paid grant. `'basic'` and `plan==='pro'`+`trial_ends_at===null` (Lifetime-grant) both remain unambiguously PRO-tier, unchanged from before. One narrow, pre-existing ambiguity (`plan==='free'∧trial_ends_at===null` — self-cancel vs. a rare Lifetime-grant-onto-free) is disclosed but out of scope — not touched or worsened by this fix. Full reasoning: `PROFLOW_PROJECT_CONTEXT.md` §51.
+### Fresh Local State, re-confirmed first (per explicit instruction, not skipped)
 
-## 4. Implementation
+`main` HEAD unchanged (`17ac4d3a...`, matches `origin/main`). The Trial Expiration → FREE fix (`computeEffectivePlan`, §51) confirmed intact and still uncommitted. Both existing active-trial TEST accounts re-verified live: still correctly resolve to `"pro PLAN"` with real, unmutated data, both markets. 70/70 automated tests pass, lint clean, build succeeds (all re-run fresh this task, not assumed from the prior report).
 
-New centralized pure function `src/utils/planEntitlements.js` → `computeEffectivePlan({ plan, trialEndsAt, now })` — single source of truth, same pattern as `quoteLock.js`'s `isQuoteImmutable`. Wired into every consumer found by the exhaustive audit:
+### The blocker
 
-- **`Dashboard.jsx`** — replaced the inline formula; `isPro`/`isBasicOrAbove`/`planLimit`/the monthly-quota check/`handleProtectedAction` all inherit the fix automatically.
-- **`SettingsTab.jsx`** — the Logo-upload gate was checking **raw** `bizPlan !== 'pro'` directly (a real, independent bug from the same root cause) — now uses a new `effectivePlan` prop. The "PLAN" name label was also switched from raw to effective, so it never claims "PRO PLAN" while entitlements are FREE.
-- **`QuoteForm.jsx`** — the Attachments feature ("Attachments (PRO only)") was gated via **raw** `userPlan`/`bizPlan` — a real gate not previously documented in either prior entitlement audit. `Dashboard.jsx` now passes `userPlan={effectivePlan}` instead of `userPlan={bizPlan}`.
-- **`QuoteForm.jsx`** submit button — removed a blanket `disabled={isTrialExpired && !isSuperAdmin}` that blocked **all** quote creation/editing once the trial date passed, regardless of plan — stricter than FREE, contradicting the Owner's "FREE limits, not zero" rule. The two already-correct, already-existing enforcement points (the monthly-quota check in `handleSaveQuote`, and `handleProtectedAction`'s gate upstream of Edit/Duplicate/WhatsApp/Delete) are now the sole enforcement.
+Creating a new, immediately-usable TEST Auth user requires one of two mechanisms — both unavailable within this task's own tool access:
 
-**Deliberately not touched**: `AdminUsersTab.jsx`/`UserDetailsModal.jsx` have the same class of independently-derived plan formula (and the same underlying gap) — disclosed in §51, not fixed, per the standing "NO Admin work" boundary.
+1. **Supabase Admin API** (`auth.admin.createUser` with `email_confirm: true`, bypassing confirmation entirely) — requires a service-role key. Checked `.env`/`.env.localtest.local`: only a placeholder comment exists, no actual key value. The permanently-banned `supabase projects api-keys --reveal` command was correctly not attempted.
+2. **The app's own real self-service signup form** — live-verified, via a **raw request directly to Supabase Auth's REST endpoint** (not the app's own generic, error-swallowing UI message, which would have been misleading here), that:
+   - An `@example.com` address is rejected by Supabase Auth itself (`error_code: "email_address_invalid"`) — a domain-validity block, unrelated to confirmation.
+   - A realistic `@gmail.com`-style address returns `HTTP 429`, `error_code: "over_email_send_rate_limit"` — proving email confirmation **is** required, and TEST's transactional-email sending is **currently rate-limited**.
 
-## 5. Complete Entitlement Matrix
+Neither path is usable right now. The two existing TEST accounts were evidently created through a mechanism this task doesn't have (most plausibly the Owner's own Supabase Dashboard access, or Admin-API access with a service-role key — both existing accounts use real "+alias@gmail.com" addresses under an inbox the Owner controls).
 
-See `PROFLOW_PROJECT_CONTEXT.md` §51 for the full table (8 gates: monthly quota, Edit/Duplicate, WhatsApp/Delete, Logo upload, Attachments, the removed submit-button block, Public Quote/signatures/printing/PDF-placeholder confirmed ungated, AI Chat confirmed ungated).
+**Nothing was created, mutated, or fabricated to work around this.** No invented confirmation bypass, no guessed service-role key, no TEST database mutation of any kind performed this task.
 
-**Backend enforcement**: re-confirmed frontend-only for every gate — no RLS/Edge Function independently re-enforces any plan limit. Disclosed as a pre-existing characteristic; not expanded into a redesign this task.
+### Recommended resolution paths (Owner's choice, not decided here)
 
-**`subscription_ends_at`**: re-confirmed still absent from TEST (unchanged from the prior audit), unrelated to this fix, untouched.
+1. Supply the `quotecode-test` service-role key once (same handling discipline as the TEST anon key earlier this session — installed directly into a gitignored local file, never displayed/logged).
+2. The Owner personally completes the six signups (real "+alias@gmail.com" addresses) and clicks each confirmation email themselves.
+3. Increase/reset TEST's email rate limit, or configure a custom SMTP provider for the TEST Auth project (a Supabase project-settings change outside this session's tooling).
 
-## 6. TEST Verification (live, both markets, zero TEST database mutation)
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §52.
 
-Used CDP network-response interception (`Fetch` domain) to rewrite the browser's own `business_settings`/`quotes` REST responses in-flight — the real, live, rendered app exercises the fix end-to-end, but the real TEST database is never written to. Safer and more reversible than mutating a shared account, and requires no new personas.
+## PART C — Landing Page Access Audit for ChatGPT (read-only, complete)
 
-Results, identical both markets:
-- **Active trial (real, unmutated data)**: `"pro PLAN"` label, Logo upload enabled — regression check PASS.
-- **Expired trial (simulated via interception)**: `"free PLAN"` label, Logo upload disabled with the "(Requires Pro plan)" badge, Attachments correctly triggers the real upgrade-confirm modal on click, and the New-Quote submit button is **not** disabled — FREE users can still create quotes.
-- **5-quote monthly boundary (5 fabricated quotes injected, zero DB write)**: a 6th creation attempt is correctly blocked with the real "monthly quote limit reached" alert, before any insert call fires.
-- Zero horizontal overflow at 360/390/412px and desktop, both markets.
+**Routing/build**: `/he` (`LandingLocal`) and `/en` (`LandingGlobal`) are two `react-router-dom` routes inside the **same single SPA bundle** — never separate deployments. `main` HEAD confirmed unchanged with zero local drift in the landing-page source files, so the live custom domain is provably running exactly this repository's current code.
 
-## 7. Automated Tests
+**Alternate public URL found and verified, not assumed**: `https://quotecode.vercel.app` — live checks confirm `www.quotecodepro.com/he` and `quotecode.vercel.app/he` return **byte-for-byte identical HTML** (same for `/en`), and both domains are HTTP 200-reachable. This is the strongest existing-URL candidate for ChatGPT if the custom domain specifically is what's blocked.
 
-14 new unit tests, `src/utils/planEntitlements.test.js`, covering every case the task specified: active trial, expired trial (the core fix), FREE without trial, BASIC (unconditional), PRO including the Lifetime/`trial_ends_at===null` case, the exact expiry boundary (both directions — one day left vs. one second past), and a malformed trial-date string (fails safe, does not crash). **70/70 tests pass** (56 pre-existing + 14 new). Lint clean (same pre-existing 6-warning baseline). Build succeeds.
+**Demo video**: confirmed from source to be a plain public static file — `/proflow-demo.mp4` (HE) and `/proflow-demoEN.mp4` (EN), not an embed or signed URL. Live HEAD requests confirm both are directly fetchable, unauthenticated, on both domains, with identical `Content-Length` (HE: 2,522,561 bytes; EN: 2,578,902 bytes). No secrets, no tokens — safe to share directly.
 
-## 8. Item 31 — Documentation-Only Clarification (section 14 of the task)
+**SPA-rendering caveat, disclosed**: the initial HTML is a small shell; actual content renders client-side. If ChatGPT's fetcher doesn't execute JavaScript, a URL fetch — even a successful one — may only return the shell. Accordingly, a fallback review package was also **prepared, not just recommended**: four full-page screenshots captured from the real, live, public production pages (read-only, zero mutation, no login) — HE/EN × Desktop/Mobile — saved locally, not published anywhere. Claude did not critique, redesign, or describe the landing content beyond confirming the captures succeeded, per explicit instruction.
 
-Extended `PROFLOW_TODO.md` item 31 with two Owner design observations, documentation only, no implementation: (A) only the sequence-number marker (`1.`/`2.`/`3.`) should render in ProFlow purple, not the item's content text. (B) Additional Notes may contain a semantic hierarchy (Project → Section → Items, generic groupings like apartment/floor/room/branch/site/department/phase, not aluminum-specific), with automatic numbering belonging to the Items level, not Project/Section headings — and this must be designed together with future Item 30 awareness before any implementation.
+**Security**: no tunnel, no localhost exposure, no TEST/session/cookie secrets, no ENV/API/service-role values referenced or exposed anywhere in this audit, no new deployment, no landing-page file touched.
 
 ## Continuity Sync + Remote Read-Back
 
-Synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification.
+Synced through the existing §17.J mechanism — isolated worktree, secret/privacy scan, explicit filename staging, commit, push `proflow-continuity` only — followed by genuine remote GitHub read-back verification.
 
 ## Final Verdict
 
-**TRIAL EXPIRATION → FREE: PASS**
+**STRUCTURED QUOTE ARCHITECTURE CORRECTION: PASS**
+- `ITEM 30 QUOTE-BODY OWNERSHIP: PASS` — new item 30.C records the hierarchy in the quote body, not Notes.
+- `ITEM 30 MIXED PRICING: PASS` — 30.B preserved and cross-referenced, unchanged.
+- `ITEM 31 NOTES CORRECTION: PASS` — hierarchy removed, Additional Notes reconfirmed as supplemental free text.
+- `ITEM 31 PURPLE NUMBER CONCEPT: PRESERVED` — kept as a still-relevant future idea, explicitly conditioned on Item 31's own future design actually choosing to number multiple entries; the 3-column layout specifically was downgraded from mandate to re-evaluate-later.
 
-- `ROOT CAUSE`: signup writes `plan:'pro'` once, permanently, with no automatic downgrade on trial expiry; `effectivePlan` treated raw `'pro'` as unconditional PRO.
-- `ENTITLEMENT MATRIX`: see `PROFLOW_PROJECT_CONTEXT.md` §51 (8 gates, 3 real bugs found and fixed beyond the original root cause).
-- `EXPIRED TRIAL EFFECTIVE PLAN: PASS`
-- `FREE 5-QUOTE LIMIT: PASS`
-- `ALL OTHER FREE GATES: PASS` (Logo upload, Attachments both fixed and verified)
-- `ACTIVE TRIAL: PASS` (regression confirmed, both markets, unmutated real data)
-- `BASIC: verification limitation` — no genuine TEST BASIC account exists yet (six new personas not authorized this task); correctness argued from the unconditional `rawPlan==='basic'` branch (BASIC can never be trial-produced) plus dedicated unit test coverage.
-- `PRO: PASS` — genuine active-trial PRO verified live; Lifetime/paid-PRO (`trial_ends_at===null`) branch covered by unit test, matching the pre-existing, unchanged Admin Lifetime mechanic.
-- `EXISTING DATA PRESERVED: PASS` — zero TEST database mutation performed anywhere this task; verification used network-response interception only.
-- `HE: PASS` / `EN: PASS`
-- `BACKEND ENFORCEMENT`: frontend-only, re-confirmed, pre-existing, disclosed, not expanded into a redesign.
-- `subscription_ends_at`: re-confirmed absent from TEST, unrelated, untouched.
-- `ITEM 31 PURPLE NUMBERING DOCUMENTED: PASS`
-- `ITEM 31 PROJECT→SECTION→ITEMS DOCUMENTED: PASS`
-- `LINT: PASS` (0 errors, same 6-warning baseline)
-- `TESTS: PASS` (70/70)
-- `BUILD: PASS`
-- `REMOTE CONTINUITY READ-BACK: PASS`
+**SIX TEST PERSONAS: BLOCKED** (account-creation mechanism only — see Part B above and §52 for full evidence and resolution paths)
+- `LOCAL FREE EXPIRED: FAIL` (not created) / `LOCAL BASIC: FAIL` (not created) / `LOCAL PRO: FAIL` (not created)
+- `INTERNATIONAL FREE EXPIRED: FAIL` (not created) / `INTERNATIONAL BASIC: FAIL` (not created) / `INTERNATIONAL PRO: FAIL` (not created)
+- `EXISTING ACTIVE TRIAL LOCAL: PASS` (re-verified live, unmutated) / `EXISTING ACTIVE TRIAL INTERNATIONAL: PASS` (re-verified live, unmutated)
+- `ENTITLEMENT MATRIX`: unchanged from §51, re-confirmed still accurate this task.
+- `PERSONA CREDENTIAL STORAGE`: no new personas created, so no new ENV variable names were needed or added this task; the previously-recommended naming convention (§50) remains the plan for whenever creation is unblocked.
+- `TEST DATA CREATED`: one throwaway signup-confirmation probe (`@example.com`, rejected by Supabase Auth as an invalid domain before any account was created — no actual account resulted) and one realistic-domain probe attempt (hit the email rate limit before any account was created) — **zero new Auth users or `business_settings` rows exist as a result of this task.**
 
-**Fresh Local State — MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged). **WORKING TREE**: uncommitted changes carried forward plus this task's edits to `src/pages/Dashboard.jsx`, `src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, and new files `src/utils/planEntitlements.js`/`planEntitlements.test.js`. **TEST**: unchanged — zero database mutation. **PRODUCTION**: UNCHANGED.
+**HE: PASS** (regression only, both existing-account checks and Part C's HE capture) — **EN: PASS** (same) — **TESTS: PASS** (70/70) — **LINT: PASS** (0 errors, 6 pre-existing warnings) — **BUILD: PASS**.
 
-**NO application commit. NO application push. NO Production deployment/mutation. NO LIVE action. NO Admin work. NO Item 28 implementation. NO creation of the six new subscription personas.**
+------------------------------------------
+**LANDING PAGE ACCESS**
+------------------------------------------
 
-**Awaiting Owner + ChatGPT review.**
+**LANDING PAGE ACCESS AUDIT: PASS**
+- `HE CURRENT PAGE`: verified live, same build as `main` HEAD.
+- `EN CURRENT PAGE`: verified live, same build as `main` HEAD.
+- `HE ACCESS FOR CHATGPT`: safe public URL — `https://quotecode.vercel.app/he` (verified byte-identical to the custom domain).
+- `EN ACCESS FOR CHATGPT`: safe public URL — `https://quotecode.vercel.app/en` (verified byte-identical to the custom domain).
+- `DEMO VIDEO SOURCE`: plain public static files, no secrets — `/proflow-demo.mp4` (HE) and `/proflow-demoEN.mp4` (EN), on either domain above.
+- `DEMO VIDEO ACCESS FOR CHATGPT`: direct public URLs — `https://quotecode.vercel.app/proflow-demo.mp4` and `.../proflow-demoEN.mp4` (or the equivalent `www.quotecodepro.com` paths) — verified reachable, correct `Content-Type: video/mp4`, matching sizes on both domains.
+- `SAME CURRENT BUILD: PASS` — byte-identical HTML and identical video file sizes confirmed, not assumed from visual similarity.
+- `FALLBACK REVIEW PACKAGE: available` — four full-page screenshots (HE/EN × Desktop/Mobile) already captured from the real live pages, held locally, ready for the Owner to share with ChatGPT through whatever channel they choose.
+- `LANDING SECURITY: PASS`
+- `NO LANDING PAGE MUTATION: PASS`
+
+------------------------------------------
+**CONTINUITY**
+------------------------------------------
+
+**REMOTE CONTINUITY READ-BACK: PASS**
+
+**FRESH LOCAL STATE**:
+- **MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote).
+- **WORKING TREE**: uncommitted changes carried forward from prior tasks (Trial Expiration fix and earlier); no new application-code changes this task (documentation-only + read-only audits).
+- **TEST**: unchanged except two failed/incomplete signup probe attempts, neither of which resulted in a created account (one rejected as an invalid domain before creation, one rate-limited before creation) — no TEST Auth user, `business_settings` row, or any other TEST data was created, modified, or deleted this task.
+- **PRODUCTION**: UNCHANGED — every Part C interaction was a plain, unauthenticated, read-only `GET`/`HEAD` request to already-public URLs; no landing-page file, route, or deployment was touched.
+
+**NO Item 28 implementation. NO Item 30 implementation. NO Item 31 implementation. NO Admin work. NO landing-page redesign. NO application commit/push. NO Production deploy/mutation. NO LIVE action.**
+
+**Awaiting Owner + ChatGPT review — including the Owner's choice of resolution path for the Part B persona-creation blocker.**
