@@ -460,6 +460,41 @@ gap to a browser-visible milestone is `get-public-quote` (still not
 deployed to TEST) and at least one TEST user (still not created), both
 separately unauthorized.
 
+## 10.P TEST Login / Market Routing Audit — a real, narrow gap found
+(added 2026-08-30)
+
+Read-only code trace answering: can a Local and an International TEST user
+both start from the same normal entry point and automatically land in the
+correct market UI, without manually typing `/en`/`/he`? **Answer: no.**
+
+`main.jsx` picks the `AppLocal`/`AppGlobal` bundle (which fixes
+`document.dir`/`lang` once, at mount) entirely from anonymous pre-login
+signals — before any Auth/session check exists — and never re-evaluates it
+after login. Dashboard's actual **content** (text, currency, VAT) is
+separately, robustly derived from the authenticated account's real
+`business_settings.country` — confirmed genuinely correct by both agents,
+not a data/security gap. But nothing reloads or redirects the bundle itself
+once that real market is known. Net effect: an account can log in correctly
+while trapped in the wrong-direction bundle — fully correct English content
+inside a right-to-left page, or the mirror image. `App.jsx` has dead
+market-redirect code that would fix exactly this, but it's never imported.
+
+Recorded permanently: `PROFLOW_TODO.md` item 25, `PROFLOW_PROJECT_CONTEXT.md`
+§24 item 12, `PROFLOW_ARCHITECTURE.md` §3.2 addendum.
+
+**Agent HE: FAIL. Agent EN: FAIL** — both independently confirmed, no
+disagreement, no market asymmetry (same shared mechanism, same defect class
+either direction). **Testability: B — TESTABLE BUT MANUAL /en-/he DEPENDENCY
+REMAINS** — account isolation/content/currency/VAT are safe to test today;
+only automatic landing is absent. **Verdict: TEST ACCOUNT MARKET ROUTING:
+GAP FOUND.** Full detail: `PROFLOW_HANDOFF.md` §18.DD,
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Recommended next step (NOT AUTHORIZED)**: create TEST users now and test
+via explicit `/he`/`/en` routes — the gap doesn't need to block functional
+validation, but should be tracked as its own separate fix. Zero mutation
+this task — no code, Auth, DB, Storage, or Production action.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
