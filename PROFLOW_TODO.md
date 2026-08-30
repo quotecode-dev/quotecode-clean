@@ -1120,7 +1120,7 @@ Full detail: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
 **No implementation, and no audit execution, is authorized by recording this item** — same standing safety note as item 22.
 
-## 30. Industry / Measurement / Pricing Engine — Future Product Concept (added 2026-08-30, TEST Subscription Personas audit task — Owner-approved future concept, DOCUMENTATION ONLY, not scoped, not authorized for implementation)
+## 30. Industry / Measurement / Pricing Engine — Future Product Concept (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Documentation-Only Product Direction Update task — Owner-approved future concept, DOCUMENTATION ONLY, not scoped, not authorized for implementation)
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED. Design + audit required BEFORE any implementation.**
 
@@ -1142,6 +1142,23 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **Documentation only. No AI Chat implementation change is authorized by recording this item.**
 
+### 30.B Mixed Pricing — "Industry Is Not Pricing Model" (added 2026-08-30, Documentation-Only Product Direction Update task)
+
+**Owner-approved principle, extends item 30**: **Industry/Business-Type only supplies recommended defaults — it must never be the thing that determines pricing method.** Pricing method belongs, ultimately, to the individual quote item. A single business, and even a single quote, may legitimately mix pricing methods across its items.
+
+**Owner's own example (carpentry business, one quote, three items, three different pricing methods)**:
+- Item 1 — Wall cabinet: `3.2 m × 2,500 per meter` (length × rate).
+- Item 2 — Installation: fixed price.
+- Item 3 — Handles: `6 units × price per unit` (quantity × unit price).
+
+**Required future conceptual hierarchy** (design only, not implemented): `Business/Industry preset → business defaults → catalog/item defaults where applicable → per-quote-item pricing method → user override`. Each level may supply a *default*, but the **item itself always has the final say** — a preset must never lock a business into one pricing method.
+
+**Possible future per-item pricing methods** (non-exhaustive, to be finalized during item 30's own design phase, not now): fixed/global price; quantity × unit price; time × rate; length × rate; area × rate; weight × rate; other explicitly-designed future formulas.
+
+**Hard requirement**: a carpenter, aluminum contractor, manufacturer, consultant, etc. may use different pricing methods for different customers or different items within the same account — the future Measurement & Pricing Calculation Engine (already required by item 30 above) must support genuinely **Mixed Pricing Quotes** and calculate the combined totals correctly, before/with the applicable tax logic, regardless of how many different pricing methods appear on a single quote.
+
+**No implementation, and no design work, is authorized by recording this item.**
+
 ## 31. Additional Notes — Future Multi-Column Display (added 2026-08-30, TEST Subscription Personas audit task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED.**
@@ -1155,6 +1172,18 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 **Required before implementation**: an audit of exactly how Additional Notes are stored and parsed today (confirmed above as a single unstructured text block) and a backward-compatibility plan for every existing quote's `notes` value under whatever new structured/numbered representation is eventually chosen.
 
 **No implementation, and no design work, is authorized by recording this item.**
+
+## 32. Future Strategic Direction — Invoice / Accounting Document Readiness (added 2026-08-30, Documentation-Only Product Direction Update task — NOT an authorized implementation workstream)
+
+**Status: 🔵 FUTURE STRATEGIC DIRECTION — DOCUMENTATION ONLY. Not scoped, not designed, not authorized for implementation. No invoice/receipt/accounting-document/payment feature exists today and none is being added by recording this item.**
+
+**Context**: ProFlow may, in some future product phase, expand beyond smart quotations into a broader commercial-document flow: `Client → Quote → Approval/Signature → Work/Order → Billing → Invoice/Receipt → Payment → Follow-up`. This item exists **only** to ensure that architecture being designed *today* — most directly item 30 (Industry/Measurement/Pricing Engine) — does not unnecessarily foreclose that future option. It is explicitly **not** a request or authorization to build any part of that flow now.
+
+**Architectural readiness — concepts to keep in mind, not implement**: stable item identifiers; immutable historical snapshots (the same discipline already established for Quote Number/Attn/Warranty/Terms); explicit pricing formulas; measurement and weight units; original entered values (never silently rewritten); quantity; mixed pricing methods (see item 30.B above); taxes; discounts; rounding; totals; currency; customer identity; business identity; quote approval/signature state.
+
+**Explicit boundary, per direct Owner instruction**: **do not introduce accounting complexity into current features merely to anticipate a hypothetical future system.** This item is compatibility/readiness awareness for future design decisions (chiefly item 30's own eventual design phase), not premature implementation, not a scope expansion of any current or upcoming task, and not a justification for adding fields, tables, or complexity to anything currently being built.
+
+**No implementation, no design work, and no schema/code change of any kind is authorized by recording this item.**
 
 ---
 
