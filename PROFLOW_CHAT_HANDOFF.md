@@ -545,15 +545,38 @@ proof of current filesystem/runtime state.
 
 **Note on the Owner's separate NEW CHAT Bootstrap/Introduction document** (an external, ChatGPT-maintained document, not part of this repository's six-file set): that document previously described `proflow-continuity` as PENDING VERIFICATION, written before the first controlled push was manually confirmed safe. That wording is now superseded - the next revision of that external document should show `proflow-continuity` as ACTIVE/VERIFIED. This repository does not contain that file and this task did not create or modify it - recorded here only so a future session knows to expect that external document to eventually reflect this status, and does not need to re-verify continuity safety from scratch if it already does.
 
-## 15. New-chat startup instruction
+## 15. New-chat startup instruction (corrected 2026-08-30 — Final One-Line Bootstrap Documentation Cleanup task; supersedes the long five-document prompt previously recommended here, which predates and is now superseded by the Permanent One-Line Bootstrap Contract, `PROFLOW_PROJECT_CONTEXT.md` §0.D)
 
-When a new ChatGPT conversation begins, the recommended Owner message is:
+When a new ProFlow chat begins (ChatGPT, Claude, or otherwise), the Owner
+does **not** need to paste a long bootstrap prompt. The recommended, normal
+Owner action is simply the permanent one-line trigger:
 
-> "ProFlow — continue from the latest state. Read `PROFLOW_CHAT_HANDOFF.md`
-> and reconcile it with `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`,
-> `PROFLOW_TODO.md` and `PROFLOW_ARCHITECTURE.md`. Do not propose
-> implementation changes until you understand the current state and open
-> blockers."
+> **"המשך פרויקט ProFlow"**
 
-Separately, "קלודי סיים - תקרא את הדוח האחרון" is a distinct, narrower
+This single phrase invokes the full Permanent One-Line Bootstrap Contract
+(`PROFLOW_PROJECT_CONTEXT.md` §0.D) — concisely, the receiving session must:
+
+1. Read all **six** canonical files — `PROFLOW_ARCHITECTURE.md`,
+   `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`,
+   `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` —
+   **directly from `ref = proflow-continuity`** on GitHub
+   (`quotecode-dev/quotecode-clean`), never from `main`, a stale upload, or
+   memory.
+2. **Independently reconcile** them — cross-check actual current content,
+   never trust a prior session's own PASS/ledger blindly (§0.E).
+3. If any of the six cannot be read, **STOP** immediately and report exactly
+   `CONTINUITY BOOTSTRAP INCOMPLETE` (§0.C) — no guessing, no partial resume.
+4. If reconciliation surfaces a material contradiction that prevents reliable
+   continuation, report `BLOCKED` rather than proceeding on an assumption.
+5. Only then report current project state to the Owner and continue — no
+   implementation change proposed until the state is actually understood.
+
+This one-line trigger is recognized identically to the pre-existing Hebrew
+magic phrase ("ProFlow — תמשיך מהנקודה האחרונה") and any unambiguous English
+equivalent — none of the three is deprecated; all invoke the same contract.
+The older long prompt this section previously recommended is no longer
+necessary and should not be pasted going forward — the one-line trigger
+above is the correct normal Owner action for any new ProFlow chat.
+
+Separately, "קלודי סיים - תקרא את הדוח האחרון" remains a distinct, narrower
 trigger for retrieving Claude's newest task report specifically — see §15.A.
