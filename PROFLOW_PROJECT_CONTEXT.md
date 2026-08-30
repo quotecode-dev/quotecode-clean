@@ -989,6 +989,20 @@ Mobile is unaffected by either the width or the centering rule — no Mobile sur
 
 **Cross-references (pointers only, not duplicated — same anti-duplication design already used by §0.D)**: `PROFLOW_CHAT_HANDOFF.md` §3 ("Permanent safety rules") carries a one-line pointer to this section, since that file is the fast-orientation snapshot most likely read by a ChatGPT session managing session-boundary decisions with the Owner. `PROFLOW_PROJECT_CONTEXT.md` §0.D (Permanent One-Line Bootstrap Contract) carries a one-line pointer near its "make no changes during bootstrap" guidance, since rotation timing and bootstrap behavior are natural companions.
 
+## §49. UI Width Consistency Rule — PERMANENT REQUIREMENT (added 2026-08-30, Item 26 Final UI Refinement task, Owner-established)
+
+**Owner decision, standing rule, does not expire.** Whenever equivalent UI alternatives can contain labels/content of different lengths, and that difference could cause inconsistent widths, misaligned rows, layout shifts, distorted controls, visual jumping, or unnecessary table/container movement, the component or container should normally **reserve a stable size based on the widest legitimate alternative**. The shorter alternative must **not** cause the surrounding interface to shrink or shift.
+
+**Applies to** (non-exhaustive, examples only): plan labels, badges, segmented options, buttons representing equivalent choices, status/type controls, equivalent table cells — any set of interchangeable values rendered in the same visual slot across rows/instances.
+
+**This is a layout-consistency principle, not a requirement to make every UI element globally fixed-width.** It applies specifically where multiple equivalent alternatives share one visual slot and inconsistent sizing between them would be the problem — it does not mandate fixed sizing for unrelated, single-purpose UI elements.
+
+**Responsive exception**: if genuine responsive/mobile UX requires a different treatment than a fixed width (e.g. wrapping, a compact icon-only mobile variant), preserve alignment and stability using the appropriate responsive solution for that context rather than forcing a harmful fixed width onto a layout that doesn't need or want one there.
+
+**Do not retroactively redesign unrelated existing UI merely because this rule now exists** — apply it going forward and when a specific task already touches a relevant component, not as a blanket excuse to touch UI outside a task's authorized scope.
+
+**First applied**: Item 26's Client Type Badge (`ClientTypeBadge` in `src/components/QuotesTab.jsx`) — `CLIENT_TYPE_BADGE_SIZE` gives both the `'business'` and `'private'` icon-only badge an identical fixed-size circular container, so neither value can shift row alignment relative to the other; the desktop table's dedicated "Client Type" column header is sized to match.
+
 ## Incident Record — Continuity Sync Execution Failure, Corrected 2026-08-30 (Continuity Sync Failure Audit + Recovery task — NOT a new permanent rule, disclosed per this project's standing incident-transparency practice)
 
 **What happened**: across three consecutive tasks this session (bootstrap, TEST Acceptance Readiness Package 1, Client Type Badge), the six canonical files were correctly updated in the main working tree, and every task's Final Report accurately stated so — but the separate, already-established continuity-sync step (§17.J's "Claude local → isolated continuity worktree → secret/privacy scan → explicit staging → commit on `proflow-continuity` → push **only** `proflow-continuity`") was never executed. ChatGPT subsequently read `ref=proflow-continuity` on GitHub directly and found it stale (last commit `998f1bd`, predating this entire session) — `PROFLOW_CLAUDE_LATEST_REPORT.md` there did not contain the Client Type Badge report, and `PROFLOW_TODO.md` there lacked items 27/28.

@@ -824,6 +824,48 @@ items 27/28 rather than left as a passing mention. TEST-only, not committed/
 pushed/deployed. Full detail: `PROFLOW_TODO.md` item 26,
 `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.X Continuity Sync Failure Audit + Recovery (added 2026-08-30)
+
+ChatGPT's independent read of `ref=proflow-continuity` on GitHub found it
+stale — missing the §10.W report and TODO items 27/28 — despite repeated
+same-session claims that all six docs were updated. Root cause: those
+updates only ever landed in the main working tree; the existing §17.J
+transport step (isolated worktree → secret scan → explicit staging →
+commit → push `proflow-continuity` only) was never actually executed,
+from conflating "NO commit/push" (correctly scoped to `main`/application
+code) with the separate, standing documentation-sync obligation. Fixed by
+running the existing mechanism exactly as documented — no redesign — then
+performing genuine **remote GitHub read-back verification** (`api.github.com`
+Contents API, base64-decoded, since `raw.githubusercontent.com` was blocked
+and `gh`/`python3` were unavailable) confirming the new HEAD sha and actual
+decoded file content, not just a successful local push. An Incident Record
+addendum was added to `PROFLOW_PROJECT_CONTEXT.md` — not a new rule, §17.J
+already covered this. `main` HEAD confirmed unchanged throughout. Verdict
+**CONTINUITY SYNC FAILURE AUDIT + RECOVERY: PASS**. Full detail:
+`PROFLOW_HANDOFF.md` §18 step (35), `PROFLOW_PROJECT_CONTEXT.md` Incident
+Record section.
+
+## 10.Y Item 26 Final UI Refinement — Client Type icon-only + column + tooltip (added 2026-08-30)
+
+Owner reviewed §10.W's icon+text pill badge and requested a final redesign:
+icon-only display (`Building2`/`User`, no permanent text), fixed 24×24px
+circular slot so Business/Private render at identical container size, a new
+dedicated compact desktop column "סוג לקוח"/"Client Type" (badge moved out
+of the name cell into its own centered `<td>`), and accessibility carried by
+`role="img"` + `aria-label` + native `title` (not hover-only, not a new
+keyboard tab-stop). New permanent rule recorded per explicit Owner request —
+`PROFLOW_PROJECT_CONTEXT.md` §49, "UI Width Consistency Rule": equivalent UI
+alternatives sharing one visual slot must reserve stable size based on the
+widest legitimate alternative. Live-verified both markets via isolated CDP
+(header text, tooltip text, exactly one distinct badge size, zero overflow
+at 360/390/412px + desktop). Full regression clean. Two Owner-mentioned
+future items recorded as deferred-only (`PROFLOW_TODO.md` item 29 — Admin
+"Permission/הרשאה" column removal + a deferred plan-icon idea; explicitly
+**NOT implemented, WE ARE NOT WORKING ON ADMIN YET**). Verdict
+**ITEM 26 FINAL UI REFINEMENT: PASS**. TEST-only, not committed/pushed/
+deployed. Full detail: `PROFLOW_HANDOFF.md` §18 step (36),
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -1014,7 +1056,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Client Type Badge task — supersedes the Package-1 paragraph immediately below for "what is current right now"; that paragraph remains accurate history for Package 1 specifically, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.W, "Client Type Badge — audit + TEST implementation." A small, focused, Owner-authorized TEST-only feature: a compact icon+label badge next to the client name in Quote History showing Business vs. Individual/Private, using an already-existing `clients.client_type` field (no schema change). Verified both markets, no regressions. Verdict `CLIENT TYPE BADGE: PASS`. **NEXT ACTION**: awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across either task. See §10.W for full detail.
+**🟢 UPDATED 2026-08-30 (Item 26 Final UI Refinement task — supersedes the Client Type Badge and Package-1 paragraphs below for "what is current right now"; both remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.Y, "Item 26 Final UI Refinement — Client Type icon-only + column + tooltip," immediately preceded by §10.X, "Continuity Sync Failure Audit + Recovery" (an execution-only correction to the existing §17.J documentation-sync mechanism — no redesign, no new permanent rule from that task itself). §10.Y redesigned §10.W's badge to icon-only with a dedicated column header, tooltip/accessibility, and fixed 24×24px alignment, and recorded a new permanent rule (`PROFLOW_PROJECT_CONTEXT.md` §49, "UI Width Consistency Rule"). Verdict `ITEM 26 FINAL UI REFINEMENT: PASS`. Two Admin-related future items recorded as explicitly deferred-only (`PROFLOW_TODO.md` item 29) — Admin itself not touched. **NEXT ACTION**: this §17.J documentation sync for §10.X/§10.Y itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 steps (35)/(36). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y for full detail.
 
 **🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 

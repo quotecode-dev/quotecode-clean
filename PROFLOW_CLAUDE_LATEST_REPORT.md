@@ -4,68 +4,67 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Client Type Badge — Audit + TEST Implementation
+## Task: Item 26 Final UI Refinement — Client Type Icon-Only + Column Header + Tooltip + Fixed Alignment
 
-**Effort level**: MEDIUM-HIGH. **Owner-authorized, TEST-only.** Not authorized: Production mutation/migration/Edge Function deployment, commit, push, Vercel deploy, unrelated UI redesign, new icon dependency, unrelated TODO work.
+**Effort level**: MEDIUM. **Owner-authorized, TEST-only.** Not authorized: Production mutation/migration/Edge Function deployment, commit, push, Vercel deploy, unrelated UI redesign, new icon/library dependency, Admin implementation, Item 28 (Persistent Plan Identity) implementation.
+
+This task directly follows a separate **Continuity Sync Failure Audit + Recovery** task (see `PROFLOW_HANDOFF.md` §18 step (35), `PROFLOW_CHAT_HANDOFF.md` §10.X) — an execution-only correction after ChatGPT found the `proflow-continuity` GitHub branch stale despite prior same-session "all six docs updated" claims. This task explicitly required using the §17.J continuity mechanism correctly, including a genuine **remote GitHub read-back verification**, and not repeating that failure.
 
 ## 1. Fresh Local State
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. Working tree identical to the end of the prior (Package 1) task — no drift. Port 5186 confirmed TEST-only (`dev:localtest`, `--mode localtest`). Fail-closed guard in `src/shared/supabase.js` confirmed active (4 throw sites). TEST ref `ljfizgrdyzxddswcedwr` / Production ref `ixabnzhjeqevtbhdfswv` both reconfirmed. Supabase CLI link confirmed on Production (safe default) throughout — no TEST-target mutation was needed this task (no schema change).
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. Working tree carries forward the same uncommitted application changes as the prior (Client Type Badge) task, plus this task's own edits to `src/components/QuotesTab.jsx`. Port 5186 confirmed TEST-only (`dev:localtest`, `--mode localtest`). TEST ref `ljfizgrdyzxddswcedwr` / Production ref `ixabnzhjeqevtbhdfswv` both reconfirmed. No schema change this task — no Supabase CLI target-guard action needed.
 
-## 2. Root-Cause / Source-of-Truth Audit
+## 2. What Changed — `ClientTypeBadge` Redesign
 
-**Confirmed: an explicit, authoritative field already exists — no schema gap, no inference.** `clients.client_type` — `text`, values exactly `'business'`/`'private'`, `DEFAULT 'business'` (confirmed directly in `supabase/migrations/20260830000000_capture_base_schema_tables.sql`). Already required in `EditClientModal.jsx`'s client-edit `<select>` and in `QuoteForm.jsx`'s quote-creation `<select>` (`required={!editingQuoteId}`). `quotes.client_type` also exists as a per-quote snapshot column (same default) — deliberately **not** used for the badge (see §5). `Dashboard.jsx`'s client-upsert payload always includes `client_type: clientType`, so in normal application use a client record should never end up without an explicit value; the column's own default is a secondary safety net. The badge is coded defensively regardless: any value other than exactly `'business'`/`'private'` renders no badge (no guessing).
+The prior task's icon+text pill (`QuotesTab.jsx`) is replaced with an icon-only, fixed-size badge:
 
-## 3. Business Rule Review
+- **Icon-only**: `Building2` (business) / `User` (private), no permanent visible text label — both already-used lucide-react icons, no new dependency.
+- **Fixed size**: constant `24×24` px circular slot (`CLIENT_TYPE_BADGE_SIZE`), identical for both client types — Business and Private now render at byte-identical container dimensions.
+- **Accessibility**: `role="img"` + `aria-label` (full sentence, e.g. "Business Client"/"לקוח עסקי") + native `title` attribute — not hover-dependent, and deliberately non-focusable (no `tabIndex`) so no new keyboard tab-stop is added per table row; `aria-label` supplies the accessible name independent of hover/focus state.
+- **Dedicated column**: a new compact desktop `<th>` "סוג לקוח"/"Client Type" added between "Client Name" and "Description," badge moved out of the name cell into its own centered `<td>` (`colSpan` on the empty-state row updated 9→10). Mobile card layout left structurally unchanged (badge already rendered inline next to the client name; now automatically icon-only).
 
-`client_type` already drives real behavior, not just UI: **Tax ID becomes a required field** only when `clientType === 'business'` (`QuoteForm.jsx`). A **Local-only totals-display formatting variant** exists for private clients (`isLocalIsraeliBusiness && isHebrew && clientType === 'private'` — same underlying VAT amounts, different labeling/ordering of the subtotal/VAT breakdown; not a different VAT calculation, not International-relevant since that whole branch is gated to Local Hebrew only). No other business-rule branching on `client_type` was found. `ClientsTab.jsx` already displays it as a dedicated column (pill-styled, no icon, hidden on mobile via its own class) — a pre-existing, working, equivalent mechanism, confirmed and reported rather than modified (see §5).
+## 3. New Permanent Rule — `PROFLOW_PROJECT_CONTEXT.md` §49
 
-## 4. Implemented (TEST-only, lint/test/build-clean)
+Per explicit Owner request, a new permanent rule was recorded: **"UI Width Consistency Rule."** Equivalent UI alternatives that share one visual slot (badges, plan labels, segmented options, etc.) must reserve stable size based on the widest legitimate alternative — not a mandate for global fixed-width layout, and the existing responsive exception is preserved. This badge is cited as the rule's first applied case.
 
-New `ClientTypeBadge` helper in `src/components/QuotesTab.jsx` (module-level, one definition, reused by both the desktop table and the mobile card — not duplicated): `Building2` icon + "עסקי"/"Business" for business, `User` icon + "פרטי"/"**Individual**" for private (both icons already used elsewhere in the app — no new icon dependency). Small pill badge (14px icon, subtle border/background, no loud color, no emoji), informational only, not clickable. Reads the **live** `quote.clients?.client_type` — already fetched by the existing quotes↔clients join (`Dashboard.jsx`'s `fetchQuotes`/`fetchClients` queries already select `client_type`), so **zero query change was needed**. Placed inline next to the client name in both Quote History surfaces; no new table column added anywhere. Mobile: name+badge sit in a `flexWrap` container so the badge wraps below the name when space is tight, per the approved design.
+## 4. Verification
 
-**Deliberate, disclosed terminology note**: the badge's English label for the private case is "Individual," per explicit Owner instruction for this badge specifically — the pre-existing `EditClientModal.jsx`/`ClientsTab.jsx` dropdown/column English label remains "Private," untouched (out of scope; changing it would be unrelated UI redesign).
+Live-verified via an isolated headless-Chrome CDP session (`cdp_badge_refinement_verify.mjs`) against real fictional TEST accounts, both markets:
 
-**Clients screen**: audited, found to already have its own working, equivalent mechanism (a compact colored "Type" pill column) — left unchanged rather than converted to the new icon style, per the task's own "report, don't broaden scope" instruction.
+- **HE (Local)**: column header reads "סוג לקוח"; badge `aria-label`/`title` read "לקוח עסקי"/"לקוח פרטי" correctly per client; exactly one distinct badge width×height across every instance found.
+- **EN (International)**: column header reads "Client Type"; `aria-label`/`title` read "Business Client"/"Individual Client" correctly per client; exactly one distinct badge size.
+- **Responsive**: `document.documentElement.scrollWidth` exactly equals `window.innerWidth` at 360px/390px/412px and desktop (1280px), both markets — zero new horizontal overflow.
+- **Regression**: lint clean (same pre-existing 6-warning baseline), 56/56 tests pass, build succeeds.
 
-## 5. Data Integrity
+## 5. Deferred, Not Implemented (Recorded Only)
 
-The badge reads `quote.clients?.client_type` (live, joined) rather than `quote.client_type` (the per-quote snapshot column) — a deliberate choice, consistent with how the adjacent client name (`quote.clients?.company_name`) is already rendered live rather than frozen at quote-creation time; mixing a live name with a frozen-snapshot type badge would risk showing inconsistent information if a client's type changed after a quote was created. Live-verified this is correct: edited an existing TEST client's type via `EditClientModal.jsx` (private → business), saved, reloaded Quote History — the badge on that client's existing quote updated immediately to reflect the new value, with no stale caching. No legacy/missing-type client was found in TEST data (consistent with the required-field + default-value safety net in §2); the badge's defensive no-guess behavior for any unrecognized value was not empirically exercised but is present in the code.
+Two Owner-mentioned future items, recorded in `PROFLOW_TODO.md` item 29, explicitly **not implemented this task**:
 
-## 6. Live Verification, Both Markets
+- **Part A**: remove the "Permission/הרשאה" column from the Admin UI — display-only change, all backend/DB/RLS logic must be preserved unchanged.
+- **Part B**: a deferred Admin plan-icon idea.
 
-Created and edited real fictional TEST clients/quotes on both TEST accounts (Local and International). **Hebrew**: "עסקי" (`Building2`) and "פרטי" (`User`) both confirmed rendering correctly and legibly, RTL-correct placement (inherits the table's own `dir`), confirmed via a live client-type edit updating the badge immediately (screenshot evidence: one quote's badge visibly changed from "פרטי" to "עסקי" with the icon changing accordingly, all 18 other rows unaffected). **International**: "Business" (`Building2`) and "**Individual**" (`User`) both confirmed rendering correctly directly from quote creation (four rows, three Business + one Individual, all correctly labeled and iconed), LTR-correct placement, zero ₪/VAT leakage, International currency behavior unaffected.
+Per explicit Owner instruction: **WE ARE NOT WORKING ON ADMIN YET.**
 
-## 7. Responsive Acceptance
+## 6. Continuity Sync + Remote Read-Back
 
-`document.documentElement.scrollWidth` measured exactly equal to `window.innerWidth` at 360px, 390px, 412px, and desktop (1280px), both markets — **zero new horizontal scrolling**. Client name truncation (ellipsis) unaffected. Mobile cards remain clean; badge wraps below the name where the combined width doesn't fit, as designed.
+Following the correction from the immediately-preceding Continuity Sync Failure Audit + Recovery task, this task's own six-file updates were synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging, never `git add -A` → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification via the `api.github.com` Contents API (base64-decoded), confirming the new HEAD sha and the actual decoded content of all six files — not merely a successful local push exit code. See `PROFLOW_HANDOFF.md` §18 step (36) for full detail and the exact verdict line.
 
-## 8. Regression
+## Final Verdict
 
-`npx eslint .` (full repo) → **0 errors, 6 warnings** — the exact pre-existing baseline, no new warnings. `npm test` → **56/56 tests pass** (including Item 17 and Item 25's own regression tests, confirmed unaffected). `npm run build` → succeeds (only the pre-existing unrelated chunk-size warning). No Public Quote regression (this task did not touch any Public Quote file). No Package 1 feature regression observed in any live check this task.
+**ITEM 26 FINAL UI REFINEMENT: PASS**
 
-## 9. TODO / Continuity
+- `ICON-ONLY DISPLAY: PASS`
+- `COLUMN HEADER: PASS`
+- `TOOLTIP + ACCESSIBILITY: PASS`
+- `FIXED ALIGNMENT: PASS`
+- `HE: PASS`
+- `EN: PASS`
+- `RESPONSIVE: PASS`
+- `REGRESSION: PASS`
+- `UI WIDTH CONSISTENCY RULE DOCUMENTED: PASS`
+- `ADMIN TODO DEFERRED: PASS`
+- `REMOTE CONTINUITY READ-BACK: PASS`
 
-New `PROFLOW_TODO.md` item 26 (Client Type Badge) added — status `IMPLEMENTED / TEST VERIFIED`, explicitly not Production/LIVE verified. Two Owner-mentioned future requirements with no prior documented home — the "Attn/לידי empty→client-name fallback" and "Persistent Plan Identity" (logo+plan label) — recorded as new, separate, explicitly-not-implemented items 27 and 28, rather than left as an undiscoverable passing mention. Nothing deleted from any prior TODO history.
+**TEST-only. No migration. No Edge Function touched. Not committed, not pushed, not deployed. No Production/LIVE action. No Admin implementation. No Item 28 implementation.**
 
-## 10. Required Final Verdicts
-
-**`CLIENT TYPE BADGE: PASS`**
-
-- `SOURCE OF TRUTH`: **CONFIRMED** (`clients.client_type`, explicit, pre-existing, already driving real validation logic)
-- `LOCAL BADGE`: **PASS**
-- `INTERNATIONAL BADGE`: **PASS**
-- `MOBILE RESPONSIVE`: **PASS**
-- `DATA INTEGRITY`: **PASS**
-
-## 11. Mutation Accounting
-
-**Application-code changes** (working tree only, **not committed**): `src/components/QuotesTab.jsx` only.
-
-**TEST data mutations**: fictional TEST clients/quotes created and one existing fictional TEST client's `client_type` edited via the real application UI (`EditClientModal.jsx`) — all disposable, no real/customer data touched.
-
-**Explicitly did NOT occur**: no schema change, no migration, no Production mutation, no Production Edge Function deployment, no commit, no push, no Vercel deploy, no unrelated UI redesign, no new icon-library dependency, no unrelated TODO work.
-
-## Final Stop
-
-No Production DB change. No Production Edge Function deploy. No push to `main`. No Vercel deploy. No LIVE action. No unrelated TODO implementation. `main` HEAD unchanged at `17ac4d3a...`. Supabase CLI link remained on Production throughout (no TEST-target mutation was needed). **Waiting for Owner + ChatGPT review before any further gate proceeds.**
+**Awaiting Owner + ChatGPT review.**
