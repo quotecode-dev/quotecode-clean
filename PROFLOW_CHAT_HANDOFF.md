@@ -1028,6 +1028,42 @@ Verdict: `STRUCTURED QUOTE ARCHITECTURE CORRECTION: PASS`,
 detail: `PROFLOW_HANDOFF.md` §18 step (42), `PROFLOW_PROJECT_CONTEXT.md`
 §52/§53.
 
+## 10.AF Owner-Locked Regression Rule + User UI QA Fixes + Vercel Domain Redirect Audit (added 2026-08-30)
+
+Four parts, all complete. **Part A**: new Permanent Requirement,
+`PROFLOW_PROJECT_CONTEXT.md` §54 — once implemented, TEST-verified, and
+Owner-reviewed, a behavior/design/feature is Owner-Approved/LOCKED and must
+not change without explicit reauthorization, even indirectly via
+refactoring/cleanup/"improvement." Ties enforcement to existing status
+markers (TODO's 🟢 COMPLETE/VERIFIED, HANDOFF's PASS steps, the File-by-File
+Ledger) rather than a new tracking document.
+
+**Part B**: four Owner-observed UI issues, audited first then fixed
+narrowly, live-verified both markets: (1) Quote History row-amount weight
+`800→600`, totals elsewhere untouched. (2) EN Actions-column clipping —
+root-caused to a missing explicit column width; fixed with `minWidth:110px`
++ more available width; confirmed fully on-screen both markets. (3) Desktop
+width utilization — audited the shared 980px content token first, found it
+also governs the separately-locked Public Quote surface (not in this task's
+scope) — **decoupled** rather than widened in place, per the new §54 rule:
+a new dedicated `--pf-dashboard-desktop-content-width:1440px` for the
+authenticated app only; Public Quote's own token confirmed still exactly
+980px. (4) Trial notice collision — fixed by conditionally growing the
+header's bottom margin only while a notice is visible; the notice's own
+LOCKED text/motion/design untouched. All four verified together, both
+markets, desktop+mobile, zero overflow, zero regression.
+
+**Part C**: re-audited `quotecode.vercel.app` redirect behavior without
+auto-following — confirmed (not corrected) no redirect exists; added the
+missing context that a redirect to the canonical domain is the intended
+eventual architecture and simply isn't configured yet (disclosed gap, no
+routing change made).
+
+Verdict: `OWNER-APPROVED LOCKED RULE: PASS`, `UI QA: PASS`,
+`VERCEL REDIRECT AUDIT: PASS`. 70/70 tests, lint clean, build succeeds. Full
+detail: `PROFLOW_HANDOFF.md` §18 step (43), `PROFLOW_PROJECT_CONTEXT.md`
+§54/§55.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -1218,7 +1254,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Structured Quote Architecture Correction + Six TEST Personas + Landing Page Access Audit task — supersedes the Trial Expiration → FREE, Documentation-Only Product Direction Update, TEST Subscription Personas, Item 27, Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AE — three parts: (A) corrected item 31's "Project → Section → Items" placement, relocating it to new item 30.C (main quote body, not Additional Notes) — **complete**. (B) attempted creation of six new TEST subscription personas — **BLOCKED**, evidenced: no TEST service-role key available, and TEST's self-service signup email confirmation is currently rate-limited (live-verified via the raw Auth API) — three resolution paths recorded for the Owner, nothing created/mutated to work around it (`PROFLOW_PROJECT_CONTEXT.md` §52). (C) read-only landing-page access audit for ChatGPT — **complete**: found and verified `quotecode.vercel.app` as a byte-identical alternate public URL, confirmed the demo video is a safe public static file, and captured a full-page HE/EN Desktop+Mobile screenshot fallback package (`PROFLOW_PROJECT_CONTEXT.md` §53). Verdict `STRUCTURED QUOTE ARCHITECTURE CORRECTION: PASS`, `SIX TEST PERSONAS: BLOCKED`, `LANDING PAGE ACCESS AUDIT: PASS`. Preceded by §10.AD (Trial Expiration → FREE), §10.AC (Invoice Readiness + Mixed Pricing docs), §10.AB (TEST Subscription Personas Audit), §10.AA (Item 27), §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). **NEXT ACTION**: the §17.J documentation sync for §10.AE itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (42). Otherwise awaiting Owner + ChatGPT review, including their decision on how to resolve the persona-creation blocker — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA/§10.AB/§10.AC/§10.AD/§10.AE for full detail.
+**🟢 UPDATED 2026-08-30 (Owner-Locked Regression Rule + User UI QA Fixes + Vercel Domain Redirect Audit task — supersedes the Structured Quote Architecture Correction, Trial Expiration → FREE, Documentation-Only Product Direction Update, TEST Subscription Personas, Item 27, Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AF — four parts: (A) new Permanent Requirement §54, Owner-Approved = LOCKED — once implemented/TEST-verified/Owner-reviewed, a behavior must not change without explicit reauthorization, enforced via existing status markers, not a new document — **complete**. (B) four Owner-observed UI issues audited and fixed narrowly, live-verified both markets/desktop/mobile: row-amount weight lightened, EN Actions-clipping root-caused and fixed, Desktop content width decoupled from Public Quote's separately-locked value and widened for the authenticated app only, Trial-notice collision fixed without touching its locked design — **complete**, zero regression. (C) re-audited the `quotecode.vercel.app` redirect behavior without auto-following — confirmed (not corrected) no redirect exists, added the missing context that a redirect is the intended architecture but not yet configured — **complete**, no routing change made. Verdict `OWNER-APPROVED LOCKED RULE: PASS`, `UI QA: PASS`, `VERCEL REDIRECT AUDIT: PASS`. Preceded by §10.AE (Structured Quote Architecture Correction + Six TEST Personas [BLOCKED, unresolved] + Landing Page Access Audit), §10.AD (Trial Expiration → FREE), §10.AC (Invoice Readiness + Mixed Pricing docs), §10.AB (TEST Subscription Personas Audit), §10.AA (Item 27), §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). **NEXT ACTION**: the §17.J documentation sync for §10.AF itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (43). Otherwise awaiting Owner + ChatGPT review — the six-TEST-persona creation blocker from §10.AE remains unresolved and still awaits the Owner's choice of resolution path; nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA/§10.AB/§10.AC/§10.AD/§10.AE/§10.AF for full detail.
 
 **🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 

@@ -4,56 +4,29 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Structured Quote Architecture Correction + Six TEST Subscription Personas + Landing Page Access Audit for ChatGPT
+## Task: Owner-Locked Regression Rule + User UI QA Fixes + Vercel Domain Redirect Audit + Continuity Update
 
-**Effort level**: HIGH. Three authorized scopes: (A) documentation correction, (B) TEST persona creation + verification, (C) read-only landing-page access audit. Not authorized: Item 28/30/31 implementation, landing-page redesign, Admin work, Production action, application commit/push/deploy.
+**Effort level**: HIGH. Four scopes: (A) establish the OWNER-APPROVED=LOCKED rule, (B) audit + safely fix four UI issues, (C) re-audit the Vercel redirect, (D) continuity sync. Not authorized: Admin work, Item 28/30/31 implementation, Production mutation, application commit/push/deploy.
 
-## PART A — Structured Quote Architecture Correction (complete)
+## PART A — Owner-Approved = LOCKED Rule (complete)
 
-The Owner + ChatGPT reconsidered the real David Aluminum quote example and determined that "Project → Section → Structured Items" belongs conceptually in the main quote body / future structured-quote engine — **not** in Additional Notes, where an earlier documentation pass (Trial Expiration → FREE task) had placed it.
+New Permanent Requirement, `PROFLOW_PROJECT_CONTEXT.md` §54: once a behavior/design/feature/fix is implemented, TEST-verified, and Owner-reviewed, it becomes Owner-Approved/DONE/LOCKED/regression-protected and must not change without explicit Owner authorization — including indirectly, through refactoring, shared CSS, cleanup, or any "improvement." Regression protection is engineering's (Claude Lead/Agent HE/Agent EN's) responsibility, not the Owner's — the Owner should never have to re-QA completed work. A required STOP condition is recorded for when a new task genuinely needs to change LOCKED behavior. Per explicit instruction not to duplicate documentation, this does **not** introduce a new tracking ledger — it formally designates the existing mechanisms (`PROFLOW_TODO.md`'s 🟢 COMPLETE/VERIFIED markers, `PROFLOW_HANDOFF.md`'s own PASS-verdict steps, the existing File-by-File HE/EN Change Ledger, §37) as this rule's enforcement surface.
 
-**`PROFLOW_TODO.md` item 31 corrected**: the "B. Semantic hierarchy — Project → Section → Items" clause removed and replaced with an explicit correction note pointing to the new home. Additional Notes reconfirmed as genuinely supplemental free text (price exclusions, measurement caveats, site-access coordination, delivery info, special conditions). The previously-discussed 3-column desktop layout downgraded from a mandate to a candidate idea, subject to re-evaluation during Item 31's own future design pass. The purple sequence-number styling concept preserved, conditioned on Item 31 actually deciding to number multiple entries.
+## PART B — Four UI QA Fixes (audited first, fixed narrowly, TEST-verified live, both markets)
 
-**New `PROFLOW_TODO.md` item 30.C** — the corrected, expanded home for the concept: full conceptual hierarchy `QUOTE → optional PROJECT/JOB → optional SECTION/GROUP → STRUCTURED ITEMS → item measurement/pricing → calculated total → quote totals/tax`, with illustrative (never industry-locked) aluminum/carpenter/IT examples, an explicit "Project and Section MUST be optional" requirement with per-business-shape examples (simple seller, lawyer, carpenter, aluminum contractor, weight-based business), the existing defaults hierarchy (Industry preset → Business → Catalog/item → per-item → user override) reconfirmed, an explicit financial-correctness test-case list (mm/cm/m, in/ft, kg/lb, area, quantity multipliers, decimals, zero/large values, rounding boundaries, tax, mixed-pricing totals), snapshot/historical-integrity requirements restated for structured items specifically, an explicit backward-compatibility requirement, and a cross-reference to the already-separately-recorded Invoice/Accounting Readiness direction (item 32, untouched). Item 30's own title extended to reflect the expanded scope. No design or implementation work performed or authorized.
+**1. Quote History row-amount typography** — `fontWeight: '800' → '600'` (semi-bold), `src/components/QuotesTab.jsx`, both desktop table and mobile card. Confirmed via live `getComputedStyle`, both markets: `600`. Summary/grand totals (a separate location, `Dashboard.jsx`) were not touched.
 
-## PART B — Six TEST Subscription Personas (BLOCKED, evidenced)
+**2. EN Quote History Actions clipping** — root cause: the Actions `<th>` had no explicit `width`/`minWidth` at all, unlike its sibling columns, combined with insufficient available desktop width. Fixed with `minWidth: '110px'` on the Actions header (matching the sibling-column pattern, not a broad CSS change) plus fix 3 below. Live-confirmed fully on-screen: EN `{left:1318, right:1392}` (48px clearance to a 1440px viewport), HE `{left:33, right:99}` (fully on-screen, RTL side). No button hidden, no usability reduced, no new horizontal overflow.
 
-### Fresh Local State, re-confirmed first (per explicit instruction, not skipped)
+**3. Desktop width utilization** — audited the existing shared `--pf-desktop-content-width` (980px) token first and found it governs **both** the authenticated app shell and the separately-Owner-locked Public Quote surface (from an earlier dedicated Global Surface Audit with precise shell-padding `calc()` math) — Public Quote was **not** named in this task's own regression-check list. Per the new §54 rule (no indirect changes to LOCKED behavior), widening the shared token in place would have silently widened the unaudited Public Quote surface too. **Decoupled instead**: new dedicated `--pf-dashboard-desktop-content-width: 1440px` (`src/index.css`) now governs only `Dashboard.jsx`'s content wrapper; `--pf-desktop-content-width` stays exactly `980px`, untouched, still used only by `PublicQuote.jsx`/`PublicQuoteEn.jsx`. Live-verified: Dashboard wrapper now ~1405px (up from 980px) at a 1440px viewport, both markets; Public Quote's own CSS variable confirmed still reading exactly `980px` via a direct `getComputedStyle` check on `document.documentElement`. Regression-verified across Dashboard/New Quote/Quote History/Clients/Business Settings (all share the one wrapper) — zero horizontal overflow, Client Type badge unaffected. Admin untouched (doesn't use this wrapper).
 
-`main` HEAD unchanged (`17ac4d3a...`, matches `origin/main`). The Trial Expiration → FREE fix (`computeEffectivePlan`, §51) confirmed intact and still uncommitted. Both existing active-trial TEST accounts re-verified live: still correctly resolve to `"pro PLAN"` with real, unmutated data, both markets. 70/70 automated tests pass, lint clean, build succeeds (all re-run fresh this task, not assumed from the prior report).
+**4. Trial notice vertical position** — root cause: both notice variants are `position:absolute; top:100%` children of `.dash-header-bar`, but the header's unconditional `marginBottom` (14px) was shorter than either notice's actual footprint (~36-52px), so the notice's own bottom edge reached into where the nav row begins — exactly the Owner's observed collision. Fixed by conditionally raising `.dash-header-bar`'s `marginBottom` to `64px` **only while a notice is actually visible** (`hasVisibleTrialNotice`), leaving the default (no-notice) state completely unchanged, and touching **nothing** about either notice's own text, color, motion, timing, or "no card/background" design — all explicitly LOCKED, per instruction not to redesign them. Live-verified, both markets: notice bottom edge at 104px, nav top edge at 132px — 28px clearance, `collision: false` — confirmed by direct bounding-box measurement and full-page screenshots.
 
-### The blocker
+**Combined verification**: all four fixes tested together, both markets (HE via `PROFLOW_TEST_LOCAL_*`, EN via `PROFLOW_TEST_INTL_*`), desktop (1440px) and mobile (360/390/412px) — zero horizontal overflow anywhere, zero regression in the Client Type badge, the Trial Expiration → FREE fix, or any other previously-approved UI. Full detail and evidence: `PROFLOW_PROJECT_CONTEXT.md` §55.
 
-Creating a new, immediately-usable TEST Auth user requires one of two mechanisms — both unavailable within this task's own tool access:
+## PART C — Vercel Domain Redirect Audit (read-only, complete)
 
-1. **Supabase Admin API** (`auth.admin.createUser` with `email_confirm: true`, bypassing confirmation entirely) — requires a service-role key. Checked `.env`/`.env.localtest.local`: only a placeholder comment exists, no actual key value. The permanently-banned `supabase projects api-keys --reveal` command was correctly not attempted.
-2. **The app's own real self-service signup form** — live-verified, via a **raw request directly to Supabase Auth's REST endpoint** (not the app's own generic, error-swallowing UI message, which would have been misleading here), that:
-   - An `@example.com` address is rejected by Supabase Auth itself (`error_code: "email_address_invalid"`) — a domain-validity block, unrelated to confirmation.
-   - A realistic `@gmail.com`-style address returns `HTTP 429`, `error_code: "over_email_send_rate_limit"` — proving email confirmation **is** required, and TEST's transactional-email sending is **currently rate-limited**.
-
-Neither path is usable right now. The two existing TEST accounts were evidently created through a mechanism this task doesn't have (most plausibly the Owner's own Supabase Dashboard access, or Admin-API access with a service-role key — both existing accounts use real "+alias@gmail.com" addresses under an inbox the Owner controls).
-
-**Nothing was created, mutated, or fabricated to work around this.** No invented confirmation bypass, no guessed service-role key, no TEST database mutation of any kind performed this task.
-
-### Recommended resolution paths (Owner's choice, not decided here)
-
-1. Supply the `quotecode-test` service-role key once (same handling discipline as the TEST anon key earlier this session — installed directly into a gitignored local file, never displayed/logged).
-2. The Owner personally completes the six signups (real "+alias@gmail.com" addresses) and clicks each confirmation email themselves.
-3. Increase/reset TEST's email rate limit, or configure a custom SMTP provider for the TEST Auth project (a Supabase project-settings change outside this session's tooling).
-
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §52.
-
-## PART C — Landing Page Access Audit for ChatGPT (read-only, complete)
-
-**Routing/build**: `/he` (`LandingLocal`) and `/en` (`LandingGlobal`) are two `react-router-dom` routes inside the **same single SPA bundle** — never separate deployments. `main` HEAD confirmed unchanged with zero local drift in the landing-page source files, so the live custom domain is provably running exactly this repository's current code.
-
-**Alternate public URL found and verified, not assumed**: `https://quotecode.vercel.app` — live checks confirm `www.quotecodepro.com/he` and `quotecode.vercel.app/he` return **byte-for-byte identical HTML** (same for `/en`), and both domains are HTTP 200-reachable. This is the strongest existing-URL candidate for ChatGPT if the custom domain specifically is what's blocked.
-
-**Demo video**: confirmed from source to be a plain public static file — `/proflow-demo.mp4` (HE) and `/proflow-demoEN.mp4` (EN), not an embed or signed URL. Live HEAD requests confirm both are directly fetchable, unauthenticated, on both domains, with identical `Content-Length` (HE: 2,522,561 bytes; EN: 2,578,902 bytes). No secrets, no tokens — safe to share directly.
-
-**SPA-rendering caveat, disclosed**: the initial HTML is a small shell; actual content renders client-side. If ChatGPT's fetcher doesn't execute JavaScript, a URL fetch — even a successful one — may only return the shell. Accordingly, a fallback review package was also **prepared, not just recommended**: four full-page screenshots captured from the real, live, public production pages (read-only, zero mutation, no login) — HE/EN × Desktop/Mobile — saved locally, not published anywhere. Claude did not critique, redesign, or describe the landing content beyond confirming the captures succeeded, per explicit instruction.
-
-**Security**: no tunnel, no localhost exposure, no TEST/session/cookie secrets, no ENV/API/service-role values referenced or exposed anywhere in this audit, no new deployment, no landing-page file touched.
+Re-tested `quotecode.vercel.app` root/`/he`/`/en`, explicitly without auto-following redirects first (`curl -D -`, no `-L`), then separately following the chain. Result, both passes, all three paths: `HTTP 200` directly, no `Location` header, `num_redirects: 0`, final URL identical to the requested URL. **The prior Landing Page Access report's factual claims are CONFIRMED, not corrected** — content is genuinely served directly (re-verified byte-identical HTML and matching video sizes this task too). **New context added**: the canonical product intent is that `quotecode.vercel.app` should eventually redirect to `www.quotecodepro.com` — that redirect is simply not configured yet on Vercel. This is a real, disclosed gap between intent and current deployment, not an error in the earlier finding. The recommendation to use `quotecode.vercel.app` for ChatGPT access remains factually valid today but now carries the caveat that it relies on currently-unintended (if currently-real) behavior. No Vercel configuration was touched — read-only audit only, as authorized.
 
 ## Continuity Sync + Remote Read-Back
 
@@ -61,50 +34,48 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 
 ## Final Verdict
 
-**STRUCTURED QUOTE ARCHITECTURE CORRECTION: PASS**
-- `ITEM 30 QUOTE-BODY OWNERSHIP: PASS` — new item 30.C records the hierarchy in the quote body, not Notes.
-- `ITEM 30 MIXED PRICING: PASS` — 30.B preserved and cross-referenced, unchanged.
-- `ITEM 31 NOTES CORRECTION: PASS` — hierarchy removed, Additional Notes reconfirmed as supplemental free text.
-- `ITEM 31 PURPLE NUMBER CONCEPT: PRESERVED` — kept as a still-relevant future idea, explicitly conditioned on Item 31's own future design actually choosing to number multiple entries; the 3-column layout specifically was downgraded from mandate to re-evaluate-later.
-
-**SIX TEST PERSONAS: BLOCKED** (account-creation mechanism only — see Part B above and §52 for full evidence and resolution paths)
-- `LOCAL FREE EXPIRED: FAIL` (not created) / `LOCAL BASIC: FAIL` (not created) / `LOCAL PRO: FAIL` (not created)
-- `INTERNATIONAL FREE EXPIRED: FAIL` (not created) / `INTERNATIONAL BASIC: FAIL` (not created) / `INTERNATIONAL PRO: FAIL` (not created)
-- `EXISTING ACTIVE TRIAL LOCAL: PASS` (re-verified live, unmutated) / `EXISTING ACTIVE TRIAL INTERNATIONAL: PASS` (re-verified live, unmutated)
-- `ENTITLEMENT MATRIX`: unchanged from §51, re-confirmed still accurate this task.
-- `PERSONA CREDENTIAL STORAGE`: no new personas created, so no new ENV variable names were needed or added this task; the previously-recommended naming convention (§50) remains the plan for whenever creation is unblocked.
-- `TEST DATA CREATED`: one throwaway signup-confirmation probe (`@example.com`, rejected by Supabase Auth as an invalid domain before any account was created — no actual account resulted) and one realistic-domain probe attempt (hit the email rate limit before any account was created) — **zero new Auth users or `business_settings` rows exist as a result of this task.**
-
-**HE: PASS** (regression only, both existing-account checks and Part C's HE capture) — **EN: PASS** (same) — **TESTS: PASS** (70/70) — **LINT: PASS** (0 errors, 6 pre-existing warnings) — **BUILD: PASS**.
+**OWNER-APPROVED LOCKED RULE: PASS**
+**LOCKED REGRESSION MECHANISM**: `PROFLOW_TODO.md` 🟢 COMPLETE/VERIFIED item status + `PROFLOW_HANDOFF.md` §18 PASS-verdict steps + the existing File-by-File HE/EN Change Ledger (§37) — formally designated, not duplicated, as this rule's enforcement surface (`PROFLOW_PROJECT_CONTEXT.md` §54).
 
 ------------------------------------------
-**LANDING PAGE ACCESS**
+**UI QA**
 ------------------------------------------
-
-**LANDING PAGE ACCESS AUDIT: PASS**
-- `HE CURRENT PAGE`: verified live, same build as `main` HEAD.
-- `EN CURRENT PAGE`: verified live, same build as `main` HEAD.
-- `HE ACCESS FOR CHATGPT`: safe public URL — `https://quotecode.vercel.app/he` (verified byte-identical to the custom domain).
-- `EN ACCESS FOR CHATGPT`: safe public URL — `https://quotecode.vercel.app/en` (verified byte-identical to the custom domain).
-- `DEMO VIDEO SOURCE`: plain public static files, no secrets — `/proflow-demo.mp4` (HE) and `/proflow-demoEN.mp4` (EN), on either domain above.
-- `DEMO VIDEO ACCESS FOR CHATGPT`: direct public URLs — `https://quotecode.vercel.app/proflow-demo.mp4` and `.../proflow-demoEN.mp4` (or the equivalent `www.quotecodepro.com` paths) — verified reachable, correct `Content-Type: video/mp4`, matching sizes on both domains.
-- `SAME CURRENT BUILD: PASS` — byte-identical HTML and identical video file sizes confirmed, not assumed from visual similarity.
-- `FALLBACK REVIEW PACKAGE: available` — four full-page screenshots (HE/EN × Desktop/Mobile) already captured from the real live pages, held locally, ready for the Owner to share with ChatGPT through whatever channel they choose.
-- `LANDING SECURITY: PASS`
-- `NO LANDING PAGE MUTATION: PASS`
+- `ROW AMOUNT TYPOGRAPHY: PASS` — `fontWeight 800 → 600`, both markets confirmed via computed style.
+- `EN ACTIONS CLIPPING: PASS` — root cause: missing explicit column width + insufficient container width; fix: explicit `minWidth:110px` + decoupled wider Dashboard container.
+- `DESKTOP WIDTH UTILIZATION: PASS` — root cause: shared 980px token also governed the separately-locked Public Quote surface; fix: new dedicated `--pf-dashboard-desktop-content-width:1440px`, Public Quote's own token unchanged and reconfirmed at 980px.
+- `TRIAL NOTICE POSITION: PASS` — root cause: header's fixed 14px margin shorter than the notice's own footprint; fix: conditional 64px margin only while a notice is visible, notice's own design untouched.
+- `HE DESKTOP: PASS` / `EN DESKTOP: PASS` / `HE MOBILE: PASS` / `EN MOBILE: PASS`
+- `HORIZONTAL OVERFLOW: PASS` (zero, all tested widths, both markets)
+- `LOCKED UI REGRESSION: PASS` (Client Type badge, Trial Expiration fix, Public Quote width all reconfirmed unaffected)
 
 ------------------------------------------
-**CONTINUITY**
+**VERCEL REDIRECT**
 ------------------------------------------
+- `VERCEL ROOT`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/`.
+- `VERCEL /he`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/he`.
+- `VERCEL /en`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/en`.
+- `CANONICAL DOMAIN BEHAVIOR: FAIL` (relative to intended architecture — a redirect is intended but not configured; the domain itself functions correctly, this is a routing-configuration gap, disclosed not fixed).
+- `PREVIOUS LANDING ACCESS CLAIM: CONFIRMED` — byte-identical content, matching video sizes, re-verified fresh this task.
+- `CHATGPT LANDING ACCESS`: `https://quotecode.vercel.app/he` and `/en` remain factually usable today (verified byte-identical to canonical), now disclosed as relying on a currently-unintended absence of a redirect rather than the permanent architecture; the previously-captured full-page HE/EN Desktop+Mobile screenshot fallback package remains available and preserved.
+- `DEMO VIDEO ACCESS`: unchanged — `/proflow-demo.mp4` (HE) / `/proflow-demoEN.mp4` (EN), plain public static files, re-verified reachable with matching `Content-Length` on both domains.
+- `NO PRODUCTION ROUTING MUTATION: PASS`
 
-**REMOTE CONTINUITY READ-BACK: PASS**
+------------------------------------------
+**QUALITY**
+------------------------------------------
+- `TESTS: PASS` (70/70, Trial Expiration tests preserved and green)
+- `LINT: PASS` (0 errors, same 6 pre-existing warnings)
+- `BUILD: PASS`
+- `REMOTE CONTINUITY READ-BACK: PASS`
 
-**FRESH LOCAL STATE**:
+------------------------------------------
+**FRESH LOCAL STATE**
+------------------------------------------
 - **MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote).
-- **WORKING TREE**: uncommitted changes carried forward from prior tasks (Trial Expiration fix and earlier); no new application-code changes this task (documentation-only + read-only audits).
-- **TEST**: unchanged except two failed/incomplete signup probe attempts, neither of which resulted in a created account (one rejected as an invalid domain before creation, one rate-limited before creation) — no TEST Auth user, `business_settings` row, or any other TEST data was created, modified, or deleted this task.
-- **PRODUCTION**: UNCHANGED — every Part C interaction was a plain, unauthenticated, read-only `GET`/`HEAD` request to already-public URLs; no landing-page file, route, or deployment was touched.
+- **WORKING TREE**: uncommitted changes carried forward plus this task's edits to `src/components/QuotesTab.jsx`, `src/pages/Dashboard.jsx`, `src/index.css`.
+- **TEST**: unchanged — zero database mutation this task; all verification used live, read-only measurement of already-existing accounts and data.
+- **PRODUCTION**: UNCHANGED — Part C was entirely read-only public `GET`/`HEAD` requests to already-public URLs; no Vercel configuration, routing, or domain setting was touched.
 
-**NO Item 28 implementation. NO Item 30 implementation. NO Item 31 implementation. NO Admin work. NO landing-page redesign. NO application commit/push. NO Production deploy/mutation. NO LIVE action.**
+**NO Item 28/30/31 implementation. NO Admin work. NO six-persona workaround. NO application commit/push. NO Production deploy/mutation. NO routing/domain change. NO LIVE action.**
 
-**Awaiting Owner + ChatGPT review — including the Owner's choice of resolution path for the Part B persona-creation blocker.**
+**Awaiting Owner + ChatGPT review.**
