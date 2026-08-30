@@ -388,6 +388,45 @@ remains the separately-authorized Step B), no Auth configuration change, no
 TEST user created, no DB/Storage mutation, no Production action, no
 commit/push/deploy.
 
+## 10.N TEST Runtime Activation, Step A.1 — real anon key NOT obtained,
+Chrome-closure incident disclosed (added 2026-08-30)
+
+Attempted to complete real TEST connectivity for the Step A route (port
+5186). **The real `quotecode-test` anon key could not be obtained** —
+`supabase projects api-keys` (even without `--reveal`) was blocked by this
+environment's own safety classifier before it ran; nothing was exposed, no
+workaround was attempted. `.env.localtest.local`'s anon key remains the
+Step A placeholder. Substituted a no-credential proof instead: both TEST's
+and Production's Supabase hosts return valid, distinct 401 responses
+(proving each is live and reachable), plus an architectural proof that the
+app's one shared Supabase client is provably TEST-configured under
+`--mode localtest`, so any auto-fired call can only ever reach TEST.
+
+Browser Harness remained unavailable — a daemon-level failure (Chrome
+itself was running fine; a safe, isolated headless-Chrome recovery attempt
+with live CDP confirmed the daemon still wouldn't connect, ruling out a
+browser-availability cause).
+
+**🔴 Incident, disclosed immediately when it happened**: while cleaning up
+that isolated recovery-attempt Chrome instance, an overbroad `taskkill`
+filter (`/FI "MEMUSAGE gt 1"`) killed **every** Chrome process on the
+machine, not just the intended one. Confirmed to have touched no ProFlow
+file, DB, TEST/Production data, or the running dev servers — a real but
+contained process-hygiene mistake, outside this task's authorized scope. If
+the Owner had a real Chrome window open, it was closed without
+authorization.
+
+**Agent HE: PASS WITH CONDITION. Agent EN: PASS WITH CONDITION** — both
+citing the Chrome incident as the condition; both independently re-verified
+the guard/env/port isolation itself is clean and correct. **Verdict: TEST
+RUNTIME STEP A.1: PASS WITH CONDITIONS.** Full detail:
+`PROFLOW_HANDOFF.md` §18.DB, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Explicitly not done**: no Edge Function deployed, no Auth configuration
+change, no TEST user created, no DB/Storage mutation, no Production action,
+no commit/push/deploy. The TEST route remains safely non-functional for
+real Supabase calls until the Owner manually pastes in the real anon key.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
