@@ -427,6 +427,39 @@ change, no TEST user created, no DB/Storage mutation, no Production action,
 no commit/push/deploy. The TEST route remains safely non-functional for
 real Supabase calls until the Owner manually pastes in the real anon key.
 
+## 10.O TEST Runtime Activation, Step A.1 Final — real authenticated
+connectivity achieved (added 2026-08-30)
+
+The Owner supplied `quotecode-test`'s real publishable API key directly and
+it was installed into `.env.localtest.local` — never displayed, echoed, or
+logged anywhere. Port **5186** was restarted with the real key loaded;
+**5184 was never touched**. A genuine read-only authenticated REST request
+(`GET .../rest/v1/business_quote_sequences?select=*&limit=0`) against
+`quotecode-test` returned **HTTP 200** with a real PostgREST `Content-Range`
+header and zero rows (RLS correctly restricting an anonymous session) —
+this workstream's first successful, fully-authenticated Supabase
+connectivity proof, confirmed reaching only TEST's hostname, never
+Production's.
+
+Both Agent HE and Agent EN independently re-verified the guard/env/port
+isolation is correct. Agent HE self-disclosed a minor, immediately-fixed
+incident: one of its own overly-broad grep patterns briefly captured a
+short fragment of the real key in its own tool output during verification
+— caught immediately, the temp file deleted, never shown to the Owner (the
+key is a publishable, non-secret-class key by design). Agent EN returned a
+clean PASS with no incident.
+
+**Verdict: TEST RUNTIME STEP A.1 FINAL: PASS WITH CONDITIONS.** Full
+detail: `PROFLOW_HANDOFF.md` §18.DC, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Explicitly not done**: no Edge Function deployed, no Auth configuration
+change, no TEST user created, no signup/login, no DB/Storage mutation, no
+Production action, no commit/push/deploy. **The TEST frontend route is now
+genuinely, authenticatedly connected to `quotecode-test`** — the remaining
+gap to a browser-visible milestone is `get-public-quote` (still not
+deployed to TEST) and at least one TEST user (still not created), both
+separately unauthorized.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
