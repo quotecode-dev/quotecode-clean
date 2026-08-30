@@ -673,6 +673,80 @@ report, not a data-content read) to obtain Edge Function `updated_at`
 timestamps; no table read, no write, no migration, no deploy, no
 commit/push anywhere.
 
+## 10.U Item 17 TEST Implementation + Coordinated TEST Verification —
+ITEM 17 TEST IMPLEMENTATION: PASS (added 2026-08-30)
+
+The Owner authorized the smallest safe TEST-only step from §10.T's proposed
+plan (gates 1-3, plus the optional QuoteForm.jsx gap fix). **Implemented**:
+`src/components/QuoteForm.jsx` gained a new `editingQuoteNumber` prop —
+the internal "Editing Quote #{id}" header now calls the existing canonical
+`formatQuoteFallback` instead of a raw UUID slice, closing the one
+remaining disclosed gap (no new formatter invented). `src/pages/
+Dashboard.jsx` passes `editingQuoteNumber={editingOriginalQuote?.
+quote_number ?? null}`, reusing an already-existing lookup. Lint clean,
+56/56 tests pass (including all of Item 25's own tests, confirmed
+unaffected), build succeeds. **Not committed** — working tree only, per
+explicit instruction.
+
+**Deployed**: `get-public-quote` and `send-quote-email` to `quotecode-test`
+ONLY, each individually by name, target-guard-confirmed before each call.
+Post-deploy `functions list` confirmed exactly these 2 functions ACTIVE,
+`verify_jwt` matching Production's own config — no unintended function
+touched.
+
+**Verified end-to-end, real application flow only**: a new CDP automation
+script drives the REAL rendered UI (real login form, real "New Quote"/
+"Duplicate"/"Edit"/"Delete" buttons, real form fills/submits — zero manual
+SQL, zero direct RPC call). Claude Lead validated the tooling first,
+finding and fixing two real bugs (a row-mistargeting bug, and a
+Mobile-viewport issue requiring a forced Desktop viewport override), then
+handed off to both agents for independent runs.
+
+**Agent HE (Local, re-run): PASS.** Sequential allocation, duplicate/
+edit/delete-immutability all confirmed, edit header showed the real number
+live (`"עריכת הצעה A100712"`), Public Quote page showed the real number.
+
+**Agent EN (International, first-ever run on this account): PASS.** First
+quote allocated **exactly A100700** despite Local's counter already
+sitting past A100710 at that exact moment — **the definitive cross-business
+isolation proof, in both directions**. Same full battery confirmed:
+sequential allocation, duplicate/edit/delete-immutability, real number on
+the edit header and Public Quote page, English label/LTR/`$`, zero ₪
+leakage, zero VAT-shaped element anywhere.
+
+**One disclosed, non-numbering finding**: "Send Email" fails identically
+on both markets — root-caused to a missing `RESEND_API_KEY` secret on
+TEST (Production has one, confirmed via a read-only `secrets list`
+names/digests-only comparison). `send-quote-email`'s local source was
+already confirmed to compute the number-bearing subject correctly before
+the failing Resend call — a TEST-environment gap, not an Item 17 defect.
+No secret was added to TEST (not authorized by this task).
+
+**Verdict: `ITEM 17 TEST IMPLEMENTATION: PASS`** (`LOCAL QUOTE NUMBERING:
+PASS`, `INTERNATIONAL QUOTE NUMBERING: PASS`, `PER-BUSINESS ISOLATION:
+PASS`, `PUBLIC QUOTE NUMBER CONSISTENCY: PASS`, `EMAIL NUMBER
+CONSISTENCY: BLOCKED` — TEST secret gap). Full detail: `PROFLOW_HANDOFF.md`
+§18.DI, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**TODO/continuity discipline**: `PROFLOW_TODO.md` item 17 updated to
+`🟢 COMPLETE / VERIFIED — TEST ONLY`, explicitly stating Production/LIVE
+remains fully pending. New permanent rule `PROFLOW_PROJECT_CONTEXT.md`
+§47 recorded ("never delete a completed TODO item" — did not already
+exist). Three Owner product decisions recorded as documentation only,
+nothing implemented: item 21's Trial-notification/System-Notification-
+Slider refinements (with a cross-reference note added to item 20, since
+the Owner referred to this as "Item 20" while item 21 is the file's actual
+existing home for the concept — flagged for Owner/ChatGPT to confirm),
+and item 23's Warranty sharpened requirements (snapshot-at-creation,
+immutable once locked, editable while draft, must cover Public Quote/PDF).
+
+**Mutation accounting**: the app-code fix (uncommitted), 2 Edge Function
+deploys to TEST only, disposable TEST quote create/edit/duplicate/delete
+via real application flow on both accounts, documentation updates. No
+Production mutation, no migration applied, no function deployed to
+Production, no commit, no push, no Vercel deploy, no secret added, no
+Item 20/21/23 implementation.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
