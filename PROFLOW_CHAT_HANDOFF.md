@@ -573,6 +573,51 @@ region-choice UI flow once per account) — a database write requiring its
 own separate authorization. No code change, no DB write, no Auth/Storage/
 Edge/Production action, no commit/push/deploy this task.
 
+## 10.S Item 25 E2E Unblock + Final Verification — PASS for both markets
+(added 2026-08-30)
+
+The Owner authorized the narrow TEST-only mutation needed to unblock §10.R:
+completing ProFlow's own existing region-selection UI once per TEST
+account — a real click on the real rendered screen, no SQL, no Table
+Editor — letting the application's own logic create the `business_settings`
+row. Local TEST user clicked "Israel" → exactly one row
+(`country: "Local"`, `currency: "ILS"`). International TEST user clicked
+"International" → exactly one row (`country: "International"`,
+`currency: "USD"`). Both confirmed unchanged at task end (no duplicates, no
+drift, Auth metadata untouched).
+
+**Genuine methodology finding along the way**: a bare `signInWithPassword()`
+API call (the sign-in method §10.R's tooling used) does not reliably
+trigger `Dashboard.jsx`'s own post-login `loadData()` sequence — confirmed
+via live network-request tracing showing zero `business_settings`/`quotes`/
+etc. queries fired that way. Driving the **real rendered login form**
+instead (real DOM inputs, real submit) fires the complete, correct sequence
+every time. §10.R's BLOCKED verdict remains fully valid for what it
+diagnosed (both accounts genuinely had zero rows) — the verification
+tooling itself needed this correction to observe the correction path once
+real data existed.
+
+With both accounts genuinely initialized and real-form-signed-in, Item 25's
+correction was observed **live, for real, both markets**: **Local**,
+starting on the mismatched International bundle, corrected to `dir=rtl`/
+`lang=he` with `₪0.00` shown and no `$`. **International**, starting on the
+mismatched Local bundle, corrected to `dir=ltr`/`lang=en` with `$0.00`
+shown and zero `₪` leakage. Both stable across two refreshes each, no
+redirect loop, session persisted throughout. Both markets' own-bundle
+baselines produced no unnecessary correction.
+
+**Agent HE: LOCAL TEST USER INITIALIZATION: PASS, LOCAL ITEM 25 E2E: PASS.
+Agent EN: INTERNATIONAL TEST USER INITIALIZATION: PASS, INTERNATIONAL
+ITEM 25 E2E: PASS** — both independently reran every scenario on fresh
+isolated Chrome instances and reproduced identical, symmetric results, no
+asymmetry. **Verdict: ITEM 25 END-TO-END: PASS.** Full detail:
+`PROFLOW_HANDOFF.md` §18.DG, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Mutation accounting**: exactly the two authorized `business_settings`
+rows, created entirely through the application's own existing UI logic —
+no SQL, no manual DB editing, no code change, no Auth/Storage/Edge change,
+no additional users, no commit/push/deploy, no Production action.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`

@@ -4,117 +4,122 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE either. See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Item 25 End-to-End TEST User Verification (VERIFICATION ONLY)
+## Task: Item 25 E2E Unblock + Final Verification
 
 **Effort level**: HIGH.
 
-## Fresh Local State
+## 1. Fresh Local State + Target Guard
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, confirmed at task end). `git status --short`: standing baseline, plus Item 25's three working-tree files confirmed present exactly as documented — `src/pages/Dashboard.jsx` (modified), `src/utils/regionConfig.js` (modified), `src/utils/regionConfig.test.js` (new, untracked). Nothing modified/stashed/reset/cleaned by this task.
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, confirmed again at task end). `git status --short` at task start showed the same standing baseline as the prior task, with Item 25's three working-tree files confirmed present and unchanged: `src/pages/Dashboard.jsx`, `src/utils/regionConfig.js`, `src/utils/regionConfig.test.js`. Port 5186 confirmed `MODE:"localtest"`, resolving `VITE_SUPABASE_URL` to TEST's project ref (`ljfizgrdyzxddswcedwr`), fail-closed guard confirmed present (4 throw sites) and unmodified. Port 5184 confirmed unaffected — same PID throughout, read-only inspected only. `.env.localtest.local` confirmed still gitignored. Both `PROFLOW_TEST_LOCAL_*`/`PROFLOW_TEST_INTL_*` credential pairs confirmed present and non-empty (booleans only, no values printed). No uncertainty about target identity at any point — all activity confined to `ljfizgrdyzxddswcedwr`; Production's ref (`ixabnzhjeqevtbhdfswv`) was never contacted.
 
-**Port/environment state**: 5186 confirmed `MODE:"localtest"`, resolving `VITE_SUPABASE_URL` to TEST's project ref (`ljfizgrdyzxddswcedwr`), fail-closed guard confirmed present (4 throw sites) and unmodified this task. Port 5184 confirmed unaffected — same PID throughout, read-only inspected only, never restarted. `.env.localtest.local` confirmed still gitignored (`git status --ignored`).
+## 2. Pre-Mutation TEST Account Check
 
-**Credential check**: `PROFLOW_TEST_LOCAL_EMAIL`, `PROFLOW_TEST_LOCAL_PASSWORD`, `PROFLOW_TEST_INTL_EMAIL`, `PROFLOW_TEST_INTL_PASSWORD` all confirmed present and non-empty in `.env` (booleans only, no value printed). **Note**: an older, unrelated `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` pair also exists earlier in the file (previously documented as misleadingly-named/Local-configured) — the fresh pair, appended immediately after `PROFLOW_TEST_LOCAL_*`, was used, as it is clearly the pair the Owner intended for this task. The International identity is a `+`-tagged Gmail alias of the Owner's own real address (`minhatshay+proflow-int-test@gmail.com`) — a distinct Auth identity, deliberately created and tagged by the Owner, not by this session.
+Re-confirmed via read-only diagnostic: **Local TEST user** — auth succeeds, `business_settings` row count = 0. **International TEST user** — auth succeeds, `business_settings` row count = 0. Exact pre-mutation baseline established before any UI interaction.
 
-## Target Guard
+## 3-4. Account Initialization (Agent-Owned Steps, Claude Lead Performed the First-Run Tooling Validation)
 
-Before any login testing: 5186's served bundle re-confirmed resolving exactly `ljfizgrdyzxddswcedwr` (redacted anon key field, URL field checked directly). All login testing in this task targeted `http://localhost:5186` exclusively; Production's project ref (`ixabnzhjeqevtbhdfswv`) was never contacted at any point.
+Given this was a real, single-shot, authorized database mutation via new tooling, I (Claude Lead) validated the initialization mechanism myself first before handing verification to the agents, to avoid risking the one true initialization opportunity on untested tooling. **Local TEST user**: logged in via the real rendered login form at `/dashboard?lang=he`, waited for the app's own existing region-choice screen to render, clicked the real `"Israel"` button (the actual DOM element — `handleRegionChoiceSelect('Local')` was never called directly), and verified read-only afterward: exactly one `business_settings` row created (`id 6`, `country: "Local"`, `currency: "ILS"`, `business_name: "עסק חדש"`), `dir=rtl`/`lang=he`. **International TEST user**: same process at `/dashboard?lang=en`, clicked `"International"`: exactly one row created (`id 7`, `country: "International"`, `currency: "USD"`, `business_name: "New Business"`), `dir=ltr`/`lang=en`. Both agents subsequently, independently confirmed these results via their own read-only diagnostic runs (see items 9 below) — neither re-ran the initialization click itself, per the task's own instruction not to duplicate that one-shot action.
 
-## Tooling
+Local currency/VAT behavior (₪, RTL, Hebrew) and International behavior (USD, LTR, English, no VAT UI) were both confirmed reachable and correct post-initialization — see item 6's currency checks.
 
-Browser Harness remained unavailable at the daemon level (`browser-harness --doctor`, `daemon alive: FAIL`) — consistent with every prior task this workstream. A small, self-contained Node script (`cdp_e2e_test.mjs`, in this session's scratchpad directory only, not part of the repository) drove an isolated, separate-profile, headless Chrome instance via raw CDP, using Node's built-in `WebSocket` (zero new npm dependency, zero `package.json` change). Connected at the browser level and used `Target.createTarget`/`Target.attachToTarget` (flat-mode `sessionId` multiplexing), since the `/json/new` HTTP endpoint is deprecated in the installed Chrome version. Sign-in was performed by dynamically importing the app's own real `/src/shared/supabase.js` singleton inside the page's JS context and calling `signInWithPassword` directly — the exact call `Dashboard.jsx`'s own login handler makes, faithfully exercising the real `onAuthStateChange` reactive flow. A companion diagnostic script (`cdp_diag.mjs`) signed in and performed one read-only `SELECT` on `business_settings`.
+## 5. Data-Integrity Checkpoint
 
-**Credential handling**: emails/passwords were read directly from `.env` inside the script's own process and interpolated only into one in-memory JS-eval expression sent over CDP — never typed into command text, never logged. Only DOM state (`dir`/`lang`/`url`) and booleans were printed.
+**Local TEST user**: exactly one `business_settings` row, `country: "Local"` — confirmed both immediately after initialization and again at the very end of this task (unchanged). **International TEST user**: exactly one `business_settings` row, `country: "International"` — confirmed both immediately after initialization and again at the very end of this task (unchanged). `business_settings.country` confirmed as the market authority for both. No zero-row, multi-row, wrong-market, or unexpected-data condition was ever encountered — no STOP was required at this checkpoint.
 
-**Cleanup discipline (corrected from the earlier incident)**: every launch's cleanup used `taskkill /PID <exact> /T /F` — the precise PID that script itself spawned, never a broad `/IM` or `/FI` filter. Verified via a post-task sweep (`wmic process where "name='chrome.exe'"`, filtered for `remote-debugging-port`/`chrome-item25` markers) showing **zero** orphaned test instances; the Owner's own, separately-running real Chrome (confirmed present, many processes, none matching those markers) was never touched.
+## 6. Item 25 — Real End-to-End Test
 
-## Login/Refresh Scenario Results
+**A genuine methodology finding was diagnosed mid-task**: the first initialization attempt, using the same sign-in method as the prior BLOCKED task's tooling (a bare `signInWithPassword()` API call), never reached the region-choice screen. Read-only diagnosis (CDP `Network` domain request tracing) found that a bare API-call sign-in does **not** reliably trigger `Dashboard.jsx`'s own `onAuthStateChange`-driven `loadData()` call — zero `business_settings`/`quotes`/`clients`/etc. REST queries ever fired that way, reproducibly confirmed. Driving the **real rendered login form** instead (setting the actual `input[name="user_email_field"]`/`input[name="user_password_field"]` DOM values via the standard React-controlled-input technique, then `form.requestSubmit()`) fires the complete, correct `loadData` sequence every time (quotes → clients → services → expenses → business_settings → `/api/geo`), confirmed via the same trace. **The prior task's BLOCKED verdict remains fully valid** for what it actually diagnosed (both accounts genuinely had zero rows) — but the verification tooling itself needed this correction to ever observe the correction path once real data existed. Both `cdp_e2e_test.mjs` and the new `cdp_region_init.mjs` were updated accordingly.
 
-**Local account, own bundle (baseline)**: pre-auth `dir=rtl,lang=he,url=/dashboard?lang=he`. Sign-in `ok=true,hasSession=true`. Post-login: unchanged, `sawNavigation=false` — no unnecessary correction. Two refreshes: stable, session present both times. Sign-out clean.
+### A. Local User
 
-**Local account, mismatched (International) entry — the actual Item 25 scenario**: pre-auth `dir=ltr,lang=en,url=/dashboard?lang=en`. Sign-in succeeded. **No correction fired** — state unchanged even after an extended wait. Refreshes: stable (unchanged, session still present) — consistent with "no correction," not a crash.
+**Baseline** (starting on the correct HE/Local entry): pre-auth `dir=rtl,lang=he,url=/dashboard?lang=he`; real-form sign-in succeeds; state unchanged (`sawNavigation=false`) — no unnecessary redirect, no loop. Signed out completely.
 
-**International account, own bundle (baseline)**: mirrored the Local baseline exactly — stable, no unnecessary correction, session persisted across two refreshes.
+**Mismatch test** (starting on EN/International entry, same account): pre-auth `dir=ltr,lang=en,url=/dashboard?lang=en`. After real-form sign-in:
+1. Authentication succeeded.
+2. Real `business_settings.country` loaded (`"Local"`).
+3. Item 25 detected the bundle/account mismatch.
+4. Exactly one routing correction occurred (`[during] url changed` observed once).
+5. Final bundle: Local/HE.
+6. `document.lang = "he"`.
+7. `document.dir = "rtl"`.
+8. Currency/VAT confirmed correct: body text contains `₪0.00`, does **not** contain `$`, fully Hebrew content.
+9. No redirect loop — confirmed via two subsequent refreshes, both stable at the corrected state.
 
-**International account, mismatched (Local) entry — the actual Item 25 scenario**: mirrored the Local mismatched case — sign-in succeeded, no correction fired, refreshes stable.
+**Recorded routing evidence**: pre-login URL `/dashboard?lang=en` → correction target/final URL `/dashboard?lang=he` → final `lang=he` → final `dir=rtl`.
 
-## Root Cause (Diagnosed, Read-Only — Not Fixed)
+**Refresh (x2)**: session persisted (confirmed via live `getSession()`), Local bundle remained correct both times, no additional correction, no loop.
 
-A read-only diagnostic query (one `SELECT` on `business_settings` via each account's own authenticated session) found **both accounts have zero `business_settings` rows**, and `user_metadata` contains only `{"email_verified": true}` — no `signup_market` key for either.
+### B. International User
 
-Tracing `Dashboard.jsx`'s pre-existing, **unmodified** `fetchSettings` function (~lines 620-709): with no row and no `signup_market`, it calls `fetchFreshGeoCountry()` (`api/geo.js` — Vercel-only, confirmed in the earlier TEST Runtime Activation Audit to never work against local Vite/TEST). That call fails, so the function sets `needsRegionChoice=true` and returns — never inserting a row, never calling `setSettingId`.
+**Baseline** (starting on the correct EN/International entry): pre-auth `dir=ltr,lang=en,url=/dashboard?lang=en`; real-form sign-in succeeds; state unchanged (`sawNavigation=false`) — no unnecessary redirect, no loop. Signed out completely.
 
-`getMarketRoutingCorrection` (`regionConfig.js`, added by the prior Item 25 task, **not modified this task**) explicitly and correctly returns `null` whenever `needsRegionChoice` is true or `settingId` is null/undefined — exactly its documented fail-safe design (matching unit-test scenarios 8a/8b from the prior task).
+**Mismatch test** (starting on HE/Local entry, same account): pre-auth `dir=rtl,lang=he,url=/dashboard?lang=he`. After real-form sign-in:
+1. Authentication succeeded.
+2. Real `business_settings.country` loaded (`"International"`).
+3. Item 25 detected the mismatch.
+4. Exactly one routing correction occurred.
+5. Final bundle: International/EN.
+6. `document.lang = "en"`.
+7. `document.dir = "ltr"`.
+8. No ₪ leakage: body text does **not** contain `₪`.
+9. No Local VAT leakage: no Hebrew VAT label present (no quotes exist yet, so no VAT line would render regardless — consistent, not a gap).
+10. No redirect loop — confirmed via two subsequent refreshes, both stable at the corrected state.
 
-**Conclusion: this is not a defect in Item 25.** Its own logic, the pre-existing fail-safe gate, and session persistence were all genuinely confirmed correct via live testing. Only the correction redirect itself remains unobserved — blocked by a test-data precondition (neither account has ever been assigned a real market) that is entirely outside Item 25's own scope. ILS/VAT/currency display was likewise unreachable for these accounts, for the identical, pre-existing reason (`needsRegionChoice` also gates Dashboard's full render) — expected, not a new problem.
+**Recorded routing evidence**: pre-login URL `/dashboard?lang=he` → correction target/final URL `/dashboard?lang=en` → final `lang=en` → final `dir=ltr`.
 
-## Critical Data Authority Check
+**Refresh (x2)**: session persisted, International bundle remained correct both times, no additional correction, no loop.
 
-Confirmed for both accounts: `business_settings.country` remains the sole intended market authority (unreachable here only because it doesn't exist yet — nothing reads a substitute in its place). `?lang=` confirmed to only ever select the pre-auth UI bundle, never currency/VAT. `getMarketRoutingCorrection` never writes to the database — it is a pure function of already-fetched component state — and cannot itself have modified account market data.
+## 7. Source-of-Truth Architecture Confirmed
 
-## Refresh/Session Test
+`business_settings.country` remains the authenticated account market authority for both accounts — unchanged throughout (confirmed via the final integrity re-check in item 5). `?lang=` confirmed to only ever select the pre-auth/redirect-target bundle, never currency/VAT. Item 25 confirmed to have **not**: changed `business_settings.country`, derived currency from route/language, derived VAT from route/language, altered Auth metadata (both accounts' `user_metadata` remained exactly `{"email_verified": true}` throughout), or created duplicate `business_settings` rows (both accounts remained at exactly one row despite multiple subsequent test logins).
 
-For both accounts, after the (non-firing) correction attempt: page refreshed twice each; session persisted correctly both times (confirmed via a live `getSession()` check returning a real session, not just DOM inference); no second correction observed; no oscillation; state remained stable and identical across both refreshes.
+## 8. No Fixing Performed
 
-## No Fixing Performed
+The one genuine anomaly encountered (the sign-in-methodology gap in item 6) was diagnosed read-only, root-caused precisely, and the *verification tooling* was corrected — no application code was touched. This is consistent with the task's "no fixing" instruction, since the anomaly was in my own test tooling, not in the application under test.
 
-Per the task's explicit instruction, diagnosis stopped at the root cause above — no code, database, or configuration change was made to attempt a fix.
+## 9. HE / EN Independent Verification
 
-## HE Verdict
+**Agent HE**: independently reran the diagnostic, baseline, mismatch, and currency-check scripts on fresh ports (9260-9263), reproduced identical results exactly, independently confirmed via direct code reading that `Dashboard.jsx`'s Item 25 `useEffect` and `regionConfig.js`'s `getMarketRoutingCorrection` are byte-unchanged since the prior task (only DB data was mutated this task, not code).
 
-**LOCAL TEST USER: BLOCKED.** Independently re-ran both the diagnostic and full flow, reproduced identical results, independently confirmed `fetchSettings`/`needsRegionChoice`/`getMarketRoutingCorrection` semantics via direct code reading, confirmed live session persistence.
+**Agent EN**: independently reran the same set of scripts for the International account on separate fresh ports (9271-9275, never colliding with Agent HE's range), reproduced identical results exactly, independently confirmed the zero-VAT/USD-EUR-GBP invariant is unaffected and that nothing in Item 25 derives currency from the route.
 
-## EN Verdict
+**Symmetric**: yes, fully. Both markets independently, identically PASS across initialization and the full E2E scenario set, with zero asymmetry. Neither market's result was inferred from the other — each was verified separately, by its own owning agent, using freshly-launched, independent isolated Chrome instances.
 
-**INTERNATIONAL TEST USER: BLOCKED.** Independently reproduced the identical result for the International account. Noted one tooling anomaly: an initial diagnostic run hung inside `Runtime.evaluate` (~170s, no response) — recovered safely by killing only that exact Chrome PID (verified via `Get-Process` before/after) and retrying on a fresh port; not observed again across three further runs — assessed as a one-off CDP/cold-Vite-compile flake, not a defect.
+## 10. Required Final Verdict
 
-## Claude Lead Reconciliation
+**ITEM 25 END-TO-END: PASS**
 
-Behavior is **fully symmetric** across both markets — both accounts independently, identically blocked by the same shared precondition gap, with zero asymmetry and zero evidence implicating Item 25's own code. Each market's result was verified independently and separately (not inferred from the other), even though the underlying mechanism is confirmed to be one shared, non-duplicated code path.
+**LOCAL TEST USER INITIALIZATION: PASS**
+**INTERNATIONAL TEST USER INITIALIZATION: PASS**
 
-## File-by-File HE/EN Ledger
+**LOCAL ITEM 25 E2E: PASS**
+**INTERNATIONAL ITEM 25 E2E: PASS**
 
-| File | HE Verdict | EN Verdict | Shared Impact |
-|---|---|---|---|
-| `src/main.jsx` | PASS | PASS | Single entry point for both bundles, unmodified, unaffected by the blocker |
-| `src/local/AppLocal.jsx` | PASS | PASS (read for symmetry) | Structurally mirrors `AppGlobal.jsx` |
-| `src/global/AppGlobal.jsx` | PASS (read for symmetry) | PASS | Structurally mirrors `AppLocal.jsx` |
-| `src/pages/Dashboard.jsx` | BLOCKED (fail-safe gate correctly prevents live observation) | BLOCKED (same) | One shared component, one shared gate, one shared correction effect |
-| `src/utils/regionConfig.js` | PASS (logic verified correct) | PASS (same) | Pure, market-neutral, single shared function |
-| `src/shared/supabase.js` | PASS (TEST guard confirmed intact) | PASS (same) | Single shared client, unmodified this task |
+## 11. Mutation Accounting
 
-## Verdict
+**Every mutation performed, explicitly disclosed**: exactly two `business_settings` rows were created — one for the Local TEST user (`id 6`, `country: "Local"`), one for the International TEST user (`id 7`, `country: "International"`) — both created entirely through the application's own existing UI logic (`createNewBusinessSettings`, triggered by a real button click on the real rendered region-choice screen). No SQL was run. No Supabase Table Editor was used. No Auth configuration was changed. No additional users were created. No application code was modified. No Storage or Edge Function was touched. **Nothing else was mutated.**
 
-**ITEM 25 END-TO-END: BLOCKED**
+**Production confirmed to have zero mutation**: no Supabase CLI project-link command was run this task (none was needed — all activity was pure browser-level interaction against the already-linked-nowhere-relevant TEST project via its own public URL/anon key), Production's project ref was never contacted by any script or command this task.
 
-**LOCAL TEST USER: BLOCKED**
-**INTERNATIONAL TEST USER: BLOCKED**
+## 12. Additional Notes
 
-Evidence: real, live, successful authentication for both accounts; correct, live-confirmed session persistence across refresh for both; correct, live-confirmed non-guessing fail-safe behavior for both; zero asymmetry; zero code-level defect found in Item 25 itself (confirmed both by direct code re-reading this task and by the 14 unit tests + two-agent code review from the prior task, none of which changed). The blocker is a test-data precondition — neither TEST account has ever been assigned a real `business_settings.country` — not a flaw in the routing-correction logic under test.
-
-## Recommended Next Step (to unblock, NOT AUTHORIZED)
-
-Give each TEST account a real `business_settings` row with `country` set — e.g. by completing the existing "choose region" UI flow once per account. This is a **database write** and requires its own separate, explicit authorization. No such action was taken or is authorized by this report.
-
-## Confirmations
-
-No code changes. No database changes (the one DB interaction across both scripts was a single read-only `SELECT` per account, via each account's own authenticated session — no `INSERT`/`UPDATE`/`DELETE`). No Auth configuration changes. No Storage changes. No Edge Function deployment. No commit. No push. No deploy. No Production/LIVE action. No other backlog item started.
+**Cleanup discipline maintained throughout**: every isolated Chrome instance (mine and both agents') was terminated via `taskkill /PID <exact> /T /F` only — never a broad `/IM` or `/FI` filter. A post-task sweep (`wmic process where "name='chrome.exe'"`, filtered for `remote-debugging-port`/`chrome-item25` markers) confirmed **zero** orphaned test instances remained; the Owner's own real Chrome was never touched at any point this task.
 
 ## Final Git State
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged.
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short` identical to the prior task's end-state (no new code diffs — this task performed zero application-code changes, only DB mutations via the UI and documentation updates).
 
 ## Six-File Continuity Ledger
 
 | FILE | STATUS | REASON |
 |---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED | §24 item 12 status updated to record the E2E blocker, distinguishing it from an Item 25 defect |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED | New §10.R summary added for ChatGPT |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED | §3.2 addendum extended with the E2E verification result |
-| `PROFLOW_HANDOFF.md` | UPDATED | New §18.DF entry appended; CURRENT RESUME STATE step-sequence extended with step (29) |
-| `PROFLOW_TODO.md` | UPDATED | Item 25 status updated; new dated status paragraph appended to "Current QA / Release Track" |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED | §24 item 12 status updated to record the E2E PASS, superseding the prior BLOCKED update |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED | New §10.S summary added for ChatGPT |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED | §3.2 addendum extended with the E2E PASS result and the sign-in-methodology finding |
+| `PROFLOW_HANDOFF.md` | UPDATED | New §18.DG entry appended; CURRENT RESUME STATE step-sequence extended with step (30) |
+| `PROFLOW_TODO.md` | UPDATED | Item 25 status updated to PASS; new dated status paragraph appended to "Current QA / Release Track" |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED | Rewritten fresh for this task |
 
 ## Final Stop
 
-After reporting these results: STOP. No commit. No push of application changes. No deploy. No touching Production. No starting another backlog item. Wait for Owner + ChatGPT review.
+After verification and continuity reconciliation: STOP. No application-code changes. No commit. No push of application changes. No deploy. No Edge deployment. No additional TEST mutation. No Production action. No next backlog item. Wait for Owner + ChatGPT review.
