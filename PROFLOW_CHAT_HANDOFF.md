@@ -303,6 +303,56 @@ not implemented; (4) a new "Future Product Ideas — Owner Decision Required"
 section recording 16 product ideas, explicitly marked as ideas only, not
 authorized, not queued for implementation.
 
+## 10.L TEST Runtime Activation Audit — READ-ONLY / PLAN ONLY (added 2026-08-30)
+
+A complete read-only audit of what's still missing to turn `quotecode-test`
+(schema/Storage already Phase-2/Phase-3-complete, re-confirmed with zero
+drift this task) into a genuinely browser-usable TEST runtime. **Central new
+finding**: `Dashboard.jsx`'s real signup call hardcodes `emailRedirectTo` to
+Production's own domain — deliberate, pre-existing, affects HE/EN
+identically — recorded permanently as `PROFLOW_PROJECT_CONTEXT.md` §24 item
+11. This blocks testing the real signup-through-UI-with-email-confirmation
+flow specifically, but is **entirely sidestepped** by the recommended path
+of creating TEST users via the Supabase Admin API (pre-confirmed, no email
+round-trip needed — `business_settings` auto-creates correctly from
+`user_metadata.signup_market` on first login regardless).
+
+Edge Function inventory: 9 tracked locally, 11 actually deployed on
+Production (`clever-processor` and `send-welcome-email` have **no local
+source anywhere in this repo** — undocumented drift, purposes unclarified),
+**0 on TEST**. `get-public-quote` is the sole data source for the entire
+Public Quote page (not just attachments) — the single most important
+function for a first visible milestone.
+
+**Agent HE: PASS WITH CONDITIONS. Agent EN: BLOCKED** (citing the
+long-documented absence of any non-Owner International identity). **Claude
+Lead reconciliation**: both verdicts describe the *same* underlying
+technical gaps (zero Edge Functions, zero TEST users, the email-redirect
+hardcode) affecting both markets identically — the disagreement is framing,
+not substance. Local does not activate meaningfully before International;
+both need the identical three prerequisites (env-split, one Edge Function,
+one Admin-API-created user), and the Admin-API path is exactly as available
+and exactly as safe for a fresh International identity (created inside the
+fully isolated `quotecode-test` project, zero collision with the Owner's
+real account) as it is for Local. The one real asymmetry is procedural —
+International TEST-identity naming needs extra discipline given that
+history — not technical. EN's conditions were folded into the plan, not
+overridden.
+
+A Minimum Visible Milestone (env-split + `get-public-quote` deployed + one
+Local TEST user) and a separate, larger Full Functional Milestone were
+defined. A 6-step execution order (A: `.env.localtest.local`/Vite mode — B:
+deploy `get-public-quote` to TEST — C: Local TEST user — D: International
+TEST user — E: Owner review — F: Full Functional items) was produced, each
+step individually risk-rated with its own rollback/verification plan.
+**Verdict: TEST RUNTIME ACTIVATION AUDIT: GO WITH CONDITIONS. None of the
+six steps are authorized by this audit** — recommended next Owner decision
+is Step A only (zero-risk, local-file-only, fully reversible). Full detail:
+`PROFLOW_HANDOFF.md` §18.CZ, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Zero mutation of any kind this task** — no code, DB, Auth, Storage, Edge
+Function, `.env`, or Production change.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
