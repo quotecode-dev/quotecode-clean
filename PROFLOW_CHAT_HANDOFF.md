@@ -74,8 +74,8 @@ AUDIT
 - No production DB/migration/deploy change without explicit Owner approval.
 - No application commit/push unless explicitly authorized for that scope.
 - David Aluminum must remain protected from regression/disruption.
-- Before material changes, reconcile the four canonical project documents,
-  especially TODO.
+- Before material changes, reconcile all six canonical project documents
+  (see `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B), especially TODO.
 - Surface Consistency Rule is permanent.
 - Mid-task requirement capture is permanent.
 - Browser resource discipline is permanent.
