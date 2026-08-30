@@ -530,6 +530,49 @@ two fictional TEST Auth users (one Local, one International) and verify
 both from the same normal 5186 entry URL. No TEST user created, no Auth/
 DB/Storage/Edge/Production action, no commit/push/deploy this task.
 
+## 10.R Item 25 End-to-End TEST User Verification — real login succeeded,
+correction unobservable, BLOCKED (not an Item 25 defect) (added 2026-08-30)
+
+Using the Owner's two new fictional TEST Auth users (`quotecode-test`),
+the first real browser login test of Item 25 was performed. Browser
+Harness's daemon remained unavailable, so verification used an isolated,
+separate-profile headless Chrome driven directly over raw CDP (Node's
+built-in `WebSocket`, no new dependency) — cleaned up each time via
+`taskkill /PID <exact> /T /F`, the precise PID that instance itself
+launched, never a broad filter (corrected from the earlier §18.DB
+incident; confirmed zero orphaned instances afterward, the Owner's own
+real Chrome untouched throughout).
+
+**Genuinely confirmed live, both accounts**: sign-in succeeded; starting on
+each account's own matching bundle produced a stable state with no
+unnecessary redirect; session correctly persisted across two consecutive
+refreshes each; sign-out completed cleanly.
+
+**Blocked, root cause diagnosed (read-only)**: starting each account on the
+*mismatched* bundle — the actual Item 25 correction scenario — produced no
+redirect. A read-only diagnostic found **both accounts have zero
+`business_settings` rows and no `signup_market`** in `user_metadata`.
+`Dashboard.jsx`'s own pre-existing, unmodified `fetchSettings` logic
+correctly routes this into the existing `needsRegionChoice` fail-safe state
+(since local TEST can't reach the Vercel-only geo-detection endpoint
+either) — and `getMarketRoutingCorrection` correctly, by design, refuses to
+guess a market with no real data. **This is not a defect in Item 25** — its
+logic, the fail-safe gate, and session persistence were all genuinely
+confirmed correct live; only the correction redirect itself remains
+unobserved, blocked by a test-data precondition outside Item 25's scope.
+
+**Agent HE: LOCAL TEST USER: BLOCKED. Agent EN: INTERNATIONAL TEST USER:
+BLOCKED** — both independently reproduced the identical, symmetric result,
+no asymmetry, no evidence implicating Item 25's code. **Verdict: ITEM 25
+END-TO-END: BLOCKED.** Full detail: `PROFLOW_HANDOFF.md` §18.DF,
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**To unblock (NOT AUTHORIZED)**: give each TEST account a real
+`business_settings` row with `country` set (e.g. completing the existing
+region-choice UI flow once per account) — a database write requiring its
+own separate authorization. No code change, no DB write, no Auth/Storage/
+Edge/Production action, no commit/push/deploy this task.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
