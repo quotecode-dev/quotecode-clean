@@ -912,6 +912,36 @@ decision reconfirmed documented, not implemented. TEST-only, not committed/
 pushed/deployed. Full detail: `PROFLOW_HANDOFF.md` §18 step (38),
 `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.AB TEST Subscription Personas — Audit + Safe Creation Plan Only (added 2026-08-30)
+
+Read-only architecture audit ahead of Item 28. Confirmed by repo-wide grep:
+exactly two code paths ever write `business_settings.plan` (signup →
+`'pro'`+14d trial; self-cancel → `'free'`+null) and **no automatic
+trial-to-free downgrade exists anywhere**. **Real, disclosed gap**:
+`effectivePlan` resolves to `'pro'` unconditionally once the raw `plan` is
+`'pro'`, regardless of trial expiry — a real user who lets a trial lapse
+without cancelling keeps full PRO indefinitely today, contradicting the
+Dashboard's own "moved to FREE tier" messaging. A live read-only REST check
+confirmed `send-subscription-expiration-email` references a
+`subscription_ends_at` column that **does not exist** on TEST (`PGRST
+42703`) — flagged, not fixed. Confirmed via migration/trigger source: 'basic'
+can never be created at signup (RLS), and any plan/trial UPDATE beyond
+signup/self-cancel requires a `super_admin`-role caller (blocks even
+service-role calls). Feature gates (`isBasicOrAbove`/`isPro`, monthly quote
+limits) confirmed frontend-only, no backend re-enforcement. Recommended a
+hybrid persona model: reuse the two existing TEST accounts unchanged as
+"FREE + Active Trial," create six new accounts for the remaining states
+(once separately authorized), each set once via signup + a single
+super_admin UPDATE — never toggled, to avoid repeating the project's own
+prior Trial-reset regression risk. Full findings: `PROFLOW_PROJECT_CONTEXT.md`
+§50. Two new documentation-only future-product TODO items recorded:
+`PROFLOW_TODO.md` item 30 (Industry/Measurement/Pricing Engine + §30.A AI
+Chat awareness) and item 31 (Additional Notes 3-column display). Verdict
+**TEST SUBSCRIPTION PERSONAS AUDIT: PASS**. Zero mutation — no TEST user
+created/modified, no application code changed, no Item 28/Admin/Production
+action. Full detail: `PROFLOW_HANDOFF.md` §18 step (39),
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -1102,7 +1132,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Item 27 + Current Workstream Continuity Correction task — supersedes the Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AA, "Item 27 — Attn/'לידי' Client-Name Fallback + Current Workstream Continuity Correction," preceded by §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). §10.AA Part A implemented and TEST-verified the Attn/client-name fallback (both markets, including live Public Quote page verification). Part B corrected the stale "Full Runtime TEST Environment Build" current-workstream framing (in `PROFLOW_TODO.md`'s "Current Recommended Execution Order" and in `PROFLOW_HANDOFF.md`'s own resume banner) to the Owner-directed **USER-FACING COMPLETION / OWNER QA** workstream — that infrastructure work remains fully preserved as history, only its "current" framing changed. Current user-facing sequence: Item 26 TEST VERIFIED/Owner-accepted, Item 27 the current authorized task (this one), Item 28 next (not implemented, Plan/Trial-State-are-separate-concepts decision preserved). Admin remains explicitly deferred (`PROFLOW_TODO.md` item 29). Verdict `ITEM 27 + CURRENT WORKSTREAM CORRECTION: PASS`. **NEXT ACTION**: the §17.J documentation sync for §10.AA itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (38). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA for full detail.
+**🟢 UPDATED 2026-08-30 (TEST Subscription Personas Audit task — supersedes the Item 27, Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AB, "TEST Subscription Personas — Audit + Safe Creation Plan Only" — a read-only architecture audit ahead of Item 28, preceded by §10.AA (Item 27), §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). §10.AB found and disclosed a real architectural gap (a lapsed, never-cancelled trial currently keeps full PRO access indefinitely — `effectivePlan` never naturally reaches `'free'`), confirmed `subscription_ends_at` does not exist despite an Edge Function referencing it, and produced a safe (not-yet-executed) TEST persona creation plan. Full findings: `PROFLOW_PROJECT_CONTEXT.md` §50. Two new documentation-only TODO items recorded (`PROFLOW_TODO.md` items 30/31 — Industry/Measurement/Pricing Engine + AI Chat awareness, and Additional Notes 3-column display). Verdict `TEST SUBSCRIPTION PERSONAS AUDIT: PASS`. Zero mutation — no TEST user created, no application code changed, no Item 28/Admin/Production action. **NEXT ACTION**: the §17.J documentation sync for §10.AB itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (39). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA/§10.AB for full detail.
 
 **🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 

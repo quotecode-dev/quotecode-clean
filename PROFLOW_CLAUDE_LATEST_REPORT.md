@@ -4,85 +4,106 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Item 27 — Attn/"לידי" Client-Name Fallback + Current Workstream Continuity Correction
+## Task: TEST Subscription Personas — Audit + Safe Creation Plan Only
 
-**Effort level**: MEDIUM. **Owner-authorized, TEST-only.** Not authorized: Production mutation/deploy, commit, push, Admin implementation, Item 28 implementation.
+**Effort level**: HIGH. **Owner-authorized, AUDIT + PLAN ONLY.** Not authorized: TEST user creation, TEST subscription mutation, any application-code change, Item 28 implementation, Admin work, Production action.
 
-## PART A — Item 27: Attn/"לידי" Client-Name Fallback
+## 1. Fresh Local State
 
-### 1. Architecture Audit (performed before any code change)
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout — this task made zero application-code changes. Supabase CLI remained linked to Production (`ixabnzhjeqevtbhdfswv`, safe default) for the entire task; the one TEST-specific check performed (see §4 below) was a direct read-only REST call using TEST's own anon key, not a CLI relink.
 
-- `attn_name`/`attn_role` (migration `20260828000000_add_quote_attn_contact.sql`, confirmed applied on `quotecode-test` via a read-only `supabase migration list` — CLI relinked to Production immediately after) are real per-quote **snapshot** columns on `quotes`, written at save time inside `handleSaveQuote`'s `attnFields` object (`src/pages/Dashboard.jsx`) — not derived or live-linked from `clients`.
-- This is architecturally distinct from "client name," which item 26's audit already established is read **live** via the `quotes↔clients` join (not a snapshot).
-- `attn_name`/`attn_role` are already ordinary "content" columns captured under `guard_quote_immutability()`'s whole-row lock (`supabase/migrations/20260830000001_capture_base_functions_triggers.sql`) — the same trigger that already protects `terms`/`warranty`/`notes`. No DB/trigger change was needed or made.
-- `handleDuplicateQuote` already copies `quote.attn_name` verbatim into the duplicate's form — pre-existing, unmodified.
-- Public Quote rendering (`PublicQuote.jsx`/`PublicQuoteEn.jsx`) has two separate, always-present-in-JSX boxes: an unconditional "לכבוד:"/"To:" box (`client?.company_name || 'לקוח נכבד'`/`'Valued Client'`) and a conditional "לידי:"/"Attn:" box, rendered **only when `quote.attn_name` is truthy** — previously fully hidden (not an empty box) whenever Attn was blank.
+## 2. Plan / Trial / Subscription — Source of Truth
 
-**Conclusion**: the safest layer for the fallback is **save time**, writing the resolved value directly into `attn_name` — a genuine, historically-stable snapshot, not a render-time computation, inheriting the exact same immutability lock as every other quote-content field with zero additional code.
+- **Plan**: `business_settings.plan` (`text DEFAULT 'free'`); observed values `'free'`/`'basic'`/`'pro'` only.
+- **Trial**: `business_settings.trial_ends_at` (`timestamptz`, nullable) — the only trial field; `trial_reminder_sent`/`trial_reminder_3d_sent`/`trial_reminder_24h_sent` are one-shot email-dedup flags, not state.
+- **Subscription status**: **no column exists.** No billing-provider identifier of any kind exists anywhere in the schema. `PricingModal.jsx`'s own code comment confirms real Stripe checkout is "not yet connected" — its `handleSelectPlan` only shows an informational modal, never mutates `plan`.
 
-### 2. Implementation
+## 3. Plan Write Sites — Exhaustive
 
-One change, `src/pages/Dashboard.jsx`, inside `handleSaveQuote`'s existing `attnFields` construction:
+A repo-wide grep for `plan:\s*'` across `src/` and `supabase/` found **exactly two** write sites for `business_settings.plan` in the entire codebase:
+1. Signup (`Dashboard.jsx` ~line 852): `plan: 'pro'`, `trial_ends_at: now + 14 days`.
+2. Self-cancellation (`PricingModal.jsx` ~line 77): `plan: 'free'`, `trial_ends_at: null`.
 
+**No automatic trial-to-free downgrade exists anywhere** — no cron, scheduled Edge Function, or DB trigger ever changes `plan` back to `'free'` when `trial_ends_at` passes. `send-trial-expiration-email` only sends reminder emails; it never mutates `plan`.
+
+## 4. Real, Disclosed Findings (High-Risk Area, As Instructed)
+
+### 4.1 Trial-expiration does not currently demote access
+
+`Dashboard.jsx`'s `effectivePlan` formula:
 ```js
-const trimmedAttnName = (attnName || '').trim();
-const resolvedAttnName = trimmedAttnName || clientName || null;
-const attnFields = { attn_name: resolvedAttnName, attn_role: attnRole || null };
+const effectivePlan = (rawPlan === 'pro' || rawPlan === 'basic')
+  ? rawPlan
+  : (trialEndsAt && !isTrialExpired ? 'pro' : 'free');
 ```
+resolves to `'pro'` unconditionally whenever the raw `plan` is `'pro'` — **regardless of `isTrialExpired`.** Since every real signup writes `plan:'pro'` and nothing ever reverts it, a real user who lets their 14-day trial lapse **without** explicitly cancelling keeps full PRO access indefinitely under the current live code. This contradicts: the Dashboard's own trial-expired banner ("moved to the FREE tier"), the trial-reminder email's copy ("moves automatically to the Free plan"), and an existing code comment in `AdminUsersTab.jsx` asserting `effectivePlan` already treats an expired trial as free. The formula's own comment reveals the intended design (plan should stay `'free'` during a trial, with `trial_ends_at` alone granting temporary PRO) was never matched by the actual signup code. **Not fixed — disclosed only, per this audit-only task's scope.**
 
-Explicit Attn (after trim) is always preserved verbatim — never silently overwritten. Whitespace-only input is treated as empty. No historical quote is batch-rewritten — the fallback only ever computes when a save genuinely executes for that specific quote (the same precedent already established for Quote Number/Terms/Warranty system-computed values), never a background rewrite of records the user isn't touching.
+### 4.2 `subscription_ends_at` does not exist
 
-### 3. Verification (live, isolated CDP, real fictional TEST data, both markets)
+`send-subscription-expiration-email` references `business_settings.subscription_ends_at` in its batch query. A live read-only REST check against `quotecode-test` —
+```
+GET .../rest/v1/business_settings?select=subscription_ends_at&limit=0
+→ HTTP 400: {"code":"42703","message":"column business_settings.subscription_ends_at does not exist"}
+```
+confirms this column does not exist (consistent with its absence from the Phase-1 base-schema capture, taken directly from live Production). **This function would error if ever invoked in batch mode.** Flagged, not fixed.
 
-Methodology note: an early run failed to submit the New Quote form at all — root-caused (via a dedicated debug script with console/exception capture and screenshots) to two test-tooling selector bugs, not app bugs: (1) the client-name input's actual placeholder is `"e.g. Acme Corp"`, not the guessed `"ישראל ישראלי"`/`"John Smith"`; (2) the required "Client Type" `<select>` was never being set, and (for a `business`-typed client) Tax ID is also conditionally required — switched the test to `private` client type to isolate Attn-fallback testing cleanly. Also found and fixed: the quotes table only renders when the New Quote/Edit form is closed (`showQuoteForm` false) — a "return to list" action (the form's own "Cancel & Return to list" button) is required, not just re-clicking "New Quote" (which opens a fresh create form and keeps the table hidden). Once corrected, verification ran cleanly end-to-end.
+### 4.3 DB-level mutation guards (confirmed via migration + trigger source)
 
-Results, both HE (Local) and EN (International) — **identical, all PASS**:
-- **Case 1 — empty Attn**: quote created, re-opened via Edit → the Attn field now shows the client's name (the persisted `attn_name` became the client name). The real Public Quote page (fetched through the app's own "View Quote" action, not a guessed URL) now renders a "לידי:"/"Attn:" box — previously always hidden for an empty Attn — containing the exact client name.
-- **Case 2 — whitespace-only Attn (`"   "`)**: identical fallback behavior confirmed, both markets.
-- **Case 3 — explicit Attn**: preserved verbatim on re-open and on the live Public Quote page; the unrelated "לכבוד:"/"To:" box continues to show the client name unconditionally, unchanged.
-- **Duplication**: duplicating the Case-1 (fallback-produced) quote pre-fills the duplicate's Attn field with the client name, copied verbatim from the persisted snapshot — the existing, unmodified duplication architecture, not a new special case.
-- **Finalized/signed locking**: not re-exercised live this task (deliberately, to avoid mutating a real locked TEST quote) — verified instead by architecture (`attn_name` already under the unmodified `guard_quote_immutability()` whole-row lock) and by regression (56/56 tests, including `QuotesTab.test.jsx`'s existing Edit/Delete lock-state assertions, pass unchanged — no lock/disable logic was touched).
-- **Responsive**: zero new horizontal overflow at 360/390/412px and desktop, both markets.
-- **Regression**: CSV export, attachments, Default Terms, Warranty, Call/Print, signature flow all unaffected (no shared code touched). Lint clean (same pre-existing 6-warning baseline), 56/56 tests, successful build.
+- An `AS RESTRICTIVE` RLS INSERT policy on `business_settings` permits a normal signup row **only** as `plan='free'∧trial_ends_at IS NULL` or `plan='pro'∧trial_ends_at` within ±2h of "now+14 days" — `'basic'` can never be created at signup.
+- A `BEFORE UPDATE` trigger `guard_business_settings_plan_trial()` blocks any `plan`/`trial_ends_at` change unless the **calling user's own** `role='super_admin'`, or the new values are exactly the self-cancel pair. This fires regardless of RLS bypass — a service-role call carries no `auth.uid()`, so it is **also** blocked unless it matches the self-cancel exception.
+- **Conclusion**: any TEST persona needing `'basic'`, a custom/past `trial_ends_at`, or non-fresh `'pro'` requires either a genuine `super_admin`-authenticated UPDATE, or a Postgres-superuser session with a temporary trigger bypass for that single transaction.
 
-## PART B — Current Workstream Continuity Correction
+## 5. Feature Entitlements
 
-`PROFLOW_TODO.md`'s "Current Recommended Execution Order" and `PROFLOW_HANDOFF.md`'s own resume banner both still framed "Full Runtime TEST Environment Build" as the current active workstream — stale, since Package 1, the Client Type Badge, both Item 26 refinements, and now Item 27 have all happened since. Corrected both to state the Owner-directed current workstream: **USER-FACING COMPLETION / OWNER QA** (Business Owner Dashboard, New Quote, Clients, Quote History, Business Settings, Public Quote, mobile experience, plan/subscription identity) — completing and accepting the user-facing side before any Admin workstream begins.
+`handleProtectedAction` (`Dashboard.jsx`) gates: Edit/Duplicate require `isBasicOrAbove`; WhatsApp-send/Delete require `isPro`; a 5/20/∞ monthly quote-creation limit applies for FREE/BASIC/PRO. **All frontend-only** — no RLS policy or Edge Function found that independently re-enforces any of this. Active-trial users receive the full PRO feature set (`effectivePlan` resolves to `'pro'` during an active trial).
 
-The Full Runtime TEST Environment Build infrastructure work itself was **not deleted, not rewritten, not downgraded** — it remains fully preserved, verified project history (`PROFLOW_HANDOFF.md` §18.CC–§18.CW), only its "what is current right now" framing was corrected, exactly as instructed.
+## 6. Market Isolation
 
-Current user-facing sequence recorded: Item 26 (Client Type Badge) — TEST VERIFIED, Owner visually accepted after the QA micro-fix. Item 27 (this task) — TEST VERIFIED. Item 28 (Persistent Plan Identity) — next, **not implemented**; its standing architectural decision reconfirmed and documented: Plan and Trial State are separate concepts, plans remain FREE/BASIC/PRO only (never a fourth "FREE_TRIAL"/"TRIAL" plan), a FREE-in-trial user may be *displayed* distinctly from a FREE user whose trial ended, but that is presentation of Plan + Trial State, not a new plan; the existing source of truth for both must be audited before any Item 28 implementation. Admin (`PROFLOW_TODO.md` item 29 — Permission column removal, deferred plan-icon idea) reconfirmed explicitly deferred, untouched.
+`business_settings.country` is fully independent from `plan`/`trial_ends_at` — neither the RLS INSERT policy nor the UPDATE trigger references `country`. Plan/trial state cannot alter market identity.
 
-An independent six-file consistency check found two other locations mentioning "Full Runtime TEST Environment Build" in a historical-chain-narration sense (`PROFLOW_PROJECT_CONTEXT.md` lines ~579 and ~665) — both already correctly defer to `PROFLOW_HANDOFF.md`'s own block as the authoritative "current" source rather than asserting current-state themselves, so no edit was needed there; they remain accurate historical narration.
+## 7. Recommended Persona Model
+
+A **hybrid**, not pure account-switching: reaching 6 of the 8 target states already requires a privileged UPDATE regardless of account count, so sharing one switched account buys no safety and repeats this project's own previously-disclosed Trial-reset regression risk. Recommendation:
+- **Reuse unchanged**: the two existing TEST accounts already are, by construction, "FREE + Active Trial" for each market.
+- **Create, once separately authorized**: six new accounts (3 additional states × 2 markets), each set to its final state exactly once (genuine signup, then — where needed — one super_admin-authenticated UPDATE), never toggled back and forth.
+
+Full persona list, per-persona mutation plan, the Trial-Ended persona's specific honest representation, the BASIC/PRO billing-state finding, and the ENV-naming recommendation are all recorded in full detail in `PROFLOW_PROJECT_CONTEXT.md` §50 (not duplicated here to avoid drift between the two documents).
+
+## 8. Item 28 Readiness
+
+The future Plan-Identity UI can safely consume `effectivePlan` (or its two raw inputs) to distinguish FREE+Trial-Active / FREE+Trial-Ended(self-cancelled) / BASIC / PRO **without inventing a new plan value** — fully consistent with the standing Plan/Trial-State-separation decision. The §4.1 gap (naturally-lapsed trials don't currently demote) is a disclosed pre-existing product question for the Owner, not something Item 28's UI work is expected to silently resolve.
+
+## 9. New Documentation-Only TODO Items
+
+- `PROFLOW_TODO.md` item 30 — Industry/Measurement/Pricing Engine (presets as recommendations not locks, Metric/Imperial/Mixed units never tied to language/market/currency, explicit snapshot/conversion architecture, full design/audit required before implementation) + §30.A — AI Chat awareness of the same future profile (must never invent units/formulas/business rules).
+- `PROFLOW_TODO.md` item 31 — Additional Notes future 3-column desktop display with automatic numbering, single-column-safe mobile, backward compatible with today's single unstructured text block (confirmed via audit: `quote.notes`, `white-space: pre-wrap`, no existing structured list).
+
+Both are documentation-only; no design or implementation work was performed or authorized.
 
 ## Continuity Sync + Remote Read-Back
 
-This task's six-file updates were synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging, never `git add -A` → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification via the `api.github.com` Contents API (base64-decoded), confirming the new HEAD sha and the actual decoded content of the changed files.
+This task's six-file updates were synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging, never `git add -A` → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification via the `api.github.com` Contents API.
 
 ## Final Verdict
 
-**ITEM 27 + CURRENT WORKSTREAM CORRECTION: PASS**
+**TEST SUBSCRIPTION PERSONAS AUDIT: PASS**
 
-- `ITEM 27 ARCHITECTURE AUDIT: PASS`
-- `EMPTY ATTN → CLIENT NAME: PASS`
-- `WHITESPACE ATTN → CLIENT NAME: PASS`
-- `EXPLICIT ATTN PRESERVED: PASS`
-- `QUOTE SNAPSHOT INTEGRITY: PASS`
-- `DUPLICATION: PASS`
-- `FINALIZED/SIGNED LOCKING: PASS`
-- `HE: PASS`
-- `EN: PASS`
-- `RESPONSIVE: PASS`
-- `REGRESSION: PASS`
-- `CURRENT WORKSTREAM CORRECTED: PASS`
-- `RUNTIME TEST HISTORY PRESERVED: PASS`
-- `ITEM 28 PLAN/TRIAL DECISION DOCUMENTED: PASS`
-- `ADMIN REMAINS DEFERRED: PASS`
-- `SIX-FILE RECONCILIATION: PASS`
-- `REMOTE CONTINUITY READ-BACK: PASS`
+- `PLAN SOURCE OF TRUTH`: `business_settings.plan` (text, `'free'`/`'basic'`/`'pro'`), two write sites only (signup, self-cancel).
+- `TRIAL SOURCE OF TRUTH`: `business_settings.trial_ends_at` (timestamptz, nullable), no separate trial-start field.
+- `SUBSCRIPTION STATUS SOURCE OF TRUTH`: does not exist — no column, no billing-provider integration; `subscription_ends_at` referenced by an Edge Function but confirmed absent from the live schema.
+- `FEATURE ENTITLEMENTS`: real but frontend-only (`isBasicOrAbove`/`isPro` gates, 5/20/∞ quote limits); no backend/RLS re-enforcement found.
+- `TRIAL RESET RISK`: confirmed real, disclosed gap — a naturally-lapsed, never-cancelled trial currently keeps full PRO access indefinitely (`effectivePlan` never naturally reaches `'free'`); not fixed, audit-only.
+- `RECOMMENDED PERSONA MODEL`: hybrid — reuse the 2 existing accounts unchanged for Active-Trial, create 6 new accounts for the remaining states, each set once (no toggling).
+- `LOCAL PERSONAS`: reuse existing (Active Trial), + 3 new (Trial-Ended/self-cancelled, BASIC, PRO-paid).
+- `INTERNATIONAL PERSONAS`: identical 4-state set, mirrored.
+- `SAFE CREATION PLAN`: genuine signup via Admin API + the app's own real UI (region selection, cancel-subscription) for every reachable state; a super_admin-authenticated UPDATE (or documented Postgres trigger-bypass) only for BASIC/PRO/custom-trial states — no execution this task.
+- `ENV STRATEGY`: extend `PROFLOW_TEST_<MARKET>_<FIELD>` with a persona-state suffix (e.g. `PROFLOW_TEST_LOCAL_BASIC_EMAIL`/`_PASSWORD`) — names only, nothing added this task.
+- `ITEM 28 READINESS: PASS` — `effectivePlan` is a safe, sufficient source of truth; no new plan value needed.
+- `INDUSTRY/MEASUREMENT TODO DOCUMENTED: PASS` — `PROFLOW_TODO.md` item 30.
+- `AI CHAT AWARENESS DOCUMENTED: PASS` — `PROFLOW_TODO.md` item 30.A.
+- `ADDITIONAL NOTES 3-COLUMN REQUIREMENT DOCUMENTED: PASS` — `PROFLOW_TODO.md` item 31.
+- `REMOTE CONTINUITY READ-BACK: PASS`.
 
-**Fresh Local State**: `main` HEAD `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote). Working tree: uncommitted changes carried forward from prior tasks plus this task's edit to `src/pages/Dashboard.jsx`. TEST (`quotecode-test`): unchanged (read-only migration-list check only, CLI relinked to Production immediately after). Production: **UNCHANGED** — zero mutation, zero migration, zero function deployment.
-
-**TEST-only. Not committed, not pushed, not deployed. No Production/LIVE action. No Admin implementation. No Item 28 implementation.**
+**NO TEST user creation. NO TEST subscription mutation. NO application-code changes. NO Item 28 implementation. NO Admin work. NO Production mutation. NO application commit/push/deploy. NO LIVE action.**
 
 **Awaiting Owner + ChatGPT review.**

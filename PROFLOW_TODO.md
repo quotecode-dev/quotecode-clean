@@ -1120,6 +1120,42 @@ Full detail: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
 **No implementation, and no audit execution, is authorized by recording this item** — same standing safety note as item 22.
 
+## 30. Industry / Measurement / Pricing Engine — Future Product Concept (added 2026-08-30, TEST Subscription Personas audit task — Owner-approved future concept, DOCUMENTATION ONLY, not scoped, not authorized for implementation)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED. Design + audit required BEFORE any implementation.**
+
+**Concept**: a future Industry/Business-Type preset system feeding a Quote Profile / Item Profile measurement-and-pricing model. Presets are **recommendations, not hard locks** — a business can deviate from its industry's suggested defaults per quote/item.
+
+**Measurement system**: Metric / Imperial / Mixed, with units including mm/cm/m/in/ft, g/kg/lb/oz/ton, and future area/volume units as needed. **Units must never be tied to language, market, or currency** — an International/English business must be able to use Metric, and a Local/Hebrew business must be able to use Imperial, without any coupling assumption in either direction. This is a hard requirement, not a preference.
+
+**Pricing basis**: per unit / per hour / per kg or lb / per m² or ft² / other supported formulas, with per-business defaults and per-quote/per-item override capability.
+
+**Snapshot integrity (critical, same discipline already established for Quote Number/Attn/Warranty)**: the values, units, and pricing method actually used on a quote must be snapshotted and preserved exactly as entered — **never silently rewritten for display** (the Owner's own example: do not silently convert `36 in` to `91.44 cm`). Any unit conversion must go through an explicit, auditable conversion architecture, never an implicit display-time rewrite.
+
+**Required before implementation, per Owner instruction**: a full design/audit covering — the Measurement & Pricing Calculation Engine itself (formula matrix, conversion matrix, rounding policy), financial-correctness tests, VAT/Tax interaction, Local/International parity (per Permanent Rule §37), Public Quote rendering implications, Print/PDF implications (once Print/PDF exists in real form), CSV export implications, Catalog implications, Mobile implications, and full backward compatibility with every existing quote/item already in the system (which have no industry/measurement/pricing-basis metadata today).
+
+**No implementation, and no design work, is authorized by recording this item.**
+
+### 30.A AI Chat Awareness Requirement — same future feature (added 2026-08-30, same task)
+
+Whenever item 30 is eventually implemented, the existing AI Chat feature must be updated to understand and correctly use the real Industry/Quote/Measurement/Pricing profile — not to invent it. Specifically, AI Chat must eventually: understand the business's actual Industry/Quote/Measurement profile and selected units; understand the actual pricing basis in use; explain calculations using the real, snapshotted source-of-truth data on the quote (the Owner's own example: `"12.5 kg × 18 per kg = 225"` must be derived from real quote data, never generated as an independent, invented formula); answer HE/EN questions in a market-appropriate way; and must **never** invent business rules, invent measurement units, invent pricing formulas, assume Metric for International, assume Imperial for Local, or couple currency and units incorrectly.
+
+**Documentation only. No AI Chat implementation change is authorized by recording this item.**
+
+## 31. Additional Notes — Future Multi-Column Display (added 2026-08-30, TEST Subscription Personas audit task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED.**
+
+**Current storage, confirmed by audit**: `quote.notes` is a single free-text field, rendered today as one unstructured block (`white-space: pre-wrap`, preserving the user's own line breaks) on both `PublicQuote.jsx` and `PublicQuoteEn.jsx` — there is no existing structured list/array of individual note items.
+
+**Future requirement, Desktop**: automatically numbered items (the Owner prefers automatic numbering over requiring the user to type `1/2/3` themselves), balanced across up to 3 columns where appropriate, preserving reading order, with long items wrapping inside their own cell — no horizontal page overflow.
+
+**Future requirement, Mobile**: a responsive presentation prioritizing readability — normally a single column, or another safe responsive layout only if separately approved later.
+
+**Required before implementation**: an audit of exactly how Additional Notes are stored and parsed today (confirmed above as a single unstructured text block) and a backward-compatibility plan for every existing quote's `notes` value under whatever new structured/numbered representation is eventually chosen.
+
+**No implementation, and no design work, is authorized by recording this item.**
+
 ---
 
 ## FUTURE PRODUCT IDEAS — OWNER DECISION REQUIRED (added 2026-08-30, Migration Order Resolution Audit + TODO Corrections task)
