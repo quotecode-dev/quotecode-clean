@@ -246,6 +246,8 @@ Required pre-change audit: UI, validation, DB/schema, mail sending, bounce handl
 
 **✅ PHASE 3 STORAGE DEEP PREFLIGHT AUDIT COMPLETE, READ-ONLY (2026-08-30, Full Runtime TEST Build Phase 3 preflight task) — PHASE 3 STORAGE PREFLIGHT: GO WITH CONDITIONS.** A full read-only audit of the still-unapplied `20260830000003_capture_base_storage.sql` found it **byte-for-byte EXACT PARITY** with Production's live `quote-files` bucket/policy state (fresh query: same bucket config, same 2 `storage.objects` policies with identical `qual`/`with_check` bodies), confirmed TEST's Storage state remains the clean documented zero-bucket/zero-policy baseline (no drift since Phase 2), and proved via a single non-mutating dry-run that a future push would propose **exactly File 03 and nothing else** (no `--include-all`, no history repair, no chain-migration reapply). A full application-consumer audit (`Dashboard.jsx` upload path, `get-public-quote`'s service-role-mediated signed-URL validation) found zero market-specific logic anywhere in the Storage layer. Security/RLS threat review found no new risk — the bucket's public-read/no-owner-delete characteristic is Production's own real, already-documented, intentional design (`PROFLOW_ARCHITECTURE.md` §14), faithfully captured not newly introduced, and poses no confidentiality exposure on TEST specifically since only synthetic data will ever exist there. **New finding**: any future rollback must account for a previously-undocumented `protect_delete()` trigger guard on `storage.buckets`/`storage.objects` that blocks raw SQL `DELETE` unless a session setting is first enabled. Agent HE returned PASS WITH CONDITION (the condition concerns a separate, future, not-yet-scoped bucket-privacy migration — explicitly not about File 03 itself); Agent EN returned PASS. Both agents independently found the same unrelated, already-tracked application bug (new attachments never set `storage_path`) — real, but out of this preflight's scope. Full 30-item report in `PROFLOW_HANDOFF.md` §18.CV and `PROFLOW_CLAUDE_LATEST_REPORT.md`. **This preflight does NOT authorize applying File 03 — the future apply requires its own separate, explicit Owner + ChatGPT authorization. No TEST/Production mutation of any kind occurred.**
 
+**✅ PHASE 3 APPLIED — STORAGE LIVE ON TEST (2026-08-30, Full Runtime TEST Build Phase 3 apply task) — PHASE 3 APPLY: PASS — STORAGE LIVE ON TEST.** Owner + ChatGPT authorized applying exactly File 03 to `quotecode-test`, plus recording items 23/24 below. The preflight verdict above was freshly reconfirmed valid (checksum unchanged, Production parity re-verified live, dry-run re-proved exactly File 03) before both agents returned pre-apply **GO**. Apply succeeded with **zero errors**. Post-apply verification confirmed the `quote-files` bucket and both policies match Production byte-for-byte, and a **7-point security/RLS proof** — owner upload succeeds, cross-user upload fails, anonymous upload fails, public read succeeds, UPDATE unavailable, DELETE unavailable (blocked by both RLS *and* the newly-discovered `protect_delete()` trigger), no cross-user write — **all passed exactly as predicted**, using a single synthetic disposable object that was explicitly listed and fully cleaned up afterward (0 objects remain). Zero application regression: all 9 quotes, 5 `business_quote_sequences` rows, Attn columns, and the quote-number sequence confirmed unchanged. Production was only briefly re-linked for read-only parity re-verification, never mutated. Full 28-item report + Six-File Continuity Ledger in `PROFLOW_HANDOFF.md` §18.CW and `PROFLOW_CLAUDE_LATEST_REPORT.md`. **`quotecode-test` now carries the complete Full Runtime TEST Environment Build base package (Files 00-03, all applied and verified). Edge Functions, Auth configuration, TEST user creation, local Vite rewiring, the `storage_path` fix (item 24), the Warranty implementation (item 23), and any Production action all remain separately unauthorized future steps.**
+
 **F. English independent verification**: remains required and currently **blocked** wherever noted above (Public Quote Mobile width/header, Hot Quote purple emphasis, Dashboard login-toast/Trial/KPI) — no confirmed non-admin International TEST account credentials have been available in the sessions that did this work. Code is structurally symmetric (shared components, parallel `isHebrew` ternaries, the same DOM-order RTL/LTR mirroring technique used throughout the project) but this is explicitly **not** treated as a substitute for live English verification, per Permanent Rule §37.
 
 **G. Newly-codified future TODO items (17/18/19)**: Business Quote Numbering (per-business sequential numbers starting `A100700`), Quote Attention Contact ("לידי"/"Attn"), and Public Quote English Terms/Notes Parity were added to the Master Product TODO section above this checkpoint. All three are **read-only-audit-first, not yet implemented, and explicitly not authorized by being recorded** — none of them are part of the current implementation pass or any pass already done.
@@ -898,6 +900,42 @@ Desktop + Mobile must eventually be independently verified (not assumed from one
 **🔴 Safety note — do not read this item as pre-authorizing any risky action**: recording this audit item does **not** automatically authorize destructive or Production-affecting actions. When this audit is eventually performed, active/interactive testing must use isolated TEST users/data wherever possible, and any operation with real destructive or Production-affecting potential requires its own separate, explicit authorization before being exercised — exactly like every other risky-action rule already standing in this engagement (see `PROFLOW_PROJECT_CONTEXT.md`'s Permanent Rules).
 
 **No implementation, and no audit execution, is authorized by recording this item.**
+
+## 23. Business Settings / Business Card — Default Warranty Section (added 2026-08-30, Full Runtime TEST Build Phase 3 apply task)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED.**
+
+**Business requirement**: the Business Settings screen/card should include a dedicated editable section for default warranty text, separate from General Terms:
+
+- **HE**: "אחריות"
+- **EN**: "Warranty"
+
+**Purpose**: the business owner can maintain default warranty text separately from General Terms, so a standard warranty statement doesn't have to be retyped or copy-pasted into General Terms on every quote.
+
+**Required future flow to audit before implementation** (in this order, do not skip a stage):
+1. Business Settings — where the default warranty text is entered/stored.
+2. Quote creation/editing — how (and whether) the default is pulled in.
+3. Quote-specific override/adjustment, if the product design allows one — **not yet decided**, requires its own audit before assuming it's needed.
+4. Public Quote — HE and EN display.
+5. PDF / Print.
+6. Sharing/email surfaces where applicable.
+
+**🔴 Do NOT yet decide the exact implementation architecture** unless already proven by current code/schema — this entry records the business requirement only, not a design. **No implementation authorized by recording this item.** Preserve HE/EN parity throughout any future implementation — same-pass requirement per Permanent Rule §37, same as every other cross-market UI/data item in this backlog.
+
+## 24. Attachment `storage_path` Persistence Bug (added 2026-08-30, Full Runtime TEST Build Phase 3 apply task)
+
+**Status: 🔴 OPEN / NOT FIXED — pre-existing application bug, independently discovered and cross-verified by both Agent HE and Agent EN during the Phase 3 Storage preflight audit.**
+
+**The bug**: new quote-attachment uploads (`Dashboard.jsx`'s upload flow, `~line 2251-2256`) insert `file_name`/`file_url`/`file_size` into `quote_attachments` but never set `storage_path`. The `get-public-quote` Edge Function's `isValidAttachmentPath` check (`~line 109`) silently skips any attachment row whose `storage_path` is null or doesn't match the expected format — meaning a newly-uploaded attachment can be silently excluded from Public Quote resolution, with no error shown to the uploader or the recipient.
+
+**Consequences, recorded explicitly**:
+- Newly uploaded attachments may be silently skipped when a Public Quote page resolves its attachment list.
+- Affects **both HE and EN identically** — confirmed by both review agents independently; this is shared code with zero market-conditional branch, not a market-specific defect.
+- **Pre-existing** — this bug exists in the current application code today, independent of any migration work.
+- **NOT caused by** `20260830000003_capture_base_storage.sql` (File 03) or any other Phase 1-3 migration — the Storage bucket/policy layer is unrelated to this application-layer column-population gap.
+- **NOT fixed in this task or any Phase 1-3 task** — recording only.
+
+**Must be audited/fixed in a separately-authorized application task** — no application code (`Dashboard.jsx`, `get-public-quote/index.ts`, or any other file) may be modified to address this without its own explicit future authorization. Suggested audit scope for that future task: confirm whether `storage_path` should be derived from the already-known upload `filePath` at insert time, confirm no other consumer besides `get-public-quote` depends on this column, and confirm whether any already-uploaded attachment rows on Production are currently affected (read-only check, not part of this recording).
 
 ---
 
