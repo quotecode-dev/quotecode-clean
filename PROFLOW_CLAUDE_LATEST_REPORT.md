@@ -4,67 +4,70 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Item 26 Final UI Refinement — Client Type Icon-Only + Column Header + Tooltip + Fixed Alignment
+## Task: Item 26 Owner QA Micro-Fix — Sortable Client Type + Stronger Badge Visual
 
-**Effort level**: MEDIUM. **Owner-authorized, TEST-only.** Not authorized: Production mutation/migration/Edge Function deployment, commit, push, Vercel deploy, unrelated UI redesign, new icon/library dependency, Admin implementation, Item 28 (Persistent Plan Identity) implementation.
+**Effort level**: LOW-MEDIUM. **Owner-authorized, TEST-only, strictly scoped to Item 26.** Not authorized: Production mutation/deploy, commit, push, Admin work, Item 28 implementation.
 
-This task directly follows a separate **Continuity Sync Failure Audit + Recovery** task (see `PROFLOW_HANDOFF.md` §18 step (35), `PROFLOW_CHAT_HANDOFF.md` §10.X) — an execution-only correction after ChatGPT found the `proflow-continuity` GitHub branch stale despite prior same-session "all six docs updated" claims. This task explicitly required using the §17.J continuity mechanism correctly, including a genuine **remote GitHub read-back verification**, and not repeating that failure.
+This task directly follows the Item 26 Final UI Refinement task (`PROFLOW_HANDOFF.md` §18 step (36), `PROFLOW_CHAT_HANDOFF.md` §10.Y). Owner reviewed the icon-only column design and requested two remaining fixes: make the column sortable, and make the badge visually stronger (solid purple, not pale).
 
 ## 1. Fresh Local State
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. Working tree carries forward the same uncommitted application changes as the prior (Client Type Badge) task, plus this task's own edits to `src/components/QuotesTab.jsx`. Port 5186 confirmed TEST-only (`dev:localtest`, `--mode localtest`). TEST ref `ljfizgrdyzxddswcedwr` / Production ref `ixabnzhjeqevtbhdfswv` both reconfirmed. No schema change this task — no Supabase CLI target-guard action needed.
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged throughout. Working tree carries forward the same uncommitted application changes as the prior tasks, plus this task's edits to `src/components/QuotesTab.jsx` and `src/pages/Dashboard.jsx`. Port 5186 (TEST-only, `dev:localtest`) already running with HMR active — picked up these edits live. No schema change — no Supabase CLI target-guard action needed.
 
-## 2. What Changed — `ClientTypeBadge` Redesign
+## 2. Sorting — Implementation
 
-The prior task's icon+text pill (`QuotesTab.jsx`) is replaced with an icon-only, fixed-size badge:
+The desktop "Client Type" `<th>` (`QuotesTab.jsx`) now uses the identical sortable-header pattern already used by every other Quote History column (`# Order`, `Client Name`, `Amount`, `Date`, `Status`, `Views`): `cursor: pointer`, `onClick={() => handleQuoteSort('clientType')}`, and the same `▲`/`▼` text indicator conditioned on `quoteSortField === 'clientType'`. No new sort mechanism was invented — one new comparator branch was added to the existing single sort switch inside `filteredQuotes`'s `.sort()` in `Dashboard.jsx`:
 
-- **Icon-only**: `Building2` (business) / `User` (private), no permanent visible text label — both already-used lucide-react icons, no new dependency.
-- **Fixed size**: constant `24×24` px circular slot (`CLIENT_TYPE_BADGE_SIZE`), identical for both client types — Business and Private now render at byte-identical container dimensions.
-- **Accessibility**: `role="img"` + `aria-label` (full sentence, e.g. "Business Client"/"לקוח עסקי") + native `title` attribute — not hover-dependent, and deliberately non-focusable (no `tabIndex`) so no new keyboard tab-stop is added per table row; `aria-label` supplies the accessible name independent of hover/focus state.
-- **Dedicated column**: a new compact desktop `<th>` "סוג לקוח"/"Client Type" added between "Client Name" and "Description," badge moved out of the name cell into its own centered `<td>` (`colSpan` on the empty-state row updated 9→10). Mobile card layout left structurally unchanged (badge already rendered inline next to the client name; now automatically icon-only).
+```js
+} else if (quoteSortField === 'clientType') {
+  aVal = a.clients?.client_type || '';
+  bVal = b.clients?.client_type || '';
+}
+```
 
-## 3. New Permanent Rule — `PROFLOW_PROJECT_CONTEXT.md` §49
+This sorts strictly on the raw `clients.client_type` source-of-truth value (`'business'`/`'private'`) — never on the icon, tooltip, or translated display text.
 
-Per explicit Owner request, a new permanent rule was recorded: **"UI Width Consistency Rule."** Equivalent UI alternatives that share one visual slot (badges, plan labels, segmented options, etc.) must reserve stable size based on the widest legitimate alternative — not a mandate for global fixed-width layout, and the existing responsive exception is preserved. This badge is cited as the rule's first applied case.
+## 3. Badge Visual — Implementation
+
+`ClientTypeBadge` in `QuotesTab.jsx`: `background` changed from a translucent `rgba(124, 58, 237, 0.07)` tint to a solid `NEON.violet` (`#7c3aed`) — the pre-existing "ProFlow purple, primary/action color" design token (`src/theme/neonTheme.js`, already used for the app's gradient/glow/button styling), not a newly-invented color. Icon color changed to `NEON.textOnAccent` (white) for contrast. The `1px solid ${NEON.border}` border was removed (no longer needed against a solid fill). No gradient, no box-shadow — both explicitly forbidden by the Owner. Both Business and Private use the identical purple treatment; only the icon shape (`Building2` vs `User`) distinguishes the type. The `24×24` fixed footprint and `title`/`aria-label`/`role="img"` accessibility were otherwise left untouched.
 
 ## 4. Verification
 
-Live-verified via an isolated headless-Chrome CDP session (`cdp_badge_refinement_verify.mjs`) against real fictional TEST accounts, both markets:
+Live-verified via an isolated headless-Chrome CDP session (`cdp_badge_qa_microfix_verify.mjs`) against real fictional TEST accounts, both markets:
 
-- **HE (Local)**: column header reads "סוג לקוח"; badge `aria-label`/`title` read "לקוח עסקי"/"לקוח פרטי" correctly per client; exactly one distinct badge width×height across every instance found.
-- **EN (International)**: column header reads "Client Type"; `aria-label`/`title` read "Business Client"/"Individual Client" correctly per client; exactly one distinct badge size.
-- **Responsive**: `document.documentElement.scrollWidth` exactly equals `window.innerWidth` at 360px/390px/412px and desktop (1280px), both markets — zero new horizontal overflow.
+- **Sorting ascending**: HE clicked once → all "לקוח עסקי" badges grouped before all "לקוח פרטי" badges. EN clicked once → all "Business Client" badges grouped before all "Individual Client" badges. Identical grouping logic in both languages (driven by the same underlying `'business'`/`'private'` value, not language-specific word order).
+- **Sorting descending**: clicking again reversed the grouping in both markets; sort indicator arrow flipped `▲`→`▼` correctly on the header.
+- **Badge visual**: computed `background-color` measured `rgb(124, 58, 237)` (= `#7c3aed` = `NEON.violet`) on every badge instance in both markets; icon/text color measured `rgb(255, 255, 255)` (white); `boxShadow: 'none'`, `backgroundImage: 'none'` confirmed — no gradient, no shadow.
+- **Fixed alignment**: `24×24` px measured identically for every badge, both client types, desktop and all three mobile widths (360/390/412px).
+- **Responsive**: `document.documentElement.scrollWidth` exactly equals `window.innerWidth` at 360px/390px/412px and desktop — zero new horizontal overflow.
+- **Accessibility**: `title`/`aria-label` text unchanged and correct per market (unaffected by the visual/sort changes).
 - **Regression**: lint clean (same pre-existing 6-warning baseline), 56/56 tests pass, build succeeds.
 
-## 5. Deferred, Not Implemented (Recorded Only)
+## 5. Untouched, Per Explicit Instruction
 
-Two Owner-mentioned future items, recorded in `PROFLOW_TODO.md` item 29, explicitly **not implemented this task**:
-
-- **Part A**: remove the "Permission/הרשאה" column from the Admin UI — display-only change, all backend/DB/RLS logic must be preserved unchanged.
-- **Part B**: a deferred Admin plan-icon idea.
-
-Per explicit Owner instruction: **WE ARE NOT WORKING ON ADMIN YET.**
+- `PROFLOW_PROJECT_CONTEXT.md` §49 (UI Width Consistency Rule) — reconfirmed still satisfied, not modified.
+- `PROFLOW_TODO.md` item 29 (Admin UI deferred items) — not implemented, Admin not touched.
+- `PROFLOW_TODO.md` item 28 (Persistent Plan Identity) — not implemented.
 
 ## 6. Continuity Sync + Remote Read-Back
 
-Following the correction from the immediately-preceding Continuity Sync Failure Audit + Recovery task, this task's own six-file updates were synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging, never `git add -A` → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification via the `api.github.com` Contents API (base64-decoded), confirming the new HEAD sha and the actual decoded content of all six files — not merely a successful local push exit code. See `PROFLOW_HANDOFF.md` §18 step (36) for full detail and the exact verdict line.
+This task's six-file updates were synced through the existing §17.J mechanism (isolated `quotecode-saas-continuity` worktree → secret/privacy scan → explicit filename staging, never `git add -A` → commit → push `proflow-continuity` only), followed by genuine remote GitHub read-back verification via the `api.github.com` Contents API (base64-decoded), confirming the new HEAD sha and the actual decoded content of the changed files — not merely a successful local push exit code.
 
 ## Final Verdict
 
-**ITEM 26 FINAL UI REFINEMENT: PASS**
+**ITEM 26 OWNER QA MICRO-FIX: PASS**
 
-- `ICON-ONLY DISPLAY: PASS`
-- `COLUMN HEADER: PASS`
-- `TOOLTIP + ACCESSIBILITY: PASS`
+- `SORTING: PASS`
+- `SORT INDICATOR: PASS`
+- `PURPLE/WHITE BADGE: PASS`
 - `FIXED ALIGNMENT: PASS`
 - `HE: PASS`
 - `EN: PASS`
 - `RESPONSIVE: PASS`
+- `ACCESSIBILITY: PASS`
 - `REGRESSION: PASS`
-- `UI WIDTH CONSISTENCY RULE DOCUMENTED: PASS`
-- `ADMIN TODO DEFERRED: PASS`
 - `REMOTE CONTINUITY READ-BACK: PASS`
 
-**TEST-only. No migration. No Edge Function touched. Not committed, not pushed, not deployed. No Production/LIVE action. No Admin implementation. No Item 28 implementation.**
+**TEST-only. Not committed, not pushed, not deployed. No Production/LIVE action. No Admin work. No Item 28 implementation.**
 
 **Awaiting Owner + ChatGPT review.**
