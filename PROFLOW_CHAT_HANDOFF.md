@@ -353,6 +353,41 @@ is Step A only (zero-risk, local-file-only, fully reversible). Full detail:
 **Zero mutation of any kind this task** — no code, DB, Auth, Storage, Edge
 Function, `.env`, or Production change.
 
+## 10.M TEST Runtime Activation, Step A — implemented (added 2026-08-30)
+
+Owner + ChatGPT authorized **Step A only** from §10.L's execution plan: the
+frontend/runtime separation needed for a dedicated local TEST mode. Port
+**5186** is now `npm run dev:localtest` (`vite --mode localtest --host
+--port 5186 --strictPort`), loading a new gitignored `.env.localtest.local`
+that points `VITE_SUPABASE_URL` at `quotecode-test` — `VITE_SUPABASE_ANON_KEY`
+is left as an explicit placeholder, since retrieving the real value would
+require `supabase projects api-keys`, the exact command this project's
+continuity history permanently bans (§18.N — it returns `service_role` in
+the same response). The Owner needs to paste the real TEST anon key in
+manually (Supabase Dashboard → that project → API settings) before real
+Supabase calls will work in this mode.
+
+`src/shared/supabase.js` gained a **fail-closed guard**, active only under
+`--mode localtest`: it throws — before any Supabase client is created — if
+the resolved project ref is missing, malformed, equals Production's, or is
+anything other than TEST's known ref. This was **proven real**, not just
+written: the TEST config was temporarily pointed at Production's ref and at
+a malformed URL, the actual served guard code was executed with those exact
+values, and both threw correctly before restoring the correct config and
+reconfirming normal startup with no throw. Port **5184** (the original
+Production-pointed default) was left untouched and reconfirmed unchanged.
+42/42 tests + lint pass.
+
+**Agent HE: PASS. Agent EN: PASS.** Neither found any way TEST mode could
+silently fall back to Production, and the guard has zero market-conditional
+logic — fully symmetric. **Verdict: TEST RUNTIME STEP A: PASS.** Full
+detail: `PROFLOW_HANDOFF.md` §18.DA, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Explicitly not done**: no Edge Function deployed (`get-public-quote`
+remains the separately-authorized Step B), no Auth configuration change, no
+TEST user created, no DB/Storage mutation, no Production action, no
+commit/push/deploy.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
