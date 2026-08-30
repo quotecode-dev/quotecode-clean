@@ -4,29 +4,52 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Owner-Locked Regression Rule + User UI QA Fixes + Vercel Domain Redirect Audit + Continuity Update
+## Task: Owner Visual QA Correction — Global Width Contract + Mobile Width Utilization + Amount Typography Hierarchy
 
-**Effort level**: HIGH. Four scopes: (A) establish the OWNER-APPROVED=LOCKED rule, (B) audit + safely fix four UI issues, (C) re-audit the Vercel redirect, (D) continuity sync. Not authorized: Admin work, Item 28/30/31 implementation, Production mutation, application commit/push/deploy.
+**Effort level**: HIGH. This instruction replaced an earlier draft mid-task; the Owner clarified there is no HE/EN width discrepancy and supplied a visual reference for the real issue (shared Desktop width too wide). Not authorized: Admin work, Item 28/30/31 implementation, Vercel routing change, application commit/push/deploy, Production mutation, marking new results as Owner-LOCKED.
 
-## PART A — Owner-Approved = LOCKED Rule (complete)
+## Owner Clarification Recorded
 
-New Permanent Requirement, `PROFLOW_PROJECT_CONTEXT.md` §54: once a behavior/design/feature/fix is implemented, TEST-verified, and Owner-reviewed, it becomes Owner-Approved/DONE/LOCKED/regression-protected and must not change without explicit Owner authorization — including indirectly, through refactoring, shared CSS, cleanup, or any "improvement." Regression protection is engineering's (Claude Lead/Agent HE/Agent EN's) responsibility, not the Owner's — the Owner should never have to re-QA completed work. A required STOP condition is recorded for when a new task genuinely needs to change LOCKED behavior. Per explicit instruction not to duplicate documentation, this does **not** introduce a new tracking ledger — it formally designates the existing mechanisms (`PROFLOW_TODO.md`'s 🟢 COMPLETE/VERIFIED markers, `PROFLOW_HANDOFF.md`'s own PASS-verdict steps, the existing File-by-File HE/EN Change Ledger, §37) as this rule's enforcement surface.
+There is **no** HE-vs-EN Desktop width discrepancy — the Owner had opened the wrong EN URL during their earlier comparison. This task's own fresh, controlled, same-condition measurement (fresh login per market, identical viewport/zoom, at 1280/1366/1440/1920px) independently confirms this: every measurement (wrapper left/right/width, nav, KPI grid, table) was byte-identical between HE and EN at all four widths, both before and after this task's changes. HE/EN parity was never broken.
 
-## PART B — Four UI QA Fixes (audited first, fixed narrowly, TEST-verified live, both markets)
+## Root Cause of "Too Wide"
 
-**1. Quote History row-amount typography** — `fontWeight: '800' → '600'` (semi-bold), `src/components/QuotesTab.jsx`, both desktop table and mobile card. Confirmed via live `getComputedStyle`, both markets: `600`. Summary/grand totals (a separate location, `Dashboard.jsx`) were not touched.
+The prior flat `1440px` cap (§55) provided almost no real constraint below a 1440px viewport — the only actual gutter was `.dash-main-content`'s then-`10px` padding — producing a near-edge-to-edge appearance at the most common laptop resolutions (1280-1440px), exactly matching the Owner's "too wide/stretched" description.
 
-**2. EN Quote History Actions clipping** — root cause: the Actions `<th>` had no explicit `width`/`minWidth` at all, unlike its sibling columns, combined with insufficient available desktop width. Fixed with `minWidth: '110px'` on the Actions header (matching the sibling-column pattern, not a broad CSS change) plus fix 3 below. Live-confirmed fully on-screen: EN `{left:1318, right:1392}` (48px clearance to a 1440px viewport), HE `{left:33, right:99}` (fully on-screen, RTL side). No button hidden, no usability reduced, no new horizontal overflow.
+## Part A — New Permanent Requirement: ProFlow Global Surface Width Contract
 
-**3. Desktop width utilization** — audited the existing shared `--pf-desktop-content-width` (980px) token first and found it governs **both** the authenticated app shell and the separately-Owner-locked Public Quote surface (from an earlier dedicated Global Surface Audit with precise shell-padding `calc()` math) — Public Quote was **not** named in this task's own regression-check list. Per the new §54 rule (no indirect changes to LOCKED behavior), widening the shared token in place would have silently widened the unaudited Public Quote surface too. **Decoupled instead**: new dedicated `--pf-dashboard-desktop-content-width: 1440px` (`src/index.css`) now governs only `Dashboard.jsx`'s content wrapper; `--pf-desktop-content-width` stays exactly `980px`, untouched, still used only by `PublicQuote.jsx`/`PublicQuoteEn.jsx`. Live-verified: Dashboard wrapper now ~1405px (up from 980px) at a 1440px viewport, both markets; Public Quote's own CSS variable confirmed still reading exactly `980px` via a direct `getComputedStyle` check on `document.documentElement`. Regression-verified across Dashboard/New Quote/Quote History/Clients/Business Settings (all share the one wrapper) — zero horizontal overflow, Client Type badge unaffected. Admin untouched (doesn't use this wrapper).
+`PROFLOW_PROJECT_CONTEXT.md` §56: ProFlow must have one canonical responsive width strategy, governing equivalent full-page surfaces across the product (authenticated app, HE/EN, Local/International, Public Quote/displayed-quote) unless the Owner explicitly approves a documented exception. RTL/LTR, language, and market are explicitly **not** functional-reason exceptions — they may change direction/order/alignment, never the canonical content width.
 
-**4. Trial notice vertical position** — root cause: both notice variants are `position:absolute; top:100%` children of `.dash-header-bar`, but the header's unconditional `marginBottom` (14px) was shorter than either notice's actual footprint (~36-52px), so the notice's own bottom edge reached into where the nav row begins — exactly the Owner's observed collision. Fixed by conditionally raising `.dash-header-bar`'s `marginBottom` to `64px` **only while a notice is actually visible** (`hasVisibleTrialNotice`), leaving the default (no-notice) state completely unchanged, and touching **nothing** about either notice's own text, color, motion, timing, or "no card/background" design — all explicitly LOCKED, per instruction not to redesign them. Live-verified, both markets: notice bottom edge at 104px, nav top edge at 132px — 28px clearance, `collision: false` — confirmed by direct bounding-box measurement and full-page screenshots.
+## Part B — Desktop Width Correction (iterative, live-tested)
 
-**Combined verification**: all four fixes tested together, both markets (HE via `PROFLOW_TEST_LOCAL_*`, EN via `PROFLOW_TEST_INTL_*`), desktop (1440px) and mobile (360/390/412px) — zero horizontal overflow anywhere, zero regression in the Client Type badge, the Trial Expiration → FREE fix, or any other previously-approved UI. Full detail and evidence: `PROFLOW_PROJECT_CONTEXT.md` §55.
+- **Iteration 1**: `min(1320px, 72vw)`, chosen to hold a stable ~72% utilization ratio matching the Owner's loose "70-75%" visual reference across the full 1280-1920 range (a flat px value cannot do this — its percentage of viewport necessarily shrinks as viewport grows). **Live-tested and rejected**: at 1280px the narrowed wrapper (911px) reintroduced the earlier Actions-clipping defect — confirmed via full-page screenshot (not just measurement) showing the Actions column cut off at the HE (RTL) left edge, and via the table's own measured box overflowing past its wrapper.
+- **Iteration 2 (final)**: `min(1320px, 85vw)`. Utilization: 84% at 1280/1366/1440px, 68.75% at 1920px (capped). Live-confirmed **zero clipping** at every width, both markets — `actionsFullyVisible: true`, table box now exactly matches its wrapper's box everywhere. Does not fully reach the Owner's loose 70-75% reference; that gap is disclosed as a genuine functional constraint (the table's own columns need that much room), not hidden. `.dash-main-content`'s desktop padding reduced from the interim `32px` back to a modest `16px` "safety cushion," since the viewport-relative token now does the primary gutter work.
 
-## PART C — Vercel Domain Redirect Audit (read-only, complete)
+## Part C — Public Quote (measured, compared, NOT changed)
 
-Re-tested `quotecode.vercel.app` root/`/he`/`/en`, explicitly without auto-following redirects first (`curl -D -`, no `-L`), then separately following the chain. Result, both passes, all three paths: `HTTP 200` directly, no `Location` header, `num_redirects: 0`, final URL identical to the requested URL. **The prior Landing Page Access report's factual claims are CONFIRMED, not corrected** — content is genuinely served directly (re-verified byte-identical HTML and matching video sizes this task too). **New context added**: the canonical product intent is that `quotecode.vercel.app` should eventually redirect to `www.quotecodepro.com` — that redirect is simply not configured yet on Vercel. This is a real, disclosed gap between intent and current deployment, not an error in the earlier finding. The recommendation to use `quotecode.vercel.app` for ChatGPT access remains factually valid today but now carries the caveat that it relies on currently-unintended (if currently-real) behavior. No Vercel configuration was touched — read-only audit only, as authorized.
+Public Quote's own `--pf-desktop-content-width` remains exactly `980px` (content) / `1062px` (shell), unchanged from before this task, still used only by `PublicQuote.jsx`/`PublicQuoteEn.jsx`. Bringing it onto the new canonical contract would materially change its already Owner-locked visual geometry — disclosed as a **future, explicitly Owner-approval-required** alignment, not performed now. `PUBLIC QUOTE WIDTH ALIGNMENT: OWNER APPROVAL REQUIRED`.
+
+## Part D — Global Width Surface Matrix
+
+| Surface | Current width source | Measured (1440px) | Target contract | Already compatible? | LOCKED conflict? | Owner approval required? |
+|---|---|---|---|---|---|---|
+| Dashboard/New Quote/Quote History/Clients/Business Settings/Catalog/Finances (HE) | `--pf-dashboard-desktop-content-width` | 1211px (84%) | §56, once approved | N/A (current candidate) | None | Yes |
+| Same surfaces (EN) | same token | 1211px, byte-identical to HE | same | N/A | None | Yes |
+| Public Quote HE | `--pf-desktop-content-width` (separate) | 980px content / 1062px shell | §56, eventually | No | **Yes** | Yes, explicit |
+| Public Quote EN | same separate token | 980px, identical to HE | same | No | **Yes** | Yes, explicit |
+| Admin | not audited | not measured | out of scope | N/A | N/A | N/A |
+
+## Part E — Mobile Quote History Width Utilization
+
+Root cause: the "Recent Quotes History" panel (`QuotesTab.jsx`) used a uniform `14px` padding on both desktop and mobile, compounding with `.dash-main-content`'s mobile `6px` and each card's own `8px 10px` into a ~30px total gutter before any card content began. Fixed narrowly: the panel now reads its own already-existing `isMobileView` state to use `8px` padding on mobile only (`14px` unchanged on desktop) — no new mechanism introduced. Live-verified, both markets, 360/390/412px: 15px total gutter (down from ~30px), 330px card width at 360px (91.7% utilization), zero horizontal overflow, byte-identical between markets.
+
+## Part F — Amount Typography Hierarchy (Round 2)
+
+Confirmed first that Rubik is self-hosted with explicit weight files for 400/500/600/700/800/900 (both Latin and Hebrew, `src/fonts.css`) — `500` renders as a genuine, distinct weight, not a synthetic fallback. Row amount (`QuotesTab.jsx`, desktop + mobile): `600 → 500`. Total Revenue (`Dashboard.jsx`, the `.dash-kpi-value.pf-money` element specifically, confirmed via a precise DOM ancestor-chain trace since a generic class query can match the wrong KPI card): `800 → 600`. Result: Total Revenue is now visibly, deliberately bolder than an ordinary row amount — confirmed via both computed-style inspection and visual screenshot review, both markets. No currency values, formatting, decimals, or calculations touched.
+
+## Preserved LOCKED Behavior (regression-checked)
+
+Actions column fully visible (both markets, all four desktop widths). Trial notice remains collision-free with its approved design untouched (unrelated to this task's changes — different style properties, verified unaffected). Client Type badge renders correctly (aria-label, color, size all unchanged). Trial Expiration → FREE: 70/70 tests still pass, logic untouched.
 
 ## Continuity Sync + Remote Read-Back
 
@@ -34,48 +57,69 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 
 ## Final Verdict
 
-**OWNER-APPROVED LOCKED RULE: PASS**
-**LOCKED REGRESSION MECHANISM**: `PROFLOW_TODO.md` 🟢 COMPLETE/VERIFIED item status + `PROFLOW_HANDOFF.md` §18 PASS-verdict steps + the existing File-by-File HE/EN Change Ledger (§37) — formally designated, not duplicated, as this rule's enforcement surface (`PROFLOW_PROJECT_CONTEXT.md` §54).
+**OWNER QA CORRECTION: PASS**
+**OWNER HE/EN CLARIFICATION RECORDED: PASS**
 
 ------------------------------------------
-**UI QA**
+**DESKTOP WIDTH**
 ------------------------------------------
-- `ROW AMOUNT TYPOGRAPHY: PASS` — `fontWeight 800 → 600`, both markets confirmed via computed style.
-- `EN ACTIONS CLIPPING: PASS` — root cause: missing explicit column width + insufficient container width; fix: explicit `minWidth:110px` + decoupled wider Dashboard container.
-- `DESKTOP WIDTH UTILIZATION: PASS` — root cause: shared 980px token also governed the separately-locked Public Quote surface; fix: new dedicated `--pf-dashboard-desktop-content-width:1440px`, Public Quote's own token unchanged and reconfirmed at 980px.
-- `TRIAL NOTICE POSITION: PASS` — root cause: header's fixed 14px margin shorter than the notice's own footprint; fix: conditional 64px margin only while a notice is visible, notice's own design untouched.
-- `HE DESKTOP: PASS` / `EN DESKTOP: PASS` / `HE MOBILE: PASS` / `EN MOBILE: PASS`
-- `HORIZONTAL OVERFLOW: PASS` (zero, all tested widths, both markets)
-- `LOCKED UI REGRESSION: PASS` (Client Type badge, Trial Expiration fix, Public Quote width all reconfirmed unaffected)
+- **PREVIOUS WIDTH**: flat `1440px` cap (§55), ~91-94% utilization at 1280-1440px — too wide.
+- **SELECTED RESPONSIVE STRATEGY**: `min(1320px, 85vw)`.
+- **WHY**: a flat px cap cannot hold a stable utilization ratio across 1280-1920px; a pure `72vw` candidate matched the Owner's loose visual target but broke Actions visibility at 1280px (live-confirmed); `85vw` is the narrowest ratio that showed zero clipping at every tested width.
+- **1280**: HE 1075px wrapper, 95px gutters / EN identical. **1366**: HE 1148px wrapper, 101px gutters / EN identical. **1440**: HE 1211px wrapper, 107px gutters / EN identical. **1920**: HE 1320px wrapper (capped), 293px gutters / EN identical.
+- **HE/EN DESKTOP PARITY: PASS** (byte-identical at every width).
 
 ------------------------------------------
-**VERCEL REDIRECT**
+**GLOBAL WIDTH**
 ------------------------------------------
-- `VERCEL ROOT`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/`.
-- `VERCEL /he`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/he`.
-- `VERCEL /en`: initial `200`, no Location header, 0 redirects, final URL `https://quotecode.vercel.app/en`.
-- `CANONICAL DOMAIN BEHAVIOR: FAIL` (relative to intended architecture — a redirect is intended but not configured; the domain itself functions correctly, this is a routing-configuration gap, disclosed not fixed).
-- `PREVIOUS LANDING ACCESS CLAIM: CONFIRMED` — byte-identical content, matching video sizes, re-verified fresh this task.
-- `CHATGPT LANDING ACCESS`: `https://quotecode.vercel.app/he` and `/en` remain factually usable today (verified byte-identical to canonical), now disclosed as relying on a currently-unintended absence of a redirect rather than the permanent architecture; the previously-captured full-page HE/EN Desktop+Mobile screenshot fallback package remains available and preserved.
-- `DEMO VIDEO ACCESS`: unchanged — `/proflow-demo.mp4` (HE) / `/proflow-demoEN.mp4` (EN), plain public static files, re-verified reachable with matching `Content-Length` on both domains.
-- `NO PRODUCTION ROUTING MUTATION: PASS`
+- **GLOBAL WIDTH SURFACE MATRIX**: see table above / `PROFLOW_PROJECT_CONTEXT.md` §57.
+- **PUBLIC QUOTE**: UNCHANGED.
+- **PUBLIC QUOTE GLOBAL-ALIGNMENT STATUS**: future Owner approval required — not already compatible, not performed now.
+- **PUBLIC QUOTE MUTATED**: NO.
+
+------------------------------------------
+**MOBILE QUOTE HISTORY**
+------------------------------------------
+- **ROOT CAUSE OF WASTED WIDTH**: compounded padding — panel (14px, uniform) + main-content mobile override (6px) + card's own padding (10px) ≈ 30px total gutter.
+- **360 HE**: viewport 360 / gutter 15px / card width 170→ now measured via corrected card-detection at 330px total available, effectively ~91.7% utilization / **360 EN**: identical.
+- **390 HE/EN**: identical, 15px gutter, proportionally scaled card width.
+- **412 HE/EN**: identical, 15px gutter, proportionally scaled card width.
+- **MOBILE WIDTH UTILIZATION: PASS**
+- **MOBILE HE/EN PARITY: PASS** (byte-identical at every width)
+- **MOBILE OVERFLOW: PASS** (zero at all three widths, both markets)
+
+------------------------------------------
+**TYPOGRAPHY**
+------------------------------------------
+- **ROW AMOUNT**: `600` (prior task) → `500` (this task) → computed style confirms `500`, both markets, desktop and mobile.
+- **TOTAL REVENUE**: `800` → `600` → computed style confirms `600` via precise element targeting, both markets.
+- **VISUAL HIERARCHY: PASS** — Total Revenue now deliberately bolder than an ordinary row amount.
+
+------------------------------------------
+**LOCKED REGRESSION**
+------------------------------------------
+- **ACTIONS: PASS** (fully visible, both markets, all four desktop widths, after the 85vw correction)
+- **TRIAL NOTICE: PASS** (unaffected, different style properties, unchanged design)
+- **CLIENT TYPE: PASS** (unchanged)
+- **TRIAL EXPIRATION → FREE: PASS** (70/70 tests green)
+- **OTHER LOCKED REGRESSION: PASS**
 
 ------------------------------------------
 **QUALITY**
 ------------------------------------------
-- `TESTS: PASS` (70/70, Trial Expiration tests preserved and green)
-- `LINT: PASS` (0 errors, same 6 pre-existing warnings)
-- `BUILD: PASS`
-- `REMOTE CONTINUITY READ-BACK: PASS`
+- **TESTS: PASS** (70/70)
+- **LINT: PASS** (0 errors, same 6 pre-existing warnings)
+- **BUILD: PASS**
+- **REMOTE CONTINUITY READ-BACK: PASS**
 
 ------------------------------------------
 **FRESH LOCAL STATE**
 ------------------------------------------
 - **MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote).
-- **WORKING TREE**: uncommitted changes carried forward plus this task's edits to `src/components/QuotesTab.jsx`, `src/pages/Dashboard.jsx`, `src/index.css`.
-- **TEST**: unchanged — zero database mutation this task; all verification used live, read-only measurement of already-existing accounts and data.
-- **PRODUCTION**: UNCHANGED — Part C was entirely read-only public `GET`/`HEAD` requests to already-public URLs; no Vercel configuration, routing, or domain setting was touched.
+- **WORKING TREE**: uncommitted changes carried forward plus this task's edits to `src/index.css`, `src/pages/Dashboard.jsx`, `src/components/QuotesTab.jsx`.
+- **TEST**: unchanged — zero database mutation; all verification used live, read-only DOM measurement.
+- **PRODUCTION**: UNCHANGED.
 
-**NO Item 28/30/31 implementation. NO Admin work. NO six-persona workaround. NO application commit/push. NO Production deploy/mutation. NO routing/domain change. NO LIVE action.**
+**NO Admin work. NO Item 28/30/31 implementation. NO Vercel routing change. NO application commit/push. NO Production deploy/mutation. NO LIVE action. New width/mobile/typography results are explicitly NOT marked Owner-LOCKED.**
 
-**Awaiting Owner + ChatGPT review.**
+**Awaiting Owner visual review and explicit approval.**
