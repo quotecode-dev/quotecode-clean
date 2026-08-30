@@ -1,4 +1,14 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "quotecode.vercel.app" }
+      ],
+      "destination": "https://www.quotecodepro.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
