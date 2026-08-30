@@ -883,6 +883,35 @@ regression clean. Admin (item 29) and Item 28 untouched. Verdict
 deployed. Full detail: `PROFLOW_HANDOFF.md` §18 step (37),
 `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
+## 10.AA Item 27 — Attn/"לידי" Client-Name Fallback + Current Workstream Continuity Correction (added 2026-08-30)
+
+**Part A**: audited the existing Attn architecture first — `attn_name`/
+`attn_role` are real per-quote snapshot columns on `quotes`, written at save
+time, already covered by the unmodified `guard_quote_immutability()`
+whole-row lock (same trigger already protecting `terms`/`warranty`/`notes`).
+Implemented the fallback inside `handleSaveQuote`'s existing `attnFields`
+construction (`Dashboard.jsx`) — an empty/whitespace-only Attn falls back to
+the same client name being saved for that quote, written as a genuine,
+historically-stable snapshot (not a render-time computation), with zero
+DB/trigger change. Explicit Attn always preserved verbatim. Live-verified
+both markets via isolated CDP: fallback correct for empty/whitespace Attn
+(confirmed on the real Public Quote page too, fetched through the app's own
+"View Quote" action), explicit Attn preserved, duplication copies the
+persisted snapshot verbatim (unmodified architecture), locking verified by
+architecture + regression. Zero new overflow, full regression clean. Verdict
+**ITEM 27 ATTN/לידי CLIENT-NAME FALLBACK: PASS**.
+
+**Part B**: corrected the stale "Full Runtime TEST Environment Build"
+current-workstream framing (in `PROFLOW_TODO.md`'s "Current Recommended
+Execution Order" and this file's own resume-pointer, see below) to the
+Owner-directed **USER-FACING COMPLETION / OWNER QA** workstream. The
+infrastructure work itself is fully preserved as history, not deleted or
+downgraded — only the "what is current" framing changed. Admin remains
+explicitly deferred (`PROFLOW_TODO.md` item 29); Item 28's Plan/Trial-State
+decision reconfirmed documented, not implemented. TEST-only, not committed/
+pushed/deployed. Full detail: `PROFLOW_HANDOFF.md` §18 step (38),
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -1073,7 +1102,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Item 26 Owner QA Micro-Fix task — supersedes the Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.Z, "Item 26 Owner QA Micro-Fix — sortable Client Type + solid-purple badge," preceded by §10.Y, "Item 26 Final UI Refinement," preceded by §10.X, "Continuity Sync Failure Audit + Recovery" (an execution-only correction to the existing §17.J documentation-sync mechanism — no redesign, no new permanent rule from that task itself). §10.Z made the Client Type column sortable (reusing the existing sort architecture, sorting strictly by the raw `clients.client_type` value) and changed the badge to a solid ProFlow-purple (`NEON.violet`) background with a white icon, no gradient/shadow. §49 (UI Width Consistency Rule), tooltip/accessibility, and HE/EN parity all reconfirmed unaffected. Verdict `ITEM 26 OWNER QA MICRO-FIX: PASS`. Admin (`PROFLOW_TODO.md` item 29) and Item 28 remain untouched. **NEXT ACTION**: this §17.J documentation sync for §10.Z itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (37). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z for full detail.
+**🟢 UPDATED 2026-08-30 (Item 27 + Current Workstream Continuity Correction task — supersedes the Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AA, "Item 27 — Attn/'לידי' Client-Name Fallback + Current Workstream Continuity Correction," preceded by §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). §10.AA Part A implemented and TEST-verified the Attn/client-name fallback (both markets, including live Public Quote page verification). Part B corrected the stale "Full Runtime TEST Environment Build" current-workstream framing (in `PROFLOW_TODO.md`'s "Current Recommended Execution Order" and in `PROFLOW_HANDOFF.md`'s own resume banner) to the Owner-directed **USER-FACING COMPLETION / OWNER QA** workstream — that infrastructure work remains fully preserved as history, only its "current" framing changed. Current user-facing sequence: Item 26 TEST VERIFIED/Owner-accepted, Item 27 the current authorized task (this one), Item 28 next (not implemented, Plan/Trial-State-are-separate-concepts decision preserved). Admin remains explicitly deferred (`PROFLOW_TODO.md` item 29). Verdict `ITEM 27 + CURRENT WORKSTREAM CORRECTION: PASS`. **NEXT ACTION**: the §17.J documentation sync for §10.AA itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (38). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA for full detail.
 
 **🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 
