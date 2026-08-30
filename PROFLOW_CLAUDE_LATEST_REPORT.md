@@ -4,153 +4,62 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Signature Authorization Fix + Mobile Quote History Cleanup + Email Column Audit + Lock Final Width
+## Task: Critical Signature Security Production Promotion
 
-**Effort level**: HIGH. Four scopes: (A) implement the signature authorization fix on TEST/local (previously audit-only), (B) clean up Mobile Quote History information hierarchy — extended mid-task by the Owner to also add a Mobile sort control, then corrected mid-task again after the Owner rejected the first mobile layout attempt on live visual review, (C) audit the Email column for dead code, (D) lock the current canonical Desktop width as Owner-approved.
+**Effort level**: MAXIMUM. **Severity**: P0/CRITICAL. Scope strictly limited to promoting the already TEST-verified customer-signature authorization fix to Production — explicitly excluding all other carried-forward work (Mobile Quote History, Mobile Sort, width/UI, Trial Notice, Email column, P1, Session Timeout, Landing Page, Vercel/domain, Admin, Item 28/30/31).
 
-## Part A — Signature Authorization Fix (implemented + verified on TEST)
+## Fresh Local State (established first, before any action)
 
-Re-confirmed the live TEST definition of `public_approve_quote` via `supabase db dump --linked` before changing anything — byte-identical to the previously-audited version, no drift. Fix: the RPC now rejects the call whenever `auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM business_settings WHERE user_id = auth.uid())` — i.e., **any** authenticated ProFlow business account, not merely the specific quote's own owner (a narrower "equals the owner" check would still leave a different business account free to sign someone else's quote). `business_settings.user_id` is the exact existing source of truth already used by `is_admin()`/`is_super_admin()` — no new identity mechanism invented. Applied via a new migration to `quotecode-test` only (CLI relinked to Production immediately after, per standing convention). No Production action of any kind.
+Branch `main`, local HEAD `17ac4d3a950d96f4167f9b320c82b4798382d621`, remote `origin/main` HEAD identical (no divergence). Working tree: the same carried-forward uncommitted work from prior tasks, unchanged. Supabase CLI linked to Production (`ixabnzhjeqevtbhdfswv`, `linked:true`); TEST (`ljfizgrdyzxddswcedwr`) unlinked. The target migration file (`supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`) was re-read in full and confirmed byte-identical to the version already applied and regression-tested on TEST — no drift since the prior task.
 
-Full regression matrix — live-verified via direct RPC calls (Claude Lead) AND the real signing UI (both markets):
-- Anonymous customer, direct RPC → **204, succeeded** (and, separately, completed the *entire* real UI flow — draw signature, click approve, saw the actual "אושרה ונחתמה בהצלחה"/success banner — both HE and EN).
-- Quote owner, direct RPC on their own quote → **403, rejected**, quote confirmed unchanged.
-- A different, unrelated business account, direct RPC → **403, rejected**, target quote confirmed unchanged.
-- Malformed payload → rejected (pre-existing validation, unaffected). Already-approved quote → rejected (pre-existing, unaffected). Post-approval edit attempt → rejected by the immutability trigger (pre-existing, unaffected).
-- Manager/business view (`is_owner_viewing`): audited, found already correct and already matching the Owner's supplied historical reference exactly — nothing needed building, only re-confirmed unaffected by the RPC fix.
+## Reconfirming the Security Property (fresh, immediately before promotion)
 
-## Part B — Mobile Quote History (two iterations — first rejected by the Owner)
+Re-ran the three core scenarios against TEST, right now, not cited from memory: **anonymous customer, direct RPC → HTTP 204, succeeded.** **Quote owner, direct RPC on their own quote → HTTP 403 `42501`, rejected.** **A different, unrelated ProFlow business account, direct RPC → HTTP 403 `42501`, rejected.** All three passed cleanly, confirming the rule is exactly as before: any authenticated ProFlow business account (identified via `business_settings.user_id`) is blocked from creating customer approval/signature state; anonymous customers are unaffected.
 
-**Iteration 1**: reordered Client Type/Views/Client Name into one flex cluster (HE: Type→Views→Name right-to-left; EN mirrored). Live-verified the order was correct — but the Owner, reviewing live, rejected the flex-wrap approach: a long Client Name could wrap the cluster and visually shift Client Type/Views between cards.
+## Isolating the Fix
 
-**Iteration 2 (final)**: rebuilt as a genuine CSS Grid with fixed-pixel tracks for Client Type (24px), Views (32px), and — after finding a secondary instability where a wide Amount value could still shift the other columns in the EN layout — Amount too (78px, fixed, not content-based), with Client Name alone getting the flexible `1fr` track (single-line, ellipsis-truncated, never wraps). Live-verified across 8 quotes with genuinely varying name lengths, all 3 required widths, both markets: **every field's X-position is identical across every row** — zero variance. Long names truncate correctly (RTL-correct ellipsis placement in HE). Full Client Name remains accessible via the same `title=` tooltip pattern already used elsewhere in this file for truncated text — no new interaction mechanism invented.
+A pre-change Production schema dump confirmed the live `public_approve_quote` was still the exact known vulnerable baseline (no `auth.uid()` check) — no surprise drift, safe to proceed. `supabase migration list --linked` against Production showed all 12 local migrations as pending (none previously applied there) — a plain `db push` would have attempted all 12, which is explicitly unauthorized. **Isolation technique**: all 11 other migration files were temporarily moved out of `supabase/migrations/` to a location outside the repo; `supabase db push --linked --dry-run` then confirmed exactly one migration (`20260831000000`) would be applied; the real push was run; the 11 files were immediately restored. Confirmed restored (`ls` showed all 12 files back in place).
 
-**Mobile Sort control (Owner mid-task addition)**: Desktop's column sorting had no Mobile equivalent — a real capability gap, not just cosmetic. Added a compact "מיון:"/"Sort:" select (the same 7 fields Desktop's clickable headers support) + a direction-toggle button, both calling the exact same `handleQuoteSort`/`quoteSortField`/`quoteSortDirection` Desktop already uses — no parallel sort engine. Live-verified: selecting "Amount" and toggling direction correctly re-sorts the actual card list ascending then descending, both markets, control fits with zero overflow at all 3 widths.
+## Ground-Truth Verification (not just the CLI's own summary)
 
-## Part C — Email Column Audit
+The CLI's own `migration list` output showed a slightly confusing duplicate-looking row after the push — investigated directly rather than trusted at face value: a direct dump of the actual `supabase_migrations.schema_migrations` table showed **exactly one** recorded version, `20260831000000`, and nothing else. A full unified diff of the complete Production schema (before vs. after) showed the change contained to exactly the `public_approve_quote` function body plus its `COMMENT` — zero other schema, table, RLS, or function drift anywhere in the entire database. The live post-change `public_approve_quote` definition was dumped and confirmed byte-identical to the TEST-verified fix.
 
-Traced `renderEmailDot` to two real, non-dead data sources: `quote.email_bounced` (persisted DB column, survives reload, set by the bounce-detection webhook) and `emailStatuses[quote.id]` (ephemeral, session-only state set right after a "Send Email" action, resets on reload). This is exactly why most rows appeared empty on a fresh page load — success isn't persisted, only bounces are. **Confirmed real function — preserved, not removed.** Already narrowed to a 36px icon-only column in the prior task; no further change needed.
+## Isolated Application Commit
 
-## Part D — Final Width Locked
+Staged via explicit single-file `git add` (never `-A` or directory-wide) — confirmed via `git status --short` and `git diff --cached --stat` that exactly one file was staged before committing. Commit `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` on `main`: exactly `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, +93/-0. Pushed to `origin/main`; independently re-confirmed via the GitHub API (remote HEAD matches, files-changed list shows exactly the one file). All other carried-forward uncommitted work (docs, Mobile/UI files, package.json, etc.) remains exactly as uncommitted as before — confirmed via `git status --short` post-commit.
 
-Per explicit Owner approval, `PROFLOW_PROJECT_CONTEXT.md` §59 is updated from IMPLEMENTED/TEST-VERIFIED to **OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED**. No code change was required (the width itself was not touched this task). A stale mobile-gutter figure from the prior report ("6px") was corrected to the actual, CSS-matching value (`15px`) via a more precisely-verified live measurement — the underlying CSS was not changed, only the measurement.
+## Production Customer-Flow Safety
 
-## Continuity Sync + Remote Read-Back
+No real Production customer signature or quote approval was created for testing, per explicit instruction. The anonymous-customer path's correctness on Production is established by reconciliation: the deployed function is byte-identical to the one already proven, end-to-end, via the real signing UI on TEST (both HE and EN) in the prior task — not by repeating that mutation against real Production data.
 
-Synced through the existing §17.J mechanism — isolated worktree, secret/privacy scan, explicit filename staging, commit, push `proflow-continuity` only — followed by genuine remote GitHub read-back verification.
+## Continuity
+
+Synced through the existing §17.J mechanism — isolated worktree, secret/privacy scan, explicit filename staging, commit, push `proflow-continuity` only — followed by remote GitHub read-back verification. `PROFLOW_PROJECT_CONTEXT.md` §60 updated to PRODUCTION DEPLOYED/VERIFIED; a new §54 addendum carries forward the Owner's process rule that OWNER-APPROVED/LOCKED protects observable behavior, not merely a specific file.
 
 ## Final Verdict
 
-==========================================
-**SIGNATURE — CRITICAL**
-==========================================
+**PRODUCTION SIGNATURE FIX: DEPLOYED**
 
-**SIGNATURE AUTHORIZATION FIX: PASS**
+**PRODUCTION MIGRATION**: `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, applied to `quotecode-test`-verified, isolated push to Production (`ixabnzhjeqevtbhdfswv`) — confirmed via a direct read of `supabase_migrations.schema_migrations` (exactly one recorded row, `20260831000000`).
 
-**AUTHORITATIVE FIX LOCATION**: `public.public_approve_quote(uuid,text)` (Postgres RPC, `SECURITY DEFINER`), migration `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, applied to `quotecode-test` only.
+**PRODUCTION RPC READ-BACK: PASS** — live definition dumped post-deploy, byte-identical to the TEST-verified fix.
 
-**BUSINESS ACCOUNT IDENTIFICATION**: `business_settings.user_id` — the same existing source of truth `is_admin()`/`is_super_admin()` already use. No new table.
+**BUSINESS ACCOUNT BLOCK PRESENT: PASS** — confirmed present in the live Production function body (`auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM business_settings WHERE user_id = auth.uid())` → reject).
 
-**ANONYMOUS CUSTOMER SIGN: PASS** (204 via direct RPC; separately, full real-UI flow completed end-to-end, both markets, success banner confirmed)
+**ANONYMOUS CUSTOMER PATH PRESERVED BY DEFINITION: PASS** — every other line of the function is byte-identical to the previously-captured/TEST-verified definition; the new check only short-circuits for authenticated business accounts.
 
-**OWNER BUSINESS DIRECT RPC: REJECTED, PASS** (403, quote confirmed unchanged)
+**UNRELATED MIGRATIONS APPLIED: NO** — ground-truth ledger confirms exactly one migration version recorded on Production.
 
-**DIFFERENT BUSINESS DIRECT RPC: REJECTED, PASS** (403, target quote confirmed unchanged)
+**UNRELATED APPLICATION FILES COMMITTED: NO** — commit `b5583e5` contains exactly one file, independently confirmed via the GitHub API.
 
-**HE CUSTOMER SIGN: PASS** — **EN CUSTOMER SIGN: PASS**
+**PRODUCTION CUSTOMER SIGNATURE MUTATION USED FOR TESTING: NO**
 
-**MANAGER/BUSINESS VIEW: PASS** (already correct, matches Owner's supplied reference exactly, re-confirmed unaffected by the fix, both markets)
+**PRODUCTION EXISTING SIGNATURES MUTATED: NO**
 
-**SIGNED QUOTE IMMUTABILITY: PASS** (post-approval edit attempt correctly rejected, pre-existing trigger unaffected)
+**QUALITY**: Tests 70/70 PASS (re-confirmed post-commit). Lint: 0 errors, same 6 pre-existing warnings. Build: succeeds. Remote continuity read-back: PASS.
 
-**PRODUCTION: UNCHANGED** (CLI never linked to Production during the fix; relinked to Production immediately after applying to TEST)
+**FRESH LOCAL STATE (final)**: `main` HEAD now `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (local and remote, confirmed matching). Supabase CLI relinked to Production (`linked:true`) as its resting state. Working tree: identical carried-forward uncommitted work as before this task, minus the one file now committed — nothing else touched. Production: the signature-authorization fix is live; no other Production mutation occurred.
 
-==========================================
-**MOBILE QUOTE HISTORY**
-==========================================
+**This task deployed ONLY the signature security fix. No Mobile/UI/width/Trial-Notice/Email-column/P1/Session-Timeout/Landing-Page/Vercel-routing/Admin work was included or begun.**
 
-**HE ORDER: CLIENT TYPE → VIEWS → CLIENT NAME — PASS** (stable fixed-grid columns, identical X-position across 8 rows of varying name length, every width)
-
-**EN MIRRORED ORDER: CLIENT NAME → VIEWS → CLIENT TYPE — PASS** (same stability guarantee)
-
-**360 / 390 / 412**: HE and EN both — zero overflow, sort control fits, all columns stable at every width.
-
-**MOBILE WIDTH: UNCHANGED** (no CSS/padding touched this task; a stale prior "6px" gutter figure corrected to the actual `15px`, matching the CSS — the Owner's approved base width utilization itself was not narrowed)
-
-**MOBILE VISUAL PARITY: PASS**
-
-**MOBILE SORT CONTROL: PASS** (reuses Desktop's exact sort state; live-verified correct ascending/descending resort, both markets; fits at every required width)
-
-==========================================
-**EMAIL COLUMN**
-==========================================
-
-**EMAIL COLUMN PURPOSE**: shows persisted email-bounce state (red, survives reload) and ephemeral same-session send-success state (green, resets on reload).
-
-**CURRENTLY USED: YES**
-
-**FINAL ACTION: PRESERVED**
-
-**WHY**: confirmed real, non-dead function via `quote.email_bounced` (persisted column) and `emailStatuses` (Dashboard.jsx session state) — most rows appearing empty is expected behavior (only bounces persist), not evidence of dead code.
-
-**WIDTH RECLAIMED**: none (already compact, 36px, from the prior task).
-
-==========================================
-**WIDTH LOCK**
-==========================================
-
-**CANONICAL WIDTH**: `--pf-desktop-content-width`, 980px (unchanged).
-
-**OWNER-APPROVED: YES** — **LOCKED: YES**
-
-**PUBLIC QUOTE: UNCHANGED**
-
-**HE/EN: PARITY PASS**
-
-==========================================
-**TRIAL NOTICE**
-==========================================
-
-**TRIAL NOTICE MUTATED: NO**
-
-**CURRENT DYNAMIC SPACE BEHAVIOR: PRESERVED, PASS** (no code in this area touched this task)
-
-==========================================
-**LOCKED REGRESSION**
-==========================================
-
-**AMOUNT TYPOGRAPHY: PASS** (untouched)
-**CLIENT TYPE: PASS** (source-of-truth and visual identity untouched; only its position within the new Mobile grid changed, per explicit Owner instruction)
-**TRIAL EXPIRATION → FREE: PASS** (70/70 tests green)
-**OTHER LOCKED REGRESSION: PASS**
-
-==========================================
-**QUALITY**
-==========================================
-
-**TESTS: PASS** (70/70)
-**LINT: PASS** (0 errors, same 6 pre-existing warnings)
-**BUILD: PASS**
-**REMOTE CONTINUITY READ-BACK: PASS**
-
-==========================================
-**FRESH LOCAL STATE**
-==========================================
-
-**MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote).
-
-**WORKING TREE**: carried-forward uncommitted work, plus this task's edits to `src/components/QuotesTab.jsx` (mobile grid + sort control) and a new file `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, plus the four continuity docs.
-
-**TEST MUTATIONS**: the signature-authorization fix migration applied to `quotecode-test`; several TEST quotes signed/approved during the live regression-matrix verification (all disposable TEST-account data, no real customers, no Production).
-
-**PRODUCTION: UNCHANGED.**
-
-**NO Admin work. NO Item 28/30/31 implementation. NO Vercel routing change. NO Production deploy. NO Production mutation. NO LIVE action. NO width change (locked as-is, per Owner approval). NO Trial Notice change. NO amount typography change.**
-
-**Awaiting Owner + ChatGPT visual/security review before any application commit/push.**
-
-## Amendment (same-session Owner Visual QA — Mobile Views Zero-Value Fix)
-
-The Owner reviewed the Mobile grid above and confirmed the structural direction is correct, with one remaining defect: the Views track conditionally hid its content entirely when `view_count` was `0`, which the Owner correctly flagged as a violation of "fixed column" itself — zero is a valid value, not an absent one. **Narrow fix**: `QuotesTab.jsx`'s mobile `viewsEl` now always renders the eye icon + count (`{quote.view_count || 0}`), no other change. Live-verified, both markets, 360/390/412px, cards spanning 0/1/2/6/8 views: the Views track's X-position is byte-identical across every row regardless of displayed value (confirmed via direct text-content + bounding-box inspection). No other geometry, column, width, sort, typography, or LOCKED behavior touched. 70/70 tests still pass, lint clean. Still IMPLEMENTED/TEST-VERIFIED/AWAITING OWNER VISUAL APPROVAL — this correction does not itself grant LOCKED status.
-
-**Awaiting Owner visual approval.**
+**STOP — returning complete evidence to Owner + ChatGPT. Not proceeding to any further task.**
