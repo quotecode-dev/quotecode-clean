@@ -618,6 +618,61 @@ rows, created entirely through the application's own existing UI logic —
 no SQL, no manual DB editing, no code change, no Auth/Storage/Edge change,
 no additional users, no commit/push/deploy, no Production action.
 
+## 10.T Item 17 Quote Numbering — Root-Cause + Release Readiness Audit,
+READ-ONLY (added 2026-08-30)
+
+A full, dedicated read-only audit of Item 17 (per-business sequential
+quote numbering) — no code, DB, migration, Edge Function, Auth, Storage,
+commit, push, or Production mutation of any kind. Every prior claim was
+independently re-verified against the actual files/CLI output, not
+assumed: the 5-file migration package (`business_quote_sequences` +
+`allocate_quote_number(uuid)` + unique constraint + immutability trigger +
+old-DEFAULT drop) remains fully applied and migration-history-matched on
+`quotecode-test`, still unapplied on Production, where the original global
+`quotes_quote_number_seq` DEFAULT (the "A90" root cause) remains live and
+unchanged.
+
+**New findings this pass**: fresh `supabase functions list` on both
+projects showed `get-public-quote`/`send-quote-email` were last deployed
+to Production on 2026-08-25 — before the 2026-08-28 code change that added
+`quote_number` to their local sources — and are not deployed to TEST at
+all, so Public Quote/email pages cannot show a real number on either
+project today even though the local source is already correct. The RPC
+allocation path has never been empirically exercised on TEST (no quote
+created there since the migration landed) — still a code-derived
+inference. `QuoteForm.jsx`'s internal "Editing Quote #{id}" header
+(raw UUID, a disclosed prior-task scope exclusion) remains the only open
+cosmetic gap; no other inconsistent formatting found anywhere in the
+repository.
+
+**Agent HE: PASS. Agent EN: PASS.** Both independently re-read the full
+migration package, the `Dashboard.jsx` creation/edit/duplicate paths, and
+both Edge Functions' local sources, and independently re-ran
+`supabase migration list`/`functions list` against both projects
+(Production link restored and reconfirmed at the end of each). Neither
+found any market-specific branch, VAT/currency coupling, or
+language-conditional logic anywhere in `allocate_quote_number(uuid)`, the
+`business_quote_sequences` schema, or any frontend call site —
+**numbering is confirmed one single, shared, market-neutral
+architecture.**
+
+**Verdict: RELEASE READINESS = B. READY WITH CONDITIONS** (DB design
+complete and TEST-verified; the two Edge Functions need coordinated
+redeployment and the RPC path needs a real empirical test before this
+becomes A). A 10-gate implementation/release plan was proposed, not
+executed: TEST empirical proof → TEST Edge Function deploy → TEST full
+HE/EN verification → (optional) QuoteForm.jsx gap fix → commit → push to
+`main` → Production DB migration → Production Edge Function deploy → LIVE
+verification, each its own separate Owner authorization. Full detail:
+`PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md` §18.DH,
+`PROFLOW_TODO.md` item 17.
+
+**Mutation accounting**: zero. Two read-only `supabase functions list`
+metadata calls were made against Production (disclosed explicitly in the
+report, not a data-content read) to obtain Edge Function `updated_at`
+timestamps; no table read, no write, no migration, no deploy, no
+commit/push anywhere.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
