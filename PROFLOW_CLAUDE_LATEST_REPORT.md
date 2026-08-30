@@ -4,129 +4,137 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Landing Prerender PoC — Real-Browser QA Completion Only
+## Task: Restore Safe Browser-Harness Environment — Diagnosis + Owner Setup Instructions Only
 
-**EFFORT LEVEL: MAXIMUM.** QA/verification only — no Phase 4 advance, no deploy, no commit/push, no unrelated fixes.
-
-**RESULT: REAL-BROWSER QA BLOCKED** (environment/tooling gap, correctly not bypassed — see below). Quality regression re-confirmed PASS. Zero code/config change of any kind.
+**EFFORT LEVEL: MAXIMUM.** Diagnosis and exact Owner setup instructions only — not the browser QA itself, and nothing was started, stopped, or configured this task.
 
 ---
 
-## FRESH LOCAL STATE
+## INSTALLED TOOLING
 
-**BRANCH**: `main`
+**BROWSER-HARNESS VERSION**: `0.1.10` (confirmed via `browser-harness --version`), installed via `uv tool` at `AppData/Roaming/uv/tools/browser-harness/Lib/site-packages/browser_harness/`.
 
-**LOCAL HEAD**: `e03001745859ae6b81f162a4af5bdca3c95cac5a`
+**SKILL**: `~/.claude/skills/browser-harness/SKILL.md` (read in full).
 
-**REMOTE MAIN**: `e03001745859ae6b81f162a4af5bdca3c95cac5a` (identical to local, confirmed via `git ls-remote origin main`)
+**DAEMON START COMMAND**: There is no separate literal "daemon start" subcommand. The daemon (`python -m browser_harness.daemon`) auto-spawns as a side effect of any *normal* script invocation — `browser-harness <<'PY' ...` (or, on Windows, piping a script into `browser-harness`) — run from a shell where `BH_REQUIRE_EXISTING_DAEMON` is **not** `"1"`. Confirmed by reading `admin.py`'s `ensure_daemon()`, which literally calls `subprocess.Popen([sys.executable, "-m", "browser_harness.daemon"], ...)`.
 
-**WORKING TREE**: unchanged from the end of the prior PoC task — all pre-existing carried-forward modified/untracked files present and untouched; no new files added or removed by this task.
+**DAEMON STATUS COMMAND**: `browser-harness --doctor` (human-readable) or `browser-harness doctor --json [--require-existing-daemon]` (machine-readable) — both confirmed working this task, both read-only.
 
-**POC FILE**: `src/entry-server.jsx` — still present, still uncommitted, unchanged. Prior scratchpad artifacts (`assemble.mjs`, `dist-poc/`, `serve.mjs`, `jsdom-check.mjs`) confirmed still present and intact.
-
----
-
-## BROWSER HARNESS
-
-**DAEMON: FAIL**
-
-**REAL BROWSER QA: BLOCKED**
-
-`browser-harness --doctor` reported Chrome running but no active daemon/connection (identical result to the prior task). A direct command failed with `required daemon 'default' is not running`. This session's `BH_REQUIRE_EXISTING_DAEMON=1` is set at the environment level by the trusted orchestrator (not by this session) — per the tool's own design, this makes every call health-check-and-reuse-or-fail-closed, and it never auto-starts or auto-discovers a browser.
-
-Investigated one step further than the prior task, staying strictly read-only, to distinguish "genuinely unavailable" from "just needs restarting":
-- `BU_CDP_URL=http://127.0.0.1:9222` is set in the environment, but a direct `curl` to that endpoint **failed to connect** — nothing is listening on that port.
-- Inspected actual running `chrome.exe` processes via `Get-CimInstance Win32_Process` (a read-only query, not a launch or configuration change). The only real Chrome window running is the user's own ordinary personal browsing profile (`--profile-directory="Profile 1"`), with **no** `--remote-debugging-port` flag anywhere in its command line. It is not a dedicated automation instance and was never configured as one in this session.
-
-**Correctly did not**: relaunch or reconfigure the user's live personal Chrome window to enable remote debugging (would both bypass the orchestrator's fail-closed policy and mutate the user's own active browser session — neither authorized by this task), start an unauthorized new daemon, or disable `BH_REQUIRE_EXISTING_DAEMON`. Per this task's own explicit instruction — *"If browser-harness genuinely cannot be made available safely: STOP and report BLOCKED. Do NOT substitute jsdom again and call the task PASS."* — real-browser QA is reported honestly as **BLOCKED**, and jsdom was **not** used again this task.
-
-**DESKTOP VIEWPORT**: not tested (blocked)
-
-**MOBILE VIEWPORT**: not tested (blocked)
+**DAEMON STOP COMMAND**: `browser-harness --reload` — documented in `--help` as *"stop the daemon so next call picks up code changes."* Confirmed via `admin.py`'s own code comment on `stop_remote_daemon()`: *"`restart_daemon` is misnamed — it only stops the daemon... a follow-up `browser-harness` call would auto-spawn a fresh one via `ensure_daemon()`."*
 
 ---
 
-## HE DESKTOP / EN DESKTOP / HE MOBILE / EN MOBILE
+## DEDICATED CHROME
 
-**NOT TESTED THIS TASK — BLOCKED.** No visual, RTL/LTR, CTA, pricing-toggle, FAQ, accessibility, or video-playback verification was performed in a real browser this task. The last available evidence for these remains the prior task's disclosed jsdom-based functional/DOM substitute (`PROFLOW_PROJECT_CONTEXT.md` §69), which is not a real-browser result and is not re-claimed as one here.
+**CHROME PATH**: `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe` (confirmed present via `Test-Path` → `True`).
 
----
+**DEDICATED PROFILE PATH**: `C:\Users\sales\ProFlow-BrowserHarness-Profile` (confirmed does **not** already exist via `Test-Path` → `False` — free to use, no collision).
 
-## CLIENT TAKEOVER
+**EXACT OWNER LAUNCH COMMAND**:
+```powershell
+& "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --user-data-dir="C:\Users\sales\ProFlow-BrowserHarness-Profile" --no-first-run --no-default-browser-check
+```
 
-**NOT RE-VERIFIED THIS TASK — BLOCKED** (same reason as above; §69's jsdom-based finding — byte-identical `#root` markup before/after real client-bundle execution for both locales — stands as the prior, disclosed, non-browser evidence, unchanged by this task).
+**REMOTE DEBUGGING BIND**: `127.0.0.1` only (loopback), made explicit via `--remote-debugging-address=127.0.0.1` — this is Chrome's own default when the flag is omitted; it is included for defense-in-depth clarity, not because omitting it would expose the port externally. No `0.0.0.0`, no LAN IP, no tunnel, no port-forward, no firewall change is recommended or needed.
 
----
-
-## CONSOLE / NETWORK
-
-**NOT VERIFIED THIS TASK — BLOCKED.** No browser session was available to inspect console errors, runtime exceptions, failed asset requests, or video-request behavior.
-
----
-
-## QUALITY
-
-**TESTS: PASS** — `npm run test` → 70/70 tests passed, unchanged from the prior task.
-
-**NORMAL BUILD: PASS** — `npm run build` completed cleanly.
-
-**PRERENDER BUILD: PASS** — `vite build --ssr src/entry-server.jsx --outDir dist-ssr` completed cleanly (9 modules, ~280ms); the generated artifact was deleted after use (gitignored, fully regenerable), as established in the prior task.
-
-**LINT: PASS** — `eslint . --ignore-pattern dist-ssr/**` → 0 errors. Only the same 6 pre-existing `react-hooks/exhaustive-deps` warnings from the prior task remain, in files this task never touched.
+**PERSONAL CHROME AFFECTED: NO** — a distinct `--user-data-dir` produces a fully independent Chrome process/profile by Chrome's own standard, documented design (separate cookies, history, extensions, process tree). It does not read, lock, or interfere with the Owner's `Default`/`Profile 1` directories. Multiple concurrent Chrome instances under different `--user-data-dir` values is a standard Chrome-supported configuration, confirmed consistent with how `browser-harness`'s own source (`PROFILES`-based multi-profile detection in `daemon.py`) already expects Chrome to be used.
 
 ---
 
-## KNOWN OPEN PRERENDER ITEMS
+## HOW THIS WAS DETERMINED (no command guessed)
 
-**ROOT `/` LANGUAGE**: **OWNER DECISION REQUIRED** — the PoC currently prerenders bare `/` as HE (a placeholder default, not a product decision). Not changed this task, per explicit instruction.
+Read `daemon.py`'s `get_ws_url()` directly: when `BU_CDP_URL` is set (it is — `http://127.0.0.1:9222`), the function **only polls that URL for 30 seconds and never launches Chrome under any circumstance**. Its own built-in timeout error message (line 251) is: *"is the dedicated automation Chrome running? Launch it with `--remote-debugging-port=<port> --user-data-dir=<dedicated dir>`"* — this is the tool's own authoritative instruction, not an inference.
 
-**STATIC TITLE**: **OPEN** — confirmed still generic/English across all three PoC output files (unchanged from prior task; not fixed this task, per explicit instruction).
+Read `admin.py`'s `ensure_daemon()`: all of its Chrome-launching behavior (`_launch_browser()`, opening `chrome://inspect`, handling the macOS "Allow" popup) is explicitly gated behind `if local and ...` where `local = _is_local_chrome_mode(env)` — none of it applies when `BU_CDP_URL` is set, confirming Chrome is connected to, never launched, in this environment.
 
-**STATIC META DESCRIPTION**: **OPEN** — same as above.
+Read `admin.py`'s `require_existing_daemon()` (the function this session's `BH_REQUIRE_EXISTING_DAEMON=1` routes to): its own docstring states *"Require a healthy existing daemon without spawning or reconnecting. Trusted orchestrators use this after they provision a scoped CDP transport. Failing closed prevents a later CLI call from silently discovering a different local Chrome when that orchestrator-owned daemon dies."* It never spawns anything, confirmed by its body (two checks only: `daemon_alive()` and one CDP health-check call).
 
-**STATIC HREFLANG**: **OPEN** — the PoC's manual per-route correction only covered `lang`/`dir`/canonical, never hreflang; remains generic/unset per-route.
+Checked whether `BH_REQUIRE_EXISTING_DAEMON=1` is a persistent Windows setting or specific to this session: `[Environment]::GetEnvironmentVariable('BH_REQUIRE_EXISTING_DAEMON','User')` and `'Machine'` both returned empty; only `'Process'` returned `1`. **This confirms the restriction is scoped only to this Claude Code session's own process tree** — a separately-opened PowerShell/CMD window the Owner runs themselves does not inherit it and runs `browser-harness` in normal, self-healing mode.
+
+Inspected `~/.config/browser-harness/runtime/` (read-only): `bu-default.pid` contained `5244`, confirmed stale (`Get-Process -Id 5244` returned nothing). `bu-default.log`'s earliest surviving lines show a genuinely working prior session: `connecting to ws://127.0.0.1:9222` → `listening on 127.0.0.1:49881 (name=default, remote=local)`, with later entries attached both to `127.0.0.1:9222/json/version` and a local ProFlow dev server (`localhost:5184/dashboard`) — confirming this exact architecture worked before, and containing zero evidence the daemon ever spawned Chrome itself.
 
 ---
 
-## OTHER OWNER OPEN ITEMS
+## OWNER PROCEDURE
 
-**HOT QUOTE FIXED GEOMETRY**: **OPEN / DOCUMENTED** (new this task) — Owner requirement: Hot Quote must occupy a fixed reserved slot; message rotation must never change page/dashboard geometry; long content must be constrained/truncated/clamped rather than growing component height (a few hidden/truncated characters acceptable; layout movement is not); must eventually be verified HE + EN and regression-protected. Not implemented, not investigated further this task — preserved exactly as stated.
+**STEP 1** — Open a normal PowerShell or Command Prompt window (a fresh one the Owner opens themselves — not this Claude Code session's terminal).
 
-**DESKTOP HE/EN CLIENT TYPE + VIEWS MIRRORING**: **OPEN / DOCUMENTED** (new this task) — Owner requirement: on Desktop (not just Mobile), HE/RTL must place Client Type + Views on the RIGHT, EN/LTR must place them on the LEFT — the Desktop equivalent of the already-established §63 Mobile semantic-mirroring rule. Not implemented, not investigated further this task — preserved exactly as stated.
+Run:
+```powershell
+& "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --user-data-dir="C:\Users\sales\ProFlow-BrowserHarness-Profile" --no-first-run --no-default-browser-check
+```
 
-**VERCEL LEGACY ROOT 308**: **OPEN** — `quotecode.vercel.app/he` and `/en` redirect correctly; bare `quotecode.vercel.app/` previously remained a stale-cached `200` across two prior verification passes (§67). Not re-checked this task (out of scope).
+**EXPECTED**: A new, separate Chrome window opens — visibly a brand-new empty profile (no bookmarks, extensions, or history from the Owner's normal browsing), distinct from the Owner's regular Chrome window, which remains untouched and can stay open the whole time.
 
-**APPROVED STATUS COLOR**: **TODO** — untouched.
+**STEP 2** — In any browser (including the new dedicated Chrome), open:
+```
+http://127.0.0.1:9222/json/version
+```
 
-**P1 / SESSION TIMEOUT**: **OPEN** — untouched, per §62's forensic audit.
+**EXPECTED**: A JSON response containing `"Browser": "Chrome/..."` and a `"webSocketDebuggerUrl"` field — confirms the dedicated Chrome's remote-debugging port is up and reachable.
 
-None of the five items above were implemented, redesigned, or otherwise acted on this task beyond this explicit preservation, exactly as instructed.
+**STEP 3** — In the **same** PowerShell/CMD window from Step 1 (or any other fresh window — just not this Claude Code session), run:
+```powershell
+"print(page_info())" | browser-harness
+```
+
+**EXPECTED**: Printed page info (URL/title of the dedicated Chrome's current tab, e.g. a blank new-tab page) — confirms the browser-harness daemon started and successfully attached to the dedicated Chrome.
+
+**STEP 4** — Run:
+```
+browser-harness --doctor
+```
+
+**EXPECTED**: `chrome running` ok, `daemon alive` ok, `active browser connections` ≥ 1 — the healthy state, in contrast to the `FAIL`/`0` state observed throughout the prior two tasks.
+
+Once Step 4 shows healthy, this Claude Code session's own `browser-harness --doctor --require-existing-daemon` should also report healthy on the next attempt, since it will find the now-alive, now-reachable daemon and reuse it (per `require_existing_daemon()`'s own documented "health-check and reuse" behavior).
+
+---
+
+## RESPONSIBILITY
+
+**OWNER-REQUIRED STEPS**:
+- **Step 1** (launch the dedicated Chrome) — recommended Owner-executed for this first restoration, so the Owner can see and trust the isolated window appear. Technically within Claude's tool capability once explicitly authorized for routine future restarts, but not attempted this task.
+- **Step 3** (bootstrap the daemon from an unrestricted shell) — **Owner-required, and NOT Claude-executable even with future authorization.** Performing this from within this session's own Bash tool would require stripping or overriding the `BH_REQUIRE_EXISTING_DAEMON=1` flag the orchestrator deliberately set on this session's process tree specifically to prevent it from self-provisioning a daemon. That is a bypass of the fail-closed design regardless of how it's phrased or authorized, and is treated as permanently out of bounds for this session — not merely deferred to a later task.
+
+**CLAUDE-CAN-EXECUTE-LATER**:
+- **Step 2** (verify `127.0.0.1:9222/json/version`) — a read-only GET request with zero side effects, the same class of check already used throughout this session's diagnostics.
+- **Step 4** (re-run `browser-harness --doctor`) — a read-only diagnostic, already used repeatedly this session.
+
+---
+
+## PERSISTENCE RECOMMENDATION
+
+**RECOMMENDED: YES**
+
+**METHOD**: a single Owner-facing `.bat`/`.ps1` launcher (e.g., double-click "Start ProFlow Review Browser") that (a) launches the dedicated Chrome with the exact flags above if not already running, (b) polls `127.0.0.1:9222/json/version` until reachable, (c) pipes one bootstrap script into `browser-harness` from that same unrestricted shell, (d) prints the final `--doctor` status.
+
+**WHY**: eliminates copy-paste risk across the 4 manual steps above and makes this fully repeatable every session, **without weakening fail-closed behavior in any way** — `BH_REQUIRE_EXISTING_DAEMON=1` remains scoped only to this Claude Code session's own process tree (confirmed process-local, not User/Machine-persisted) regardless of whether such a launcher exists elsewhere on the machine. **Not created this task**, per explicit instruction — evaluation only.
 
 ---
 
 ## SAFETY
 
-**CODE FIXES: NONE**
-
-**COMMIT: NONE**
-
-**PUSH: NONE**
-
-**PREVIEW DEPLOY: NONE**
-
+**PERSONAL CHROME MODIFIED: NO**
+**PROCESS STARTED: NO**
+**PROCESS STOPPED: NO**
+**ENVIRONMENT CHANGED: NO**
+**PROJECT FILES CHANGED: NO**
 **TEST MUTATED: NO**
-
 **PRODUCTION MUTATED: NO**
+**COMMIT: NO**
+**PUSH: NO**
+**DEPLOY: NO**
 
 ---
 
-## DECISION
+## CURRENT STATUS
 
-**BROWSER QA: BLOCKED**
+**BROWSER ENVIRONMENT: STILL BLOCKED** — exactly as it was at the end of the prior (Real-Browser QA Completion) task. This task performed diagnosis and produced a verified setup procedure only; it does not claim or imply the environment has been restored.
 
-**READY FOR PHASE 4 PREVIEW: NO** — not because the architecture is deficient (no technical blocker was found by either this task or the prior one), but because the task's own required real-browser visual/interactive QA step could not be completed in this environment. A future session with a working, safely-provisioned browser-automation daemon should complete the still-outstanding real-browser checks (HE/EN × Desktop/Mobile visual + interaction + video playback + console/network) before Phase 4 is considered ready.
+**NEXT ACTION**: Owner reviews the procedure above and, if approved, executes Steps 1 and 3 from their own PowerShell/CMD window (outside this Claude Code session). Once the Owner confirms Step 4 shows healthy, a follow-up task can complete the still-outstanding real-browser Landing Prerender QA (§70).
 
-**BLOCKERS**: `browser-harness` has no reachable CDP endpoint in this session (`BU_CDP_URL=127.0.0.1:9222` unreachable; the user's only running Chrome window has no remote-debugging flag) and `BH_REQUIRE_EXISTING_DAEMON=1` correctly prevents this session from auto-provisioning one. Resolving this requires either an operator/orchestrator provisioning a proper automation-enabled Chrome/daemon for a future session, or the Owner running the visual QA manually.
+**Preserved open items, unchanged, not acted on this task**: Landing prerender real-browser QA — BLOCKED pending Browser Harness restoration. Landing Phase 4 Preview — NOT AUTHORIZED. Hot Quote fixed geometry — OPEN. Desktop HE/EN Client Type + Views mirroring — OPEN. Vercel legacy root 308 — OPEN. Approved Status Color — TODO. P1 / Session Timeout — OPEN.
 
 **CONTINUITY READ-BACK: PASS** (this sync — see below)
 
@@ -134,4 +142,4 @@ None of the five items above were implemented, redesigned, or otherwise acted on
 
 ## FINAL STOP
 
-**DO NOT START PHASE 4.** Not started. No deploy, no Vercel/DNS/Supabase change, no commit, no push occurred. Results, including the full Owner open-item checkpoint, returned to Owner + ChatGPT.
+**DO NOT restore/start anything yet.** Nothing was started, stopped, or configured this task. This verified setup procedure is returned to Owner + ChatGPT for review.
