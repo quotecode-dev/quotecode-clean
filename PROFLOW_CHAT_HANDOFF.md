@@ -962,6 +962,37 @@ current features now. Verdict: `FUTURE INVOICE READINESS DOCUMENTED: PASS`,
 `ITEM 30 MIXED PRICING CLARIFICATION: PASS`, `INDUSTRY ≠ PRICING MODEL
 RULE: PASS`. Full detail: `PROFLOW_HANDOFF.md` §18 step (40).
 
+## 10.AD Trial Expiration → FREE — Full Entitlement Audit + TEST Fix (added 2026-08-30)
+
+Owner final product decision, implemented and TEST-verified: an expired
+Trial without a valid paid subscription must become effectively FREE, not
+just visually. Re-confirmed the root cause (signup writes `plan:'pro'` once,
+never reverted; `effectivePlan` stayed `'pro'` forever regardless of trial
+expiry) and proved, from the RLS/trigger audit, that this specific
+transition is safely distinguishable from a genuine paid grant — no schema
+invention needed. New centralized `src/utils/planEntitlements.js`
+(`computeEffectivePlan`) is now the single source of truth. **Found and
+fixed three real, independently-duplicated formula bugs**: `Dashboard.jsx`'s
+own `effectivePlan` (root cause), `SettingsTab.jsx`'s Logo-upload gate (was
+raw `bizPlan`), and `QuoteForm.jsx`'s Attachments gate (was raw
+`userPlan`/`bizPlan`, newly found, not previously documented). Also removed
+`QuoteForm.jsx`'s submit-button blanket `isTrialExpired` disable, which
+blocked ALL quote creation once trial expired — stricter than FREE,
+contradicting the Owner's rule; the existing quota/edit gates now correctly
+enforce FREE limits instead. `AdminUsersTab.jsx`/`UserDetailsModal.jsx` have
+the same bug class — disclosed, not touched, per the standing "NO Admin
+work" boundary. Backend enforcement re-confirmed frontend-only (unchanged,
+disclosed, not expanded into a redesign). TEST-verified live, both markets,
+via CDP network-response interception — **zero TEST database mutation**:
+active-trial regression PASS, expired-trial correctly resolves to FREE
+(Logo/Attachments blocked, submit button not blanket-disabled), 5-quote
+monthly limit correctly blocks a 6th attempt. 14 new unit tests
+(`planEntitlements.test.js`), 70/70 total pass, lint clean, build succeeds.
+Full matrix: `PROFLOW_PROJECT_CONTEXT.md` §51. Item 31 also extended
+(documentation only) with purple-numbering and Project→Section→Items
+clarifications. Verdict **TRIAL EXPIRATION → FREE: PASS**. Full detail:
+`PROFLOW_HANDOFF.md` §18 step (41).
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -1152,7 +1183,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Documentation-Only Product Direction Update task — supersedes the TEST Subscription Personas, Item 27, Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AC, "Documentation-Only Product Direction Update — Invoice Readiness + Item 30 Mixed Pricing" — a pure documentation task (zero code/DB/mutation) recording `PROFLOW_TODO.md` §30.B ("Industry Is Not Pricing Model" — mixed pricing methods per quote item) and item 32 (Invoice/Accounting Document Readiness, an explicitly NOT-authorized future strategic direction, readiness-only). Preceded by §10.AB (TEST Subscription Personas Audit), §10.AA (Item 27), §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). Verdict `FUTURE INVOICE READINESS DOCUMENTED: PASS`, `ITEM 30 MIXED PRICING CLARIFICATION: PASS`, `INDUSTRY ≠ PRICING MODEL RULE: PASS`. **NEXT ACTION**: the §17.J documentation sync for §10.AC itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (40). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA/§10.AB/§10.AC for full detail.
+**🟢 UPDATED 2026-08-30 (Trial Expiration → FREE task — supersedes the Documentation-Only Product Direction Update, TEST Subscription Personas, Item 27, Item 26 Owner QA Micro-Fix, Item 26 Final UI Refinement, Client Type Badge, and Package-1 paragraphs below for "what is current right now"; all remain accurate history, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.AD, "Trial Expiration → FREE — Full Entitlement Audit + TEST Fix" — Owner final product decision, implemented and TEST-verified: an expired Trial without a valid paid subscription now genuinely resolves to FREE entitlements everywhere (not just a visual change), via a new centralized `computeEffectivePlan` source of truth (`src/utils/planEntitlements.js`) that fixed three independently-duplicated formula bugs (`Dashboard.jsx`, `SettingsTab.jsx`, `QuoteForm.jsx`) plus an over-strict submit-button block. TEST-verified live, both markets, with **zero TEST database mutation** (CDP network-response interception). Full matrix: `PROFLOW_PROJECT_CONTEXT.md` §51. Preceded by §10.AC (Invoice Readiness + Mixed Pricing docs), §10.AB (TEST Subscription Personas Audit), §10.AA (Item 27), §10.Z (Item 26 Owner QA Micro-Fix), §10.Y (Item 26 Final UI Refinement), §10.X (Continuity Sync Failure Audit + Recovery). Verdict `TRIAL EXPIRATION → FREE: PASS`. **NEXT ACTION**: the §17.J documentation sync for §10.AD itself, plus remote GitHub read-back verification, is the pending action at the end of this same task — see `PROFLOW_HANDOFF.md` §18 step (41). Otherwise awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across any of these tasks. See §10.X/§10.Y/§10.Z/§10.AA/§10.AB/§10.AC/§10.AD for full detail.
 
 **🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 

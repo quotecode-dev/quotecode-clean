@@ -1159,7 +1159,7 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **No implementation, and no design work, is authorized by recording this item.**
 
-## 31. Additional Notes — Future Multi-Column Display (added 2026-08-30, TEST Subscription Personas audit task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
+## 31. Additional Notes — Future Multi-Column Display (added 2026-08-30, TEST Subscription Personas audit task; extended 2026-08-30, Trial Expiration -> FREE task — Owner-approved future UI requirement, DOCUMENTATION ONLY)
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED.**
 
@@ -1171,7 +1171,17 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **Required before implementation**: an audit of exactly how Additional Notes are stored and parsed today (confirmed above as a single unstructured text block) and a backward-compatibility plan for every existing quote's `notes` value under whatever new structured/numbered representation is eventually chosen.
 
-**No implementation, and no design work, is authorized by recording this item.**
+**Design clarifications (added 2026-08-30, Trial Expiration -> FREE task, documentation only — no implementation in either the originating task or this extension)**:
+
+**A. Purple sequence-number styling**: only the sequence marker itself (`1.`, `2.`, `3.`, ...) should render in ProFlow purple — the item's own content text stays the normal body text color. Concept: `1. <normal text>` / `2. <normal text>` / `3. <normal text>`, where only `1.`/`2.`/`3.` carry the purple accent.
+
+**B. Semantic hierarchy — Project → Section → Items**: Additional Notes may contain a real semantic structure beyond a flat numbered list, e.g. (Owner's own example, translated): a Project heading ("Project: Holon Project"), a Section heading under it ("Section: Apartment 33"), then individual Items under that Section ("Vitrine ...", "Window ..."). Automatic sequence numbering (per requirement A/desktop 3-column layout above) belongs to the **Items** level specifically — Project and Section headings are not automatically numbered.
+
+**C. The hierarchy must stay generic — not aluminum/industry-specific.** Example possible Section groupings (non-exhaustive, illustrative only, not a fixed enum): apartment, floor, room, branch, site, department, phase, or any other business-specific grouping the eventual design allows for.
+
+**D. Must be designed together with future Item 30 awareness.** Do not rush into converting today's free-text textarea into a rigid schema that could conflict with the future Industry/Measurement/Pricing Engine (item 30) — a full audit/design pass is required before implementation, and that design should account for both item 31's own hierarchy needs and item 30's eventual data model, rather than choosing a structure for one in isolation that later has to be reworked for the other.
+
+**No implementation, and no design work, is authorized by recording this item — this update is documentation only, same as the item's original recording.**
 
 ## 32. Future Strategic Direction — Invoice / Accounting Document Readiness (added 2026-08-30, Documentation-Only Product Direction Update task — NOT an authorized implementation workstream)
 
