@@ -148,3 +148,9 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 **NO Admin work. NO Item 28/30/31 implementation. NO Vercel routing change. NO Production deploy. NO Production mutation. NO LIVE action. NO width change (locked as-is, per Owner approval). NO Trial Notice change. NO amount typography change.**
 
 **Awaiting Owner + ChatGPT visual/security review before any application commit/push.**
+
+## Amendment (same-session Owner Visual QA — Mobile Views Zero-Value Fix)
+
+The Owner reviewed the Mobile grid above and confirmed the structural direction is correct, with one remaining defect: the Views track conditionally hid its content entirely when `view_count` was `0`, which the Owner correctly flagged as a violation of "fixed column" itself — zero is a valid value, not an absent one. **Narrow fix**: `QuotesTab.jsx`'s mobile `viewsEl` now always renders the eye icon + count (`{quote.view_count || 0}`), no other change. Live-verified, both markets, 360/390/412px, cards spanning 0/1/2/6/8 views: the Views track's X-position is byte-identical across every row regardless of displayed value (confirmed via direct text-content + bounding-box inspection). No other geometry, column, width, sort, typography, or LOCKED behavior touched. 70/70 tests still pass, lint clean. Still IMPLEMENTED/TEST-VERIFIED/AWAITING OWNER VISUAL APPROVAL — this correction does not itself grant LOCKED status.
+
+**Awaiting Owner visual approval.**
