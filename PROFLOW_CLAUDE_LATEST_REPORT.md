@@ -8,130 +8,81 @@
 
 ---
 
-## Task: PROFLOW — Continuity Cleanup + Permanent One-Line Bootstrap Contract
+## Task: PROFLOW — Record Attn / Contact-Person Requirement in TODO
 
-### A. Effort Level
+### 1. Effort Level
 
-**HIGH.** Documentation/continuity work only, exactly as scoped — no application code, migration, SQL, TEST, Production, Auth, Storage, Edge Function, Vercel, or runtime configuration change; no commit/push to `main`; no LIVE authorization.
+**MEDIUM.** Documentation/continuity update only — no application implementation, no database change, no TEST/Production mutation, no deploy, no `main` commit/push, and Phase 3/Storage explicitly not begun.
 
-### B. Exact Continuity Ref Read
+### 2. Continuity Bootstrap
 
-`ref = proflow-continuity`, verified via `git fetch` + `HEAD == origin/proflow-continuity == 3e1e781d11a58300fe757c874e4e196af73688af` (the exact state left by the immediately-preceding Phase 2 apply task) before any file was read. All six files confirmed present and readable — `CONTINUITY BOOTSTRAP INCOMPLETE` never triggered.
+`ref = proflow-continuity`, verified via `git fetch` + `HEAD == origin/proflow-continuity == d77023a904c8cc154ea81cbda907912218ad4786` (the exact state left by the immediately-preceding Continuity Cleanup task) before any file was read. All six files confirmed present and readable.
 
-### C. Fresh Local State
+### 3. Fresh Local State
 
-- Current branch: `main`
-- `git status --short`: `M .gitignore`, `M PROFLOW_ARCHITECTURE.md`, `M PROFLOW_CHAT_HANDOFF.md`, `M PROFLOW_CLAUDE_LATEST_REPORT.md`, `M PROFLOW_HANDOFF.md`, `M PROFLOW_PROJECT_CONTEXT.md`, `M PROFLOW_TODO.md`, `?? supabase/migrations/`, `?? supabase/quote_number_backfill.sql`, `?? supabase/quote_number_counter_init.sql` — identical baseline to every prior task in this window, no new drift.
-- `git log -1`: commit `17ac4d3a950d96f4167f9b320c82b4798382d621`, `docs: record application release-candidate commit` (Shlomo, 2026-08-28).
-- `HEAD`: `17ac4d3a950d96f4167f9b320c82b4798382d621`
-- `origin/main`: `17ac4d3a950d96f4167f9b320c82b4798382d621` (matches HEAD, unchanged)
-- `origin/proflow-continuity`: `3e1e781d11a58300fe757c874e4e196af73688af` (matched by the continuity worktree's own HEAD at task start)
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short` identical baseline to every prior task this window — no new drift.
 
-No pre-existing working-tree state was altered, reset, or cleaned.
+### 4. Reconciliation Finding (the substantive part of this task)
 
-### D. Every Stale 3/4/5-Document Reference Found and Its Classification
+`PROFLOW_TODO.md` item 18 already existed with a **🟢 IMPLEMENTED, application code now COMMITTED and LIVE on the frontend (`ffc741d`)** status, recorded during the 2026-08-28 Baseline Closure Pass — a genuine, evidence-based record: frontend form/persistence/display code committed and, per the confirmed Vercel auto-deploy behavior, actually running in Production; the DB migration never applied; the feature never live-verified end to end (both caveats already present in that same historical record).
 
-A full grep audit across all six files (not a blind global replace — every occurrence individually read in context before classification):
+This task's own instruction explicitly required recording the status as **"OPEN / NOT IMPLEMENTED OR FULLY VERIFIED"** and explicitly warned against inferring implementation merely from DB columns existing. Rather than silently overwrite or contradict the already-verified historical record — which would violate the standing "documentation is never rewritten to make old history match current state" principle — the two were **reconciled, not replaced**:
 
-**Class A — CURRENT OPERATING RULE, stale, corrected (13 total):**
+- The existing detailed implementation record (frontend committed/live, schema-fallback pattern, duplicate/edit-flow re-verification, the email-body decision) was left **completely intact** as accurate history.
+- A new status line and a new "Fresh full requirement (Owner, 2026-08-30)" block were added **above** it, honestly stating the overall current status is OPEN — because the DB migration is still not live and the feature has never been end-to-end live-verified (both already-true facts, not new information, so this is not a downgrade of anything actually proven) — while directing that future implementation work must audit the complete current flow (creation/editing → persistence → display → Public Quote → PDF/Print) against the fresh, more complete specification rather than assuming the 2026-08-28 pass already satisfies it.
 
-| # | File | Location | Was | Fixed to |
-|---|---|---|---|---|
-| 1 | `PROFLOW_TODO.md` | Opening line | "one of the project's three permanent continuity documents" (3-item list) | Six documents, full list |
-| 2 | `PROFLOW_CHAT_HANDOFF.md` | §3 Permanent Safety Rules | "reconcile the four canonical project documents" | "reconcile all six canonical project documents" |
-| 3 | `PROFLOW_PROJECT_CONTEXT.md` | §17 title + body | "corrected to five documents", "requires FIVE documents", five-item reading order from "current default-branch" | Shortened to a pointer at §0.C/§0.D, historical framing preserved |
-| 4 | `PROFLOW_PROJECT_CONTEXT.md` | §17.A | Five-file reading order duplicated in the magic-phrase contract | Shortened to point to §0.D; new trigger phrase added alongside the existing Hebrew one |
-| 5 | `PROFLOW_PROJECT_CONTEXT.md` | §17.B | "the four canonical technical documents" | "the other five canonical documents" (six total) |
-| 6 | `PROFLOW_PROJECT_CONTEXT.md` | §17.C golden rule | "does not replace any of the five canonical documents" | "the other five canonical documents" (six total) |
-| 7 | `PROFLOW_PROJECT_CONTEXT.md` | §17.C trigger note | "never part of the five-document Bootstrap reading order" — **substantively wrong, not just a count**: this file *is* now read on every bootstrap | Corrected to state it IS part of the six-file bootstrap; the "קלודי סיים" trigger is a separate, narrower, on-demand shortcut |
-| 8 | `PROFLOW_PROJECT_CONTEXT.md` | §17.E | "review all five canonical documents" + 5-item list missing `PROFLOW_CLAUDE_LATEST_REPORT.md` | Six-item list, cross-referenced to §0.B.D |
-| 9 | `PROFLOW_PROJECT_CONTEXT.md` | §35 | "formally recognized as the third primary continuity document" | Reworded to avoid the stale "third of how many" framing |
-| 10 | `PROFLOW_PROJECT_CONTEXT.md` | §38.F | "indexed via the standard four-document reading order" | "the standard six-document bootstrap (§0.A, §0.D)" |
-| 11 | `PROFLOW_PROJECT_CONTEXT.md` | §39 title | "Pre-Task Four-Document Read..." (title didn't match the already-six-document body from an earlier task's fix) | Renamed "Pre-Task Six-Document Read..." |
-| 12 | `PROFLOW_PROJECT_CONTEXT.md` | §42 | Cross-reference "§39 (Four-Document Pre-Read...)" | Updated to match §39's corrected title |
-| 13 | `PROFLOW_ARCHITECTURE.md` | §19 closing section | "source of truth for all three project documents" | "all six canonical project documents (§0.A/§0.B...)" |
+### 5. Exact TODO Content Added
 
-**Class B — HISTORICAL RECORD, preserved (the large majority of occurrences):** every instance inside `PROFLOW_HANDOFF.md`'s chronological history — spot-checked §18.Z (the original P0 continuity-system creation entry) and confirmed it genuinely describes the file count as it stood at that point in the project's real evolution (dozens of further lettered entries through the P0.x/§18.AA-BY range follow the same pattern, describing 3→4→5→6 as the system actually grew) — plus `PROFLOW_PROJECT_CONTEXT.md`'s own §26.A/§27/§28 (§28 explicitly marked `[HISTORICAL — SUPERSEDED AS OF 2026-08-27]`) and `PROFLOW_TODO.md`'s item 20 audit note ("searched... all four project documents" — describing what was literally searched during a specific named past pass, the Baseline Closure Pass 2026-08-28). None of these were touched — rewriting them would falsify history, directly contradicting `PROFLOW_HANDOFF.md`'s own stated permanent design principle ("never rewritten to make old history match current architecture").
+Recorded verbatim in substance under item 18: the "לכבוד:" (customer/company) vs. "לידי:" (specific contact person) distinction; contact name/role-title/Attn fields at quote creation/edit time; the primary use case (same customer/company, different quotes to different contacts or roles, no duplicate customer/company records); the quote-specific (not client-linked) data behavior and historical-preservation requirement (already consistent with, and now reconfirmed against, the pre-existing "quote-level, not client-linked" principle already on record from the original audit); HE requirement (Hebrew/RTL, "לכבוד:"/"לידי:", role/title where supplied); EN requirement (equivalent English/LTR "To:"/"Attn:" semantics); and the explicit provenance note that the competitor screenshot the Owner showed is product inspiration/business reference only, never to be documented as an existing or former ProFlow implementation.
 
-**Class C — EXPLICITLY SUPERSEDED/TIME-FRAMED, left as-is (1 occurrence):** `PROFLOW_PROJECT_CONTEXT.md` §42 — "Introduced after the Global Surface... Audit (2026-08-28) found no equivalent rule existed anywhere in the four canonical documents" — grammatically and explicitly framed as describing that 2026-08-28 audit's own finding at that specific time, not a current claim about today's document count. Left unedited; low risk of misleading a reader given the explicit dating.
+### 6. Pre-Implementation Audit Requirement Recorded
 
-### E. Exact Files Changed and Why
+The corrected item 18 explicitly states: before any future implementation, audit the complete current flow (quote creation/editing → persistence → quote display → Public Quote → PDF/Print) against the fresh requirement — do not assume the 2026-08-28 pass already satisfies it in full. Database columns (`attn_name`/`attn_role`) existing locally or on `quotecode-test` are explicitly recorded as existing technical groundwork only, not proof of a complete UI/product flow.
 
-- `PROFLOW_TODO.md` — fixed its stale opening self-description (#1 above); added a status pointer for this task.
-- `PROFLOW_CHAT_HANDOFF.md` — fixed its stale §3 safety-rule reference (#2 above).
-- `PROFLOW_ARCHITECTURE.md` — fixed its stale §19 reference (#13 above).
-- `PROFLOW_PROJECT_CONTEXT.md` — the primary change: added new §0.D (Permanent One-Line Bootstrap Contract) and §0.E (Independent ChatGPT Six-File Verification Rule); fixed 11 further stale references (#3–#12 above); consolidated §17/§17.A to point to §0.D rather than duplicate it.
-- `PROFLOW_HANDOFF.md` — new §18.CS entry recording this task in full; Phase 2's own prior entries left untouched.
-- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this report.
+### 7. Six-File Continuity Reconciliation
 
-No application code, migration, SQL, `.env`, or Vite configuration file was touched.
+- `PROFLOW_TODO.md`: item 18 updated as described (§4–§6).
+- `PROFLOW_HANDOFF.md`: new §18.CT entry added recording this task and its reconciliation reasoning in full.
+- `PROFLOW_ARCHITECTURE.md`: its one Attn mention (TEST migration-chain composition, §1.A) is purely factual about what's applied to `quotecode-test` and remains fully consistent with the corrected status — no change required.
+- `PROFLOW_CHAT_HANDOFF.md`: its Attn mentions (§10's "Attn/לידי LIVE migration" open-item note; the release-candidate commit list noting "Attn fields" were part of `ffc741d`; the "silent, unannounced Attn/Role data-loss caveat" note) are all already fully consistent with — and in the data-loss case, directly reinforce — the corrected OPEN status. No change required.
+- `PROFLOW_PROJECT_CONTEXT.md`: its few Attn mentions are generic examples used when describing cross-market review scope (e.g. "recipient/Attn" as one of several surfaces an HE/EN split should cover) — unaffected by this task, no change required.
+- `PROFLOW_CLAUDE_LATEST_REPORT.md`: this report — rewritten fresh, per the standing rule.
 
-### F. Exact Final One-Line Trigger
+### 8. Secret/Privacy Scan
 
-> **"המשך פרויקט ProFlow"**
+No password, access token, API key, service-role key, anon key, or connection-string value appears anywhere in this report or the documentation edits made this task. **PASSED.**
 
-Recorded in `PROFLOW_PROJECT_CONTEXT.md` §0.D.A as fully equivalent to the pre-existing Hebrew magic phrase ("ProFlow — תמשיך מהנקודה האחרונה", §17.A) and its English equivalent ("ProFlow — continue from where we left off") — none deprecated; all three invoke the identical §0.D contract.
+### 9. Final Git State
 
-### G. Where the Permanent Bootstrap Contract Now Lives
+`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. No new untracked path, no staged file, no commit created in the primary working tree.
 
-`PROFLOW_PROJECT_CONTEXT.md` §0.D, immediately after the existing §0.C (Bootstrap Safety). It is deliberately **stable process/rules text**, not project state: it names the six canonical files, requires reading them from `ref = proflow-continuity`, requires `CONTINUITY BOOTSTRAP INCOMPLETE` on failure, requires an independent six-file reconciliation (never trusting a prior session's own PASS/ledger by itself), requires distinguishing documented state from fresh local state, requires preserving every existing permanent rule **by reference** (not duplicating their text), forbids any change during bootstrap, and requires reporting `BOOTSTRAP: VERIFIED` or `BOOTSTRAP: BLOCKED`. Normal project progress will **not** require changing the trigger or this contract, because: (1) the contract contains no project-state facts — it only points to where the six canonical files (which *do* carry changing state) live and how to read them; (2) it will only need revision if the continuity architecture itself changes (a seventh file added, the transport branch changed, etc.) — not when ordinary work happens; (3) the old §17/§17.A sections were consolidated to point here rather than left as a second, competing instruction set that could drift independently.
+### 10. Confirmations
 
-### H. Independent ChatGPT Six-File Verification Rule — Confirmed Permanently Recorded
+No application code changed. No database change. No TEST mutation. No Production mutation. No deploy. No `main` commit. No `main` push. No LIVE action. Phase 3/Storage not begun.
 
-`PROFLOW_PROJECT_CONTEXT.md` §0.E states explicitly: after every meaningful Claude task, Claude still provides the Six-File Continuity Ledger (§0.B.D, unchanged) — but separately, when ChatGPT reviews a reported-finished Claude task, **ChatGPT must independently read and reconcile the six files itself** before approving progression to the next meaningful phase; Claude's own PASS verdict or ledger is explicitly stated as **not, by itself, sufficient evidence**. The rule states it "survives future chat/session boundaries" and is not a one-time instruction.
+---
 
-### I. Confirmation Phase 2 Status Remains Unchanged and Correctly Represented
-
-Verified via direct grep against the current state of `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, and `PROFLOW_CHAT_HANDOFF.md` before and after this task's edits: `PHASE 2 APPLY: PASS — DATABASE BASE PACKAGE LIVE ON TEST` remains present and unaltered everywhere it was recorded; Files 00/01/02 remain described as "APPLIED TO TEST + VERIFIED"; File 03/Storage remains described as "NOT applied" (confirmed via `remote:""`, zero bucket, zero storage policy — unchanged text); Production remains described as untouched throughout. No wording was broadened into implying any authorization beyond what Phase 2 actually granted. This task's own new §18.CS entry explicitly reconfirms this rather than restating or altering the Phase 2 facts.
-
-### J. Agent HE Verdict
-
-**PASS.** Confirmed §0.D/§0.E preserve every Local/Israel-relevant rule by reference (Agent HE ownership, HE/EN Ledger, TEST≠Production), confirmed the new Hebrew trigger phrase is grammatically natural ("Continue [the] ProFlow project," consistent with common terse Hebrew command-phrase idiom), confirmed the pre-existing Hebrew magic phrase is unaltered and explicitly declared equivalent to the new trigger, and confirmed the count-fix edits in the other three files are surgical with zero effect on §37 (Hebrew RTL/English LTR Parity) or any market-architecture content.
-
-### K. Agent EN Verdict
-
-**PASS.** Independently confirmed the same preservation-by-reference facts from the International angle, confirmed the bootstrap contract is market-neutral English text with zero ₪/Hebrew-only leakage, confirmed the English trigger-phrase equivalent ("ProFlow — continue from where we left off") is preserved and not demoted, and confirmed §0.B.H (Status-terminology discipline, from an earlier task) is intact and unaffected by the new §0.D/§0.E insertion.
-
-### L. Claude Lead Reconciliation
-
-No disagreement between agents. Both independently corroborate: the new bootstrap sections preserve every existing permanent rule by reference rather than duplicating or weakening any of them; every count-fix edit across the other three files is surgical, touching only the stale count/list text with zero side effect on surrounding market-specific content; and no market bias exists anywhere in the new bootstrap contract's process text.
-
-### M. Confirmations
-
-- No application code changed.
-- No migration/SQL changed (the migrations directory was not touched this task).
-- No TEST mutation.
-- No Production mutation.
-- No Auth/Storage/Edge Function mutation.
-- No Vercel action.
-- No `main` commit.
-- No `main` push.
-- No deploy.
-- No LIVE action.
-
-All confirmed by direct evidence: zero Supabase CLI command was run this task (documentation-only, no target guard needed); `git status --short` before/after shows only the six documentation files (plus the pre-existing, untouched `.gitignore`/migrations/scripts baseline) modified; `HEAD == origin/main` unchanged throughout.
-
-### N. Six-File Continuity Ledger
+## SIX-FILE CONTINUITY LEDGER
 
 **FILE**: `PROFLOW_PROJECT_CONTEXT.md`
-**STATUS**: UPDATED
-**REASON**: Added new §0.D (Permanent One-Line Bootstrap Contract, trigger "המשך פרויקט ProFlow") and §0.E (Independent ChatGPT Six-File Verification Rule); fixed 11 stale three/four/five-document references (§17/§17.A/§17.B/§17.C/§17.E/§35/§38.F/§39/§42), one of which was substantively wrong (§17.C's claim that `PROFLOW_CLAUDE_LATEST_REPORT.md` is never part of the bootstrap reading order).
+**STATUS**: REVIEWED — NO CHANGE REQUIRED
+**REASON**: Its Attn mentions are generic cross-market-review-scope examples, unaffected by this backlog-content update; no permanent rule or architecture claim needed correction.
 
 **FILE**: `PROFLOW_CHAT_HANDOFF.md`
-**STATUS**: UPDATED
-**REASON**: Fixed the confirmed-stale §3 Permanent Safety Rules reference ("reconcile the four canonical project documents" → six).
+**STATUS**: REVIEWED — NO CHANGE REQUIRED
+**REASON**: Its existing Attn references (the open-item note, the commit-history note, the data-loss caveat) are already fully consistent with the corrected OPEN status — nothing to reconcile.
 
 **FILE**: `PROFLOW_ARCHITECTURE.md`
-**STATUS**: UPDATED
-**REASON**: Fixed a stale §19 reference ("three project documents" → six canonical project documents, cross-referenced to `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B).
+**STATUS**: REVIEWED — NO CHANGE REQUIRED
+**REASON**: Its one Attn mention describes `quotecode-test`'s applied migration chain factually and is unaffected by this documentation-only TODO correction.
 
 **FILE**: `PROFLOW_HANDOFF.md`
 **STATUS**: UPDATED
-**REASON**: New §18.CS entry recording this task's full audit, classification table, and the two new permanent sections — consistent with this file's append-only chronological-log role. Phase 2's own prior entries were verified unchanged, not edited.
+**REASON**: New §18.CT entry added recording this task's reconciliation of the Owner's fresh requirement against the pre-existing, genuinely-verified 2026-08-28 implementation record — explaining why the status was corrected without contradicting or deleting history.
 
 **FILE**: `PROFLOW_TODO.md`
 **STATUS**: UPDATED
-**REASON**: Fixed the confirmed-stale opening self-description ("one of the project's three permanent continuity documents" → six, with the full list); added a brief status pointer for this task, consistent with every prior task's completion-tracking pattern in this file.
+**REASON**: Item 18's status corrected to "OPEN / NOT IMPLEMENTED OR FULLY VERIFIED" and the Owner's fresh, more complete requirement specification recorded, while the existing detailed implementation history was preserved intact rather than overwritten.
 
 **FILE**: `PROFLOW_CLAUDE_LATEST_REPORT.md`
 **STATUS**: UPDATED
@@ -141,18 +92,16 @@ All confirmed by direct evidence: zero Supabase CLI command was run this task (d
 
 ## Required Verdict
 
-**CONTINUITY CLEANUP: COMPLETE.** Two confirmed-stale references fixed, 11 further stale references found and fixed via full six-file audit (each individually classified, not a blind global replace), and the Permanent One-Line Bootstrap Contract (§0.D) plus the Independent ChatGPT Six-File Verification Rule (§0.E) are now permanently recorded in `PROFLOW_PROJECT_CONTEXT.md`. Phase 2 state (`PHASE 2 APPLY: PASS — DATABASE BASE PACKAGE LIVE ON TEST`, Files 00/01/02 applied+verified, File 03 not applied, Production unchanged) remains intact and correctly represented everywhere. Both Agent HE and Agent EN returned PASS. No code, DB, TEST, Production, Auth, Storage, Edge Function, or Vercel change occurred; no commit/push to `main`; no LIVE action.
+**DOCUMENTATION/CONTINUITY UPDATE COMPLETE.** Item 18 (Quote Attention Contact) now accurately reads OPEN / NOT IMPLEMENTED OR FULLY VERIFIED, with the Owner's fresh full requirement recorded and the pre-existing, genuinely-verified 2026-08-28 implementation history preserved as reconciled context, not contradicted or deleted. All six canonical files reviewed; two updated, four reviewed with no change required. No implementation occurred. No Phase 3/Storage work begun.
 
 ---
 
-NO APPLICATION CODE CHANGED
-NO MIGRATION/SQL CHANGED
+NO APPLICATION IMPLEMENTATION
+NO DATABASE CHANGE
 NO TEST MUTATION
 NO PRODUCTION MUTATION
-NO AUTH/STORAGE/EDGE FUNCTION MUTATION
-NO VERCEL ACTION
+NO DEPLOY
 NO MAIN COMMIT
 NO MAIN PUSH
-NO DEPLOY
 NO LIVE ACTION
 DO NOT BEGIN PHASE 3 / STORAGE
