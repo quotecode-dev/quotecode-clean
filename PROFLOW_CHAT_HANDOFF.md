@@ -495,6 +495,41 @@ via explicit `/he`/`/en` routes — the gap doesn't need to block functional
 validation, but should be tracked as its own separate fix. Zero mutation
 this task — no code, Auth, DB, Storage, or Production action.
 
+## 10.Q Item 25 — Automatic Post-Login Market Routing Fix implemented
+(added 2026-08-30, local working tree only)
+
+The minimal shared fix for §10.P's gap. A new pure function
+`getMarketRoutingCorrection` (`src/utils/regionConfig.js`) plus one new
+`useEffect` in `Dashboard.jsx` now redirect a logged-in account to
+`/dashboard?lang=he`/`?lang=en` (the project's own existing top-priority
+routing mechanism, not a new route) exactly once, only after the real
+`business_settings.country` is genuinely known — never a guess, no redirect
+loop by construction, one identical shared code path for both markets (no
+HE/EN-specific duplicate). `App.jsx`'s old dead redirect logic was
+deliberately not reused — it reads market from `user_metadata`, an outdated
+source inconsistent with the current `business_settings.country`-only
+architecture — fresh minimal code was written instead.
+
+14 new unit tests cover all 10 required scenarios (both markets correct/
+mismatched, refresh-after-correction, anonymous users, missing/unknown
+country, no loop, currency/VAT untouched) — all pass, alongside the full
+pre-existing 42-test suite (56/56 total). Lint clean (one pre-existing,
+unrelated warning). Build succeeds. Verified on TEST-mode port 5186 via HMR
++ structural HTTP checks — the fail-closed guard and TEST project ref both
+confirmed untouched and intact; port 5184 was only read-only PID-inspected,
+never restarted.
+
+**Agent HE: PASS. Agent EN: PASS** — both independently traced their
+market's full redirect path in code end to end, no disagreement, no
+asymmetry. **Verdict: ITEM 25 AUTOMATIC MARKET ROUTING: PASS.** Full detail:
+`PROFLOW_HANDOFF.md` §18.DE, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+**Not yet demonstrated**: a real authenticated browser login, since no TEST
+users exist yet. **Recommended next step (NOT AUTHORIZED)**: create exactly
+two fictional TEST Auth users (one Local, one International) and verify
+both from the same normal 5186 entry URL. No TEST user created, no Auth/
+DB/Storage/Edge/Production action, no commit/push/deploy this task.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`

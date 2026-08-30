@@ -4,98 +4,114 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE either. See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: TEST Login / Market Routing Audit (READ-ONLY)
+## Task: Item 25 — Automatic Post-Login Market Routing Fix (LOCAL WORKING TREE ONLY)
 
-**Effort level**: MEDIUM.
+**Effort level**: HIGH.
 
-**Bootstrap**: performed, directly from `proflow-continuity`. `HEAD == origin/proflow-continuity == 278d52242f8dfe0dcd11a331aa13e3a992389436` (the exact state §18.DC left), clean, all six files read. Fresh Local State: `main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged); standing baseline `git status --short`; ports 5184/5186 both `LISTENING`, unchanged from prior task.
+## Fresh Local State
 
-## 1-2. Question
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, confirmed again at task end). `git status --short` at task start: standing baseline (six docs + `.gitignore`/`package.json`/`src/shared/supabase.js` from prior tasks). No prior Item-25-related code existed. Ports 5184 (PID 21028)/5186 (PID 26884) both `LISTENING`, unchanged from the prior task. `.env.localtest.local` keys confirmed present (values not read into this report). Supabase CLI link: Production `linked:true` / TEST `linked:false` (unchanged, untouched this task — no CLI command was needed).
 
-Can a Local TEST user and an International TEST user both start from the same normal TEST entry point (plain root URL) and automatically land in the correct market UI, without needing to manually know or type `/en`/`/he`?
+## Root Cause Reconfirmation
 
-## 3. Traced Flow, Step by Step (READ-ONLY)
+Re-verified unchanged before editing: `main.jsx`/`AppLocal.jsx`/`AppGlobal.jsx`/`regionConfig.js`/`Dashboard.jsx` were all confirmed untouched since the prior audit (not in `git status`'s modified list at task start). The documented root cause held exactly as recorded — proceeded to implementation.
 
-- **A. Anonymous app entry** — `src/main.jsx` lines 21-51: bundle choice runs synchronously, before React mounts, before any Auth check.
-- **B. Login form** — `src/components/AuthScreen.jsx`, rendered by `Dashboard.jsx` (line 2411-2414) when no session exists; its displayed language is `bundleIsHebrew` (a fixed prop from `AppLocal`/`AppGlobal`), never account-aware (correctly — no account is known yet).
-- **C. `auth.signInWithPassword`** — `Dashboard.jsx` line ~1334, no market logic involved.
-- **D. Session creation** — `Dashboard.jsx`'s `onAuthStateChange` (lines 293-327) handles `SIGNED_IN`, awaiting `loadData`/`fetchSettings` behind `isInitializing` gating (set `true` at 309, `false` at 311, after `loadData` resolves) — deliberately prevents any flash of wrong content, per its own in-code comment.
-- **E. Dashboard mount** — gated by `isInitializing || isPasswordRecoveryMode || !session` (line 2411); real content only renders once the account's true state is loaded.
-- **F. `business_settings` fetch** — inside `loadData`/`fetchSettings`, populates `bizCountry` (state at line 117) from the real DB `country` column.
-- **G. Market source of truth** — `bizCountry`, feeding `isHebrew = isHebrewEnv(bizCountry, session)` (line 132) and `isLocalIsraeliBusiness = bizCountry === 'Local' || 'LCL'` (line 218). `src/utils/regionConfig.js`'s `isHebrewEnv`/`getRegionTaxRate`/`getCurrencySym` (lines 17-64) make the real DB value win over any cache whenever known.
-- **H. `AppLocal`/`AppGlobal` selection** — `main.jsx`, entirely pre-auth, independent of G.
-- **I. Route changes after login** — none found. Grep across `Dashboard.jsx`/`AppLocal.jsx`/`AppGlobal.jsx` for `navigate(`/`window.location.href`/`.replace` found only two unrelated, non-market-conditional redirects (a logout-origin redirect, an `/ai-logs` nav button).
-- **J. Behavior after refresh** — `main.jsx`'s cascade re-runs from scratch, but `localStorage.proflow_lang` (written on every load, line 44) outranks geo-cookie/browser-language, so a prior "wrong" bundle choice self-reinforces across refreshes.
-- **K. Landing on the "wrong" market route before login** — `AuthScreen` simply renders in that bundle's fixed language; no detection/correction is possible pre-auth (correctly — the account isn't known yet).
+## Exact Files Changed
 
-## 4. Explicit Answers
+- **`src/utils/regionConfig.js`** — one new pure, exported function appended, `getMarketRoutingCorrection(...)` (~17 lines). Nothing else in the file modified — `isHebrewEnv`, `getCurrencySym`, `getRegionTaxRate`, `getRegionBillingProfile`, `calculateQuoteFinancials`, `formatDateLocal`, `formatNumberLocal` all byte-identical to before.
+- **`src/pages/Dashboard.jsx`** — one import line extended (`getMarketRoutingCorrection` added to the existing `regionConfig` import), one new `useEffect` added (~19 lines, placed beside the existing popstate-handling effect). Nothing else in the 2000+-line file touched.
+- **`src/utils/regionConfig.test.js`** — new file, 14 unit tests.
 
-1. **Is `business_settings.country` consulted early enough to choose `AppLocal`/`AppGlobal`?** No — it is fetched only *after* the bundle is already rendering, and is never used to choose or change the bundle.
-2. **Is `AppLocal`/`AppGlobal` chosen before account identity is known, from URL/localStorage/geo/language only?** Yes, confirmed exactly — `main.jsx` lines 34-41.
-3. **International account logs in while on the Hebrew bundle — what happens today?** Dashboard content correctly flips to English/USD-EUR-GBP/0% VAT (via `bizCountry`), but `document.dir` remains `'rtl'` (set once by `AppLocal`, never revisited) — English content trapped in a right-to-left-mirrored page.
-4. **Local account logs in while on `/en` — what happens today?** Mirror image: correct Hebrew/ILS/18%-VAT content trapped inside `dir='ltr'`.
-5. **Does login itself redirect/reload/re-resolve the bundle?** No — confirmed via grep, no such mechanism exists in the reachable code path.
-6. **Does Dashboard redirect based on the account's stored market?** No.
-7. **Does refresh correct, preserve, or depend on localStorage/path?** Re-runs the pre-auth cascade; `localStorage.proflow_lang` (cached on every load) preserves/reinforces whatever bundle was last chosen, ranking above geo-cookie and browser-language.
-8. **Can an authenticated account remain in the wrong bundle indefinitely?** Yes, confirmed — no code-level correction exists anywhere in the reachable path.
+## Chosen Architecture
 
-## 5. Source-of-Truth Map
+**Option A — post-login navigation to the canonical `?lang=` route**, via one shared pure decision function (`getMarketRoutingCorrection`) plus one shared `useEffect` in `Dashboard.jsx` (the single component both `AppLocal` and `AppGlobal` import — no HE/EN-specific duplicate exists anywhere, grep-confirmed: the function name appears in exactly 3 places — its definition, its tests, its one call site).
 
-| Axis | Current source | Status |
-|---|---|---|
-| PRE-AUTH market source | URL (`?lang=`/path) → `localStorage.proflow_lang` → geo cookie → `navigator.language` (`main.jsx`) | Current, implemented |
-| POST-AUTH account market source | `business_settings.country` via `bizCountry`/`isHebrew`/`isLocalIsraeliBusiness` | Current, implemented, robust |
-| BUNDLE-selection source | Same as pre-auth; never re-evaluated post-auth | **Current gap** |
-| CURRENCY/VAT source | `business_settings.country` via `regionConfig.js` | Current, implemented, robust, market-neutral |
-| LOGIN redirect source | None exists | **Current gap** |
-| REFRESH behavior | Re-runs pre-auth cascade; `localStorage` self-reinforces prior bundle choice | Current, implemented (gap-preserving) |
-| `App.jsx`'s market-redirect `navigate()` logic | Would structurally address the gap | Approved-design-shaped, but dead/unwired code — not currently authoritative |
+The function returns `null` (no correction, or not enough real data yet) or `'he'`/`'en'`. It only acts once `settingId` is non-null — set only inside `Dashboard.jsx`'s `fetchSettings`/`createNewBusinessSettings` after a genuine `business_settings` DB response, never from the initial `localStorage`/`'International'` fallback guess — and never while `isInitializing`/`isPasswordRecoveryMode`/`needsRegionChoice` is true. On a non-null result, the effect performs one `window.location.href = '/dashboard?lang=' + correctLang` — `main.jsx`'s own pre-existing, top-priority `?lang=` mechanism, not an invented route.
 
-## 6. Testability Assessment
+## Rejected Alternatives, With Reasons
 
-**B — TESTABLE BUT MANUAL /en-/he DEPENDENCY REMAINS.** Account isolation, content correctness, and currency/VAT are provably robust and safe to test today via the existing DB-driven mechanism (item 5/G above). Only the "automatic, no manual URL knowledge required" landing behavior is currently absent. **Minimal architectural gap**: no post-login mechanism re-syncs `document.dir`/`lang` (or redirects) to the account's real market once it is known — not fixed by this audit.
+- **Option B (in-place bundle/`dir`/`lang` reconciliation without a reload)**: rejected — would require merging or deeply cross-wiring `AppLocal`/`AppGlobal`, a far larger change than the task's own "narrowest safe solution"/"no unrelated routing cleanup" constraints permit, for no correctness benefit over one clean one-time reload.
+- **Option C (revive `App.jsx`'s existing dead `navigate('/he')`/`navigate('/en')` logic)**: read and evaluated per the task's own explicit instruction to check before reuse — rejected. `App.jsx` imports from the old `./supabase` path (not the current canonical `../shared/supabase`) and derives market from `session.user.user_metadata.country`, not `business_settings.country` — inconsistent with the deliberately-established current single-source-of-truth architecture. Reusing it would have reintroduced a second, stale market-authority mechanism. Fresh, minimal code was written instead.
 
-## 7. HE Agent
+## Redirect-Loop Proof
 
-**HE LOGIN ROUTING: FAIL.** Independently traced `main.jsx`, `AppLocal.jsx`, `AppGlobal.jsx`, `Dashboard.jsx`, `regionConfig.js`; confirmed all 5 findings with direct citation; independently confirmed via its own grep that `App.jsx`'s market-redirect logic is dead code (never imported).
+After the one-time reload: `main.jsx`'s cascade gives `?lang=` top priority → correct bundle mounts. Supabase's session persists across the reload (default `persistSession: true`, confirmed unchanged in `src/shared/supabase.js`, which was **not touched** this task — `git diff --stat` shows the identical `+44` lines as before). The new bundle's `Dashboard` re-fetches `business_settings`; `isHebrew` recomputes to the same real value, now matching the (now-correct) `bundleIsHebrew` — `getMarketRoutingCorrection` returns `null` on the next evaluation. Both agents independently traced this and confirmed no loop is possible.
 
-## 8. EN Agent
+## Login/Refresh Scenario Results (14 unit tests, all pass)
 
-**EN LOGIN ROUTING: FAIL.** Independently traced the same files for the International case; additionally confirmed the zero-VAT/USD-EUR-GBP invariant is unconditionally robust regardless of bundle/RTL-LTR state — the gap is purely a layout/direction issue, never a currency/VAT leak.
+1. Local account + Local pre-auth bundle → no correction, no loop. **PASS**
+2. Local account + International pre-auth bundle → corrects to `he`. **PASS**
+3. International account + International pre-auth bundle → no correction, no loop. **PASS**
+4. International account + Local pre-auth bundle → corrects to `en`. **PASS**
+5. Refresh after corrected Local login → stays corrected, no further redirect. **PASS**
+6. Refresh after corrected International login → stays corrected, no further redirect. **PASS**
+7. Anonymous user → never corrects; pre-auth selection untouched. **PASS**
+8. Missing/unknown `business_settings.country` (5 sub-cases: no `settingId`, `needsRegionChoice`, still `isInitializing`, `isPasswordRecoveryMode`, non-boolean `bundleIsHebrew`) → all fail safely, no destructive guess. **PASS** (all 5)
+9. No redirect loop — explicit idempotency test. **PASS**
+10. Currency/VAT source remains `business_settings.country` — function never returns anything but `null`/`'he'`/`'en'`, never touches currency/route. **PASS**
 
-## 9. Claude Lead Reconciliation
+## HE Verdict
 
-No disagreement, no asymmetry between markets. Both agents independently confirmed the identical shared mechanism (not two separate market-specific bugs) produces the same class of defect in either direction, with zero data/financial/security consequence either way — purely a page-direction/layout mismatch.
+**HE ITEM 25: PASS.** Independently traced the full Local case end-to-end in code (mismatched bundle → `getMarketRoutingCorrection` returns `'he'` → reload → `main.jsx` cascade → `AppLocal` mounts → `dir='rtl'`/`lang='he'` set correctly), confirmed `settingId` is only ever set from genuine DB responses (never a cache/guess), confirmed `regionConfig.js`'s currency/VAT functions are byte-identical to before, ran its own `npm test`/`eslint` independently and got the same results (56/56 pass, 1 pre-existing unrelated warning).
 
-## 10. Required Verdict
+## EN Verdict
 
-**TEST ACCOUNT MARKET ROUTING: GAP FOUND**
+**EN ITEM 25: PASS.** Independently traced the full International case end-to-end in code (mirror of HE's trace, confirming `AppGlobal` mounts with `dir='ltr'`/`lang='en'`), confirmed the single shared mechanism serves both markets with zero separate code path, confirmed the routing correction never reads currency/VAT/route state, confirmed `setSettingId`/`setBizCountry` are set together (React-batched within the same async function) so no stale-window race is possible, ran its own `npm test`/`eslint` independently and got the same results.
 
-## 11. Recommended Next Step
+## Claude Lead Reconciliation
 
-**Create TEST users and test immediately**, using explicit `/he`/`/en` entry points for each market. The routing gap does not need to block functional TEST validation — account isolation, content correctness, and currency/VAT are already proven robust — but should be tracked as its own separate, minimal fix (`PROFLOW_TODO.md` item 25) before claiming fully automatic market routing is complete.
+No disagreement, no asymmetry between markets — both agents independently confirmed the identical shared mechanism correctly serves both Local and International, with zero risk of a route/language value ever being used as currency/VAT authority (the fix only ever compares two pre-existing booleans) and zero possibility of a redirect loop.
 
-**NOT AUTHORIZED by this audit.**
+## Tests / Lint / Build
 
-## Confirmations
+- `npm test` — **56/56 pass** (42 pre-existing + 14 new, 5 test files, 0 failures).
+- `npx eslint` on the three changed/new files — **0 errors**, 1 warning (`react-hooks/exhaustive-deps`, `Dashboard.jsx`, pre-existing `loadData` missing-dependency warning on an unrelated effect) — confirmed **pre-existing** via `git stash`/`git stash pop` comparison (same warning, different line number, before this change).
+- `npm run build` — succeeds; same pre-existing "chunks larger than 500kB" advisory as before (generic, unrelated to this change).
 
-No code changes. No Auth changes. No TEST user creation. No DB mutation. No Storage mutation. No Edge deploy. No Production mutation. No commit. No push. No deploy. No LIVE action. Pure source-reading throughout.
+## 5186 TEST Isolation Proof
+
+Port 5186 picked up the change via Vite HMR — confirmed via `curl` showing `getMarketRoutingCorrection` present in the served `regionConfig.js`. The fail-closed Supabase-project guard in `src/shared/supabase.js` was **not touched** this task and still resolves to TEST's project ref (`ljfizgrdyzxddswcedwr`), never Production's (`ixabnzhjeqevtbhdfswv`). Root, `/en`, `/he`, `/dashboard?lang=en`, `/dashboard?lang=he` all confirmed `HTTP 200` structurally.
+
+## 5184 Untouched Confirmation
+
+Same PID (21028) before and after this task; only read-only PID inspection performed, never restarted; still serves `MODE:"development"`, Production-pointed, unaffected.
+
+## Confirmation No Auth/DB/Storage/Edge/Production Mutation
+
+Confirmed. No Supabase CLI command was run this task. No TEST/Production data read or written. No Edge Function touched. No Auth configuration read or changed.
+
+## Confirmation No Commit/Push/Deploy/LIVE
+
+Confirmed. No `git commit`, no `git push` to any branch of the primary repository, no Vercel action, no deploy of any kind for the application code. (The separate `proflow-continuity` documentation-only sync below is treated as covered by this task's own "continuity updates" authorization, consistent with this engagement's established, unbroken pattern.)
 
 ## Final Git State
 
-`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged.
+`main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. Working tree now additionally carries: `src/pages/Dashboard.jsx` (modified), `src/utils/regionConfig.js` (modified), `src/utils/regionConfig.test.js` (new, untracked) — none staged, none committed.
+
+## Verdict
+
+**ITEM 25 AUTOMATIC MARKET ROUTING: PASS**
+
+## Recommended Next Step — NOT AUTHORIZED
+
+Create exactly two fictional TEST Auth users:
+
+1. One Local TEST user.
+2. One International TEST user.
+
+Then verify both from the **same normal 5186 entry URL** — proving this fix end-to-end with a real authenticated login for the first time. **This step is NOT AUTHORIZED by this task. Neither account was created.**
 
 ## Six-File Continuity Ledger
 
 | File | Status | Reason |
 |---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | **UPDATED** | New §24 item 12 recording the routing gap as a permanent Known Open Issue |
-| `PROFLOW_ARCHITECTURE.md` | **UPDATED** | §3.2 extended with a "Known limitation" addendum documenting the post-login gap |
-| `PROFLOW_HANDOFF.md` | **UPDATED** | New §18.DD entry appended; CURRENT RESUME STATE step-sequence extended with step (27) |
-| `PROFLOW_TODO.md` | **UPDATED** | New backlog item 25 added; new dated status paragraph appended to "Current QA / Release Track" |
-| `PROFLOW_CHAT_HANDOFF.md` | **UPDATED** | New §10.P summary added for ChatGPT |
+| `PROFLOW_PROJECT_CONTEXT.md` | **UPDATED** | §24 item 12 status updated to "FIXED IN WORKING TREE, NOT YET OWNER-VERIFIED WITH REAL TEST USERS" |
+| `PROFLOW_ARCHITECTURE.md` | **UPDATED** | §3.2 addendum updated with the implemented fix and rejected-alternatives summary |
+| `PROFLOW_HANDOFF.md` | **UPDATED** | New §18.DE entry appended; CURRENT RESUME STATE step-sequence extended with step (28) |
+| `PROFLOW_TODO.md` | **UPDATED** | Item 25 status updated; new dated status paragraph appended to "Current QA / Release Track" |
+| `PROFLOW_CHAT_HANDOFF.md` | **UPDATED** | New §10.Q summary added for ChatGPT |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | **UPDATED** | Rewritten fresh for this task |
 
 ## Final Stop
 
-STOP after the audit. Do not create users. Do not change routing. Do not change Auth. Do not touch TEST data. Do not touch Production. Do not commit/push/deploy. Wait for Owner + ChatGPT review.
+STOP after implementation + verification + continuity sync. Do not create TEST users yet. Do not deploy Edge Functions. Do not change Auth config. Do not touch Production. Do not commit. Do not push. Do not deploy. Wait for Owner + ChatGPT review.
