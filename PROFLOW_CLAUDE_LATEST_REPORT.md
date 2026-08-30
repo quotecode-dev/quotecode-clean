@@ -4,37 +4,36 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Critical Signature Forensic Audit + Final Canonical Width Alignment + Quote History Density
+## Task: Signature Authorization Fix + Mobile Quote History Cleanup + Email Column Audit + Lock Final Width
 
-**Effort level**: HIGH. Three scopes, priority-ordered: (1) CRITICAL — read-only forensic audit of customer-signature authorization (audit only, no remediation), (2) Final Canonical Desktop Width Alignment (Owner-final decision: use Public Quote's own existing 980px width, no new value), (3) Quote History Desktop density. Not authorized: Admin work, Item 28/30/31 implementation, Vercel routing change, application commit/push/deploy, Production mutation, signature remediation implementation, marking new width/density results as Owner-LOCKED.
+**Effort level**: HIGH. Four scopes: (A) implement the signature authorization fix on TEST/local (previously audit-only), (B) clean up Mobile Quote History information hierarchy — extended mid-task by the Owner to also add a Mobile sort control, then corrected mid-task again after the Owner rejected the first mobile layout attempt on live visual review, (C) audit the Email column for dead code, (D) lock the current canonical Desktop width as Owner-approved.
 
-## Part A — Signature Forensic Audit (read-only, TEST-reproduced)
+## Part A — Signature Authorization Fix (implemented + verified on TEST)
 
-Traced the full signing path: `PublicQuote.jsx`/`PublicQuoteEn.jsx` → `useSignaturePad.js` → `supabase.rpc('public_approve_quote', {...})` → Postgres `public.public_approve_quote(uuid,text)` (`SECURITY DEFINER`, `EXECUTE` granted to `anon`+`authenticated`). Read the RPC's full body directly from `supabase/migrations/20260830000001_capture_base_functions_triggers.sql` (captured verbatim from live Production 2026-08-30): it validates only the signature payload's shape/size and the quote's current status — **it contains no `auth.uid()` reference, no ownership check, no customer-only requirement anywhere.** The only protection is client-side: `get-public-quote`'s `is_owner_viewing` flag hides the signing UI when the caller's own session matches the quote's `user_id` — correct for that one case, but irrelevant to a direct RPC call and irrelevant to any *other* authenticated business account viewing a quote that isn't theirs.
+Re-confirmed the live TEST definition of `public_approve_quote` via `supabase db dump --linked` before changing anything — byte-identical to the previously-audited version, no drift. Fix: the RPC now rejects the call whenever `auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM business_settings WHERE user_id = auth.uid())` — i.e., **any** authenticated ProFlow business account, not merely the specific quote's own owner (a narrower "equals the owner" check would still leave a different business account free to sign someone else's quote). `business_settings.user_id` is the exact existing source of truth already used by `is_admin()`/`is_super_admin()` — no new identity mechanism invented. Applied via a new migration to `quotecode-test` only (CLI relinked to Production immediately after, per standing convention). No Production action of any kind.
 
-**Live TEST reproduction (Owner-authorized, TEST/local mutation only)**: signed in as `PROFLOW_TEST_LOCAL_EMAIL`, selected one of that account's own unsigned `draft` quotes, and called `public_approve_quote` directly (bypassing the UI) using that session's own access token. Result: **HTTP 204**. Re-queried immediately: `status: "approved"`, `signature:` a valid 114-character PNG data URL, both persisted — a business user directly forged a customer-role approval on their own quote.
+Full regression matrix — live-verified via direct RPC calls (Claude Lead) AND the real signing UI (both markets):
+- Anonymous customer, direct RPC → **204, succeeded** (and, separately, completed the *entire* real UI flow — draw signature, click approve, saw the actual "אושרה ונחתמה בהצלחה"/success banner — both HE and EN).
+- Quote owner, direct RPC on their own quote → **403, rejected**, quote confirmed unchanged.
+- A different, unrelated business account, direct RPC → **403, rejected**, target quote confirmed unchanged.
+- Malformed payload → rejected (pre-existing validation, unaffected). Already-approved quote → rejected (pre-existing, unaffected). Post-approval edit attempt → rejected by the immutability trigger (pre-existing, unaffected).
+- Manager/business view (`is_owner_viewing`): audited, found already correct and already matching the Owner's supplied historical reference exactly — nothing needed building, only re-confirmed unaffected by the RPC fix.
 
-Checked git history: the original security-remediation commit (`1caaff6`, 2026-08-25) that created this RPC documented "live tests passed for anon, owner, different authenticated TEST user" for the *sibling* view-count RPC, but recorded **no equivalent owner/different-user test for `public_approve_quote` itself.** No evidence this RPC's identity check was ever present and later removed — the more accurate characterization is an unclosed gap since the RPC's creation, not a regression of something proven to have worked. Full findings, evidence, and a proposed (not implemented) minimal fix are in `PROFLOW_PROJECT_CONTEXT.md` §58, along with the new permanent Customer-Only-Actions product rule.
+## Part B — Mobile Quote History (two iterations — first rejected by the Owner)
 
-**No remediation implemented. No Production quote signed/approved/mutated. No existing signature modified.**
+**Iteration 1**: reordered Client Type/Views/Client Name into one flex cluster (HE: Type→Views→Name right-to-left; EN mirrored). Live-verified the order was correct — but the Owner, reviewing live, rejected the flex-wrap approach: a long Client Name could wrap the cluster and visually shift Client Type/Views between cards.
 
-## Part B — Final Canonical Desktop Width Alignment
+**Iteration 2 (final)**: rebuilt as a genuine CSS Grid with fixed-pixel tracks for Client Type (24px), Views (32px), and — after finding a secondary instability where a wide Amount value could still shift the other columns in the EN layout — Amount too (78px, fixed, not content-based), with Client Name alone getting the flexible `1fr` track (single-line, ellipsis-truncated, never wraps). Live-verified across 8 quotes with genuinely varying name lengths, all 3 required widths, both markets: **every field's X-position is identical across every row** — zero variance. Long names truncate correctly (RTL-correct ellipsis placement in HE). Full Client Name remains accessible via the same `title=` tooltip pattern already used elsewhere in this file for truncated text — no new interaction mechanism invented.
 
-Per explicit Owner decision, all prior width experimentation (1440px flat, 1320px flat, `min(1320px,72vw)`, `min(1320px,85vw)`) is superseded — Public Quote's own existing, already-locked `--pf-desktop-content-width` (980px) is now the canonical value everywhere. `--pf-dashboard-desktop-content-width` (`src/index.css`) now reads `var(--pf-desktop-content-width)` directly instead of holding an independent number, while remaining a separate token (preserves the earlier risk-isolation intent — a future Dashboard-only change still can't indirectly touch Public Quote's CSS).
+**Mobile Sort control (Owner mid-task addition)**: Desktop's column sorting had no Mobile equivalent — a real capability gap, not just cosmetic. Added a compact "מיון:"/"Sort:" select (the same 7 fields Desktop's clickable headers support) + a direction-toggle button, both calling the exact same `handleQuoteSort`/`quoteSortField`/`quoteSortDirection` Desktop already uses — no parallel sort engine. Live-verified: selecting "Amount" and toggling direction correctly re-sorts the actual card list ascending then descending, both markets, control fits with zero overflow at all 3 widths.
 
-Per the Owner's explicit "table adapts to the product, not the reverse" rule, `QuotesTab.jsx`'s Quote History table was narrowed to genuinely fit inside 980px instead of the width being widened for the table: compact metadata columns (Client Type, Views, email indicator, Actions) trimmed to near their real minimum; Client Name/Description kept the larger share. Actions column kept a (smaller) explicit `minWidth` to avoid reintroducing the earlier EN Actions-clipping regression.
+## Part C — Email Column Audit
 
-## Part C — Quote History Desktop Density
+Traced `renderEmailDot` to two real, non-dead data sources: `quote.email_bounced` (persisted DB column, survives reload, set by the bounce-detection webhook) and `emailStatuses[quote.id]` (ephemeral, session-only state set right after a "Send Email" action, resets on reload). This is exactly why most rows appeared empty on a fresh page load — success isn't persisted, only bounces are. **Confirmed real function — preserved, not removed.** Already narrowed to a 36px icon-only column in the prior task; no further change needed.
 
-Root cause: generous cell padding (6px vertical), not a structural bug. Reduced: cell padding `6px 8px → 4px 6px`, status badge padding `3px 8px → 2px 7px`, Actions button padding `4px 10px → 3px 9px`. No information removed.
+## Part D — Final Width Locked
 
-## Part D — Incidental Discovery: Mobile Width Side-Effect (found and fixed)
-
-Re-measuring mobile before making any change revealed the *previous* task's `min(1320px, 85vw)` token had been unintentionally constraining Mobile card width too (85vw < any real phone viewport), producing 27-31px gutters — not the 15px previously reported. The new fixed 980px value never engages below 980px viewport, so this is resolved as a natural consequence: mobile gutter is now a clean 6px, matching the dedicated mobile CSS override.
-
-## Preserved LOCKED Behavior (regression-checked)
-
-Actions column fully visible, both markets, all four desktop widths. Trial notice unaffected (untouched code path, confirmed via screenshot). Client Type badge unaffected (untouched component). Amount typography hierarchy preserved exactly (row 500 / Total Revenue 600 — neither reopened). Trial Expiration → FREE: 70/70 tests still pass.
+Per explicit Owner approval, `PROFLOW_PROJECT_CONTEXT.md` §59 is updated from IMPLEMENTED/TEST-VERIFIED to **OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED**. No code change was required (the width itself was not touched this task). A stale mobile-gutter figure from the prior report ("6px") was corrected to the actual, CSS-matching value (`15px`) via a more precisely-verified live measurement — the underlying CSS was not changed, only the measurement.
 
 ## Continuity Sync + Remote Read-Back
 
@@ -43,95 +42,85 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 ## Final Verdict
 
 ==========================================
-**CRITICAL — SIGNATURE**
+**SIGNATURE — CRITICAL**
 ==========================================
 
-**SIGNATURE REGRESSION: INCONCLUSIVE** (evidence supports an unclosed gap present since the RPC's original creation on 2026-08-25; no evidence found of a working owner-check that was later removed)
+**SIGNATURE AUTHORIZATION FIX: PASS**
 
-**BUSINESS USER CAN SEE CUSTOMER SIGNING UI: YES** — whenever `is_owner_viewing` is false for them (any quote that isn't their own exact account/session match), identical to what a genuine customer sees.
+**AUTHORITATIVE FIX LOCATION**: `public.public_approve_quote(uuid,text)` (Postgres RPC, `SECURITY DEFINER`), migration `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, applied to `quotecode-test` only.
 
-**BUSINESS USER CAN EXECUTE CUSTOMER SIGNING PATH: YES** — confirmed live.
+**BUSINESS ACCOUNT IDENTIFICATION**: `business_settings.user_id` — the same existing source of truth `is_admin()`/`is_super_admin()` already use. No new table.
 
-**BUSINESS USER CAN PERSIST CUSTOMER SIGNATURE: YES** — confirmed live, TEST, HTTP 204, `status`/`signature` mutated exactly as a real approval would.
+**ANONYMOUS CUSTOMER SIGN: PASS** (204 via direct RPC; separately, full real-UI flow completed end-to-end, both markets, success banner confirmed)
 
-**SIGNING PATH**: `PublicQuote.jsx`/`PublicQuoteEn.jsx` → `useSignaturePad.js` → `supabase.rpc('public_approve_quote', {p_quote_id, p_signature_data_url})` → `public.public_approve_quote(uuid,text)` (Postgres, `SECURITY DEFINER`, `search_path` pinned, `EXECUTE` granted `anon`+`authenticated`, `PUBLIC` revoked) → one atomic conditional `UPDATE public.quotes SET status='approved', signature=... WHERE id=... AND status IN ('draft','sent') AND signature IS NULL/empty`.
+**OWNER BUSINESS DIRECT RPC: REJECTED, PASS** (403, quote confirmed unchanged)
 
-**CURRENT AUTHORIZATION BOUNDARY**: UI-only (`quote.is_owner_viewing`, computed by the `get-public-quote` Edge Function from the caller's Authorization header, correctly hides the signing UI only for the exact quote-owner-in-same-session case). The RPC/persistence layer itself performs zero identity check of any kind.
+**DIFFERENT BUSINESS DIRECT RPC: REJECTED, PASS** (403, target quote confirmed unchanged)
 
-**PREVIOUS PROTECTION**: the `is_owner_viewing` UI guard is real, present, unregressed, and correctly working for its one covered case. No evidence found (via git history of the original 2026-08-25 remediation commit) that the RPC itself ever had a stronger, since-removed check.
+**HE CUSTOMER SIGN: PASS** — **EN CUSTOMER SIGN: PASS**
 
-**ROOT CAUSE**: `public_approve_quote`'s body (read in full from `supabase/migrations/20260830000001_capture_base_functions_triggers.sql`) never references `auth.uid()` — by design it must accept anonymous customer calls, but it does not distinguish "anonymous customer" from "any authenticated ProFlow business session."
+**MANAGER/BUSINESS VIEW: PASS** (already correct, matches Owner's supplied reference exactly, re-confirmed unaffected by the fix, both markets)
 
-**HE IMPACT**: AFFECTED — `PublicQuote.jsx` calls the identical RPC with identical parameters.
-**EN IMPACT**: AFFECTED — `PublicQuoteEn.jsx` calls the identical RPC with identical parameters. One shared signing path, no market-specific difference.
+**SIGNED QUOTE IMMUTABILITY: PASS** (post-approval edit attempt correctly rejected, pre-existing trigger unaffected)
 
-**PRODUCTION POTENTIALLY AFFECTED: YES** — read-only evidence: the capturing migration file's own header states its contents (this RPC included) were "captured EXACTLY as it is defined live on Production today" (2026-08-30). No Production quote was queried, signed, or mutated to reach this conclusion.
-
-**HISTORICAL IMPACT**: what can be proven — the mutation path has no server-side identity check today and is TEST-confirmed exploitable by an authenticated business session. What cannot be proven — whether any specific existing signature on any real quote (TEST or Production) actually originated this way; the `quotes` table has no column recording who/what performed an approval, so there is no way to distinguish a genuine customer signature from a business-side one after the fact. No historical signature was classified as invalid or altered.
-
-**RECOMMENDED MINIMAL SAFE FIX (proposal only, NOT implemented)**: inside `public_approve_quote`, reject the call whenever the caller is identifiable as any ProFlow business account at all (`auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM business_settings WHERE user_id = auth.uid())`) — not merely "equals this quote's owner," since that narrower check leaves the cross-account gap open. Anonymous/genuine-customer approval is unaffected.
-
-**REQUIRED REGRESSION TESTS (for any future fix)**: anonymous approval still succeeds; the quote's own owner calling the RPC directly is rejected; a different authenticated business account calling it on someone else's quote is rejected; `is_owner_viewing` UI hide unchanged; `guard_quote_immutability` still blocks post-approval edits; both HE/EN re-verified; frontend's generic error-toast still degrades gracefully.
-
-**NO SIGNATURE FIX IMPLEMENTED: PASS**
+**PRODUCTION: UNCHANGED** (CLI never linked to Production during the fix; relinked to Production immediately after applying to TEST)
 
 ==========================================
-**CANONICAL WIDTH**
+**MOBILE QUOTE HISTORY**
 ==========================================
 
-**PUBLIC QUOTE CANONICAL WIDTH SOURCE**: `--pf-desktop-content-width` (`src/index.css`), 980px, unchanged/LOCKED.
+**HE ORDER: CLIENT TYPE → VIEWS → CLIENT NAME — PASS** (stable fixed-grid columns, identical X-position across 8 rows of varying name length, every width)
 
-**PUBLIC QUOTE MUTATED**: NO.
+**EN MIRRORED ORDER: CLIENT NAME → VIEWS → CLIENT TYPE — PASS** (same stability guarantee)
 
-**SEPARATE DASHBOARD WIDTH**: reconciled — `--pf-dashboard-desktop-content-width` now reads `var(--pf-desktop-content-width)` directly; kept as a distinct token only for risk-isolation, not as an independent value.
+**360 / 390 / 412**: HE and EN both — zero overflow, sort control fits, all columns stable at every width.
 
-**PUBLIC QUOTE HE**: 980px content / 1062px shell (unchanged, not re-measured this task since untouched).
-**PUBLIC QUOTE EN**: 980px, identical to HE (unchanged, not re-measured this task since untouched).
-**DASHBOARD HE**: 980px at 1280/1366/1440/1920px (wrapper `left/right` gutters scale with viewport: 143/143, 186/185, 223/222, 463/462).
-**DASHBOARD EN**: 980px, byte-identical to HE at every width above.
-**QUOTE HISTORY HE/EN**: fits inside 980px with zero overflow at all four widths, both markets — table box exactly matches its wrapper's box everywhere; Actions column fully visible (HE left edge / EN right edge).
-**NEW QUOTE / CLIENTS / BUSINESS SETTINGS / CATALOG / FINANCES HE/EN**: share the same `.dash-main-content` wrapper as Dashboard/Quote History — same 980px canonical width applies structurally; not individually re-measured this task (no code specific to those tabs was touched).
+**MOBILE WIDTH: UNCHANGED** (no CSS/padding touched this task; a stale prior "6px" gutter figure corrected to the actual `15px`, matching the CSS — the Owner's approved base width utilization itself was not narrowed)
 
-**CANONICAL WIDTH PARITY: PASS** (HE/EN byte-identical at every measured width).
+**MOBILE VISUAL PARITY: PASS**
+
+**MOBILE SORT CONTROL: PASS** (reuses Desktop's exact sort state; live-verified correct ascending/descending resort, both markets; fits at every required width)
 
 ==========================================
-**QUOTE HISTORY DENSITY**
+**EMAIL COLUMN**
 ==========================================
 
-**ROOT CAUSE**: generous, uniform cell padding (6px vertical) — not a structural/layout defect.
+**EMAIL COLUMN PURPOSE**: shows persisted email-bounce state (red, survives reload) and ephemeral same-session send-success state (green, resets on reload).
 
-**ROW HEIGHT**: 51px → 47px (HE, row with before-VAT subline) / 38px → 34px (EN, no subline).
-**VERTICAL PADDING**: 6px → 4px (per `<td>`/`<th>`, both edges).
-**LINE HEIGHT**: unchanged (browser default for 0.8rem/0.7rem text; not explicitly set before or after).
-**ACTIONS BUTTON**: 25px → 23px height (padding `4px 10px` → `3px 9px`).
-**BADGE HEIGHT** (status pill): 23px → 21px (padding `3px 8px` → `2px 7px`; initial measurement attempt matched the wrong element — the fixed-size Client Type icon badge, also a rounded pill — corrected by matching on the actual status-label text).
+**CURRENTLY USED: YES**
 
-**ROWS VISIBLE** (1000px-tall reference viewport, header/KPI cards included above the table): HE 12 → 13; EN 13 → 13 (this TEST account's EN quote list is shorter than one screen already, so it was fully visible before and after).
+**FINAL ACTION: PRESERVED**
 
-**TABLE FITS CANONICAL WIDTH: PASS**
-**ACTIONS FULLY VISIBLE: PASS**
-**DESKTOP HORIZONTAL OVERFLOW: PASS** (none, at any of the four widths, either market — `docScrollWidth` equals viewport width in every measurement)
-**DESKTOP DENSITY: PASS**
+**WHY**: confirmed real, non-dead function via `quote.email_bounced` (persisted column) and `emailStatuses` (Dashboard.jsx session state) — most rows appearing empty is expected behavior (only bounces persist), not evidence of dead code.
+
+**WIDTH RECLAIMED**: none (already compact, 36px, from the prior task).
 
 ==========================================
-**MOBILE**
+**WIDTH LOCK**
 ==========================================
 
-**360 HE/EN**: gutter 6px (was 27px), card width 348px, zero overflow.
-**390 HE/EN**: gutter 6px (was 29px), card width 378px, zero overflow.
-**412 HE/EN**: gutter 6px (was 31px), card width 400px, zero overflow.
+**CANONICAL WIDTH**: `--pf-desktop-content-width`, 980px (unchanged).
 
-**MOBILE WIDTH PRESERVED: PASS** — actually corrected from a previously-unreported side-effect (see Part D above); now byte-identical HE/EN and tighter than the last reported state.
-**MOBILE OVERFLOW: PASS**
+**OWNER-APPROVED: YES** — **LOCKED: YES**
+
+**PUBLIC QUOTE: UNCHANGED**
+
+**HE/EN: PARITY PASS**
+
+==========================================
+**TRIAL NOTICE**
+==========================================
+
+**TRIAL NOTICE MUTATED: NO**
+
+**CURRENT DYNAMIC SPACE BEHAVIOR: PRESERVED, PASS** (no code in this area touched this task)
 
 ==========================================
 **LOCKED REGRESSION**
 ==========================================
 
-**PUBLIC QUOTE: PASS** (file untouched, unchanged)
-**AMOUNT TYPOGRAPHY: PASS** (row 500 / Total Revenue 600, neither reopened, code unchanged)
-**TRIAL NOTICE: PASS** (unaffected, untouched code path, confirmed via screenshot both markets)
-**CLIENT TYPE: PASS** (unaffected, untouched component)
+**AMOUNT TYPOGRAPHY: PASS** (untouched)
+**CLIENT TYPE: PASS** (source-of-truth and visual identity untouched; only its position within the new Mobile grid changed, per explicit Owner instruction)
 **TRIAL EXPIRATION → FREE: PASS** (70/70 tests green)
 **OTHER LOCKED REGRESSION: PASS**
 
@@ -140,7 +129,7 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 ==========================================
 
 **TESTS: PASS** (70/70)
-**LINT: PASS** (0 errors, same 6 pre-existing warnings, unrelated files)
+**LINT: PASS** (0 errors, same 6 pre-existing warnings)
 **BUILD: PASS**
 **REMOTE CONTINUITY READ-BACK: PASS**
 
@@ -149,12 +138,13 @@ Synced through the existing §17.J mechanism — isolated worktree, secret/priva
 ==========================================
 
 **MAIN HEAD**: `17ac4d3a950d96f4167f9b320c82b4798382d621` (unchanged, local and remote).
-**WORKING TREE**: uncommitted changes carried forward, plus this task's edits to `src/index.css`, `src/pages/Dashboard.jsx` (comment only), `src/components/QuotesTab.jsx`.
-**TEST**: one real mutation performed, Owner-authorized, for forensic verification only — quote id `4204f54d-519c-48dd-8910-99f2514516a8` (a `PROFLOW_TEST_LOCAL` account's own throwaway draft quote) now shows `status: approved` with a forged signature, called directly via RPC to prove the authorization gap. Not reverted (the immutability trigger blocks reverting an approved/signed quote by design) — disclosed, not hidden. No other TEST mutation.
-**PRODUCTION**: UNCHANGED.
 
-**NO signature remediation implemented. NO Production signature test. NO Production mutation. NO real-customer signing. NO existing-signature modification. NO Admin work. NO Item 28/30/31 implementation. NO Vercel routing change. NO application commit/push. NO Production deploy. NO LIVE action. Did not invent another Desktop width. Did not widen ProFlow because a table didn't fit. Did not modify Public Quote's geometry.**
+**WORKING TREE**: carried-forward uncommitted work, plus this task's edits to `src/components/QuotesTab.jsx` (mobile grid + sort control) and a new file `supabase/migrations/20260831000000_fix_public_approve_quote_business_check.sql`, plus the four continuity docs.
 
-**Status of all new results this task**: the signature findings above are forensic findings, not an implementation, and are not subject to LOCKED status. The canonical-width alignment, Quote History table/column changes, and density reduction are code changes, but per §54/§59 they are explicitly **IMPLEMENTED / TEST-VERIFIED / AWAITING OWNER VISUAL APPROVAL — NOT Owner-LOCKED.** Only an explicit Owner approval moves them to LOCKED.
+**TEST MUTATIONS**: the signature-authorization fix migration applied to `quotecode-test`; several TEST quotes signed/approved during the live regression-matrix verification (all disposable TEST-account data, no real customers, no Production).
 
-**Awaiting Owner + ChatGPT review.**
+**PRODUCTION: UNCHANGED.**
+
+**NO Admin work. NO Item 28/30/31 implementation. NO Vercel routing change. NO Production deploy. NO Production mutation. NO LIVE action. NO width change (locked as-is, per Owner approval). NO Trial Notice change. NO amount typography change.**
+
+**Awaiting Owner + ChatGPT visual/security review before any application commit/push.**
