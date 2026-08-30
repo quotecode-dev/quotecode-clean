@@ -79,6 +79,9 @@ AUDIT
 - Surface Consistency Rule is permanent.
 - Mid-task requirement capture is permanent.
 - Browser resource discipline is permanent.
+- Claude session rotation timing is governed by `PROFLOW_PROJECT_CONTEXT.md`
+  §48 (permanent) — normally rotate after 1–3 significant workstreams/several
+  working days/a major clean checkpoint, never mid-task.
 
 ## 4. Market invariants
 
@@ -747,6 +750,80 @@ Production mutation, no migration applied, no function deployed to
 Production, no commit, no push, no Vercel deploy, no secret added, no
 Item 20/21/23 implementation.
 
+## 10.V TEST Acceptance Readiness — audit then large multi-feature
+Package 1 implementation, iterated through many live Owner corrections
+(added 2026-08-30)
+
+A large TEST-only workstream in two parts. **Part 1 (audit only)**: a
+comprehensive readiness audit across Warranty, Trial notification, Public
+Quote actions, CSV button color, Attachments, TEST email config, and
+session-rotation documentation — verdict `TEST ACCEPTANCE READINESS AUDIT:
+PASS`, nothing implemented. **Part 2 (Owner-authorized implementation,
+"Package 1")**: implemented and TEST-verified everything the audit
+recommended, then iterated live through numerous Owner design corrections
+mid-task (all addressed, not deferred) — most notably the Trial
+notification's visual language changed four times (colored slide-bar →
+purple card → text-only ticker → final "slide-center-stop" motion) and the
+Public Quote bottom actions were redesigned twice more from an abstract
+two-button description into the Owner's exact reference screenshot
+(three equal tiles, a custom hand-built `PdfFileIcon.jsx` since lucide-react
+has no icon with literal "PDF" text).
+
+**Shipped, TEST-only, all lint/test/build-clean, none committed**: Item 24
+Attachments fix (one-line `storage_path` fix); Export CSV button recolored
+to charcoal, scoped correctly; a newly-discovered Default Terms bug fixed
+("New Quote" was discarding the business's saved default); Item 23
+Warranty fully implemented (new TEST migration, full snapshot/lock/
+duplicate architecture, both Public Quote pages, `get-public-quote`
+redeployed); Public Quote bottom actions (Call Me/Print fully functional,
+PDF an honest non-functional "Coming Soon" placeholder); a real mobile
+signature-pad scroll-blocking bug fixed (found from a real-device Owner
+report, verified with genuine CDP touch events); a real mobile horizontal-
+overflow bug root-caused and fixed (`isMobileView` defaulting to desktop on
+first render — not band-aided with `overflow-x:hidden`, which the Owner
+explicitly forbade).
+
+Both Agent HE and Agent EN independently verified the full feature set live
+(real login, real fictional data, real anonymous client-side signing for
+the lock proof) — **PASS across every sub-item**. Claude Lead independently
+re-verified the later mid-task corrections via isolated CDP sessions with
+screenshots and DOM measurement, since those landed after the agents were
+briefed.
+
+**Regression scare, investigated and resolved**: the Owner reported the
+"לידי"/Attn fields had disappeared from the New Quote form. Live,
+empirical, both-market/both-viewport testing found the fields fully intact
+and correctly rendered — **no code regression exists**; most likely a
+stale Vite HMR state on the Owner's own browser tab after this session's
+very large number of live file edits. Recorded transparently, not silently
+dismissed.
+
+New permanent rule `PROFLOW_PROJECT_CONTEXT.md` §48 (Claude Session
+Rotation Rule) recorded — identified as missing during this session's own
+bootstrap.
+
+**Not committed, not pushed, not deployed.** Full detail: `PROFLOW_TODO.md`
+items 21/23/24/14.A, `PROFLOW_HANDOFF.md` §18 (CURRENT RESUME STATE step
+33), `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## 10.W Client Type Badge — audit + TEST implementation (added 2026-08-30)
+
+A focused, Owner-authorized TEST-only task. Audit confirmed `clients.client_type`
+(`'business'`/`'private'`, explicit column, already required in two existing
+forms, already driving real Tax-ID-required logic) as the authoritative
+source — no schema change needed. Implemented a small compact badge (icon +
+label) next to the client name in Quote History (desktop table + mobile
+card), reading the live joined client record rather than the quotes table's
+own snapshot column, consistent with how the client name itself is already
+shown live. Both markets verified with real fictional TEST data, including
+confirming the badge updates immediately when an existing client's type is
+edited. Zero new horizontal overflow at 360/390/412px. Verdict
+`CLIENT TYPE BADGE: PASS`. Two previously-undocumented future requirements
+(Attn/לידי empty-fallback, Persistent Plan Identity) recorded as new TODO
+items 27/28 rather than left as a passing mention. TEST-only, not committed/
+pushed/deployed. Full detail: `PROFLOW_TODO.md` item 26,
+`PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 ## 10.A Disposable TEST Supabase environment (added 2026-08-28)
 
 A second Supabase project now exists for isolated runtime validation: `quotecode-test`
@@ -937,7 +1014,9 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-08-30 (Fix Stale Phase 3 Status in TODO task — corrects the paragraph immediately below, which was accurate at the retimestamp stage but became stale once Phase 2 and Phase 3 were both applied) — read this paragraph first, then the rest of this section for the still-accurate older Quote-Number/HE-EN release-candidate state further below.** The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
+**🟢 UPDATED 2026-08-30 (Client Type Badge task — supersedes the Package-1 paragraph immediately below for "what is current right now"; that paragraph remains accurate history for Package 1 specifically, not contradicted, only followed chronologically) — read this paragraph first.** The most recent workstream is §10.W, "Client Type Badge — audit + TEST implementation." A small, focused, Owner-authorized TEST-only feature: a compact icon+label badge next to the client name in Quote History showing Business vs. Individual/Private, using an already-existing `clients.client_type` field (no schema change). Verified both markets, no regressions. Verdict `CLIENT TYPE BADGE: PASS`. **NEXT ACTION**: awaiting Owner + ChatGPT review, same standing gate as the still-pending Package 1 result below — nothing has been committed/pushed/deployed across either task. See §10.W for full detail.
+
+**🟢 UPDATED 2026-08-30 (TEST Acceptance Readiness Package 1 task) — historical for Package 1 specifically, read the paragraph above first for the current pointer.** The most recent workstream is §10.V, "TEST Acceptance Readiness — audit then large multi-feature Package 1 implementation." Current state: a large TEST-only feature set (Attachments fix, CSV button color, Default Terms bug fix, Item 23 Warranty, Public Quote bottom actions, Trial notification redesign, mobile signature-pad scroll fix, mobile horizontal-overflow fix) is implemented and TEST-verified by both Agent HE and Agent EN independently plus Claude Lead, all lint/test/build-clean, **none of it committed/pushed/deployed**. `main` HEAD unchanged throughout. A real-device Owner report of the "לידי"/Attn fields disappearing was investigated live and found to be **not a code regression** (fields fully intact and correctly rendered, both markets, both viewports) — most likely a stale browser HMR state. **NEXT ACTION**: awaiting Owner + ChatGPT review of the full Package 1 result before any commit/push/Production step. See §10.V for full detail. The paragraph immediately below (Fix Stale Phase 3 Status) is now HISTORICAL for the earlier Full Runtime TEST Environment Build workstream specifically: The most recent workstream is the Full Runtime TEST Environment Build (§10.J) — currently at: **both Phase 2 (Files 00/01/02) and Phase 3 (File 03/Storage) applied and verified PASS on `quotecode-test`** — see §10.J's two "UPDATED 2026-08-30" paragraphs for full detail. `quotecode-test` now carries the complete base package (Files 00-03, all applied and verified). `main` HEAD unchanged at `17ac4d3a...` throughout this entire workstream — everything synced via `proflow-continuity` only. Two documentation-only backlog items were also recorded: item 23 (Warranty section requirement) and item 24 (`storage_path` bug, pre-existing, not fixed). **NEXT ACTION**: the next infrastructure phase (if any) is currently **undefined** — no name/number for one exists in any of the six files — so there is nothing further to await review of yet; Owner + ChatGPT review remains the standing gate before any Edge Function deployment, Auth configuration, TEST user creation, Vite rewiring, the `storage_path` fix, the Warranty implementation, or any Production action. This does not change or reopen anything below about the Quote-Number/HE-EN release candidate, which remains its own separate, still-accurate state as of its own last update (the paragraph immediately below is now HISTORICAL — accurate as of the retimestamp stage, superseded by this paragraph for "what is current right now"):
 
 - Hebrew money alignment: Owner visually accepted.
 - 980px visual content architecture: Owner + ChatGPT accepted.
