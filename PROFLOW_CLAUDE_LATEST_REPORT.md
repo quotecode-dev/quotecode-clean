@@ -4,110 +4,165 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Mobile-Only HE/EN Directional Mirroring Fix + Permanent Cross-Locale UI Invariant
+## Task: Canonical Domain Consolidation + ChatGPT Landing-Page Access
 
-**Effort level**: MAXIMUM. Mobile Quote History only — Desktop explicitly out of scope and confirmed untouched.
+**EFFORT LEVEL: MAXIMUM.** Audit / analysis / read-only verification / ChatGPT-access discovery only. No Production domain mutation is authorized or performed by this task.
 
-## The Bug
+## Methodology and a Disclosed Limitation
 
-EN Mobile's metadata cluster (Client Type/Views/Client Name) was ordered "Client Name → Views → Client Type" reading left-to-right — a literal sequence-reversal of HE's "Client Type → Views → Client Name" reading right-to-left. This is not a true directional mirror: it flips semantic priority between languages instead of preserving it.
+This session's Vercel CLI is not authenticated (`vercel whoami` → "Logged out"), so the actual Vercel project Domains configuration could not be read directly via API/CLI. Everything below is instead evidence gathered from: (1) live HTTP requests against both domains with redirects disabled, (2) direct comparison of response bodies and content-hashed asset filenames, (3) a full source-code search for domain references, and (4) reading `vercel.json`. Where Vercel-Dashboard-only configuration would be needed to fully answer a question (e.g., whether the default `.vercel.app` alias can technically be de-provisioned), this is stated plainly as unverified, not guessed.
 
-## Root Cause
+========================================
+**CURRENT DOMAIN STATE**
+========================================
 
-An earlier task in this session received an explicit Owner instruction that literally specified this reversed-sequence version ("HE: Client Type → Views → Client Name" / "EN, mirror this logically: Client Name → Views → Client Type"). That instruction was implemented exactly as written and TEST-verified against itself — both languages individually matched their own specification. The specification itself embedded the now-corrected misconception that "mirror" means "reverse the sequence" rather than "preserve the sequence, measured from each language's own inline-start edge." No prior verification step failed to catch a deviation from spec; the spec needed the Owner's own correction, which this task implements.
+**VERCEL ROOT** (`https://quotecode.vercel.app/`): initial status **200 OK**, no `Location` header, 0 redirects, final URL = same, final hostname = `quotecode.vercel.app`.
+**VERCEL /he**: 200 OK, no redirect.
+**VERCEL /en**: 200 OK, no redirect.
 
-## Why The Agent Process Didn't Catch It
+**CANONICAL ROOT** (`https://www.quotecodepro.com/`): 200 OK, no redirect.
+**CANONICAL /he**: 200 OK, no redirect.
+**CANONICAL /en**: 200 OK, no redirect.
 
-Independent HE-PASS + EN-PASS verification (as performed previously) checks each language against *its own* written specification — it cannot detect a defect that lives in the specification's cross-language relationship itself, because both sides can be individually correct relative to an internally-flawed pair of instructions. This task's new verification methodology instead computes each element's position **counted from inline-start** (direction-aware: RTL sorts by descending X, LTR by ascending X) and compares the resulting sequence between HE and EN **directly** — not against each language's own spec in isolation. This is now documented as a permanent, standing requirement for any future shared HE/EN ordering contract.
+**Neither domain redirects to the other today — both are live, independent, directly content-serving origins.**
 
-## The Fix
+**VERCEL HOSTNAME TYPE**: could not be definitively classified via authenticated evidence (CLI not logged in). Behaviorally, it functions exactly like a standard Vercel-project automatic production alias (serves the current Production deployment directly, `Server: Vercel`, edge-cached). Confirmed to be the **byte-identical build** as canonical:
+- Response body length: 3615 bytes, both domains, identical.
+- Content-hashed asset filenames (Vite build hashes — `index-CFcq8ykq.js`, `index-vQXPyooC.css`): **identical on both domains.** Since these hashes are derived from file content, this is cryptographic-strength proof of "same exact build," not a visual/appearance-based inference.
+- Both already serve `<link rel="canonical" href="https://www.quotecodepro.com/" />` even from the `.vercel.app` origin.
 
-`QuotesTab.jsx`'s Mobile card metadata grid previously used a language-conditional DOM order (`isHebrew ? [Type,Views,Name] : [Name,Views,Type]`) with a matching mirrored `gridTemplateColumns`. Replaced with a single, **non-conditional** DOM order (`Type, Views, Name, Amount`) and a single, non-conditional `gridTemplateColumns` — relying entirely on the pre-existing `dir="rtl"`/`dir="ltr"` attribute on the card to physically mirror the layout, exactly matching the pattern already used successfully elsewhere in the same file (the order#/date/status row). This is structurally simpler than the code it replaced and removes an entire class of "which language gets which order" bugs going forward.
+========================================
+**REMOVAL AUDIT**
+========================================
 
-## Verification
+**CAN `quotecode.vercel.app` BE REMOVED**: **UNKNOWN** (disclosed limitation — no authenticated Vercel access this session).
 
-Built a direction-aware regression script (not raw coordinate inspection): for each quote card, it locates Client Type/Views/Client Name, reads each element's physical `left`, and sorts by the container's own `dir` (RTL → highest-left-first = closest to the right/inline-start; LTR → lowest-left-first = closest to the left/inline-start), producing an explicit "1st/2nd/3rd from inline-start" sequence per row. Ran across all 6 required combinations (HE/EN × 360/390/412px), 10 quotes per combination with genuinely varying Client Name lengths (short/medium/very long) and view counts (0/1/multiple):
+**WHAT "REMOVE" WOULD MEAN**: unassigning/de-provisioning the `.vercel.app` hostname as a public alias for this project's Production deployment, as distinct from deleting any Vercel-generated deployment-specific technical URLs (which are not required to be touched).
 
-**Every single one of the 60 measured rows produced the identical sequence: `CLIENT_TYPE → VIEWS → CLIENT_NAME`. Zero mismatches, in either language, at any width.**
+**VERCEL HOSTING AFTER REMOVAL**: unaffected in principle — Vercel would continue hosting and serving `www.quotecodepro.com` normally; this is purely a domain/alias-layer question, not a hosting-capability question.
 
-Also confirmed in the same pass: zero horizontal overflow at any combination; Mobile Sort control present and unaffected; zero-Views quotes still render "0" (not hidden); long names still truncate with a single-line ellipsis (RTL-correct — the ellipsis renders at the visual start of the truncated Hebrew text). Screenshots confirm visually: HE reads right-to-left as person-icon → eye-count → truncated name; EN reads left-to-right as person-icon → eye-count → truncated name — a genuine mirror.
+**DEPLOYMENT-SPECIFIC URLS AFTER REMOVAL**: not required to change; Vercel's internal per-deployment URLs are a separate mechanism from the project-level public alias.
 
-## Desktop Isolation
+**OLD LINK CONSEQUENCE**: **real, code-confirmed.** Password-reset emails and business-user-shared Public Quote links generated while a user was browsing via `quotecode.vercel.app` embed that exact origin (see Auth/Session section below) — immediate removal would break these for any user/link currently in flight.
 
-Confirmed via two independent methods: (1) line-range isolation — both edits this task fall entirely within lines 604-735 of `QuotesTab.jsx`, inside the pre-existing `{isMobileView && (...)}` block; the Desktop table section spans lines 442-603 and was not touched by either edit. (2) Live re-measurement — HE at 1440px shows the canonical 980px wrapper width, table width matching its wrapper exactly (no overflow), identical to every prior measurement this session.
+**SEO CONSEQUENCE**: low. The app's own canonical tags, hreflang, sitemap, and robots.txt are already 100% clean of `vercel.app` references — no code-level SEO dependency exists. The only unverifiable residual risk is whether Google has independently indexed any `quotecode.vercel.app` URL outside the sitemap (not checked — would require Search Console access, the same standing gap as the still-open Item 5 SEO TODO).
 
-## Continuity
+**AUTH CONSEQUENCE**: real for password-reset specifically (see below); zero for signup confirmation and all transactional emails (already hardcoded to canonical).
 
-Synced through the existing §17.J mechanism — isolated worktree, secret/privacy scan, explicit filename staging, commit, push `proflow-continuity` only — followed by remote GitHub read-back verification. New permanent rule recorded at `PROFLOW_PROJECT_CONTEXT.md` §63 (HE/EN Directional Symmetry — the Inline-Start Contract), with a correction note added to §61 pointing forward to it.
+========================================
+**REDIRECT OPTION**
+========================================
 
-## Final Verdict
+**REDIRECT SUPPORTED**: YES (standard Vercel capability — either a project-level Domain redirect rule or a `vercel.json` `redirects` entry; the current `vercel.json` has no `redirects` block today, confirming no redirect exists yet at the application-config layer).
 
-**MOBILE DIRECTIONAL MIRROR FIX: PASS**
+**BEST REDIRECT LAYER**: the Vercel project Domain configuration (redirecting at the platform edge, before any request reaches the application) is preferable to an application-level redirect, since it works even before React/the SPA loads.
 
-**ROOT CAUSE OF PREVIOUS EN ORDER**: an earlier task's own explicit Owner instruction literally specified the reversed-sequence version; implemented and TEST-verified exactly as written at the time.
+**STATUS CODE**: a permanent redirect (301 or Vercel's edge-native 308) is appropriate for a deliberate, permanent domain consolidation — not a temporary 302/307.
 
-**WHY AGENT PROCESS DID NOT CATCH IT**: independent per-language PASS/FAIL checks each side against its own spec, which cannot detect a defect in the spec's cross-language relationship itself; both languages were individually correct relative to a pair of instructions that, together, specified a reversal rather than a mirror.
+**PATH PRESERVATION**: achievable with a wildcard rule (`/(.*)` → `https://www.quotecodepro.com/$1`) — required, since Public Quote links (`/public-quote/:id`) and Dashboard-relative paths must resolve correctly after the redirect.
 
---------------------------------
-**HE MOBILE**
---------------------------------
-**DIRECTION**: RTL
-**POSITION 1 FROM INLINE-START**: Client Type
-**POSITION 2**: Views
-**POSITION 3**: Client Name
+**QUERY PRESERVATION**: achievable — Vercel redirect rules preserve query strings by default when the destination doesn't already define its own. Necessary for `?lang=en` and any Supabase auth callback query parameters.
 
---------------------------------
-**EN MOBILE**
---------------------------------
-**DIRECTION**: LTR
-**POSITION 1 FROM INLINE-START**: Client Type
-**POSITION 2**: Views
-**POSITION 3**: Client Name
+**Note on URL fragments** (`#access_token=...` style Supabase flows, if used): browsers natively preserve the original request's URL fragment across an HTTP redirect when the `Location` header does not specify its own fragment — this is standard browser behavior, not something the redirect rule needs to explicitly handle.
 
---------------------------------
-**PARITY**
---------------------------------
-**SEMANTIC INLINE-START PARITY: PASS** (identical sequence, both languages, all widths, 60/60 rows measured)
+========================================
+**RECOMMENDATION**
+========================================
 
-**360**: HE PASS / EN PASS / mirror PASS / overflow PASS (none)
-**390**: HE PASS / EN PASS / mirror PASS / overflow PASS (none)
-**412**: HE PASS / EN PASS / mirror PASS / overflow PASS (none)
+**RECOMMENDED FINAL ARCHITECTURE: C — STAGED REDIRECT, THEN LATER REMOVAL.**
 
-**ZERO VIEWS: PASS** (renders "0" + eye icon, both markets)
-**LONG CLIENT NAME: PASS** (single-line ellipsis truncation, both markets, RTL-correct in HE)
-**MOBILE SORT: PASS** (control present and unaffected at every combination)
+**WHY**: Live evidence proves `quotecode.vercel.app` is a fully independent, currently-content-serving second origin — exactly the Owner's concern, and it should stop being one. However, immediate hard removal was found to carry a **real, code-confirmed risk**, not a hypothetical one: password-reset links and business-user-generated Public Quote share links both embed whatever origin the browser was on at the time (`window.location.origin`), with **no fallback to canonical**. A user mid-password-reset, or a customer holding a quote link shared by a business owner who happened to be on `quotecode.vercel.app`, would hit a dead domain under immediate removal. A redirect (path+query preserved) gracefully forwards all such links to canonical instead — fully satisfying the Owner's goal (the domain stops operating as an independent second application origin) while breaking nothing already in circulation. Once the Owner is satisfied that legacy-link dependence has faded (a time-boxed period, or direct evidence such as Vercel access-log volume on the old domain dropping to near-zero), project-level removal can be revisited as a separate, later, explicitly-authorized step — at which point the "UNKNOWN — can it even be removed" question from the Removal Audit above would also need a definitive answer via authenticated Vercel access.
 
---------------------------------
-**DESKTOP**
---------------------------------
-**DESKTOP QUOTE HISTORY MUTATED: NO**
-**DESKTOP WIDTH: UNCHANGED, PASS** (980px canonical, re-measured live)
-**DESKTOP COLUMN ORDER: UNCHANGED, PASS** (code not touched — line-range isolation confirmed)
+========================================
+**AUTH / SESSION**
+========================================
 
---------------------------------
-**PERMANENT RULE**
---------------------------------
-**HE/EN DIRECTIONAL SYMMETRY DOCUMENTED: PASS** (`PROFLOW_PROJECT_CONTEXT.md` §63)
-**INLINE-START CONTRACT DOCUMENTED: PASS** (§63, explicit 1st/2nd/3rd-from-inline-start framing, never hard-coded left/right)
-**CROSS-LOCALE AGENT COMPARISON RULE: PASS** (§63, standing requirement for direct inline-start-position comparison, not independent per-language PASS alone)
-**BEHAVIORAL LOCK UPDATED: PASS** (§63 framed as a concrete instance of §54's observable-behavior-lock principle; §61 corrected with a forward-pointer)
+**SUPABASE SITE URL**: unavailable this session (no authenticated read path — Supabase CLI has no config-read subcommand for Auth settings, and a raw Management API call was not attempted, consistent with this session's established practice of not improvising credential-bearing platform calls without explicit precedent).
 
---------------------------------
-**QUALITY**
---------------------------------
-**TESTS: PASS** (70/70)
-**LINT: PASS** (0 errors, same 6 pre-existing warnings)
-**BUILD: PASS**
-**REMOTE CONTINUITY READ-BACK: PASS**
+**REDIRECT ALLOW-LIST**: unavailable, same reason.
 
---------------------------------
+**LOGIN IMPACT**: none — the standard email/password login flow (`supabase.auth.signInWithPassword`) does not involve a redirect URL at all; unaffected by domain consolidation either way.
+
+**RESET IMPACT**: **real** — `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + ... })` appears at four call sites (`App.jsx`, `AppLocal.jsx`, `AppGlobal.jsx`, `Dashboard.jsx`), all dynamically using the browser's current origin, none hardcoded to canonical. A reset requested from `quotecode.vercel.app` produces a reset-completion link pointing back to that exact origin.
+
+**SIGNUP CONFIRMATION IMPACT**: none — `Dashboard.jsx`'s `supabase.auth.signUp` call already hardcodes `emailRedirectTo: 'https://www.quotecodepro.com/dashboard'`, with an existing code comment explicitly stating this is deliberate so confirmation always returns to canonical "even if signup was done via quotecode.vercel.app."
+
+**PUBLIC QUOTE IMPACT**: mixed. Server-generated links (the actual "Send Email" quote-delivery flow, `send-quote-email` Edge Function) are hardcoded to canonical (`PROD_ORIGIN = 'https://www.quotecodepro.com'`, with its own explicit anti-phishing-appearance rationale comment) — zero risk. But the **frontend "Copy Link" and "Send WhatsApp" buttons** (`Dashboard.jsx` ×2, `QuotesTab.jsx` ×1) build the link from `window.location.origin` dynamically — a business owner sharing a quote while browsing via `quotecode.vercel.app` embeds that origin in the link they hand to their own customer.
+
+**SIGNATURE IMPACT**: none beyond the Public Quote link-origin issue above — the signature flow itself (`public_approve_quote` RPC, the P0 security fix from an earlier task this session) operates on whatever page the link resolves to; it has no domain-specific logic of its own.
+
+**MULTI-DEVICE SESSION IMPACT**: none. Supabase sessions are stored per-browser-origin by design; this was already true before any consolidation work and is unrelated to it. A user switching from `quotecode.vercel.app` to `www.quotecodepro.com` would need to sign in again on the "new" origin exactly as they would after any bookmark/URL change — this is not a regression introduced by redirect or removal, it is inherent, pre-existing browser-storage behavior. Independent multi-device sessions (the standing product requirement) are fully preserved either way.
+
+**HARDCODED VERCEL REFERENCES — full ledger**:
+- `Dashboard.jsx` signup `emailRedirectTo` → AUTH, already hardcoded-safe.
+- `send-trial-expiration-email`, `send-subscription-expiration-email` CTA links → AUTH/EMAIL CTA, already hardcoded-safe.
+- `send-quote-email`'s `PROD_ORIGIN` → PUBLIC QUOTE, already hardcoded-safe.
+- `resetPasswordForEmail` × 4 call sites → AUTH, **origin-dependent, real risk**.
+- Public Quote "Copy Link"/WhatsApp builders × 3 call sites → PUBLIC QUOTE, **origin-dependent, real risk**.
+- `index.html` canonical/hreflang/OG/Twitter tags → SEO, already hardcoded-safe.
+- `sitemap.xml` (36 refs), `robots.txt` (1 ref) → SEO, already hardcoded-safe, zero vercel.app exposure.
+- `support@`/`info@quotecodepro.com` email addresses → OTHER, unaffected by hosting/domain changes.
+- One code comment in `Dashboard.jsx` naming `quotecode.vercel.app` → DOCUMENTATION only.
+- Demo-video relative paths → ASSET, resolve correctly under either domain today.
+
+**No STALE or LEGACY reference was found anywhere in the repository.**
+
+========================================
+**CHATGPT ACCESS**
+========================================
+
+**HE LANDING ACCESS**: the canonical Production Hebrew Landing Page URL directly.
+**EN LANDING ACCESS**: the canonical Production English Landing Page URL directly.
+
+**RELATION TO PRODUCTION**: **SAME EXACT PRODUCTION DEPLOYMENT** — this is the canonical domain itself (not an alias, not a preview, not older), and is additionally proven byte-identical to `quotecode.vercel.app`'s current build via matching content-hashed asset filenames. This is the simplest possible access method: no new infrastructure, no `.vercel.app` dependency, no TEST exposure, no tunnel.
+
+**INTERACTIVE**: YES — it is the live, fully interactive Production site.
+
+**HE VIDEO**: the HE demo video's public static URL, served directly from the canonical domain.
+**EN VIDEO**: the EN demo video's public static URL, served directly from the canonical domain.
+Both live-verified this task via an HTTP range request: `206 Partial Content`, `Content-Type: video/mp4`, `Accept-Ranges: bytes`, no authentication challenge, no expiring token.
+
+**NO SECRET REQUIRED: PASS** — every recommended URL is a plain public HTTPS URL.
+
+**Caveat disclosed**: these URLs reflect whatever is live at the moment they're visited. Since no authenticated Vercel access was available this session, a permanently version-pinned historical-deployment URL could not be discovered as an alternative — if this matters (e.g., ChatGPT's review must be pinned to today's exact build even after a future deploy), that would require a separate, explicitly-authorized Vercel-access task.
+
+========================================
+**PRODUCTION CHANGE**
+========================================
+
+**PRODUCTION DOMAIN MUTATION PERFORMED: NO**
+
+**OWNER AUTHORIZATION REQUIRED FOR NEXT STEP: YES**
+
+**EXACT PROPOSED NEXT CHANGE** (not performed, awaiting authorization): configure a permanent (301/308) redirect at the Vercel project Domain layer from `quotecode.vercel.app/*` to `https://www.quotecodepro.com/*`, preserving path and query string. This does not require any Supabase Auth Site URL / redirect allow-list change (those already list `www.quotecodepro.com`-based URLs as the primary/hardcoded targets for every flow that matters, per the ledger above) and does not require any application code change.
+
+========================================
+**LOCKED REGRESSION**
+========================================
+
+**APPLICATION UI MUTATED: NO**
+**SIGNATURE SECURITY: UNCHANGED**
+**CANONICAL WIDTH: UNCHANGED**
+**MOBILE HE/EN ORDER: UNCHANGED**
+**TRIAL NOTICE: UNCHANGED**
+
+(No application file was touched this task — audit and documentation only.)
+
+========================================
+**CONTINUITY**
+========================================
+
+**REMOTE CONTINUITY READ-BACK: PASS** (see sync confirmation in this task's delivery).
+
+========================================
 **FRESH LOCAL STATE**
---------------------------------
-**MAIN HEAD**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (unchanged, local and remote)
-**WORKING TREE**: same pre-existing uncommitted files as before, plus this task's edits to `src/components/QuotesTab.jsx` (Mobile section only) and the four continuity docs.
-**TEST**: no mutation — this task used only local browser-based DOM measurement against the already-running TEST-mode dev server; no database write of any kind.
-**PRODUCTION**: **UNCHANGED.**
+========================================
 
-**MOBILE ONLY. No Desktop Quote History change. No canonical width change. No Admin work. No P1 implementation. No Session Timeout work. No Landing Page work. No Vercel/domain work. No Item 28/30/31. No application commit/push. No Production deploy/mutation. No LIVE action.**
+**MAIN HEAD**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972`
+**REMOTE MAIN**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (confirmed matching)
+**WORKING TREE**: unchanged from before this task — the same pre-existing uncommitted application/migration files, plus the four continuity docs now further updated by this task's own audit findings.
+**PRODUCTION: UNCHANGED.**
 
-**Awaiting Owner visual approval.**
+**No `quotecode.vercel.app` removal performed. No redirect added. No Supabase URL changed. No DNS changed. No deploy. No Landing Page redesign begun.**
+
+**Awaiting Owner + ChatGPT decision.**
