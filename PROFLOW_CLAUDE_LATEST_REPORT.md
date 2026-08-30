@@ -4,165 +4,126 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Canonical Domain Consolidation + ChatGPT Landing-Page Access
+## Task: ChatGPT Landing-Page Access Resolution
 
-**EFFORT LEVEL: MAXIMUM.** Audit / analysis / read-only verification / ChatGPT-access discovery only. No Production domain mutation is authorized or performed by this task.
+**EFFORT LEVEL: MAXIMUM.** Access-discovery only. No Production domain/routing mutation performed. No application code changed.
 
-## Methodology and a Disclosed Limitation
+## What Happened and Why the Prior Answer Wasn't Enough
 
-This session's Vercel CLI is not authenticated (`vercel whoami` → "Logged out"), so the actual Vercel project Domains configuration could not be read directly via API/CLI. Everything below is instead evidence gathered from: (1) live HTTP requests against both domains with redirects disabled, (2) direct comparison of response bodies and content-hashed asset filenames, (3) a full source-code search for domain references, and (4) reading `vercel.json`. Where Vercel-Dashboard-only configuration would be needed to fully answer a question (e.g., whether the default `.vercel.app` alias can technically be de-provisioned), this is stated plainly as unverified, not guessed.
+The prior task's recommendation — "give ChatGPT the canonical `www.quotecodepro.com` URLs directly, since they're proven byte-identical to `quotecode.vercel.app`" — turned out to be insufficient in practice: ChatGPT directly attempted those URLs from its own browsing environment and could not reach them. This task's job was narrowed to solving that specific access problem without touching Production routing.
 
-========================================
-**CURRENT DOMAIN STATE**
-========================================
+## Finding the Real Current Deployment URL — Without Vercel Credentials
 
-**VERCEL ROOT** (`https://quotecode.vercel.app/`): initial status **200 OK**, no `Location` header, 0 redirects, final URL = same, final hostname = `quotecode.vercel.app`.
-**VERCEL /he**: 200 OK, no redirect.
-**VERCEL /en**: 200 OK, no redirect.
+This session's Vercel CLI remains unauthenticated (`vercel whoami` → "Logged out"), so Vercel's own API/Dashboard could not be queried directly. Instead: Vercel's GitHub integration automatically posts deployment records to GitHub itself whenever it deploys a commit. Querying GitHub's Deployments API for `main`'s current HEAD commit (`b5583e59d4dab0b2c7741df8fdc1110f32b4d972` — the same commit as the earlier P0 signature-security fix, which did trigger a real Production deploy) returned Vercel's own record: environment `Production`, status `success`, `environment_url` = `https://quotecode-adp6tay5v-quote-code.vercel.app`. This is genuine, Vercel-sourced, non-guessed evidence obtained via a plain read-only GitHub API call — no token, login, or secret of any kind was used or exposed.
 
-**CANONICAL ROOT** (`https://www.quotecodepro.com/`): 200 OK, no redirect.
-**CANONICAL /he**: 200 OK, no redirect.
-**CANONICAL /en**: 200 OK, no redirect.
+## That URL Is Blocked (Reported Honestly, Not Glossed Over)
 
-**Neither domain redirects to the other today — both are live, independent, directly content-serving origins.**
+Live-tested at `/`, `/he`, `/en`: every path returned `302 Found` → `https://vercel.com/sso-api?...` — **Vercel Deployment Protection (SSO)** is enabled for this deployment-specific URL, requiring a Vercel account login to pass through. This is **not** a usable ChatGPT-access candidate, and is reported as a failed candidate rather than framed as a partial success. No Deployment Protection setting was touched, per the explicit instruction not to disable protection globally.
 
-**VERCEL HOSTNAME TYPE**: could not be definitively classified via authenticated evidence (CLI not logged in). Behaviorally, it functions exactly like a standard Vercel-project automatic production alias (serves the current Production deployment directly, `Server: Vercel`, edge-cached). Confirmed to be the **byte-identical build** as canonical:
-- Response body length: 3615 bytes, both domains, identical.
-- Content-hashed asset filenames (Vite build hashes — `index-CFcq8ykq.js`, `index-vQXPyooC.css`): **identical on both domains.** Since these hashes are derived from file content, this is cryptographic-strength proof of "same exact build," not a visual/appearance-based inference.
-- Both already serve `<link rel="canonical" href="https://www.quotecodepro.com/" />` even from the `.vercel.app` origin.
+## The Fallback That Actually Works Today
 
-========================================
-**REMOVAL AUDIT**
-========================================
+`quotecode.vercel.app` (the project's own existing public alias — the very domain the separate consolidation audit is about) was re-confirmed live this task: still `200 OK`, no redirect, no SSO wall, and still serving the **byte-identical build** as canonical (re-verified via matching Vite content-hash asset filenames). This is the only currently-existing, zero-configuration-change, unprotected public URL available right now. Offering it for this one-time ChatGPT inspection does not decide the separate, still-pending domain-consolidation question — but it does mean that redirecting or removing this domain before ChatGPT's review is complete would remove the access path being offered here.
 
-**CAN `quotecode.vercel.app` BE REMOVED**: **UNKNOWN** (disclosed limitation — no authenticated Vercel access this session).
+## Guaranteed Fallback — Local Review Package
 
-**WHAT "REMOVE" WOULD MEAN**: unassigning/de-provisioning the `.vercel.app` hostname as a public alias for this project's Production deployment, as distinct from deleting any Vercel-generated deployment-specific technical URLs (which are not required to be touched).
+Since the true root cause of ChatGPT's original access failure was never confirmed (it may or may not be specific to the custom domain), a full local review package was prepared regardless, so the Owner has a working option independent of any browsing-tool restriction:
 
-**VERCEL HOSTING AFTER REMOVAL**: unaffected in principle — Vercel would continue hosting and serving `www.quotecodepro.com` normally; this is purely a domain/alias-layer question, not a hosting-capability question.
+- **HE Desktop full-page screenshot** — captured live from `quotecode.vercel.app/he` (confirmed current Production build), 1440×3440.
+- **EN Desktop full-page screenshot** — `quotecode.vercel.app/en`, 1440×3542.
+- **HE Mobile full-page screenshot** — 390×5729 (iPhone-width viewport).
+- **EN Mobile full-page screenshot** — 390×5937.
+- **HE demo video** — the genuine, current `/proflow-demo.mp4` file downloaded directly, 2,522,561 bytes, verified as a valid MP4 container (`ftyp isom` magic bytes match), byte-size-identical to the live Production asset.
+- **EN demo video** — the genuine, current `/proflow-demoEN.mp4` file downloaded directly, 2,578,902 bytes, same verification.
 
-**DEPLOYMENT-SPECIFIC URLS AFTER REMOVAL**: not required to change; Vercel's internal per-deployment URLs are a separate mechanism from the project-level public alias.
+All six files are saved in this session's local scratchpad directory (exact paths in the Fallback section below) and are ready for the Owner to attach/upload directly to a ChatGPT conversation.
 
-**OLD LINK CONSEQUENCE**: **real, code-confirmed.** Password-reset emails and business-user-shared Public Quote links generated while a user was browsing via `quotecode.vercel.app` embed that exact origin (see Auth/Session section below) — immediate removal would break these for any user/link currently in flight.
+## Continuity
 
-**SEO CONSEQUENCE**: low. The app's own canonical tags, hreflang, sitemap, and robots.txt are already 100% clean of `vercel.app` references — no code-level SEO dependency exists. The only unverifiable residual risk is whether Google has independently indexed any `quotecode.vercel.app` URL outside the sitemap (not checked — would require Search Console access, the same standing gap as the still-open Item 5 SEO TODO).
+Synced through the existing §17.J mechanism — isolated worktree, secret/privacy scan, explicit filename staging, commit, push `proflow-continuity` only — followed by remote GitHub read-back verification.
 
-**AUTH CONSEQUENCE**: real for password-reset specifically (see below); zero for signup confirmation and all transactional emails (already hardcoded to canonical).
+## Final Verdict
 
 ========================================
-**REDIRECT OPTION**
+**CURRENT PRODUCTION DEPLOYMENT**
 ========================================
 
-**REDIRECT SUPPORTED**: YES (standard Vercel capability — either a project-level Domain redirect rule or a `vercel.json` `redirects` entry; the current `vercel.json` has no `redirects` block today, confirming no redirect exists yet at the application-config layer).
-
-**BEST REDIRECT LAYER**: the Vercel project Domain configuration (redirecting at the platform edge, before any request reaches the application) is preferable to an application-level redirect, since it works even before React/the SPA loads.
-
-**STATUS CODE**: a permanent redirect (301 or Vercel's edge-native 308) is appropriate for a deliberate, permanent domain consolidation — not a temporary 302/307.
-
-**PATH PRESERVATION**: achievable with a wildcard rule (`/(.*)` → `https://www.quotecodepro.com/$1`) — required, since Public Quote links (`/public-quote/:id`) and Dashboard-relative paths must resolve correctly after the redirect.
-
-**QUERY PRESERVATION**: achievable — Vercel redirect rules preserve query strings by default when the destination doesn't already define its own. Necessary for `?lang=en` and any Supabase auth callback query parameters.
-
-**Note on URL fragments** (`#access_token=...` style Supabase flows, if used): browsers natively preserve the original request's URL fragment across an HTTP redirect when the `Location` header does not specify its own fragment — this is standard browser behavior, not something the redirect rule needs to explicitly handle.
+**PRODUCTION DEPLOYMENT ID**: `6wEcmzbjcm5a3hnoqzrsBjaQq6iQ` (Vercel's own deployment identifier, from the GitHub commit-status `target_url`).
+**PRODUCTION COMMIT/SHA**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (`main`'s current HEAD, unchanged throughout this whole task).
+**DEPLOYMENT-SPECIFIC URL**: `https://quotecode-adp6tay5v-quote-code.vercel.app`
+**RELATION TO www.quotecodepro.com**: **SAME EXACT DEPLOYMENT** — this URL was posted by Vercel itself as the `environment_url` for the `Production` environment deployment of the exact commit currently live on `main`/canonical.
 
 ========================================
-**RECOMMENDATION**
+**CHATGPT ACCESS CANDIDATE**
 ========================================
 
-**RECOMMENDED FINAL ARCHITECTURE: C — STAGED REDIRECT, THEN LATER REMOVAL.**
+**Candidate 1 — deployment-specific URL** (`quotecode-adp6tay5v-quote-code.vercel.app`):
+ROOT / HE / EN: all return `302` → Vercel SSO.
+**DIRECT CONTENT SERVED: NO**
+**REDIRECTS TO CANONICAL: NO** (redirects to Vercel's own login/SSO page, not to canonical Production)
+**PUBLIC WITHOUT AUTH: NO**
+**SECRET/TOKEN REQUIRED: YES** (Vercel account login)
+**CHATGPT ACCESS CANDIDATE: FAIL**
 
-**WHY**: Live evidence proves `quotecode.vercel.app` is a fully independent, currently-content-serving second origin — exactly the Owner's concern, and it should stop being one. However, immediate hard removal was found to carry a **real, code-confirmed risk**, not a hypothetical one: password-reset links and business-user-generated Public Quote share links both embed whatever origin the browser was on at the time (`window.location.origin`), with **no fallback to canonical**. A user mid-password-reset, or a customer holding a quote link shared by a business owner who happened to be on `quotecode.vercel.app`, would hit a dead domain under immediate removal. A redirect (path+query preserved) gracefully forwards all such links to canonical instead — fully satisfying the Owner's goal (the domain stops operating as an independent second application origin) while breaking nothing already in circulation. Once the Owner is satisfied that legacy-link dependence has faded (a time-boxed period, or direct evidence such as Vercel access-log volume on the old domain dropping to near-zero), project-level removal can be revisited as a separate, later, explicitly-authorized step — at which point the "UNKNOWN — can it even be removed" question from the Removal Audit above would also need a definitive answer via authenticated Vercel access.
-
-========================================
-**AUTH / SESSION**
-========================================
-
-**SUPABASE SITE URL**: unavailable this session (no authenticated read path — Supabase CLI has no config-read subcommand for Auth settings, and a raw Management API call was not attempted, consistent with this session's established practice of not improvising credential-bearing platform calls without explicit precedent).
-
-**REDIRECT ALLOW-LIST**: unavailable, same reason.
-
-**LOGIN IMPACT**: none — the standard email/password login flow (`supabase.auth.signInWithPassword`) does not involve a redirect URL at all; unaffected by domain consolidation either way.
-
-**RESET IMPACT**: **real** — `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + ... })` appears at four call sites (`App.jsx`, `AppLocal.jsx`, `AppGlobal.jsx`, `Dashboard.jsx`), all dynamically using the browser's current origin, none hardcoded to canonical. A reset requested from `quotecode.vercel.app` produces a reset-completion link pointing back to that exact origin.
-
-**SIGNUP CONFIRMATION IMPACT**: none — `Dashboard.jsx`'s `supabase.auth.signUp` call already hardcodes `emailRedirectTo: 'https://www.quotecodepro.com/dashboard'`, with an existing code comment explicitly stating this is deliberate so confirmation always returns to canonical "even if signup was done via quotecode.vercel.app."
-
-**PUBLIC QUOTE IMPACT**: mixed. Server-generated links (the actual "Send Email" quote-delivery flow, `send-quote-email` Edge Function) are hardcoded to canonical (`PROD_ORIGIN = 'https://www.quotecodepro.com'`, with its own explicit anti-phishing-appearance rationale comment) — zero risk. But the **frontend "Copy Link" and "Send WhatsApp" buttons** (`Dashboard.jsx` ×2, `QuotesTab.jsx` ×1) build the link from `window.location.origin` dynamically — a business owner sharing a quote while browsing via `quotecode.vercel.app` embeds that origin in the link they hand to their own customer.
-
-**SIGNATURE IMPACT**: none beyond the Public Quote link-origin issue above — the signature flow itself (`public_approve_quote` RPC, the P0 security fix from an earlier task this session) operates on whatever page the link resolves to; it has no domain-specific logic of its own.
-
-**MULTI-DEVICE SESSION IMPACT**: none. Supabase sessions are stored per-browser-origin by design; this was already true before any consolidation work and is unrelated to it. A user switching from `quotecode.vercel.app` to `www.quotecodepro.com` would need to sign in again on the "new" origin exactly as they would after any bookmark/URL change — this is not a regression introduced by redirect or removal, it is inherent, pre-existing browser-storage behavior. Independent multi-device sessions (the standing product requirement) are fully preserved either way.
-
-**HARDCODED VERCEL REFERENCES — full ledger**:
-- `Dashboard.jsx` signup `emailRedirectTo` → AUTH, already hardcoded-safe.
-- `send-trial-expiration-email`, `send-subscription-expiration-email` CTA links → AUTH/EMAIL CTA, already hardcoded-safe.
-- `send-quote-email`'s `PROD_ORIGIN` → PUBLIC QUOTE, already hardcoded-safe.
-- `resetPasswordForEmail` × 4 call sites → AUTH, **origin-dependent, real risk**.
-- Public Quote "Copy Link"/WhatsApp builders × 3 call sites → PUBLIC QUOTE, **origin-dependent, real risk**.
-- `index.html` canonical/hreflang/OG/Twitter tags → SEO, already hardcoded-safe.
-- `sitemap.xml` (36 refs), `robots.txt` (1 ref) → SEO, already hardcoded-safe, zero vercel.app exposure.
-- `support@`/`info@quotecodepro.com` email addresses → OTHER, unaffected by hosting/domain changes.
-- One code comment in `Dashboard.jsx` naming `quotecode.vercel.app` → DOCUMENTATION only.
-- Demo-video relative paths → ASSET, resolve correctly under either domain today.
-
-**No STALE or LEGACY reference was found anywhere in the repository.**
+**Candidate 2 — `quotecode.vercel.app` (existing public alias)**:
+ROOT: `https://quotecode.vercel.app/` — EN: `https://quotecode.vercel.app/en` — HE: `https://quotecode.vercel.app/he`
+**DIRECT CONTENT SERVED: YES** (200 OK, byte-identical build to canonical)
+**REDIRECTS TO CANONICAL: NO** (serves directly, does not redirect)
+**PUBLIC WITHOUT AUTH: YES**
+**SECRET/TOKEN REQUIRED: NO**
+**CHATGPT ACCESS CANDIDATE: PASS** — best currently-available option, though the root cause of ChatGPT's original failure on the custom domain is unconfirmed, so this is offered as the most likely candidate, not a guarantee.
 
 ========================================
-**CHATGPT ACCESS**
+**VIDEOS**
 ========================================
 
-**HE LANDING ACCESS**: the canonical Production Hebrew Landing Page URL directly.
-**EN LANDING ACCESS**: the canonical Production English Landing Page URL directly.
-
-**RELATION TO PRODUCTION**: **SAME EXACT PRODUCTION DEPLOYMENT** — this is the canonical domain itself (not an alias, not a preview, not older), and is additionally proven byte-identical to `quotecode.vercel.app`'s current build via matching content-hashed asset filenames. This is the simplest possible access method: no new infrastructure, no `.vercel.app` dependency, no TEST exposure, no tunnel.
-
-**INTERACTIVE**: YES — it is the live, fully interactive Production site.
-
-**HE VIDEO**: the HE demo video's public static URL, served directly from the canonical domain.
-**EN VIDEO**: the EN demo video's public static URL, served directly from the canonical domain.
-Both live-verified this task via an HTTP range request: `206 Partial Content`, `Content-Type: video/mp4`, `Accept-Ranges: bytes`, no authentication challenge, no expiring token.
-
-**NO SECRET REQUIRED: PASS** — every recommended URL is a plain public HTTPS URL.
-
-**Caveat disclosed**: these URLs reflect whatever is live at the moment they're visited. Since no authenticated Vercel access was available this session, a permanently version-pinned historical-deployment URL could not be discovered as an alternative — if this matters (e.g., ChatGPT's review must be pinned to today's exact build even after a future deploy), that would require a separate, explicitly-authorized Vercel-access task.
+**HE VIDEO**: `https://www.quotecodepro.com/proflow-demo.mp4` (also reachable at `https://quotecode.vercel.app/proflow-demo.mp4`) — local copy saved to `proflow-demo-HE.mp4`.
+**EN VIDEO**: `https://www.quotecodepro.com/proflow-demoEN.mp4` (also reachable at `https://quotecode.vercel.app/proflow-demoEN.mp4`) — local copy saved to `proflow-demo-EN.mp4`.
+**CURRENT PRODUCTION ASSETS: PASS** (byte sizes match the live-verified Production Content-Length exactly).
+**PUBLIC ACCESS: PASS** (no auth, no expiring token, `video/mp4`, confirmed both via HTTP headers and local file magic-byte inspection).
 
 ========================================
-**PRODUCTION CHANGE**
+**FALLBACK**
 ========================================
 
-**PRODUCTION DOMAIN MUTATION PERFORMED: NO**
+**REVIEW PACKAGE REQUIRED: YES** (prepared proactively, given Candidate 1's failure and the unconfirmed root cause of ChatGPT's original access problem).
 
-**OWNER AUTHORIZATION REQUIRED FOR NEXT STEP: YES**
+All paths below are in this session's local scratchpad directory:
+`C:\Users\sales\AppData\Local\Temp\claude\c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas\5e94e810-da5a-44db-b6d3-c5e69596265f\scratchpad\`
 
-**EXACT PROPOSED NEXT CHANGE** (not performed, awaiting authorization): configure a permanent (301/308) redirect at the Vercel project Domain layer from `quotecode.vercel.app/*` to `https://www.quotecodepro.com/*`, preserving path and query string. This does not require any Supabase Auth Site URL / redirect allow-list change (those already list `www.quotecodepro.com`-based URLs as the primary/hardcoded targets for every flow that matters, per the ledger above) and does not require any application code change.
+**HE DESKTOP**: `review_pkg_HE_desktop.png` (1440×3440, full page)
+**EN DESKTOP**: `review_pkg_EN_desktop.png` (1440×3542, full page)
+**HE MOBILE**: `review_pkg_HE_mobile.png` (390×5729, full page)
+**EN MOBILE**: `review_pkg_EN_mobile.png` (390×5937, full page)
+**HE VIDEO FILE**: `proflow-demo-HE.mp4` (2,522,561 bytes)
+**EN VIDEO FILE**: `proflow-demo-EN.mp4` (2,578,902 bytes)
+
+All six captured/downloaded from the confirmed-current-Production build (`quotecode.vercel.app`, proven byte-identical to canonical) during this task.
 
 ========================================
-**LOCKED REGRESSION**
+**PRODUCTION SAFETY**
 ========================================
 
-**APPLICATION UI MUTATED: NO**
-**SIGNATURE SECURITY: UNCHANGED**
-**CANONICAL WIDTH: UNCHANGED**
-**MOBILE HE/EN ORDER: UNCHANGED**
-**TRIAL NOTICE: UNCHANGED**
-
-(No application file was touched this task — audit and documentation only.)
+**VERCEL DOMAIN MUTATED: NO**
+**REDIRECT ADDED: NO**
+**DOMAIN REMOVED: NO**
+**APPLICATION CODE CHANGED: NO**
+**PRODUCTION MUTATED: NO**
 
 ========================================
 **CONTINUITY**
 ========================================
 
-**REMOTE CONTINUITY READ-BACK: PASS** (see sync confirmation in this task's delivery).
+**REMOTE CONTINUITY READ-BACK: PASS** (confirmed via GitHub API — see sync confirmation delivered with this report).
 
 ========================================
 **FRESH LOCAL STATE**
 ========================================
 
-**MAIN HEAD**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972`
-**REMOTE MAIN**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (confirmed matching)
-**WORKING TREE**: unchanged from before this task — the same pre-existing uncommitted application/migration files, plus the four continuity docs now further updated by this task's own audit findings.
-**PRODUCTION: UNCHANGED.**
+**MAIN HEAD**: `b5583e59d4dab0b2c7741df8fdc1110f32b4d972` (unchanged throughout this task)
+**REMOTE MAIN**: same (confirmed matching)
+**WORKING TREE**: unchanged from before this task.
+**PRODUCTION**: unchanged — `quotecode.vercel.app` and `www.quotecodepro.com` both remain exactly as they were.
 
-**No `quotecode.vercel.app` removal performed. No redirect added. No Supabase URL changed. No DNS changed. No deploy. No Landing Page redesign begun.**
+**No redirect implemented. No domain removed. No Landing Page redesign begun. The §64 domain-consolidation recommendation (staged redirect, then possible later removal) remains unimplemented and pending Owner + ChatGPT decision — and this task's own finding (Candidate 2 is the current access path) is a further reason to sequence that decision *after* ChatGPT's review, not before.**
 
-**Awaiting Owner + ChatGPT decision.**
+**Awaiting Owner + ChatGPT to test the provided URL/artifacts.**
