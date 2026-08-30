@@ -1,204 +1,70 @@
 # PROFLOW — Claude Latest Report
 
-**This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence — see below). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
+**This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** CONTINUITY DOCUMENTS ≠ FRESH LOCAL WORKING TREE either. See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-**No secrets appear in this file.**
+## Task: Fix Stale Phase 3 Status in TODO
 
----
+**1. Effort level**: MEDIUM (documentation/continuity correction only, as declared by the task).
 
-## Task: PROFLOW — Full Runtime TEST Environment Build, Phase 3: Apply Storage to TEST Only + Post-Apply Verification + Document Two Open Follow-Ups
+**2. Exact continuity ref at start**: `proflow-continuity` worktree — `HEAD == origin/proflow-continuity == a25fed614542d52dab5b2b53222f48492f657fa3`, matching the exact state left by the prior task (§18.CW, Phase 3 apply). Clean working tree, all six `PROFLOW_*.md` files present.
 
-**PRIMARY VERDICT: PHASE 3 APPLY: PASS — STORAGE LIVE ON TEST**
+**3. Fresh local state at start**: `main` — `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short` showed the standing baseline: six tracked docs modified relative to the last commit, plus `supabase/migrations/`/two quote-number SQL scripts untracked (all pre-existing from prior tasks, none newly introduced).
 
-### 1. Effort Level
+**4. Exact stale TODO claim found**: `PROFLOW_TODO.md`'s "CURRENT ACTIVE WORKSTREAM" block (lines ~25-31) still said, in substance: "Phase 2: COMPLETE... File 03/Storage is NOT applied" and "Phase 3 / Storage is the next possible phase, but it is NOT STARTED and NOT AUTHORIZED." Both statements were accurate when written (Continuity Priority Reconciliation task, before Phase 3 was applied) but stale after §18.CW applied and verified Phase 3.
 
-**MAXIMUM.** Owner + ChatGPT authorized applying exactly File 03 (Storage) to `quotecode-test`, performing deep post-apply verification, and recording two documentation-only backlog follow-ups. No Edge Functions, Auth, TEST user creation, Vite rewiring, or Production action authorized.
+**5. Exact TODO correction made**: the block was rewritten as 7 numbered points: (1) current active workstream unchanged (Full Runtime TEST Environment Build); (2) Phase 2 = COMPLETE/PASS on TEST, dropped the stale "File 03 NOT applied" clause; (3) new point — Phase 3/Storage = COMPLETE/PASS on TEST, Files 00-03 all applied and verified on `quotecode-test`, Production unchanged; (4) Owner + ChatGPT review remains a standing gate, Phase 3 passing is explicitly not itself an authorization for anything further; (5) new point — the next infrastructure phase is currently **undefined** (no name/number recorded anywhere in the six files) — not invented by this correction; (6) new point — the current STOP boundary spelled out explicitly (no Edge deploy, no Auth config, no TEST user creation/modification, no Vite rewiring, no storage_path fix, no Warranty implementation, no Production action); (7) the backlog-framing sentence preserved unchanged.
 
-### 2. Exact Continuity Ref
+**6. Additional stale current Phase-3 claim found (beyond the reported one)**: `PROFLOW_CHAT_HANDOFF.md` §14 "Current resume point" — its lead paragraph still said "currently at: retimestamp of the four Phase-1 capture migrations... nothing applied to `quotecode-test` or Production yet, Phase 2 apply itself still unauthorized," a claim accurate only at the retimestamp stage (before even Phase 2 was applied), now doubly stale. **Corrected**: now states both Phase 2 and Phase 3 applied/verified PASS, points to §10.J's own two "UPDATED" paragraphs (already correct) for full detail, states the next infrastructure phase is undefined, and explicitly marks the old paragraph immediately below it as HISTORICAL/superseded rather than deleting it.
 
-`ref = proflow-continuity`, verified via `git fetch` + `HEAD == origin/proflow-continuity == c7a87a17338aef49965d143d2a0526a5ff17c441` (the exact state left by the immediately-preceding Phase 3 preflight task) before any file was read. All six files confirmed present and readable.
+**7. Historical occurrences intentionally preserved (not edited)**: `PROFLOW_TODO.md`'s item 17 status-paragraph sequence — the chain of dated "✅ ..." entries from Phase 1 through the Phase 2 apply and Phase 3 preflight/apply — including the Phase 2 apply entry's own "File 03 (Storage) confirmed NOT applied" statement, which was true *as of that specific entry's own task* and is immediately followed in the same sequence by the Phase 3 preflight and apply entries that already show the current state. Classified **B/historical-preserve** per the standing A/B/C discipline — left untouched.
 
-### 3. Fresh Local State
+**8. Current Phase 2 status**: COMPLETE / PASS on TEST. Files 00/01/02 applied and verified on `quotecode-test` (`ljfizgrdyzxddswcedwr`).
 
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. `git status --short` identical baseline to every prior task this window. All four Phase-1 file checksums confirmed byte-identical to the preflight task's final state — zero drift, including File 03 (`6f4589935a059ad75ed58d49d75fc312c2a535c0696e8edf3098cf86245b7177`, unapplied at task start).
+**9. Current Phase 3 status**: COMPLETE / PASS on TEST. File 03 (Storage) applied and verified on `quotecode-test`.
 
-### 4. Target Guard
+**10. Current TEST Storage state**: `quote-files` bucket + its 2 RLS policies live on `quotecode-test`, byte-for-byte matching Production (confirmed in §18.CW, unchanged since).
 
-CLI explicitly linked to `ljfizgrdyzxddswcedwr`. Fresh `supabase projects list` confirmed `quotecode-test = linked:true` / `quotecode = linked:false` — unambiguous. Known baseline fact re-verified: `quotes` count = 9.
+**11. Production state**: unchanged throughout this entire workstream and this task specifically — no read beyond what was already documented, no mutation.
 
-### 5. Pre-Apply Storage Baseline
+**12. Current STOP boundary**: no Edge Function deploy; no Auth configuration change; no TEST user creation/modification; no Vite/dev-server rewiring (5184/5186); no fix for the `storage_path` bug (item 24); no implementation of the Warranty section (item 23); no Production action of any kind. The next infrastructure phase remains undefined and unauthorized.
 
-Fresh queries confirmed: 0 buckets, 0 storage policies, migration history shows `20260830000003` with `remote:""` — exactly the expected preflight baseline, **zero drift**.
+**13. Item 23 (Warranty) status**: confirmed **unchanged, exactly as recorded** in §18.CW's task — OPEN / NOT IMPLEMENTED, HE "אחריות" / EN "Warranty", no edit made.
 
-### 6. File 03 Integrity
+**14. Item 24 (storage_path bug) status**: confirmed **unchanged, exactly as recorded** in §18.CW's task — OPEN / NOT FIXED, pre-existing, affects HE/EN identically, no edit made.
 
-SHA-256 unchanged since the preflight audit. Content re-verified unchanged (not re-read in full this task, since checksum match already proves byte-identity to the fully-audited preflight version).
+**15. Agent HE verdict**: **PASS.** Confirmed no Local/Israel-specific rule, currency/VAT invariant, or market-isolation statement was touched; confirmed item 23's Warranty requirement (HE "אחריות") preserved byte-for-byte with its full audit-flow ordering intact; confirmed item 24 unchanged; confirmed no mutation implied.
 
-### 7. Dry-Run Confirmation
+**16. Agent EN verdict**: **PASS.** Independently confirmed the same; confirmed item 23's Warranty requirement (EN "Warranty") preserved byte-for-byte with full HE/EN parity language (Permanent Rule §37) intact; confirmed item 24 unchanged; confirmed no mutation implied.
 
-A fresh dry-run on TEST (`supabase db push --linked --dry-run`) again proposed exactly `20260830000003_capture_base_storage.sql` and nothing else. Production was briefly re-linked and its live bucket config and both policy bodies (`qual`/`with_check`) re-queried — found byte-for-byte unchanged from the preflight's own findings. **The preflight verdict remains fully valid: no `--include-all` required, no migration repair required, no material Storage drift.**
+**17. Claude Lead reconciliation**: no disagreement between agents, no risk found by either. The additional CHAT_HANDOFF.md §14 finding (item 6 above) is the same class of correction the agents already reviewed (pure infrastructure-status framing, zero market content) — same-pattern fix, not re-dispatched separately given MEDIUM effort scope.
 
-### 8. HE Pre-Apply Verdict
+**18. Exact documentation files changed this task**: `PROFLOW_TODO.md` (CURRENT ACTIVE WORKSTREAM block corrected), `PROFLOW_HANDOFF.md` (§18.CX entry appended, CURRENT RESUME STATE step-sequence extended to step (21)), `PROFLOW_CHAT_HANDOFF.md` (§14 corrected), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file, rewritten fresh). `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md` were reviewed and required no change.
 
-**HE PHASE 3 PRE-APPLY: GO.** Reconfirmed the upload path (`${session.user.id}/${fileName}`) and both policy bodies are unchanged and market-agnostic; confirmed `PublicQuote.jsx` renders `attachments` generically; confirmed the new Warranty TODO item has zero technical relationship to Storage.
+**19. Secret/privacy scan**: `git diff` on the three changed docs, scanned for `PGPASSWORD=`, `apikey=`, `api_key=`, `service_role...=`, JWT patterns, `sk-` patterns. One match found — a pre-existing, already-redacted historical incident-description line (`PGPASSWORD="<a real value>"`, a placeholder, not an actual credential) unrelated to and untouched by this task's edits. No genuine secret found. The known "task-attributable" false-positive substring did not recur this scan.
 
-### 9. EN Pre-Apply Verdict
+**20. Final git state (primary tree)**: `main` `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, **unchanged** — no commit, no push performed on `main`.
 
-**EN PHASE 3 PRE-APPLY: GO.** Independently reconfirmed the same facts; confirmed `PublicQuoteEn.jsx` is structurally identical to the Hebrew component; confirmed `auth.uid()` carries no market semantics; confirmed the Warranty TODO item's own text correctly preserves HE/EN parity.
+**21. No code/DB/TEST/Production mutation**: confirmed. No application file was read or modified. No SQL/migration file was touched. No Supabase CLI mutating command was run. No TEST or Production state changed.
 
-### 10. Claude Lead Reconciliation
+**22. No main commit/push/deploy/LIVE action**: confirmed. No commit or push to `main`. No Vercel action. No deploy of any kind.
 
-No disagreement between agents, no HIGH-risk issue found by either. Proceeded to apply.
+## Six-File Continuity Ledger
 
-### 11. Exact Apply Command/Method
-
-`supabase db push --linked` (real, non-dry-run), with all local migration files present unmodified — no relocation trick was needed this time, since Files 00-02 are already recorded as applied on TEST, so a plain push naturally proposes only File 03.
-
-### 12. Exact Apply Result
-
-```
-Applying migration 20260830000003_capture_base_storage.sql...
-{"upToDate":false,"dryRun":false,"migrations":["20260830000003_capture_base_storage.sql"],"seeds":[],"roles":[],"message":"Finished supabase db push."}
-```
-
-**Zero errors.**
-
-### 13. Migration History
-
-All 10 local migrations now show `remote == local`, including `20260830000003`. No unexpected entry, no duplication, no repair performed.
-
-### 14. Bucket Verification
-
-Exactly 1 bucket: `id`/`name` = `quote-files`, `public = true`, `file_size_limit = NULL`, `allowed_mime_types = NULL` — exact match to File 03 and Production. No unexpected extra bucket.
-
-### 15. Policy Verification
-
-Exactly 2 policies on `storage.objects`, both PERMISSIVE, byte-for-byte matching Production:
-- `"Authenticated owners upload quote files"` — INSERT, `{authenticated}`, `with_check = (bucket_id = 'quote-files' AND (storage.foldername(name))[1] = (auth.uid())::text)`.
-- `"Public Access to Quote Files"` — SELECT, `{public}`, `qual = (bucket_id = 'quote-files')`.
-
-Zero policies on `storage.buckets`. No unexpected extra policy.
-
-### 16. Security/RLS Proof
-
-7/7 PASS, using two freshly-generated synthetic UUIDs (checked for uniqueness) and `SET ROLE`/`SET LOCAL request.jwt.claim.sub`:
-
-| Test | Action | Result |
+| File | Status | Reason |
 |---|---|---|
-| A | Authenticated owner INSERT to own `auth.uid()`-prefixed path | **succeeded** |
-| B | Authenticated INSERT to a different user's prefix | **failed** — `42501: new row violates row-level security policy` |
-| C | Anonymous (`anon`) INSERT | **failed** — same `42501` |
-| D | Anonymous SELECT of a seeded object | **succeeded** — matches intentional public-read design |
-| E | Authenticated owner UPDATE of own object | **0 rows affected** — no UPDATE policy grants visibility; object's `name` re-queried and confirmed unchanged |
-| F | Authenticated owner DELETE of own object | **failed** — blocked by two independent mechanisms: RLS (no DELETE policy) *and* the `protect_delete()` trigger discovered in the preflight (`"Direct deletion from storage tables is not allowed. Use the Storage API instead."`) |
-| G | Cross-user/cross-business write | **not introduced** — directly confirmed by test B's failure |
+| `PROFLOW_TODO.md` | **UPDATED** | CURRENT ACTIVE WORKSTREAM block corrected (Phase 2 + Phase 3 both COMPLETE/PASS, next phase undefined, STOP boundary restated) |
+| `PROFLOW_HANDOFF.md` | **UPDATED** | New §18.CX entry appended; CURRENT RESUME STATE step-sequence extended with step (21); the block's own status content was already accurate |
+| `PROFLOW_PROJECT_CONTEXT.md` | REVIEWED — NO CHANGE REQUIRED | No Phase-specific status claim exists in this file to go stale |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED | §1.A already corrected in §18.CW's own task, still accurate |
+| `PROFLOW_CHAT_HANDOFF.md` | **UPDATED** | §10.J already accurate, untouched; §14 "Current resume point" found genuinely stale (pre-Phase-2 retimestamp checkpoint) and corrected |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | **UPDATED** | Rewritten fresh for this task |
 
-### 17. Synthetic-Object Test/Cleanup Result
+## Verdict
 
-Exactly one disposable object was created (`<synthetic-uuid>/phase3-synthetic-persisted.txt`), used for tests D/E/F. Before cleanup, `storage.objects` was explicitly listed and confirmed to contain exactly this one object, nothing else. Deleted by its exact `id` (not a wildcard), using `SET storage.allow_delete_query = 'true';` as required by the trigger found in the preflight. Post-cleanup: `storage.objects` count confirmed **0**. The bucket itself was intentionally retained (it is the intended, applied state, not test residue).
+**PHASE 3 CONTINUITY RECONCILIATION: PASS**
 
-### 18. Application/Data Regression Result
+## Final Stop
 
-Zero regression found: `quotes` count still 9, `quote_number` range still 5–100705, `quotes_quote_number_seq.last_value` still 100705, `business_quote_sequences` still 5 rows, `business_settings` still 0 rows (unchanged from Phase 2's own end-state), Attn columns unchanged (0 of 9 quotes populated). No `auth.users` row was created or modified — the synthetic UUIDs used for the RLS proof only needed a simulated JWT claim (`SET LOCAL request.jwt.claim.sub`) for `storage.objects` RLS testing, unlike the FK-dependent `business_settings` tests used in earlier phases.
-
-### 19. Warranty TODO Documentation
-
-Recorded as `PROFLOW_TODO.md` item 23, "Business Settings / Business Card — Default Warranty Section," status OPEN / NOT IMPLEMENTED. Records: the HE ("אחריות") / EN ("Warranty") requirement; the purpose (default warranty text separate from General Terms); the required future audit flow (Business Settings → quote creation/editing → possible quote-level override → Public Quote → PDF/Print → sharing/email); an explicit note not to decide implementation architecture yet; and the HE/EN parity requirement. No implementation performed.
-
-### 20. `storage_path` Bug TODO Documentation
-
-Recorded as `PROFLOW_TODO.md` item 24, status OPEN / NOT FIXED. Records: the exact bug (new attachment uploads never set `quote_attachments.storage_path`, causing `get-public-quote`'s `isValidAttachmentPath` to silently skip them); that it affects HE and EN identically; that it is pre-existing and **not caused by** File 03 or any Phase 1-3 migration; that it is not fixed in this or any prior task; and that it requires its own separately-authorized future application task. No application code was modified.
-
-### 21. TEST Final State
-
-`quotecode-test` now carries the complete Full Runtime TEST Environment Build base package: Files 00-03, all applied and verified. The `quote-files` bucket and its 2 policies are live, byte-for-byte matching Production. All pre-existing application data (quotes, sequences, Attn) unchanged.
-
-### 22. Production Safety Confirmation
-
-Confirmed. Every Production interaction this task was a brief, read-only re-check (bucket config + policy bodies) for parity reconfirmation (§7) — no `INSERT`/`UPDATE`/`DELETE`/`ALTER`/`GRANT`/`REVOKE` statement was ever executed against Production. No unnecessary Production action was performed beyond what was needed to reconfirm the preflight verdict.
-
-### 23. Final CLI Link State
-
-Restored and verified: `quotecode` (Production) = `linked:true`, `quotecode-test` = `linked:false` — exactly matching the pre-task state.
-
-### 24. Exact Files Changed Locally
-
-- `PROFLOW_HANDOFF.md` — checkpoint step sequence extended to step (20); current-state paragraph updated; new §18.CW entry.
-- `PROFLOW_TODO.md` — items 23/24 added; new status paragraph recording the apply outcome.
-- `PROFLOW_ARCHITECTURE.md` — §1.A corrected: TEST now correctly described as carrying the *full* Phase-1 package (Files 00-03), not "File 03 excluded."
-- `PROFLOW_CHAT_HANDOFF.md` — new paragraph added after the Phase 2 record, documenting the Phase 3 apply (the Phase 2 paragraph itself was left untouched — it remains accurate history for its own moment in time).
-- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this report.
-
-No migration file content changed (File 03 was applied, not edited). No application code, `.env`, or Vite config changed.
-
-### 25. Secret/Privacy Scan
-
-No password, access token, API key, service-role key, anon key, or connection-string value appears anywhere in this report or the documentation edits made this task. The synthetic test path used (`<synthetic-uuid>/phase3-synthetic-persisted.txt`) contains no real data. **PASSED.**
-
-### 26. Final Git State
-
-`main`: `HEAD == origin/main == 17ac4d3a950d96f4167f9b320c82b4798382d621`, unchanged. No new untracked path, no staged file, no commit created in the primary working tree.
-
-### 27. Confirmation No Main Commit/Push/Deploy/LIVE
-
-Confirmed. The continuity-sync step (performed after this report) stages/commits/pushes only documentation files to `proflow-continuity` — never `main`, never a Vercel-consequential action. No Edge Function was deployed. No Auth configuration changed. No user was created. No Vite configuration was touched. No LIVE authorization was requested, granted, or exercised.
-
-### 28. Primary Verdict
-
-**PHASE 3 APPLY: PASS — STORAGE LIVE ON TEST**
-
-All required PASS conditions met: File 03 applied successfully to TEST; exactly the intended bucket/policies exist (verified byte-for-byte); security/RLS proof passed 7/7; no unexpected Storage drift; no DB/application regression; Production untouched; migration history correct; continuity updated.
-
----
-
-## SIX-FILE CONTINUITY LEDGER
-
-**FILE**: `PROFLOW_PROJECT_CONTEXT.md`
-**STATUS**: REVIEWED — NO CHANGE REQUIRED
-**REASON**: No new permanent rule, architecture decision, or authorization-state change resulted from this task that this file's own "durable truth" responsibility would need to capture.
-
-**FILE**: `PROFLOW_CHAT_HANDOFF.md`
-**STATUS**: UPDATED
-**REASON**: A new paragraph was added recording the Phase 3 apply, since the existing Phase 2-era text's "File 03 (Storage) was NOT applied" claim would otherwise now be misleadingly incomplete if left as the only record — the original paragraph was preserved untouched as accurate history for its own moment, per the standing never-rewrite-history principle.
-
-**FILE**: `PROFLOW_ARCHITECTURE.md`
-**STATUS**: UPDATED
-**REASON**: §1.A's description of TEST's migration state said "File 03/Storage deliberately excluded, remains unapplied" — now factually stale; corrected to state the full four-file package is applied, including the Storage bucket/policies.
-
-**FILE**: `PROFLOW_HANDOFF.md`
-**STATUS**: UPDATED
-**REASON**: New §18.CW entry recording the full apply and verification record; checkpoint step sequence and current-state paragraph extended to reflect Storage now being live on TEST.
-
-**FILE**: `PROFLOW_TODO.md`
-**STATUS**: UPDATED
-**REASON**: New items 23 (Warranty Section) and 24 (`storage_path` bug) recorded per this task's explicit authorization; new status paragraph recording the Phase 3 apply outcome.
-
-**FILE**: `PROFLOW_CLAUDE_LATEST_REPORT.md`
-**STATUS**: UPDATED
-**REASON**: This file — rewritten fresh with this task's own Final Report, per the standing rule.
-
----
-
-## Required Verdict
-
-**PHASE 3 APPLY: PASS — STORAGE LIVE ON TEST**
-
-`quotecode-test` now carries the complete Full Runtime TEST Environment Build base package (Files 00-03), all applied and verified. The Storage bucket and its two RLS policies are byte-for-byte identical to Production. A full 7-point security/RLS proof passed exactly as predicted, using only a disposable synthetic object that was fully cleaned up. Zero data regression. Production was never mutated. Two documentation-only backlog items (Warranty section, `storage_path` bug) were recorded, neither implemented. Per the task's Final Stop, no Edge Functions, Auth configuration, TEST user creation, Vite rewiring, `storage_path` fix, Warranty implementation, or Production action will proceed until Owner + ChatGPT give explicit authorization.
-
----
-
-NO EDGE FUNCTIONS STARTED
-NO AUTH CONFIGURED
-NO TEST USERS CREATED/MODIFIED
-NO VITE REWIRING
-NO storage_path FIX
-NO WARRANTY IMPLEMENTATION
-NO PRODUCTION QUOTE NUMBER
-NO PRODUCTION ATTN STEP 3
-NO PRODUCTION MIGRATION
-NO MAIN COMMIT
-NO MAIN PUSH
-NO DEPLOY
-NO LIVE ACTION
+Do not start the next infrastructure phase. Do not deploy Edge Functions. Do not configure Auth. Do not create TEST users. Do not rewire 5184/5186. Do not fix `storage_path`. Do not implement Warranty. Do not touch Production. Wait for Owner + ChatGPT review.
