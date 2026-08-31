@@ -30,3 +30,8 @@ google-indexing-key.json
 .env
 .env.local
 .env.*.local
+
+# Authorized defensive security review export (read-only source package for
+# an external pentester) - never committed, local artifact only.
+pentest-source-review/
+pentest-source-review.zip
