@@ -4,118 +4,91 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Production Release — Authorized Main Push + Vercel Deployment + Controlled Post-Deploy Smoke
+## Task: Production TEST Identity Discovery — Read-Only Auth Reconciliation
 
-Continues directly from the Final 19-Commit Production Release Audit (`PROFLOW_PROJECT_CONTEXT.md` §106). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §107, `PROFLOW_ARCHITECTURE.md` §1.A/§16, `PROFLOW_HANDOFF.md` §18.ET.
+Continues directly from the Production Release (`PROFLOW_PROJECT_CONTEXT.md` §107). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §108, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EU.
 
-**The certified release is now live on Production.**
+**Strictly read-only. Zero mutation of any kind — no user created, no password reset, no session destroyed, no data changed.**
 
 ---
 
 ## EFFORT LEVEL: MAXIMUM
 
-## PRE-PUSH CHECKPOINT: PASS
+## PRODUCTION TARGET: VERIFIED
 
-## LOCAL HEAD BEFORE PUSH: `dd11015`
-## ORIGIN/MAIN BEFORE PUSH: `e030017`
-## COMMITS RELEASED: 19
+`ixabnzhjeqevtbhdfswv` (`linked: true`), re-confirmed via `supabase projects list` before any query.
 
-## PUSH: SUCCESS
-## REMOTE MAIN: `dd11015` (verified via `git fetch` + `git rev-parse origin/main`)
+## PRODUCTION RELEASE: `dd11015` (unchanged, still live)
 
-## VERCEL DEPLOYMENT: READY
+## EXISTING PRODUCTION BROWSER SESSION: NO
 
-Confirmed via the most decisive signal available: `quotecode.vercel.app/` — which independently served the app *before* this push — now returns a real 308 redirect (this fix exists only in `dd11015`, so its live presence is itself conclusive proof of a healthy, live deployment). Asset-hash polling was inconclusive due to edge caching; this functional signal is definitive and was the actually-required check regardless.
+Checked all 6 open browser tabs via `Target.getTargets` plus a `localStorage` scan for Supabase-auth-shaped keys — zero found across all 3 tabs pointed at `www.quotecodepro.com`. Nothing was logged out, cleared, or reset in the process of checking.
 
-## PRODUCTION COMMIT: `dd11015`
+## SESSION IDENTITY: NONE
+## SESSION CLEARLY TEST: N/A (no session exists)
 
 ---
 
-## CANONICAL ROOT REDIRECT: PASS
+## FAILED LOCAL CANDIDATE: alias differs from documented value
 
-## REDIRECT STATUS: 308
-## REDIRECT FINAL HOST: `www.quotecodepro.com`
-## PATH/QUERY PRESERVATION: PASS
+`.env`'s `PROFLOW_TEST_LOCAL_EMAIL` is a plus-aliased address (`tahshitishi+...@gmail.com`), confirmed via a boolean equality check that never printed the actual value. That specific alias was only ever created on `quotecode-test` for this session's own fixture work — never on Production. Supabase Auth treats a plus-alias as a fully separate account from its bare form.
 
-HTTP: `quotecode.vercel.app/` → 308 → `Location: https://www.quotecodepro.com/`. `curl -L` confirms exactly 1 redirect, final `http_code=200`, no loop. `/dashboard?lang=he` → 308 → `.../dashboard?lang=he` (path and query both preserved exactly). **Browser Harness, independently**: navigating to `https://quotecode.vercel.app/` ends the session at `https://www.quotecodepro.com/` — real page renders, correct title. **This closes the exact gap this whole engagement has been tracing since §102 — now proven live, not just code-ready.**
+## FAILED INTL CANDIDATE: alias differs from documented value
 
-## CANONICAL APP: PASS
-
-`www.quotecodepro.com` HE root (RTL) and `/en` (LTR) both render full landing content correctly; 2 resources loaded, 0 visible error markers. Mobile viewport: no horizontal overflow.
+Same root cause, symmetric: `.env`'s `PROFLOW_TEST_INTL_EMAIL` is a plus-aliased `minhatshay+...@gmail.com` variant, TEST-project-only.
 
 ---
 
-## AUTH/SESSION: **NOT COMPLETED** (genuine gap, not a failure)
+## PRODUCTION TEST IDENTITIES FOUND: 2 (general-purpose) + 1 (purpose-scoped)
 
-Attempted login on real Production using both established candidate identities from the Production-pointed `.env`:
-- `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` — **"Login error: check your credentials or reset password."**
-- `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` — same result.
+A targeted read-only query of `business_settings` for the exact base inbox names already hardcoded as `TEST_BYPASS_EMAILS` in the email Edge Functions found two matches, plus one unrelated pentest-scoped account. Both were independently confirmed genuine in `auth.users`: email-confirmed, not banned, created 2026-07-31 (a full month before this session began), with `last_sign_in_at` in the last 1-2 days.
 
-**Neither is a valid Production Auth account.** The login mechanism itself functioned correctly throughout (form rendered, submitted, handled invalid credentials gracefully, no crash, canonical host maintained) — this is a **TEST-identity provisioning gap, not a deployment defect**. Per the task's own explicit prohibitions, no workaround was attempted: no real Production Admin, no new account creation, no real customer.
+## TEST IDENTITY MATRIX
 
-**Consequence**: the following sections could not be completed — genuinely not attempted, not failed:
+| Identity | Auth exists? | Existing session? | Market | Role | Plan/Trial | Clearly TEST? | Safe for smoke? | Credential available? |
+|---|---|---|---|---|---|---|---|---|
+| `tahshitishi@gmail.com` ("תכשיט אישי") | YES | NO | Local/HE | user | free, active trial → effective PRO | YES | YES | **NO — password unknown** |
+| `minhatshay@gmail.com` ("Minhat Shay (London)") | YES | NO | International/EN | user | free, active trial → effective PRO | YES | YES | **NO — password unknown** |
+| "PENTEST LEGIT TRIAL" | YES | NO | International | user | pro | Different purpose | Not recommended | NO |
+| `quotecodedev@gmail.com` (super_admin) | YES | NO | Local | super_admin | free | NO (matches this session's Owner identity) | NO | N/A |
+| `shlomisiny22@gmail.com` (super_admin) | YES | NO | Local | super_admin | pro | UNKNOWN | NO | N/A |
+| `PROFLOW_TEST_LOCAL_EMAIL` (`.env`) | NO on Production | — | — | — | — | — | — | TEST-project only |
+| `PROFLOW_TEST_INTL_EMAIL` (`.env`) | NO on Production | — | — | — | — | — | — | TEST-project only |
 
-## ADMIN: NOT COMPLETED
-## PLAN PERSONAS: NOT COMPLETED
-## WARRANTY: NOT COMPLETED
-## WARRANTY HISTORICAL INTEGRITY: NOT COMPLETED
-## QUOTE CREATE/SAVE: NOT COMPLETED
-## HE (authenticated): NOT COMPLETED
-## EN (authenticated): NOT COMPLETED
-## SIGNATURE PAD: NOT COMPLETED
-## QUOTE HISTORY / DASHBOARD: NOT COMPLETED
+## SAFE HE TEST IDENTITY: `tahshitishi@gmail.com` ("תכשיט אישי")
+## SAFE EN TEST IDENTITY: `minhatshay@gmail.com` ("Minhat Shay (London)")
+## SAFE ADMIN TEST IDENTITY: NONE — gap, not resolved this task
 
-## ITEM 17: **INACTIVE** (confirmed, not just inferred)
+## EXISTING VALID CREDENTIALS AVAILABLE
 
-Fresh Production DB check: `SELECT count(*) FROM pg_proc WHERE proname='allocate_quote_number'` → **0**. The allocator function does not exist in Production. Combined with the pre-push audit's finding that `Dashboard.jsx`'s RPC call is byte-identical to `origin/main` (already safely running there for days), Item 17 is conclusively inactive.
+Accounts precisely identified; **actual password unknown to this task for either account.** This task correctly did not attempt to guess, reset, or otherwise obtain it without explicit Owner input.
 
-## DESKTOP: PASS (unauthenticated — landing page)
-## MOBILE: PASS (unauthenticated — landing page, no overflow)
+## BEST IDENTITY FOR NEXT SMOKE
 
----
+`tahshitishi@gmail.com` for HE, `minhatshay@gmail.com` for EN — pending the Owner supplying (or confirming a secure source for) the password.
 
-## EDGE FUNCTIONS DEPLOYED: NONE
+## IDENTITY GAP
 
-Confirmed via `supabase functions list`: `send-trial-expiration-email` last updated 146 hours ago, `send-subscription-expiration-email` last updated 196 hours ago — both predate this push by 6-8 days.
-
-## MIGRATIONS EXECUTED: NONE
-
-Fresh DB check: `default_warranty`/`warranty` are still the only new columns (unchanged since §104); `attn_name`/`attn_role` still absent; quote-numbering stats byte-identical to every prior reading (`total=23, distinct=23, min=11, max=89`).
-
-## AUTHORIZED TEST-DATA MUTATIONS
-
-None performed — no TEST-data-mutating smoke step was reachable without a valid login.
-
-## UNAUTHORIZED PRODUCTION MUTATIONS: NONE
-
-## ROLLBACK: NOT REQUIRED
-
-Zero evidence of any actual defect was found in anything checkable. The deployment is healthy; the TEST-identity gap is a verification-completeness issue, not a Production health issue.
+**Outcome C**: the correct TEST accounts exist and are exactly identified — only the actual password is missing. A separate, smaller gap (**outcome E**) remains for Admin-tier smoke: no clearly-labeled Production TEST admin identity was found.
 
 ---
 
-## FINAL PRODUCTION STATUS: **PARTIALLY VERIFIED — deployment healthy, authenticated certification pending**
-
-Per the task's own explicit rule ("Do not declare GREEN based on partial completion"), this cannot be marked unconditional **GREEN**, since several explicitly-required gates were not completed. It is equally **not BLOCKED** in the sense of something being wrong or the release needing to be held back — Production is live, serving correctly, and the single hardest-won fix of this entire engagement (the canonical redirect) is proven live. The honest characterization: **deployment and every unauthenticated check are fully verified and correct; full certification is pending resolution of a TEST-identity provisioning gap that is outside this task's authorization to resolve unilaterally.**
-
----
-
-## POST-RELEASE LOCAL HEAD: `dd11015`
-## POST-RELEASE ORIGIN/MAIN: `dd11015`
-## POST-RELEASE AHEAD/BEHIND: 0 ahead, 0 behind — fully in sync
-
-## REMAINING LOCAL-ONLY ARTIFACTS
-
-`src/entry-server.jsx` — intentional SSR PoC, per its own §68/§69 documentation, still uncommitted.
+## AUTH USERS CREATED: NONE
+## PASSWORD RESETS: NONE
+## EXISTING SESSIONS DESTROYED: NONE
+## PRODUCTION DATA MUTATIONS: NONE
+## APPLICATION PUSH: NONE
+## DEPLOY: NONE
+## ITEM 17: INACTIVE (unchanged since §107)
 
 ---
 
 ## CONTINUITY
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §107 (full push/deploy/smoke record, TEST-identity gap, precise verdict).
-- `PROFLOW_ARCHITECTURE.md` — §1.A updated: canonical redirect live gate now GREEN (was PENDING DEPLOYMENT); §16 updated with the deployment/gap summary.
-- `PROFLOW_HANDOFF.md` — §18.ET appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.ES's paragraph demoted to HISTORICAL.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §108 (full discovery, root cause, identity matrix, gap determination).
+- `PROFLOW_ARCHITECTURE.md` — §16 updated with the resolved TEST-identity finding.
+- `PROFLOW_HANDOFF.md` — §18.EU appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.ET's paragraph demoted to HISTORICAL.
 - `PROFLOW_TODO.md` — Admin V2 area extended with this task's result.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
 
@@ -123,12 +96,12 @@ Continuity commit pushed automatically under the standing §17.K auto-sync autho
 
 ---
 
-## NEXT P1 (not started, per explicit instruction)
+## RECOMMENDED NEXT ACTION
 
-BUSINESS-TYPE / QUOTE-CALCULATION MODULARITY — the previously-discussed modularity between different business/professional types and their quote presentation/calculation models. Deliberately not designed or implemented in this task.
+Supply the password for `tahshitishi@gmail.com` and/or `minhatshay@gmail.com` (or confirm how it should be securely obtained) so authenticated Production smoke can proceed with the exact, correctly-identified accounts. Separately: decide whether a dedicated Production TEST admin account should be created (its own explicit authorization, not assumed here) or whether Admin-tier smoke should be deferred/handled another way.
 
 ---
 
 ## FINAL STOP
 
-The certified 19-commit release is live on Production. The single most consequential, hardest-won fix of this entire engagement — the canonical `quotecode.vercel.app` root redirect — is now proven live via both HTTP and independent browser verification, closing a gap traced across four prior tasks. Item 17 is confirmed inactive directly against Production's own `pg_catalog`, not inferred. Neither email Edge Function was deployed by this release. A genuine, honestly-reported gap remains: no established Production TEST identity currently authenticates, so authenticated smoke (Auth, Admin, plan personas, Warranty, quote creation, Signature Pad, Quote History) could not be completed — this is a provisioning gap, not a defect, and no workaround was improvised. This is a genuine decision point for you: how would you like to resolve the TEST-identity gap so authenticated verification can proceed?
+The two real, Owner-established Production TEST accounts have been precisely identified — `tahshitishi@gmail.com` (HE) and `minhatshay@gmail.com` (EN) — matching the Owner's own description exactly, and the root cause of the prior login failures is fully explained (a plus-alias mismatch between `.env`'s TEST-project-specific values and Production's actual accounts). No mutation of any kind occurred: no user created, no password reset, no session destroyed. The only remaining gap is the password itself, which is correctly left for you to provide or authorize a path to obtain. Continuity synced and verified live on GitHub.

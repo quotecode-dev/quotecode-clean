@@ -3036,3 +3036,48 @@ Per the task's own explicit rule ("Do not declare GREEN based on partial complet
 How to proceed with authenticated Production smoke: (a) confirm/provide a valid Production TEST identity (perhaps `PROFLOW_TEST_LOCAL`/`PROFLOW_TEST_INTL` need a password reset, or were never actually provisioned on Production specifically — unclear from here); (b) explicitly authorize creating a new, clearly-labeled Production TEST account now (a genuine new mutation, needing its own authorization, not assumed by this task); or (c) accept the current unauthenticated-only verification as sufficient for now and defer full authenticated smoke to a follow-up.
 
 **No unauthorized Production mutation occurred.** No migration executed. No Edge Function deployed. No real-customer data touched. No secret exposed.
+
+## §108. Production TEST Identity Discovery — Read-Only Auth Reconciliation (2026-08-31)
+
+**Strictly read-only. Zero mutation of any kind — no user created, no password reset, no session destroyed, no data changed.** Target re-verified as Production (`ixabnzhjeqevtbhdfswv`) before any query.
+
+### Existing browser session: NONE found
+
+Checked all 6 open browser tabs (via `Target.getTargets`, no navigation performed to check) — 3 pointed at `www.quotecodepro.com`, none carried any Supabase-auth-shaped `localStorage` key, all showing the anonymous landing page. **No existing authenticated Production session exists in this browser instance.** Nothing was logged out, cleared, or reset in the process of checking.
+
+### The two failed candidates, root-caused precisely
+
+`.env`'s `PROFLOW_TEST_LOCAL_EMAIL`/`PROFLOW_TEST_INTL_EMAIL` were compared (via a boolean equality check that never printed the actual values) against the bare `tahshitishi@gmail.com`/`minhatshay@gmail.com` addresses — **neither matches; both `.env` values contain a `+` plus-alias**. **Root cause, confirmed not guessed**: these `.env` variables were set to the plus-aliased accounts created specifically for `quotecode-test`'s own fixture work this session (e.g. `tahshitishi+proflow-local-test@gmail.com`) — Supabase Auth treats a plus-aliased address as a completely separate account from its bare form, and that specific aliased account was only ever created on the TEST project, never on Production. **Classification: "alias differs from documented value" — the `.env` variable name is accurate to its own base-inbox naming convention but was pointed at the wrong specific (TEST-only) alias for a Production smoke context.**
+
+### The Owner's two real Production TEST accounts — found and reconciled
+
+A targeted, read-only query of `business_settings` for the same base inbox names already established throughout this engagement's own continuity (`tahshitishi`, `minhatshay` — the exact two inboxes hardcoded as `TEST_BYPASS_EMAILS` in the email Edge Functions themselves) found exactly two matches, plus one unrelated pentest-scoped account:
+
+- **`tahshitishi@gmail.com`** — business name "תכשיט אישי" (a deliberate Hebrew near-homophone of the inbox name), `country: Local`, `role: user`, raw `plan: free` with a still-future `trial_ends_at` (2026-09-08) — per the already-established `computeEffectivePlan()` model, this resolves to **effective PRO** (active trial), not FREE. `last_sign_in`: 2026-08-31 01:27 (today).
+- **`minhatshay@gmail.com`** — business name "Minhat Shay (London)", `country: International`, `role: user`, raw `plan: free` with a still-future `trial_ends_at` (2026-09-04) — same resolution, **effective PRO** (active trial). `last_sign_in`: 2026-08-30 18:17 (yesterday).
+
+Both independently confirmed to genuinely exist in `auth.users` (not just an orphaned `business_settings` row): `email_confirmed_at` set, `banned_until` null, `created_at` 2026-07-31 (a full month before this session began, conclusively predating and unrelated to any of this engagement's own work) — matching `last_sign_in_at` values exactly. **This precisely matches the Owner's own description**: two accounts, one per market, actively used through the Production domain for several days.
+
+**"PENTEST LEGIT TRIAL"** (International, `plan: pro`, `role: user`) was also found — explicitly labeled for a different purpose (the authorized defensive-security pentest review already documented elsewhere in continuity), not recommended as a general smoke-test identity to avoid conflating purposes.
+
+### Admin identity: no clearly-labeled TEST admin found
+
+Two `super_admin` accounts exist on Production. Neither carries a `+test-admin`-style alias matching the deliberate convention already established on `quotecode-test` (`shlomisiny+proflow-test-admin@gmail.com`) — both read as real personal accounts, one of which matches this session's own known Owner identity. **Per the task's explicit instruction not to use the real Admin merely because it's available, neither is classified as a safe TEST admin candidate.** SAFE TEST ADMIN EXISTS: **NO** (gap, not resolved this task).
+
+### Identity matrix
+
+| Identity | Auth exists? | Existing session? | Market | Role | Plan/Trial | Clearly TEST? | Safe for smoke? | Credential available? |
+|---|---|---|---|---|---|---|---|---|
+| `tahshitishi@gmail.com` ("תכשיט אישי") | YES | NO | Local/HE | user | free, active trial → effective PRO | YES (matches established inbox convention, month-old, recently active) | YES | **NO — password unknown to this task** |
+| `minhatshay@gmail.com` ("Minhat Shay (London)") | YES | NO | International/EN | user | free, active trial → effective PRO | YES (same) | YES | **NO — password unknown to this task** |
+| "PENTEST LEGIT TRIAL" | YES | NO | International | user | pro | Partially (different purpose) | Not recommended (purpose conflict) | NO |
+| `quotecodedev@gmail.com` (super_admin) | YES | NO | Local | super_admin | free | NO (matches this session's own Owner identity) | NO | N/A, not to be used |
+| `shlomisiny22@gmail.com` (super_admin) | YES | NO | Local | super_admin | pro | UNKNOWN (not clearly TEST-labeled) | NO | N/A, not to be used |
+| `PROFLOW_TEST_LOCAL_EMAIL` (`.env`) | NO (Production) | — | — | — | — | — | — | Exists, but for TEST-project only |
+| `PROFLOW_TEST_INTL_EMAIL` (`.env`) | NO (Production) | — | — | — | — | — | — | Exists, but for TEST-project only |
+
+### Minimum gap — precisely determined
+
+**Outcome C: the correct TEST accounts exist and are exactly identified, but the Owner needs to supply the actual password** for `tahshitishi@gmail.com` and/or `minhatshay@gmail.com` (or confirm a secure way to obtain it) before authenticated Production smoke can proceed. No Admin-tier TEST identity currently exists (a secondary, smaller gap — outcome E) — HE/EN functional smoke is fully coverable once credentials are available; Admin-tier smoke would need either a newly-authorized `+test-admin`-style Production account (matching the already-proven `quotecode-test` pattern) or Owner guidance on an existing safe option not found here.
+
+**No user was created. No password was reset. No existing session was destroyed (none existed). No Production data was mutated.**
