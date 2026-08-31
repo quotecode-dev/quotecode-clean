@@ -4,60 +4,76 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Maximum Super Admin / Admin V2 System Audit — COMPLETE
+## Task: P1 Modular Business/Quote Pricing Architecture — Continuity Reconciliation Only
 
-**STATUS: COMPLETE.** Continuation and completion of the §94 checkpoint. All 17 previously-outstanding sections finished; nothing already-done was restarted; zero implementation throughout, exactly as scoped. Full detail in `PROFLOW_PROJECT_CONTEXT.md` §94.1.
+Documentation/continuity only. No application code, DB, TEST, or Auth change. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §95, `PROFLOW_ARCHITECTURE.md` §14.C, `PROFLOW_TODO.md` item 30 (30.A–30.D).
 
 ---
 
-## HEADLINE NEW FINDINGS (beyond the §94 checkpoint)
+## PRIOR MODULAR PRICING DESIGN FOUND: YES
 
-- **Admin has zero automated test coverage** — confirmed by search, no test file references any Admin component.
-- **The customer Dashboard shows no plan/tier badge anywhere today** — the badge-consistency problem is "Admin has 3 independent hardcoded implementations, Dashboard has none," not "two existing ones disagree."
-- **The `Role` column is structurally zero-information** — the table already filters out every row that isn't `role='user'` before rendering, so it can never show a differing icon. A REMOVE candidate.
-- **`created_at` exists but is never shown in the Admin detail modal** — a direct gap against the audit's own original request to trace account-creation date.
-- **Two safety-matrix asymmetries found**: Lifetime *grant* has a confirm-modal step, revoke does not (instant); "Extend Trial 14d" has no confirmed action-specific server-side re-verification, unlike every other mutating admin action.
-- **No `admin_audit_log` exists** — destructive/entitlement-granting actions leave no structured, attributable trail today.
+Not partial, not missing — thoroughly documented, added across three prior 2026-08-30 tasks.
 
-## COMPLETED DELIVERABLES
+## WHERE FOUND
 
-User Table column classification · 13-section User Detail View model with per-field availability tags · Plan/Trial/Subscription Admin representation model (Lifetime as an override tag on the tier, never conflated into the tier name) · Badge/Icon model tied to the already-proposed plan catalog · Pricing Admin model (append-only price versioning; never edit a price already in active use) · Billing Visibility classification (REQUIRED/OPTIONAL/DANGEROUS-TO-EDIT/READ-ONLY) · TEST Persona Admin Support proposal (email-pattern chip first, zero schema change) · full 10-row Admin Action Safety Matrix · Admin Audit Log schema proposal · full HE/EN/Market writeup (`AILogs.jsx` is the sole 100%-Hebrew-only surface among 4) · full Responsive/UX writeup (no pagination exists at any scale) · Visual Design proposal (consolidate onto `AdminUsersTab.jsx`'s already-correct `LIGHT` theme — 3 of 4 surfaces are already light-ish) · Keep/Lock list · P0–P3 prioritized gap map · complete Admin V2 Information Architecture (8 areas, each tagged for current buildability) · 9-phase safe implementation sequence (correctness strictly before visual redesign) · regression-strategy proposal centered on a new "Admin-vs-Dashboard canonical agreement" test class · final narrowed Owner-decisions list.
+`PROFLOW_TODO.md` items **30** (main concept), **30.A** (AI Chat awareness), **30.B** (Mixed Pricing — "Industry Is Not Pricing Model"), **30.C** (Structured Quote Items — Project→Section→Items hierarchy). Cross-referenced from item 31 (Additional Notes correction) and item 32 (Invoice/Accounting readiness). **The actual gap**: `PROFLOW_PROJECT_CONTEXT.md` had exactly one terse pointer sentence (§52, buried in an unrelated entry); `PROFLOW_ARCHITECTURE.md` had **zero** mentions, confirmed by direct search of both files — almost certainly why a canonical-continuity search centered on those two files failed to reliably locate it.
 
-## RECOMMENDED NEXT STEP (one, specific)
+## TODO ITEM 30
 
-Build the canonical resolver + plan catalog and repoint Admin's plan/Lifetime derivation at it. Retires the one confirmed-live, confirmed-reproducible bug found across two separate audits (§91 and this one), without touching visual design, billing, or anything not yet decided — the highest-value, lowest-risk, most decision-independent step available.
+Exists, intact, current — not renamed, not lost, not superseded. Extended this task with a priority declaration and a new sub-item (30.D), nothing renumbered or corrupted.
 
-## OWNER DECISIONS REQUIRED
+## INDUSTRY ≠ PRICING MODEL: DOCUMENTED (pre-existing, item 30/30.B)
+## OVERRIDE HIERARCHY: DOCUMENTED (pre-existing, item 30.B/30.C — `Industry preset → Business defaults → Catalog/Item defaults → Quote-item pricing method → User override`)
+## MIXED PRICING: DOCUMENTED (pre-existing, item 30.B, with the Owner's own three-item carpentry example)
+## EXTENSIBILITY: DOCUMENTED (pre-existing principle; the specific "no `if businessType===X` chain" anti-pattern made explicit this task)
+## HISTORICAL QUOTE INTEGRITY: DOCUMENTED (pre-existing, item 30/30.C, line-level snapshot detail including the `36in`→`91.44cm` example)
+## HE/EN MARKET COMPATIBILITY: DOCUMENTED (pre-existing at 30/30.A; generalized this task into an explicit "five independent dimensions" statement)
 
-3 newly genuinely-open this task (Admin bilingual vs. monolingual — recommended bilingual; TEST-exclusion mechanism — recommended email-pattern first; Role-column removal — recommended remove) plus 5 already carried forward from prior tasks, unaffected by this audit (payment-failed grace length, admin-Lifetime's future post-billing, historical Lifetime-vs-self-cancel backfill authority, TEST-grant-path authorization, CANCEL_AT_PERIOD_END reminder copy).
+## ADMIN V2 COMPATIBILITY: PASS
+
+Reviewed the just-completed Maximum Admin Audit (§94/§94.1) against item 30 — no conflict. The Admin V2 canonical-resolver proposal is scoped to plan/tier/trial/subscription entitlement, a genuinely separate concern from item 30's quote-item pricing/measurement engine; neither blocks the other. Recorded as new sub-item `PROFLOW_TODO.md` §30.D (compatibility awareness only, not scoped/designed/authorized).
+
+## P1 FULL-LIVE GATE: DOCUMENTED
+
+Newly declared this task, added directly to item 30's status/header.
+
+## FUTURE OPTIONAL METHODS SEPARATED FROM P1 FOUNDATION: YES
+
+Explicit distinction added: the override hierarchy, mixed-pricing capability, snapshot discipline, and extensibility model are the P1 foundation (required before LIVE); specific additional pricing/measurement formulas are a genuinely separate, post-LIVE-addable category.
+
+---
+
+## BONUS FINDING (not explicit scope, strengthens continuity coherence)
+
+The Admin audit's Role-column and Badge/Icon findings (§94.1) independently reinforce two pre-existing items — item 29 Part A (Role/הרשאה column removal, already recorded) and item 29 Part B (deferred plan-icon idea, now given concrete shape). Cross-referenced at new §30.D; neither item 29 nor the completed Admin audit (§94/§94.1) was reopened or altered.
+
+## MAXIMUM ADMIN AUDIT: NOT RESTARTED, NOT CHANGED
+
+Confirmed untouched — only the new §30.D compatibility cross-reference was added. Its recommended first implementation step (canonical resolver) remains independently reviewable.
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §94.1 added, closing §94 in full.
-- `PROFLOW_ARCHITECTURE.md` — §10 extended with the completion summary and durable architecture facts.
-- `PROFLOW_HANDOFF.md` — §18.EG appended, closing §18.EF.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior checkpoint paragraph demoted to HISTORICAL.
-- `PROFLOW_TODO.md` — item 38 extended with the completion summary and remaining decisions.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §95 added (substantive summary + reconciliation history); §52's terse pointer extended to reference it.
+- `PROFLOW_ARCHITECTURE.md` — new §14.C added (the architecture's first real home in this file).
+- `PROFLOW_TODO.md` — item 30 extended with the P1 priority declaration, extensibility anti-pattern, five-dimensions statement; new sub-item 30.D added.
+- `PROFLOW_HANDOFF.md` — §18.EH appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL (unrelated topic, not contradicted).
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
-
-Continuity commit pushed automatically under the standing §17.K auto-sync authorization — no fresh confirmation requested, per explicit instruction.
 
 ---
 
 ## APPLICATION CODE MUTATION: NONE
 ## DB MUTATION: NONE
 ## TEST MUTATION: NONE
-## APPLICATION COMMIT: NONE
-## APPLICATION PUSH: NONE
-## DEPLOY: NONE
+## MAIN: UNCHANGED
 ## PRODUCTION: UNCHANGED
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Zero application code touched across either the checkpoint or this completion — nothing to re-test.
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged).
 
 ---
 
-## FINAL STOP — TASK COMPLETE
+## FINAL STOP
 
-All 24 sections of the Maximum Super Admin / Admin V2 audit are done. No implementation occurred. Continuity synced under the standing authorization and verified live on GitHub. Awaiting Owner review before any implementation phase (starting with the recommended canonical-resolver step) begins.
+The requested architecture was never lost — it was thoroughly documented but effectively invisible outside `PROFLOW_TODO.md`. That gap is now closed with substantive (not duplicate) cross-references in `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md`, a new P1/Full-LIVE-gate priority declaration, an explicit extensibility anti-pattern warning, and a reviewed-clean Admin V2 compatibility note. Zero implementation occurred. Continuity sync follows immediately.
