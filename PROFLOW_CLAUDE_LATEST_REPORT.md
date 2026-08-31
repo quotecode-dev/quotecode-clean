@@ -106,15 +106,13 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`d38383425e066195e5d4f8835fffa72106df77ea` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Function 1 continuity repair + permanent compliance correction (all six files). Matching commit exists locally on `main` (`63728b0`), **not pushed**, per `MAIN PUSH: NO`.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB SIX-FILE READ-BACK: **PASS**
 
-## REMOTE GITHUB SIX-FILE READ-BACK
-
-*(recorded after push and API verification — see chat-level Final Report.)*
+Verified via GitHub API immediately after the `d383834` push: branch ref SHA for `proflow-continuity` matches `d38383425e066195e5d4f8835fffa72106df77ea` exactly. All six canonical files return HTTP 200 (`PROFLOW_HANDOFF.md`, >1MB, fetched via the Git Blobs API since it exceeds the Contents API's inline size limit). Real committed content decoded and confirmed for all six: this report's `STATUS: **PASS**`, `WORKFLOW COMPLIANCE MISS: **RECORDED**`, `PERMANENT SIX-FILE RULE: **CLARIFIED**`, and Function 1's `DEPLOYED / VERIFIED PASS` marker; `PROFLOW_PROJECT_CONTEXT.md`'s new §0.B.J permanent-rule text and the workflow-compliance-miss record; `PROFLOW_CHAT_HANDOFF.md`'s resume pointer leading with Function 1's outcome; `PROFLOW_ARCHITECTURE.md`'s v8 update; `PROFLOW_TODO.md`'s and `PROFLOW_HANDOFF.md`'s compliance-miss cross-references.
 
 ---
 
