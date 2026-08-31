@@ -383,6 +383,16 @@ A dedicated orphan branch, `proflow-continuity`, carries **only** the six canoni
 
 **Still mandatory, unchanged**: the full §17.J procedure itself — copy to the isolated worktree (never edit continuity files directly outside it), run the secret/privacy regex scan on the diff before every commit, stage only the explicit six-file allowlist (never `git add .`/`-A`), verify local `HEAD == origin/proflow-continuity` after push, and report the resulting commit SHA. **Auto-sync authorization is not a license to skip any of these existing safety steps** — it removes exactly one step (the per-task push confirmation prompt) and no other.
 
+### 17.L Release-Candidate Approval Binding (added 2026-08-31, Recovery Wave 1 — Release-Gate Discipline task — PERMANENT)
+
+**Owner approval of a release candidate binds to one specific, immutable Git commit SHA — never to "the current work," "the recent changes," or any other non-SHA description.** Once the Owner has approved a candidate identified by its SHA (and, per this rule, a matching git tag):
+
+1. **Any subsequent change to application code (`src/`, `supabase/functions/`, `supabase/migrations/`, config files, or any other non-continuity path) invalidates that approval for that RC.** The approval does not carry forward to a new commit, even one differing by a single line, even one the Owner would obviously still approve — a new SHA requires fresh verification and fresh approval, every time, no exceptions assumed.
+2. **Documentation-only continuity commits on `proflow-continuity` do NOT invalidate an application release-candidate approval.** That branch is orphaned from `main` (§17.J) and carries none of the six application-affecting path types above — updating it after an RC approval is routine and expected (this exact task is itself continuously doing so) and never requires re-approval of the RC itself.
+3. **A commit is not a push. A push is not a deploy. A deploy is not LIVE authorization**, unless each step is separately, explicitly granted — this rule states the binding; it does not by itself grant any of those steps.
+
+**Why this rule exists**: this whole Recovery effort (`PROFLOW_PROJECT_CONTEXT.md` §113-§115) exists because TEST — which has never been a separately-deployed environment, only the local Vite dev server serving the live working tree in real time (§115 Wave 1 finding) — can show a state that was never captured by any single commit, and a later, different commit can reach Production without ever being re-verified against that exact state. Binding Owner approval to an immutable SHA, and invalidating it on any further application-code change, is the mechanism that closes this gap going forward.
+
 **Explicit standing warning, stated by the Owner and repeated here verbatim in spirit**: this `proflow-continuity` auto-sync authorization must **never** be interpreted, by this or any future session, as authorization for a `main` push or any deployment/Production action. If a task's own scope is ambiguous about whether documentation-only continuity sync is what's being requested versus something broader, resolve the ambiguity narrowly — sync continuity automatically, but still stop and ask before anything touching `main`, TEST/DB/Supabase/Auth state, or Production, exactly as every other rule in this file already requires.
 
 ### 18. Working-Tree-vs-GitHub Freshness Rule (added P0.3)
@@ -3745,3 +3755,71 @@ Recorded across all six canonical files as **RECOVERY PREFLIGHT — NO IMPLEMENT
 ### Wave 0 — EXECUTED (2026-08-31, Owner-authorized, local tag only)
 
 Fresh state re-verified immediately before tagging (`origin/main` fetched fresh, still exactly `dd11015`; live `quotecode.vercel.app/` re-confirmed still returning the `dd11015`-specific 308 canonical redirect). Two local annotated tags now point to `dd110155a927f708f00467e1017bd183582b42aa`: an initial one created on first Wave 0 authorization (`pre-recovery-checkpoint-dd11015`), and the Owner's own explicitly-specified name and message from the follow-up authorization (`proflow-pre-recovery-2026-08-31`, message: "ProFlow pre-recovery Production checkpoint / Production frontend baseline: dd11015 / Created before Recovery Waves 1-8"). Both verified to resolve exactly to `dd11015` via `git rev-list -n 1`. **Neither tag has been pushed to the remote** — both exist locally only, per explicit instruction. `main` did not move (`git rev-parse main` unchanged at `071dad5`, the pre-existing local-ahead Path B commit). No application code, CSS, migration, DB object/data, Edge Function, TEST, Production, or Vercel mutation occurred — tag creation is a purely local git metadata operation. **Waves 1-8 remain not started**, exactly as scoped.
+
+### Wave 1 — Release-Gate Discipline, EXECUTED (2026-08-31, Owner-authorized, documentation/process only, zero application-code mutation)
+
+**Wave 0 re-verified fresh, again**: tag `proflow-pre-recovery-2026-08-31` exists, resolves exactly to `dd110155a927f708f00467e1017bd183582b42aa` (`git rev-list -n 1`), still local-only (`git ls-remote --tags origin` empty), `origin/main` freshly fetched and still exactly `dd11015`, local `main`/`HEAD` unchanged at `071dad5`, working tree unchanged (six continuity docs + the pre-existing untracked `entry-server.jsx`).
+
+**TEST deployment source — determined fresh, not from documentation**: TEST is **not deployed from Git in any sense**. `npm run dev:localtest` runs `vite --mode localtest --host --port 5186 --strictPort` — a live Vite **dev server** (confirmed still running, `HTTP 200` on port 5186 at time of check), which transforms and serves whatever is currently on disk on demand, with no build step and no commit-pinning of any kind. There is no dedicated `test`/`staging` git branch (`git branch -a` shows only `main` and `proflow-continuity`) and no Vercel Preview/staging configuration in `vercel.json`. **There is no meaningful concept of "the current TEST commit SHA"** — TEST mirrors the live working tree in real time. **Uncommitted files CAN and DO currently affect what TEST serves** — any edit to a file on disk is reflected on the next request with zero commit, zero build, zero deploy step. This is confirmed structurally true (not merely theoretical) by `src/entry-server.jsx` itself: an uncommitted file that Vite's dev server would transform and serve immediately if anything in the running app imported it. **This is the exact, now-precisely-identified structural root of the original TEST/Production divergence risk**: TEST was never an artifact tied to a commit at all, so "TEST passed" has historically meant "the working tree looked right at that moment," not "commit X is verified" — closing this gap is the purpose of the release-candidate model below.
+
+**Production deployment source — determined fresh, read-only, no deployment triggered**: `origin/main` freshly fetched and confirmed `dd11015`. Live Production headers re-checked (`curl -I https://www.quotecodepro.com/`): `X-Vercel-Id` present (confirms Vercel-served), `Age: 17161`s (edge cache warm, consistent with a deploy that hasn't changed recently), `Etag` unchanged from every prior check this engagement. `https://quotecode.vercel.app/` still returns `HTTP 308` — `dd11015`'s own specific, unambiguous behavioral signature, re-confirmed live. Production tracks `main` automatically via Vercel's standard GitHub integration (independently, empirically re-proven multiple times this engagement, not merely asserted: `dd11015`'s own push visibly changed live behavior — §107 — and `b5583e5`'s push independently did the same for the security fix — §60 — both observed via before/after live checks, not just a push succeeding). **A push to `main` is confirmed to trigger a Production deployment.** Deployment "by exact SHA" is achievable with existing capability with no new tooling: since Vercel deploys whatever commit is the tip of `main` after a push, pushing precisely the tagged/approved RC commit (fast-forward, no merge commit introducing drift) *is* deployment-by-exact-SHA — no separate "deploy by SHA" API/CLI capability is required or proposed. Vercel CLI itself remains present but unauthenticated in this session (already established, §114) — not needed for this mechanism to work.
+
+**Working-tree safety — `src/entry-server.jsx` investigated fully, not deleted, not modified, not committed**: confirmed via a full-codebase reference search that **zero files anywhere import or reference it** (checked `.js`/`.jsx`/`.json`/`.html`, excluding the file itself). Its own header comment states plainly: "PoC ONLY — Landing-Page Prerender feasibility PoC (Phases 1-3). Not wired into the real client entry (`main.jsx`) or the real Vite build." Cross-referenced against its full authorization record at §68/§69: an Owner+ChatGPT-authorized SSR/prerender feasibility PoC, explicitly instructed to remain **"local/uncommitted"** — its current untracked state is not an oversight, it is the deliberate, already-authorized, already-documented outcome. **Conclusions**: (1) it exists as an authorized feasibility PoC, not accidental cruft; (2) it is technically valid application-shaped code but is not part of the *running* application in any way (unreachable from `main.jsx`/router); (3) TEST does **not** currently depend on it (same unreachability applies to Vite's dev-mode module graph as to the production build's); (4) it deliberately does not belong in git yet, per explicit prior instruction, and remains correctly excluded; (5) it is hand-authored PoC source, not a generated/transient artifact (its *build output*, `dist-ssr/`, is the transient/gitignored part, and was already deleted per §69's own report); (6) **excluding it from any release candidate changes nothing observable** — confirmed via the same zero-reference search that already proves it structurally inert for both TEST and Production. It remains untouched — not deleted, not overwritten, not committed.
+
+**Release-candidate model established** (documentation/process only — no code, no tooling installed):
+
+```
+RECOVERY WORK (application code edits)
+        ↓
+COMMIT (working tree returns to exactly-clean, git status matches HEAD)
+        ↓
+IMMUTABLE RELEASE-CANDIDATE SHA (that exact commit; tag it, per Wave 0's own pattern)
+        ↓
+TEST VERIFICATION OF THAT EXACT STATE
+   (because TEST has no separate deploy step, this step's validity REQUIRES
+    working tree == HEAD == the tagged SHA, verified via `git status`
+    immediately before/during TEST review — not "whatever was recently edited")
+        ↓
+AUTOMATED / MANUAL VERIFICATION (HE, EN, Desktop, Mobile — per §115 §11's
+   MUST-RE-TEST scoping)
+        ↓
+OWNER APPROVAL OF THAT SHA (binds per new permanent rule §17.L — invalidated
+   by ANY further application-code change, not invalidated by continuity-only
+   commits on `proflow-continuity`)
+        ↓
+NO CODE CHANGES between approval and promotion
+        ↓
+PROMOTE THAT SAME SHA (push exactly that commit as the new tip of `main`,
+   fast-forward only — Vercel's existing auto-deploy-on-push-to-main behavior
+   IS the promotion mechanism; no new infrastructure introduced)
+        ↓
+PRODUCTION SMOKE against the freshly-live deployment
+```
+
+**The one enforceable discipline this closes**: TEST verification is only valid for a candidate if `git status` was clean (working tree == HEAD) *at the moment of that verification* — a review performed against a dirty working tree does not certify any single commit, and must not be treated as if it did. This was the exact, precise failure mode already proven in §113/§114/§115 (frontend code that eventually reached Production was always faithfully committed and pushed — the actual gap was DB/schema promotion, not code loss — but the *mechanism* that would have caught a code-loss scenario, had one occurred, did not exist until now).
+
+**Release manifest format** (template established, not yet populated for any real candidate — Wave 1 does not create a final Recovery RC, per explicit instruction):
+
+```
+RELEASE SHA: <sha>
+APPLICATION: <exact sha, must equal RELEASE SHA>
+DATABASE MIGRATIONS: <ordered filenames, or NONE>
+EDGE FUNCTIONS: <function name + source commit/version, or NONE>
+ENVIRONMENT CHANGES: <exact list, or NONE>
+HE VERIFICATION: PASS / FAIL / NOT RUN
+EN VERIFICATION: PASS / FAIL / NOT RUN
+DESKTOP: PASS / FAIL / NOT RUN
+MOBILE: PASS / FAIL / NOT RUN
+OWNER APPROVED SHA: <sha, must equal RELEASE SHA / NONE>
+PRODUCTION AUTHORIZATION: YES / NO
+```
+
+This manifest is the gate every later Recovery wave (2 onward) must produce and satisfy before any Production action — not yet used, since no candidate exists yet.
+
+**Production protection verified — no accidental deploy vector found**: local commit alone — no push, no trigger. Local tag creation alone — no push, no trigger (empirically re-confirmed this task and the prior one: two local tags created, zero deployment observed). Updating `proflow-continuity` — no trigger (orphan branch, no shared history with `main`, empirically re-confirmed across every single continuity push this entire engagement — dozens of pushes, zero observed Production behavior change from any of them). Pushing `proflow-continuity` — no trigger, same reasoning, same empirical record. **The one and only action confirmed to trigger a Production deployment is a push to `main` itself** — and no such push occurred this task.
+
+**Files changed during Wave 1**: `PROFLOW_PROJECT_CONTEXT.md` (this section + new permanent rule §17.L) and the other five continuity files (documentation only). `src/entry-server.jsx` was read and investigated, not modified. No application file, migration, or Edge Function source was touched.
+
+**Remaining risks**: the release-candidate model above depends on disciplined execution (checking `git status` clean before treating a TEST review as valid for a specific SHA) — it is a process rule, not a technical enforcement mechanism (e.g., no git hook was installed to block this; none was proposed, per "do not introduce unnecessary infrastructure"). This is a known, accepted limitation of the smallest-safe-solution approach, not an oversight.
+
+**Recommended next Wave**: Wave 2 — Production schema/backend parity (fix the migration filename bug, then apply Item 17 + Item 18 as one coordinated window) — not started, not authorized this task.
