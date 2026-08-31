@@ -2884,3 +2884,42 @@ The Owner's proposed 8-step model is **confirmed as the recommended order**, wit
 **WARRANTY MIGRATION READY FOR OWNER AUTHORIZATION: YES.** Minimal, additive, idempotent, no data rewrite, low lock risk, zero dependency conflicts, fully forward-safe on every failure path. If authorized, the exact next action would be applying this one migration file to Production via `supabase db push` (a distinct DB-mutation authorization, not covered by this read-only task) — followed by the already-documented smoke checklist before any application push.
 
 **VERCEL CANONICAL REDIRECT: RED.** A real, confirmed, already-live gap exists (root path only) — independent of the Warranty decision and not blocking it, but should be fixed in its own small, separate, low-risk commit (adding an explicit `/` entry to `vercel.json`'s redirect `source`, or making `middleware.ts`'s matcher host-aware) before this repo's canonical-domain migration is considered fully complete.
+
+## §104. Warranty Production Migration — Owner-Authorized, Applied and Verified (2026-08-31)
+
+**The one Production DB mutation this task performed, explicitly Owner-authorized.** Scope: exactly `supabase/migrations/20260830000004_add_warranty_fields.sql` — nothing else.
+
+### Pre-mutation re-verification
+
+Target re-confirmed as `ixabnzhjeqevtbhdfswv` (`quotecode`, `linked: true`) via a fresh `supabase projects list`. Migration file re-confirmed byte-identical to the reviewed version (`git diff 6430cf5 HEAD` on this file: empty; zero uncommitted changes; sha256 recorded for this session's own audit trail). Fresh `information_schema.columns` query immediately before mutation re-confirmed both columns still MISSING — no discrepancy from the §103 preflight.
+
+### Application method — deliberately not `supabase db push`
+
+`supabase migration list --linked` showed **12 local migrations unapplied to Production** (all of Item 17, Item 18, the base-schema-capture package, and Warranty) — confirming a plain `db push` would have attempted all of them, not just Warranty, exactly the risk the authorization warned against. Applied instead via `supabase db query --linked -f supabase/migrations/20260830000004_add_warranty_fields.sql` — direct execution of this exact file's SQL content only, with zero interaction with any other migration file. (Side effect, expected and harmless: this migration is not marked "applied" in Supabase's own migration-history tracking table, since that bookkeeping is `db push`-specific — a future `db push` could re-attempt these same statements, which is safe given the migration's own idempotent design, `IF NOT EXISTS`/no-op-regrant/overwrite-comment throughout.)
+
+### Result: SUCCESS
+
+Executed with no error. Immediate read-only verification, all via fresh `information_schema`/`pg_class`/`pg_views`-adjacent queries against Production:
+
+- `business_settings.default_warranty`: **EXISTS** — `text`, nullable, `column_default: null` (no unintended default).
+- `quotes.warranty`: **EXISTS** — `text`, nullable, `column_default: null`.
+- Grants on `default_warranty`: `authenticated` has exactly `INSERT`/`SELECT`/`UPDATE` (INSERT+UPDATE from this migration's explicit grants; SELECT inherited from the table's pre-existing table-wide SELECT grant, as expected — nothing over-broadened). `postgres`/`service_role` show full privileges, as expected for those roles.
+- Constraints on either new column: **zero** (no unintended CHECK/UNIQUE/FK).
+- RLS enable-state on both tables: **unchanged** (`relrowsecurity = true` on both, matching pre-migration).
+- Full column list on both tables re-queried and compared against the exact pre-migration lists captured in §102/§103: **byte-for-byte identical, plus exactly the one new column each, appended at the end** — conclusive proof no unrelated schema object changed.
+
+### Existing data integrity: PASS
+
+`business_settings`: 12 rows before, 12 rows after, `default_warranty` NULL on all 12 (0 non-null) — no backfill, no unintended write. `quotes`: 23 rows before, 23 rows after, `warranty` NULL on all 23 — same. **Quote numbering explicitly re-verified unchanged**: `min_qn=11`, `max_qn=89`, `distinct_qn=23` — identical to every prior reading in §102/§103, proving this migration had zero interaction with `quote_number`/its sequence/its trigger.
+
+### Pre-push Production smoke: PASS
+
+Read-only only, no login, no mutation. `https://www.quotecodepro.com/` — HTTP 200, and a live browser navigation confirmed the real landing page renders correctly (title, marketing copy, "Sign In / Dashboard" button all present) — the currently-deployed frontend is unaffected by the new, additional, as-yet-unreferenced columns, exactly as predicted (old code uses `select('*')` and payloads that don't mention `warranty`/`default_warranty` at all).
+
+### Untouched, as explicitly scoped
+
+**Application push**: NONE. **Vercel deploy**: NONE. **Item 17**: untouched — none of its migration files were applied. **Email Edge Functions**: untouched — no deploy, no invocation. **Vercel root-redirect gap** (§103): still open, RED, not addressed this task — deliberately out of scope, not mixed into this DB operation.
+
+### Next state
+
+Production's schema is now schema-compatible with the already-committed but not-yet-pushed `fde680b` (and its backend companion `6430cf5`, whose Edge Function half was already source-committed but requires its own separate redeploy). The 18-commit chain's sole RED blocker (Warranty schema) is now resolved. Pushing the application chain, redeploying `get-public-quote`, the Vercel redirect fix, and Item 17's coordinated release all remain separate, distinct, not-yet-authorized future actions.
