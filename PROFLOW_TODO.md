@@ -1298,26 +1298,24 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **Also fixed this task (not a contract, a bug)**: Order Number ASC/DESC sorting was comparing the row's internal UUID (`id`) instead of the displayed order number's real backing field (`quote_number`) — root-caused and fixed via a new testable `getQuoteOrderSortKey` in `src/utils/quoteNumber.js`. See §81 Part C for full detail.
 
-## 37. Exact 50% Typography Reduction — BLOCKED, Owner decision required (added 2026-08-31, Owner Visual QA Correction task)
+## 37. Exact 50% Typography Reduction — SUPERSEDED by new Owner TEST values (added 2026-08-31, Owner Visual QA Correction task; superseded 2026-08-31, Exact Typography Implementation task)
 
-**Status: 🔴 BLOCKED — genuine technical limitation confirmed, Owner decision required before this item can proceed**
+**Status: 🟡 SUPERSEDED — the Owner replaced this requirement with new explicit TEST values before the technical blocker was resolved**
 
-**Canonical location**: `PROFLOW_PROJECT_CONTEXT.md` §82, Item 3. This item is a pointer only.
+**Canonical location**: `PROFLOW_PROJECT_CONTEXT.md` §82 Item 3 (original blocker) and §83 (superseding TEST values). This item is a pointer only.
 
-**The requirement**: the Owner mandated an exact 50% font-weight reduction (not approximate, not a CSS "one step" reduction) from the current pre-correction weight, for Client Name (`600→300`), Amount (`500→250`), Total Quotes KPI (`600→300`), and Total Revenue KPI (`600→300`).
+**Original requirement (no longer active)**: exact 50% font-weight reduction (`600→300` Client Name/KPI, `500→250` Amount) — blocked because `src/fonts.css`'s discrete Rubik files only cover 400/500/600/700/800/900, and 250 is not even a valid weight step.
 
-**Why it's blocked**: `src/fonts.css` confirms Rubik is self-hosted via discrete per-weight `@font-face` files at **400/500/600/700/800/900 only** (Latin and Hebrew both) — no `300` file exists, and `250` is not a valid weight step at all. Setting either value would not render a genuinely distinct, thinner glyph — the browser would silently substitute the nearest loaded face (most likely `400`), which is not a 50% reduction and risks visually collapsing these elements into the same weight as ordinary body text.
+**Current state**: the Owner overrode this with new explicit TEST values for visual review — Client Name `500`, Amount `400`, KPI `500` — all real, already-loaded discrete Rubik weights, implemented and live-verified in both locales, no technical blocker. See §83. Owner visual approval on these TEST values remains PENDING.
 
-**Owner decision needed — one of**: (a) add a genuine `300`-weight Rubik font file (Latin + Hebrew) so an exact 50% is real; (b) explicitly authorize a nearest-available substitute (`400`) despite it not being mathematically 50%; (c) redefine the target as a different, achievable percentage/step; (d) leave the current weights (`600`/`500`) as final.
+## 38. Dashboard Separation Mockup — Option B (Soft/Light) — IMPLEMENTED AND VERIFIED, Owner visual approval pending (added 2026-08-31, Owner Visual QA Correction task; implemented and fully verified 2026-08-31, Quote History All-Column Geometry Gate + Owner Option B Implementation task)
 
-**No weight was changed pending this decision**, per the Owner's own explicit instruction not to silently substitute.
-
-## 38. Dashboard Separation Mockup — Option B (Soft/Light) selected, next visual design direction (added 2026-08-31, Owner Visual QA Correction task — DOCUMENTATION ONLY, not implemented)
-
-**Status: 🔴 OPEN — Owner-selected next direction, NOT IMPLEMENTED**
+**Status: 🟡 IMPLEMENTED, TEST-VERIFIED — awaiting Owner visual approval (not yet claimed)**
 
 **The decision**: of the dashboard separation mockup options presented, the Owner selected **Option B — Soft / Light**.
 
-**Before implementation is authorized**: must be tested with the mockup's own slider in both the **expanded** state and the **row-dropped/collapsed** state — both states need Owner visual review, not just one.
+**Implementation**: `.dash-upper-section` wrapper in `Dashboard.jsx` — white background, `1px` light-purple border (the theme's existing `NEON.border` token), `14px` radius matching Quote History's own card, no heavy shadow, no fixed height (content-driven). Wraps the purple header bar + nav row + KPI grid (when present) as one coherent section, separate from Quote History below.
 
-**Not yet scoped**: exact implementation task has not been requested or begun. This item exists purely to preserve the Owner's selection for whenever that task is authorized.
+**Verified**: both the normal/expanded state and the row-dropped/collapsed state (triggered by the existing `≤768px` KPI-grid media query, which forces the grid to 2 columns) — content-driven height correctly adapts (`246px→300px→351px` across breakpoints) with zero clipping, zero overlap, zero dead space, zero horizontal overflow, in both HE and EN, across the full 8-point responsive matrix. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §84.
+
+**Remaining**: Owner visual approval on the live TEST result — not yet given, not claimed.

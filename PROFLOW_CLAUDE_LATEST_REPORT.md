@@ -4,123 +4,138 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Owner Visual QA Correction — Numeric Amount Alignment + Exact Typography Standard
+## Task: Quote History All-Column Geometry Gate + Owner Option B Implementation
 
-**EFFORT LEVEL: MAXIMUM.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §82. No commit, no push, no Production.
-
----
-
-## AMOUNT PLACE-VALUE
-
-**PASS**
-
-**Root cause**: §79's Amount-centering fix centered the *complete formatted currency string* as one unit — a longer string (`$5,625.00`) and a shorter one (`$10.00`) centered in the same cell place their cents/ones-place at different X positions. Same bug class as the pre-fix Views icon-shift issue.
-
-**Fix**: fixed-width (`92px` Desktop) right-aligned inner box around the money span, centered within the outer header-centered `<td>` — satisfies place-value alignment and header/body-centering simultaneously. Mobile: removed the `isHebrew`-conditional alignment (which anchored the *wrong* end in HE, since digit order is always LTR even in RTL text) in favor of unconditional right-align within the pre-existing fixed `78px` grid track.
-
-## HE AMOUNT GEOMETRY
-
-Text right-edge **861.98px, identical across all 8 values** (`$10.00, $100.00, $150.00, $200.00, $999.00, $1,000.00, $5,625.00, $99,999.00`) — Desktop, real rows + safe reverted DOM simulation. Header-vs-body-center offset: **0.01px**. Mobile card: text right-edge **104px, identical** across `$10/$999/$5,625`. Zero overflow throughout.
-
-## EN AMOUNT GEOMETRY
-
-Text right-edge **1117.39px, identical across all 8 values** — Desktop, safe reverted DOM simulation. Header-vs-body-center offset: **0.01px**. Mobile card: text right-edge **364px, identical** across all 13 real rows (including a real `$5,625.00` quote) plus `$10/$999/$5,625` simulated. Zero overflow throughout.
-
-**Disclosed, non-blocking**: at the stress value `$99,999.00` (beyond the Owner's own test set, and beyond `MOBILE_META_AMOUNT_COL`'s pre-existing documented ~6-digit limit), the Mobile card overflows its 78px track by ~6.5px — a pre-existing limitation, not a regression from this task, not fixed here (out of scope).
-
-## VIEWS REGRESSION
-
-**PASS** — not touched this task; re-confirmed via the full automated suite.
-
-## ORDER SORT REGRESSION
-
-**PASS** — live-reclicked on real TEST data post-fix: ASC still `A100700, A100701, A100703, ...` (correct).
+**EFFORT LEVEL: MAXIMUM.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §84 (and §83 for the intervening exact-typography/emergency-stop task).
 
 ---
 
-## TYPOGRAPHY BEFORE
+## TYPOGRAPHY
 
-Client Name = `600`
-Amount = `500`
-Total Quotes = `600`
-Total Revenue = `600`
+**CLIENT NAME:** HE 500 PASS / EN 500 PASS
+**AMOUNT:** HE 400 PASS / EN 400 PASS
+**KPI:** HE 500 PASS / EN 500 PASS
 
-## TYPOGRAPHY AFTER
+---
 
-Client Name = `600` (unchanged — blocked, see below)
-Amount = `500` (unchanged — blocked, see below)
-Total Quotes = `600` (unchanged — blocked, see below)
-Total Revenue = `600` (unchanged — blocked, see below)
+## PRE-OPTION-B COLUMN LEDGER
 
-## EXACT 50% REQUIREMENT
+**HE** (offset = header-center − body-text-center; CENTER/SPECIAL columns require ≤1px):
 
-**BLOCKED**
+| Column | Intended | Offset | Result |
+|---|---|---|---|
+| Client Type | CENTER | 0px | PASS |
+| Views | CENTER | 0px | PASS |
+| Order | CENTER | 0px | PASS |
+| Client Name | START | 21.59px | N/A — correct START anchor verified separately, not a center failure |
+| Description | START | −54.21px | N/A — same as above |
+| Amount | SPECIAL (outer box) | 0.01px | PASS |
+| **Date** | CENTER | 0px (was 1.62px) | **PASS — fixed this task** |
+| Status | CENTER | 0px | PASS |
+| Email | CENTER (icon) | n/a (icon-only, verified via box/icon-center match) | PASS |
+| Actions | CENTER | 0px | PASS |
 
-**Reason**: exact 50% targets are Client Name/KPI `600→300`, Amount `500→250`. Confirmed via direct read of `src/fonts.css`: Rubik is self-hosted with discrete per-weight `@font-face` files **only** at `400/500/600/700/800/900` (Latin and Hebrew both) — no `300` file exists, and `250` is not a valid weight step at all. Setting either value would not render a genuinely distinct, thinner glyph — the browser would silently substitute the nearest loaded face (almost certainly `400`), which is **not** a 50% reduction (600→400 ≈ 33%; 500→400 = 20%) and risks visually collapsing these roles into ordinary body text. Per the Owner's own explicit instruction not to silently substitute, no weight was changed. Recorded as `PROFLOW_TODO.md` item 37, pending an Owner decision among 4 disclosed options: (a) add a real `300`-weight font file, (b) explicitly authorize the `400` substitute despite it not being exact, (c) redefine the target percentage, (d) leave current weights as final.
+**EN** (same methodology):
 
-## HE/EN TYPOGRAPHY PARITY
+| Column | Intended | Offset | Result |
+|---|---|---|---|
+| Client Type | CENTER | 0px | PASS |
+| Views | CENTER | 0px | PASS |
+| Order | CENTER | 0.01px | PASS |
+| Client Name | START | −36.28px | N/A — by design |
+| Description | START | 49.64px | N/A — by design |
+| Amount | SPECIAL | 0px | PASS |
+| **Date** | CENTER | 0px | **PASS** |
+| Status | CENTER | 0.01px | PASS |
+| Email | CENTER (icon) | n/a | PASS |
+| Actions | CENTER | 0.01px | PASS |
 
-**PASS** (structurally) — none of the four values carry an `isHebrew` conditional; HE and EN are identical by construction today, and will remain identical whatever value the Owner approves for Item 3.
+**DATE HE:** header-center 246.79 vs body-text-center 246.79 → **0px offset** (was 248.41 vs 246.79 = 1.62px before the fix)
+**DATE EN:** header-center 657.46 vs body-text-center 657.46 → **0px offset**
 
-## NUMERIC CONTRACT GENERALIZED
+**ALL-COLUMN GATE: PASS**
 
-**PASS** — `PROFLOW_PROJECT_CONTEXT.md` §81 Part D rewritten in place: removed the now-incorrect "Amount is an exception to right-alignment" line (that was the bug), documented the whole-string-centering anti-pattern explicitly, and added a mandatory enforceable trigger — touching Amount/Views numeric CSS/width/typography/padding/formatting/alignment now requires real-browser contract verification, and skipping it means FINAL DECISION cannot be PASS.
-
-## TYPOGRAPHY CONTRACT ENFORCEABLE
-
-**PASS** — the Owner's "no drift without documented authorization" rule is now explicit in §81 Part E; this task's own BLOCKED item is itself the first real test of that rule (no local override was applied instead of pursuing genuine authorization).
+---
 
 ## OPTION B
 
-**DOCUMENTED**
-**IMPLEMENTED: NO**
+**IMPLEMENTED: YES** (implementation itself carried over from the prior task; this task completed its outstanding full verification — slider/row-wrap states, HE/EN, full responsive matrix)
 
-Recorded as the Owner-selected next dashboard-separation design direction (Soft/Light). Must be tested with the slider in both expanded and row-dropped/collapsed states before implementation is authorized. `PROFLOW_TODO.md` item 38.
+**EXACT FILE/HUNK:** `src/pages/Dashboard.jsx`, `.dash-upper-section` wrapper (opens before the purple header bar, closes after the conditional KPI grid; `QuotesTab` remains an unwrapped sibling below it)
+
+**BOUNDARY:** `background: NEON.bgCard` (white) · `border: 1px solid NEON.border` (`#e4e1ee`, the theme's existing light-purple card-border token) · `borderRadius: '14px'` (matches Quote History's own card) · no `boxShadow` · no fixed/min/max height
+
+**FIXED HEIGHT: NO** — confirmed content-driven: `246px` (1-row KPI, State A) → `300px` (2-row KPI via the `≤768px` media query, State B) → `351px` (mobile, nav row also wraps). Zero clipping at every measured width (`lastChild.bottom` never exceeds the wrapper's bottom).
+
+**HE NORMAL: PASS** | **EN NORMAL: PASS**
+**HE ROW-WRAP/SLIDER: PASS** | **EN ROW-WRAP/SLIDER: PASS**
+
+(Note: within the Desktop-table range itself, >768px, neither the nav row nor the KPI grid actually wraps — the canonical 980px content width has enough room throughout. The genuine row-drop transition is the pre-existing `≤768px` KPI-grid media query, verified above as "State B.")
 
 ---
 
-## FOCUSED TESTS
+## POST-OPTION-B COLUMN LEDGER
 
-51/51 PASS (`QuotesTab.test.jsx`, unchanged count — no tests added/removed this task, existing coverage re-confirmed green)
+**HE:** byte-identical to the pre-Option-B ledger above — all CENTER/SPECIAL columns ≤1px, Date 0px, no overflow.
+**EN:** byte-identical to the pre-Option-B ledger above — all CENTER/SPECIAL columns ≤1px, Date 0px, no overflow.
 
-## FULL TESTS
+**ALL COLUMNS PRESERVED: PASS**
 
-109/109 PASS (unchanged count)
+---
 
-## LINT
+## PROTECTED INVARIANTS
 
-**PASS** (0 errors, 6 pre-existing warnings unchanged)
+**AMOUNT PLACE-VALUE: PASS** (text right-edge constant across `$10.00`–`$5,625.00`, both locales, safely reverted simulation)
+**VIEWS 0/1/2/3 DIGITS: PASS** (icon position constant across `0/9/999`)
+**ORDER ASC: PASS** (`A100700, A100701, A100703, ...`)
+**ORDER DESC: PASS** (`A100732, A100731, A100730, ...`, exact reverse)
+**ORDER CENTER: PASS** (0px)
+**ACTIONS CENTER: PASS** (0px)
+**EMAIL INDICATOR: PASS** (structural RED/GREEN/BLANK logic unit-tested and unchanged; live TEST data currently all BLANK, expected given current data, not a failure)
+**MARKET SEPARATION: PASS** (no instruction crossed the Local/International boundary this task)
 
-## BUILD
+---
+
+## RESPONSIVE
+
+**HE DESKTOP: PASS** | **EN DESKTOP: PASS**
+**HE MOBILE: PASS** | **EN MOBILE: PASS**
+**HE TABLET PORTRAIT: PASS** | **EN TABLET PORTRAIT: PASS**
+**HE TABLET LANDSCAPE: PASS** | **EN TABLET LANDSCAPE: PASS**
+**HORIZONTAL OVERFLOW: NONE**
+
+---
+
+## QUALITY
+
+**FOCUSED TESTS:** 53/53 PASS (`QuotesTab.test.jsx`, includes 2 new structural Column Geometry Contract tests)
+**FULL TESTS:** 111/111 PASS
+**LINT: PASS** (0 errors, 6 pre-existing warnings unchanged)
+**BUILD: PASS**
+**BROWSER CONSOLE: CLEAN** (verified via pre-navigation error listener on fresh HE + EN loads)
+
+---
+
+## SAFETY
+
+**APPLICATION COMMIT: NONE**
+**APPLICATION PUSH: NONE**
+**PRODUCTION: UNCHANGED**
+
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged).
+
+---
+
+## OWNER
+
+**OWNER VISUAL APPROVAL: PENDING** (both the typography TEST values and Option B — not claimed)
+
+---
+
+## FINAL DECISION
 
 **PASS**
 
----
-
-## OWNER VISUAL APPROVAL
-
-**PENDING**
-
-## APPLICATION COMMIT
-
-**NONE**
-
-## APPLICATION PUSH
-
-**NONE**
-
-## PRODUCTION
-
-**UNCHANGED**
-
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). DNS/Supabase/customer-data: unchanged (Amount values were temporarily/reversibly simulated via direct DOM text mutation on both TEST accounts, immediately reverted and confirmed `restored:true` each time — no database write occurred).
-
-## CONTINUITY READ-BACK
-
-**PASS** (this sync — see below)
-
----
-
 ## FINAL STOP
 
-Item 1 (Amount place-value) and Item 2 (contract generalization) fully implemented and real-browser-verified. Item 3 (exact 50% typography) is genuinely **BLOCKED** on a confirmed technical limitation — awaiting Owner decision among 4 disclosed options before it can proceed. Item 4 (parity) holds structurally. Item 5 (regression) re-verified PASS, nothing reopened unnecessarily. Item 6 (Option B) recorded as open/next-direction only. Returned to Owner + ChatGPT.
+The permanent PROFLOW Table Column Geometry Contract is now written (`PROFLOW_PROJECT_CONTEXT.md` §84), generalizing the prior narrower per-column checks. Date was found and fixed with the narrowest structural change, matching the established Order/Amount/Actions pattern. Option B is fully implemented and verified — boundary, both row-states, both locales, full responsive matrix — with the post-Option-B regression re-run confirming zero collateral damage to Quote History. Returned to Owner + ChatGPT for visual review before any commit/push authorization.

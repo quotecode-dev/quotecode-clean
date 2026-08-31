@@ -2017,3 +2017,113 @@ No application commit, no push, no Production/DNS/Supabase/customer-data mutatio
 Full suite 109/109 (unchanged count — no tests added or removed this task, existing coverage re-confirmed green), lint 0 errors (6 pre-existing warnings, unchanged), build succeeds.
 
 **Status**: Item 1 (Amount place-value alignment) and Item 2 (contract generalization) fully implemented and real-browser-verified. Item 3 (exact 50% typography) is genuinely **BLOCKED** on a confirmed technical limitation — no weight was changed, per explicit Owner instruction not to silently substitute. Item 4 (parity) holds structurally pending Item 3's resolution. Item 5 (regression) re-verified PASS. Item 6 (Option B) recorded as OPEN/next-direction, not implemented. Awaiting Owner decision on Item 3's four options before that specific sub-item can proceed. All other prior Owner open items unchanged/preserved.
+
+## §83. Exact Typography Test Values + Dashboard Option B Implementation + Emergency-Stop Resolution (added 2026-08-31, three sequential tasks: Exact Typography Implementation, Emergency Stop/Restore, Typography+Amount Geometry Correction)
+
+**Exact Typography (superseding §82 Item 3's BLOCKED 300/250 targets)**: the Owner overrode the earlier "exact 50%" requirement with new explicit TEST values for Owner visual review — Client Name `500`, Amount `400`, KPI numeric values (Total Quotes, Total Revenue) `500`. All four are real, discretely-loaded Rubik weights (`src/fonts.css` confirms 400/500/600/700/800/900 all have genuine `@font-face` files) — no font-loading trick needed for these specific values, unlike the earlier 300/250 targets. Applied via simple `fontWeight` value changes in `QuotesTab.jsx` (Desktop + Mobile Client Name and Amount) and `Dashboard.jsx` (both KPI values); the `pf-font-variable`/`Rubik Variable` infrastructure built for the earlier 300-weight attempt was left in place (harmless, still correctly renders 400/500 via the variable font's own 300-900 axis) rather than torn out, minimizing diff. Live-verified via `getComputedStyle` in both locales: all four values render exactly as specified, HE/EN identical (no `isHebrew` branch on any of them).
+
+**Amount header-centering regression, found and fixed**: after the weight change, the Owner visually detected the Amount header no longer looked centered over the numeric region. Root-caused: the §82 fix's `92px` fixed-width numeric box was sized for an out-of-scope stress value (`$99,999.00`), far larger than the Owner's own realistic test range (`$10.00`–`$5,625.00`, natural text width ~50-71px) — creating a large empty margin inside the box for typical short values, which is invisible to a *box-center* measurement (still 0px) but visible to the human eye looking at where the *text* actually sits. Fixed by tightening the box to `76px` (comfortably fits the Owner's own real test range with headroom, verified live). This reduced the visible-text-to-header offset substantially (from ~16.5px uniformly down to 2.4–14.4px depending on value length) without reintroducing place-value drift — box-center offset remained 0px throughout. **This exposed a genuine, inherent, non-eliminable trade-off**, documented here as a permanent addendum to the Numeric Geometry Contract: right-anchored place-value alignment requires a shared fixed-width box across all rows; centering that box under the header guarantees 0px *box*-center offset, but the *visible text* inside the box will still shift somewhat for shorter values, proportional to how much narrower the box's typical content is than its own reserved width. Minimizing this means sizing the reserved width to the *realistic* range, not a padded worst-case.
+
+**Emergency stop — root cause resolved, not a regression**: mid-session, the Owner reported Dashboard.jsx failing to parse (`Unexpected token, expected "}"` near line 3589/ErrorBoundary). Diagnosed conclusively: the reported location (ErrorBoundary's `constructor`) was unrelated code far downstream of any edit; the actual file **on disk at diagnosis time already built cleanly** (full production build, 0 errors), linted cleanly, and the dev server's live transform of the file showed zero errors (valid HMR wiring, no injected error module). This is the classic signature of a **transient mid-edit state** — a genuine but temporary imbalance existed for the brief window between two separate Edit tool calls that together implemented the Option B wrapper's opening and closing tags, and the Owner's own browser tab (watching via Vite HMR) caught that transient window. By the time the emergency-stop message arrived, the second edit had already resolved it. Confirmed via a fresh HE+EN browser reload with a pre-navigation error listener (`Page.addScriptToEvaluateOnNewDocument`) showing zero console errors, plus a full regression pass (Quote History render, Client Type/Views order, Views geometry, Amount box, Order sort, Order/Amount centering, HE before-VAT, Hot Quote geometry) — all PASS. **No revert was performed**; Option B's `Dashboard.jsx` implementation was confirmed intact and not touched further per the Owner's "no Option B work in this recovery task" instruction.
+
+**Testing-methodology lesson (logged for future sessions)**: when making a JSX structural change that requires opening a wrapper tag in one location and closing it in another (i.e., cannot be a single contiguous Edit), verify the file with `npx eslint <file>` or a `vite build` immediately after **both** edits complete, before considering the task "done" for that file — a lint/build check after only the first half of a two-part structural edit will not catch the transient imbalance, but neither will skipping verification entirely after the second half.
+
+**Status**: Client Name/Amount/KPI now render at the Owner's exact specified TEST weights (500/400/500) in both locales, pending visual approval. Amount's numeric box tightened to 76px, box-center offset still 0px, visible-text offset reduced and documented as an inherent trade-off. Emergency stop fully diagnosed and resolved with no data loss and no revert. Full detail on Option B's own implementation remains in §81/§82's prior notes — full slider/responsive verification of Option B is completed in §84 below, which also generalizes the header/body-centering contract to the whole table per the Owner's newest, broader instruction.
+
+## §84. Quote History All-Column Geometry Gate + Dashboard Option B Full Verification (added 2026-08-31, Quote History All-Column Geometry Gate + Owner Option B Implementation task)
+
+### PERMANENT CONTRACT — PROFLOW Table Column Geometry (generalizes and supersedes the narrower per-column checks in §81 Part F item 2)
+
+> For **every visible column** in a table (not just the column a task happens to touch), the header's geometry must correspond to the **intended** body geometry for that column — where "intended" is classified explicitly per column, not assumed uniformly:
+> - **CENTER**: short, fixed-or-bounded-format values (identifiers, dates, badges, icons, buttons) — header and body must share the same center, ≤1px tolerance, measured via real `getBoundingClientRect()`/`Range` geometry, never `textAlign` inspection alone.
+> - **START** (or END): free/variable-length text meant to be read left-to-right from its natural starting edge (e.g. a name or description column) — the header may still be a centered *label* (an established, intentional ProFlow convention, not a bug) while the body is genuinely edge-aligned; the correct check for a START column is that body content actually starts at its own intended edge, **not** that header-center equals body-center — applying the CENTER check to a START column produces a false failure.
+> - **SPECIAL**: a column with its own documented invariant that isn't simple centering — e.g. Amount, where the *outer* numeric box is centered under the header (0px tolerance) while the *inner* content is right-anchored for place-value alignment; do not "fix" this by attempting to center the numeric string itself, and see §83's addendum on the inherent visible-text-vs-box-center trade-off for SPECIAL numeric columns.
+>
+> **Enforceable trigger**: any future task that touches table width, padding, alignment, typography, grid/flex/table geometry, or responsive geometry must re-run the **whole** applicable column audit — not just the column the task named. Fixing one column while silently regressing an untouched one (this task's own founding example: a prior task's Amount-centering fix left Date, an entirely different column, subtly misaligned) is itself a contract failure. `FINAL DECISION` cannot be `PASS` if any protected column moved without being re-verified.
+
+### Phase 3 — Column classification (Desktop Quote History, both locales)
+
+| Column | Classification | Rationale |
+|---|---|---|
+| Client Type | CENTER | icon badge |
+| Views | CENTER | fixed-width numeric+icon group (§81 Numeric Geometry Contract) |
+| Order Number | CENTER | short identifier |
+| Client Name | START | free text, historically edge-aligned under a centered label header (pre-existing convention, not a bug — see below) |
+| Description | START | free text, same convention as Client Name |
+| Amount | SPECIAL | outer box centered, inner content place-value-anchored (§82/§83) |
+| Date | CENTER | short, fixed-format value — **found misaligned this task, fixed** |
+| Status | CENTER | badge |
+| Email | CENTER/functional | icon-only |
+| Actions | CENTER | button |
+
+### Phase 4/5 — Full-column ledger (real `getBoundingClientRect()`/`Range` measurement, representative row, re-run after the fix)
+
+**HE** (offset = header-center − body-text-center; CENTER/SPECIAL columns must be ≤1px):
+
+| Column | Offset | Result |
+|---|---|---|
+| Client Type | 0px | PASS |
+| Views | 0px | PASS |
+| Order | 0px | PASS |
+| Client Name | 21.59px | N/A — START column, correct anchor (body starts at its own edge) verified separately, not a center-failure |
+| Description | −54.21px | N/A — START column, same as above |
+| Amount | 0.01px | PASS (outer box; see §83 for the separate, documented visible-text nuance) |
+| **Date** | **0px (was 1.62px before the fix)** | **PASS** |
+| Status | 0px | PASS |
+| Email | n/a (icon-only) | PASS — verified via icon-center = header-box-center = cell-box-center (784.44 all three) |
+| Actions | 0px | PASS |
+
+**EN** (same methodology):
+
+| Column | Offset | Result |
+|---|---|---|
+| Client Type | 0px | PASS |
+| Views | 0px | PASS |
+| Order | 0.01px | PASS |
+| Client Name | −36.28px | N/A — START, by design |
+| Description | 49.64px | N/A — START, by design |
+| Amount | 0px | PASS |
+| **Date** | **0px** | **PASS** |
+| Status | 0.01px | PASS |
+| Email | n/a | PASS |
+| Actions | 0.01px | PASS |
+
+Both ledgers re-verified consistent across 5 sampled rows (not just the first), and re-run a second time after Option B's implementation was re-confirmed (Phase 10) — identical results, confirming Option B (a sibling wrapper around the header/nav/KPI area) has zero effect on Quote History's own internal geometry.
+
+**Date root cause and fix**: `QuotesTab.jsx`'s Date `<td>` had `textAlign: isHebrew ? 'right' : 'left'` while its header was already `textAlign:'center'` — the exact same header-centered/body-edge-aligned mismatch class previously found and fixed for Order (§80), Amount/Actions (§79). Fixed identically: body `textAlign` changed to `'center'`. Unlike Amount, dates are fixed-character-length within a locale (e.g. `30/08/2026`), so simple whole-string centering is safe and sufficient — no numeric place-value/growing-string concern applies, no inner box needed.
+
+**Client Name/Description "offsets" are not failures**: per the Phase 3 classification, these are intentionally START-aligned free-text columns; their header remains a centered *label* (an established ProFlow convention predating this task) while their body content correctly starts at its own inline-start edge. Applying the CENTER-column check to them would produce a false failure — the contract explicitly requires classifying before measuring, precisely to avoid this trap.
+
+### Phase 6 — Hard gate result
+
+All CENTER/SPECIAL columns: ≤1px in both locales (mostly exactly 0px). Gate: **PASS**.
+
+### Phase 8 — Automated guard added
+
+Audited existing tests first (did not duplicate). Added one structural test (`QuotesTab.test.jsx`, `describe.each` HE/EN, 2 new tests, total 111 in the full suite): asserts every CENTER-classified body `<td>`'s `style.textAlign === 'center'` and every START-classified body `<td>`'s `style.textAlign` matches its locale's start edge — a maintainable structural invariant, not a brittle pixel assertion (real pixel geometry remains Browser Harness's responsibility per explicit instruction).
+
+### Hard gate before Option B — confirmed PASS
+
+HE all-column audit PASS; EN all-column audit PASS; Date HE PASS (0px); Date EN PASS (0px); Amount place-value PASS (constant text-right-edge across `$10.00`–`$5,625.00`, both locales); Views geometry PASS (constant icon position across `0/9/999`); Order ASC/DESC PASS (live-reclicked, correct sequence both directions); Typography 500/400/500 preserved (live-verified both locales); build PASS. Proceeded to Option B only after this full confirmation.
+
+### Phase 9 — Option B full verification (implementation itself already existed from §83/the emergency-stop task — this task's job was to complete its outstanding verification, not re-implement)
+
+**Boundary**: `.dash-upper-section` in `Dashboard.jsx` — `background: NEON.bgCard` (white), `border: 1px solid NEON.border` (`#e4e1ee`, the same light-purple token used by every other card border in the theme), `borderRadius: '14px'` (matches QuotesTab's own card), no `boxShadow`, no fixed/min/max height. Wraps the purple header bar + nav-buttons row always, and the KPI grid conditionally (only on the `main` tab) — `QuotesTab` itself remains a separate sibling card below it, unwrapped, preserving its own existing card treatment.
+
+**"Slider"/row-drop states, precisely identified**: within the Desktop-table-active range (>768px), neither the nav-buttons row nor the 3-card KPI grid ever wraps in practice — both comfortably fit within the 980px canonical content width even at the narrowest Desktop breakpoint (measured 769px–1920px, wrapper height constant at `246px` throughout). The genuine row-drop transition is the documented `@media (max-width:768px)` KPI-grid rule (forces `repeat(2,1fr)`, Hot Quote spans both columns via `grid-column:1/-1`, pushing Total Quotes/Total Revenue to a second row) — verified this is what "STATE B" refers to.
+
+**Real-browser height-adaptation proof** (both locales, identical results): `900px` (1-row KPI, State A) → wrapper height `246px`; `768px` (2-row KPI, State B) → wrapper height grew to `300px`; `600px`/`390px` (mobile, nav row also wraps) → wrapper height `351px`. At every width: zero content clipping (`lastChild.bottom` never exceeds the wrapper's own bottom), zero horizontal overflow, gap below content stayed positive (15-19px, no dead-space collapse, no overlap into Quote History below).
+
+**Responsive matrix**: HE/EN × Desktop (1920)/Mobile (390×844)/Tablet Portrait (768×1024)/Tablet Landscape (1024×768) — all 8 combinations PASS, zero horizontal overflow, `.dash-upper-section` and `<table>`/mobile-card presence exactly as expected at each breakpoint.
+
+**HE/EN equivalence**: identical boundary treatment, identical height-adaptation values at every tested width — no locale-specific styling on the wrapper itself; existing RTL/LTR mirroring of its contents (header, nav, KPI order) is untouched, no new market semantics introduced.
+
+### Phase 10 — Post-Option-B full regression: PASS
+
+Re-ran the entire column ledger (Phase 4/5) after Option B's verification concluded — byte-identical results to the pre-Option-B ledger in both locales, confirming Option B (a sibling wrapper) has no effect on Quote History's internal geometry. Order ASC/DESC re-confirmed live. Email indicator: all 30 sampled TEST rows show the BLANK state (no send attempted) — expected given current TEST data, not a failure; the RED/GREEN/BLANK logic itself remains covered by its own dedicated unit tests (unchanged, still passing).
+
+### Quality, hygiene, safety
+
+Full suite 111/111 (109 + 2 new structural tests), lint 0 errors (6 pre-existing warnings unchanged), build succeeds. Browser console: clean (verified via pre-navigation error listener on fresh HE+EN loads). Browser hygiene: 0 stale tabs, 1 keep-alive, dedicated Chrome running throughout. No application commit, no push, no Production/DNS/Supabase/customer-data mutation. `git rev-parse HEAD` unchanged at `5f658f3...`, `origin/main` unchanged.
+
+**Status**: All-column geometry gate PASS in both locales. Date regression found and fixed with the narrowest structural change (matching the established Order/Amount/Actions pattern). Option B fully implemented and verified — boundary, content-driven height across both row-states, both locales, full responsive matrix. Post-Option-B regression re-run confirms zero collateral damage to Quote History. **Owner visual approval remains PENDING** — not claimed. All other prior Owner open items (item 33 Currency Immutability, item 37 exact-50%-typography now superseded by §83's TEST values, item 38 unaffected, Vercel legacy root 308, Landing Prerender Phase 4, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry, Plan Status Badge) unchanged/preserved.
