@@ -10,6 +10,7 @@ import {
   Send, XCircle, ChevronDown
 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
+import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 
 // Edge Function errors return the real reason in the response body (e.g. "Cannot delete
 // a Super Admin account") - supabase-js's default error.message is just a generic
@@ -297,12 +298,23 @@ export default function AdminUsersTab({
 
   const isHebrewText = (str) => /[֐-׿]/.test(str);
 
+  // חוק ברזל (Admin V2 Foundation — Phase 1, תיקון הבאג המאושר, ר' הערה
+  // מקבילה ב-UserDetailsModal.jsx לפירוט מלא): הגזירה הישנה כאן טעתה
+  // באותה מחלקת-באג - trial_ends_at===null כהוכחת-Lifetime בלבד, וגם
+  // planValue הציג rawPlan גולמי (לא effective) עבור ניסיון-שפג. שתי
+  // הבעיות מתוקנות עכשיו יחד דרך resolveAccountEntitlement() - נקודת-אמת
+  // משותפת עם Dashboard.jsx/SettingsTab.jsx. הצורה המוחזרת נשמרה זהה
+  // בכוונה (isSuperAdminUser/isLifetime/rawPlan/planValue/isGrantedLifetimePro)
+  // כדי שה-JSX הקיים (טבלת-דסקטופ + כרטיסי-מובייל) לא ידרוש שום שינוי.
   const getAccountDerived = (acc) => {
-    const isSuperAdminUser = acc.role === 'super_admin';
-    const isLifetime = isSuperAdminUser || acc.trial_ends_at === null || acc.trial_ends_at === undefined;
-    const rawPlan = acc.plan ? acc.plan.toLowerCase() : 'free';
-    const planValue = (isSuperAdminUser || isLifetime) ? 'pro' : rawPlan;
-    const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
+    const resolved = resolveAccountEntitlement({ plan: acc.plan, trialEndsAt: acc.trial_ends_at, role: acc.role });
+    const isSuperAdminUser = resolved.isSuperAdmin;
+    const isLifetime = resolved.isLifetime || isSuperAdminUser;
+    const rawPlan = resolved.rawPlan;
+    // planValue הופך ל-tier המחושב (נכון תמיד), לא ל-rawPlan הגולמי -
+    // מתקן את מחלקת-הבאג המלאה, כולל אייקון-החבילה בטבלה/בכרטיסי-המובייל.
+    const planValue = resolved.tier;
+    const isGrantedLifetimePro = resolved.isLifetime;
     const currentCountry = acc.country || 'Local';
     const isIntl = currentCountry === 'International';
 

@@ -1,4 +1,5 @@
 import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
+import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 
 export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   if (!isOpen || !user) return null;
@@ -45,18 +46,28 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
     );
   }
 
-  // בדיקה האם מנוי לכל החיים (רק אם trial_ends_at הוא ממש null / undefined)
-  const isSuperAdminUser = user.role === 'super_admin';
-  const isLifetime = isSuperAdminUser || user.trial_ends_at === null || user.trial_ends_at === undefined;
-  const rawPlan = (user.plan || 'free').toLowerCase();
-  // Lifetime שקול ל-PRO גם אם שדה ה-plan הגולמי נשאר "free"/"basic" (handleToggleLifetime מעדכן רק trial_ends_at)
-  const isGrantedLifetimePro = isLifetime && !isSuperAdminUser && rawPlan !== 'pro';
-  const displayPlan = (isSuperAdminUser || isLifetime) ? 'PRO' : rawPlan.toUpperCase();
+  // חוק ברזל (Admin V2 Foundation — Phase 1, תיקון הבאג המאושר): הלוגיקה
+  // הישנה כאן גזרה Lifetime מ-trial_ends_at===null בלבד - בדיוק גם החתימה
+  // של ביטול-עצמי (PricingModal.jsx), כך שחשבון FREE שביטל את עצמו הוצג
+  // כ-"PRO (Lifetime)". התיקון: כל הגזירה (tier/Lifetime/badge) עוברת דרך
+  // resolveAccountEntitlement() - נקודת-האמת היחידה המשותפת עכשיו גם ל-
+  // AdminUsersTab.jsx וגם ל-Dashboard.jsx/SettingsTab.jsx (דרך computeEffectivePlan
+  // הקיים, לא נגוע). ר' src/utils/accountEntitlement.js לפירוט המלא. הצורה
+  // המוחזרת החוצה (isSuperAdminUser/isLifetime/displayPlan/isGrantedLifetimePro/
+  // isTrialActive) נשמרה זהה בכוונה - כדי שה-JSX למטה לא ידרוש שום שינוי.
+  const resolved = resolveAccountEntitlement({ plan: user.plan, trialEndsAt: user.trial_ends_at, role: user.role });
+  const isSuperAdminUser = resolved.isSuperAdmin;
+  const isLifetime = resolved.isLifetime || isSuperAdminUser;
+  const isGrantedLifetimePro = resolved.isLifetime;
+  // displayPlan הופך עכשיו ל-tier המחושב (נכון תמיד - כולל ניסיון-שפג,
+  // Lifetime, ו-super_admin), לא ל-rawPlan הגולמי - מתקן את מחלקת-הבאג
+  // המלאה (לא רק את מקרה ה-null הספציפי).
+  const displayPlan = resolved.tier.toUpperCase();
 
   // מצב מנוי - רק Lifetime וניסיון (עדיין בתוקף / פג) הם עובדות שניתן להוכיח
   // מהנתונים הקיימים. אין עדיין חיבור סליקה אמיתי, כך שאין כאן ניסוח שמרמז
   // על תשלום מאומת - ר' מפרט הרדיזיין של ה-Admin UI.
-  const isTrialActive = !isLifetime && !!user.trial_ends_at && new Date(user.trial_ends_at).getTime() > Date.now();
+  const isTrialActive = resolved.trialStatus === 'active' || resolved.trialStatus === 'expiringSoon';
 
   const row = (label, value, opts = {}) => (
     <div style={{ paddingBottom: '8px' }}>
