@@ -3187,3 +3187,35 @@ Current live version: v6, unchanged since §109. Candidate: local commit `071dad
 ### 14-16. Boundaries held
 
 No Production Edge Function deploy, no DB migration, no item 18 migration, no schema change, no application push, no Vercel deploy, no Production email, no real-customer mutation. The already-created HE Production TEST quote/Warranty evidence from §109 was left untouched, no new Production data created. The Owner's separately-flagged UI regression findings (Mobile/Public Quote, Admin visual issues) were explicitly out of scope and not touched — recorded here as still separate/open, per instruction.
+
+## §111. Owner-Authorized Path B Production Deploy — get-public-quote v6→v7 (2026-08-31)
+
+**Authorization**: the Owner explicitly authorized exactly one action against Production — `supabase functions deploy get-public-quote --project-ref ixabnzhjeqevtbhdfswv` — nothing else. No other function, no DB migration, no item 18, no application push, no Vercel deploy.
+
+### Pre-deploy re-verification
+
+Confirmed the local `supabase/functions/get-public-quote/index.ts` was byte-identical to the reviewed, tested, committed `071dad5` (zero diff against `HEAD`) — no drift since §110. Confirmed Production's function was still v6, same `updated_at` as every prior check in this engagement — the baseline hadn't moved.
+
+### Deploy
+
+Ran exactly the one authorized command. **Result: SUCCESS.** `get-public-quote` went from **v6 → v7** (`created_at` unchanged, `updated_at` newly 2026-08-31 15:41 UTC).
+
+### Immediate real Production smoke — existing data only, nothing new created
+
+| Case | Quote | Result |
+|---|---|---|
+| HE, warranty present | `295f4efc-...` (quote #91, the §109 TEST quote) | **200.** `warranty` correctly returned as the exact v1 snapshot text. `quote_number:91` correct. Warranty now genuinely renders on this Public Quote page for the first time. |
+| HE, warranty absent | `c171cf5a-...` (quote #67 — a real, pre-existing, complex quote: 2 items, a discount, a note) | **200.** `warranty:null`, every other field (items, discount, notes, totals) intact — strong zero-regression evidence on a non-trivial real record. |
+| EN, warranty absent | `b040f4e6-...` (quote #64, USD) | **200.** `warranty:null`, `tax_rate:0`, no ₪ symbol anywhere, no VAT reference — correct market separation held. |
+
+All three: HTTP 200, clean JSON, no error field, no exception. The Supabase CLI installed in this session has no `functions logs` subcommand to independently tail server-side logs; the three real invocations' own clean responses are treated as the strongest available direct evidence of no runtime error.
+
+**Disclosed gap, not a defect**: no EN quote with a warranty value exists yet on real Production (none was created this task — doing so wasn't authorized). The warranty-present code path was already proven correct twice — once via the HE Production check above, and earlier via 4 real HTTP checks spanning both HE and EN on `quotecode-test` in §110 — so this is a live-Production-coverage gap specifically, not an unverified mechanism.
+
+### Rollback
+
+**Not triggered, not needed.** No 400/500 observed, no render failure, no unrelated data touched. The pre-deploy source remains archived from §109/§110 if ever required.
+
+### Boundaries held
+
+No other Edge Function deployed. No DB migration. No item 18 migration — `attn_name`/`attn_role` remain absent from Production, unaffected by this deploy. No application push (`origin/main` unchanged at `dd11015`; the local `071dad5` commit remains unpushed to `main`). No Vercel deployment triggered. No Production email sent. No real-customer data touched — all three smoke checks read already-existing TEST-account data (`tahshitishi@gmail.com`/`minhatshay@gmail.com`), nothing new was written.
