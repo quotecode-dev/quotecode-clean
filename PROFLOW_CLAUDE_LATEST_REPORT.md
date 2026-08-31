@@ -4,118 +4,130 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Post-BSOD Recovery Continuity Completion
+## Task: Wave 3 Function 1 Continuity Repair + Permanent Compliance Correction
 
-Continues directly from the "Interrupted Wave 3 Recovery / Fresh State Reconstruction" task (read-only, forensic, deliberately did not write to continuity per its own stop-before-write rule). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §115's Wave 3 Interrupted/Reconstructed addendum.
+Continues directly from the Wave 3 restart and the Function 1 (`get-public-quote`) LIVE execution, which completed successfully (deployed, verified PASS) but ended without performing its own mandatory Six-File Continuity write. This task closes that gap and adds a permanent-rule clarification to prevent recurrence.
 
-**Owner + ChatGPT reviewed and accepted the reconstruction. This task's authorization is documentation-only — no application, database, TEST, Production, Edge Function, or Vercel mutation.**
+**Documentation/continuity repair only. No new application, database, TEST, Production, Edge Function, or Vercel mutation performed.**
 
 ---
 
-## TASK: Post-BSOD Recovery Continuity Completion
+## TASK: Wave 3 Function 1 Continuity Repair + Permanent Compliance Correction
 ## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
 ## STATUS: **PASS**
 
+---
+
+## FRESH CANONICAL BOOTSTRAP + PRE-WRITE REVALIDATION
+
+All six canonical files re-read directly from `ref = proflow-continuity` before any edit (not local copies, not `main`, not memory, not a prior report). Fresh state re-established, read-only, before writing anything:
+
+`HEAD = f25e7025bcb2b6bfff53e6945d27b097ae27cfe8` (exactly the Function 1 commit, unchanged), working tree clean apart from the standing untracked `src/entry-server.jsx`, `origin/main = dd11015` (11 commits behind local, unpushed), `origin/proflow-continuity = d75fd53` (unchanged since the prior task). Production identity re-proven via `supabase/.temp/project-ref` = `ixabnzhjeqevtbhdfswv`.
+
+**Note on a citation imprecision, not a real drift**: earlier tasks' `grep "project_id" supabase/config.toml` calls never actually matched anything in that file (it has no such line) — the `ixabnzhjeqevtbhdfswv` value shown in those outputs came from a different command in the same combined shell call. The underlying fact (linked project = Production) was never wrong; `supabase/.temp/project-ref` has been the correct, consistently-checked source of truth throughout.
+
+**Function states, zero drift from the Function 1 execution report**: Production `get-public-quote` v8 (unchanged since deploy), `send-quote-email` v24 (unchanged, identical hash `456e606b...`); TEST `get-public-quote` v2, `send-quote-email` v1 (both unchanged). Production `quotes` row count re-confirmed genuinely **30** via a correct, isolated `SELECT count(*) FROM public.quotes;`. `main` not pushed. Local TEST-mode dev server still reachable at `http://localhost:5186/` (HTTP 200).
+
+**No material contradiction found between documented state and fresh state.**
+
+---
+
+## CURRENT CHECKPOINT
+
+## WAVE 2: **PASS / INTACT**
+## WAVE 3: **IN PROGRESS**
+## WAVE 4: **NOT STARTED**
+
+## FUNCTION 1 CURRENT STATE — get-public-quote: **DEPLOYED / VERIFIED PASS**
+
+Production version: **v7 → v8**.
+
+**Exact material deployed change**: `attn_name, attn_role` added to the `.select()`; `attn_name: quote.attn_name, attn_role: quote.attn_role` added to the response object. Nothing else.
+
+**Verification evidence**: local commit `f25e702` (not pushed to `main`); post-deploy source downloaded fresh from Production and diffed against the approved source — only formatting/TS-stripping differences (expected artifact of the download/bundle round-trip), `attn_name`/`attn_role` confirmed present, nothing unrelated; `send-quote-email` confirmed completely untouched (v24, byte-identical hash); TEST untouched; Production DB row count confirmed genuinely unchanged at 30 (one transient false-alarm query bug of the executor's own making — a `count(*)` missing its `FROM public.quotes` clause — caught and corrected immediately, disclosed transparently); `main` not pushed.
+
+**Rollback readiness**: pre-deployment v7 source preserved in isolated scratch; single-command rollback available (`supabase functions deploy get-public-quote --project-ref ixabnzhjeqevtbhdfswv` using the saved v7 source) if ever needed.
+
+**LOCAL status**: TEST-mode dev server (`npm run dev:localtest`) started as a separate operational step, confirmed reachable at `http://localhost:5186/`.
+
+## FUNCTION 2 CURRENT STATE — send-quote-email: **NOT DEPLOYED / PENDING SEPARATE OWNER AUTHORIZATION**
+
+Zero edit, zero commit, zero deploy, zero email sent for this function at any point. Three real, TEST-verified-since-2026-08-30 changes are documented and ready for its own future gate: `quote_number` added to the select; a money-rounding bug fix (Production's current `Math.round()` silently drops cents/agorot from every real customer email); real quote numbers shown in the email subject instead of a UUID fragment.
+
+---
+
+## WORKFLOW COMPLIANCE MISS: **RECORDED**
+
+The Function 1 LIVE execution task reached a genuine, meaningful checkpoint (a real Production deployment, verified PASS) but ended without performing its own mandatory Six-File Continuity write. Detected and corrected by Owner + ChatGPT before Function 2 was authorized. No additional runtime mutation occurred as a consequence of the miss, and Function 1's own deployment/verification outcome is unaffected and remains PASS. **Classified explicitly as a workflow/process compliance gap in *when* continuity was performed — not a defect in Function 1 or in any runtime state.** Recorded in `PROFLOW_PROJECT_CONTEXT.md` §115 (Function 1 addendum), `PROFLOW_TODO.md`, and `PROFLOW_HANDOFF.md` §18.FK.
+
+## PERMANENT SIX-FILE RULE: **CLARIFIED**
+
+`PROFLOW_PROJECT_CONTEXT.md` §0.B extended with new sub-points **J–M**: (J) Six-File Continuity is inherited automatically by every ProFlow task, independent of whether that task's own prompt restates or mentions it; (K) a task-specific FINAL STOP ends that task's scope of *authorized action* but does not, by itself, waive the standing continuity requirement; (L) the one legitimate exception is an explicit safety/forensic STOP-BEFORE-WRITE (as the Post-BSOD reconstruction correctly used) — continuity is then *deferred and stated as pending*, never silently skipped, and must be performed by the very next task that lifts the restriction; (M) Claude must not treat a task prompt's silence on continuity as evidence that continuity is optional for that task. The existing six-file architecture, the six canonical files themselves, and the pre-existing §0.B.A–I rules are all preserved unchanged — no seventh file was created, no existing rule was weakened.
+
+---
+
 ## APPLICATION MUTATION: NONE
 ## TEST MUTATED: NO
-## PRODUCTION MUTATED: NO
-## EDGE FUNCTIONS DEPLOYED: NO
+## PRODUCTION RUNTIME MUTATED BY THIS REPAIR TASK: NO
 ## VERCEL DEPLOYED: NO
 ## MAIN PUSH: NO
 
 ---
 
-## SUMMARY — WAVE 3 INTERRUPTION AND RECONSTRUCTION
-
-**What happened, in order**:
-
-1. Owner granted Wave 3 LIVE authorization, strictly scoped to Edge Function parity for `get-public-quote` and `send-quote-email`.
-2. Execution began with read-only reconnaissance only: bootstrap six-file reconciliation, Fresh Local State, proof of Production (`ixabnzhjeqevtbhdfswv`) vs TEST (`ljfizgrdyzxddswcedwr`) project identity, and a fresh `supabase functions list` capture of both functions' deployed version/timestamp/content-hash on both projects. `supabase functions --help` was checked and the `download` subcommand located.
-3. **Before any download, diff, or deploy command was issued**, the Owner's workstation suffered a Windows BSOD: `BUGCHECK 0x7E — SYSTEM_THREAD_EXCEPTION_NOT_HANDLED`, exception `0xC0000005`, faulting module `dxgmms2.sys`, failure bucket `AV_dxgmms2!VIDMM_GLOBAL::CreateOneAllocation`, process `vmmem` — a graphics/virtualization-path crash. **Docker/WSL2 causation was not conclusively proven**; the crash investigation only implicated that path.
-4. After reboot, the Owner authorized a strictly read-only "Interrupted Wave 3 Recovery / Fresh State Reconstruction" task.
-5. That reconstruction, and this present task's own independent pre-write revalidation, both confirm the identical result below.
-
-**Reconstruction findings, proven not assumed**:
-
-- **Local git state**: `HEAD`, `origin/main`, working tree, and reflog all show zero commits, zero staged changes, zero stash entries attributable to Wave 3. The last commit before Wave 3 began (and still the last commit today, prior to this task's own continuity commit) is exactly `1819731` — "docs: record Wave 2 LIVE execution continuity commit SHA."
-- **Edge Functions**: `get-public-quote` (Production v7) and `send-quote-email` (Production v24) were each independently re-queried via `supabase functions list` before and after the crash. Version number, `updated_at` timestamp, and content hash (`ezbr_sha256`) are **byte-identical** across both checks, for both functions, on both Production and TEST — definitive proof neither function was ever redeployed.
-- **Production DB**: a fresh, read-only query confirms Wave 2's state fully intact: `quote_number` DEFAULT still NULL, `attn_name`/`attn_role` still present, `A100700`/`A100701` both still present, `allocate_quote_number` function present, `business_quote_sequences` still 7 rows, `quotes` row count still exactly **30** (no new quote created by any Wave 3 activity), migration ledger unchanged (7 rows, unchanged from the end of Wave 2).
-- **One unexplained-but-empty artifact investigated**: `wave3_diff/{prod,test}` scratch directories, zero files. Their timestamp (`2026-09-01 01:06:29`) postdates the crash message and aligns exactly with the reconstruction task's own read-only bootstrap operations — not the earlier interrupted pre-crash attempt. Resolved as unrelated tooling noise, not evidence of any download or deploy having occurred.
-
-**WAVE 3 APPLICATION MUTATION: NONE.**
-
-- `get-public-quote` deployment: **PROVEN NO**
-- `send-quote-email` deployment: **PROVEN NO**
-- TEST mutation: **NO**
-- Production DB mutation: **NO**
-- Frontend mutation: **NO**
-- Vercel deployment: **NO**
-- `main` push: **NO**
-- Real customer email: **NO**
-- David Aluminum mutation: **NO**
-- Unexpected mutations: **NONE**
-
-**Wave 2 remains fully INTACT / PASS.**
-
-## WAVE 2: **PASS / INTACT**
-## WAVE 3: **NOT EXECUTED**
-## WAVE 4: **NOT STARTED**
-
-**Wave 3 is not partially deployed, not partially completed — it never advanced past read-only reconnaissance.** Safe resume point: restart Wave 3 from its own Section 0 (fresh local/runtime verification), requiring a new, separate, explicit Owner LIVE authorization before any mutation is attempted again.
-
-## WORKSTATION NOTE
-
-Following the BSOD, the Owner configured WSL2/Docker resource limits: `processors=4`, `memory=16GB`, `swap=8GB`. These are workstation settings, not application state, and must not be silently modified by any future ProFlow task.
-
----
-
-## PRE-WRITE REVALIDATION (this task, immediately before any documentation edit)
-
-Re-confirmed, read-only, all matching the accepted reconstruction report exactly: branch `main`, `HEAD = 1819731da369210782aaf920c02a7919072e7ee6`, `origin/main = dd110155a927f708f00467e1017bd183582b42aa` (fresh fetch), working tree containing only the standing untracked `src/entry-server.jsx` (unchanged), and `origin/proflow-continuity` at `7a14ec8fa802781713db9b37f8a9ef6c7b67f519` (unchanged since before Wave 3 began). No contradiction found — safe to proceed with documentation-only mutation.
-
-## LOCAL UNCOMMITTED STATE
-
-Only the standing, pre-existing, already-investigated untracked `src/entry-server.jsx` (unrelated to Wave 3, present since long before this task, deliberately uncommitted per its own prior authorization). Nothing else uncommitted at the start of this task's documentation edits.
-
----
-
 ## SIX-FILE LEDGER
 
-| File | Status | What changed |
-|---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED | New §115 addendum: full Wave 3 interruption/reconstruction history, proven-not-assumed findings, BSOD facts (causation not overstated), safe resume point, WSL2/Docker note |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED | §14 resume pointer rewritten to lead with the Wave 3 interruption/reconstruction; Wave 2 PASS paragraph retained directly below, explicitly marked unaffected |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED | §14.A's deployment-desync note extended with the Wave 3 interruption fact; underlying architecture facts (v7/v24, still stale) unchanged, since nothing was deployed |
-| `PROFLOW_HANDOFF.md` | UPDATED | New §18.FJ appended |
-| `PROFLOW_TODO.md` | UPDATED | Continuity log extended with the Wave 3 interruption/reconstruction entry |
-| `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED | This file, fully rewritten |
+**PROFLOW_PROJECT_CONTEXT.md**
+STATUS: **UPDATED**
+REASON: §115 extended with the Function 1 addendum (Wave 3 restart, full source diff, gate, deployment, verification) plus the workflow-compliance-miss record; §0.B extended with permanent-rule sub-points J–M.
 
-## SIX-FILE RECONCILIATION CHECK
+**PROFLOW_CHAT_HANDOFF.md**
+STATUS: **UPDATED**
+REASON: §14 resume pointer rewritten to lead with Function 1 DEPLOYED/VERIFIED PASS and Function 2 pending — the next session's first read now reflects real progress, not "Wave 3 NOT EXECUTED."
 
-Cross-checked all six for contradictions across: Wave 2 status (PASS/INTACT, everywhere), Wave 3 status (NOT EXECUTED, everywhere — never described as partial anywhere), Wave 4 status (NOT STARTED, everywhere), Production/TEST/Edge Function/DB state (byte-identical facts repeated consistently: v7/v24, 30 rows, ledger of 7), main state (not pushed, 8 commits ahead locally, consistent across files), local/uncommitted state (only `entry-server.jsx`, consistent), safe resume point (restart Wave 3 Section 0 + new Owner authorization, stated identically in all six), BSOD/recovery history (same facts, same causation caveat, in every file that mentions it). **No material contradiction found.**
+**PROFLOW_ARCHITECTURE.md**
+STATUS: **UPDATED**
+REASON: §14.A's deployment-desync note updated — `get-public-quote` now correctly described as live v8 with Attn data; `send-quote-email` still correctly described as stale/pending.
+
+**PROFLOW_HANDOFF.md**
+STATUS: **UPDATED**
+REASON: §18.FK carries the full Function 1 execution record plus a workflow-compliance-miss historical note.
+
+**PROFLOW_TODO.md**
+STATUS: **UPDATED**
+REASON: Continuity log extended with the Function 1 outcome, Item 18's DB+display completion, and the workflow-compliance-miss cross-reference.
+
+**PROFLOW_CLAUDE_LATEST_REPORT.md**
+STATUS: **UPDATED**
+REASON: This file, fully rewritten to carry the newest completed meaningful checkpoint (this repair task), per its established report-transport role.
+
+No file was silently skipped.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`60320ca933f52fa87217122843fb36d5be1d8fe6` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Post-BSOD Recovery Continuity Completion update (all six files). Matching commit exists locally on `main` (`5b4080f`), **not pushed**, per `MAIN PUSH: NO`.
+*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push — see chat-level Final Report.)*
 
-Verified via GitHub API immediately after the `60320ca` push: branch ref SHA for `proflow-continuity` matches `60320ca933f52fa87217122843fb36d5be1d8fe6` exactly. All six canonical files return HTTP 200 via the Contents API at `ref=proflow-continuity`; `PROFLOW_HANDOFF.md` (>1MB, exceeds the Contents API's inline size limit) was separately fetched via the Git Blobs API. Real committed content decoded and confirmed for all six — `STATUS: **PASS**`, `WAVE 3: **NOT EXECUTED**`, `WAVE 2: **PASS / INTACT**`, and the FINAL STOP line all present in this report; corresponding checkpoint markers confirmed present in each of the other five files.
+## REMOTE GITHUB SIX-FILE READ-BACK
+
+*(recorded after push and API verification — see chat-level Final Report.)*
 
 ---
 
 ## MATERIAL CONTRADICTIONS: NONE
 
-## NEXT RECOMMENDED STEP
+## NEXT SAFE STEP
 
-Owner + ChatGPT review this continuity checkpoint only. No technical action is pending from this task — the next substantive step, if and when separately authorized, is restarting Wave 3 from its own Section 0.
+Owner + ChatGPT review only. If satisfied, a future, separately-gated task may present and seek authorization for Function 2 (`send-quote-email`) using the diff already documented in the Function 1 addendum.
 
 ---
 
 ## FINAL STOP
 
-FINAL STOP. DO NOT RESUME WAVE 3. DO NOT START WAVE 4. DO NOT DEPLOY ANYTHING. WAIT FOR OWNER + CHATGPT REVIEW.
+After continuity is remotely verified, notify the Owner via the configured Windows popup + audible alert.
+
+FINAL STOP. DO NOT DEPLOY send-quote-email. DO NOT START WAVE 4. WAIT FOR OWNER + CHATGPT REVIEW.
