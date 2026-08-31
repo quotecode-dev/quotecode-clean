@@ -2974,3 +2974,27 @@ Isolated `git archive HEAD` (`dd11015`, no working-tree access): confirmed `entr
 **19 commits now ahead of `origin/main`** (18 from before + this task's `dd11015`). Clean-tree status: confirmed self-contained twice now (this task and the prior). Schema dependencies: **Warranty Production prerequisite now SATISFIED** (§104 — applied and verified). Redirect code is **ready** but its **live proof remains pending an actual deployment** — this is a genuine, distinct gate from code-readiness, not conflated. Item 17 and the email Edge Function redeploy both remain entirely separate, not-yet-authorized future actions, untouched by this task.
 
 **CANONICAL DOMAIN CODE READINESS: GREEN.** **CANONICAL DOMAIN LIVE GATE: PENDING DEPLOYMENT** — explicitly not marked GREEN merely because local/unit tests pass, per the task's own explicit distinction; only actual deployed HTTP + browser verification can close this gate.
+
+## §106. Final 19-Commit Production Release Audit — RELEASE GREEN (2026-08-31)
+
+**Read-only release certification. No push, no deploy, no mutation.** Fresh state matched the documented checkpoint exactly (HEAD `dd11015`, 19 ahead, `entry-server.jsx` the only local-only artifact).
+
+### Critical trace: Item 17 premature-activation check, not hand-waved
+
+`Dashboard.jsx`'s `handleSaveQuote` does call `supabase.rpc('allocate_quote_number', ...)` on every new quote. Traced carefully: this exact code block (lines and all) is **byte-identical to `origin/main`** — `git diff origin/main HEAD` on this region returns zero output. This call has been part of the *already-deployed, already-live* Production frontend since `ffc741d` (2026-08-28), already wrapped in a proven-safe `try/catch` that falls through to the pre-existing global-sequence column `DEFAULT` on failure — exactly the already-documented "A90" mechanism, confirmed unchanged in §102/§103/§104. **Deploying this 19-commit chain introduces zero new call to this RPC and zero new dependency on it — the behavior is 100% carried-forward from what's already live, not newly introduced by this release.** ITEM 17 PREMATURE ACTIVATION: **NO**.
+
+### Migration/deploy-mechanism verification
+
+11 migration files total in the chain, classified: 4 TEST-only base-schema-capture (self-labeled, never intended for Production), 6 intentionally-unapplied (Item 17's 5 files + Item 18's Attn file), 1 already-applied-content-wise (Warranty, via §104's direct SQL execution — not through the standard `db push` tracking flow, so Supabase's own migration-history table doesn't mark it "applied" even though the schema change is live). **Confirmed, not assumed, that Vercel cannot execute any migration automatically**: no `.github/workflows` directory exists, and `vercel.json` has no `buildCommand` override — the build is Vercel's standard static build (`vite build`), which never touches Supabase. Same reasoning confirms Edge Functions cannot be auto-deployed by a `main` push — that requires an explicit, separate `supabase functions deploy`.
+
+### Static security scan
+
+Full `origin/main..HEAD` diff scanned for secret-key patterns, hardcoded passwords, debug bypasses, accidental `.env` commits — zero matches.
+
+### Release matrix and verdict
+
+All 13 tracked features/threads reviewed individually (Plan/Trial foundation, Admin V2, Plan badges, Warranty, Quote History, Signature Pad, Market routing, Client Type, Attn fallback, canonical redirect, Trial email repair, Subscription email fail-safe, Item 17) — 12 GREEN, canonical redirect correctly held at YELLOW (code GREEN, live gate genuinely pending deployment, not falsely closed). **OVERALL VERDICT: RELEASE GREEN.**
+
+A full post-deploy smoke plan (14 steps) and stop/rollback conditions were prepared for Owner review, not executed. Steps that mutate data are explicitly flagged to use only the already-established authorized TEST identities, never a real customer account.
+
+**No push, no deploy, no migration execution, no Edge Function deployment, no Production mutation of any kind occurred in this task.**
