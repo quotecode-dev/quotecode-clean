@@ -3118,3 +3118,72 @@ The Owner explicitly redirected from "should this be deployed" to an audit-only 
 ### Status at this checkpoint
 
 **Task paused by explicit Owner direction after the audit**, not resumed to further smoke steps. Not yet attempted: HE Warranty historical-integrity steps D/E, HE Signature Pad, HE Quote History/Dashboard detail, the entire EN identity side, responsive smoke, Admin (expected verdict: `PENDING TEST ADMIN`, no real-Admin login attempted). **NO EDGE FUNCTION DEPLOY. NO APPLICATION PUSH. NO DB MUTATION beyond the one Owner-authorized in-app Warranty Settings save and the one TEST quote creation, both performed through the real UI as explicitly authorized. NO PRODUCTION MUTATION beyond those two authorized application-level writes. Password never written to any file, commit, log, screenshot, or continuity document.**
+
+## §110. Path B — Narrow get-public-quote Warranty-Only Fix (2026-08-31)
+
+**Owner decision**: presented with the two safe forward paths from §109's audit, the Owner explicitly selected **Path B** — fix `get-public-quote` alone, do not apply item 18's `attn_name`/`attn_role` migration to Production, do not broaden into a coordinated Item 18 rollout. Pre-deploy only; no Production deploy performed or authorized by this task.
+
+### 1. Fresh local state, re-verified first
+
+`branch: main`, `HEAD == origin/main == dd11015`, 0 ahead/0 behind. Working tree: only the six continuity docs modified (the standing live-editing surface) plus the pre-existing untracked `src/entry-server.jsx` (documented since §68/§69, unrelated). Confirmed the Production application commit is still `dd11015` before any change — nothing assumed carried over from the prior task.
+
+### 2. Production contract, re-confirmed read-only
+
+Direct schema query: `warranty`/`quote_number` present, `attn_name`/`attn_role` absent — unchanged since §109. `get-public-quote` still v6, same `updated_at` as before. A fresh byte-level download (isolated scratch dir, real repo confirmed untouched via `git status` immediately after) re-confirmed zero references to `warranty`, `quote_number`, `attn_name`, or `attn_role` in the live source — nothing changed since the prior audit. Zero mutation.
+
+### 3-4. Narrow target and field-level diff audit
+
+Target: keep everything already in committed HEAD except remove `attn_name`/`attn_role` entirely (they reference nonexistent Production columns); keep `warranty` and `quote_number` (both Production-safe). A full field-level matrix (id, quote_number, client fields, items, terms, notes, warranty, attachments, signature, status, attn_name, attn_role, and the remaining scalar fields) was produced comparing live-Production / committed-HEAD / Path-B-target — **only `attn_name` and `attn_role` change (REMOVED); every other field is UNCHANGED.** No accidental scope expansion.
+
+### 5. Implementation
+
+Modified only `supabase/functions/get-public-quote/index.ts`: removed `attn_name, attn_role` from the `.select()` and from the returned `quote` object; updated the file's own inline comment to record the Path B rationale (attn deferred pending item 18's migration, not forgotten). No other file touched — confirmed via `git status`/`git diff --stat` showing exactly one code file changed. Committed locally as **`071dad5`** (not pushed): 1 file, 13 insertions, 13 deletions.
+
+### 6. Public Quote client check
+
+Re-read `PublicQuote.jsx`/`PublicQuoteEn.jsx`: both already gate on `quote.warranty &&` and `quote.attn_name &&` independently — a response that includes `warranty` but omits `attn_name`/`attn_role` renders the Warranty section correctly and simply skips the Attn section with no error, exactly the pre-Item-18 behavior. **No frontend change required or made.**
+
+### 7. Test coverage — disposable real-HTTP verification, limitation disclosed
+
+No unit test framework was built for this narrow fix (would have been scope expansion for a largely declarative field-list change; the real risk — schema mismatch — is not the kind of thing a unit test catches, it was already caught by the schema audit in §109). Instead, the strongest practical available verification was used: the exact Path B candidate was deployed under a **temporary, distinctly-named function slug** (`get-public-quote-pathb-verify`) to `quotecode-test` only — deliberately not overwriting TEST's real `get-public-quote`, which already carries item 18's fields and backs its own separately-certified TEST verification (overwriting it would have been a real, if temporary, regression to already-passing TEST functionality). Four real HTTP requests were made against real existing TEST quotes:
+
+| Case | Quote | Result |
+|---|---|---|
+| HE, warranty present | `4204f54d-...` (ILS) | 200, `warranty:"WARRANTY-HE-B"`, `quote_number:100732`, no `attn_name`/`attn_role` key present |
+| HE, warranty absent | `d19275bf-...` (ILS) | 200, `warranty:null` (not an error), all other fields intact |
+| EN, warranty present | `e99a1768-...` (USD) | 200, `warranty:"WARRANTY-EN-B"`, `quote_number:100713`, `tax_rate:0`, no ₪/VAT leakage |
+| EN, warranty absent | `69507eb4-...` (USD) | 200, `warranty:null`, all other fields intact |
+
+All four confirmed: warranty correctly returned when present; request still succeeds (not an error) when absent; `quote_number` preserved; zero dependency on `attn_name`/`attn_role` (simply absent from the response, no crash); attachments/signature/status/business/client fields all unaffected; correct market separation held (ILS/RTL content in HE responses, USD/zero-VAT in EN responses). The temporary function was deleted immediately after (`get-public-quote-pathb-verify` confirmed absent from `quotecode-test`'s function list afterward); TEST's real `get-public-quote` was never touched, still its original v2. **Disclosed limitation**: this exercises the real deployed HTTP/DB path exactly as Production would run it, but was run against `quotecode-test`, not Production itself (Production deploy is explicitly out of scope for this task).
+
+### 8. Static/build verification
+
+Lint: 0 errors (6 pre-existing warnings, unrelated files, unchanged baseline). Tests: **173/173 PASS**. Build: PASS (this file is a Supabase Edge Function, not part of the Vite bundle — confirmed unaffected). The Supabase CLI's own successful bundle+deploy+real-execution during step 7 additionally serves as a genuine TypeScript/syntax correctness proof (no local Deno CLI is installed to run a standalone type-check).
+
+### 9. TEST project usage
+
+Deployed exactly one function (`get-public-quote-pathb-verify`, a temporary slug, not any real function name) to `quotecode-test` only, then deleted it. No other function deployed anywhere. Production was briefly unlinked (to safely operate against TEST) and explicitly re-linked back to `ixabnzhjeqevtbhdfswv` before this task's Production-facing steps concluded, restoring the standing convention.
+
+### 10. HE/EN verification
+
+Both covered directly by step 7's four real HTTP cases (2 HE, 2 EN) — no separate agent dispatch was needed since the exact same function code and exact same real data served both markets identically; results already show HE/EN parity holds (identical response shape, correct per-market currency/tax fields, zero cross-market leakage).
+
+### 11. File-by-file ledger
+
+| File | Why changed | HE impact | EN impact | Test result | Risk | Rollback |
+|---|---|---|---|---|---|---|
+| `supabase/functions/get-public-quote/index.ts` | Remove `attn_name`/`attn_role` (nonexistent on Production) while keeping `warranty`/`quote_number` | Warranty will render on Public Quote once deployed; Attn section gracefully absent (matches pre-Item-18 behavior) | Same, symmetric | 4/4 real HTTP checks PASS on TEST (isolated slug) | Low — additive field selection removed, nothing added that doesn't already exist on Production | Redeploy the archived pre-Path-B live source (downloaded fresh this task) |
+
+**Only this one file changed.** No other file was touched.
+
+### 12. Deployability proof
+
+Single-function deploy: `supabase functions deploy get-public-quote --project-ref ixabnzhjeqevtbhdfswv` (not run). No migration required — Path B reads only `warranty`/`quote_number`, both already present. No other function needs to deploy simultaneously.
+
+### 13. Rollback plan
+
+Current live version: v6, unchanged since §109. Candidate: local commit `071dad5`, not deployed. Rollback source: the byte-identical pre-Path-B live source, freshly re-downloaded this task and archived. Rollback command: redeploy that archived source with the same command as above. Smoke criteria: real HE/EN Public Quote pages load (200) for a sample of existing quotes, warranty displays correctly, no regression. Rollback trigger: any 400/500 from the function, or any Public Quote page failing to render, in the post-deploy smoke window.
+
+### 14-16. Boundaries held
+
+No Production Edge Function deploy, no DB migration, no item 18 migration, no schema change, no application push, no Vercel deploy, no Production email, no real-customer mutation. The already-created HE Production TEST quote/Warranty evidence from §109 was left untouched, no new Production data created. The Owner's separately-flagged UI regression findings (Mobile/Public Quote, Admin visual issues) were explicitly out of scope and not touched — recorded here as still separate/open, per instruction.
