@@ -4,7 +4,8 @@ import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
 import { LIGHT } from '../theme/neonTheme';
-import { UserRound, Paperclip } from 'lucide-react';
+import { UserRound, Paperclip, Phone, Printer } from 'lucide-react';
+import PdfFileIcon from '../components/PdfFileIcon';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 
@@ -27,7 +28,7 @@ export default function PublicQuoteEn({ quoteData }) {
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
-  const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
+  const { canvasRef, hasSigned, isActive, activateSigning, deactivateSigning, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   // The inline "please sign" warning clears itself as soon as a valid signature exists
   useEffect(() => {
@@ -91,6 +92,27 @@ export default function PublicQuoteEn({ quoteData }) {
     <div className="pq-page" dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`
         .pq-card { padding: var(--pf-doc-shell-padding); }
+        /* Iron rule (Public Quote Bottom Actions - Owner visual reference):
+           three equal tiles (flex:1) in one group, icon above label,
+           uniform height. pq-action-tiles-two (added when no valid
+           bizPhone) doesn't change the layout mechanism - it just removes
+           one tile; the remaining two stay flex:1 equal to each other. */
+        .pq-action-tiles { align-items: stretch; }
+        .pq-action-tile {
+          flex: 1 1 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 92px;
+          padding: 14px 8px;
+          border-radius: 16px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 0.82rem;
+          box-sizing: border-box;
+        }
         /* Iron rule (Width Consistency Fix, this pass - see src/index.css
            for the full explanation): --pf-desktop-content-width is the
            VISUAL CONTENT width, not the shell width. The white document
@@ -158,6 +180,34 @@ export default function PublicQuoteEn({ quoteData }) {
           .pq-recipient-name {
             font-size: 0.95rem !important;
             margin-top: 2px !important;
+          }
+          /* Iron rule: the group stays one horizontal row on mobile too
+             (not stacked into separate full-width buttons) - only padding/
+             font/gap shrink so labels stay readable and the touch target
+             stays usable at 360-390px. */
+          .pq-action-tile {
+            min-height: 78px !important;
+            padding: 10px 4px !important;
+            font-size: 0.7rem !important;
+            gap: 4px !important;
+          }
+        }
+        /* Item 7 (Public Quote Print): .no-print (src/index.css) already
+           hides the signature-input controls and the bottom action bar
+           globally under @media print - this block only removes decorative
+           page chrome (outer padding, card shadow/border) that wastes paper
+           and looks wrong once actually printed, without hiding any content. */
+        @media print {
+          .pq-page {
+            background: #ffffff !important;
+            padding: 0 !important;
+            display: block !important;
+            min-height: 0 !important;
+          }
+          .pq-card {
+            box-shadow: none !important;
+            border: none !important;
+            max-width: 100% !important;
           }
         }
       `}</style>
@@ -352,6 +402,16 @@ export default function PublicQuoteEn({ quoteData }) {
           </div>
         )}
 
+        {/* Item 23 Warranty: quote.warranty is a frozen snapshot from quote
+            creation time - never re-fetched from current Business Settings.
+            Not rendered at all if null/empty, same as quote.terms/notes above. */}
+        {quote.warranty && (
+          <div className="pq-section" style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Warranty:</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{quote.warranty}</div>
+          </div>
+        )}
+
         {quote.notes && (
           <div className="pq-section" style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Additional Notes:</div>
@@ -374,13 +434,38 @@ export default function PublicQuoteEn({ quoteData }) {
             ℹ️ Admin View: Signature area is displayed to the client only.
           </div>
         ) : (
-          <div className="pq-section" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>Client Signature to Approve This Quote:</h4>
-            <div style={{ display: 'block', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', cursor: 'crosshair', boxSizing: 'border-box', overflow: 'hidden' }}>
-              <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', touchAction: 'none', maxWidth: '100%', height: 'auto' }} />
+            {/* Iron rule (Mobile Signature Pad Scroll-Block Fix, real-device
+                Owner correction): the canvas used to always be touchAction:
+                'none' - any vertical swipe over it (even one meant to scroll
+                the page) got captured and drew a line instead of scrolling.
+                Now, by default (isActive=false) the canvas allows normal
+                vertical scrolling through it (touchAction:'pan-y') and shows
+                a semi-transparent "Tap to sign" activation affordance - only
+                an explicit tap/click on it switches to drawing mode
+                (touchAction:'none', captures everything including vertical
+                strokes - the legitimate intent at that point). "Done"
+                returns to normal scroll without erasing the signature. */}
+            <div style={{ position: 'relative', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', touchAction: isActive ? 'none' : 'pan-y', cursor: isActive ? 'crosshair' : 'default', maxWidth: '100%', height: 'auto' }} />
+              {!isActive && !hasSigned && (
+                <button
+                  type="button"
+                  onClick={activateSigning}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'rgba(248,250,252,0.85)', border: 'none', color: '#475569', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  Tap to sign
+                </button>
+              )}
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
+            <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {(isActive || hasSigned) && (
+                <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
+              )}
+              {isActive && (
+                <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done</button>
+              )}
             </div>
             {signatureWarning && (
               <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>
@@ -394,6 +479,56 @@ export default function PublicQuoteEn({ quoteData }) {
             </div>
           </div>
         )}
+
+        {/* Item 7 (Public Quote Bottom Actions - updated per Owner visual
+            reference): three equal-height "tiles", icon above label, one
+            horizontal group. "Call Me" reuses the exact same bizPhone/tel:
+            normalization as the existing PublicQuoteHeader.jsx CTA (no
+            second source of truth) - hidden entirely if no valid business
+            phone exists (group becomes two tiles, not three, same
+            `bizPhone &&` pattern as before). "Print Document" calls a real
+            window.print(). "Download PDF" - the visual architecture is
+            ready for it (first/primary purple tile, exact position
+            requested) but it is intentionally NOT functional yet (item 8,
+            still deferred) - explicit rule: never fake PDF functionality,
+            never make it look functional while secretly just opening
+            print. So this is a non-clickable <div> (no <button>/<a>, no
+            onClick), aria-disabled, reduced opacity, and an always-visible
+            "(Coming Soon)" label - visible on touch/mobile too, where
+            cursor:not-allowed alone would never be seen. Whole group is
+            no-print. */}
+        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          <div
+            aria-disabled="true"
+            role="button"
+            title="PDF download coming soon"
+            className="pq-action-tile"
+            style={{ background: LIGHT.gradient, color: 'white', border: 'none', opacity: 0.62, cursor: 'not-allowed' }}
+          >
+            <PdfFileIcon size={26} strokeWidth={1.75} />
+            <span>Download PDF</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: '600', opacity: 0.9 }}>(Coming Soon)</span>
+          </div>
+          {bizPhone && (
+            <a
+              href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
+              className="pq-action-tile"
+              style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, textDecoration: 'none' }}
+            >
+              <Phone size={26} strokeWidth={1.75} />
+              <span>Call Me</span>
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="pq-action-tile"
+            style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, cursor: 'pointer' }}
+          >
+            <Printer size={26} strokeWidth={1.75} />
+            <span>Print Document</span>
+          </button>
+        </div>
       </div>
       <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={false} />
     </div>

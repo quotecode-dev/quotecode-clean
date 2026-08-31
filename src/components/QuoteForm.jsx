@@ -3,6 +3,7 @@ import DraggableCalculator from './DraggableCalculator';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket } from 'lucide-react';
 import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { formatNumberLocal } from '../utils/regionConfig';
+import { formatQuoteFallback } from '../utils/quoteNumber';
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -15,6 +16,7 @@ const getDialByCurrency = (curr) => {
 
 export default function QuoteForm({
   editingQuoteId,
+  editingQuoteNumber,
   onSave,
   onCancel,
   clientName, setClientName,
@@ -31,6 +33,7 @@ export default function QuoteForm({
   validUntil, setValidUntil,
   discount, setDiscount,
   terms, setTerms,
+  warranty, setWarranty,
   notes, setNotes,
   items, setItems,
   services,
@@ -44,7 +47,6 @@ export default function QuoteForm({
   discountAmount,
   taxAmount,
   totalAmount,
-  isTrialExpired,
   isSuperAdmin,
   addItem,
   removeItem,
@@ -292,14 +294,9 @@ export default function QuoteForm({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
         <div>
           <h2 style={{ marginTop: 0, fontSize: '1.1rem', fontWeight: '800', marginBottom: '3px', ...neonGlowTextStyle }}>
-            {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
-                slice(0,6) הוחלף ב-slice(0,8) - עקבי באורך עם formatQuoteFallback
-                הקנוני (משתמש בו עצמו בכוונה נמנע כאן: זו כותרת session-פנימית
-                לבעל העסק בזמן עריכה, לא תצוגת זהות-הצעה ללקוח, ו-editingQuoteId
-                כאן הוא רק ה-UUID הגולמי בלי quote_number מצורף - חיווט מלא
-                למספר האמיתי היה דורש prop חדש שלא קיים כרגע; מחוץ לתחום
-                המצומצם שהוגדר למשימה הזו). */}
-            {editingQuoteId ? `${isHebrew ? 'עריכת הצעה #' : 'Editing Quote #'}${editingQuoteId.slice(0, 8)}` : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
+            {editingQuoteId
+              ? `${isHebrew ? 'עריכת הצעה ' : 'Editing Quote '}${formatQuoteFallback({ id: editingQuoteId, quote_number: editingQuoteNumber })}`
+              : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
           </h2>
           <p style={{ color: NEON.textSecondary, margin: 0, fontSize: '0.8rem' }}>
             {isHebrew ? 'הזן את פרטי ההצעה ושמור את השינויים' : 'Enter the quote details and save changes'}
@@ -528,6 +525,18 @@ export default function QuoteForm({
           <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows="3" style={{ width: '100%', padding: '8px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
         </div>
 
+        {/* חוק ברזל (Item 23 Warranty, TEST Acceptance Package 1): שדה נפרד
+            מ"תנאים כלליים" בכוונה - עמודת quote.warranty נפרדת לחלוטין
+            מ-quote.terms, לא הרחבה של אותו שדה. חסימת עריכה אחרי נעילת
+            הצעה מטופלת כבר בכל ה-QuoteForm הזה במעלה הזרימה (handleEditClick
+            ב-Dashboard.jsx מסרב לפתוח טופס עריכה כלל להצעה נעולה) ובאכיפה
+            נוספת ברמת ה-DB (guard_quote_immutability) - בדיוק כמו terms/notes
+            למעלה/למטה, בלי צורך ב-disabled ייעודי כאן. */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'אחריות' : 'Warranty'}</label>
+          <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} rows="3" style={{ width: '100%', padding: '8px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
+        </div>
+
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות נוספות' : 'Additional Notes'}</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="2" style={{ width: '100%', padding: '8px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
@@ -658,7 +667,17 @@ export default function QuoteForm({
           <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{formatNum(totalAmount)}</span>
         </div>
 
-        <button type="submit" disabled={isTrialExpired && !isSuperAdmin} style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
+        {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
+            הכפתור הזה היה חסום לגמרי (disabled) כש-isTrialExpired, ללא תלות
+            ב-plan/effectivePlan בכלל - כלומר חוסם גם יצירת ההצעה הראשונה/
+            ה-5 המותרות ל-FREE אחרי שניסיון פג, בסתירה מלאה לדרישת הבעלים
+            "FREE limits", לא "אפס לצמיתות". הוסר בכוונה - האכיפה הנכונה
+            כבר קיימת בשתי נקודות: מכסת 5/חודש נבדקת ב-handleSaveQuote
+            (Dashboard.jsx, עם effectivePlan המתוקן), וזכאות עריכה/שכפול
+            כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
+            QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
+            ולא-מתואם, כאן. */}
+        <button type="submit" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
            {editingQuoteId ? t.updateQuote : t.generateSave}
         </button>
       </form>

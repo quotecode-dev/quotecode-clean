@@ -7,9 +7,10 @@ import { supabase } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
-import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials } from '../utils/regionConfig';
+import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
-import { formatQuoteFallback } from '../utils/quoteNumber';
+import { computeEffectivePlan } from '../utils/planEntitlements';
+import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { formatMoney } from '../utils/money';
 import ExcelJS from 'exceljs';
 
@@ -41,7 +42,7 @@ import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextS
 import {
   AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
   Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon, Package
+  MessagesSquare, Accessibility as AccessibilityIcon, Package, X
 } from 'lucide-react';
 
 // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
@@ -178,6 +179,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [bizRole, setBizRole] = useState('user');
 
   const [defaultTerms, setDefaultTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+  const [defaultWarranty, setDefaultWarranty] = useState('');
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
@@ -240,6 +242,35 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       return () => window.removeEventListener('popstate', handlePopState);
     }
   }, [session]);
+
+  // Item 25 - סנכרון אוטומטי חד-פעמי בין הבאנדל הנוכחי (bundleIsHebrew,
+  // שנקבע אנונימית לפני ההתחברות ב-main.jsx: URL/localStorage/geo/שפת
+  // דפדפן) לבין האזור האמיתי של החשבון המחובר (bizCountry, ממסד הנתונים,
+  // דרך isHebrew למעלה). אם הם לא תואמים - התוכן כבר נכון (isHebrew תמיד
+  // מנצח, ר' הערה למעלה), אבל document.dir/lang נשאר תקוע על מה שהבאנדל
+  // קבע פעם אחת ב-mount (AppLocal.jsx/AppGlobal.jsx) ולעולם לא מתעדכן.
+  // התיקון היחיד האפשרי הוא ניווט מלא (reload) לנתיב הקנוני הקיים כבר
+  // (?lang=he/en - אותו מנגנון בעדיפות עליונה שכבר קיים ב-main.jsx, לא
+  // נתיב חדש) כדי שבאנדל אחר בכלל ימומש. חד-פעמי מטבעו: אחרי ה-reload
+  // isHebrew ו-bundleIsHebrew כבר יתאימו (הבאנדל החדש נכון), כך שהתנאי
+  // למטה כבר לא מתקיים ואין לולאה. ההחלטה עצמה (מתי מותר לתקן, לעולם לא
+  // ניחוש) היא getMarketRoutingCorrection הטהורה ב-regionConfig.js - נבדקת
+  // ישירות ביחידה, בלי React/Supabase - ה-effect כאן רק מפעיל אותה ומבצע
+  // את ה-side effect היחיד (הניווט) כשהיא מחזירה יעד.
+  useEffect(() => {
+    const correctLang = getMarketRoutingCorrection({
+      hasSession: !!session?.user?.id,
+      isInitializing,
+      isPasswordRecoveryMode,
+      needsRegionChoice,
+      settingId,
+      bundleIsHebrew,
+      isHebrew,
+    });
+    if (correctLang) {
+      window.location.href = '/dashboard?lang=' + correctLang;
+    }
+  }, [session, isInitializing, isPasswordRecoveryMode, needsRegionChoice, settingId, bundleIsHebrew, isHebrew]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -420,7 +451,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [quoteStatus, setQuoteStatus] = useState('Draft');
   const [validUntil, setValidUntil] = useState('');
   const [discount, setDiscount] = useState('');
-  const [terms, setTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG); 
+  const [terms, setTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+  const [warranty, setWarranty] = useState('');
   const [notes, setNotes] = useState('');
   
   const [items, setItems] = useState([{ description: '', quantity: '1', unit_price: '' }]);
@@ -436,28 +468,86 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  let trialDaysLeft = null;
-  let isTrialExpired = false;
-  if (trialEndsAt) {
-    const end = new Date(trialEndsAt);
-    const diffTime = end - now;
-    trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    isTrialExpired = trialDaysLeft <= 0;
-  }
-
-  // תוכנית בתשלום אמיתית (basic/pro) שנקבעה בפועל ב-business_settings.plan
-  // תמיד תקפה, בלי תלות במצב trial_ends_at - אחרת לקוח משלם שדרוגו קרה אחרי
-  // שתאריך ניסיון ישן כבר פג היה מאבד גישה בטעות. בלי תוכנית בתשלום, ניסיון
-  // פעיל ולא פג (trial_ends_at) מעניק PRO מלא - בדיוק כפי שהבאנר "תקופת ניסיון
-  // פעילה (גישת PRO מלאה)" כבר מבטיח למשתמש, ללא תלות בערך הגולמי של plan
-  // (handleToggleLifetime של האדמין למשל מגדיר רק trial_ends_at ולא נוגע ב-plan).
-  const rawPlan = bizPlan.toLowerCase();
-  const effectivePlan = (rawPlan === 'pro' || rawPlan === 'basic')
-    ? rawPlan
-    : (trialEndsAt && !isTrialExpired ? 'pro' : 'free');
+  // חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
+  // נקודת-אמת יחידה, ר' src/utils/planEntitlements.js לפירוט מלא של שורש
+  // הבעיה שתוקנה כאן (ניסיון שפג היה נשאר PRO לצמיתות כי raw plan נשאר
+  // 'pro' לצמיתות אחרי הרשמה) והנימוק המלא לכל ענף בנוסחה. SettingsTab.jsx
+  // (שער העלאת לוגו) קורא לאותו effectivePlan דרך prop, לא מחשב נוסחה
+  // משלו יותר - כדי שלא יהיו שתי נוסחאות סותרות (ר' התיקון המקביל שם).
+  const { effectivePlan, isTrialExpired, trialDaysLeft } = computeEffectivePlan({ plan: bizPlan, trialEndsAt, now });
 
   const isSuperAdmin = bizRole === 'super_admin';
   const isPro = isSuperAdmin || effectivePlan === 'pro';
+
+  // חוק ברזל (Trial Notification, TEST Acceptance Package 1 - עבר כמה
+  // תיקוני עיצוב לפי הבהרות בעלים במהלך המשימה, האחרון שבהם: הפרדה מפורשת
+  // בין שני מצבים שונים לגמרי, לא עוד עיצוב אחיד אחד:
+  // (א) ניסיון פעיל רגיל (לא מתקרב לסיום, לא פג) - טיקר טקסט-בלבד, סגול
+  //     ProFlow, בלי רקע/מסגרת/צל/כפתור שדרוג, נע ברציפות (ימין→שמאל
+  //     בעברית, שמאל→ימין באנגלית) פעם אחת, ~7 שניות, ואז נעלם מה-DOM
+  //     (onAnimationEnd) - ר' TRIAL_TICKER_DURATION_MS/isPlainActiveTrial.
+  // (ב) מתקרב לסיום/פג - נשאר הסרגל הסגול-מלא הקודם (כרטיס, לא טיקר) עם
+  //     כניסה/שהייה/יציאה - "מצב זה לא עוצב-מחדש בתיקון הזה", נשאר בדיוק
+  //     כפי שהיה - ר' TRIAL_NOTICE_ENTER_MS/EXIT_MS/REST_MS/trialNoticeExiting.
+  // שני המצבים חולקים trialNoticeVisible/trialNoticeShownRef (מוצג פעם
+  // אחת בלבד לכל טעינת Dashboard, לא שוב רק כי המשתמש/ת עברו טאב).
+  // isSuperAdmin אף פעם לא רואה אף אחד מהם. לוגיקת הזכאות עצמה
+  // (effectivePlan/isPro למעלה) לא נגעה בה כלל בשום שלב - זו רק שכבת תצוגה.
+  const isExpiringSoon = trialDaysLeft !== null && trialDaysLeft <= 5 && trialDaysLeft > 0 && !isSuperAdmin;
+  const isPlainActiveTrial = Boolean(trialEndsAt) && !isTrialExpired && !isExpiringSoon && !isSuperAdmin;
+  const TRIAL_NOTICE_ENTER_MS = 1200;
+  const TRIAL_NOTICE_EXIT_MS = 1000;
+  const TRIAL_NOTICE_REST_MS = 6000;
+  const TRIAL_TICKER_DURATION_MS = 8200;
+  const [trialNoticeVisible, setTrialNoticeVisible] = useState(false);
+  // חוק ברזל (Slider Location Correction task - Exact Owner Target): כלל-
+  // הברזל הקודם כאן (Trial Notice Vertical Position) כבר לא רלוונטי - שתי
+  // הגרסאות עברו ל-QuotesTab.jsx (שורת-הבקרה של Quote History), כך שאין
+  // יותר מרווח-אנכי-מותנה בכותרת הסגולה בכלל לתחזק (ר' ה-JSX של dash-
+  // header-bar, marginBottom חזר לקבוע 14px). hasVisibleTrialNotice נמחק
+  // בהתאם - לא נדרש יותר.
+  const [trialNoticeExiting, setTrialNoticeExiting] = useState(false);
+  const trialNoticeShownRef = useRef(false);
+  const trialNoticeAutoHideRef = useRef(null);
+  const trialNoticeExitRef = useRef(null);
+  const startTrialNoticeExit = () => {
+    clearTimeout(trialNoticeAutoHideRef.current);
+    setTrialNoticeExiting(true);
+    trialNoticeExitRef.current = setTimeout(() => {
+      setTrialNoticeVisible(false);
+      setTrialNoticeExiting(false);
+    }, TRIAL_NOTICE_EXIT_MS);
+  };
+  useEffect(() => {
+    if (isSuperAdmin || trialNoticeShownRef.current || !trialEndsAt) return;
+    trialNoticeShownRef.current = true;
+    setTrialNoticeVisible(true);
+    // מצב הכרטיס (מתקרב לסיום/פג) משתמש בטיימר ה-JS הזה, בלי שינוי. מצב
+    // הטיקר (ניסיון פעיל רגיל) נעלם בעצמו דרך onAnimationEnd ברגע שהתנועה
+    // הרציפה מסתיימת (ר' render למטה) - אבל תחת prefers-reduced-motion
+    // (שם האנימציה מבוטלת לגמרי דרך CSS) onAnimationEnd לעולם לא היה נורה
+    // בלעדי גיבוי - לכן טיימר JS זהה-במשך משמש כרשת ביטחון בשני המקרים
+    // (קריאה כפולה ל-setTrialNoticeVisible(false) תמימה - idempotent).
+    if (isTrialExpired || isExpiringSoon) {
+      trialNoticeAutoHideRef.current = setTimeout(() => startTrialNoticeExit(), TRIAL_NOTICE_REST_MS);
+    } else {
+      trialNoticeAutoHideRef.current = setTimeout(() => setTrialNoticeVisible(false), TRIAL_TICKER_DURATION_MS);
+    }
+    return () => {
+      clearTimeout(trialNoticeAutoHideRef.current);
+      clearTimeout(trialNoticeExitRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trialEndsAt, isSuperAdmin]);
+  const dismissTrialNotice = () => {
+    if (isTrialExpired || isExpiringSoon) {
+      startTrialNoticeExit();
+    } else {
+      // מצב הטיקר: אין שלב-יציאה נפרד להפעיל - X סוגר מיידית.
+      clearTimeout(trialNoticeAutoHideRef.current);
+      setTrialNoticeVisible(false);
+    }
+  };
   const isBasicOrAbove = isPro || effectivePlan === 'basic';
 
   const t = {
@@ -654,8 +744,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       
       const defaultFallbackTerms = (countryVal === 'International') ? DEFAULT_TERMS_ENG : DEFAULT_TERMS_HEB;
       let defTerms = data.default_terms && data.default_terms.trim() !== '' ? data.default_terms : defaultFallbackTerms;
-      
+      // Item 23 Warranty: אין תבנית ברירת מחדל קשיחה כמו ב-Terms - שדה ריק
+      // הוא מצב תקין ("אין סעיף אחריות"), לא צריך fallback טקסט מומצא.
+      let defWarranty = data.default_warranty || '';
+
       setDefaultTerms(defTerms);
+      setDefaultWarranty(defWarranty);
       setTrialEndsAt(data.trial_ends_at !== undefined ? data.trial_ends_at : null);
       
       // כמו ב-isLocalIsraeliBusiness: המטבע נגזר אך ורק מ-countryVal (השדה
@@ -671,6 +765,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       setCurrency(userCurr);
       setTerms(defTerms);
+      setWarranty(defWarranty);
 
       await supabase
         .from('business_settings')
@@ -900,6 +995,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       address: bizAddress,
       logo_url: bizLogoUrl,
       default_terms: defaultTerms,
+      default_warranty: defaultWarranty,
       country: bizCountry,
       currency: enforcedCurrency,
       user_id: session.user.id
@@ -1759,9 +1855,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     let editTerms = quote.terms || (isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     let editNotes = quote.notes || '';
+    let editWarranty = quote.warranty || '';
 
     setTerms(editTerms);
     setNotes(editNotes);
+    setWarranty(editWarranty);
 
     if (quote.quote_items && quote.quote_items.length > 0) {
       // שומרים את ה-id האמיתי של כל quote_item בזמן טעינת עריכה - זהו המזהה
@@ -1803,7 +1901,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setValidUntil('');
     setDiscount('');
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
-    setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+    setTerms(defaultTerms);
+    setWarranty(defaultWarranty);
     setNotes('');
     setQuoteFiles([]);
     setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
@@ -1836,9 +1935,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     let dupTerms = quote.terms || (isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
     let dupNotes = quote.notes || '';
+    // Item 23 Warranty: שכפול מעתיק את ה-warranty של הצעת המקור עצמה (בדיוק
+    // כמו dupTerms למעלה), לא את ברירת המחדל הנוכחית של העסק - עקבי עם
+    // סמנטיקת השכפול הקיימת עבור כל שדה עריכה אחר בהצעה המשוכפלת.
+    let dupWarranty = quote.warranty || '';
 
     setTerms(dupTerms);
     setNotes(dupNotes);
+    setWarranty(dupWarranty);
     setQuoteFiles([]);
     
     if (quote.quote_items && quote.quote_items.length > 0) {
@@ -1864,7 +1968,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setAttnRole('');
     setValidUntil('');
     setDiscount('');
-    setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+    setTerms(defaultTerms);
+    setWarranty(defaultWarranty);
     setNotes('');
     setQuoteFiles([]);
     setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
@@ -2132,6 +2237,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             status: quoteStatus.toLowerCase(),
             valid_until: validUntil || null,
             terms: terms,
+            warranty: warranty,
             notes: notes,
             subject: quoteSubject || '',
             quote_subject: quoteSubject || '',
@@ -2148,6 +2254,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             status: quoteStatus.toLowerCase(),
             valid_until: validUntil || null,
             terms: terms,
+            warranty: warranty,
             notes: notes,
             subject: quoteSubject || '',
             quote_subject: quoteSubject || '',
@@ -2171,7 +2278,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // attn_role (זיהוי מדויק, לא בליעת שגיאות אחרות) - ניסיון חוזר זהה
       // בלי השדות האלה, זהה-בייט להתנהגות הקודמת. ברגע שה-migration יופעל
       // בסביבה החיה, הניסיון הראשון יתחיל להצליח אוטומטית בלי שינוי קוד נוסף.
-      const attnFields = { attn_name: attnName || null, attn_role: attnRole || null };
+      // חוק ברזל (item 27 - Attn/לידי Client-Name Fallback): אם איש-הקשר
+      // (attnName) ריק או רק-רווחים (trim), הנמען שנכתב בפועל ל-attn_name
+      // נופל חזרה לשם הלקוח עצמו (אותו clientName שנכתב הרגע ל-
+      // clientPayload.company_name למעלה, ר' שורה ~2209) - נכתב כערך אמיתי
+      // (snapshot) בזמן השמירה, לא מחושב ב-render. attn_name הוא כבר עמודת
+      // תוכן רגילה הנתונה לאותה נעילת guard_quote_immutability() כמו terms/
+      // warranty/notes (ר' supabase/migrations/20260830000000_capture_base_
+      // schema_tables.sql שורה 213-214) - שום שינוי DB/trigger לא נדרש כאן,
+      // ההצעה נשארת היסטורית-יציבה בדיוק כמו כל שדה-תוכן אחר. ערך attn
+      // מפורש (אחרי trim) תמיד משתמר כמות שהוא - לעולם לא נדרס בשקט.
+      const trimmedAttnName = (attnName || '').trim();
+      const resolvedAttnName = trimmedAttnName || clientName || null;
+      const attnFields = { attn_name: resolvedAttnName, attn_role: attnRole || null };
       const isMissingAttnColumnError = (err) => {
         const msg = String(err?.message || '');
         return msg.includes('attn_name') || msg.includes('attn_role');
@@ -2252,7 +2371,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               quote_id: quoteId,
               file_name: file.name,
               file_url: publicUrl,
-              file_size: file.size
+              file_size: file.size,
+              storage_path: filePath
             }]);
           }
         }
@@ -2286,7 +2406,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setAttnRole('');
       setValidUntil('');
       setDiscount('');
-      setTerms(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
+      setTerms(defaultTerms);
+      setWarranty(defaultWarranty);
       setNotes('');
       setQuoteFiles([]);
       setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
@@ -2307,11 +2428,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }).sort((a, b) => {
     let aVal, bVal;
     if (quoteSortField === 'id') {
-      aVal = a.id;
-      bVal = b.id;
+      // חוק ברזל (Quote History Final Polish task, Order Number Sorting Fix
+      // - שורש הבעיה שהבעלים דיווח עליו): מספר-ההזמנה המוצג ללקוח
+      // (formatQuoteFallback, למשל "A100713") נגזר מ-quote.quote_number
+      // (מספר שלם אמיתי) - אבל המיון כאן השווה בטעות את a.id/b.id, ה-UUID
+      // הפנימי של השורה, שאין לו שום קשר לרצף המוצג. בפועל זה מיין
+      // לקסיקוגרפית לפי UUID אקראי, לא לפי הרצף שהמשתמש רואה בכלל. התיקון
+      // (ר' getQuoteOrderSortKey ב-utils/quoteNumber.js לפירוט המלא/לבדיקות
+      // הממוקדות) עטוף בפונקציה טהורה נפרדת וניתנת-לבדיקה במקום לוגיקה
+      // מוטבעת כאן, כדי לא לשכתב את מנגנון-המיון הכללי (aVal/bVal + עלייה/
+      // ירידה הגנרית למטה) - רק מפתח-המיון של השדה הזה עצמו השתנה.
+      aVal = getQuoteOrderSortKey(a);
+      bVal = getQuoteOrderSortKey(b);
     } else if (quoteSortField === 'client') {
       aVal = a.clients?.company_name || '';
       bVal = b.clients?.company_name || '';
+    } else if (quoteSortField === 'clientType') {
+      // Item 26 Owner QA Micro-Fix: sort by the raw clients.client_type
+      // source-of-truth value ('business'/'private') only - never by icon,
+      // tooltip, or translated display text, so ordering stays identical
+      // and deterministic across HE and EN.
+      aVal = a.clients?.client_type || '';
+      bVal = b.clients?.client_type || '';
     } else if (quoteSortField === 'total') {
       aVal = Number(a.total || 0);
       bVal = Number(b.total || 0);
@@ -2405,8 +2543,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
-
-  const isExpiringSoon = trialDaysLeft !== null && trialDaysLeft <= 5 && trialDaysLeft > 0 && !isSuperAdmin;
 
   if (isInitializing || isPasswordRecoveryMode || !session) {
     return (
@@ -2505,6 +2641,43 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           70% { transform: scale(1.05) translateY(-2px); opacity: 1; }
           100% { transform: scale(1) translateY(0); opacity: 1; }
         }
+        @keyframes trialSlideInRTL {
+          from { transform: translateX(110%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes trialSlideOutRTL {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(110%); opacity: 0; }
+        }
+        @keyframes trialSlideInLTR {
+          from { transform: translateX(-110%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes trialSlideOutLTR {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(-110%); opacity: 0; }
+        }
+        @keyframes trialSlideCenterRTL {
+          0%   { left: 160%; }
+          16%  { left: 50%; }
+          85%  { left: 50%; }
+          100% { left: -60%; }
+        }
+        @keyframes trialSlideCenterLTR {
+          0%   { left: -60%; }
+          16%  { left: 50%; }
+          85%  { left: 50%; }
+          100% { left: 160%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .dash-trial-slidebar { animation: none !important; }
+          .dash-trial-ticker-lane { display: flex !important; justify-content: center !important; align-items: center !important; }
+          .dash-trial-ticker-text {
+            animation: none !important;
+            position: static !important;
+            transform: none !important;
+          }
+        }
         .feature-lock-tooltip {
           animation: popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
@@ -2598,6 +2771,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           }
           .dash-kpi-sub {
             font-size: 0.75rem !important;
+          }
+          /* חוק ברזל (Option B - Dashboard Section Boundary task, מובייל):
+             אותו עיקרון-צפיפות כמו יתר הכרטיסים מתחת ל-768px - padding
+             מוקטן, לא מבנה שונה. הגבול עצמו (border/radius/background)
+             לא נגוע - זהה בכל רוחב, רק המרווח הפנימי מצטמצם. */
+          .dash-upper-section {
+            padding: 8px !important;
           }
           /* מרווח תחתון מספיק כדי שהתוכן האחרון בכל טאב (כולל שורת ההצעה
              האחרונה בהיסטוריה) יוכל לגלול לגמרי מעל אזור כפתור צאט ה-AI
@@ -2732,7 +2912,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         onConfirm={handleConfirmDelete}
       />
 
-      <div className="dash-main-content" style={{ flex: '1 0 auto', padding: '10px' }}>
+      {/* חוק ברזל (Owner Visual QA Correction task, Desktop Width - Balanced
+          Geometry, סבב שני): padding נשאר צנוע (16px) בדסקטופ בלבד - העבודה
+          המהותית של השוליים המאוזנים עכשיו מתבצעת ע"י --pf-dashboard-
+          desktop-content-width עצמו (min(1320px, 72vw), ר' src/index.css) -
+          אסטרטגיה יחסית-ל-viewport ששומרת על יחס ניצול-רוחב יציב (~72%)
+          בכל הרזולוציות, לא padding קבוע. ה-16px כאן הוא רק "כרית ביטחון"
+          צנועה, לא המנגנון העיקרי יותר. Mobile (@media max-width:768px
+          למעלה) עדיין דורס ל-6px עם !important - לא נוגע כלל, בלי שינוי. */}
+      <div className="dash-main-content" style={{ flex: '1 0 auto', padding: '16px' }}>
         {/* Owner correction (Baseline Closure Part 12 - Desktop content too wide,
             same feedback as Public Quote Part 11): single shared content-width
             wrapper for the whole authenticated app (Dashboard/Quotes/Clients/
@@ -2745,13 +2933,58 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             Owner decision): this wrapper previously used its own
             independently-chosen 1040px while Public Quote used 980px - the
             Owner rejected that inconsistency and set one canonical shared
-            value, 980px, for both surfaces. Now references the single
-            shared token (--pf-desktop-content-width, src/index.css) instead
-            of a locally-duplicated literal - changing that one variable
-            updates both this wrapper and Public Quote HE/EN together,
-            structurally preventing the two from drifting apart again. */}
-        <div style={{ maxWidth: 'var(--pf-desktop-content-width)', margin: '0 auto' }}>
+            value, 980px, for both surfaces via --pf-desktop-content-width.
+            Fourth correction (Owner-Locked Regression Rule task, Desktop
+            Width Utilization): the Owner separately requested the
+            authenticated app specifically use more of the available
+            Desktop width - Public Quote was not named in that request's
+            regression-check list and its own 980px remains explicitly
+            LOCKED. Re-sharing one variable for both would have widened
+            Public Quote too, an unaudited indirect change to a separately-
+            locked surface (exactly what the new Owner-Approved=LOCKED rule,
+            PROFLOW_PROJECT_CONTEXT.md §54, forbids). This wrapper still uses
+            its own dedicated token, --pf-dashboard-desktop-content-width
+            (src/index.css), for the same risk-isolation reason - but per the
+            Final Canonical Width Alignment task (§58), that token's VALUE now
+            directly references Public Quote's own --pf-desktop-content-width
+            (980px, LOCKED) instead of holding an independent number. The
+            Owner's own decision: Public Quote's current width IS the single
+            canonical ProFlow Desktop width - no separate/invented Dashboard
+            value. Public Quote's own file/CSS remains completely untouched. */}
+        <div style={{ maxWidth: 'var(--pf-dashboard-desktop-content-width)', margin: '0 auto' }}>
 
+          {/* חוק ברזל (Owner-Approved Option B Spec Correction task): הבעלים
+              שיחזר את ה-reference החזותי המקורי המאושר ל-Option B, ותיקן
+              את הביצוע הקודם (שהשתמש ב-NEON.border/#e4e1ee ו-radius 14px -
+              לא תואם). הספק המדויק, בלי פרשנות/סובסטיטוציה של טוקן-ערכת-
+              נושא: border-color #E9D5FF (ולא NEON.border), 1px solid,
+              border-radius 12px (ולא 14px), background #FFFFFF, ללא צל.
+              transition 200ms על height (ר' גם על ה-KPI grid/nav-row
+              הפנימיים שמפעילים את שינוי-הגובה בפועל) - מעבר חלק כשה-
+              layout הפנימי משתנה (למשל רשת ה-KPI קורסת לשתי עמודות
+              ב-media query הקיים). הגובה עדיין נגזר מהתוכן בפועל לחלוטין -
+              אין height/minHeight/maxHeight קבועים בכל צורה, רק ה-transition
+              עצמו נוסף מעל ההתנהגות התוכן-מונעת הקיימת, לא מחליף אותה.
+              המבנה עצמו (מה נכלל בתוך המעטפת: כותרת סגולה + שורת ניווט +
+              KPI-grid מותנה) לא נגוע - רק הסגנון החזותי של המעטפת עצמה. */}
+          {/* חוק ברזל (Trial Bar Zero-Layout-Shift Fix task): position:'relative'
+              נוסף כאן (שינוי CSS טהור, ללא השפעה חזותית כלשהי על Frame A
+              עצמו) כדי לשמש כ-containing-block ל-Trial Notice, שהפך ליליד
+              position:'absolute' בתוך המעטפת הזו (ר' לפני הסגירה למטה) -
+              כך שהוא מוצא לחלוטין מזרימת-המסמך הרגילה ותורם 0px לגובה בזרימה,
+              בכל מצב (מוצג/מוסתר/במעבר) - הפתרון הקודם (§89, block רגיל
+              בזרימה, מרונדר-מותנה) יצר ~44px קפיצת-layout כשה-Trial Notice
+              הופיע/נעלם, בדיוק הבעיה שהבעלים דיווח עליה. */}
+          <div className="dash-upper-section" style={{ position: 'relative', background: '#FFFFFF', border: '1px solid #E9D5FF', borderRadius: '12px', boxShadow: 'none', padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
+
+          {/* חוק ברזל (Trial Bar Owner-Reference Correction task): מרווח-כותרת
+              קבוע (14px) - אין עוד marginBottom מותנה כאן. ה-Trial Notice
+              עצמו כבר לא מרונדר בתוך dash-header-bar כלל (לא absolute, לא
+              יליד-flex פנימי) - הוא רכיב עצמאי ב"מסלול" (track) הצר בין
+              Frame A (dash-upper-section, נסגר למטה) לשורת-הבקרה של Quote
+              History, בדיוק לפי הרפרנס החזותי המאושר שהבעלים סיפק. ר' לפני
+              הסגירה למטה למיקום ה-DOM/positioning בפועל (עודכן שוב במשימת
+              Zero-Layout-Shift Fix - ר' חוק-הברזל למעלה). */}
           <div className="dash-header-bar" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.gradient, padding: '14px 20px', borderRadius: '16px', marginBottom: '14px', flexWrap: 'wrap', gap: '10px', maxWidth: '100%', boxSizing: 'border-box', boxShadow: NEON.glow }}>
             {/* חוק ברזל (דרישת בעלים מפורשת): זהות בעל העסק - לא מותג ProFlow -
                 היא מה שמופיע כאן. אם קיים לוגו מועלה, הוא מוצג בתוך מיכל
@@ -2854,42 +3087,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <span>{statusMsg.text}</span>
               </div>
             )}
+
+            {/* חוק ברזל (Slider Location Correction task - Exact Owner
+                Target): שני-הגרסאות של Trial Notice (dash-trial-slidebar
+                למתקרב-לסיום/פג, dash-trial-ticker-lane לניסיון-פעיל-רגיל)
+                עברו לשורת-הבקרה של Quote History (QuotesTab.jsx) - כאן היה
+                מיקומן הישן, שיצר "שורה" אנכית נפרדת בין הכותרת הסגולה
+                לשורת-הניווט (position:absolute,top:100%, עם marginBottom
+                מותנה על dash-header-bar כדי לפנות לו מקום - שניהם הוסרו).
+                ה-state/handlers (trialNoticeVisible/isTrialExpired/
+                isExpiringSoon/isPlainActiveTrial/trialDaysLeft/
+                trialNoticeExiting/dismissTrialNotice/קבועי-התזמון) עדיין
+                מוחזקים כאן ב-Dashboard.jsx (מקור-האמת היחיד, לא שוכפל) -
+                מועברים כ-props ל-QuotesTab בלבד, ר' הרינדור בפועל שם. */}
           </div>
-
-          {isExpiringSoon && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', fontWeight: '500', textAlign: 'center', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} strokeWidth={2.5} />
-              <span>{isHebrew ? `תקופת הניסיון שלך מסתיימת בעוד ${trialDaysLeft} ימים!` : `Your trial period expires in ${trialDaysLeft} days!`}</span>
-            </div>
-          )}
-
-          {trialEndsAt && !isTrialExpired && !isSuperAdmin && !isExpiringSoon && (
-            // חוק ברזל (תיקון בעלים מאושר - צפיפות מובייל): הבאנר נשבר
-            // לשתי שורות במובייל כי הטקסט המלא ("תקופת ניסיון פעילה (גישת
-            // PRO מלאה)" + "תקופת הניסיון מסתיימת בעוד X ימים") ארוך מדי
-            // מכדי להיכנס לשורה אחת ב-370px, גם עם flex-wrap:wrap. נוסף
-            // טקסט מקוצר ייעודי למובייל (dash-trial-compact, מוסתר
-            // בדסקטופ) לצד הטקסט המלא הקיים (dash-trial-full, מוסתר
-            // במובייל) - שניהם מוחלפים ב-CSS בלבד, בלי state/hook חדש.
-            // אין אובדן מידע - שני הטקסטים מכילים בדיוק את אותו מידע
-            // (סטטוס + ימים שנותרו), רק מנוסחים בתמציתיות שונה.
-            <div className="dash-trial-alert" style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', color: NEON.sky, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'normal', flexDirection: 'row', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <Clock size={14} strokeWidth={2.5} />
-                <span className="dash-trial-full">{isHebrew ? 'תקופת ניסיון פעילה (גישת PRO מלאה)' : 'Active Trial Period (Full PRO Access)'}</span>
-                <span className="dash-trial-compact">{isHebrew ? 'תקופת ניסיון פעילה' : 'Trial active'}</span>
-              </span>
-              <span className="dash-trial-full">{isHebrew ? `תקופת הניסיון מסתיימת בעוד ${trialDaysLeft} ימים` : `Your trial period expires in ${trialDaysLeft} days`}</span>
-              <span className="dash-trial-compact">{isHebrew ? `נותרו ${trialDaysLeft} ימים` : `${trialDaysLeft} days left`}</span>
-            </div>
-          )}
-
-          {isTrialExpired && !isSuperAdmin && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.35)', color: NEON.red, padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', fontWeight: 'normal', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={16} strokeWidth={2.5} />
-              <span>{isHebrew ? 'תקופת הניסיון פגה והועברת למסלול החינמי. אנא שדרג.' : 'Your trial has expired and you have been moved to the FREE tier. Please upgrade.'}</span>
-            </div>
-          )}
 
           {/* חוק ברזל (תיקון בעלים מאושר - שילוב "הצעת מחיר חדשה" לתוך קבוצת
               הניווט): הוסר ה-spacer (flex:'1 1 auto') שהפריד בעבר בין
@@ -2946,16 +3157,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             ))}
           </div>
 
-          {activeTab === 'main' && !showQuoteForm && (
-            <>
-              {!isSuperAdmin && (
+          {/* חוק ברזל (Option B task): שתי-התנאים (activeTab==='main' &&
+              !showQuoteForm, ו-!isSuperAdmin) אוחדו לתנאי יחיד אחד - הפרגמנט
+              <> </> שעטף אותם בעבר הוסר כי נשאר רק ילד יחיד (רשת ה-KPI);
+              QuotesTab (שהיה הילד השני של אותו פרגמנט במקור) עבר לתנאי-
+              משלו, נפרד, מחוץ למעטפת dash-upper-section (ר' למטה, אחרי
+              סגירתה) - אין שינוי בהיגיון-התצוגה של אף אחד מהם, רק היכן
+              ב-DOM כל אחד יושב ביחס למעטפת החדשה. */}
+          {activeTab === 'main' && !showQuoteForm && !isSuperAdmin && (
                 // חוק ברזל (התאמה ל-mockup המאושר): סדר ה-DOM כאן [חמה,
                 // הצעות, הכנסות] מכוון בכוונה - ברשת CSS Grid בתוך מיכל
                 // RTL, הפריט הראשון תמיד ממוקם בעמודה הימנית ביותר. הסדר
                 // הזה מייצר בפועל את סדר התצוגה משמאל-לימין שב-mockup:
                 // הכנסות (שמאל) → הצעות (אמצע) → חמה (ימין). אין כאן שינוי
                 // בשום חישוב/ערך - רק סדר הופעה חזותי.
-                <div className="dash-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                <div className="dash-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: 0 }}>
                   {hotQuotesList.length > 0 && (
                     // חוק ברזל (תיקון בעלים - יציבות גיאומטרית של הצעה חמה):
                     // רוטציית ה-4 שניות בין הצעות חמות (ר' setHotQuoteIndex
@@ -2980,7 +3196,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                       <div className="dash-kpi-label" style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{t.totalQuotes}</div>
-                      <div className="dash-kpi-value" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{totalQuotesCount}</div>
+                      {/* חוק ברזל (Quote History Final Polish task - Typography Hierarchy
+                          Contract): 800→600, כדי שיתאים למשקל של Total Revenue הסמוך
+                          (זהה בדיוק - שני ערכי KPI מאותה שורה/תפקיד חייבים להיות
+                          עקביים זה עם זה, לא שאחד יהיה משמעותית כבד יותר מהשני בלי
+                          סיבה מתועדת - ר' PROFLOW_PROJECT_CONTEXT.md, PROFLOW
+                          Typography Hierarchy Contract).
+                          חוק ברזל (Owner Exact Typography Implementation task):
+                          600→300 מדויק, דרך @fontsource-variable/rubik (ציר
+                          משקל אמיתי 300-900) עם fontFamily נקודתי - אותו
+                          שינוי בדיוק כמו Total Revenue הסמוך, כדי שהעקביות
+                          בין שני ערכי ה-KPI תישמר גם אחרי הסבב הזה. גודל
+                          הפונט/הצבע/המיקום/ה-lineHeight לא נגעו. */}
+                      <div className="dash-kpi-value pf-font-variable" style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontSize: '1.5rem', fontWeight: '500', color: NEON.textPrimary, lineHeight: 1.1 }}>{totalQuotesCount}</div>
                       {!isPro && (
                         <div style={{ fontSize: '0.65rem', color: NEON.amber, fontWeight: 'bold' }}>
                           {isHebrew ? `החודש: ${monthlyQuotesCount} / ${planLimit}` : `This month: ${monthlyQuotesCount} / ${planLimit}`}
@@ -2994,16 +3222,156 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                       <div className="dash-kpi-label" style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{t.totalRevenue}</div>
-                      <div className="dash-kpi-value pf-money" style={{ fontSize: '1.5rem', fontWeight: '800', color: NEON.textPrimary, lineHeight: 1.1 }}>{sym}{formatNum(totalRevenue)}</div>
+                      {/* חוק ברזל (Owner QA Correction task, Total Revenue Hierarchy):
+                          800 → 600 - זו נקודת-הקצה העליונה של ההיררכיה
+                          הפיננסית (Total Revenue = "strong"), בדיוק העוצמה
+                          שסכומי-השורה עצמם נשאו לפני שהם ירדו הלאה ל-500
+                          באותה משימה (ר' QuotesTab.jsx) - כך ש-Total Revenue
+                          נשאר מודגש יותר מסכום-שורה בודד, לא זהה לו.
+                          חוק ברזל (Owner Exact Typography Implementation task):
+                          600→300 מדויק, דרך @fontsource-variable/rubik. pf-
+                          money (tabular-nums+direction:ltr) לא הוסר - הגופן
+                          המשתנה תומך באותה תכונת OpenType tabular-nums כמו
+                          הגרסה הבדידה, ר' PROFLOW_PROJECT_CONTEXT.md §83
+                          לאימות גיאומטרי חי שהיישור לא נפגע. */}
+                      <div className="dash-kpi-value pf-money pf-font-variable" style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontSize: '1.5rem', fontWeight: '500', color: NEON.textPrimary, lineHeight: 1.1 }}>{sym}{formatNum(totalRevenue)}</div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* חוק ברזל (החלטת בעלים מאושרת): הקטלוג הוצא מהתצוגה הראשית
-                  של הדשבורד ועבר לטאב עצמאי משלו ("קטלוג" - ר' activeTab
-                  === 'catalog' למטה). היסטוריית הצעות תופסת כעת את מלוא
-                  רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
+          {/* חוק ברזל (Trial Bar Zero-Layout-Shift Fix task, 2026-08-31):
+              §89's block-in-normal-flow implementation (מרונדר-מותנה,
+              marginBottom:16px) יצר ~44px קפיצת-layout אמיתית כשה-Trial
+              Notice הופיע/נעלם - נמדד: שורת-הבקרה top:337.39px כשמוצג מול
+              293.39px כשמוסתר. הבעלים אישר את המיקום (המסלול בין Frame A
+              לשורת-הבקרה) אך דרש 0px תרומת-גובה-בזרימה, ללא יוצא מן הכלל.
+              הפתרון: הרכיב עצמו הפך ליליד אחרון בתוך dash-upper-section
+              (Frame A, שקיבל position:'relative' למעלה - שינוי CSS טהור),
+              עם position:'absolute' משלו (top:'calc(100% - 6px)' - עודכן
+              במשימת A1 Trial-Bar-Vertical-Adjustment, ר' חוק-ברזל נפרד
+              למטה לפני הרכיב עצמו; היה 'calc(100% + 2px)' לפני כן - שינוי
+              בערך ה-offset בלבד, לא במנגנון עצמו. left:0,
+              right:0) - כך שהוא מוצא לחלוטין מזרימת-המסמך: תמיד תורם 0px
+              לגובה, בכל מצב (מוצג/מוסתר/במעבר-אנימציה), מבלי תלות בהתאמת-
+              רוחב-פינוי מדויקת למסלול הטבעי הקיים ממילא (~31px בין תחתית
+              Frame A לתחתית ה-margin/padding הקיימים כבר, ללא קשר לרכיב).
+              left:0/right:0 כאן מתייחסים ל-padding-box של Frame A עצמו
+              (14px padding קיים) - כך שרוחב-הבר תואם את רוחב-התוכן הפנימי
+              של Frame A (איפה שהכותרת/ה-KPI בפועל יושבים), לא את הגבול
+              החיצוני שלו - עקבי יותר ובלי חשבון אינסטים-שליליים שביר. שני
+              המשתנים (dash-trial-slidebar למתקרב-לסיום/פג, dash-trial-
+              ticker-lane לניסיון-פעיל-רגיל) עברו לכאן זהים ב-100% בטקסט/
+              אנימציות - רק ה-DOM-מיקום/positioning השתנו (בפעם השלישית
+              בסשן הזה). marginBottom הוסר (חסר-משמעות ל-position:absolute).
+              zIndex:5 מבטיח שהבר מצויר מעל שכניו במקרה של חפיפה חזותית
+              קלה בתוך המסלול הצר - "safe overlay strategy" לפי דרישת
+              הבעלים המפורשת, לא תקלה. */}
+          {activeTab === 'main' && !showQuoteForm && trialNoticeVisible && (isTrialExpired || isExpiringSoon) && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="dash-trial-slidebar no-print"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% - 6px)',
+                left: 0,
+                right: 0,
+                zIndex: 5,
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '8px 30px',
+                fontSize: '0.78rem',
+                fontWeight: '500',
+                color: '#ffffff',
+                background: NEON.gradient,
+                boxShadow: NEON.glow,
+                animation: `${isHebrew ? (trialNoticeExiting ? 'trialSlideOutRTL' : 'trialSlideInRTL') : (trialNoticeExiting ? 'trialSlideOutLTR' : 'trialSlideInLTR')} ${trialNoticeExiting ? TRIAL_NOTICE_EXIT_MS : TRIAL_NOTICE_ENTER_MS}ms ease-in-out forwards`
+              }}
+            >
+              <AlertTriangle size={14} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+              {/* חוק ברזל (A2 - Owner Product Decision, Trial Bar Corrections task):
+                  הודעת "פג-תוקף" עודכנה למדויק לפי החלטת-בעלים - הטקסט
+                  הישן כלל "אנא שדרג" (call-to-action לשדרוג) שהבעלים ביקש
+                  להסיר במפורש, בלי תחליף/CTA אחר. הניסוח החדש רק מציין את
+                  היעד בפועל (FREE) ללא הנעה-לפעולה. אנגלית תורגמה במבנה-
+                  משפט מקביל (שתי פסוקיות: הניסיון הסתיים + המעבר ל-FREE),
+                  גם בלי CTA. ה-branch השני (isExpiringSoon, "מסתיימת בעוד
+                  X ימים") לא נגע כלל - המשימה ביקשה לתקן רק את הודעת-הפג-
+                  תוקף. שינוי טקסט בלבד - לוגיקת-הזכאות/isTrialExpired/
+                  effectivePlan לא נגעו. */}
+              <span style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isTrialExpired
+                  ? (isHebrew ? 'תקופת הניסיון הסתיימה, הועברת למסלול FREE' : "Your trial has ended — you've been moved to the FREE plan.")
+                  : (isHebrew ? `תקופת הניסיון שלך מסתיימת בעוד ${trialDaysLeft} ימים!` : `Your trial period expires in ${trialDaysLeft} days!`)}
+              </span>
+              <button
+                onClick={dismissTrialNotice}
+                aria-label={isHebrew ? 'סגור' : 'Close'}
+                style={{ background: 'rgba(255,255,255,0.22)', border: 'none', color: '#ffffff', borderRadius: '50%', width: '18px', height: '18px', minWidth: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0, position: 'absolute', insetInlineEnd: '10px' }}
+              >
+                <X size={12} strokeWidth={3} />
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'main' && !showQuoteForm && trialNoticeVisible && isPlainActiveTrial && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="dash-trial-ticker-lane no-print"
+              style={{ position: 'absolute', top: 'calc(100% - 6px)', left: 0, right: 0, zIndex: 5, height: '28px', overflow: 'hidden' }}
+            >
+              <span
+                className="dash-trial-ticker-text"
+                onAnimationEnd={() => setTrialNoticeVisible(false)}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                  fontSize: '0.78rem',
+                  fontWeight: '600',
+                  color: NEON.violet,
+                  animation: `${isHebrew ? 'trialSlideCenterRTL' : 'trialSlideCenterLTR'} ${TRIAL_TICKER_DURATION_MS}ms ease-in-out forwards`
+                }}
+              >
+                <Clock size={13} strokeWidth={2.5} color={NEON.violet} />
+                <span>{isHebrew ? `נותרו לך ${trialDaysLeft} ימים בתקופת הניסיון` : `${trialDaysLeft} days remaining in your free trial`}</span>
+              </span>
+              <button
+                onClick={dismissTrialNotice}
+                aria-label={isHebrew ? 'סגור' : 'Close'}
+                style={{ background: 'none', border: 'none', color: NEON.violetLight, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, width: '16px', height: '16px', flexShrink: 0, position: 'absolute', top: '2px', insetInlineEnd: 0 }}
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+
+          </div>
+          {/* חוק ברזל (Option B task): סוגר כאן את dash-upper-section - הכותרת
+              הסגולה + שורת הניווט + רשת ה-KPI (כשקיימת) הם כל התוכן שבתוכה.
+              QuotesTab נשאר מחוץ למעטפת בכוונה, כדי שהיסטוריית ההצעות תמשיך
+              להיות "כרטיס" עצמאי משלה בדיוק כפי שהייתה (ר' ה-div העוטף
+              הקיים בתוך QuotesTab.jsx עצמו, לא נגוע) - שני כרטיסים לבנים
+              עם border תואם, לא כרטיס-על אחד ענק. Trial Notice עצמו עבר
+              להיות יליד אחרון בתוך dash-upper-section (position:absolute,
+              ר' למעלה) - Zero-Layout-Shift Fix task. */}
+
+          {/* חוק ברזל (החלטת בעלים מאושרת): הקטלוג הוצא מהתצוגה הראשית
+              של הדשבורד ועבר לטאב עצמאי משלו ("קטלוג" - ר' activeTab
+              === 'catalog' למטה). היסטוריית הצעות תופסת כעת את מלוא
+              רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
+          {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
                 quotes={filteredQuotes}
                 searchTerm={searchTerm}
@@ -3035,12 +3403,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 emailStatuses={emailStatuses}
                 currency={currency}
               />
-            </>
           )}
 
           {activeTab === 'main' && showQuoteForm && (
             <QuoteForm
               editingQuoteId={editingQuoteId}
+              editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
               onCancel={handleCancelEdit}
               clientName={clientName} setClientName={setClientName}
@@ -3057,6 +3425,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               validUntil={validUntil} setValidUntil={setValidUntil}
               discount={discount} setDiscount={setDiscount}
               terms={terms} setTerms={setTerms}
+              warranty={warranty} setWarranty={setWarranty}
               notes={notes} setNotes={setNotes}
               items={items} setItems={setItems}
               services={services}
@@ -3071,13 +3440,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               taxAmount={taxAmount}
               totalAmount={totalAmount}
               taxRate={taxRate}
-              isTrialExpired={isTrialExpired}
               isSuperAdmin={isSuperAdmin}
               addItem={addItem}
               removeItem={removeItem}
               handleItemChange={handleItemChange}
               handleAddFromCatalog={handleAddFromCatalog}
-              userPlan={bizPlan}
+              userPlan={effectivePlan}
               onOpenPricingModal={() => setShowPricingModal(true)}
               quoteFiles={quoteFiles}
               setQuoteFiles={setQuoteFiles}
@@ -3122,7 +3490,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               bizLogoUrl={bizLogoUrl}
               setBizLogoUrl={setBizLogoUrl}
               bizPlan={bizPlan}
+              effectivePlan={effectivePlan}
               defaultTerms={defaultTerms}
+              defaultWarranty={defaultWarranty}
+              setDefaultWarranty={setDefaultWarranty}
               setDefaultTerms={setDefaultTerms}
               isTrialExpired={isTrialExpired}
               trialDaysLeft={trialDaysLeft}

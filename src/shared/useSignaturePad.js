@@ -7,6 +7,18 @@ export function useSignaturePad() {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSigned, setHasSigned] = useState(false);
+  // חוק ברזל (Mobile Signature Pad Scroll-Block Fix, TEST Acceptance Package
+  // 1 - תיקון בעלים אמיתי במכשיר): לפני התיקון, ה-canvas היה תמיד
+  // touchAction:'none' - כל מגע עליו, כולל swipe אנכי שמיועד לגלילת העמוד,
+  // נלכד ע"י ה-canvas וצייר קו במקום לגלול. isActive הוא שער-הפעלה מפורש:
+  // כברירת מחדל (לא פעיל) ה-canvas מרשה גלילה אנכית רגילה דרכו (touchAction
+  // נקבע ב-JSX הקורא, לא כאן) ו-startDrawing/draw כאן פשוט לא עושים כלום -
+  // רק אחרי הפעלה מפורשת (activateSigning, למשל לחיצה על אפורדנס "לחץ/י כאן
+  // לחתימה") ה-canvas תופס את כל מחוות המגע כולל קווים אנכיים. deactivateSigning
+  // (למשל כפתור "סיום") מחזיר לגלילה רגילה בלי למחוק את החתימה שכבר צוירה.
+  const [isActive, setIsActive] = useState(false);
+  const activateSigning = () => setIsActive(true);
+  const deactivateSigning = () => setIsActive(false);
 
   const getPoint = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -18,6 +30,7 @@ export function useSignaturePad() {
   };
 
   const startDrawing = (e) => {
+    if (!isActive) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -28,7 +41,7 @@ export function useSignaturePad() {
   };
 
   const draw = (e) => {
-    if (!isDrawing) return;
+    if (!isActive || !isDrawing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -55,5 +68,5 @@ export function useSignaturePad() {
     return canvas ? canvas.toDataURL('image/png') : null;
   };
 
-  return { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl };
+  return { canvasRef, hasSigned, isActive, activateSigning, deactivateSigning, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl };
 }

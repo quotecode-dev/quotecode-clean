@@ -8,7 +8,8 @@ import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 import { LIGHT } from '../theme/neonTheme';
-import { UserRound, Paperclip } from 'lucide-react';
+import { UserRound, Paperclip, Phone, Printer } from 'lucide-react';
+import PdfFileIcon from '../components/PdfFileIcon';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -56,7 +57,7 @@ export default function PublicQuote({ quoteData }) {
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
-  const { canvasRef, hasSigned, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
+  const { canvasRef, hasSigned, isActive, activateSigning, deactivateSigning, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   // ההתראה המקומית "יש לחתום" נעלמת אוטומטית ברגע שיש חתימה תקפה בקנבס
   useEffect(() => {
@@ -202,6 +203,27 @@ export default function PublicQuote({ quoteData }) {
     <div className="pq-page" dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`
         .pq-card { padding: var(--pf-doc-shell-padding); }
+        /* חוק ברזל (Public Quote Bottom Actions - הפניה חזותית מהבעלים):
+           שלושה אריחים שווים (flex:1) בקבוצה אחת, אייקון מעל טקסט, גובה
+           אחיד. pq-action-tiles-two (מוסף כשאין bizPhone תקין) לא משנה את
+           הפריסה עצמה - רק מסיר אריח אחד, השניים הנותרים עדיין flex:1
+           שווים זה לזה. */
+        .pq-action-tiles { align-items: stretch; }
+        .pq-action-tile {
+          flex: 1 1 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 92px;
+          padding: 14px 8px;
+          border-radius: 16px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 0.82rem;
+          box-sizing: border-box;
+        }
         /* חוק ברזל (Width Consistency Fix, סבב זה - ר' src/index.css לפרטים
            המלאים): --pf-desktop-content-width הוא רוחב-התוכן-החזותי, לא
            רוחב-המעטפת. הכרטיס הלבן (.pq-card) הוא "מסמך" עם padding/border
@@ -267,6 +289,33 @@ export default function PublicQuote({ quoteData }) {
           .pq-recipient-detail {
             font-size: 0.78rem !important;
             line-height: 1.25 !important;
+          }
+          /* חוק ברזל: הקבוצה נשארת שורה אופקית אחת גם במובייל (לא נערמת
+             לכפתורים בודדים) - רק padding/פונט/אייקון מצטמצמים כדי
+             שהתוויות יישארו קריאות ושטח-המגע יישאר שמיש ב-360-390px. */
+          .pq-action-tile {
+            min-height: 78px !important;
+            padding: 10px 4px !important;
+            font-size: 0.7rem !important;
+            gap: 4px !important;
+          }
+        }
+        /* Item 7 (Public Quote Print): .no-print (src/index.css) already
+           hides the signature-input controls and the bottom action bar
+           globally under @media print - this block only removes decorative
+           page chrome (outer padding, card shadow/border) that wastes paper
+           and looks wrong once actually printed, without hiding any content. */
+        @media print {
+          .pq-page {
+            background: #ffffff !important;
+            padding: 0 !important;
+            display: block !important;
+            min-height: 0 !important;
+          }
+          .pq-card {
+            box-shadow: none !important;
+            border: none !important;
+            max-width: 100% !important;
           }
         }
       `}</style>
@@ -542,6 +591,17 @@ export default function PublicQuote({ quoteData }) {
           </div>
         )}
 
+        {/* Item 23 Warranty: quote.warranty הוא snapshot קפוא מרגע יצירת
+            ההצעה - לעולם לא נשלף מחדש מה-Business Settings הנוכחיים. אם
+            ריק/NULL, לא מוצג סעיף כלל (בדיוק כמו displayTerms/quote.notes
+            למעלה). */}
+        {quote.warranty && (
+          <div className="pq-section" style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>אחריות:</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{quote.warranty}</div>
+          </div>
+        )}
+
         {quote.notes && (
           <div className="pq-section" style={{ marginBottom: '25px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>הערות נוספות:</div>
@@ -568,9 +628,18 @@ export default function PublicQuote({ quoteData }) {
               ℹ️ תצוגת מנהל: אזור החתימה מוצג ללקוח בלבד.
             </div>
           ) : (
-            <div className="pq-section" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>חתימת לקוח לאישור ההצעה:</h4>
-              <div style={{ display: 'block', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', cursor: 'crosshair', boxSizing: 'border-box', overflow: 'hidden' }}>
+              {/* חוק ברזל (Mobile Signature Pad Scroll-Block Fix, תיקון בעלים
+                  אמיתי במכשיר): לפני התיקון, ה-canvas תמיד היה touchAction:
+                  'none' - כל swipe אנכי מעליו (גם כזה שמיועד לגלול את העמוד)
+                  נלכד וצייר קו. עכשיו, כברירת מחדל (isActive=false) ה-canvas
+                  מרשה גלילה אנכית רגילה דרכו (touchAction:'pan-y') ומוצג
+                  אפורדנס-הפעלה שקוף-למחצה "לחץ/י כאן לחתימה" - רק לחיצה/מגע
+                  מפורש עליו מפעיל את מצב הציור (touchAction:'none', תופס
+                  הכל כולל קווים אנכיים - זו הכוונה הלגיטימית ברגע הזה).
+                  "סיום" מחזיר לגלילה רגילה בלי למחוק את החתימה שכבר צוירה. */}
+              <div style={{ position: 'relative', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', boxSizing: 'border-box', overflow: 'hidden' }}>
                 <canvas
                   ref={canvasRef}
                   width={350}
@@ -582,13 +651,29 @@ export default function PublicQuote({ quoteData }) {
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  style={{ display: 'block', touchAction: 'none', maxWidth: '100%', height: 'auto' }}
+                  style={{ display: 'block', touchAction: isActive ? 'none' : 'pan-y', cursor: isActive ? 'crosshair' : 'default', maxWidth: '100%', height: 'auto' }}
                 />
+                {!isActive && !hasSigned && (
+                  <button
+                    type="button"
+                    onClick={activateSigning}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'rgba(248,250,252,0.85)', border: 'none', color: '#475569', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    לחץ/י כאן לחתימה
+                  </button>
+                )}
               </div>
-              <div style={{ marginBottom: '15px' }}>
-                <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  נקה חתימה
-                </button>
+              <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {(isActive || hasSigned) && (
+                  <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    נקה חתימה
+                  </button>
+                )}
+                {isActive && (
+                  <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+                    סיום
+                  </button>
+                )}
               </div>
               {signatureWarning && (
                 <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>
@@ -602,6 +687,54 @@ export default function PublicQuote({ quoteData }) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* חוק ברזל (Item 7 Public Quote Bottom Actions - עודכן לפי הפניה
+            חזותית מהבעלים: שלושה "אריחים" גדולים שווי-גובה, אייקון מעל
+            טקסט, קבוצה אופקית אחת. "חייג/י אליי" משתמש באותו bizPhone/
+            נירמול tel: בדיוק כמו ה-CTA הקיים ב-PublicQuoteHeader.jsx (אין
+            מקור-אמת שני) - אם אין טלפון עסק תקין, האריח מוסתר לגמרי (הקבוצה
+            הופכת לשני אריחים, לא שלושה - אותו דפוס `bizPhone &&` כמו קודם).
+            "הדפס מסמך" פועל דרך window.print() אמיתי.
+            "הורד כ-PDF" - הארכיטקטורה החזותית מוכנה לו (אריח ראשון/ראשי,
+            סגול, במיקום המדויק שהבעלים ביקש) אבל הוא לא פונקציונלי בכוונה
+            (item 8, עדיין נדחה) - חוק ברזל מפורש: "אין לזייף פונקציונליות
+            PDF" ו"אין להפוך כפתור PDF שנראה פונקציונלי שבפועל רק פותח
+            הדפסה". לכן זהו <div> לא ניתן ללחיצה (לא <button>/<a>, אין
+            onClick), aria-disabled, שקיפות מופחתת, ותווית "(בקרוב)" גלויה
+            תמיד - כולל במגע/מובייל שבו cursor:not-allowed לא נראה כלל.
+            כל הקבוצה מסומנת no-print - לא רלוונטית במסמך מודפס. */}
+        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          <div
+            aria-disabled="true"
+            role="button"
+            title={isHebrew ? 'הורדת PDF תהיה זמינה בקרוב' : 'PDF download coming soon'}
+            className="pq-action-tile"
+            style={{ background: LIGHT.gradient, color: 'white', border: 'none', opacity: 0.62, cursor: 'not-allowed' }}
+          >
+            <PdfFileIcon size={26} strokeWidth={1.75} />
+            <span>הורד כ-PDF</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: '600', opacity: 0.9 }}>(בקרוב)</span>
+          </div>
+          {bizPhone && (
+            <a
+              href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
+              className="pq-action-tile"
+              style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, textDecoration: 'none' }}
+            >
+              <Phone size={26} strokeWidth={1.75} />
+              <span>חייג/י אליי</span>
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="pq-action-tile"
+            style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, cursor: 'pointer' }}
+          >
+            <Printer size={26} strokeWidth={1.75} />
+            <span>הדפס מסמך</span>
+          </button>
         </div>
 
         {/* Footer */}
