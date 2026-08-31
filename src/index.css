@@ -50,6 +50,20 @@ html {
   font-family: 'Rubik', Arial, sans-serif !important;
 }
 
+/* חוק ברזל (Owner Exact Typography Implementation task): חריגה יחידה,
+   נקודתית ומכוונת לכלל ה"נשק גרעיני" למעלה - לא ביטול/החלשה שלו. משקל 300
+   אין לו קובץ אמיתי במשפחת ה-Rubik הבדידה (ר' src/fonts.css) - רק בניית
+   ה-variable-font (@fontsource-variable/rubik, אותה משפחת Rubik בדיוק,
+   OFL-1.1, לא גופן אחר) תומכת בו באמת. class ב-!important מנצח את הכלל
+   האוניברסלי הקיים (סלקטור class מפורש > סלקטור אוניברסלי, גם כששניהם
+   !important - עדיפות-CSS רגילה) - אבל מיושם באופן opt-in מפורש רק על
+   האלמנטים הספציפיים שהבעלים דרש עבורם 300 מדויק (Client Name/KPI), לא
+   כברירת מחדל גורפת. "ללא חריגות" של הכלל למעלה עדיין תקף לכל שאר
+   הרכיבים באתר. */
+.pf-font-variable {
+  font-family: 'Rubik Variable', 'Rubik', Arial, sans-serif !important;
+}
+
 /* Global Money Numeric Alignment Rule (permanent product rule - see
    PROFLOW_PROJECT_CONTEXT.md's Global Money Display Rule section). A
    monetary amount is numeric LTR content in every language, including
@@ -109,6 +123,33 @@ html {
    needed to any individual section's own width. */
 :root {
   --pf-desktop-content-width: 980px;
+  /* חוק ברזל (Owner-Locked Regression Rule task, UI QA - Desktop Width
+     Utilization): --pf-desktop-content-width נשאר בדיוק 980px, ללא שינוי -
+     הוא כבר LOCKED/מאושר-בעלים במפורש עבור Public Quote (PublicQuote.jsx/
+     PublicQuoteEn.jsx), משטח שלא הוזכר כלל ברשימת המסכים לבדיקה במשימה
+     הזו ("Dashboard, New Quote, Quote History, Clients, Business Settings,
+     dialogs/modals" - Public Quote לא ברשימה). לכן במקום להרחיב את המשתנה
+     המשותף הקיים (מה שהיה משנה את Public Quote בעקיפין, בניגוד ישיר לכלל
+     ה-LOCKED שנקבע באותה משימה עצמה - "no indirect changes... A new task
+     is NOT authorization to alter unrelated LOCKED behavior"), נוסף כאן
+     משתנה נפרד וממוקד לדשבורד/האפליקציה המאומתת בלבד - כך שהרחבת רוחב
+     הדשבורד לא נוגעת ב-Public Quote בכלל, לא באופן ישיר ולא בעקיפין. */
+  /* חוק ברזל (Critical Signature Forensic Audit + Final Canonical Width
+     Alignment task, Owner-final decision): כל סבב הניסויים הקודם (1440px
+     קבוע → 1320px קבוע → min(1320px,72vw) → min(1320px,85vw)) הוחלף
+     לגמרי - הבעלים קבע במפורש שאין "רוחב חדש" לעצב/לאמוד/לקרב: הרוחב
+     הקנוני היחיד של ProFlow הוא הרוחב הקיים, המאושר-בעלים, של Public
+     Quote עצמו (--pf-desktop-content-width, 980px, LOCKED) - לא 70-75%,
+     לא 72vw, לא 85vw, לא ערך-דשבורד חדש שהומצא. משתנה הדשבורד נשאר
+     קיים ונפרד בכוונה (לא מוחלף לגמרי בשימוש ישיר ב-var הראשי בכל מקום)
+     כדי לשמר את בידוד-הסיכון מהמשימה הקודמת (שינוי עתידי בדשבורד לא
+     ייגע ב-Public Quote בטעות) - אבל ערכו עכשיו *מפנה* ישירות למשתנה
+     הקנוני של Public Quote במקום להחזיק מספר עצמאי, כך שיש מקור-אמת
+     יחיד אמיתי (§56/§58) ולא רק שני מספרים שבמקרה שווים. הטבלה
+     (QuotesTab.jsx) הותאמה בנפרד כדי להיכנס לרוחב הזה בלי overflow -
+     ר' ההערה שם ("Table Fits ProFlow, Not The Reverse", §58) - הרוחב
+     הזה עצמו לא הורחב כדי להתאים לטבלה, בהתאם לכלל המפורש של הבעלים. */
+  --pf-dashboard-desktop-content-width: var(--pf-desktop-content-width);
   /* Public Quote document-shell decorative inset (Desktop only - the
      Mobile @media (max-width:640px) override in PublicQuote.jsx/
      PublicQuoteEn.jsx still hardcodes its own much smaller 2px padding
@@ -123,4 +164,17 @@ html {
      token stays correct automatically. */
   --pf-doc-shell-padding: 40px;
   --pf-doc-shell-border-width: 1px;
+}
+
+/* Item 7 (Public Quote Print, TEST Acceptance Package 1): a `no-print`
+   class has been pre-staged on many components across this codebase
+   (modals, the Dashboard mobile nav, the Trial notice, the Public Quote
+   action buttons/signature controls) but had no corresponding print rule
+   anywhere, so it did nothing. This single global rule activates every
+   existing `no-print` usage at once, everywhere in the app, rather than
+   duplicating a print rule per component. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
