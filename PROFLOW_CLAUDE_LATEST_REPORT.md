@@ -324,11 +324,11 @@ No Production SQL/migration/schema/data change. No TEST mutation. No Edge/Vercel
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`1e8bcdcc2a97060f17edb9841b114edc9159effc` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Step 3 documentation update (all six files). Matching commit exists locally on `main` (`58a3095`), **not pushed**, per `MAIN PUSH: NO`.
 
 ## REMOTE GITHUB READ-BACK
 
-*(recorded after push and API verification — see chat-level Final Report.)*
+**PASS** — verified via GitHub API immediately after the `1e8bcdc` push: `GET /repos/quotecode-dev/quotecode-clean/git/refs/heads/proflow-continuity` returned `sha: 1e8bcdcc2a97060f17edb9841b114edc9159effc`, matching the local push exactly. All six canonical files return HTTP 200 at `ref=proflow-continuity`. Raw-content fetch of this file confirmed the Step 3 markers present and readable ("READY FOR LIVE AUTHORIZATION", the FINAL STOP line).
 
 ---
 
