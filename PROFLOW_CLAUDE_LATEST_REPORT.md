@@ -98,15 +98,13 @@ Cross-checked all six for contradictions across: Wave 2 status (PASS/INTACT, eve
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`60320ca933f52fa87217122843fb36d5be1d8fe6` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Post-BSOD Recovery Continuity Completion update (all six files). Matching commit exists locally on `main` (`5b4080f`), **not pushed**, per `MAIN PUSH: NO`.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and API verification — see chat-level Final Report.)*
+Verified via GitHub API immediately after the `60320ca` push: branch ref SHA for `proflow-continuity` matches `60320ca933f52fa87217122843fb36d5be1d8fe6` exactly. All six canonical files return HTTP 200 via the Contents API at `ref=proflow-continuity`; `PROFLOW_HANDOFF.md` (>1MB, exceeds the Contents API's inline size limit) was separately fetched via the Git Blobs API. Real committed content decoded and confirmed for all six — `STATUS: **PASS**`, `WAVE 3: **NOT EXECUTED**`, `WAVE 2: **PASS / INTACT**`, and the FINAL STOP line all present in this report; corresponding checkpoint markers confirmed present in each of the other five files.
 
 ---
 
