@@ -4003,3 +4003,77 @@ Fresh post-backup checks, all unchanged from before: `quotes` row count still 28
 #### Did not advance
 
 Confirmed, explicitly: the malformed migration filename was **not** renamed. Item 17 was **not** started. Item 18 was **not** started. Counter-init was **not** run. The old default was **not** dropped. Neither Edge Function was redeployed. Wave 2 Step 2 was **not** started.
+
+### Wave 2 — Backup Restore Proof, COMPLETE — RESTORE READINESS: VERIFIED (2026-08-31, Owner-authorized RESTORE PROOF ONLY, exhaustive, isolated local Docker Postgres, zero Production/TEST mutation)
+
+**Objective achieved**: upgraded restore readiness from PARTIALLY VERIFIED to **VERIFIED** via an actual, complete, end-to-end restore of the existing Wave 2 Step 1 backup set into a fully isolated, disposable local PostgreSQL target — not merely structural inspection.
+
+#### 1. Backup re-verification
+
+All 5 documented artifacts located and re-checksummed against `CHECKSUMS.sha256` (written during Step 1) — **all 5: OK, byte-identical, no regeneration, no silent substitution.**
+
+#### 2. Disposable target — proof of isolation
+
+Departed from the earlier Supabase-CLI-managed local database (which caused Step 1's format-incompatibility block) in favor of a **plain, vanilla `postgres:17` Docker Hub image** — genuinely simpler and a more standard restore target for a plain-SQL dump.
+
+- Container: `wave2-restore-proof` — new, unique name, never used for TEST or Production, never existed before this task.
+- Bound address: `127.0.0.1:55433` — **localhost-only**, not externally reachable, unrelated to any Production/TEST connection string (Production is a remote Supabase-hosted endpoint entirely; TEST likewise).
+- Image: `postgres:17`, Docker Hub official image — completely unrelated to Supabase's own hosted infrastructure or CLI-managed local stack.
+- PostgreSQL server version: `17.11 (Debian 17.11-1.pgdg13+2)`.
+- psql client version: `17.11` (matching, same container).
+- Target database: `postgres` (the container's own freshly-initialized default).
+
+No ambiguity existed about the target at any point — confirmed via container name, port binding, and image identity before any restore command ran.
+
+#### 3. Actual restore — real commands, real output, not just exit codes
+
+`docker cp` copied the two backup SQL files into the container (`/tmp/schema.sql`, `/tmp/data.sql`) — byte sizes on arrival (35,237 and 41,780) matched the source files exactly. Restore commands: `psql -U postgres -d postgres -f /tmp/schema.sql`, then `psql -U postgres -d postgres -f /tmp/data.sql`.
+
+**First schema-restore pass**: exit code 0, but ~100 `ERROR` lines — all `schema "auth" does not exist` / `role "anon"/"authenticated"/"service_role" does not exist`. **Root cause, not treated as a pass**: the backup (correctly, by design — see §115's own Step 1 record) only captures the `public` schema, which *references* Supabase-platform infrastructure (the `auth` schema, and three platform-managed roles) that any real Supabase project always has present by default — a vanilla Postgres image does not. **This is not a defect in the backup**, but per this task's own explicit instruction not to treat exit code 0 as proof, it was correctly not accepted as sufficient. Despite the errors, a first check confirmed all 9 tables (including `quotes`, with its exact correct `quote_number` default) had in fact been created — the errors were all on later, independent `GRANT`/`ALTER DEFAULT PRIVILEGES`/RLS-policy statements, not the core `CREATE TABLE` statements.
+
+**For a genuinely complete, high-fidelity proof** (not merely "core tables appeared"), the minimal standard Supabase-platform prerequisites were added to the disposable target — three roles (`anon`, `authenticated`, `service_role`), an `auth` schema with a stub `auth.users` table, and a stub `auth.uid()` function — then the `public` schema was dropped and the restore re-run cleanly from scratch. **Second pass**: 16 remaining errors, all `function auth.uid() does not exist` (the RLS policies' own `USING (auth.uid() = ...)` clauses, needing the function specifically, not just the schema). Stub `auth.uid()` function added; **third pass: zero errors.** Full schema — all 9 tables, 12 functions, 5 triggers, 24 RLS policies, grants — restored cleanly.
+
+**Data restore**: `COPY 28` (exact row count), `setval` returned `95` (exact sequence value) — zero errors.
+
+#### 4. Post-restore structural verification — every check an exact match
+
+| Check | Restored (disposable) | Documented pre-Wave-2 Production baseline | Result |
+|---|---|---|---|
+| `quotes.quote_number` default | `nextval('quotes_quote_number_seq'::regclass)` | Same | **MATCH** |
+| Existing `quotes` triggers | `guard_quote_immutability_delete_trigger`, `guard_quote_immutability_update` | Same two, same names | **MATCH** |
+| `business_quote_sequences` | absent | absent | **MATCH** |
+| `allocate_quote_number()` | absent | absent | **MATCH** |
+| Unique index/constraint | absent | absent | **MATCH** |
+| Immutability trigger/function | absent | absent | **MATCH** |
+| `attn_name` | absent | absent | **MATCH** |
+| `attn_role` | absent | absent | **MATCH** |
+| `public` schema function count | 12 | 12 (schema dump's own count) | **MATCH** |
+| `public` schema RLS policy count | 24 | 24 (schema dump's own count) | **MATCH** |
+
+**Wave 2 objects that did not exist in Production at backup time correctly do not appear after restoration — confirmed, not assumed.**
+
+#### 5. Data verification — every check an exact match
+
+| Check | Restored | Step 1 documented baseline | Result |
+|---|---|---|---|
+| Total `quotes` row count | 28 | 28 | **MATCH** |
+| Sequence `setval` | 95 | 95 (Step 1's own `setval` line) | **MATCH** |
+| Per-business max `quote_number` (7 businesses) | `0a61946f...`=95(n=11), `67ef489f...`=92(n=8), `7000d3a7...`=89(n=2), `a1e9275e...`=87(n=1), `08322ceb...`=81(n=3), `30edd3f5...`=57(n=2), `17388fe5...`=46(n=1) | Identical, same `user_id`s, same counts, same max values | **MATCH, byte-for-byte identical to Step 1's own snapshot** |
+
+No customer-sensitive row content (client names, contact info, terms text) was printed — only IDs, counts, and numeric values, matching the same sanitization discipline already established this engagement.
+
+#### 6. Restore fidelity classification
+
+**RESTORE READINESS: VERIFIED.** Not classified VERIFIED merely because SQL executed — classified VERIFIED because (a) a real restore was performed against a genuinely isolated disposable target, (b) every structural check matches the documented pre-Wave-2 baseline exactly, (c) every data check matches exactly, (d) the one class of "material errors" encountered (missing Supabase-platform prerequisites in a vanilla Postgres image) was correctly diagnosed as an artifact of the *test environment*, not the *backup*, and was resolved by providing the minimal standard scaffolding — not by rationalizing away a real gap in the backup's own content.
+
+#### 7. Cleanup
+
+`docker rm -f wave2-restore-proof` — confirmed via `docker ps -a` (no matching container) and `docker volume ls` (no matching volume). No repo pollution this time (no `supabase/.branches` artifact, since the Supabase CLI's own local-dev tooling was not used at all this task — a plain Docker container was used instead). `git status` after cleanup: unchanged from the standard baseline (six continuity docs + the pre-existing untracked `entry-server.jsx`). The real Wave 2 backup artifacts were **not** deleted — re-verified present and checksum-matching after the restore proof, retained for the ongoing Recovery rollback window.
+
+#### 8. Production/TEST safety — re-confirmed fresh after the restore proof
+
+`quotes` row count on live Production: still 28. Migration ledger: still exactly one row. Linked project: still `ixabnzhjeqevtbhdfswv` (Production). Live canonical redirect: still `308`. **No Production data mutated. No Production schema mutated. No TEST mutated. No Edge Function mutated. No application code changed. No push to `main`. No Production deploy.**
+
+#### 9. Did not advance, again
+
+Explicitly re-confirmed: the malformed migration filename remains unrenamed; Item 17/18 remain unexecuted; counter-init remains unrun; neither Edge Function was deployed; Wave 2 Step 2 was not started.
