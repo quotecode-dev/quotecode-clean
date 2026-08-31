@@ -4,61 +4,67 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Subscription Email Policy Correction + Trial Countdown Audit + Sandbox Billing Requirement
+## Task: Maximum Super Admin / Admin V2 System Audit — Read-Only Discovery + Architecture + UX Gap Analysis
 
-Full detail in `PROFLOW_PROJECT_CONTEXT.md` §93. No application commit, no push, no DB/Auth/Production mutation.
-
----
-
-**PAID AUTO-RENEW EXPIRATION EMAIL:** DISABLED BY PRODUCT POLICY — auto-renewing BASIC/PRO must never receive a "subscription ending" reminder at a normal monthly `current_period_end`; that boundary is a renewal, not an expiration.
-
-**CANCEL_AT_PERIOD_END REMINDERS:** REQUIRED — 3-day and 24-hour reminders are appropriate here specifically, since entitlement is genuinely ending. Exact copy not finalized this task (none was pre-approved) — remains open.
-
-**TRIAL 3-DAY REMINDER:** REQUIRED
-**TRIAL 24H REMINDER:** REQUIRED
-
-Unchanged and fully mandatory. The plan-filter bug in `send-trial-expiration-email` (found last task) **remains open, deliberately not fixed** per instruction.
-
-**PAYMENT-FAILURE EMAIL:** SEPARATE FLOW — not an expiration-reminder mechanism; tied to the still-open grace-period-length decision.
-
-**OLD CONTRADICTORY EMAIL REQUIREMENT:** RECONCILED — `PROFLOW_PROJECT_CONTEXT.md` §92's Email State Matrix now carries an explicit superseding note pointing to §93, rather than being silently rewritten (preserves the historical record while making the current policy unambiguous).
+**STATUS: IN PROGRESS / CHECKPOINTED, NOT COMPLETE.** This is a 24-section MAXIMUM-effort audit. Continuity sync was explicitly requested by the Owner mid-task, before the full write-up was finished. Full detail in `PROFLOW_PROJECT_CONTEXT.md` §94, which honestly separates what's done from what remains — this report does the same, not overclaiming completeness.
 
 ---
 
-## TRIAL COUNTDOWN AUDIT (read-only, zero mutation)
+## FRESH LOCAL STATE
 
-Real `PROFLOW_TEST_LOCAL` account data, read via its own authenticated session (own-row RLS query, no admin/service-role access used):
+`main` HEAD `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (1 commit ahead of `origin/main` `e03001745859ae6b81f162a4af5bdca3c95cac5a`, unchanged all session), 42 pre-existing uncommitted files (untouched). All findings below verified against current source, re-read fresh this task.
 
-**TRIAL CREATED_AT:** `2026-08-30T10:24:52.812Z`
-**TRIAL_ENDS_AT:** `2026-09-13T10:24:52.934Z`
-**ACTUAL REMAINING** (at audit time, `now = 2026-08-31T07:47:49.293Z`): `13.1091` days = **13 days, 2 hours**
+## ADMIN CURRENT-STATE VERDICT
 
-**DASHBOARD COUNTDOWN FORMULA:** `src/utils/planEntitlements.js:42` — `trialDaysLeft = Math.ceil(diffTime / (1000*60*60*24))` → `Math.ceil(13.1091)` = **14**, exactly matching what the Owner observed.
+Admin is not a separate console — it is one extra tab (`admin_clients`) appended to the regular customer `Dashboard.jsx` nav array only when `isSuperAdmin`, plus one standalone route (`/ai-logs`). A super_admin account is an ordinary `business_settings` row with `role='super_admin'`; there is no dedicated admin application shell.
 
-**ADMIN COUNTDOWN FORMULA:** `src/components/AdminUsersTab.jsx:276` (`getRemainingTimeFormatted`) — `days = Math.floor(diffMs/msPerDay)`, `hours = Math.floor(remainder/msPerHour)` → **13 days, 2 hours**, exactly matching the Owner's cited Admin-precision example.
+## ADMIN SURFACE INVENTORY — COMPLETE
 
-**TRIAL RESET:** NO — `trial_ends_at − created_at` = exactly `14.0000` days, the standard untouched signup grant.
+Traced from the live entry point (the two `isSuperAdmin`-gated buttons); no orphaned/unreachable component found. `AdminUsersTab.jsx` (table + KPIs + email-diagnostics test-send panel), `UserDetailsModal.jsx` (per-user detail popup + "new users 24h" list mode), `LifetimeConfirmModal.jsx` (Lifetime-grant confirm step), `AILogs.jsx` (route `/ai-logs`, chat-log viewer), `admin-cleanup-user-quotes` + `admin-delete-user` (destructive Edge Functions). Full per-surface file/purpose/reads/writes/auth/status table in `PROFLOW_PROJECT_CONTEXT.md` §94.
 
-**ROUNDING ISSUE:** YES — pure display-formula discrepancy (`Math.ceil` whole-day vs. `Math.floor`+hours precision). Does not affect entitlement correctness: `isTrialExpired`/`isExpiringSoon` gating logic is unaffected by the ceiling (sign-preserving). This is a display-precision gap only, distinct in kind from the entitlement-affecting bugs found in prior tasks.
+## CANONICAL STATE CONSISTENCY
 
-**SHARED COUNTDOWN HELPER RECOMMENDATION:** Extract Admin's existing, already-correct day+hour formula into a shared display helper (natural home: alongside `computeEffectivePlan()` in `planEntitlements.js`, e.g. `formatTrialRemaining(trialEndsAt, now)` → `{days, hours}`) that both Dashboard's and Admin's display text call. **Do not touch `computeEffectivePlan()`'s own internal `trialDaysLeft`** — it correctly drives gating logic today; the new helper is for display only, layered alongside it. Not implemented — proposal only, pending separate authorization.
+Re-traced fresh against current source. **Known FREE→PRO Lifetime bug: unchanged, still open, deliberately not fixed** — `UserDetailsModal.jsx:50` and `AdminUsersTab.jsx:302` both independently derive `isLifetime` from `trial_ends_at IS NULL`, bypassing `computeEffectivePlan()`. No third divergence class found beyond that bug and the already-known trial-countdown display-formula gap (§93).
+
+## UNTRUSTWORTHY ADMIN FIELDS
+
+Only the Plan/Lifetime badge (table icon + detail-modal text). Everything else displayed is a direct, untransformed field passthrough.
+
+## NEW FINDINGS THIS TASK
+
+1. **Four independent, uncoordinated visual systems already exist** across Admin — `AdminUsersTab.jsx` already correctly uses the shared `LIGHT` theme; `UserDetailsModal.jsx` uses the shared **dark** `NEON` theme (the one genuine holdout); `LifetimeConfirmModal.jsx`/`AILogs.jsx` both use independent hardcoded hex matching neither shared theme nor each other. Reframes "Admin needs to go light" as mostly consolidation, not a wholesale rewrite.
+2. **`AILogs.jsx` is hardcoded Hebrew/RTL-only** — zero English branch, unique among Admin surfaces.
+3. **Quote usage/limits are shown nowhere in Admin.**
+4. **`business_settings.currency` exists but Admin never displays it.**
+5. **The Owner's known "email must not be first column" gap already has a working reference pattern in the same file** — `AdminUsersTab.jsx`'s own mobile card layout already shows business name primary/email secondary; only the desktop table hasn't caught up.
+6. **Two existing safety patterns confirmed solid — recommended KEEP/LOCK**: re-auth (admin's own password) before both destructive Edge Functions execute, and `admin-cleanup-user-quotes`'s genuine post-delete verification read (not just trusting an error-free response).
+
+## SECURITY: PASS / UNCHANGED / GREEN
+
+No newly-created or bypassing code path found. Tab visibility is client-side convenience only — every real mutation independently re-verifies `super_admin` server-side. `AILogs.jsx` has its own redirect-on-mount guard plus an independent, previously-hardened RLS restriction on `chat_logs`, neither reopened nor touched. Not broadened into unrelated security work.
+
+## RESPONSIVE/UX — PARTIAL
+
+Conceptual/source-wise audit only. **A live browser-harness visual pass was attempted but not completed**: no super_admin-role TEST credential could be confirmed working against the Supabase project the local dev server actually connects to (`PROFLOW_TEST_ADMIN_EMAIL/PASSWORD` returned genuine invalid-credentials there). This is itself a real finding for the still-outstanding TEST Persona Admin Support section — **no confirmed-working super_admin TEST persona currently exists for this dev environment.**
 
 ---
 
-## BILLING SANDBOX REQUIREMENT: DOCUMENTED
+## OUTSTANDING — NOT YET COMPLETED, EXPLICITLY NOT DROPPED
 
-Permanent requirement recorded in `PROFLOW_PROJECT_CONTEXT.md` §93 and `PROFLOW_ARCHITECTURE.md` §16: full end-to-end TEST simulation at real configured plan prices (never a hidden Production ₪0 plan) covering purchase/renewal/failure/cancellation/upgrade/downgrade/webhook-replay/idempotency/reconciliation — exercising the complete Checkout→webhook→canonical state→resolver→badge→Admin→limits→reminders chain, matching the canonical-resolver architecture already proposed.
+Listed in full in `PROFLOW_PROJECT_CONTEXT.md` §94: User Table formal column classification, User Detail View spec (drawer/page with an availability tag per field), Plan/Trial/Subscription Admin Model, Badge/Icon Model, Pricing Admin Model, Billing Visibility Model, TEST Persona Admin Support proposal, formal Admin Action Safety Matrix table, Admin Audit Log proposal, full HE/EN/Market writeup, full Responsive/UX writeup, Visual Design proposal, Keep/Lock list, P0–P3 Gap Map, Admin V2 Information Architecture, Implementation Phasing, Regression Strategy, Open Owner Decisions.
+
+**This task is not finished.** Continuation is the natural next step.
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — §92's Email State Matrix marked superseded; new §93 added (policy correction, countdown audit, sandbox requirement).
-- `PROFLOW_ARCHITECTURE.md` — §16 extended: the old unconfirmed "trial resetting" open item **resolved** with the definitive rounding-not-reset finding; email policy correction and Sandbox requirement added.
-- `PROFLOW_HANDOFF.md` — §18.EE appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL (its non-email-policy findings still stand).
-- `PROFLOW_TODO.md` — item 38 extended.
-- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §94 added (checkpoint, explicitly marked in-progress).
+- `PROFLOW_ARCHITECTURE.md` — §10 (Admin UI) extended with the four-visual-system finding, other new gaps, and the security/KEEP-LOCK re-verification.
+- `PROFLOW_HANDOFF.md` — §18.EF appended (checkpoint).
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL.
+- `PROFLOW_TODO.md` — item 38 extended, explicit "Remaining" pointing back at §94's outstanding list.
+- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten as a checkpoint report.
 
 Continuity commit pushed automatically under the standing §17.K auto-sync authorization — no fresh confirmation requested, per explicit instruction.
 
@@ -66,14 +72,16 @@ Continuity commit pushed automatically under the standing §17.K auto-sync autho
 
 ## APPLICATION CODE MUTATION: NONE
 ## DB MUTATION: NONE
-## EMAIL SENT: NONE
-## MAIN: UNCHANGED
+## TEST MUTATION: NONE
+## APPLICATION COMMIT: NONE
+## APPLICATION PUSH: NONE
+## DEPLOY: NONE
 ## PRODUCTION: UNCHANGED
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Zero application code touched this task — nothing to re-test (tests/lint/build unchanged from last verified state).
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Zero application code touched this task — nothing to re-test.
 
 ---
 
-## FINAL STOP
+## FINAL STOP (checkpoint, not task completion)
 
-Email policy corrected and reconciled — auto-renewal is never an expiration event; only CANCEL_AT_PERIOD_END warrants a reminder, copy still pending. Trial countdown discrepancy fully explained: no reset, pure Math.ceil-vs-Math.floor display gap. Billing Sandbox requirement documented as permanent. Continuity synced under the new standing authorization. Returning to Owner.
+Surface inventory, data-flow audit, and canonical-consistency re-trace are complete and evidence-backed, with six new concrete findings surfaced along the way. The remaining ~17 proposal sections of this 24-section audit are outstanding and explicitly listed, not dropped. Continuity synced under the new standing authorization. Recommended next step: continue this same audit task to complete the outstanding sections before any Admin V2 implementation is proposed as ready.
