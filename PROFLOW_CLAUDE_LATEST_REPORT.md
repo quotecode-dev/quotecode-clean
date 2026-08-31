@@ -4,101 +4,133 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 3 Function 1 Continuity Repair + Permanent Compliance Correction
+## Task: Wave 3 / Function 2 — send-quote-email Production Deployment
 
-Continues directly from the Wave 3 restart and the Function 1 (`get-public-quote`) LIVE execution, which completed successfully (deployed, verified PASS) but ended without performing its own mandatory Six-File Continuity write. This task closes that gap and adds a permanent-rule clarification to prevent recurrence.
+Continues directly from the remotely-verified checkpoint: Wave 2 PASS/INTACT, Wave 3 IN PROGRESS, Function 1 (`get-public-quote`) DEPLOYED/VERIFIED PASS, Function 2 (`send-quote-email`) NOT DEPLOYED, Wave 4 NOT STARTED.
 
-**Documentation/continuity repair only. No new application, database, TEST, Production, Edge Function, or Vercel mutation performed.**
+**Owner LIVE authorization explicitly granted for this Function 2 deployment only. No email sent, no Production quote created, no other mutation performed.**
 
 ---
 
-## TASK: Wave 3 Function 1 Continuity Repair + Permanent Compliance Correction
+## TASK: Wave 3 / Function 2 — send-quote-email Production Deployment
 ## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
 ## STATUS: **PASS**
 
 ---
 
-## FRESH CANONICAL BOOTSTRAP + PRE-WRITE REVALIDATION
+## PRE-DEPLOY PROD VERSION: `v24` (`updated_at=1787664105944`, hash `456e606b...`)
+## POST-DEPLOY PROD VERSION: `v25` (`updated_at=1788219913416`, hash `3d532cfc...`)
 
-All six canonical files re-read directly from `ref = proflow-continuity` before any edit (not local copies, not `main`, not memory, not a prior report). Fresh state re-established, read-only, before writing anything:
+**Notable**: the new deployed bundle hash is byte-identical to TEST's own deployed bundle hash — an independent correctness signal beyond the source-file diff.
 
-`HEAD = f25e7025bcb2b6bfff53e6945d27b097ae27cfe8` (exactly the Function 1 commit, unchanged), working tree clean apart from the standing untracked `src/entry-server.jsx`, `origin/main = dd11015` (11 commits behind local, unpushed), `origin/proflow-continuity = d75fd53` (unchanged since the prior task). Production identity re-proven via `supabase/.temp/project-ref` = `ixabnzhjeqevtbhdfswv`.
+## LOCAL FUNCTION COMMIT
 
-**Note on a citation imprecision, not a real drift**: earlier tasks' `grep "project_id" supabase/config.toml` calls never actually matched anything in that file (it has no such line) — the `ixabnzhjeqevtbhdfswv` value shown in those outputs came from a different command in the same combined shell call. The underlying fact (linked project = Production) was never wrong; `supabase/.temp/project-ref` has been the correct, consistently-checked source of truth throughout.
+**None required.** `git diff -- supabase/functions/send-quote-email/index.ts` was empty before this task began — local source already contained the exact approved implementation, committed since `ffc741d` ("prepare cross-market quote release candidate"), well before this Wave 3 effort began. The already-committed `HEAD` state (`56af44f` at task start) was deployed as-is; no new commit was created since nothing changed.
 
-**Function states, zero drift from the Function 1 execution report**: Production `get-public-quote` v8 (unchanged since deploy), `send-quote-email` v24 (unchanged, identical hash `456e606b...`); TEST `get-public-quote` v2, `send-quote-email` v1 (both unchanged). Production `quotes` row count re-confirmed genuinely **30** via a correct, isolated `SELECT count(*) FROM public.quotes;`. `main` not pushed. Local TEST-mode dev server still reachable at `http://localhost:5186/` (HTTP 200).
+## AUTHORIZED MATERIAL DELTA
 
-**No material contradiction found between documented state and fresh state.**
+1. `quote_number` added to the `quotes` `.select()`.
+2. Money-rounding bug fix: removed `Math.round()` that silently dropped cents/agorot before formatting the emailed total.
+3. Real quote number (`A100700` etc.) used in the email subject when available, with the previously-reviewed UUID-fragment fallback preserved when unavailable.
+
+Confirmed via fresh, complete three-way diff (Production/TEST/local) that these are the **only** material differences — everything else is formatting/TS-type-stripping.
 
 ---
 
-## CURRENT CHECKPOINT
+## BOOTSTRAP + FRESH STATE (before any mutation)
+
+`proflow-continuity` ref unchanged since the last checkpoint (confirms the six files still reflected exactly what had just been read/verified). `HEAD = 56af44f129d374b40246aa0e85e714ebb8629482` (with `f25e7025bcb2b6bfff53e6945d27b097ae27cfe8`, the Function 1 commit, confirmed an ancestor), working tree clean apart from the standing untracked `src/entry-server.jsx` (untouched). `origin/main = dd11015` (13 commits behind local, unpushed). Production identity re-proven via `supabase/.temp/project-ref = ixabnzhjeqevtbhdfswv`. Production `get-public-quote v8`/`send-quote-email v24` and TEST `v2`/`v1` all matched the documented baseline exactly. Production `quotes` row count confirmed 30. Local dev server confirmed reachable at `http://localhost:5186/`. **No material contradiction found — proceeded.**
+
+## PRE-MUTATION SOURCE PROOF (repeated fresh, not reused from the earlier gate)
+
+Downloaded current Production and TEST `send-quote-email` source again into fresh isolated scratch (Production copy preserved as rollback source). SHA-256 of all three sources (Production `c2ed67ea...`, TEST `7098a457...`, local `c108dd7b...`) byte-identical to the original gate-preparation diff — zero drift in any of them since. Re-ran the complete diff and explicitly checked every named risk category:
+
+| Risk category | Result |
+|---|---|
+| TEST project references | None found |
+| TEST-only URLs | None found |
+| TEST secrets/config assumptions | None found |
+| Debug/capture instrumentation | Only the same two pre-existing `console.log`/`console.error` lines present in all three sources — not new |
+| Recipient-routing differences | None — `clientEmail` from real DB lookup, unchanged |
+| Resend API behavior changes | None — endpoint, sender, auth header byte-equivalent aside from formatting |
+| Auth/session validation changes | None — `callerClient.auth.getUser()` + ownership check unchanged |
+| Error-handling changes | None |
+| Unexpected logging changes | None |
+| Unrelated subject/body changes | None beyond the authorized `quoteNumberDisplay` |
+| Currency/locale leakage | None — `resolveEmailRegion` confirmed logically identical character-for-character (type annotations only) |
+| HE/EN regressions | None |
+| Production-domain differences | None — `PROD_ORIGIN` hardcoded identically to `https://www.quotecodepro.com` in all three sources |
+
+---
+
+## HE REVIEW: **PASS**
+
+Hebrew subject (`הצעת מחיר ${quoteNumberDisplay} מ-${bizTitle}`) correctly shows a real per-business number for ILS/Local businesses now that Item 17 is live, falling back to the same 8-char UUID fragment used everywhere else in the app when unavailable. ILS/agorot precision: `displayTotal` now preserves cents (no `Math.round()` silently discarding them). Recipient behavior unchanged regardless of market.
+
+## EN REVIEW: **PASS**
+
+English subject (`Quote ${quoteNumberDisplay} from ${bizTitle}`) parallels the Hebrew case. Decimal-precision fix applies identically to USD/EUR/GBP quotes — `INTL_CURRENCIES`/`INTL_SYMBOLS` confirmed unchanged (same three currencies/symbols, formatting only). `resolveEmailRegion`'s International branch confirmed to never return `₪`/Hebrew for a non-Local business — no VAT/₪ leakage risk introduced.
+
+## CLAUDE LEAD RECONCILIATION: **PASS**
+
+HE and EN findings consistent with each other and with the full source diff; no market-specific fork introduced; the pre-existing currency/locale safety logic is completely untouched by this change.
+
+---
+
+## DEPLOYED SOURCE INTEGRITY: **PASS**
+
+Downloaded the newly-deployed v25 source directly from Production and diffed it against the approved local source — only expected formatting/TS-stripping differences; all three required changes confirmed present via direct inspection (`quote_number` in select, no executable `Math.round()` remaining — the two grep hits on "Math.round" are Hebrew *comments* describing the historical bug, not code — and `quoteNumberDisplay` logic present with real `A${quoteRow.quote_number}` construction). Nothing unauthorized found.
+
+## REAL EMAIL SENT: **NO**
+## END-TO-END EMAIL DELIVERY TEST: **NOT PERFORMED**
+## PRODUCTION QUOTE CREATED: **NO**
+## PRODUCTION DB MUTATED: **NO** — row count confirmed genuinely unchanged at 30 via a correct isolated query
+## TEST MUTATED: **NO** — both functions confirmed unchanged (identical versions and hashes)
+## GET-PUBLIC-QUOTE: **UNCHANGED** — still v8, identical hash (`e26caab7...`) before and after this task
+## FRONTEND MUTATED: **NO**
+## VERCEL DEPLOYED: **NO**
+## MAIN PUSH: **NO** — local `main` ahead of `origin/main` (13 commits at task start, plus this task's own continuity commits), all unpushed
+## DAVID ALUMINUM MUTATED: **NO** — not referenced in any way
+
+---
 
 ## WAVE 2: **PASS / INTACT**
-## WAVE 3: **IN PROGRESS**
+## WAVE 3: **IN PROGRESS** — both Edge Functions now deployed and source-verified; only the separately-gated end-to-end send test remains outstanding
 ## WAVE 4: **NOT STARTED**
 
-## FUNCTION 1 CURRENT STATE — get-public-quote: **DEPLOYED / VERIFIED PASS**
+## ROLLBACK: **NOT REQUIRED**
 
-Production version: **v7 → v8**.
+No integrity/safety failure occurred. The pre-deployment Production v24 source remains preserved in isolated scratch as the rollback artifact regardless.
 
-**Exact material deployed change**: `attn_name, attn_role` added to the `.select()`; `attn_name: quote.attn_name, attn_role: quote.attn_role` added to the response object. Nothing else.
-
-**Verification evidence**: local commit `f25e702` (not pushed to `main`); post-deploy source downloaded fresh from Production and diffed against the approved source — only formatting/TS-stripping differences (expected artifact of the download/bundle round-trip), `attn_name`/`attn_role` confirmed present, nothing unrelated; `send-quote-email` confirmed completely untouched (v24, byte-identical hash); TEST untouched; Production DB row count confirmed genuinely unchanged at 30 (one transient false-alarm query bug of the executor's own making — a `count(*)` missing its `FROM public.quotes` clause — caught and corrected immediately, disclosed transparently); `main` not pushed.
-
-**Rollback readiness**: pre-deployment v7 source preserved in isolated scratch; single-command rollback available (`supabase functions deploy get-public-quote --project-ref ixabnzhjeqevtbhdfswv` using the saved v7 source) if ever needed.
-
-**LOCAL status**: TEST-mode dev server (`npm run dev:localtest`) started as a separate operational step, confirmed reachable at `http://localhost:5186/`.
-
-## FUNCTION 2 CURRENT STATE — send-quote-email: **NOT DEPLOYED / PENDING SEPARATE OWNER AUTHORIZATION**
-
-Zero edit, zero commit, zero deploy, zero email sent for this function at any point. Three real, TEST-verified-since-2026-08-30 changes are documented and ready for its own future gate: `quote_number` added to the select; a money-rounding bug fix (Production's current `Math.round()` silently drops cents/agorot from every real customer email); real quote numbers shown in the email subject instead of a UUID fragment.
+**Terminology applied precisely, per instruction**: this task proves deployment and source parity — the correct code is now live on Production. It does **not** prove end-to-end email delivery or customer-visible email behavior, since no send was authorized or attempted. Function 2 must not be described as "end-to-end LIVE verified" until a separately-authorized send test occurs in its own future task.
 
 ---
 
-## WORKFLOW COMPLIANCE MISS: **RECORDED**
-
-The Function 1 LIVE execution task reached a genuine, meaningful checkpoint (a real Production deployment, verified PASS) but ended without performing its own mandatory Six-File Continuity write. Detected and corrected by Owner + ChatGPT before Function 2 was authorized. No additional runtime mutation occurred as a consequence of the miss, and Function 1's own deployment/verification outcome is unaffected and remains PASS. **Classified explicitly as a workflow/process compliance gap in *when* continuity was performed — not a defect in Function 1 or in any runtime state.** Recorded in `PROFLOW_PROJECT_CONTEXT.md` §115 (Function 1 addendum), `PROFLOW_TODO.md`, and `PROFLOW_HANDOFF.md` §18.FK.
-
-## PERMANENT SIX-FILE RULE: **CLARIFIED**
-
-`PROFLOW_PROJECT_CONTEXT.md` §0.B extended with new sub-points **J–M**: (J) Six-File Continuity is inherited automatically by every ProFlow task, independent of whether that task's own prompt restates or mentions it; (K) a task-specific FINAL STOP ends that task's scope of *authorized action* but does not, by itself, waive the standing continuity requirement; (L) the one legitimate exception is an explicit safety/forensic STOP-BEFORE-WRITE (as the Post-BSOD reconstruction correctly used) — continuity is then *deferred and stated as pending*, never silently skipped, and must be performed by the very next task that lifts the restriction; (M) Claude must not treat a task prompt's silence on continuity as evidence that continuity is optional for that task. The existing six-file architecture, the six canonical files themselves, and the pre-existing §0.B.A–I rules are all preserved unchanged — no seventh file was created, no existing rule was weakened.
-
----
-
-## APPLICATION MUTATION: NONE
-## TEST MUTATED: NO
-## PRODUCTION RUNTIME MUTATED BY THIS REPAIR TASK: NO
-## VERCEL DEPLOYED: NO
-## MAIN PUSH: NO
-
----
-
-## SIX-FILE LEDGER
+## SIX-FILE CONTINUITY LEDGER
 
 **PROFLOW_PROJECT_CONTEXT.md**
 STATUS: **UPDATED**
-REASON: §115 extended with the Function 1 addendum (Wave 3 restart, full source diff, gate, deployment, verification) plus the workflow-compliance-miss record; §0.B extended with permanent-rule sub-points J–M.
+REASON: New §115 addendum records the full Function 2 fresh bootstrap, repeated source proof, HE/EN/Claude Lead reviews, deployment, and post-deploy verification — the canonical detailed record.
 
 **PROFLOW_CHAT_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: §14 resume pointer rewritten to lead with Function 1 DEPLOYED/VERIFIED PASS and Function 2 pending — the next session's first read now reflects real progress, not "Wave 3 NOT EXECUTED."
+REASON: §14 resume pointer rewritten to lead with both functions now deployed and source-verified PASS, end-to-end send still outstanding.
 
 **PROFLOW_ARCHITECTURE.md**
 STATUS: **UPDATED**
-REASON: §14.A's deployment-desync note updated — `get-public-quote` now correctly described as live v8 with Attn data; `send-quote-email` still correctly described as stale/pending.
+REASON: §14.A's deployment-desync note updated from "partially resolved" to "resolved" — both functions now correctly described as deployed (v8/v25), with the end-to-end delivery caveat stated explicitly.
 
 **PROFLOW_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: §18.FK carries the full Function 1 execution record plus a workflow-compliance-miss historical note.
+REASON: New §18.FL appended with the full Function 2 execution record.
 
 **PROFLOW_TODO.md**
 STATUS: **UPDATED**
-REASON: Continuity log extended with the Function 1 outcome, Item 18's DB+display completion, and the workflow-compliance-miss cross-reference.
+REASON: Continuity log extended with the Function 2 outcome; Item 17/18's Edge Function deployment work marked fully complete, only end-to-end send remaining.
 
 **PROFLOW_CLAUDE_LATEST_REPORT.md**
 STATUS: **UPDATED**
-REASON: This file, fully rewritten to carry the newest completed meaningful checkpoint (this repair task), per its established report-transport role.
+REASON: This file, fully rewritten to carry the newest completed meaningful checkpoint.
 
 No file was silently skipped.
 
@@ -106,13 +138,15 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-`d38383425e066195e5d4f8835fffa72106df77ea` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Function 1 continuity repair + permanent compliance correction (all six files). Matching commit exists locally on `main` (`63728b0`), **not pushed**, per `MAIN PUSH: NO`.
+*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB SIX-FILE READ-BACK: **PASS**
+*(recorded after push — see chat-level Final Report.)*
 
-Verified via GitHub API immediately after the `d383834` push: branch ref SHA for `proflow-continuity` matches `d38383425e066195e5d4f8835fffa72106df77ea` exactly. All six canonical files return HTTP 200 (`PROFLOW_HANDOFF.md`, >1MB, fetched via the Git Blobs API since it exceeds the Contents API's inline size limit). Real committed content decoded and confirmed for all six: this report's `STATUS: **PASS**`, `WORKFLOW COMPLIANCE MISS: **RECORDED**`, `PERMANENT SIX-FILE RULE: **CLARIFIED**`, and Function 1's `DEPLOYED / VERIFIED PASS` marker; `PROFLOW_PROJECT_CONTEXT.md`'s new §0.B.J permanent-rule text and the workflow-compliance-miss record; `PROFLOW_CHAT_HANDOFF.md`'s resume pointer leading with Function 1's outcome; `PROFLOW_ARCHITECTURE.md`'s v8 update; `PROFLOW_TODO.md`'s and `PROFLOW_HANDOFF.md`'s compliance-miss cross-references.
+## REMOTE GITHUB SIX-FILE READ-BACK
+
+*(recorded after push and API verification — see chat-level Final Report.)*
 
 ---
 
@@ -120,7 +154,7 @@ Verified via GitHub API immediately after the `d383834` push: branch ref SHA for
 
 ## NEXT SAFE STEP
 
-Owner + ChatGPT review only. If satisfied, a future, separately-gated task may present and seek authorization for Function 2 (`send-quote-email`) using the diff already documented in the Function 1 addendum.
+Owner + ChatGPT review. If satisfied, a future, separately-gated task may authorize an actual end-to-end send test for `send-quote-email` (with a safe, approved recipient path, never a real customer).
 
 ---
 
@@ -128,4 +162,4 @@ Owner + ChatGPT review only. If satisfied, a future, separately-gated task may p
 
 After continuity is remotely verified, notify the Owner via the configured Windows popup + audible alert.
 
-FINAL STOP. DO NOT DEPLOY send-quote-email. DO NOT START WAVE 4. WAIT FOR OWNER + CHATGPT REVIEW.
+FINAL STOP. DO NOT PERFORM AN EMAIL-SEND TEST. DO NOT START WAVE 4. WAIT FOR OWNER + CHATGPT REVIEW.

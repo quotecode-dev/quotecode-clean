@@ -4577,3 +4577,17 @@ WAVE 2: PASS/INTACT (unaffected). WAVE 3: IN PROGRESS. WAVE 4: NOT STARTED. Rest
 Fresh re-verification at this continuity-write task found zero drift from the Function 1 report - all facts confirmed unchanged.
 
 **Workflow-compliance history note**: the Function 1 execution task above ended without performing its own mandatory Six-File Continuity write - a process gap, not an application/runtime failure, since Function 1's deployment/verification outcome (PASS) is itself unaffected. Detected and repaired by Owner + ChatGPT before Function 2 was authorized, with the permanent Six-File rule subsequently clarified (`PROFLOW_PROJECT_CONTEXT.md` §0.B.J-M: continuity is inherited by every task automatically, independent of whether that task's own prompt restates it).
+
+## §18.FL. Wave 3 — Function 2 (send-quote-email) DEPLOYED, source-verified PASS; end-to-end email delivery NOT YET TESTED (2026-09-01)
+
+WAVE 2: PASS/INTACT. WAVE 3: IN PROGRESS - both functions now deployed. WAVE 4: NOT STARTED. Fresh bootstrap + state re-verified before mutation, zero contradiction. Pre-mutation source proof repeated fresh (not reused): all three sources (Production, TEST, local) byte-identical to the original gate diff - zero drift. Every named risk category re-checked explicitly and found clean: no TEST refs/URLs, `PROD_ORIGIN` identical real domain everywhere, pre-existing (not new) console logging, recipient/sender/Resend/auth logic byte-equivalent aside from formatting, `resolveEmailRegion` (HE/EN currency safety) logically identical.
+
+**Agent HE: PASS** - real quote numbers correctly shown in Hebrew subject, agorot precision preserved. **Agent EN: PASS** - real quote numbers in English subject, USD/EUR/GBP unaffected, no ₪/VAT leakage risk. **Claude Lead: PASS** - reconciled, no market-specific fork.
+
+**Local source required zero edit** - already the approved implementation, committed since `ffc741d`, well before this Wave 3 effort. No new commit needed. Lightweight `node --check` syntax check passed; Deno-specific validation deferred to the CLI's own bundling step (no local `deno` install).
+
+**Deployment**: Production target re-confirmed immediately before deploy. `send-quote-email` v24 → v25. New bundle hash byte-identical to TEST's own deployed hash - strong independent correctness confirmation.
+
+**Post-deploy verification, non-sending only**: freshly downloaded v25 source diffed against approved source (only expected formatting differences), all three required changes confirmed present, `get-public-quote` unchanged (v8), TEST unchanged (both functions), Production DB row count confirmed genuinely unchanged at 30, no email sent, no quote created, no real customer used, David Aluminum not referenced, `main` not pushed, Vercel/frontend untouched.
+
+**Deployed source integrity: PASS. Rollback: NOT REQUIRED** (pre-deploy v24 source preserved regardless). **Both Wave 3 functions are now deployed to Production.** This proves deployment/source parity only - it does NOT prove end-to-end email delivery. End-to-end send verification is NOT PERFORMED and requires its own separate Owner authorization in a future task.
