@@ -85,7 +85,7 @@ serve(async (req) => {
       .select(`
         id, user_id, created_at, valid_until, tax_rate, subtotal, total,
         discount, terms, warranty, notes, subject, status, signature, currency, client_type,
-        quote_number,
+        quote_number, attn_name, attn_role,
         clients ( company_name, email, phone, address ),
         quote_items ( description, quantity, unit_price, total_price )
       `)
@@ -121,6 +121,8 @@ serve(async (req) => {
       quote: {
         id: quote.id,
         quote_number: quote.quote_number,
+        attn_name: quote.attn_name,
+        attn_role: quote.attn_role,
         created_at: quote.created_at,
         valid_until: quote.valid_until,
         tax_rate: quote.tax_rate,
