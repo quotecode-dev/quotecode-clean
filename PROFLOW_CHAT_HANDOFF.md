@@ -1453,6 +1453,10 @@ redeployments, in that order, with HE+EN verification at each stage).
 
 After that, continue toward the Pre-LIVE Gate.
 
+## 14.Z Next Major Product Priority, Post-Recovery — Professional/Industry-Aware Quote Item Model (added 2026-09-01, Document New High-Priority Product Initiative task, DOCUMENTATION ONLY, NOT STARTED)
+
+**Read this once Recovery is stabilized/closed — it names what comes next, ahead of Admin UI.** The Owner reviewed a real David Aluminum quote and identified a major gap: its commercial price rows are fully disconnected from the actual professional work specification (apartment/location, screen/window type, and many real dimension pairs like `265×161`, `226×89`, `214×100`...), which today sits only in free-text Additional Notes. This is now a **HIGH-PRIORITY POST-RECOVERY PRODUCT INITIATIVE** — the Owner's designated **first major product-design/workstream after Recovery closes, explicitly ahead of Admin UI redesign**. Core new insight: `PRICING UNIT ≠ SPECIFICATION DATA` (an item can be priced strictly per-unit while still carrying dimensions/location/type as pure specification data — dimensions must never automatically imply "price by area"). Full detail — three item classes (Simple/Dimensional/Professional), Business Profile + Industry Template, an exploratory industry/unit matrix, repeating measurement-row UI concept, catalog integration, manual-vs-calculated quantity, a future AI-parsing opportunity, and the required design-first checklist — lives at `PROFLOW_TODO.md` item **30.E**, with architecture cross-references at `PROFLOW_ARCHITECTURE.md` §14.C and `PROFLOW_PROJECT_CONTEXT.md` §95's addendum. **Status: documentation/design-backlog only — not designed, not implemented, not started.** Order once Recovery closes: (1) confirm stable baseline; (2) begin detailed, Owner-approved product design for this item (design-first, no coding before approval); (3) only then return to lower-priority Admin UI work, unless the Owner changes priority.
+
 ## 15.A Claude Latest Report Workflow (added 2026-08-28)
 
 `PROFLOW_CLAUDE_LATEST_REPORT.md` (repository root) holds only the newest

@@ -4,105 +4,39 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 3 / Function 2 — send-quote-email Production Deployment
+## Task: Document New High-Priority Product Initiative — Professional / Industry-Aware Quote Item Model
 
-Continues directly from the remotely-verified checkpoint: Wave 2 PASS/INTACT, Wave 3 IN PROGRESS, Function 1 (`get-public-quote`) DEPLOYED/VERIFIED PASS, Function 2 (`send-quote-email`) NOT DEPLOYED, Wave 4 NOT STARTED.
-
-**Owner LIVE authorization explicitly granted for this Function 2 deployment only. No email sent, no Production quote created, no other mutation performed.**
+**Documentation only. No application code, database, TEST, Production, Edge Function, or Vercel change of any kind. Does not affect Wave 3's own state (Function 1/Function 2 remain exactly as reported previously — Wave 3 IN PROGRESS, end-to-end send test still pending).**
 
 ---
 
-## TASK: Wave 3 / Function 2 — send-quote-email Production Deployment
-## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
+## TASK: Document New High-Priority Product Initiative
+## EFFORT: EXHAUSTIVE / PRODUCT-DESIGN DOCUMENTATION
 ## STATUS: **PASS**
 
 ---
 
-## PRE-DEPLOY PROD VERSION: `v24` (`updated_at=1787664105944`, hash `456e606b...`)
-## POST-DEPLOY PROD VERSION: `v25` (`updated_at=1788219913416`, hash `3d532cfc...`)
+## WHAT THIS TASK RECORDS
 
-**Notable**: the new deployed bundle hash is byte-identical to TEST's own deployed bundle hash — an independent correctness signal beyond the source-file diff.
+The Owner reviewed a real existing David Aluminum quote and identified a major product opportunity: its commercial price rows (`8 units × ₪1,250 = ₪10,000`) are fully disconnected from the actual professional work specification (apartment/location, screen/window type, and many real dimension pairs — `265×161`, `226×89`, `214×100`, `211.5×99`, `106×69.5`, `114×69.5`, `112.5×68`, `90×49.5`, others) currently trapped in free-text Additional Notes. **Core insight: much of what sits in Additional Notes today is not actually a note — it is structured work-specification data with no other home.**
 
-## LOCAL FUNCTION COMMIT
+**Critical new distinction**: `PRICING UNIT ≠ SPECIFICATION DATA`. The reviewed item is priced strictly per-unit — dimensions have zero effect on the commercial calculation — yet the customer still needs to see dimensions, location, and type. Dimensions must never automatically imply "price by area."
 
-**None required.** `git diff -- supabase/functions/send-quote-email/index.ts` was empty before this task began — local source already contained the exact approved implementation, committed since `ffc741d` ("prepare cross-market quote release candidate"), well before this Wave 3 effort began. The already-committed `HEAD` state (`56af44f` at task start) was deployed as-is; no new commit was created since nothing changed.
+**Three proposed item behavior classes**: Simple (`quantity × unit price`, must stay effortless), Dimensional (quantity derived from dimensions, e.g. `width × height → m² → price`), Professional/Calculated (profession-dependent formulas — linear meter, kg, hour, etc.; advanced calculation not required in a first version, but the architecture must not block it later).
 
-## AUTHORIZED MATERIAL DELTA
+**Business Profile + Industry Template**: profession selection suggests relevant units/fields/behavior without permanently locking the business to them — avoids showing irrelevant units (an electrician shouldn't normally see "ton"). An exploratory, non-final industry/unit matrix was recorded across 15 industry categories.
 
-1. `quote_number` added to the `quotes` `.select()`.
-2. Money-rounding bug fix: removed `Math.round()` that silently dropped cents/agorot before formatting the emailed total.
-3. Real quote number (`A100700` etc.) used in the email subject when available, with the previously-reviewed UUID-fragment fallback preserved when unavailable.
+**Other recorded concepts**: repeating measurement/sub-item rows as a concrete UI idea (design only, not approved); Catalog integration (catalog items defining pricing-unit/specification defaults); manual vs. calculated quantity as an explicit future distinction; a future AI opportunity (parsing pasted/dictated dimension text into structured items) explicitly preserved, not implemented; customer-facing presentation principles; full HE/EN and Local/International market-separation compliance (per the existing permanent rule); backward compatibility with existing simple quote items and David Aluminum's real historical data; an explicit anti-overengineering commitment (`"Service — 2 × ₪500"` must remain trivially easy).
 
-Confirmed via fresh, complete three-way diff (Production/TEST/local) that these are the **only** material differences — everything else is formatting/TS-type-stripping.
+**Priority decision, the most operationally important fact recorded**: after the current Recovery program is safely stabilized/closed, this becomes the Owner's designated **first major product-design/workstream — explicitly ahead of Admin UI redesign/further Admin interface work.** Order: (1) finish/stabilize Recovery; (2) confirm Recovery closure/stable baseline; (3) begin detailed, Owner-approved design for this item (design-first, no coding before approval); (4) only then return to lower-priority Admin UI work.
 
----
-
-## BOOTSTRAP + FRESH STATE (before any mutation)
-
-`proflow-continuity` ref unchanged since the last checkpoint (confirms the six files still reflected exactly what had just been read/verified). `HEAD = 56af44f129d374b40246aa0e85e714ebb8629482` (with `f25e7025bcb2b6bfff53e6945d27b097ae27cfe8`, the Function 1 commit, confirmed an ancestor), working tree clean apart from the standing untracked `src/entry-server.jsx` (untouched). `origin/main = dd11015` (13 commits behind local, unpushed). Production identity re-proven via `supabase/.temp/project-ref = ixabnzhjeqevtbhdfswv`. Production `get-public-quote v8`/`send-quote-email v24` and TEST `v2`/`v1` all matched the documented baseline exactly. Production `quotes` row count confirmed 30. Local dev server confirmed reachable at `http://localhost:5186/`. **No material contradiction found — proceeded.**
-
-## PRE-MUTATION SOURCE PROOF (repeated fresh, not reused from the earlier gate)
-
-Downloaded current Production and TEST `send-quote-email` source again into fresh isolated scratch (Production copy preserved as rollback source). SHA-256 of all three sources (Production `c2ed67ea...`, TEST `7098a457...`, local `c108dd7b...`) byte-identical to the original gate-preparation diff — zero drift in any of them since. Re-ran the complete diff and explicitly checked every named risk category:
-
-| Risk category | Result |
-|---|---|
-| TEST project references | None found |
-| TEST-only URLs | None found |
-| TEST secrets/config assumptions | None found |
-| Debug/capture instrumentation | Only the same two pre-existing `console.log`/`console.error` lines present in all three sources — not new |
-| Recipient-routing differences | None — `clientEmail` from real DB lookup, unchanged |
-| Resend API behavior changes | None — endpoint, sender, auth header byte-equivalent aside from formatting |
-| Auth/session validation changes | None — `callerClient.auth.getUser()` + ownership check unchanged |
-| Error-handling changes | None |
-| Unexpected logging changes | None |
-| Unrelated subject/body changes | None beyond the authorized `quoteNumberDisplay` |
-| Currency/locale leakage | None — `resolveEmailRegion` confirmed logically identical character-for-character (type annotations only) |
-| HE/EN regressions | None |
-| Production-domain differences | None — `PROD_ORIGIN` hardcoded identically to `https://www.quotecodepro.com` in all three sources |
+**Status: PRODUCT REQUIREMENT / DESIGN BACKLOG, HIGH PRIORITY, OWNER-APPROVED FOR DOCUMENTATION, NOT APPROVED FOR IMPLEMENTATION, NOT STARTED.**
 
 ---
 
-## HE REVIEW: **PASS**
+## WHERE THIS WAS RECORDED (mapped onto existing architecture, not duplicated from scratch)
 
-Hebrew subject (`הצעת מחיר ${quoteNumberDisplay} מ-${bizTitle}`) correctly shows a real per-business number for ILS/Local businesses now that Item 17 is live, falling back to the same 8-char UUID fragment used everywhere else in the app when unavailable. ILS/agorot precision: `displayTotal` now preserves cents (no `Math.round()` silently discarding them). Recipient behavior unchanged regardless of market.
-
-## EN REVIEW: **PASS**
-
-English subject (`Quote ${quoteNumberDisplay} from ${bizTitle}`) parallels the Hebrew case. Decimal-precision fix applies identically to USD/EUR/GBP quotes — `INTL_CURRENCIES`/`INTL_SYMBOLS` confirmed unchanged (same three currencies/symbols, formatting only). `resolveEmailRegion`'s International branch confirmed to never return `₪`/Hebrew for a non-Local business — no VAT/₪ leakage risk introduced.
-
-## CLAUDE LEAD RECONCILIATION: **PASS**
-
-HE and EN findings consistent with each other and with the full source diff; no market-specific fork introduced; the pre-existing currency/locale safety logic is completely untouched by this change.
-
----
-
-## DEPLOYED SOURCE INTEGRITY: **PASS**
-
-Downloaded the newly-deployed v25 source directly from Production and diffed it against the approved local source — only expected formatting/TS-stripping differences; all three required changes confirmed present via direct inspection (`quote_number` in select, no executable `Math.round()` remaining — the two grep hits on "Math.round" are Hebrew *comments* describing the historical bug, not code — and `quoteNumberDisplay` logic present with real `A${quoteRow.quote_number}` construction). Nothing unauthorized found.
-
-## REAL EMAIL SENT: **NO**
-## END-TO-END EMAIL DELIVERY TEST: **NOT PERFORMED**
-## PRODUCTION QUOTE CREATED: **NO**
-## PRODUCTION DB MUTATED: **NO** — row count confirmed genuinely unchanged at 30 via a correct isolated query
-## TEST MUTATED: **NO** — both functions confirmed unchanged (identical versions and hashes)
-## GET-PUBLIC-QUOTE: **UNCHANGED** — still v8, identical hash (`e26caab7...`) before and after this task
-## FRONTEND MUTATED: **NO**
-## VERCEL DEPLOYED: **NO**
-## MAIN PUSH: **NO** — local `main` ahead of `origin/main` (13 commits at task start, plus this task's own continuity commits), all unpushed
-## DAVID ALUMINUM MUTATED: **NO** — not referenced in any way
-
----
-
-## WAVE 2: **PASS / INTACT**
-## WAVE 3: **IN PROGRESS** — both Edge Functions now deployed and source-verified; only the separately-gated end-to-end send test remains outstanding
-## WAVE 4: **NOT STARTED**
-
-## ROLLBACK: **NOT REQUIRED**
-
-No integrity/safety failure occurred. The pre-deployment Production v24 source remains preserved in isolated scratch as the rollback artifact regardless.
-
-**Terminology applied precisely, per instruction**: this task proves deployment and source parity — the correct code is now live on Production. It does **not** prove end-to-end email delivery or customer-visible email behavior, since no send was authorized or attempted. Function 2 must not be described as "end-to-end LIVE verified" until a separately-authorized send test occurs in its own future task.
+This initiative extends a substantial pre-existing backlog item — `PROFLOW_TODO.md` item 30 ("Structured Quote Items / Industry / Measurement / Pricing Engine") already had sub-items 30.A (AI Chat awareness), 30.B (mixed pricing / "industry is not pricing model"), 30.C (Project→Section→Items hierarchy), and 30.D (Admin V2 compatibility), plus an architectural home at `PROFLOW_ARCHITECTURE.md` §14.C and a reconciliation record at `PROFLOW_PROJECT_CONTEXT.md` §95. This task **extends** that existing foundation with the new real-world evidence, the new `PRICING UNIT ≠ SPECIFICATION DATA` distinction, the three item classes, the Business Profile/Industry Template concept, the exploratory unit matrix, and — critically — the new sequencing-priority decision. **No existing architecture, principle, or prior decision was altered or contradicted** — the override hierarchy, mixed-pricing capability, snapshot-immutability discipline, extensibility constraint, and market-separation rules already recorded all remain accurate and unchanged; this work adds concrete grounding and a new priority, nothing more.
 
 ---
 
@@ -110,54 +44,58 @@ No integrity/safety failure occurred. The pre-deployment Production v24 source r
 
 **PROFLOW_PROJECT_CONTEXT.md**
 STATUS: **UPDATED**
-REASON: New §115 addendum records the full Function 2 fresh bootstrap, repeated source proof, HE/EN/Claude Lead reviews, deployment, and post-deploy verification — the canonical detailed record.
+REASON: §95 extended with an addendum recording the real David Aluminum evidence, the new `PRICING UNIT ≠ SPECIFICATION DATA` distinction, and the new sequencing-priority decision, cross-referencing `PROFLOW_TODO.md` item 30.E as the detailed record.
 
 **PROFLOW_CHAT_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: §14 resume pointer rewritten to lead with both functions now deployed and source-verified PASS, end-to-end send still outstanding.
+REASON: New §14.Z added (a forward-looking priority note, distinct from and not replacing §14's current Wave 3 resume pointer) so the next session sees this priority decision clearly without it being lost among Recovery-specific resume detail.
 
 **PROFLOW_ARCHITECTURE.md**
 STATUS: **UPDATED**
-REASON: §14.A's deployment-desync note updated from "partially resolved" to "resolved" — both functions now correctly described as deployed (v8/v25), with the end-to-end delivery caveat stated explicitly.
+REASON: §14.C's header and status extended with the new sequencing-priority declaration and a pointer to 30.E's real-world grounding; the section's own existing architecture (override hierarchy, snapshot integrity, market separation, extensibility, Admin compatibility) is unchanged.
 
 **PROFLOW_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: New §18.FL appended with the full Function 2 execution record.
+REASON: New §18.FM appended as a concise engineering-history cross-reference, consistent with this file's established pattern for major decisions; the substantive record lives in the three files above.
 
 **PROFLOW_TODO.md**
 STATUS: **UPDATED**
-REASON: Continuity log extended with the Function 2 outcome; Item 17/18's Edge Function deployment work marked fully complete, only end-to-end send remaining.
+REASON: Item 30's header/status extended with the new sequencing-priority declaration; new sub-item 30.E added with the complete new detail (real evidence, critical distinction, item classes, industry/unit matrix, repeating-rows concept, Catalog integration, manual-vs-calculated quantity, AI opportunity, design-first checklist, backward compatibility, anti-overengineering commitment) — this is the primary, most detailed home for this initiative, consistent with item 30's existing role as "the one authoritative, detailed definition."
 
 **PROFLOW_CLAUDE_LATEST_REPORT.md**
 STATUS: **UPDATED**
-REASON: This file, fully rewritten to carry the newest completed meaningful checkpoint.
+REASON: This file, fully rewritten to carry this task's outcome.
 
-No file was silently skipped.
+No file was silently skipped. No seventh canonical file was created.
+
+---
+
+## STRICT BOUNDARY CONFIRMED HELD
+
+No application source changes. No DB changes. No TEST mutation. No Production mutation. No Edge Function deployment. No Vercel deployment. No `main` push. No LIVE action. This task did not touch, reference, or alter anything related to Wave 3's own state (Function 1/Function 2 deployment status, unaffected).
 
 ---
 
 ## CONTINUITY COMMIT
 
-`44df721ec5c21a7d997481eaccbe874ea41310ff` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Function 2 deployment record (all six files). Matching commit exists locally on `main` (`f73c7ed`), **not pushed**, per `MAIN PUSH: NO`.
+*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB SIX-FILE READ-BACK: **PASS**
+*(recorded after push — see chat-level Final Report.)*
 
-Verified via GitHub API immediately after the `44df721` push: branch ref SHA for `proflow-continuity` matches `44df721ec5c21a7d997481eaccbe874ea41310ff` exactly. All six canonical files return HTTP 200 (`PROFLOW_HANDOFF.md`, >1MB, fetched via the Git Blobs API). Real committed content decoded and confirmed for all six: this report's `STATUS: **PASS**`, `v25`, `END-TO-END EMAIL DELIVERY TEST: **NOT PERFORMED**`, `REAL EMAIL SENT: **NO**`; `PROFLOW_PROJECT_CONTEXT.md`'s Function 2 addendum; `PROFLOW_CHAT_HANDOFF.md`'s "BOTH Edge Functions now deployed" resume pointer; `PROFLOW_ARCHITECTURE.md`'s "RESOLVED 2026-09-01" status; `PROFLOW_TODO.md`'s Function 2 entry; `PROFLOW_HANDOFF.md`'s §18.FL.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and API verification — see chat-level Final Report.)*
 
 ---
 
-## MATERIAL CONTRADICTIONS: NONE
-
 ## NEXT SAFE STEP
 
-Owner + ChatGPT review. If satisfied, a future, separately-gated task may authorize an actual end-to-end send test for `send-quote-email` (with a safe, approved recipient path, never a real customer).
+Continue and complete the current Recovery program. Once Recovery is stabilized/closed and the Owner confirms, begin the Owner-approved design phase for this initiative (design-first, per the checklist at item 30.E) — ahead of Admin UI work, per the recorded priority.
 
 ---
 
 ## FINAL STOP
 
-After continuity is remotely verified, notify the Owner via the configured Windows popup + audible alert.
-
-FINAL STOP. DO NOT PERFORM AN EMAIL-SEND TEST. DO NOT START WAVE 4. WAIT FOR OWNER + CHATGPT REVIEW.
+FINAL STOP. DOCUMENTATION ONLY — NOT STARTED. WAIT FOR OWNER + CHATGPT REVIEW.
