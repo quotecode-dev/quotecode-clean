@@ -2998,3 +2998,41 @@ All 13 tracked features/threads reviewed individually (Plan/Trial foundation, Ad
 A full post-deploy smoke plan (14 steps) and stop/rollback conditions were prepared for Owner review, not executed. Steps that mutate data are explicitly flagged to use only the already-established authorized TEST identities, never a real customer account.
 
 **No push, no deploy, no migration execution, no Edge Function deployment, no Production mutation of any kind occurred in this task.**
+
+## §107. Production Release — Push + Deployment + Partial Smoke, TEST-Identity Gap Found (2026-08-31)
+
+**Owner-authorized: pushed the certified 19-commit chain, monitored the resulting Vercel deployment, and performed as much post-deploy smoke as was safely possible.**
+
+### Push and deployment: SUCCESS
+
+Fail-closed pre-push check confirmed HEAD `dd11015`, `origin/main` `e030017`, 19 commits ahead, nothing staged, `entry-server.jsx` still untracked — exact match to the certified checkpoint. `git push origin main` succeeded (`e030017..dd11015 main -> main`); `git fetch` + `git rev-parse origin/main` confirmed remote `main` resolves exactly to `dd11015`.
+
+**Deployment confirmed live** via the most decisive possible signal: `quotecode.vercel.app/` — which served independent app content (200 OK) before this push — now returns **308 Permanent Redirect** to `https://www.quotecodepro.com/`. Since this exact fix only exists in `dd11015`, its live presence is itself conclusive proof the new deployment is healthy and serving traffic (asset-hash polling was inconclusive due to edge caching, but this functional signal is definitive and was the actual required check anyway).
+
+### Canonical domain — first live gate: PASS
+
+HTTP: `quotecode.vercel.app/` → 308 → `Location: https://www.quotecodepro.com/`. `curl -L` confirms exactly 1 redirect, final `http_code=200`, no loop. Representative path+query (`/dashboard?lang=he`) → 308 → `Location: .../dashboard?lang=he` (both preserved exactly). **Browser Harness, independently**: navigating to `https://quotecode.vercel.app/` ends the session at `https://www.quotecodepro.com/` (real page renders, correct title). INITIAL HOST: `quotecode.vercel.app`. FINAL HOST: `www.quotecodepro.com`. REDIRECT COUNT: 1. PATH/QUERY PRESERVED: YES/YES. **This closes the live gate that every prior task in this engagement had correctly left open — the canonical-domain repair is now proven live, not just code-ready.**
+
+### Canonical Production health: PASS
+
+`www.quotecodepro.com` HE root (RTL, full landing content) and `/en` (LTR, full landing content) both render correctly; 2 resources loaded (JS+CSS bundle), 0 visible error markers. Mobile viewport (390px) landing page: no horizontal overflow, full content renders.
+
+### DB and Edge Functions confirmed untouched by this deployment
+
+`supabase functions list --project-ref ixabnzhjeqevtbhdfswv`: `send-trial-expiration-email` last updated 146 hours ago, `send-subscription-expiration-email` last updated 196 hours ago — both predate this push by 6-8 days. **Neither Edge Function was deployed by this release**, confirmed via actual Supabase metadata, not assumption. Fresh read-only DB check: `default_warranty`/`warranty` still the only two new columns present (unchanged since §104); `attn_name`/`attn_role` still absent; quote-numbering stats byte-identical (`total=23, distinct=23, min=11, max=89`); **`pg_proc` count for `allocate_quote_number` = 0 — the function does not exist in Production, confirmed directly, not inferred.** ITEM 17: **INACTIVE**, conclusively.
+
+### Authenticated smoke — genuine gap found, handled honestly
+
+Attempted login on the real `www.quotecodepro.com` using both established candidate identities from the Production-pointed `.env` (`PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` and `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD`, the latter matching the `tahshitishi`/`minhatshay` canonical safe-TEST-inbox pattern already established throughout this engagement). **Both returned "Login error: check your credentials or reset password."** — neither is a valid Production Auth account. The login mechanism itself functioned correctly throughout (form rendered, submitted, handled invalid credentials gracefully, no crash, canonical host maintained) — this is a **TEST-identity provisioning gap, not a deployment defect**. Per the task's own explicit prohibitions (never use the real Production Admin, never use a real customer, use only *established* identities — not create new ones), no workaround was attempted: no admin login, no new account creation, no real-customer use.
+
+**Consequence**: Sections 6-15 of the required smoke plan (Auth/session full flow, Admin, plan personas, Warranty live smoke, quote creation + Item-17-watch-during-creation, HE/EN Public Quote via TEST quotes, Signature Pad, Quote History/Dashboard, authenticated responsive checks) **could not be completed** — not failed, genuinely not attempted, since doing so safely requires a valid login this task does not have. Everything that could be verified without authentication (deployment health, canonical redirect, canonical Production health both markets, DB/Edge-Function non-mutation, Item 17 inactivity, static security) is fully PASS.
+
+### Verdict — precise, not inflated
+
+Per the task's own explicit rule ("Do not declare GREEN based on partial completion"), **FINAL PRODUCTION STATUS cannot be marked unconditional GREEN**, since several explicitly-required gates were not completed. This is **not** a rollback-triggering condition — zero evidence of any actual defect was found in anything checked, the deployment is healthy, and the single hardest-won fix in this whole engagement (the canonical redirect) is now proven live. The precise characterization is: **deployment verified healthy and correct wherever checkable; full certification pending Owner resolution of the TEST-identity gap** — not "BLOCKED" in the sense of something being wrong, but in the sense of the checklist's own strict completion bar not being met.
+
+### Genuine Owner decision required (not resolved by this task)
+
+How to proceed with authenticated Production smoke: (a) confirm/provide a valid Production TEST identity (perhaps `PROFLOW_TEST_LOCAL`/`PROFLOW_TEST_INTL` need a password reset, or were never actually provisioned on Production specifically — unclear from here); (b) explicitly authorize creating a new, clearly-labeled Production TEST account now (a genuine new mutation, needing its own authorization, not assumed by this task); or (c) accept the current unauthenticated-only verification as sufficient for now and defer full authenticated smoke to a follow-up.
+
+**No unauthorized Production mutation occurred.** No migration executed. No Edge Function deployed. No real-customer data touched. No secret exposed.
