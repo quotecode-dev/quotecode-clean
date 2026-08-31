@@ -4,121 +4,114 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Subscription/Billing/Entitlement System-Wide Audit + Two Owner-Approved Trial-Bar Corrections
+## Task: Complete Subscription Foundation Audit + Email Reminder Verification + Permanent Continuity Auto-Sync Rule
 
-**EFFORT LEVEL: VERY HIGH.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §91 (and §90 for the immediately-preceding Zero-Layout-Shift Fix + first-pass audit). No commit, no push, no Production, no DB/Supabase/Auth mutation.
-
----
-
-## PART A
-
-**TRIAL BAR VERTICAL ADJUSTMENT:** `top` offset changed from `calc(100% + 2px)` to `calc(100% - 6px)` (8px net upward shift, both bar variants) within the existing absolute-positioning track — no new mechanism, no document-flow height reintroduced.
-
-**HE DESKTOP SHIFT:** 0px
-**EN DESKTOP SHIFT:** 0px
-**HE MOBILE SHIFT:** 0px
-**EN MOBILE SHIFT:** 0px
-
-(Re-verified visible → dismissed → visible-again, all 4 combinations, live-clicked — control-row/`<thead>`/first-row (desktop) and control-row/first-card (mobile) byte-identical across every state.)
-
-**EXPIRED HE MESSAGE:** `תקופת הניסיון הסתיימה, הועברת למסלול FREE`
-**EXPIRED EN MESSAGE:** `Your trial has ended — you've been moved to the FREE plan.`
-
-No CTA added on either side (the old "אנא שדרג"/"Please upgrade." suffix removed entirely, per explicit Owner product decision). Only the `isTrialExpired` branch text changed — `isExpiringSoon` branch and all entitlement logic untouched. **Disclosed limitation**: no TEST account currently has a genuinely past `trial_ends_at` (creating one is out of scope), so verified via source/lint/111-tests only, not a live screenshot of the expired variant specifically.
-
-**OWNER VISUAL APPROVAL:** PENDING
+**EFFORT LEVEL: HIGH.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §92 (and §17.K for the new permanent continuity rule). Continues directly from §91/§18.EC — not restarted. Zero code touched this task.
 
 ---
 
-## PART B — SYSTEM-WIDE READ-ONLY AUDIT
-
-**CURRENT ARCHITECTURE:** Two columns on one table (`business_settings.plan`, `business_settings.trial_ends_at`) drive everything, resolved through one shared pure function, `computeEffectivePlan()`. A DB trigger enforces who may write those two columns. No billing provider is connected. Two Admin surfaces re-derive plan/lifetime status with their own duplicated logic instead of calling the resolver — this is a live bug, not a theoretical risk (below).
-
-**CURRENT SOURCE(S) OF TRUTH:** `business_settings.plan` (text, default `'free'`) + `business_settings.trial_ends_at` (nullable timestamptz, overloaded to also mean "Lifetime grant" when null). **No subscription/billing table or field exists anywhere** — confirmed against the live-production schema capture.
-
-**ALL CURRENT WRITERS:** signup (`Dashboard.jsx:847`, RLS-restricted to exactly `free/null` or `pro/+14d±2h`), self-cancel (`PricingModal.jsx:74`, immediate/unconditional `free+null`), `handleToggleLifetime` (admin, `trial_ends_at` only), `handleExtendTrial14Days` (admin), a DB `BEFORE UPDATE` trigger (`guard_business_settings_plan_trial`) rejecting any other writer, `send-trial-expiration-email` (reminder-flags only, correctly wired), `send-subscription-expiration-email` (deployed but references 3 non-existent DB columns — **confirmed bug**). No other writer found in migrations/RPCs/functions.
-
-**COMPLETE USER-LIFECYCLE MATRIX:** 29 states audited (signup through duplicate/out-of-order billing webhooks), each marked IMPLEMENTED/PARTIAL/AMBIGUOUS/NOT IMPLEMENTED against both current reality and the Owner's required future state. Headline results: Active Trial/Expired-to-FREE fully IMPLEMENTED; BASIC and non-trial-PRO marked AMBIGUOUS (entitlement math exists, state is DB-unreachable via any real purchase); all purchase/renewal/payment-failure/upgrade/downgrade/webhook states (9 of 29) marked NOT IMPLEMENTED — no billing provider exists; **cancel-with-entitlement-until-period-end marked NOT IMPLEMENTED** against the Owner's explicit requirement — current cancellation is immediate and unconditional. Full table in `PROFLOW_PROJECT_CONTEXT.md` §91.
-
-**BILLING GAPS:** No payment provider connected anywhere. `billing-checkout-stub` is an explicit, self-documented scaffold (`checkoutUrl: null` always). No customer ID, subscription ID, price ID, payment-status field, webhook endpoint, or idempotency/reconciliation mechanism exists. **Bug found**: `send-subscription-expiration-email` queries `subscription_ends_at`/`subscription_reminder_3d_sent`/`subscription_reminder_24h_sent` — none exist in the live-production schema (confirmed by contrast with its correctly-wired sibling `send-trial-expiration-email`). Could not confirm from the repo whether it's actually invoked on a schedule (no Vercel `crons` entry; a `pg_cron` job wouldn't appear here).
-
-**ADMIN CONSISTENCY RISKS:** **Live, reproducible bug, not hypothetical.** `UserDetailsModal.jsx:50` and `AdminUsersTab.jsx:302` both independently compute `isLifetime = isSuperAdminUser || trial_ends_at === null/undefined`, bypassing `computeEffectivePlan()` entirely. A self-cancelled FREE user (`plan:'free', trial_ends_at:null`) is correctly shown FREE by their own Dashboard but **"PRO (Lifetime)"** with a Crown badge on both Admin screens — `trial_ends_at IS NULL` is used as a Lifetime proxy but is also the self-cancel signature; the two states are indistinguishable from that one field alone. `AdminUsersTab.jsx` carries a comment showing the author was aware of `effectivePlan`'s expired-trial-to-FREE behavior but didn't anticipate self-cancel producing the identical shape.
-
-**ENTITLEMENT MATRIX:**
-
-| Feature | FREE | BASIC | PRO | ACTIVE TRIAL |
-|---|---|---|---|---|
-| Monthly quote limit | 5 | 20 | ∞ | ∞ (resolves as PRO) |
-| Edit / Duplicate | ✗ | ✓ | ✓ | ✓ |
-| WhatsApp / Delete | ✗ | ✗ | ✓ | ✓ |
-| Attachments (30MB) | ✗ | ✗ | ✓ | ✓ |
-| Digital signature | ✓ | ✓ | ✓ | ✓ (never gated anywhere) |
-| Income/Revenue | ✓ | ✓ | ✓ | ✓ (never gated anywhere) |
-| "Upgrade Plan" CTA | ✓ | ✓ | ✗ | ✗ |
-
-ACTIVE TRIAL listed separately per Owner decision; its entitlement column is currently identical to PRO — the gap is representational (badge), not access-control. Quote limits are duplicated in two places already (`Dashboard.jsx:1729` display + `:2026` enforcement) — a latent drift risk even before any new plan is added.
-
-**PACKAGE BADGE INPUT RECOMMENDATION:** Must consume a dedicated `badgeState` (`TRIAL|FREE|BASIC|PRO`) from the future canonical resolver exclusively — never locale, display text, trial-bar visibility, CSS state, or PricingModal selection.
-
-**CANONICAL MODEL PROPOSAL:** Separate 4 currently-collapsed concepts — PLAN/TIER, TRIAL STATUS, SUBSCRIPTION STATUS (doesn't exist today), EFFECTIVE ENTITLEMENT (always derived, never stored). `business_settings.plan`/`trial_ends_at` should **remain** (works, DB-enforced) and be **extended** with a parallel subscription axis, not superseded.
-
-**SINGLE RESOLVER RECOMMENDATION:** Keep `computeEffectivePlan()` exactly as-is (narrow, correct, DB-enforced) for the trial axis. Add a new thin wrapper (conceptually `resolveAccountEntitlement()`) composing it with the new subscription axis + a plan catalog, returning one structured object every consumer reads from — directly retires the Admin bug above without a big-bang rewrite.
-
-**LEGACY/MIGRATION RISKS:** Existing active/expired trials migrate unchanged. **The FREE-vs-Lifetime classification risk is real**: a row with `plan:'free', trial_ends_at:null` cannot be safely auto-classified after the fact (self-cancel and admin-Lifetime produce the identical shape) — migration requires a manual Owner-supplied list of genuine Lifetime grants; everything else defaults to genuine self-cancel FREE. No data mutation performed or proposed.
-
-**REQUIRED STATE-TRANSITION TEST MATRIX:** Cross {trial states} × {subscription states} × {tier} × {HE,EN} × {Desktop,Mobile} × {badge, Admin display, notice, feature-gate, quote-limit}. Highest-priority test: assert Dashboard-badge === Admin-display === feature-access agree for every one of the 29 lifecycle states — the exact class of bug already found live.
+**OWNER DECISIONS INCORPORATED:** PASS — BASIC sellable (₪0/₪49/₪99 unchanged), upgrade immediate on payment, downgrade deferred to `current_period_end`, cancellation = `CANCEL_AT_PERIOD_END`, expired-trial message finalized, Active Trial distinct from paid PRO (future `TRIAL` badge) — all incorporated into the architecture proposal only, zero implementation.
 
 ---
 
-## FUTURE PLAN EXTENSIBILITY: FAIL
+## EMAIL REMINDER AUDIT
 
-**NEW PLAN ADDITION REQUIRES:** multiple scattered code changes, not one centralized extension.
+**TRIAL FUNCTION:** `supabase/functions/send-trial-expiration-email/index.ts`
 
-**HARDCODED PLAN COUPLING FOUND:** `planEntitlements.js:48-64`, `Dashboard.jsx:1729` (display limit) and `:2026` (enforcement limit, a second independent copy), `AdminUsersTab.jsx:708-717,954-960`, `UserDetailsModal.jsx:105` — 6+ call sites, each with its own `plan === 'x'` ternary/if-chain, none reading from a shared table. RLS INSERT policy is a 7th, unavoidable DB-level literal.
+**TRIAL 3-DAY REMINDER:** BROKEN
+**TRIAL 24H REMINDER:** BROKEN
 
-**RECOMMENDED PLAN CATALOG MODEL:** A single in-code `planCatalog.js` object keyed by stable internal plan ID (never display name), each entry carrying `{monthlyQuoteLimit, attachments, whatsappDelete, editDuplicate, sellable, hidden}`. Every current hand-written branch becomes `catalog[tier].<field>`. A new tier becomes one catalog entry.
+Root cause, newly found this task, `index.ts:242`: `if ((biz.plan || 'free').toLowerCase() !== 'free') continue;` — skips any candidate whose raw `plan` isn't `'free'`. A genuine trial signup's raw `plan` is always `'pro'` (written at signup alongside `trial_ends_at`, never mutated mid-trial) — so this filter excludes essentially every real trial user, independent of the scheduler question below.
 
-**BACKWARD-COMPATIBILITY STRATEGY:** Existing `plan` values become catalog keys unchanged — zero migration for existing rows. `sellable:false`/`hidden:true` flags support future-reserved/grandfathered tiers without schema change. Resolver must fall back to `free` for any unknown/removed plan value rather than throwing.
+**SUBSCRIPTION FUNCTION:** `supabase/functions/send-subscription-expiration-email/index.ts`
+
+**SUBSCRIPTION 3-DAY REMINDER:** BLOCKED
+**SUBSCRIPTION 24H REMINDER:** BLOCKED
+
+Re-confirmed from §91: `.select()` (line 230) queries `subscription_ends_at`, `subscription_reminder_3d_sent`, `subscription_reminder_24h_sent` — none exist in the live-production schema; this query would fail whenever the batch path executes. Even if fixed, no real BASIC/PRO subscription row with a populated `subscription_ends_at` can exist today (no billing integration writes it).
+
+**SCHEDULER:** No Vercel `crons` entry in `vercel.json`; no `.github/` directory exists at all (no GitHub Actions). A `pg_cron` job or fully external scheduler could not be confirmed or ruled out from available read-only evidence — direct Postgres-level `cron.job` inspection was not attempted (out of proportion for this audit). **Reported as UNKNOWN, not guessed.**
+
+**TEST DEPLOYMENT:** Neither function is deployed to the TEST project (`ljfizgrdyzxddswcedwr`) — verified via `supabase functions list`; only `get-public-quote`/`send-quote-email` exist there.
+
+**PRODUCTION DEPLOYMENT:** Both functions are genuinely deployed and `ACTIVE` in Production (`ixabnzhjeqevtbhdfswv`) — `send-trial-expiration-email` v9, `send-subscription-expiration-email` v8, verified via `supabase functions list` (read-only, not inferred from repo presence).
+
+**EMAIL PROVIDER CONFIG:** Production has `CRON_SECRET`, `RESEND_API_KEY`, and `RESEND_WEBHOOK_SECRET` all configured (verified via `supabase secrets list` — names/update-timestamps/digests only, no raw value ever displayed or logged). TEST has none of the three (only the standard Supabase-managed keys).
+
+**HE TEMPLATE:** PASS
+**EN TEMPLATE:** PASS
+
+Both functions branch `isHebrew = (biz.country || 'Local') !== 'International'` — the account's own stored market, never locale/display text — with fully separate subject/HTML/plain-text and correct sender address per branch. No mixed-language fallback found.
+
+**DUPLICATE PROTECTION:** Correct by design for sequential execution — per-stage boolean flags (`*_reminder_3d_sent`/`*_reminder_24h_sent`) set immediately after send, excluded from the next batch query once both are true. **Disclosed, unevidenced gap**: no row lock/idempotency key — two genuinely overlapping concurrent invocations of the same endpoint could theoretically double-send before either `.update()` completes. No evidence any overlapping-invocation mechanism actually exists.
+
+**EMAIL STATE MATRIX:**
+
+| State | Expected | Current |
+|---|---|---|
+| Active Trial, 4d left | none | PASS |
+| Active Trial, 3d window | reminder once | **BROKEN** (plan-filter bug) |
+| Active Trial, 24h window | reminder once | **BROKEN** (same) |
+| Expired Trial | none | PASS (in-app expired message is separate, working, already-verified) |
+| Paid BASIC/PRO, >3d left | none | true, but only because the pipeline can't function at all |
+| Paid BASIC/PRO, 3d window | reminder once | **BLOCKED** (missing columns + no real subscriptions exist) |
+| Paid BASIC/PRO, 24h window | reminder once | **BLOCKED** (same) |
+| CANCEL_AT_PERIOD_END | analyzed | No concept exists today. **Genuine open decision, not invented**: should this state get the existing "renew now" copy (illogical) or distinct copy? |
+| FREE | none | PASS — subscription function's plan filter correctly excludes FREE |
+
+**SAFE TEST STRATEGY:** Both functions already support `mode:'test'` (super_admin-authenticated, or one of two hardcoded TEST-bypass emails — the real inboxes behind `PROFLOW_TEST_LOCAL`/`PROFLOW_TEST_INTL`) — sends one genuine email to a genuine TEST inbox without touching the batch/cron path or real customer rows/flags. **Not invoked this task** (zero emails sent, per explicit scope) — documented as the mechanism for a future, separately-authorized verification task.
+
+**ADMIN FREE→LIFETIME BUG:** OPEN (unfixed, per explicit instruction — intended fix point is the future canonical resolver, not a targeted patch now).
 
 ---
 
-## CANONICAL TEST PERSONA MATRIX
+## FUTURE PLAN EXTENSIBILITY
 
-8 personas: LOCAL/HE and INTERNATIONAL/EN × {Active Trial, Trial Expired→FREE, Purchased BASIC, Purchased PRO}.
+**Updated recommendation**: plan-catalog proposal from §91 reconfirmed, refined with a new **centralized/versionable pricing catalog** (per a mid-task Owner addendum) — plan **identity** (stable internal ID) fully decoupled from plan **pricing** (a separate catalog keyed by `{planId, currency, billingCycle}` → `{amount, providerPriceId, effectiveFrom, sellable, hidden}`). A price change, new currency, or sale/hidden price becomes a new price-catalog row, never an edit to entitlement/badge/plan-catalog logic; an existing subscriber's grandfathered price stays referenced by their specific historical price-catalog entry.
 
-**HE/EN TEST COVERAGE:** Every state duplicated per market — `country` is fully orthogonal to subscription state, so a state bug could hide behind a market bug (or vice versa) if only tested once.
-
-**HOW TEST STATES WILL BE CREATED SAFELY (proposal only):** Active Trial = normal TEST signup (as today). Expired = super_admin-authenticated `trial_ends_at` update to a past date — already permitted by the DB trigger, no new capability needed. **Purchased BASIC/PRO (4 of 8 personas) are currently unbuildable even for TEST purposes** — no path exists to set `plan:'basic'` for a non-super_admin caller by design (same RLS restriction found above) — blocked on real billing or an explicit Owner-authorized super_admin TEST-grant path.
-
-**PRODUCTION CUSTOMER IMPACT:** NONE — proposal only, no TEST user created or mutated.
+**CANONICAL TEST PERSONAS:** PRESERVED — same 8 personas (HE×4 + EN×4: Active Trial / Expired→FREE / Purchased BASIC / Purchased PRO), explicitly extensible to cancel-at-period-end/payment-failed/upgrade/downgrade/reconciliation states matching the now-closed timing decisions. The 4 BASIC/PRO-purchased personas remain unbuildable even for TEST purposes (same DB-level RLS restriction, unchanged since no schema/code was touched this task). **Zero TEST users created or mutated.**
 
 ---
 
-## FULL TESTS: 111/111 PASS (unchanged)
-## LINT: PASS (0 errors, 1 pre-existing unrelated warning)
-## BUILD: PASS
+## REMAINING OWNER DECISIONS
 
+Re-evaluated in light of the now-closed items — only genuinely unresolved:
+1. Payment-failed/past-due grace-period length before forced downgrade.
+2. Whether admin-granted Lifetime PRO remains supported once real billing exists.
+3. Who backfills the historical "genuine Lifetime grant vs. self-cancelled FREE" classification — the codebase cannot reconstruct this after the fact.
+4. Whether/when to authorize a super_admin TEST-grant path for the 4 blocked BASIC/PRO TEST personas.
+5. **New, surfaced this task**: the CANCEL_AT_PERIOD_END reminder-email copy question above.
+
+---
+
+## CONTINUITY AUTO-SYNC RULE: DOCUMENTED
+
+New permanent rule at `PROFLOW_PROJECT_CONTEXT.md` §17.K: standing Owner authorization for Claude to auto-push documentation-only `proflow-continuity` commits without a fresh per-task push confirmation — strictly scoped to that branch/those six files. Does **not** extend to `main`, application code, TEST/DB/Supabase/Auth, or Production/deploy — all unchanged, still gated exactly as before. This task's own continuity commit uses that authorization for the first time.
+
+## SIX-FILE CONTINUITY LEDGER
+
+- `PROFLOW_PROJECT_CONTEXT.md` — §17.K (new permanent auto-sync rule) + §92 (this task's full findings) added.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL.
+- `PROFLOW_ARCHITECTURE.md` — §16 (Trial/Plans/Billing) extended with the closed decisions, canonical model pointer, and the three confirmed live bugs.
+- `PROFLOW_HANDOFF.md` — §18.ED appended.
+- `PROFLOW_TODO.md` — item 38 extended with this task's summary and remaining decisions.
+- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
+
+---
+
+## APPLICATION CODE MUTATION: NONE
 ## DB MUTATION: NONE
-## SUPABASE MUTATION: NONE
-## AUTH MUTATION: NONE
+## SUPABASE/AUTH MUTATION: NONE
+## EMAIL SENT: NONE
 ## APPLICATION COMMIT: NONE
 ## APPLICATION PUSH: NONE
+## MAIN: UNCHANGED
 ## PRODUCTION: UNCHANGED
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged).
-
----
-
-## OWNER DECISIONS STILL REQUIRED
-
-1. Upgrade/downgrade timing semantics — immediate vs. deferred-to-period-end, especially downgrades.
-2. Length of the payment-failed/past-due grace period before forced downgrade.
-3. Whether admin-granted Lifetime PRO remains supported once real billing exists.
-4. Who backfills the manual "genuine Lifetime grant vs. self-cancelled FREE" classification list — the codebase cannot reconstruct this after the fact.
-5. Whether/when to authorize a super_admin-only TEST-grant path so the 4 blocked BASIC/PRO TEST personas become buildable before real billing exists.
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Full suite 111/111 (unchanged, zero source files touched this task).
 
 ---
 
 ## FINAL STOP
 
-Part A implemented and live-verified (0px shift maintained across all 4 combinations, expired message corrected). Part B is findings and a proposal only — no subscription architecture, billing, Admin, or package-badge implementation has begun. Returned to Owner + ChatGPT before any such implementation.
+Six Owner decisions closed and incorporated into the architecture proposal. Email-reminder pipeline audited end-to-end, read-only — found one new high-impact bug (trial-reminder plan filter) plus re-confirmed one previously-found bug (subscription-reminder missing columns); zero emails sent. New permanent continuity auto-sync rule documented and exercised for the first time on this very commit. Returning to Owner + ChatGPT.
