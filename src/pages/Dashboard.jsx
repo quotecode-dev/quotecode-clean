@@ -2957,13 +2957,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 // בשום חישוב/ערך - רק סדר הופעה חזותי.
                 <div className="dash-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                   {hotQuotesList.length > 0 && (
+                    // חוק ברזל (תיקון בעלים - יציבות גיאומטרית של הצעה חמה):
+                    // רוטציית ה-4 שניות בין הצעות חמות (ר' setHotQuoteIndex
+                    // למעלה) מציגה שמות לקוחות באורך משתנה - בלי גובה שמור,
+                    // כל רוטציה הייתה משנה את גובה השורה ומזיזה את כל מה
+                    // שמתחת לדשבורד. הפתרון: minHeight קבוע על עמודת הטקסט +
+                    // line-clamp דו-שורתי על השורה המשתנה - הגובה קבוע לחלוטין
+                    // בין רוטציות, טקסט ארוך נחתך (...) במקום להזיז geometry.
                     <div className="dash-kpi-card dash-kpi-hot" style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div className="dash-kpi-icon" style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ffffff', border: `1.5px solid ${NEON.red}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Flame size={19} color={NEON.red} fill={NEON.red} strokeWidth={1} />
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                        <div className="dash-kpi-label" style={{ fontSize: '0.75rem', color: NEON.red, fontWeight: '800' }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</div>
-                        <div className="dash-kpi-sub" style={{ fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', lineHeight: 1.3 }}>{t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, minHeight: '52px', justifyContent: 'center' }}>
+                        <div className="dash-kpi-label" style={{ fontSize: '0.75rem', color: NEON.red, fontWeight: '800', lineHeight: 1.2 }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</div>
+                        <div className="dash-kpi-sub" style={{ fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}</div>
                       </div>
                     </div>
                   )}
