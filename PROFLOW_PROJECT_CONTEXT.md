@@ -2923,3 +2923,54 @@ Read-only only, no login, no mutation. `https://www.quotecodepro.com/` — HTTP 
 ### Next state
 
 Production's schema is now schema-compatible with the already-committed but not-yet-pushed `fde680b` (and its backend companion `6430cf5`, whose Edge Function half was already source-committed but requires its own separate redeploy). The 18-commit chain's sole RED blocker (Warranty schema) is now resolved. Pushing the application chain, redeploying `get-public-quote`, the Vercel redirect fix, and Item 17's coordinated release all remain separate, distinct, not-yet-authorized future actions.
+
+## §105. Vercel Canonical Root Redirect Repair — Code Fix + Local/TEST Verification (2026-08-31)
+
+**Owner-authorized: narrow code fix and local/TEST verification only. No push, no deploy, no Production mutation.**
+
+### Root cause and chosen fix
+
+Confirmed root cause (unchanged from §103): `middleware.ts`'s `config.matcher: ['/']` scopes it to the literal root path only, and it always returned `next()` there — Vercel's Edge Middleware fully owns the response once it returns anything other than falling through, so `vercel.json`'s host-conditional `redirects[]` rule never got the chance to evaluate for that one path. Every other path, never touched by this root-only middleware, already redirected correctly.
+
+**Chosen design, evaluated against the alternatives**: a host-aware redirect issued directly from inside the middleware, before the existing geolocation logic — not a change to `vercel.json` (already correct in isolation) and not an attempt to make the middleware skip itself for that host (Vercel's `config.matcher` is path-based only, not host-conditional, so any host check has to happen in the function body regardless; and since middleware fully owns its response once matched, merely "not setting the geo cookie" would not let `vercel.json`'s redirect evaluate afterward — the middleware itself must issue the redirect). This is the only design that reliably closes the gap, confirmed by reading `@vercel/functions`'s own middleware module (`next`/`rewrite` are the only helpers it exports — no dedicated redirect helper — confirming the standard Web `Response.redirect()` is the correct, idiomatic choice here, consistent with this file's existing minimal-dependency style).
+
+### Files changed
+
+`middleware.ts` — added an early, explicit `host` check (`request.headers.get('host')`) before the existing geolocation-cookie logic; new pure, exported `resolveCanonicalRedirect(host, pathname, search)` function (host compared case-insensitively) returns the exact redirect target or `null`; the middleware calls it and returns `Response.redirect(target, 308)` when non-null, otherwise falls through completely unchanged into the pre-existing geo-cookie code. `VERCEL_APP_HOST`/`CANONICAL_ORIGIN` exported as named constants — the top-of-file comment (previously claiming the middleware "never performs a redirect") was corrected to match the new, accurate behavior. `middleware.test.ts` — new, 11 cases.
+
+**Canonical-domain rule now lives in two synchronized, intentionally separate places**, documented in-file: `vercel.json`'s `redirects[0]` (every path except `/`) and `middleware.ts`'s `VERCEL_APP_HOST`/`CANONICAL_ORIGIN` constants (only `/`). Not merged into a shared module — genuinely over-engineering for two literal strings referenced in exactly two places, per the task's own explicit instruction not to introduce new routing architecture for this one fix.
+
+### Product requirements verified against the fix
+
+- **A (canonical host root)**: `www.quotecodepro.com`'s host check fails the `=== VERCEL_APP_HOST` test, so control falls through completely unchanged into the existing geolocation-cookie logic — zero behavior change, confirmed by code inspection (the new check is a pure early-return, touches nothing below it).
+- **B (Vercel host, all paths including root)**: the new check catches the root path directly (the only path this middleware ever runs on); every other path was already redirecting correctly via `vercel.json`, untouched.
+- **C (redirect semantics)**: `308` (matches `vercel.json`'s own `permanent: true` semantics), path (`url.pathname`) and query (`url.search`) both preserved exactly, confirmed via unit tests (`/dashboard?lang=he` → `.../dashboard?lang=he`). No loop possible by construction — `CANONICAL_ORIGIN` can never equal `VERCEL_APP_HOST`, proven as its own explicit test case.
+- **D (other hosts)**: `localhost:*`, `127.0.0.1:*`, unknown/preview `*.vercel.app` subdomains, and any other host all fall through with `resolveCanonicalRedirect` returning `null` — explicitly covered by unit tests, not merely assumed.
+
+### Geolocation regression: PASS, unchanged
+
+The geo-cookie logic (reading `geolocation(request)`, setting `proflow_geo_country`) is byte-identical to before, positioned entirely below the new early-return — for any request that isn't the Vercel-app host, execution reaches this code exactly as it did previously. No test could directly exercise `geolocation()` itself (it requires a real Vercel Edge runtime, unavailable under Vitest) — the regression protection here is structural: the new code path and the geo-cookie path are mutually exclusive by an early `return`, so the old path cannot have been altered by adding a new one before it.
+
+### Local/TEST verification
+
+`middleware.ts` is **not part of the Vite bundle** — confirmed via `grep` (zero imports anywhere in `src/`) and via byte-identical production-build output hashes before and after this change. Vercel Edge Middleware only executes on an actual Vercel deployment (Production or Preview) — it structurally cannot run under `npm run dev`/`npm run dev:localtest`, so local/TEST dev is provably unaffected; "local TEST does not redirect unexpectedly to Production" is true by construction, not merely observed.
+
+**Targeted tests**: 11/11 PASS (`middleware.test.ts`). **Full suite**: 173/173 PASS. **Lint**: 0 errors (same 6 pre-existing warnings; `.ts` files are outside this repo's ESLint glob, unchanged convention). **Build**: PASS, output hashes unchanged from before this commit, confirming zero bundle impact. Syntax additionally verified via a direct `esbuild` transform of `middleware.ts` (bundles cleanly).
+
+### Vercel config semantic verification (no deployment)
+
+Vercel's Edge Middleware, once it returns any `Response` other than falling through via `next()`, **fully owns the response** — this is documented, standard behavior, and is precisely why the pre-fix middleware's unconditional `next()` prevented `vercel.json`'s redirect from ever being reached for the root path. The fix inverts this: for the one case that matters (`host === quotecode.vercel.app`), the middleware now returns `Response.redirect(...)` directly, which Vercel will serve as-is — no further routing evaluation needed, matching exactly how the previously-broken case worked in the opposite direction. This is a sound logical proof from Vercel's own execution model, not a guess — but **only an actual deployment can produce a live HTTP/browser-verified result**. **LIVE REDIRECT PROOF: PENDING DEPLOYMENT** — not performed this task, per explicit instruction not to deploy merely to prove it.
+
+### Local commit — authorized, created
+
+`dd11015` — "fix(vercel): enforce canonical redirect on root host". Diff reviewed: exactly `middleware.ts` + `middleware.test.ts`, nothing else. **Not pushed.**
+
+### Clean committed-tree proof
+
+Isolated `git archive HEAD` (`dd11015`, no working-tree access): confirmed `entry-server.jsx` absent; build **PASS**; tests **152/152 PASS**.
+
+### Complete local release chain reassessment
+
+**19 commits now ahead of `origin/main`** (18 from before + this task's `dd11015`). Clean-tree status: confirmed self-contained twice now (this task and the prior). Schema dependencies: **Warranty Production prerequisite now SATISFIED** (§104 — applied and verified). Redirect code is **ready** but its **live proof remains pending an actual deployment** — this is a genuine, distinct gate from code-readiness, not conflated. Item 17 and the email Edge Function redeploy both remain entirely separate, not-yet-authorized future actions, untouched by this task.
+
+**CANONICAL DOMAIN CODE READINESS: GREEN.** **CANONICAL DOMAIN LIVE GATE: PENDING DEPLOYMENT** — explicitly not marked GREEN merely because local/unit tests pass, per the task's own explicit distinction; only actual deployed HTTP + browser verification can close this gate.
