@@ -3939,3 +3939,67 @@ Wave 2's DB/backend changes are **not** a frontend release candidate in the `RC_
 **READY FOR OWNER REVIEW.**
 
 Every readiness criterion is met with direct evidence, not assumption: exact scope is known (7-item manifest, every file read in full); migration ordering is known (the filename bug found, confirmed, and its exact fix verified); Production state is known (comprehensive fresh check, zero drift, zero partial application); dependencies are known (full order derived, including two newly-found items — the filename bug's precise fix and `send-quote-email`'s parallel staleness); backup is viable (mechanism confirmed available and correctly scoped; the automated-backup gap itself — PITR off, zero existing backups — was discovered and is now a known, explicit precondition rather than an unknown risk); rollback is viable for every component, with the one genuinely time-limited item (file #5) already flagged prominently, not hidden; verification is defined (HE/EN/Desktop/Mobile pattern, MUST-RE-TEST scoping already established in §115); no unexplained drift remains anywhere. **This is a readiness verdict on the plan, not an authorization to execute it — Wave 2 execution itself requires its own separate Owner authorization, exactly as every other Production action in this engagement has.**
+
+### Wave 2 / Step 1 — Production Backup Creation + Verification, COMPLETE (2026-08-31, Owner-authorized STEP 1 ONLY — not migration/schema/Edge/Vercel authorization, not authorization for Step 2)
+
+**Fresh verification before any backup action**: `HEAD = main = 071dad5`, `origin/main = dd11015` (fresh fetch), working tree unchanged. Linked Supabase project re-confirmed via `supabase projects list`: `ixabnzhjeqevtbhdfswv` (name `quotecode`, `linked:true`) — explicitly distinct from `quotecode-test` (`ljfizgrdyzxddswcedwr`, `linked:false`) — **target confirmed Production, not TEST**. Live `quotecode.vercel.app/` re-confirmed `HTTP 308` (`dd11015`'s own signature). Wave 0 tag (`proflow-pre-recovery-2026-08-31`) re-verified intact, resolves exactly to `dd110155a927f708f00467e1017bd183582b42aa`, not modified or moved.
+
+**Backup location**: `C:\Users\sales\AppData\Local\Temp\claude\...\scratchpad\wave2_prelive_backup_2026-08-31\` — entirely outside the repository (confirmed via `git status` showing zero awareness of this path both before and after creation), never added to git, never committed, never pushed, not in any deployable directory.
+
+#### Backup set
+
+| Artifact | File | Size | SHA-256 |
+|---|---|---|---|
+| A. Schema backup | `proflow-production-schema-20260831-2158-pre-wave2.sql` | 35,237 bytes | `98972f55053652d6356f35c8a29c96bafc648273dd24929596236974e323966a` |
+| B. `quotes` data backup | `proflow-production-quotes-data-20260831-2203-pre-wave2.sql` | 41,780 bytes | `382c027d123b428d873eef579f4a3a6096d244ecea8919d00c5b246c5d0702e9` |
+| C. State/migration snapshot | `proflow-production-state-snapshot-20260831-2205-pre-wave2.txt` | 3,565 bytes | `d9dc1e1ff4d348d000a66070459ef33c44b7d460f204b3f06684963694165de2` |
+| D1. `get-public-quote` deployed source | `edge_functions_pre_wave2/supabase/functions/get-public-quote/index.ts` | 6,906 bytes | `0d0575152459bf8c1eb51415d8272bbcfaea6261baa80553cab27d77e3e11ae0` |
+| D2. `send-quote-email` deployed source | `edge_functions_pre_wave2/supabase/functions/send-quote-email/index.ts` | 14,536 bytes | `c2ed67ea58e3658eca9453702d321db59da94ef51fdc1115b0bb0709b3b89d9a` |
+| E. Frontend rollback reference | Git tag `proflow-pre-recovery-2026-08-31` → `dd11015` | N/A (git object) | N/A |
+
+A consolidated `CHECKSUMS.sha256` file was written alongside the artifacts in the same directory.
+
+**A — Schema backup**: `supabase db dump --linked --schema public`. Verified comprehensive: 9 tables, 1 sequence, 12 functions (`CREATE OR REPLACE FUNCTION`), 5 triggers (`CREATE OR REPLACE TRIGGER` — Postgres 14+ syntax; an earlier grep for the classic `CREATE TRIGGER` keyword undercounted this, corrected before concluding), 24 RLS policies, 84 grants, 17 primary/unique constraints. Confirmed present by name: `guard_quote_immutability`, `guard_quote_immutability_delete`, `guard_quote_immutability_update`, `guard_quote_immutability_delete_trigger`, `guard_quote_child_immutability`, `approve_quote_public`/`public_approve_quote`, `quotes_quote_number_seq`. Zero errors during dump.
+
+**B — `quotes` data backup**: **First attempt was over-broad and discarded before use** — a plain `--data-only` dump without an explicit `--schema public` flag captured data from `auth` and `storage` schemas too, including `auth.users.encrypted_password` and `auth.refresh_tokens` — genuinely sensitive credential material never needed for this rollback. Deleted immediately, not used, not retained anywhere. Redone correctly with `--schema public` plus explicit `-x` exclusions for every other `public` table (`business_settings`, `chat_logs`, `clients`, `expenses`, `quote_attachments`, `quote_items`, `quotecode_documents`, `services`) — confirmed via the resulting file containing **exactly one `COPY` block, `public.quotes`, and nothing else**. **Row count independently cross-verified**: the dump contains exactly 28 data rows; a fresh live `SELECT count(*) FROM public.quotes` against Production also returned exactly 28 — **exact match**. The dump's own trailing `SELECT pg_catalog.setval('"public"."quotes_quote_number_seq"', 95, true);` independently cross-confirms the current sequence high-water mark (95), matching every prior fresh check this engagement.
+
+**C — State/migration snapshot**: a plain-text capture of the migration ledger (exactly one row, `20260831000000`), the current `quote_number` column default, the full 8-object Wave 2 existence check (all `false`), existing `quotes` triggers, and per-business max `quote_number` values (95/92/89/87/81/57/46 across 7 businesses) — the exact reference baseline against which any future counter-init run must be verified.
+
+**D — Edge Function sources**: `get-public-quote` and `send-quote-email` downloaded via `supabase functions download` (the same safe, non-mutating mechanism already used twice earlier this engagement) directly into the backup directory — the real repository's own `supabase/functions/` tree confirmed untouched (`git status` clean) throughout. Content spot-checked: the downloaded `get-public-quote` selects `quote_number` (3 matches) but not `attn_name`/`attn_role` as an actual field (the 1 match found is inside a comment, not a select/return), consistent with Path B; the downloaded `send-quote-email` has **zero** references to `quote_number`, independently re-confirming its already-established staleness.
+
+**E — Frontend rollback reference**: re-verified in the fresh-verification step above, not modified.
+
+#### Restore viability — genuine attempt made, precise outcome
+
+A live, disposable local Postgres restore was attempted via Docker (confirmed available, `docker info` responsive) using `supabase db start --from-backup <schema file>`. **First attempt** silently failed to actually apply the backup — traced to a stale, reused Docker data volume from an earlier unrelated experiment ("PostgreSQL Database directory appears to contain a database; Skipping initialization"). Cleaned via `supabase stop --no-backup` (removes local data volumes only — confirmed via `docker ps -a`/`docker volume ls`, no Production/TEST resource touched, this command has no network path to either). **Second attempt**, on a genuinely fresh container, still did not populate the expected schema — root-caused precisely via container logs: `cat: read error: Is a directory` during both the "restoring roles" and "restoring schema" steps, indicating the Supabase CLI's `--from-backup` flag expects a different backup *format* (directory/archive-based) than the plain-SQL file `supabase db dump` produces by default. **This is a CLI format-compatibility gap, not a defect in the backup content** — confirmed by every other independent check (row-count match, sequence-value match, structural completeness, clean statement termination) showing the dump itself is accurate and complete. The disposable local environment was fully cleaned up afterward (`supabase stop --no-backup`, confirmed via `docker ps -a` showing no lingering `supabase_db_*` container) — no lasting local footprint beyond the intended backup files themselves. One incidental artifact (`supabase/.branches/_current_branch`, a one-line CLI bookkeeping file created by the local `db start` experimentation) appeared as a new untracked file in the repository; inspected (contained only the literal text `main`) and removed, restoring the working tree to its standard baseline.
+
+**Restore command that WOULD be used** (standard, universally-documented procedure for a plain-SQL dump — not executed, `psql` is not installed in this environment to test it directly): `psql "<target-connection-string>" -f proflow-production-schema-....sql` followed by `psql "<target-connection-string>" -f proflow-production-quotes-data-....sql`. Ordering: schema before data (data `COPY` requires the target table to already exist). No companion file is needed beyond these two — the state snapshot and Edge Function sources are reference/verification artifacts, not inputs to a schema/data restore.
+
+**RESTORE READINESS: PARTIALLY VERIFIED.** Structural and content-accuracy verification is complete and strong (clean SQL termination, all expected object categories present, exact row-count and sequence-value cross-validation against live Production). A live, executed mock-restore was attempted in good faith but could not be completed in this session due to a CLI tooling format mismatch, not a backup defect — the standard `psql -f` restore path remains the documented, correct procedure and was not itself disproven, only not executed (no local `psql` available). This is reported precisely as **PARTIALLY VERIFIED**, not VERIFIED, per the instruction not to overclaim.
+
+#### Backup completeness against every Wave 2 component
+
+| Component | Backup/rollback covered |
+|---|---|
+| `business_quote_sequences` | **N/A** — does not exist on Production; nothing to back up. Rollback if ever created is the migration file's own inline `DROP TABLE IF EXISTS`. |
+| `allocate_quote_number()` | **N/A** — same reasoning; inline `DROP FUNCTION IF EXISTS` covers it if ever created. |
+| `quote_number` unique index/constraint | **N/A** — same; inline `DROP INDEX`/`DROP CONSTRAINT IF EXISTS`. |
+| Immutability trigger/function | **N/A** — same; inline `DROP TRIGGER`/`DROP FUNCTION IF EXISTS`. |
+| Old `quote_number` default | **YES** — captured in schema backup A (current `DEFAULT nextval(...)` state, the exact value to restore if file #5 is ever rolled back). |
+| `attn_name` | **N/A** — does not exist; inline `DROP COLUMN IF EXISTS` covers it. |
+| `attn_role` | **N/A** — same. |
+| Counter-init implications | **YES** — state snapshot C captures the exact per-business historical-max baseline (95/92/89/87/81/57/46) needed to verify counter-init's correctness before/after, and to prove its own documented no-op claim for current data. |
+| `get-public-quote` | **YES** — exact deployed source archived (D1), checksummed. |
+| `send-quote-email` | **YES** — exact deployed source archived (D2), checksummed. |
+| `quotes` table data (every row any Wave 2 item could indirectly touch) | **YES** — full data backup B, row-count and sequence-value cross-verified against live Production. |
+| Frontend application state | **YES** — Wave 0's immutable tag (E), re-verified. |
+
+**No required component is uncovered.** Every "N/A" is a genuine, correctly-reasoned N/A (the object doesn't exist, so there is nothing to back up, and its own already-written migration file provides sufficient rollback via `IF EXISTS` guards) — not a gap.
+
+#### Customer safety — re-confirmed fresh after backup creation
+
+Fresh post-backup checks, all unchanged from before: `quotes` row count still 28; migration ledger still exactly one row (`20260831000000`); all 8 Wave 2 target objects still absent; live canonical redirect still `308`; linked project still Production. **No Production data changed. No Production schema changed. No customer workflow interrupted. No quote changed. No Auth/session state changed. No Public Quote changed. No Edge Function changed (only downloaded/read, never deployed/modified). No Vercel deployment triggered.**
+
+#### Did not advance
+
+Confirmed, explicitly: the malformed migration filename was **not** renamed. Item 17 was **not** started. Item 18 was **not** started. Counter-init was **not** run. The old default was **not** dropped. Neither Edge Function was redeployed. Wave 2 Step 2 was **not** started.
