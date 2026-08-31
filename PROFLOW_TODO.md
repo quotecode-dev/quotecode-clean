@@ -1252,4 +1252,16 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 ---
 
-*This file must be updated whenever a backlog item's status materially changes. See `PROFLOW_PROJECT_CONTEXT.md`'s continuity protocol for the full 3-file responsibility split.*
+## 33. International Quote Currency Immutability (permanent product invariant, reconfirmed 2026-08-31, Desktop HE/EN Mirroring + Currency Invariant Documentation task — DOCUMENTATION ONLY, not implemented/verified this task)
+
+**Status: 🔴 OPEN — permanent invariant documented; verification audit not yet executed**
+
+**The rule**: the Business Profile's currently-selected currency is used **only** at the moment a **new** quote is created. At creation time, that currency must be persisted onto the quote itself. After creation, the quote's own persisted currency is authoritative and immutable with respect to any **later** Business Profile currency change.
+
+**Worked example** (as stated by the Owner): Business currency = USD → create Quote A and Quote B (both persist USD). Business currency changes to EUR → A and B **remain USD**; new Quote C is EUR. Business currency later changes to GBP → A and B **remain USD**, C **remains EUR**; new Quote D is GBP. Changing the Business Profile's currency must **never** retroactively rewrite, reinterpret, or redisplay existing quotes using the new business currency.
+
+**Applies everywhere an existing quote is represented**, including as applicable: Quote History, quote editing (while editing is permitted), totals/prices, PDF/print, Public Quote, the signature/approval flow, and any later retrieval/display. Existing finalized/signed locking rules remain unchanged and are not affected by this invariant.
+
+**This task authorized documentation only.** No currency code, database schema, or Business Profile logic was changed; no currency test quotes were created; no TEST or Production data was mutated.
+
+**Future OPEN audit item (not yet authorized to execute)**: verify the invariant end-to-end on TEST — create a USD quote, change Business currency to EUR, verify the old quote remains USD; create a new EUR quote, change Business currency to GBP, verify both older quotes retain their original currencies (USD and EUR respectively); create a new GBP quote and verify it is GBP. This audit requires separate Owner + ChatGPT authorization before execution.
