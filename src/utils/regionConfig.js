@@ -40,6 +40,32 @@ export const isHebrewEnv = (country, session) => {
   return localStorage.getItem('proflow_lang') === 'he';
 };
 
+// Item 25 - החלטה טהורה (pure, ניתנת לבדיקה בלי React/Supabase) האם יש
+// לתקן פעם אחת את הבאנדל (AppLocal/AppGlobal) כדי שיתאים לאזור האמיתי של
+// חשבון מחובר. bundleIsHebrew הוא זהות הבאנדל הנוכחי (קבוע פר-באנדל, מגיע
+// כ-prop מ-AppLocal/AppGlobal); isHebrew הוא כבר isHebrewEnv(bizCountry,
+// session) האמיתי מהחשבון (ר' למעלה) - הפונקציה הזו לא מחליטה שום דבר
+// לגבי מטבע/מע"מ, רק משווה בין השניים. מחזירה null כשאין מה לתקן (או
+// כשעדיין אין מספיק מידע אמיתי כדי להחליט בבטחון - לעולם לא ניחוש), אחרת
+// 'he'/'en' - ערך ה-?lang= הקנוני הקיים כבר ב-main.jsx לתיקון החד-פעמי.
+export function getMarketRoutingCorrection({
+  hasSession,
+  isInitializing,
+  isPasswordRecoveryMode,
+  needsRegionChoice,
+  settingId,
+  bundleIsHebrew,
+  isHebrew,
+}) {
+  if (!hasSession) return null;
+  if (isInitializing || isPasswordRecoveryMode || needsRegionChoice) return null;
+  if (settingId === null || settingId === undefined) return null;
+  if (typeof bundleIsHebrew !== 'boolean') return null;
+  if (isHebrew === bundleIsHebrew) return null;
+
+  return isHebrew ? 'he' : 'en';
+}
+
 export const getCurrencySym = (country, currency) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
   const effectiveCountry = country || cachedCountry;
