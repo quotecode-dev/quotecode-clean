@@ -2577,3 +2577,78 @@ No visual implementation occurred — proposal only, exactly as scoped.
 **Phase 1 is fully green** (tests/lint/build all pass, diff narrowly scoped, no unrelated changes) — but per the explicit instruction "If commit authorization is ambiguous: STOP BEFORE APPLICATION COMMIT," and given no *prior* Owner authorization unambiguously covers committing *this exact* implementation (tonight's message authorized implementing, testing, and browser-QA-ing Phase 1 locally — it did not separately state "and you may commit it"), **no application commit was made**. The diff remains staged-ready, narrowly scoped, and reviewable in the working tree exactly as produced.
 
 **Quality gates, all confirmed**: targeted tests PASS (34/34), full suite PASS (145/145), lint PASS (0 errors), build PASS, browser TEST QA PASS where executable (one scenario honestly flagged NOT YET LIVE-VERIFIED, not fabricated), no secret exposure, no Production mutation, no DB mutation beyond what was already separately authorized in the prior task. `main` HEAD unchanged (`5f658f3`), `origin/main` unchanged (`e030017`).
+
+## §98. Overnight Round 2 — Maximum TEST Validation + Plan Identity + P0 Email Repair (2026-08-31)
+
+**Continues directly from §97.** Owner explicitly authorized: (1) committing the already-green Phase 1 diff locally, (2) wiring Admin's plan icon/badge to the canonical catalog, (3) creating dedicated TEST personas on `quotecode-test` only, (4) live-verifying the FREE≠PRO≠Lifetime fix through the real Admin UI, (5) auditing and narrowly repairing the two named P0 email bugs. No application push, no deploy, no Production action, no schema migration — all confirmed honored.
+
+### Fresh Local State check (Section 0)
+
+HEAD at task start: `5f658f3` (matches §97's checkpoint exactly), Phase 1's 6 files present uncommitted as expected — proceeded without discrepancy. **One genuine discrepancy surfaced later** (documented under Commits, below): the working tree also carries a large, entirely separate, unrelated body of uncommitted work (quote-number-sequence/cross-market release-candidate files — `QuoteForm.jsx`, `Dashboard.jsx`, `QuotesTab.jsx`, `quoteNumber.js`, several `supabase/migrations/*.sql`, `package.json`/`package-lock.json`, css files) that predates this task and was never touched by it. Investigated via `git reflog`/`git merge-base --is-ancestor` — confirmed this is simply parallel in-progress work already safely committed further back in `main`'s own history (`17ac4d3`/`ffc741d` etc. are genuine ancestors of both HEAD and `origin/main`), not a lost-history or corruption concern. Per Section 0's own instruction, this task's mutations were scoped to touch **only** the files it authored — nothing from that unrelated diff was staged, read deeply, or committed.
+
+### Phase 1 commit (Section 1)
+
+Re-verified diff/tests/lint/build, staged the exact 6 intended files by name, committed: **`c4491a8` — "feat: add canonical plan catalog + entitlement resolver, fix Admin FREE->PRO/Lifetime bug"**. Local only, `origin/main` unaffected.
+
+### Plan icon/badge wiring (Section 2)
+
+`AdminUsersTab.jsx`'s two independent hardcoded ternary chains (desktop table `<td>` + mobile card chip) replaced with a single `getPlanBadgeVisual(planValue, isGrantedLifetimePro)` helper reading `planCatalog.js`. Zero intentional visual change — confirmed via live DOM `getComputedStyle` extraction (background/color/icon per row) matched exactly against the pre-existing hardcoded values, for all 10 TEST personas, both desktop and mobile viewports. `UserDetailsModal.jsx` deliberately left unwired — its existing 2-color scheme (`sky` for FREE/BASIC/PRO alike) would genuinely change FREE's color if connected to the 3-tier catalog, correctly judged not "clearly mechanical" per the task's own fallback instruction; documented as the remaining wiring item, not done. Committed separately: **`f482d69` — "feat(admin): wire plan icon/badge rendering to canonical planCatalog"**.
+
+### TEST persona matrix (Section 3-4): 10/10 COMPLETE
+
+The 8 missing cells from §97's matrix (H) were created this task on `quotecode-test` exclusively, via the established safe service-role methodology (no secret ever printed to a visible log). Credentials stored only in git-ignored `.env.localtest.local`. Final matrix:
+
+| Market | Active Trial | Expired Trial→FREE | FREE (genuine) | BASIC | PRO (Lifetime) |
+|---|---|---|---|---|---|
+| LOCAL/HE | have (pre-existing) | **new** | **new** | **new** | **new** |
+| INTL/EN | have (pre-existing) | **new** | **new** | **new** | **new** |
+
+**Sanitized ledger (raw DB state vs. resolved application state), no passwords/secrets:**
+
+| Persona | Market | raw plan | raw trial_ends_at | resolved tier | badgeState | isLifetime | monthly limit |
+|---|---|---|---|---|---|---|---|
+| TEST HE/EN Expired Trial | both | pro | real past date | **free** | FREE | false | 5 |
+| TEST HE/EN Free | both | free | null | **free** | FREE | false | 5 |
+| TEST HE/EN Basic | both | basic | null | basic | BASIC | **true** (see nuance below) | 20 |
+| TEST HE/EN Pro | both | pro | null | pro | PRO | true | unlimited |
+| (pre-existing) Active Trial | both | pro | real future date | pro | TRIAL | false | unlimited |
+| ProFlow TEST Admin | Local | pro | null | pro | PRO | false (super_admin excluded) | unlimited |
+
+**New nuance surfaced by real data, disclosed honestly (not a bug in tonight's fix, but a forward-looking limitation worth flagging)**: both BASIC personas (`plan:'basic', trial_ends_at:null`) resolve `isLifetime:true` — a correct, already-unit-tested consequence of the resolver's existing rule (`trial_ends_at===null && rawPlan!=='free'`), confirmed live in the Admin UI (both render with PRO's violet tint + Crown icon, "BASIC (Lifetime Access)" title text). This is accurate for **today's schema reality** (confirmed via `planEntitlements.js`'s own documented audit: the only way a non-free plan gets a null `trial_ends_at` today is the admin's own "Toggle Lifetime" action — there is no purchase flow at all). **However**, once real billing exists, an ordinary non-trial paid subscriber (BASIC or PRO, purchased directly or converted post-trial) will *also* have `trial_ends_at:null` — and this same rule would then mislabel a normal healthy paying customer as "Lifetime." This is a genuine, not-yet-relevant-today, future schema dependency: Lifetime needs its own explicit field (e.g. an `admin_override` boolean, already anticipated in the 4-axis subscription model at §92) once the `subscriptionStatus` axis is built. Not a defect to fix tonight — a forward pointer for that future phase.
+
+### Live Admin-UI regression proof (Section 5-6): PASS, closes the gap left open at §97
+
+Full desktop-table DOM extraction (all 10 rows, `getComputedStyle` background/color/title) and a mobile-viewport (390px) equivalent both confirm: **every FREE-tier row (both Expired-Trial and genuine-FREE, both markets) renders with the gray/white FREE styling — never the violet/PRO tint or Crown icon.** This is the first live-Admin-UI (not just backend/unit-test) proof that self-cancelled-FREE and expired-trial-FREE are never shown as PRO or Lifetime. The underlying regression was already automated at §97 (`accountEntitlement.test.js`'s two explicit FREE-shape regression tests) — tonight adds the live-browser confirmation Section 6 explicitly required.
+
+### Expired-trial message (Section 7): PASS, exact match
+
+Live Dashboard login (not just code-read) for both new Expired-Trial personas. **HE**: `"תקופת הניסיון הסתיימה, הועברת למסלול FREE"` — exact match, no "please upgrade" addition. **EN**: `"Your trial has ended — you've been moved to the FREE plan."` — same semantic content, same no-upgrade-nag pattern, confirmed LTR. Confirmed the message does **not** leak to genuine FREE personas (logged in as TEST HE Free — 0/5 limit shown correctly, no expiry message present). BASIC persona (TEST EN Basic) confirmed correct 0/20 monthly limit, no false expiry message.
+
+### P0 Email Bug #1 — `send-trial-expiration-email`: FIXED
+
+**Root cause, confirmed by fresh audit**: batch mode's plan filter (`if ((biz.plan||'free').toLowerCase() !== 'free') continue;`) required `plan==='free'` to consider a candidate — but per `planEntitlements.js`'s own documented model, an active-trial account **always** has `plan==='pro'` with a real, non-null `trial_ends_at`. The filter excluded its entire real target audience, unconditionally, on every run — a complete no-op for its intended purpose. Fixed to require `plan==='pro'` instead. The eligibility decision (email/role/plan/window/idempotency) was extracted into a new, dependency-free `eligibility.ts` (`resolveTrialReminderStage()`), consumed by both the Deno runtime (`index.ts`) and a new Vitest suite (`eligibility.test.js`, 14 cases — 3-day window, 24-hour window, outside-window exclusion, expired exclusion, genuine-FREE exclusion (the exact bug regression), active-trial inclusion (the exact fix regression), BASIC exclusion, Lifetime exclusion, super_admin exclusion, missing-email exclusion, both idempotency directions, stage-progression, timezone-safety). Duplicate-send protection (`trial_reminder_3d_sent`/`24h_sent`, set only after a successful send) and HE/EN sender/template selection (`country`-based, matching the established convention) were both confirmed already correct — untouched.
+
+### P0 Email Bug #2 — `send-subscription-expiration-email`: SAFELY DISABLED (fail-safe), per the Owner's explicit product rule
+
+**Root cause, confirmed against the live-captured schema** (`supabase/migrations/20260830000000_capture_base_schema_tables.sql`, itself captured from Production introspection): `business_settings` has no `subscription_ends_at`, `subscription_reminder_3d_sent`, or `subscription_reminder_24h_sent` columns — confirmed via full-table grep, no writer anywhere in the repo populates them. Every batch invocation would throw at the `.select(...)` step and 400. **No schema migration authorized tonight; no columns invented.** Per the Owner's explicit rule (healthy auto-renewing subscriptions must never get a routine "ending soon" email — that only makes sense for a genuine known-end lifecycle state like an approved cancel-at-period-end, which the schema doesn't yet support), batch mode now short-circuits to an explicit, tested safe response (`buildSubscriptionEmailSafeResponse()` in a new dependency-free `safeResponse.ts`, tested by `safeResponse.test.js`, 3 cases) — no query against the missing columns, no send attempt, no throw. A Hebrew "iron rule" comment at the call site documents the exact schema dependency for the future phase: a real `subscriptionStatus`/`subscription_period_end` axis (§92's 4-axis model), written only when a subscription genuinely enters a non-renewing state — never on ordinary monthly renewal.
+
+### Email safety (Section 11): CONFIRMED
+
+No Production invocation, no real-customer email, no scheduler/cron invocation attempted against either function tonight. Both fixes were verified entirely via Vitest (deterministic, no network) plus static code/schema audit — no live Resend call was made.
+
+### Tests / Quality gates (Section 12-13): ALL PASS
+
+**Full suite: 162/162 PASS** (145 pre-existing + 14 trial-eligibility + 3 subscription-safe-response, zero regressions, zero weakened tests). **Lint: 0 errors** (same 6 pre-existing unrelated warnings; the two new edge-function `.ts` files and their `.test.js` companions are outside ESLint's `**/*.{js,jsx}` glob for the `.ts` files, in-scope and clean for the `.test.js` files). **Build: PASS** (same pre-existing chunk-size advisory only).
+
+### Commits (Section 14)
+
+Three separate, logical, reviewable commits, each independently green, all **local only** — `main` HEAD is `99c4ba3`, `origin/main` unchanged at `e030017`:
+1. `c4491a8` — Phase 1 foundation (already covered above).
+2. `f482d69` — plan badge wiring.
+3. `99c4ba3` — P0 email repair (both bugs).
+
+Only the exact files this task authored were staged in each commit — the large, unrelated, already-in-progress quote-number/release-candidate uncommitted diff (see Fresh Local State note above) was never touched, staged, or read beyond confirming its ancestry was safe.
+
+### Owner decisions still required (Section 16, consolidated)
+
+Carried forward from §97 (unchanged, none resolved by this task): payment-failed grace-period length, admin-Lifetime's long-term future once billing exists, historical Lifetime-vs-self-cancel backfill authority, CANCEL_AT_PERIOD_END reminder copy, Admin bilingual-vs-monolingual, TEST-account-exclusion mechanism for KPI counts, Role-column removal, whether to authorize the Lifetime-badge-vs-future-real-Lifetime-field schema work as part of the next billing phase (new this task, see the BASIC-nuance disclosure above). **New, genuinely requiring a decision**: none blocking — the email fixes and badge wiring required no new product-policy call, only architecture-derivable ones (all resolved per Section 16's own instruction not to escalate architecture-answerable questions).

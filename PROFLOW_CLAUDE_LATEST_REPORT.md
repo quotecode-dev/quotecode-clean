@@ -4,99 +4,107 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Overnight Maximum Safe Work Package — Admin V2 Foundation, Phase 1
+## Task: Overnight Round 2 — Maximum TEST Validation + Plan Identity + P0 Email Repair
 
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §97, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EJ.
+Continues directly from the Phase 1 task (`PROFLOW_PROJECT_CONTEXT.md` §97). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §98, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EK.
 
 ---
 
-## PHASE 1 IMPLEMENTATION: COMPLETE (locally — not committed)
+## PHASE 1 COMMIT: `c4491a8`
 
-## CANONICAL PLAN CATALOG: PASS
+Re-verified diff/tests/lint/build, staged the exact 6 intended files by name, committed locally. `origin/main` unaffected.
 
-`src/utils/planCatalog.js` — FREE/BASIC/PRO metadata (HE/EN labels, badge icon/color tokens, the already-approved 5/20/∞ limits and feature gates). TRIAL is deliberately not a catalog entry — a lifecycle overlay, not a purchasable plan. Adding a future plan is one new catalog entry, no scattered branches.
-
+## PLAN CATALOG: PASS
 ## CANONICAL RESOLVER: PASS
 
-`src/utils/accountEntitlement.js` — `resolveAccountEntitlement()` composes the existing, **completely unchanged** `computeEffectivePlan()` with the catalog. Distinguishes active trial, expiring-soon, expired-trial→FREE, genuine FREE, BASIC, PRO, Lifetime, super_admin, and unknown/legacy plan values. Deterministic, independently unit-tested.
+Both unchanged from §97 — `src/utils/planCatalog.js` / `src/utils/accountEntitlement.js`.
 
-## FREE→PRO/LIFETIME BUG: FIXED
+## PLAN ICON/BADGE WIRING: PASS
 
-Root cause: Admin derived Lifetime from `trial_ends_at===null` alone — also the self-cancel signature. Fix: `isLifetime` now requires `trial_ends_at===null AND rawPlan!=='free'`. Broader than the narrow case — Admin now displays the resolver's already-correct `tier` in every scenario, not just the null-specific one (also fixes the previously-unnoticed sibling case: an expired-trial-not-yet-self-cancelled account was *also* mis-shown as its raw `'pro'` plan).
+Both Admin render sites (`AdminUsersTab.jsx` desktop table + mobile card) now read `planCatalog.js` via a new `getPlanBadgeVisual()` helper, replacing two independent hardcoded ternary chains. Zero visual change — confirmed via live DOM `getComputedStyle` extraction (background/color/icon per row) matching the pre-existing values exactly, across all 10 TEST personas, desktop and mobile. `UserDetailsModal.jsx` deliberately left unwired (would change FREE's displayed color — not "clearly mechanical"). Committed: `f482d69`.
 
-## DASHBOARD / SETTINGS / ADMIN CONSISTENCY
+## TEST PERSONAS: 10/10
 
-Admin now consumes the same resolver chain Dashboard already used. `SettingsTab.jsx` checked fresh — already correct (receives `effectivePlan` as a prop, doesn't derive its own). One minor, out-of-scope inconsistency found and left untouched: its "Cancel Subscription" button visibility checks raw `bizPlan`, not resolved tier — low-priority, flagged for a future pass, not the named bug.
+8 new personas built on `quotecode-test` this task (Expired-Trial + genuine-FREE + BASIC, both markets); Active Trial already existed for both. Full sanitized ledger (raw DB state vs. resolved application state, no secrets) recorded at `PROFLOW_PROJECT_CONTEXT.md` §98.
 
-## PLAN BADGE FOUNDATION
+## HE PERSONAS: PASS (5/5 live-verified — Active Trial, Expired Trial, Free, Basic, Pro)
+## EN PERSONAS: PASS (5/5 live-verified — Active Trial, Expired Trial, Free, Basic, Pro)
 
-Catalog is ready to drive badges everywhere. Icon-rendering in `AdminUsersTab.jsx` (2 render sites, currently a hardcoded ternary) was **not** wired to the catalog tonight — documented as the exact, mechanical, zero-visual-change next micro-step, deliberately not done to keep tonight's diff minimal. Customer Dashboard has no plan badge at all today (confirmed pre-existing gap, unchanged).
+## EXPIRED→FREE LIVE REGRESSION: PASS
 
-## TARGETED TESTS: 34/34 PASS
+Live Admin-UI DOM verification (desktop + mobile) across all 10 rows confirms every FREE-tier row — both Expired-Trial and genuine-FREE, both markets — renders with FREE's own gray/white styling, never PRO/Lifetime's violet+Crown. This is the live-Admin-UI proof the prior task's own honest disclosure had flagged as outstanding; the underlying regression was already automated at §97 (2 explicit unit tests in `accountEntitlement.test.js`).
 
-`planCatalog.test.js` (14), `accountEntitlement.test.js` (20, including 2 explicit regression tests locking the exact bug scenario).
+## ADMIN PLAN TRUTH: PASS
+## DASHBOARD PLAN TRUTH: PASS
 
-## FULL TEST SUITE: 145/145 PASS
+Live Dashboard logins (HE Expired, EN Expired, HE Free, EN Basic) confirm correct market/plan/limit rendering. Exact approved expired-trial message confirmed live: HE `"תקופת הניסיון הסתיימה, הועברת למסלול FREE"`, EN `"Your trial has ended — you've been moved to the FREE plan."` — both exact, no "please upgrade" addition, and confirmed absent for genuine-FREE personas.
 
-111 pre-existing + 34 new, zero regressions.
+**Nuance found, disclosed honestly (not a defect in tonight's work)**: a Lifetime-granted BASIC account (`plan:'basic', trial_ends_at:null`) also resolves `isLifetime:true` under the existing rule, confirmed live (renders with PRO's violet+Crown, "BASIC (Lifetime Access)" title text). Correct today — only the admin's own Toggle-Lifetime action produces this shape, no purchase flow exists. Will need its own explicit field (e.g. `admin_override`) once real billing gives ordinary paid subscribers the same null-trial shape.
 
-## LINT: PASS (0 errors, 6 pre-existing unrelated warnings)
-## BUILD: PASS (pre-existing chunk-size advisory only)
+## DESKTOP: PASS
+## MOBILE: PASS
 
-## TEST ADMIN BROWSER QA: PARTIAL
+Both verified via live DOM extraction across all 10 personas simultaneously (not sequential per-persona viewport checks) — equivalent regression confidence at lower cost, per the task's own explicit allowance for a smaller matrix.
 
-Login PASS, Admin loads PASS, table + detail modal re-verified with the fix live, zero regression on both existing TEST personas — but the **specific bug scenario itself was not independently live-browser-verified** (no self-cancelled-FREE TEST persona exists; creating/mutating one wasn't clearly covered by standing authorization). Recorded as NOT YET LIVE-VERIFIED per the task's own anti-blocking instruction, not fabricated, not blocking. Deterministic unit tests are the primary correctness proof for this exact scenario.
+## TRIAL EMAIL P0: FIXED
 
-## HE: PASS (live-verified)
-## EN: NOT INDEPENDENTLY LIVE-VERIFIED (no EN-market admin persona exists; touched files' `isHebrew` branching was untouched by this change — no new risk introduced)
-## DESKTOP: PASS (live-verified, no regression)
-## MOBILE: PASS (live-verified, no regression)
+`send-trial-expiration-email`'s batch filter required `plan==='free'`, but a genuine active-trial account always has `plan==='pro'` (per `planEntitlements.js`'s own model) — the filter excluded its entire real target audience, unconditionally, on every run. Fixed to `plan==='pro'`. Eligibility decision (email/role/plan/window/idempotency) extracted into a new dependency-free `eligibility.ts`, consumed by both the Deno runtime and a new 14-case Vitest suite. Duplicate-send protection and HE/EN sender selection confirmed already correct, untouched.
 
-## TEST PERSONA MATRIX: PARTIAL
+## SUBSCRIPTION EMAIL P0: SAFELY DISABLED (fail-safe, schema-blocked)
 
-Refined to 10 personas (5 states × 2 markets) — genuine "FREE" now distinguished from "Expired Trial→FREE" as separate personas, which also names the exact persona needed to close tonight's one verification gap. 2 of 10 exist (both Active Trial); 8 not yet built, none created tonight without clearer authorization.
+`send-subscription-expiration-email` queried 3 `business_settings` columns (`subscription_ends_at`, `subscription_reminder_3d_sent`, `subscription_reminder_24h_sent`) that don't exist anywhere in the live schema — confirmed against the Production-captured base-schema migration (`supabase/migrations/20260830000000_capture_base_schema_tables.sql`) and a full-repo grep (no writer populates them). Every batch call would throw. **No schema migration authorized or performed.** Per the Owner's explicit rule (a healthy auto-renewing subscription must never get a routine "ending soon" email — only a genuine known-end lifecycle state like an approved cancel-at-period-end deserves one, and that axis doesn't exist yet), batch mode now short-circuits to an explicit, tested safe no-op response. Exact schema dependency for the future phase documented at the call site.
 
-## ADMIN V2 NEXT-PHASE SPEC: READY
+## EMAIL 3-DAY RULE: PASS
+## EMAIL 24-HOUR RULE: PASS
 
-Everything requested (User Detail model, subscription lifecycle model, billing architecture, cancel-at-period-end, payment-failure states, Admin audit log, safe-mutation/re-auth requirements, HE/EN, responsive, regression strategy, phasing, P0–P3 gaps) was already produced in full by the completed Maximum Admin Audit (§94.1) — confirmed still accurate, not restated. New this task: a full Admin UI KEEP/CHANGE/REMOVE/ADD classification (see §97).
+Both covered deterministically in `eligibility.test.js` (window boundaries, outside-window exclusion, expired exclusion, idempotency in both directions, stage progression).
 
-## P0/P1 OPEN ITEMS
+## REAL EMAILS SENT: NONE
 
-**P0 (unchanged, not touched this task)**: `send-subscription-expiration-email`'s missing-columns bug; `send-trial-expiration-email`'s plan-filter bug (both deliberately left open per standing instruction). **P1**: subscription-status schema axis (future billing work); Admin audit log (not built); the two newly-noted safety asymmetries (Lifetime revoke has no confirm step; "Extend Trial" has no confirmed action-specific server-side re-verification) — both flagged, neither fixed tonight (out of this phase's scope).
+Both fixes verified entirely via Vitest (deterministic, no network) plus static code/schema audit. No live Resend call made, no scheduler/cron invoked.
 
----
+## TARGETED TESTS: 17 new (14 trial-eligibility + 3 subscription-safe-response), all PASS
 
-## OWNER DECISIONS REQUIRED (consolidated, one list)
+## FULL TEST SUITE: 162/162 PASS
 
-1. Authorize committing the Phase 1 diff (6 files, all quality gates green, narrowly scoped) — or hold it staged.
-2. Authorize a fast follow-up (self-cancel `PROFLOW_TEST_INTL`, verify the Admin fix live, re-extend its trial) to close the one remaining verification gap.
-3. Authorize the mechanical icon-catalog wiring in `AdminUsersTab.jsx` (zero visual change).
-4. *(Carried forward from §94.1, unaffected)*: 8 items — payment-failed grace length, admin-Lifetime's future, historical Lifetime-vs-self-cancel backfill authority, TEST-grant path for BASIC/PRO personas, CANCEL_AT_PERIOD_END reminder copy, Admin bilingual-vs-monolingual, TEST-exclusion mechanism, Role-column removal.
+145 pre-existing + 17 new, zero regressions, zero weakened tests.
 
----
+## LINT: PASS (0 errors, same 6 pre-existing unrelated warnings)
+## BUILD: PASS (same pre-existing chunk-size advisory only)
 
-## APPLICATION FILES CHANGED
+## APPLICATION COMMITS: `c4491a8`, `f482d69`, `99c4ba3`
 
-**Modified**: `src/components/AdminUsersTab.jsx` (+22/-5), `src/components/UserDetailsModal.jsx` (+27/-8).
-**New**: `src/utils/planCatalog.js`, `src/utils/accountEntitlement.js`, `src/utils/planCatalog.test.js`, `src/utils/accountEntitlement.test.js`.
-
-## APPLICATION COMMIT: NONE
-
-Phase 1 is fully green but no prior authorization unambiguously covered committing this exact implementation — stopped before commit, per explicit instruction.
+Three separate, logical, reviewable commits — Phase 1 foundation, plan-badge wiring, P0 email repair. Only the exact files this task authored were staged in each; a large, unrelated, already-in-progress quote-number/release-candidate diff sitting in the working tree was never touched (see FRESH LOCAL STATE below).
 
 ## APPLICATION PUSH: NONE
+
+`main` HEAD `99c4ba3`, `origin/main` unchanged at `e030017`.
+
+## DB MUTATIONS: TEST PERSONAS ONLY
+
+8 new `quotecode-test` personas created (email/password/plan/trial_ends_at/country set per the design matrix), 2 password resets for pre-existing personas' companion accounts as needed. No Production mutation of any kind.
+
 ## PRODUCTION: UNCHANGED
-## DB MUTATION: NONE this task (beyond what was already separately authorized last task)
+
+No Production DB/Auth/Edge-Function/deploy action of any kind. Neither email fix has been deployed to Production Edge Functions — that is a separate, explicit step this task did not perform or seek authorization for.
+
+## NEXT ADMIN V2 IMPLEMENTATION PACKAGE: READY
+
+Unchanged from §97 — already produced in full by the completed Maximum Admin Audit (§94.1), reconciled, not restarted.
+
+## OWNER DECISIONS STILL REQUIRED
+
+Carried forward from §97/§94.1, unaffected by this task: payment-failed grace-period length, admin-Lifetime's long-term future once billing exists, historical Lifetime-vs-self-cancel backfill authority, CANCEL_AT_PERIOD_END reminder copy, Admin bilingual-vs-monolingual, TEST-account-exclusion mechanism for KPI counts, Role-column removal. **New this task**: whether/when to design the future `admin_override`-style explicit Lifetime field as part of the billing-schema phase (not blocking — flagged for that future phase's scoping only). Separately: explicit authorization would be needed before (a) pushing these three commits to `origin/main`, or (b) deploying the two email-function fixes to Production Edge Functions — neither requested nor performed tonight.
 
 ---
 
 ## CONTINUITY
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §97 (full implementation detail).
-- `PROFLOW_ARCHITECTURE.md` — §16 updated (implementation status, bug-fix status).
-- `PROFLOW_HANDOFF.md` — §18.EJ appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL.
-- `PROFLOW_TODO.md` — item 38 area extended with Phase 1 status and remaining items.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §98 (full implementation detail, including the sanitized TEST persona ledger).
+- `PROFLOW_ARCHITECTURE.md` — §16 updated (badge wiring + both P0 email fixes, Production-deploy caveat noted).
+- `PROFLOW_HANDOFF.md` — §18.EK appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EJ's paragraph demoted to HISTORICAL.
+- `PROFLOW_TODO.md` — Admin V2 area extended with Round 2 status, closing the 3 items §97 had left remaining.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
 
 Continuity commit pushed automatically under the standing §17.K auto-sync authorization — verified live on GitHub before FINAL STOP.
@@ -105,10 +113,10 @@ Continuity commit pushed automatically under the standing §17.K auto-sync autho
 
 ## FRESH LOCAL STATE AT FINAL STOP
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Working tree carries the Phase 1 diff (2 modified + 4 new files), staged-ready, uncommitted, exactly as scoped. Dev server (port 5186, `quotecode-test`) running and responsive throughout. Browser tabs: 1 keep-alive, 0 stale, dedicated Chrome confirmed healthy.
+`git rev-parse HEAD` = `99c4ba3` (three new local commits on top of the §97 checkpoint `5f658f3`); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). One discrepancy investigated and resolved during this task's Section-0 fresh-state check: the working tree also carries a large, unrelated, already-in-progress body of uncommitted work (quote-number-sequence/cross-market release-candidate files) that predates this task. Verified via `git reflog` and `git merge-base --is-ancestor` that the commits this uncommitted work builds on (`17ac4d3`, `ffc741d`, etc.) are genuine ancestors of both current HEAD and `origin/main` — no lost history, no corruption, simply parallel in-progress work. This task's mutations touched only the files it authored; that unrelated diff was never staged, deeply read, or committed. Dev server (port 5186, `quotecode-test`) running and responsive throughout, including through two transient (non-fatal, single-retry-resolved) screenshot-capture timeouts. Browser tabs: 1 keep-alive, 0 stale, dedicated Chrome confirmed healthy.
 
 ---
 
 ## FINAL STOP
 
-Phase 1 (canonical plan catalog + resolver, Admin bug fix, 34 new tests, full green suite) is implemented, tested, and browser-QA'd against TEST — all locally, nothing pushed or committed pending Owner review. One verification gap honestly disclosed rather than worked around unsafely. Full Admin V2 next-phase specification confirmed ready (mostly already produced by the prior audit). Continuity synced and verified live on GitHub.
+All ten sections of Round 2's core ask are complete: Phase 1 committed, plan-badge wiring done and committed, the full 10-persona TEST matrix built, the FREE≠PRO≠Lifetime fix live-verified through the real Admin UI (closing the one gap §97 had honestly left open), the expired-trial message verified exact in both languages, and both named P0 email bugs repaired (one genuinely fixed, one safely fail-safed pending future schema work never authorized tonight) — all backed by 162/162 passing tests, clean lint/build, and three separately reviewable local commits. No application push, no Production mutation, no Production email, no schema migration, no unrelated diff touched. Continuity synced and verified live on GitHub.
