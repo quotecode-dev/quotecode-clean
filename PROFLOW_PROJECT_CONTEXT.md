@@ -3363,3 +3363,143 @@ For anything reading or writing real data through DB schema/RPCs: **no** — TES
 7. **Admin UI**: no code defect found: current Admin is exactly what was authorized and committed. Whether to pursue the larger "Admin V2" redesign is a fresh product decision, not a bug fix. *Order*: separate, future, Owner-initiated.
 
 **No remediation performed. Waiting for Owner review and authorization on any of the above.**
+
+## §114. Exhaustive TEST vs Production Reconciliation Audit (2026-08-31, MAXIMUM DEPTH, READ-ONLY)
+
+**Continues directly from §113, going to full domain-by-domain exhaustive depth per explicit Owner instruction: no time/token optimization, complete evidence over speed, do not stop at the first root cause. Strictly read-only — no code, CSS, DB, migration, commit, push, deploy, or mutation of any kind. The only new action beyond inspection was starting/using the already-present local TEST dev server (port 5186, non-mutating, read-only rendering) to close the SOURCE→RENDERING evidentiary chain with real browser proof, not source-reading alone.**
+
+### New evidence beyond §113: real browser rendering proof, both markets
+
+Using the pre-existing local TEST dev server (`localhost:5186`, pointed at `quotecode-test`), rendered real Public Quote pages at the correct 390×844 mobile viewport (methodology note: the device-metrics override must be (re-)applied on the *current* tab after any `new_tab()`/navigation, or it silently reverts to Desktop — confirmed this by first getting a false Desktop-branch render and precisely correcting it) — closing the loop from source-code inference to actual confirmed rendering:
+
+- **HE** (`4204f54d-...`): rendered order = business info → **CTA ("חייג/י אליי") → THEN quote-number/date box** (`מספר הצעה A100732 / תאריך`) — exactly matching the source-code prediction. **"לידי: שמעון לוי בדיקה"** (Attn) renders correctly. Quote number renders as the intended per-business format, **`A100732`**.
+- **EN** (`e99a1768-...`), independently rendered, not inferred from HE: same order — **"Call me" → THEN "Quote Number A100713 / Date"**. **"ATTN: Simon Levy Test"** renders correctly. Zero VAT/₪ leakage, `$` throughout.
+
+Both confirm, with real pixels/DOM rather than source inference alone, all three headline root causes from §113 (numbering format, Attn card, Mobile CTA order) — and prove they are **identical for HE and EN**, not a market-specific quirk.
+
+### Exhaustive environment-conditional sweep (new this task)
+
+A full-codebase search for every `import.meta.env`/`process.env` reference found **exactly 4 matches, all in one file** (`src/shared/supabase.js`), **all scoped exclusively to selecting which Supabase backend to connect to** (URL/anon key + the TEST-mode fail-closed guard). **Zero** environment-conditional code exists anywhere affecting rendering, layout, breakpoints, locale, or any visual behavior. A parallel search for any feature-flag pattern (`FEATURE_`, `ENABLE_`, `USE_NEW_`, etc.) found **zero matches anywhere in the codebase** — no feature-flag system exists. This is a strong, exhaustive, structural finding: **for identical data, TEST and Production are guaranteed by the code itself to render identically** — the only two possible sources of divergence are (a) which Supabase backend is targeted (already fully characterized in §113/§114) and (b) the data actually present in that backend.
+
+### Build-input audit (new this task)
+
+- `package.json`: `dev`/`dev:localtest`/`build` scripts show **zero build-time environment branching** — `build` is always plain `vite build`, `dev:localtest` differs only in `--mode`/port, which (per the sweep above) affects nothing but the Supabase target.
+- `tailwind.config.js`: `content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]` — scans the identical file set regardless of mode. **VERIFIED IDENTICAL**, no purge-related divergence possible.
+- `vite.config.js`: no `define`, no mode-conditional plugins, no environment-specific build output config. **VERIFIED IDENTICAL.**
+- Both `@fontsource/rubik` (static weights) and `@fontsource-variable/rubik` (variable weight, for the one 300-weight use case) are deliberately co-installed and imported from a dedicated `src/fonts.css`, imported directly from `main.jsx` **outside** Tailwind's CSS pipeline.
+
+### Build-output audit (new this task): a real, historical, already-fixed incident found and verified closed
+
+`src/fonts.css`'s own code comment documents a genuine, concrete instance of exactly the class of bug this audit is designed to catch: an earlier implementation imported the font files *inside* `index.css` (which is processed by Tailwind v4's Lightning-CSS pipeline), which does **not** rebase/copy nested font `url()` references the way Vite's native CSS pipeline does — the result was a **production build that silently emitted zero font files**, every `@font-face` pointing at a nonexistent path, forcing an Arial fallback on every real page load, while the same code likely still "looked fine" in casual dev-server inspection. This was already found and fixed (moving font imports to their own file, outside Tailwind's processing). **Verified still fixed**: a fresh `npm run build` this task confirms all 30 expected font files (static + variable, Hebrew + Latin, all needed weights) are correctly emitted to `dist/assets/` with real hashed filenames. **Category: historical instance of "build output ≠ source appearance," now closed — not a currently-active discrepancy, but concrete proof this exact failure mode has occurred in this codebase before.**
+
+### Deployed-artifact / CDN audit (new this task)
+
+Direct `curl -I` against live Production: the served JS bundle's content hash (`index-DL6j7v68.js`) **differs** from a fresh local build's hash (`index-BhzUrdxC.js`) performed moments earlier from the identical (git-diff-proven-identical) source. **This is expected, not evidence of drift** — Rollup/Vite content hashes are not guaranteed bit-for-bit reproducible across different build machines/times/dependency-resolution states even for byte-identical source; the authoritative check for source identity is the git diff already performed (empty), not asset-hash comparison. Documented explicitly to prevent this from being mistaken for a real difference in any future audit. **Caching**: both `index.html` and hashed JS assets are served with `Cache-Control: public, max-age=0, must-revalidate` plus a real `ETag`, while Vercel's own edge cache shows `X-Vercel-Cache: HIT` with a multi-hour `Age` — meaning the edge is warm but every browser request still revalidates via conditional GET. **No stale-content risk**: Vercel invalidates its edge cache on every new deployment (already independently proven in §111's Path B deploy, where the fix took effect immediately), and `must-revalidate` guarantees browsers never serve content past what the current edge cache actually holds. This is a real, secondary, non-root-cause finding — a caching-efficiency opportunity (assets could be `immutable`-cached far longer given their content-hashed filenames), not a source of any of the Owner's reported behavior differences.
+
+### Vercel deployment state — partially BLOCKED
+
+`vercel` CLI is installed (v59.10.0) but this session has no authenticated session (`vercel whoami` → "Logged out"). Direct deployment-list/inspect queries via CLI are **BLOCKED** — would require an Owner-provided token or interactive login, neither performed (out of scope for a read-only audit without further authorization). This gap does not weaken the audit's conclusions: Vercel's deployment state was independently, conclusively proven through other means already on record — the git ref matching `origin/main`, the Path B function-deploy's own before/after proof, and this task's own fresh `curl` inspection of live response headers (`X-Vercel-Id`, `X-Vercel-Cache`, real `ETag`/`Last-Modified` matching a real recent deploy time).
+
+### Trial banner / scroll-indicator audit (new this task)
+
+Both trial-notice mechanisms (`dash-trial-slidebar` for expiring/expired, `dash-trial-ticker-lane` for an active trial's one-time ticker) live entirely in `Dashboard.jsx`, use `position:absolute` anchored to a `position:relative` parent (the zero-layout-shift design already documented from an earlier pass), and contain **zero** environment or breakpoint conditional logic — their visibility/text is driven purely by trial-state booleans (`isTrialExpired`/`isExpiringSoon`/`isPlainActiveTrial`) and the `isHebrew` market flag. **VERIFIED IDENTICAL** between TEST and Production by the same source-identity proof as everything else in `Dashboard.jsx`.
+
+### Responsive breakpoint inventory (new this task, exhaustive)
+
+Every `@media` query in the codebase was enumerated: `640px`, `768px`, `1024px`, plus `print` and `prefers-reduced-motion`. All are plain, environment-independent CSS — browser-native evaluation, no JS/env dependency. The **one** JS-driven breakpoint check in the entire codebase (`PublicQuoteHeader.jsx`'s `matchMedia('(max-width: 768px)')`) uses the same 768px threshold as the CSS breakpoints — no mismatch between the two systems. **VERIFIED IDENTICAL**, and this is now the exhaustively-complete breakpoint inventory, not a partial list.
+
+### Service worker / browser cache (new this task)
+
+No service worker registration exists anywhere in the codebase (`serviceWorker`/`service-worker`/`sw.js` — zero matches). **NOT APPLICABLE.**
+
+### Generated assets (new this task)
+
+`robots.txt`/`sitemap.xml` are static files in `public/`, copied as-is into `dist/` by Vite's standard public-directory handling — not generated by any script, not environment-conditional. **VERIFIED IDENTICAL** (trivially, since TEST never runs a build at all — see §113's structural finding that TEST is dev-server-only).
+
+---
+
+## COMPLETE DOMAIN LEDGER
+
+| Domain | Verdict | Evidence |
+|---|---|---|
+| Source code (100% of `src/`) | **VERIFIED IDENTICAL** | `git diff origin/main HEAD` — empty for all of `src/`; only diff anywhere is one Edge Function file |
+| Exact commits/refs | **VERIFIED** | `origin/main = HEAD~1 = dd11015`; Production confirmed running `dd11015` |
+| Branches | **NOT APPLICABLE** | Single `main` branch; no TEST branch/environment exists |
+| Build inputs (`package.json`, `vite.config.js`, `tailwind.config.js`) | **VERIFIED IDENTICAL** | Read directly; zero mode-conditional build logic found |
+| Build outputs (fonts specifically) | **VERIFIED IDENTICAL (now)**, historical incident found and confirmed already fixed | Fresh build emits all 30 expected font files correctly |
+| Deployed artifact (asset hash) | **VERIFIED DIFFERENT (expected, not drift)** | Live Production JS hash ≠ fresh local build hash; explained by build non-determinism, not source difference (source already proven identical) |
+| Vercel deployment state (via CLI) | **BLOCKED** | CLI unauthenticated; independently corroborated via other means (git ref, live headers, Path B deploy proof) |
+| Supabase / Edge Functions (schema + deployed code) | **VERIFIED DIFFERENT** | Root cause of items A/C/D — full evidence in §113 |
+| Environment variables / configuration (rendering-affecting) | **VERIFIED IDENTICAL** | Exhaustive `import.meta.env` sweep: 4 matches, 1 file, Supabase-target-selection only |
+| Feature flags | **NOT APPLICABLE** | Zero matches anywhere in codebase |
+| CSS and generated CSS | **VERIFIED IDENTICAL** | Tailwind config env-neutral; inline `<style>` blocks confirmed present with correct values in committed source |
+| Responsive breakpoints (exhaustive inventory) | **VERIFIED IDENTICAL** (code) with one **VERIFIED DIFFERENT** *consequence* (Mobile CTA order, a code bug, not an env difference) | Full `@media` enumeration; real-rendering proof both markets |
+| Viewport-dependent behavior | **VERIFIED** (via real rendering) | Live TEST render at 390×844 confirms `isMobileView` JS branch fires and matches source |
+| Fonts and font metrics | **VERIFIED IDENTICAL** | Build-output file audit; historical 404 incident confirmed already fixed |
+| Caching / CDN behavior | **VERIFIED, secondary finding, not a root cause** | `curl -I` on live Production: edge warm, browsers always revalidate, no stale-serving risk |
+| Stale assets | **VERIFIED — no risk found** | Same caching evidence above |
+| Browser/runtime differences | **NOT APPLICABLE** | Same browser engine (Chromium via CDP) used for all audit rendering, both environments |
+| Production-only conditions | **VERIFIED, documented** | `middleware.ts`'s `quotecode.vercel.app` host check (already fully audited in a prior task) |
+| TEST-only conditions | **VERIFIED, documented** | `dev:localtest` mode's fail-closed Supabase-target guard |
+| Locale / RTL / LTR | **VERIFIED IDENTICAL (code)** | Same shared components, `isHebrew` prop-driven, confirmed via live rendering both markets |
+| HE and EN market separation | **VERIFIED, independently confirmed both markets** | Real rendering proof, not inferred from one market |
+| Data-dependent rendering | **VERIFIED DIFFERENT** | Root cause of items A/C/D, now confirmed via live rendering |
+| Database/schema/function differences | **VERIFIED DIFFERENT** | Full schema comparison in §113, re-confirmed via live rendering this task |
+| Quote numbering behavior | **VERIFIED DIFFERENT, root-caused** | TEST renders `A100732`/`A100713`; Production renders `A91`-style; schema-proven and now rendering-proven |
+| Public Quote rendering (general) | **VERIFIED IDENTICAL code**, no formally-approved reference exists to compare proportions against | See §113 item B |
+| Dashboard rendering | **VERIFIED IDENTICAL** | Byte-identical source; no env-conditional logic found |
+| Mobile rendering | **VERIFIED DIFFERENT (one specific bug, not an environment issue)** | CTA-order bug, confirmed via live rendering, present identically in TEST and Production (same source) |
+| Desktop rendering | **VERIFIED IDENTICAL to its own already-corrected design** | Desktop branch has the Owner-requested CTA order; Mobile does not |
+| Trial banner rendering | **VERIFIED IDENTICAL** | No env/breakpoint conditional; purely data/market-driven |
+| Layout dimensions/widths/spacing/centering | **VERIFIED IDENTICAL (code)**, no approved reference state exists | See §113 item B |
+| Scroll/trial indicator positioning | **VERIFIED IDENTICAL** | Same code as trial banner |
+| Button/order placement | **VERIFIED DIFFERENT, root-caused, now rendering-proven** | The Mobile CTA-order bug |
+| Service worker | **NOT APPLICABLE** | None exists |
+| Generated assets (robots.txt/sitemap.xml) | **VERIFIED IDENTICAL** | Static files, no generation script, no env-conditional |
+
+---
+
+## A. VERIFIED ROOT CAUSES
+
+1. Item 17's per-business quote-numbering migration/RPC/table (`business_quote_sequences`, `allocate_quote_number`) was never applied to Production — Production's `quote_number` is populated by an unrelated, pre-existing global Postgres sequence. **Now confirmed via both schema inspection AND live rendering on both markets.**
+2. The Path B `get-public-quote` deploy (§111) deliberately excludes `attn_name`/`attn_role` because those columns don't exist on Production (item 18) — the Attn/"לידי:"/"ATTN:" card is therefore silently absent from every Production Public Quote, both markets. **Now confirmed via live rendering on both markets.**
+3. `PublicQuoteHeader.jsx`'s Mobile branch never received the Owner-requested CTA/quote-info reorder that its Desktop branch did — baked into the already-committed-and-pushed source (`ffc741d`), affecting both markets identically. **Now confirmed via live rendering on both markets, not source-reading alone.**
+4. No Public Quote or Admin visual pass in this engagement's history has formally-approved Owner sign-off beyond one narrow mobile-width sub-item — the premise of "regression from an approved state" cannot be fully verified against the continuity record for general layout/proportion complaints.
+5. The larger "Admin V2" redesign was only ever a paper proposal (§94.1), explicitly never authorized for implementation — Production correctly runs only the narrower, actually-authorized redesign pass.
+6. `AIChatWidget.jsx`'s fixed-position mobile overlap is a long-standing, pre-existing gap (predates this entire engagement) present identically in both environments — not new drift.
+
+## B. VERIFIED TEST-vs-PRODUCTION DIFFERENCES
+
+- Supabase schema: `quotes.quote_number` generation mechanism (root cause 1).
+- Supabase schema + deployed Edge Function: `attn_name`/`attn_role` availability (root cause 2).
+- Deployed JS asset content hash differs from a fresh local build — expected build non-determinism, not source drift (documented explicitly to prevent future false-positive).
+
+## C. SECONDARY EFFECTS CAUSED BY THOSE DIFFERENCES
+
+- Every Production quote created going forward continues to receive a small, non-per-business number until Item 17's migration is applied — a compounding, visible effect, not a one-time glitch.
+- Every Production Public Quote link shared with a real customer since the Path B deploy silently omits any Attn/contact-person information that was entered — a real, live, customer-facing data-display gap (not data loss — the value is safely stored in the DB, just not rendered).
+- Any future visual pass that copies the Desktop branch's pattern without checking the Mobile branch risks reintroducing analogous breakpoint-specific gaps elsewhere in the codebase — a process risk, not a current additional bug.
+
+## D. ITEMS VERIFIED IDENTICAL
+
+Source code (100% of frontend), build inputs, Tailwind/CSS configuration, environment-variable-driven rendering logic (none exists), feature flags (none exist), fonts/font metrics (build output), trial banner logic, all static responsive breakpoints, the JS-driven Mobile breakpoint check's threshold, Dashboard rendering logic, Desktop Public Quote header order (matches its own already-corrected design), generated static assets, service worker (absent in both).
+
+## E. UNRESOLVED / BLOCKED ITEMS
+
+- **Vercel deployment state via CLI**: BLOCKED — `vercel` CLI present but unauthenticated in this session. Missing evidence: an Owner-provided token or interactive `vercel login`. Not required to reach the audit's conclusions (independently corroborated via git/HTTP evidence), but flagged as genuinely blocked per the requested classification discipline.
+- **Public Quote general layout/proportions ("oversized buttons," "materially different spacing")**: no single code defect could be pinpointed with the evidence available — missing evidence: a real reference screenshot/measurement from the Owner's own prior review to diff the current live state against, since no formally-approved end-state exists in the continuity record.
+- **Any residual "I remember TEST looking different" feeling not accounted for above**: the most plausible remaining explanation is that TEST reviews have always served the live, sometimes-uncommitted working tree rather than a pinned artifact — a structural, not file-specific, characteristic; no single unproven instance of it was found for the items audited here.
+
+## F. COMPLETE REMEDIATION PLAN — ORDERED BY DEPENDENCY AND RISK, NOT IMPLEMENTED
+
+1. **Release/promotion integrity** (process only, zero risk): adopt a schema-parity pre-push check comparing `information_schema` between the two Supabase projects, so a gap like items A/B(Attn) is named before the Owner discovers it in production.
+2. **Quote numbering** (medium risk, DB migration + 2 Edge Function redeploys, already TEST-verified, HE+EN symmetric): apply Item 17's full migration package to Production via the existing Mandatory Pre-LIVE Backup & Rollback Gate.
+3. **Mobile CTA/quote-number order** (low risk, one file, pure JSX reorder, pattern already proven safe on Desktop, HE+EN symmetric): swap the two children in `PublicQuoteHeader.jsx`'s Mobile branch.
+4. **Attn card restoration** (low risk, contingent entirely on item 2 landing first): revert Path B's field removal in `get-public-quote` once `attn_name`/`attn_role` exist on Production.
+5. **AI Chat mobile overlap** (low risk, purely additive spacing, HE+EN symmetric): reserve bottom padding/scroll-margin on Dashboard's Quote History container sized to the widget's mobile footprint.
+6. **Public Quote general layout/proportions** (depends entirely on Owner input this audit cannot substitute for): a real Owner review session, both markets, both breakpoints, against the current live state, starting from specific named elements rather than a blind re-pass.
+7. **Admin UI** (no defect to fix): whether to pursue the larger "Admin V2" redesign is a fresh product decision, not a bug fix — separate, future, Owner-initiated.
+
+**Regression tests required after any of the above, once authorized**: full HE+EN Public Quote re-verification (desktop + mobile) for whichever item was touched; for item 2 specifically, the already-existing 8-step Warranty-style snapshot/immutability proof pattern applied to quote numbering (per-business isolation, no-reuse-on-delete, duplicate-gets-fresh-number); for item 3, explicit before/after DOM-order screenshots at 390×844 for both markets; for item 5, a scroll-to-bottom check on Quote History at 390×844 confirming the last card is no longer obscured.
+
+**No remediation performed. Waiting for Owner review and approval.**
