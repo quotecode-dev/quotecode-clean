@@ -99,6 +99,8 @@ Verified message classifications, preserved as-is: `GENERAL`, `CANCELLATION`, `F
 
 Do not mark this follow-up complete until implemented and verified.
 
+**OPEN follow-up (NOT complete, documentation only, added 2026-08-31, Hot Quote Fixed Geometry task — no AI code change authorized by recording this)**: **Guided AI Support Entry.** Product concept: when a user opens AI Support Chat, don't require starting from a blank free-text prompt. Present a guided opening question first — HE: "במה אפשר לעזור לך?" (EN must have the corresponding LTR experience) — with selectable categories conceptually including: problem using/operating the system; quote-related question; subscription/billing/payment; clients/business settings; suggestion/feature request; something else. After a category is selected, at most one additional contextual guided question may follow where useful — avoid deep menu trees; target UX is roughly 1-2 guided steps before transitioning naturally into free AI conversation. The selected category may later be used as structured context/metadata for the AI/support system, while the existing message classifications (`GENERAL`, `CANCELLATION`, `FEATURE_REQUEST`, `HARD_QUESTION`, documented above) remain independent and authoritative for their existing purpose — this is a separate, additive UX layer, not a replacement for that classification system. **Status: OPEN / NOT IMPLEMENTED. This is future product work — no implementation authorized by this entry.**
+
 ## 3. Real Billing + Invoicing
 
 **Status: 🔴 OPEN / NOT IMPLEMENTED**

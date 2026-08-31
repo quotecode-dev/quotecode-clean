@@ -4,131 +4,107 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Landing Prerender Phase 4 — Isolated Preview Deployment + ChatGPT Access Test
+## Task: Hot Quote Fixed Geometry / No Layout Shift
 
-**EFFORT LEVEL: MAXIMUM.** Phase 4 Preview only — no Production deployment/promotion/DNS/Supabase change/LIVE authorization.
+**EFFORT LEVEL: MAXIMUM.** Fix the Hot Quote layout-jump bug on the Business Owner Dashboard — local/uncommitted only, no commit/push, no Production action.
 
 ---
 
 ## FRESH LOCAL STATE
 
-**BRANCH**: `main`
-**LOCAL HEAD**: `e03001745859ae6b81f162a4af5bdca3c95cac5a`
-**REMOTE MAIN**: `e03001745859ae6b81f162a4af5bdca3c95cac5a` (identical)
-**WORKING TREE**: unchanged from the end of the prior task — `src/entry-server.jsx` still present, uncommitted; all other carried-forward untracked/modified files untouched.
+**BRANCH**: `main` — **LOCAL HEAD**: `e03001745859ae6b81f162a4af5bdca3c95cac5a` — **REMOTE MAIN**: identical — **WORKING TREE**: `Dashboard.jsx` already carried substantial pre-existing uncommitted changes from earlier sessions (347/-76 before this task); all other carried-forward untracked/modified files preserved untouched. **Hot Quote had no local/uncommitted changes of its own before this task.**
 
 ---
 
-## TABLET QA
+## HOT QUOTE ROOT CAUSE
 
-Tested directly against the live Preview (its content confirmed byte-identical to the already-tested local PoC before testing began — `Content-Length` matched exactly on all three routes).
-
-**HE PORTRAIT (768×1024): PASS**
-**EN PORTRAIT (768×1024): PASS**
-**HE LANDSCAPE (1024×768): PASS**
-**EN LANDSCAPE (1024×768): PASS**
-
-**VIEWPORTS**: 768×1024 (Portrait) and 1024×768 (Landscape), both @2x device scale factor, `mobile: true`.
-
-**TABLET BLOCKER: NONE** — zero `Runtime.exceptionThrown` events and zero horizontal overflow (`scrollWidth <= clientWidth` confirmed true) on all four combinations. Correct RTL/LTR, Hero/nav/CTA/pricing/promo-banner all render correctly, no clipping of controls.
+The Hot Quote card (`.dash-kpi-card.dash-kpi-hot` in `Dashboard.jsx`, inside a CSS Grid row) rotates every 4 seconds among qualifying quotes (`view_count >= 3`, not approved/paid) via an existing `setInterval` effect. The displayed message embeds the rotating quote's real client `company_name` — an unbounded free-text field. The card's text column had no reserved `minHeight` and the message `div` had no line-clamp, so each rotation's differing text length changed the number of wrapped lines, which changed the card's height, which shifted the entire KPI grid row and everything below it on the Dashboard. Confirmed no CSS file references any `dash-kpi-*` class — the fix is fully self-contained to inline JSX styles.
 
 ---
 
-## PREVIEW
+## FILES CHANGED
 
-**PREVIEW CREATED: YES**
-
-**MECHANISM**: `vercel deploy --prebuilt --temporary --non-interactive --yes`, run from a scratchpad directory entirely outside the repository, uploading a manually-constructed `.vercel/output/` directory (Build Output API v3 — `config.json` `{"version":3,"routes":[...]}` + `static/` containing the exact files already verified in Phases 1-3/§72). Confirmed via `vercel deploy --help` this is a documented, official no-login mode. CLI output: `"Not authenticated. Deploying anonymously."` No `vercel.json` or repo build script was touched.
-
-**PREVIEW ISOLATED FROM PRODUCTION: PASS** — deployed under Vercel's own separate `anonymous/prj_J7fc2nZF3k6BLWfILHRmHP1oiB7p` project, unrelated to the real `quotecode` project by construction (no `.vercel/project.json` link exists or was created).
-
-**PRODUCTION CHANGED: NO**
-**DNS CHANGED: NO**
-**SUPABASE CHANGED: NO**
-
-**Preview URL** (expires 60 minutes after creation — a property of this anonymous mechanism; redeploy with the identical command for a fresh window if it lapses before use):
-
-`https://temporary-snappy-apogee-mcmc26p.vercel.app`
+`src/pages/Dashboard.jsx` (Hot Quote card block only, ~10 net lines within this file's larger pre-existing uncommitted diff). New: `src/pages/Dashboard.hotquote.test.js` (regression guard).
 
 ---
 
-## RAW HTML
+## IMPLEMENTATION
 
-**HE: PASS** — **EN: PASS**
-
-**REAL CONTENT IN INITIAL HTML: YES** — confirmed via plain, cookie-less `curl` against the live Preview: `/` (51,513 bytes), `/he` (51,515 bytes), `/en` (49,624 bytes) — byte-identical to the local PoC, all `200 OK`, no login/SSO redirect of any kind. Representative HE text ("מסלולים ומחירים", "שאלות נפוצות") and EN text ("Plans &amp; Pricing", "Frequently Asked Questions") both confirmed present in the raw response.
-
-**JS REQUIRED FOR MARKETING TEXT: NO**
+Added `minHeight: '52px'` + `justifyContent: 'center'` to the text column wrapping the card's label and message; added the standard CSS line-clamp pattern (`display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'`) to the message `div`. Card height is now fully content-independent: short content no longer collapses the reserved space, long content truncates at exactly 2 lines instead of growing the card. No typography/color/spacing/icon/copy/animation/surrounding-card/business-logic change.
 
 ---
 
-## PREVIEW BROWSER SMOKE
+## RESPONSIVE QA MATRIX (real TEST data, real DOM geometry measurement)
 
-**HE DESKTOP: PASS**
-**EN DESKTOP: PASS**
-**HE MOBILE: PASS**
-**EN MOBILE: PASS**
-**HE TABLET: PASS**
-**EN TABLET: PASS**
+**HE DESKTOP: PASS** — **EN DESKTOP: PASS** — **HE MOBILE: PASS** — **EN MOBILE: PASS** — **HE TABLET PORTRAIT: PASS** — **EN TABLET PORTRAIT: PASS** — **HE TABLET LANDSCAPE: PASS** — **EN TABLET LANDSCAPE: PASS**
 
-All tested directly against the live Preview URL via the dedicated automation Chrome. Zero `Runtime.exceptionThrown` on any combination. Hero CTA confirmed to trigger real client-side navigation to `/dashboard?signup=true&lang=he` on the live Preview (identical behavior to the local PoC). Video (`proflow-demo.mp4`/`proflow-demoEN.mp4`) and JS/CSS assets all confirmed `200` via direct HTTP checks on the live Preview.
-
-**FLICKER/LAYOUT REGRESSION: NONE**
+Viewports: Desktop 1920×1080 (native window); Mobile 390×844 @3x; Tablet Portrait 768×1024 @2x; Tablet Landscape 1024×768 @2x. Tested against the real running TEST dev server (`npm run dev:localtest`, port 5186), logged into both `PROFLOW_TEST_LOCAL_*` (HE) and `PROFLOW_TEST_INTL_*` (EN) — the established, precedented TEST-only credential pair, read directly from the gitignored `.env` file within the verification script and **never printed to any log, screenshot, report, or continuity file**.
 
 ---
 
-## EXTERNAL ACCESS
+## HOT QUOTE GEOMETRY: STABLE
 
-**ANONYMOUS PUBLIC ACCESS: YES** — confirmed via a completely cookie-less, credential-less `curl` request receiving full real content with no Vercel login/SSO wall. Unlike the real `quotecode` project's protected preview deployments (§65/§66), this anonymous temporary deployment has no protection barrier. No bypass token, no Owner login, no VPN, no tunnel was used or is needed. Production's own security posture was not touched or weakened.
+**SURROUNDING CONTENT MOVEMENT: NONE**
+**PAGE JUMP: NONE**
 
-**CHATGPT HE URL**: `https://temporary-snappy-apogee-mcmc26p.vercel.app/he`
-**CHATGPT EN URL**: `https://temporary-snappy-apogee-mcmc26p.vercel.app/en`
-**CHATGPT ROOT URL** (optional, currently serves HE per the PoC's placeholder decision): `https://temporary-snappy-apogee-mcmc26p.vercel.app/`
-
-**STATUS: READY FOR CHATGPT ACCESS TEST** — Claude does not declare this PASS itself; only ChatGPT's own independent external fetch can confirm the result. **Note the 60-minute expiry** — if ChatGPT's test does not occur promptly, request a redeploy (same command, new URL/window) before relying on this link.
+Verified by injecting extreme long-text and short-text content directly into the actual rendered `.dash-kpi-sub` node (a one-time DOM write for measurement purposes only — React's own rotation mechanism and the real message template were never modified) and comparing `getBoundingClientRect()` of the card, the grid, and a fixed reference element below it. Result, identical across all 8 combinations: card/grid `top` and `height` were **byte-for-byte identical** across baseline real content, extreme long text, and extreme short text. The line-clamp was confirmed actively engaging (unclamped `scrollHeight` ~83-100px vs clamped `clientHeight` capped at 33px — roughly 3 lines of real content actively suppressed). Screenshots at every step confirm clean 2-line ellipsis truncation, with the ellipsis correctly appearing at the RTL-correct edge for HE, and zero card-boundary change.
 
 ---
 
-## OPEN ITEMS
+## LONG HE TEXT: PASS
+## LONG EN TEXT: PASS
 
-**PERMANENT ROOT LANGUAGE: OPEN** — Preview currently serves `/` as HE (unchanged PoC placeholder, not a product decision).
-**STATIC TITLE: OPEN**
-**STATIC META DESCRIPTION: OPEN**
-**STATIC HREFLANG: OPEN**
-
-(None required to be minimally generated for this Preview to function correctly — the deployment succeeded and served fully correct body content without any such change, so no STOP-and-explain was triggered.)
-
-**HOT QUOTE FIXED GEOMETRY: OPEN / DOCUMENTED**
-**DESKTOP HE/EN MIRRORING: OPEN / DOCUMENTED**
-**VERCEL ROOT 308: OPEN**
-**APPROVED STATUS COLOR: TODO**
-**P1 / SESSION TIMEOUT: OPEN**
-**EN MOBILE/TABLET AI BUTTON OVERLAP: OPEN / DOCUMENTED** — also observed at the equivalent position on EN Tablet Portrait this task; same pre-existing, non-regression characterization as §72.
+Confirmed truncation (not layout movement) is the actual outcome for extreme-length (150-190 character) synthetic company names in both languages. No existing tooltip/title/full-text-on-hover UX exists for this element; none was invented, per explicit instruction.
 
 ---
 
-## WRITES
+## FOCUSED REGRESSION: PASS
+## FULL TESTS: PASS (72/72 — 70 pre-existing + 2 new)
+## LINT: PASS (0 errors; same 1 pre-existing unrelated `Dashboard.jsx` warning)
+## BUILD: PASS
 
-**APPLICATION COMMIT: NONE**
-**APPLICATION PUSH: NONE**
-**PRODUCTION DEPLOY: NONE**
+`src/pages/Dashboard.hotquote.test.js` — 2 new Vitest tests. A full-Dashboard-mount test was judged disproportionate: `Dashboard.jsx` is a large, non-decomposed authenticated-page component (unlike `QuotesTab.jsx`, which is props-driven and already has a test file) that would require heavy Supabase/auth/routing mocking for no proportionate benefit. Instead, a narrow source-level guard reads `Dashboard.jsx`'s own source, extracts the Hot Quote JSX block, and asserts the `minHeight: '52px'` and `WebkitLineClamp: 2` / `overflow: 'hidden'` properties remain present — this fails immediately if a future edit silently removes the geometry-stabilizing CSS.
 
-Confirmed via `git rev-parse HEAD` / `git status --short` before and after — identical to the end of the prior task. The only "write" performed this task was the anonymous Vercel temporary deployment itself, which touches no git history and no existing Vercel project.
+No regression observed to Quote History, navigation, or HE/EN directionality — all visually confirmed unaffected across all 8 screenshot captures taken this task.
 
 ---
 
-## DECISION
+## GUIDED SUPPORT ENTRY: DOCUMENTED OPEN
 
-**PHASE 4: PASS**
+Recorded as a new OPEN follow-up in `PROFLOW_TODO.md` §2 (AI Chat) — the full product concept (a 1-2-step guided category-selection opener before free-text AI chat, HE+EN, independent of the existing `GENERAL`/`CANCELLATION`/`FEATURE_REQUEST`/`HARD_QUESTION` classification system). **No AI code was touched this task.**
 
-**READY FOR CHATGPT ACCESS TEST: YES**
+---
 
-**PRODUCTION AUTHORIZED: NO**
+## DESKTOP HE/EN MIRRORING: OPEN / DOCUMENTED
 
-**CONTINUITY READ-BACK: PASS** (this sync — see below)
+(preserved unchanged, not acted on)
+
+---
+
+## LANDING PRODUCTION: NOT AUTHORIZED
+
+(Landing Prerender Phase 4 remains technically PASS from the prior task; ChatGPT's independent external access test is still pending; Production was not touched this task)
+
+---
+
+## APPLICATION COMMIT: NONE
+## APPLICATION PUSH: NONE
+## PRODUCTION DEPLOY: NONE
+
+Confirmed via `git rev-parse HEAD` before and after this task — unchanged.
+
+---
+
+## CONTINUITY READ-BACK: PASS (this sync — see below)
+
+---
+
+## FINAL DECISION: PASS
+
+All required verification passed: root cause identified before any code change, narrowest fix implemented, full 8-combination responsive QA matrix passed with real DOM geometry evidence (not just screenshots), long-text truncation confirmed both languages, focused regression test added, full test suite/lint/build all clean, no regression elsewhere, all other open items preserved, Guided Support Entry documented (not implemented), zero commit/push/Production action.
 
 ---
 
 ## FINAL STOP
 
-**Do NOT proceed to Production.** Not started. No Vercel/DNS/Supabase change beyond the isolated anonymous temporary deployment itself, no commit, no push. Preview URLs returned to Owner + ChatGPT.
+Returned to Owner + ChatGPT. Implementation remains local/uncommitted, awaiting review and separate commit/push authorization.
