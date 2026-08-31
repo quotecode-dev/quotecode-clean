@@ -2739,3 +2739,91 @@ Representative coverage (4 of the 8 named personas, chosen to exercise every cri
 **GIT-SAFE ≠ PRODUCTION-SAFE, concretely**: the full 18-commit chain is GIT-SAFE (builds and tests cleanly, confirmed twice via isolated clean-tree proofs). It is **not** uniformly PRODUCTION-SAFE to push as one unit — Warranty specifically requires its migration applied to Production first, or must be held back / feature-gated separately from the rest of the chain.
 
 **RECOMMENDED NEXT ACTION**: before authorizing any push, decide on Warranty's Production path — either (a) authorize applying `6430cf5`'s migration to Production first, then push, or (b) push everything except `fde680b` (technically possible, though it would leave `SettingsTab.jsx`'s live Production UI unaware of the new Warranty field's absence — not recommended without further review), or (c) hold the whole chain until Warranty's Production rollout is explicitly planned. No code change is required to make this decision safe to defer.
+
+## §102. Production Pre-Push Preflight — Read-Only Schema + Runtime Reconciliation (2026-08-31)
+
+**Strictly read-only.** Target verified: Production is `ixabnzhjeqevtbhdfswv` (name `quotecode`, created 2026-07-27, `linked: true`), distinct from `ljfizgrdyzxddswcedwr` (`quotecode-test`, created 2026-08-27, `linked: false`) — confirmed via `supabase projects list` before any query. Every query that followed was scoped with `--linked` (Production only) or `--project-ref ixabnzhjeqevtbhdfswv` explicitly. Method: a `supabase db dump --schema public` (schema-only, confirmed zero `INSERT`/`COPY` rows — no data, no PII) plus targeted `information_schema`/aggregate `SELECT` queries via `supabase db query --linked`. No INSERT/UPDATE/DELETE/UPSERT/DDL/RPC/Edge-Function-invocation was executed at any point.
+
+### Warranty — MISSING, confirmed via two independent methods
+
+`business_settings.default_warranty`: **MISSING**. `quotes.warranty`: **MISSING**. Cross-verified via both the schema dump and a direct `information_schema.columns` query (which also returned `business_settings.default_terms` correctly, confirming the query itself works). **`6430cf5` STATUS: REQUIRED** — not applied, not superseded, not partially present.
+
+**Severity correction, sharper than previously stated**: `fde680b`'s `Dashboard.jsx` includes `warranty: warranty` unconditionally in every quote INSERT/UPDATE payload and `default_warranty: defaultWarranty` unconditionally in every Business Settings save payload — **neither has the fail-safe retry pattern already used for Attn** (see below). If pushed today, this would not merely leave Warranty non-functional — it would make **every quote save and every Business Settings save fail** against Production's live schema (a PostgREST "column does not exist" error on each attempt), a P0-severity regression to core functionality, not a narrow feature gap.
+
+### Attn — MISSING, but already compatible by design
+
+`quotes.attn_name`: **MISSING**. `quotes.attn_role`: **MISSING**. However, `origin/main`'s already-live `Dashboard.jsx` (from `ffc741d`) has a **deliberate fail-safe retry**: `handleSaveQuote` first attempts the insert/update including `attn_name`/`attn_role`, and — only if the returned error message specifically mentions `attn_name` or `attn_role` (exact string match, not swallowing unrelated errors) — retries the identical operation without those two fields. **ORIGIN/MAIN COMPATIBILITY: PASS.** This was a deliberate, already-documented design decision (item 18's own in-code comment), not an oversight — Production has been running compatibly with the attn-less schema since `ffc741d` was pushed. `fde680b`'s new Item 27 (Attn fallback-to-client-name) builds on the same already-protected code path — no new incompatibility introduced.
+
+### Quote Numbering — A90 mechanism, confirmed unchanged from the 2026-08-28 audit
+
+`quotes.quote_number`: `integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')` — a single **global** Postgres sequence (not per-business, not any custom trigger/function/RPC/Edge-Function/application-side allocator). Confirmed via both the schema dump and a direct `information_schema` query. No trigger touches `quote_number` itself (the two existing `quotes` triggers — `guard_quote_immutability_update`/`_delete_trigger` — guard content immutability post-approval, confirmed unrelated by name and by their already-documented function bodies). No `allocate_quote_number` function or `business_quote_sequences` table exists in Production. **WHO CURRENTLY GENERATES A90: Postgres's own native column-default sequence mechanism — nothing in this repository's application code, nothing custom.** This is unchanged from the original 2026-08-28 finding, re-confirmed live 3 days later — not stale.
+
+**Uniqueness/collision check (sanitized aggregate only, no row content)**: `total_quotes=23`, `min_qn=11`, `max_qn=89`, `distinct_businesses=7`, `distinct_quote_numbers=23` — **zero duplicate `quote_number` values exist today**, and all 23 rows share one continuous global range across 7 different businesses (confirms "globally unique, not business-scoped" exactly as previously documented). **Collision risk for Item 17's per-business unique index: LOW** — global uniqueness today trivially implies per-business uniqueness, matching that migration's own safety claim, now independently re-verified with live numbers. (Minor, immaterial note: the original audit's "A90" observation vs. today's confirmed max of 89 — a one-off discrepancy not worth chasing; does not change the finding.)
+
+### Item 17 migration package — status per file, not monolithic
+
+| File | Prerequisite | Production has it? | Status |
+|---|---|---|---|
+| `..._add_quote_number_sequence.sql` (table+RPC) | `quotes` table exists | Yes | **READY** — additive, no conflict |
+| `..._add_quote_number_unique_index.sql` + `..._attach_..._unique_constraint.sql` | No existing duplicates | Confirmed zero duplicates | **READY** — safety re-confirmed live |
+| `..._protect_quote_number_immutability.sql` (new trigger) | No name/logic collision with existing triggers | Confirmed no collision (existing triggers guard different columns) | **READY** |
+| `..._drop_quote_number_default.sql` | Allocator + frontend allocation path both live and verified working | Allocator not yet applied; frontend already has a safe try-then-fallback call site (per `TODO.md` item 17) | **BLOCKED — must be last in the coordinated release order**, not defective, just order-dependent |
+| `quote_number_counter_init.sql` (seeding) | `business_quote_sequences` table exists | Not yet | **BLOCKED** — depends on the first migration |
+
+**ITEM 17 overall: NEEDS REVISION only in the sense that "apply the whole folder at once" is wrong — apply in the documented order (sequence/RPC → index → immutability trigger → verify → drop default) with a real verification gate before the last step, exactly as the package's own release-order requirement already specifies. Nothing here is newly broken.**
+
+### Full 18-commit chain — Production dependency matrix
+
+| Feature | Commit(s) | DB/schema dependency | Production satisfied? | Push without DB action safe? |
+|---|---|---|---|---|
+| Admin V2 Phase 1 | `c4491a8`,`f482d69` | none (reads existing `plan`/`trial_ends_at`) | n/a | YES |
+| Plan/Trial resolver | `018f905` | none | n/a | YES |
+| Plan badge wiring | `f482d69` | none | n/a | YES |
+| Trial email repair | `99c4ba3` | none (logic-only fix) | n/a | YES (git-safe; behavior only changes once the Edge Function is *also* separately redeployed — see below) |
+| Subscription email fail-safe | `99c4ba3` | none (removes the query instead of fixing it) | n/a | YES |
+| Warranty | `6430cf5`,`fde680b` | `default_warranty`,`warranty` columns | **NO** | **NO — RED, see above** |
+| Attn | (pre-existing `ffc741d`) + `fde680b` (Item 27) | `attn_name`,`attn_role` columns | NO, but code is fail-safe | YES |
+| Market routing | `e37931e`,`fde680b` | none | n/a | YES |
+| Client Type | `fde680b` | reads existing `clients.client_type` | YES | YES |
+| Signature Pad | `fde680b` | none | n/a | YES |
+| Quote History changes | `80fa5f5`,`fde680b` | reads existing `quote_number` | YES | YES |
+| Item 17 quote-number allocator package | `731aa2a`,`6fe9cd4` | see table above | NO (by design, not applied) | YES (migration commits execute nothing) |
+| Base-schema artifacts | `835654d` | none (TEST-only capture, inert) | n/a | YES |
+
+### Email / scheduler Production preflight — a long-standing "unknown" now resolved
+
+**A real, already-configured, already-`origin/main`-committed Vercel Cron exists**: `vercel.json`'s `crons` entry (`/api/cron`, daily `0 8 * * *` UTC) → `api/cron.js` → `triggerExpirationReminders()`, which calls `supabase.functions.invoke('send-trial-expiration-email', { body: { mode: 'batch' } })` **and** `send-subscription-expiration-email` the same way, both guarded by `CRON_SECRET`. Confirmed via `git log origin/main -- api/cron.js` and a diff against local HEAD (zero difference — this file is untouched by every task in this whole engagement, already live). **TRIAL EMAIL LIVE INVOCATION: YES. SUBSCRIPTION EMAIL LIVE INVOCATION: YES.** Separately confirmed Production has no `pg_cron` extension installed (`SELECT extname FROM pg_extension WHERE extname LIKE '%cron%'` returned zero rows) — the invocation path is Vercel-native, not DB-native. **This corrects several prior sessions' documented "no scheduler could be confirmed or ruled out" — it should have read this one file.**
+
+**Practical consequence, not yet acted on**: this cron has been invoking the *currently-deployed* (unfixed) Edge Functions daily since it was set up — meaning the original trial-email plan-filter bug has likely been silently sending zero reminders every day, and the subscription-email missing-column bug has likely been throwing (caught, non-fatal to the cron) every day. `99c4ba3`'s fixes are git-committed but **Edge Function commits do not auto-deploy** (confirmed established pattern) — so this cron's live behavior is unaffected by anything in this local commit chain until someone *separately* runs `supabase functions deploy`. That is a distinct, future authorization point the Owner should be aware of: the moment the trial-email fix is deployed, the very next 08:00 UTC run will attempt real customer email sends to genuinely-eligible active-trial accounts — not hypothetical.
+
+### Vercel push consequence — confirmed, not stale
+
+`PROFLOW_ARCHITECTURE.md`'s existing, Owner-verified statement (git push to `main` → automatic Vercel Production frontend deployment, confirmed directly in the Vercel dashboard) remains accurate and was not contradicted by anything in this investigation. **DB migrations and Edge Function deployments remain on their own separate, manual paths** (`supabase db push`, `supabase functions deploy`) — a push does not touch either.
+
+### Continuity cross-check — stale assumptions found and corrected here
+
+1. Multiple prior tasks stated the Vercel/GitHub-Actions scheduler question as unresolved ("could not be confirmed or ruled out"). **Resolved this task**: a real Vercel Cron exists and was findable by reading `vercel.json`/`api/cron.js` directly — no external tooling was needed.
+2. The immediately-prior task's own report characterized the Warranty Production risk as "Warranty save/display would fail" — **accurate but understated**; this task's direct code read confirms it would break *all* quote and Business Settings saves, not a Warranty-scoped failure. Corrected above.
+3. Attn's Production compatibility was previously left as "never conclusively resolved." **Resolved**: confirmed missing, and confirmed the existing code already handles it safely by design.
+
+### Decision matrix
+
+| Component | Status |
+|---|---|
+| Admin V2 Phase 1 | 🟢 GREEN |
+| Plan/Trial foundation | 🟢 GREEN |
+| Plan badge wiring | 🟢 GREEN |
+| Trial email repair | 🟢 GREEN (git-safe; Edge Function redeploy is a separate future decision with real email-send consequences, flagged above) |
+| Subscription email fail-safe | 🟢 GREEN |
+| Warranty | 🔴 RED — blocked on Production migration |
+| Attn | 🟢 GREEN — confirmed compatible by design |
+| Market routing | 🟢 GREEN |
+| Client Type | 🟢 GREEN |
+| Signature Pad | 🟢 GREEN |
+| Quote History changes | 🟢 GREEN |
+| Item 17 quote numbering | 🟡 YELLOW — package is sound, but must be applied in its documented order with a verification gate before the final (drop-default) step; not a blanket "apply the folder" |
+| **Entire 18-commit chain, pushed as one unit** | 🔴 **RED** — the chain is GIT-SAFE but not PRODUCTION-SAFE as a whole, solely because of Warranty |
+
+**Safe release sequence (documented for review — NOT executed)**: (1) apply Warranty's migration (`6430cf5`'s SQL) to Production via `supabase db push` — a genuine DB action requiring its own explicit authorization, not performed here; (2) once confirmed applied, push the full 18-commit chain (or push everything except `fde680b` first if Warranty's migration timing needs more lead time, then `fde680b` separately once (1) is done); (3) Item 17's package, if/when authorized, applies in its own documented internal order with a verification gate, entirely independent of (1)/(2); (4) Edge Function redeploy (`send-trial-expiration-email`/`send-subscription-expiration-email`) is its own separate, later decision — flagged above for its real-email-send consequence, not bundled into "push main."
+
+**FRESH PRODUCTION STATE STILL UNKNOWN**: exact RLS policy contents were not re-verified this task (out of this task's specific scope, and unchanged since the 2026-08-30 base-schema capture); whether any *other* Production automation (outside this repo, e.g. a Supabase Dashboard-configured schedule) exists cannot be fully ruled out by repo inspection alone, though `pg_cron`'s absence rules out the DB-native path specifically.

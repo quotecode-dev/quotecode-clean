@@ -4,119 +4,147 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Dashboard-Centered Remaining Work Bundle — Maximum Safe Reconciliation + Commit Preparation (No Push)
+## Task: Production Pre-Push Preflight — Maximum Read-Only Schema + Runtime Reconciliation
 
-Continues directly from the Local Workstream Consolidation (`PROFLOW_PROJECT_CONTEXT.md` §100). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §101, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EN.
+Continues directly from the Dashboard-Centered Remaining Work Bundle (`PROFLOW_PROJECT_CONTEXT.md` §101). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §102, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EO.
 
----
-
-## STARTING HEAD: `02ad374`
-## ENDING HEAD: `fde680b`
-## ORIGIN/MAIN: `e030017` (unchanged)
-
-## NEW LOCAL COMMITS
-
-1. `fde680b` — Dashboard.jsx + 7 dependent files, one atomic commit (see semantic map below)
-
-## DASHBOARD SEMANTIC MAP
-
-Read the full 814-line diff line-by-line and traced every prop into its actual consumer. Confirmed genuine, real cross-file runtime dependencies (not assumed): `effectivePlan`/`isTrialExpired`/`trialDaysLeft` (canonical resolver) flow into `QuoteForm`'s `userPlan` and `SettingsTab`'s `effectivePlan` props; `warranty`/`defaultWarranty` state flows into `QuoteForm` and `SettingsTab` and is snapshotted into every quote payload that `PublicQuote(En).jsx` render; `editingQuoteNumber` flows into `QuoteForm`. `useSignaturePad.js`'s new default-off `isActive` gate is consumed identically (confirmed HE/EN parity) by `PublicQuote.jsx`/`PublicQuoteEn.jsx` — but those two files' *already-pushed* version (`ffc741d`) calls the hook without ever activating it, so the hook cannot be committed without its consumers. Given every thread required real cross-file coordination for intermediate-commit correctness, all 8 files were committed as one atomic unit. New findings from the reconstruction: "Item 27" (Attn/recipient fallback to the client's own name, self-contained, already TEST-verified per pre-existing test data found in-account); confirmation the Trial Notice UI is fully Dashboard-internal (an intermediate "move to QuotesTab" design was later reverted — `QuotesTab.jsx` has zero trial-notice references today); a small unlabeled `storage_path` completeness addition (safe, uses an existing local variable).
-
-## ENTITLEMENT CONSUMER WIRING: COMMITTED
-
-Dashboard/Settings/QuoteForm now use the corrected `effectivePlan` resolver — closes the customer-facing twin of the Admin FREE→PRO bug.
-
-## WARRANTY END-TO-END: COMMITTED (code) — Production migration still pending
-
-Settings input → Dashboard snapshot-at-creation → Public Quote display, all wired and TEST-verified live. **Not yet safe to push to Production** — see PRODUCTION BLOCKERS below.
-
-## SIGNATURE PAD: COMMITTED
-
-Tap-to-activate lifecycle live on both `PublicQuote.jsx` and `PublicQuoteEn.jsx`, verified via real simulated drawing (not just rendering).
-
-## QUOTE HISTORY / DASHBOARD: COMMITTED
-
-Zero-layout-shift trial-bar placement, Item 26 Client Type Badge + column reordering, Order-Number sort (consuming the already-committed `getQuoteOrderSortKey`), typography/width infrastructure consumption (`pf-font-variable`, `--pf-dashboard-desktop-content-width`, both already committed inert).
-
-## CROSS-MARKET FOLLOW-ON: COMMITTED
-
-Item 25 (market-routing correction, now actually called by Dashboard.jsx) and Item 27 (Attn fallback).
+**Strictly read-only throughout. Zero mutation of any kind.**
 
 ---
 
-## HE: PASS
-## EN: PASS
+## PRODUCTION TARGET VERIFIED: YES
 
-Both verified live (HE: full flow; EN: Basic persona, Warranty label/quota/column-order/currency). Signature-pad EN parity confirmed via direct source comparison (file-identical wiring to the already-live-tested HE file).
+`ixabnzhjeqevtbhdfswv` (name `quotecode`, created 2026-07-27, `linked: true`), confirmed distinct from `ljfizgrdyzxddswcedwr` (`quotecode-test`, created 2026-08-27, `linked: false`) via `supabase projects list` before any query. All subsequent queries explicitly scoped to Production only.
 
-## TRIAL BAR ZERO-SHIFT: PASS
+## PRODUCTION MUTATIONS: NONE
 
-Confirmed via code (the `position:absolute` implementation inside `dash-upper-section`, already carrying its own zero-shift proof from the originating task) and live rendering (exact ticker/expired-bar text confirmed in both HE personas tested).
-
-## WARRANTY HISTORICAL INTEGRITY: PASS
-
-Verified live: the new quote correctly snapshotted the business's current Warranty default at creation time (confirmed at the DB level via a read-only service-role query — `warranty` column held the exact text set moments earlier in Settings). Design (per code + `TODO.md` item 23) guarantees a later default change never rewrites an existing quote's snapshot — not separately re-proven this task since it was already end-to-end verified in the originating TEST Acceptance Readiness Package 1 task.
-
-## SIGNATURE INTERACTION: PASS
-
-Full lifecycle verified via genuine simulated interaction: tap-to-activate → `touchAction`/`cursor` correctly switch → real mouse-drag produced actual canvas ink (`toDataURL()` length 2318→2890 bytes) → Clear correctly restored blank (2318) → Done correctly restored `touchAction:'pan-y'`.
+Method: a schema-only `supabase db dump` (confirmed zero `INSERT`/`COPY` rows — no data, no PII) plus targeted `information_schema`/aggregate `SELECT` queries via `supabase db query --linked`. No INSERT/UPDATE/DELETE/UPSERT/DDL/RPC/Edge-Function-invocation was executed.
 
 ---
 
-## WORKING-DIRECTORY TESTS: 162/162 PASS
-## WORKING-DIRECTORY LINT: PASS (0 errors, 6 pre-existing warnings)
-## WORKING-DIRECTORY BUILD: PASS
+## WARRANTY
 
-## CLEAN COMMITTED-TREE TESTS: 141/141 PASS
-## CLEAN COMMITTED-TREE BUILD: PASS
+**business_settings.default_warranty**: MISSING
+**quotes.warranty**: MISSING
 
-Isolated `git archive HEAD` export (`fde680b`), no working-tree access, symlinked `node_modules` only. Confirms `entry-server.jsx` is not required by the committed tree.
+Confirmed via two independent methods (schema dump + direct `information_schema.columns` query, cross-checked against `business_settings.default_terms` which correctly returned as a control).
 
-## REMAINING MODIFIED FILES: NONE (application code)
-## REMAINING UNTRACKED FILES: `src/entry-server.jsx`
+**6430cf5 STATUS**: REQUIRED
 
-Left uncommitted per its own explicit §68/§69 "LOCAL/UNCOMMITTED ONLY" documentation — not overridden by any newer Owner approval found in continuity.
+**Severity correction**: `fde680b`'s `Dashboard.jsx` includes `warranty`/`default_warranty` unconditionally in every quote and Business Settings save payload, with **no fail-safe retry** (unlike Attn). Pushing today would break every quote save and every Business Settings save against Production's live schema — not a Warranty-scoped gap, a P0-severity regression to core functionality.
 
-## TOTAL COMMITS AHEAD OF ORIGIN: 18
+## ATTN
 
-## GIT-SAFE: YES
+**attn_name**: MISSING
+**attn_role**: MISSING
 
-Confirmed via two independent isolated clean-tree proofs (this task's and the prior task's) plus working-directory gates throughout.
+**ORIGIN/MAIN COMPATIBILITY**: PASS — `origin/main`'s already-live `Dashboard.jsx` (`ffc741d`) has a deliberate try-then-fallback retry: first attempt includes `attn_name`/`attn_role`, and only on an error message specifically naming those columns does it retry without them. Already compatible by design; `fde680b`'s Item 27 builds on the same protected path.
 
-## PRODUCTION-SAFE TO PUSH: BLOCKED
+---
 
-Not uniformly — see blockers below. Most of the chain is production-safe individually; Warranty is not.
+## QUOTE NUMBERING
 
-## PRODUCTION BLOCKERS
+**CURRENT A90 GENERATOR**: Postgres's own native column default — `quotes.quote_number integer NOT NULL DEFAULT nextval('quotes_quote_number_seq')`, a single **global** sequence. No trigger, function, RPC, Edge Function, or application code is involved. Confirmed unchanged from the 2026-08-28 audit, re-verified live today.
 
-**Warranty**: `fde680b` is the first commit whose live code path reads/writes `default_warranty`/`warranty`. The migration creating those columns (`6430cf5`) is committed but **not applied to Production**. Pushing without applying it first would break Warranty save/display against Production's live schema (Settings save would likely fail or silently drop the field; Public Quote's warranty section would never render). No other blocker identified.
+**QUOTE_NUMBER UNIQUENESS**: `total_quotes=23`, `distinct_quote_numbers=23` (zero duplicates), `min_qn=11`, `max_qn=89`, `distinct_businesses=7` — all 23 rows share one continuous global range across 7 businesses.
 
-## ATTN SCHEMA DEPENDENCY: pre-existing, not newly introduced
+**COLLISION RISK**: LOW — global uniqueness today trivially implies per-business uniqueness once Item 17's index is applied.
 
-Code referencing `attn_name`/`attn_role` is already on `origin/main` via `ffc741d`. `fde680b`'s Item 27 addition builds on the same already-referenced fields, adding no new column reference. Whether Production's live schema already has these columns was never conclusively resolved by any prior session — an open question predating this task, not a new one.
+**HISTORICAL NUMBER INTEGRITY**: Confirmed intact and consistent with the documented "never renumber" design — no evidence of any prior mutation to existing values.
 
-## WARRANTY SCHEMA DEPENDENCY: genuine, new (see PRODUCTION BLOCKERS)
+## ITEM 17: NEEDS REVISION (in sequencing only, not defect)
 
-## QUOTE NUMBER FULL-LIVE GATE: unchanged
+Per-file assessment: sequence/RPC creation, unique index, and immutability trigger are each individually **READY** (additive, no conflict, safety re-confirmed against live data). The drop-default migration is **BLOCKED** — correctly, by its own documented release order, since it must apply last, after the allocator is live and verified. The counter-seeding script is **BLOCKED**, depending on the first migration. Nothing here is newly broken; "apply the whole folder" would be wrong, "apply in documented order with a verification gate" is correct and unchanged.
 
-Production's unidentified live "A90" quote-numbering mechanism must be understood, and the coordinated release order followed, before Item 17's migration package is applied anywhere. Unaffected by this task — Order-Number sort only reads the already-live `quote_number` column, no new dependency.
+**ITEM 17 BLOCKER**: Sequencing only — the drop-default step cannot run until the allocator + frontend path are confirmed live, per the migration's own explicit in-file warning.
+
+---
+
+## EMAIL
+
+**TRIAL EMAIL LIVE INVOCATION**: YES
+**SUBSCRIPTION EMAIL LIVE INVOCATION**: YES
+
+A real, already-`origin/main`-committed Vercel Cron (`vercel.json`'s `crons` entry, `/api/cron`, daily `0 8 * * *` UTC → `api/cron.js`) invokes both `send-trial-expiration-email` and `send-subscription-expiration-email` in `mode:'batch'` against Production's currently-deployed (unfixed) Edge Functions. Confirmed via `git log origin/main -- api/cron.js` (already live, zero diff from local HEAD). Production has no `pg_cron` extension (DB-native path ruled out). **This resolves several prior sessions' "scheduler could not be confirmed or ruled out" into a definitive YES** — found simply by reading a file already in the repo.
+
+**Consequence, not yet acted on**: the trial-email fix (`99c4ba3`) is git-committed but Edge Function commits do not auto-deploy; once someone separately runs `supabase functions deploy` for it, the very next 08:00 UTC cron run will attempt real customer email sends to genuinely-eligible active-trial accounts — a distinct future authorization point.
+
+## VERCEL
+
+**MAIN PUSH AUTO-DEPLOY**: YES — reconfirmed accurate against `PROFLOW_ARCHITECTURE.md`'s existing Owner-verified statement, not contradicted by anything found this task. DB migrations and Edge Function deployments remain on their own separate, manual paths (`supabase db push`, `supabase functions deploy`); a push touches neither.
+
+---
+
+## 18-COMMIT PRODUCTION DEPENDENCY MATRIX
+
+| Feature | Commit(s) | DB dependency | Production satisfied? | Push safe without DB action? |
+|---|---|---|---|---|
+| Admin V2 Phase 1 | `c4491a8`,`f482d69` | none | n/a | YES |
+| Plan/Trial resolver | `018f905` | none | n/a | YES |
+| Plan badge wiring | `f482d69` | none | n/a | YES |
+| Trial email repair | `99c4ba3` | none | n/a | YES (behavior change only on separate Edge Function redeploy) |
+| Subscription email fail-safe | `99c4ba3` | none | n/a | YES |
+| Warranty | `6430cf5`,`fde680b` | `default_warranty`,`warranty` | **NO** | **NO — RED** |
+| Attn | `ffc741d`(pre-existing)+`fde680b` | `attn_name`,`attn_role` | NO, but fail-safe | YES |
+| Market routing | `e37931e`,`fde680b` | none | n/a | YES |
+| Client Type | `fde680b` | reads existing column | YES | YES |
+| Signature Pad | `fde680b` | none | n/a | YES |
+| Quote History changes | `80fa5f5`,`fde680b` | reads existing `quote_number` | YES | YES |
+| Item 17 allocator package | `731aa2a`,`6fe9cd4` | see Item 17 above | NO (by design) | YES (migration commits execute nothing) |
+| Base-schema artifacts | `835654d` | none (TEST-only) | n/a | YES |
+
+## GREEN COMPONENTS
+
+Admin V2 Phase 1, Plan/Trial foundation, Plan badge wiring, Trial email repair, Subscription email fail-safe, Attn, Market routing, Client Type, Signature Pad, Quote History changes.
+
+## YELLOW COMPONENTS
+
+Item 17 quote numbering (sound package, sequencing-dependent, not defective).
+
+## RED COMPONENTS
+
+Warranty (schema missing, no fail-safe, would break core save functionality).
+
+## ENTIRE 18-COMMIT CHAIN: RED
+
+GIT-SAFE as a whole (confirmed twice via isolated clean-tree proofs) but not PRODUCTION-SAFE as one unit, solely because of Warranty.
+
+## SAFE RELEASE SEQUENCE (documented for review — NOT executed)
+
+1. Apply Warranty's migration (`6430cf5`'s SQL) to Production via `supabase db push` — its own explicit DB-action authorization, not performed here.
+2. Once confirmed applied, push the full 18-commit chain (or push everything except `fde680b` first, then `fde680b` once (1) is done, if more lead time is wanted).
+3. Item 17's package, if/when authorized, applies in its own documented internal order with a verification gate — independent of (1)/(2).
+4. Edge Function redeploy for the email fixes is a separate, later decision with a real email-send consequence (see EMAIL above) — not bundled into "push main."
+
+---
+
+## CONTINUITY ASSUMPTIONS FOUND STALE
+
+1. Multiple prior tasks stated the scheduler question as unresolved ("could not be confirmed or ruled out") — resolved this task; corrected directly in `PROFLOW_ARCHITECTURE.md` §16.
+2. The immediately-prior task's own report characterized the Warranty Production risk as "save/display would fail" — accurate but understated; corrected to reflect it would break all quote and Business Settings saves.
+3. Attn's Production compatibility was left open by several prior sessions — resolved as confirmed-safe-by-design.
+
+## FRESH PRODUCTION STATE STILL UNKNOWN
+
+Exact RLS policy contents were not re-verified this task (unchanged since the 2026-08-30 base-schema capture, out of this task's specific scope). Whether any Production automation exists *outside* this repo (e.g. a Supabase Dashboard-configured schedule) cannot be fully ruled out by repo inspection alone, though `pg_cron`'s absence rules out the DB-native path specifically.
 
 ## OWNER DECISIONS REQUIRED
 
-Whether/how to sequence Warranty's Production rollout relative to the rest of this 18-commit chain: (a) authorize applying `6430cf5`'s migration to Production first, then push everything; (b) push everything except `fde680b`, holding Warranty back separately (not recommended without further review — would leave Settings' Warranty UI live with no working backend); or (c) hold the full chain until Warranty's Production path is planned. Everything else in the chain was confirmed pushable without any DB action, so the decision is scoped specifically to Warranty's sequencing, not the whole chain.
+Whether/when to authorize (a) applying Warranty's migration to Production, (b) pushing the 18-commit chain (in full or in the split sequence above), (c) Item 17's coordinated release, and (d) redeploying the fixed email Edge Functions (aware of the real-email-send consequence at the next cron run). None of these require further code work — the chain itself is ready and TEST-verified.
 
 ## APPLICATION PUSH: NONE
 ## MIGRATIONS EXECUTED: NONE
+## DEPLOY: NONE
 ## PRODUCTION: UNCHANGED
 
 ---
 
 ## CONTINUITY
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §101 (full semantic reconstruction, QA detail, pre-push audit).
-- `PROFLOW_ARCHITECTURE.md` — §16 updated.
-- `PROFLOW_HANDOFF.md` — §18.EN appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EM's paragraph demoted to HISTORICAL.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §102 (full investigation, dependency matrix, decision matrix, safe release sequence).
+- `PROFLOW_ARCHITECTURE.md` — §16 updated; the stale scheduler-unknown statement corrected directly.
+- `PROFLOW_HANDOFF.md` — §18.EO appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EN's paragraph demoted to HISTORICAL.
 - `PROFLOW_TODO.md` — Admin V2 area extended with this task's findings.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
 
@@ -126,10 +154,10 @@ Continuity commit pushed automatically under the standing §17.K auto-sync autho
 
 ## RECOMMENDED NEXT ACTION
 
-Decide Warranty's Production sequencing (see OWNER DECISIONS REQUIRED) before authorizing any push of this 18-commit chain. Once decided, the chain itself needs no further code work — it is GIT-SAFE and TEST-verified end to end.
+Decide Warranty's Production migration timing first — everything else in the 18-commit chain is confirmed release-ready pending that one decision.
 
 ---
 
 ## FINAL STOP
 
-Dashboard.jsx and its 7 genuinely-coupled dependent files are now committed as one atomic, thoroughly-tested unit, closing the customer-facing entitlement bug, wiring Warranty end-to-end, fixing the signature pad's mobile scroll-block, and landing Items 25/26/27 — all verified via real TEST interaction (live signature drawing, live entitlement checks across two markets and two trial states), not just rendering or code review. A read-only pre-push audit distinguishes GIT-SAFE (the whole chain, confirmed) from PRODUCTION-SAFE (everything except Warranty, which needs its migration applied first) — the one genuine decision left for the Owner. No push, no deploy, no migration execution, no Production or DB action. Continuity synced and verified live on GitHub.
+A strictly read-only investigation established Production's actual schema and runtime truth independently, rather than inferring it from migration files. Confirmed: Warranty is a genuine, more-severe-than-previously-stated blocker (would break core save functionality, not just its own feature); Attn is safely handled by existing fail-safe code; quote-numbering's A90 mechanism is unchanged and well-understood; and — the most significant new finding — a real Vercel Cron already invokes both email functions daily, resolving a long-standing open question and surfacing a real consequence to weigh before any future Edge Function redeploy. GIT-SAFE and PRODUCTION-SAFE are now concretely distinguished with a full dependency matrix and a documented (not executed) safe release sequence. No mutation of any kind was performed. Continuity synced and verified live on GitHub.
