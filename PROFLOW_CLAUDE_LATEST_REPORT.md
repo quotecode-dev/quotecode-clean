@@ -4,76 +4,90 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Owner-Approved Option B Spec Correction Only
+## Task: Owner New Final Dashboard Structure — Two Static Frames + Slider In The Gap
 
-**EFFORT LEVEL: HIGH.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §85. No commit, no push, no Production.
-
----
-
-## OPTION B BORDER COLOR: `#E9D5FF` — PASS
-## BORDER WIDTH: `1px` — PASS
-## BORDER RADIUS: `12px` — PASS
-## BACKGROUND: `#FFFFFF` — PASS
-## SHADOW: NONE — PASS
-## TRANSITION: `200ms` — PASS
-
-Live `getComputedStyle` on `.dash-upper-section`, both locales: `borderColor: rgb(233, 213, 255)` (= `#E9D5FF`), `borderWidth: 1px`, `borderStyle: solid`, `borderRadius: 12px`, `backgroundColor: rgb(255, 255, 255)`, `boxShadow: none`, `transition: height 0.2s`. No theme token used — hex-literal values exactly as specified, no reinterpretation.
-
-## FIXED HEIGHT: NONE — PASS
-
-No `height`/`minHeight`/`maxHeight` on the wrapper. Confirmed content-driven across both states (see below).
+**EFFORT LEVEL: HIGH.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §86. No commit, no push, no Production.
 
 ---
 
-## HE NORMAL: PASS
-## EN NORMAL: PASS
-## HE ROW-WRAP: PASS
-## EN ROW-WRAP: PASS
+## FRAME A: PASS
+## FRAME A CONTENT: HEADER + NAV + KPI/HOT QUOTE ONLY
 
-State A (single-row KPI, ≥900px): height `246px`. State B (the genuine existing `≤768px` KPI-grid media-query row-drop): height `300px`. Mobile (nav row also wraps): `351px`. Identical values to the pre-correction measurements — the styling-only change did not disturb the structural height-adaptation. Zero clipping (`lastChild.bottom` never exceeds the wrapper's own bottom) at every checked width, both locales.
+Unchanged from the prior task (`.dash-upper-section`) — already matched this spec exactly. Ends at Frame A bottom = `262` (both locales); KPI/Hot Quote grid is the last thing inside it.
+
+## FRAME B: PASS
+## FRAME B CONTENT: TABLE HEADER ONLY
+
+New this task — wraps only `<thead>` (top `341`, bottom `384`, both locales). Built via per-`<th>` `borderTop`/`borderBottom` (collapsing into one continuous line under the table's existing `border-collapse:collapse`) plus outer-edge border+radius on the two DOM-edge cells only (`isHebrew`-mirrored) — not a `<tr>`-level border, which has unreliable rounded-corner support in collapsed-border tables.
+
+## QUOTE DATA ROWS OUTSIDE FRAME B: PASS
+
+First data row top = `384` = `<thead>` bottom exactly — rows begin immediately after Frame B's own box, carry no border of their own.
+
+## QUOTE HISTORY CONTROLS: VISIBLE + FUNCTIONAL
+
+Title, Export CSV, search (functionally verified — typing a non-matching query correctly filtered to the empty-state row), status filter all present and working.
+
+## CONTROLS BETWEEN FRAMES: PASS
+
+Measured in the `262`–`341` gap in both locales — not inside Frame A, not inside Frame B.
+
+## SLIDER IN GAP: NOT BUILT — no spec provided
+
+No visual/behavioral specification for the slider control itself (icon, label, exact appearance) has been supplied in any task so far — same missing screenshot flagged earlier this session. What **is** verified: the gap is empty, `79px`, stable, and structurally ready for it.
+
+## SLIDER CREATES EXTRA ROW: N/A (no slider exists to create one)
 
 ---
 
-## HE ALL-COLUMN GEOMETRY: PASS
-## EN ALL-COLUMN GEOMETRY: PASS
+## FRAME A SHIFT: 0px
+## FRAME B SHIFT: 0px
+## TABLE Y SHIFT: 0px
 
-Per explicit instruction not to touch the table absent an actual regression — none was found. `QuotesTab.jsx` was not modified this task.
+No slider exists to toggle, so there is no "before/after slider" state to compare — but Frame A/B/first-data-row positions were measured fresh in both locales this task and are internally consistent (`16/262`, `341/384`, `384`), confirming the structure itself is stable and ready for a future toggle without disruption.
 
-**DATE HE:** header-center vs body-text-center offset = **0px**
-**DATE EN:** offset = **0.01px**
+---
 
-All other CENTER/SPECIAL columns (Client Type, Views, Order, Amount outer box, Status, Email, Actions): 0–0.01px in both locales.
+## FRAMES VISUALLY MATCH: PASS
 
-## AMOUNT PLACE-VALUE: PASS
+Both use identical `border: 1px solid #E9D5FF`, `border-radius: 12px` — confirmed via `getComputedStyle` **and** an actual captured screenshot, visually reviewed in both locales (not computed-style inspection alone).
 
-Text right-edge constant across `$10.00`/`₪10.00` through `$5,625.00`/`₪5,625.00`, both locales, safely reverted simulation.
+## PURPLE VISIBLE: PASS
+## ROUNDED CORNERS: PASS
 
-## VIEWS GEOMETRY: PASS
+Confirmed visually in the captured screenshots — both frames render as clean, subtle, rounded purple-bordered rectangles, matching intent ("soft visual grouping," not "another heavy card").
 
-Icon position constant across `0`/`9`/`999`, both locales.
+---
 
-## ORDER SORT: PASS
+## HE: PASS
+## EN: PASS
 
-ASC re-confirmed correct sequence, both locales.
+Structurally symmetric — identical Frame A/gap/Frame B measurements in both locales, correctly mirrored edge-cell borders (HE: Client Type right / Actions left; EN: Client Type left / Actions right).
 
-## TYPOGRAPHY: `500 / 400 / 500` PRESERVED
+---
+
+## ALL-COLUMN GEOMETRY: PASS
+
+Date `0px` (both locales), all other CENTER/SPECIAL columns `0–0.01px`, both locales.
+
+## TYPOGRAPHY 500/400/500: PRESERVED
 
 Client Name 500, Amount 400, KPI 500 — live-confirmed unchanged, both locales.
 
----
-
-## RESPONSIVE: PASS
-
-HE/EN × Desktop / Mobile / Tablet Portrait / Tablet Landscape — full 8-point matrix re-verified.
-
-## HORIZONTAL OVERFLOW: NONE
+**Also re-confirmed** (per explicit instruction): Amount place-value (text right-edge constant across `$10.00`/`₪10.00`–`$5,625.00`/`₪5,625.00`), Views geometry (icon position constant across `0/9/999`), Order ASC and DESC (live-reclicked both locales, correct sequences).
 
 ---
 
-## FULL TESTS: 111/111 PASS (unchanged — styling-only change, no tests added/removed)
+## RESPONSIVE
+
+HE/EN × Desktop / Tablet Landscape / Tablet Portrait / Mobile — full 8-point matrix PASS, zero horizontal overflow. Mobile/Tablet Portrait correctly continue rendering the pre-existing card layout (no `<thead>`, so Frame B naturally doesn't apply there — no new code was needed to satisfy "don't force Desktop frame geometry onto narrow screens").
+
+---
+
+## FULL TESTS: 111/111 PASS (unchanged — no tests added/removed)
 ## LINT: PASS (0 errors, 6 pre-existing warnings unchanged)
 ## BUILD: PASS
-## BROWSER CONSOLE: CLEAN (verified via pre-navigation error listener, zero errors on fresh HE + EN loads)
+## BROWSER CONSOLE: CLEAN
 
 ---
 
@@ -87,12 +101,8 @@ HE/EN × Desktop / Mobile / Tablet Portrait / Tablet Landscape — full 8-point 
 
 ## OWNER VISUAL APPROVAL: PENDING
 
-The corrected result has not yet been shown to/approved by the Owner. CSS matching the spec is not a substitute for Owner visual sign-off.
-
 ---
-
-## FINAL DECISION: PASS
 
 ## FINAL STOP
 
-Option B now matches the Owner's authoritative approved visual reference exactly on every specified CSS property, with no theme-token substitution and no reinterpretation. Quote History's table was not touched and remains fully verified intact — zero regression. Returned to Owner + ChatGPT for visual review.
+The two-frame structure (Frame A unchanged, Frame B new around the table header only, controls in the gap between them) is implemented and real-browser-verified — geometry measurements plus an actual reviewed screenshot — in both locales, with zero regression to any protected Quote History or Dashboard invariant. The slider/toggle control itself remains unbuilt, honestly reported as blocked on a missing visual/behavioral specification rather than invented. Returned to Owner + ChatGPT for visual review.
