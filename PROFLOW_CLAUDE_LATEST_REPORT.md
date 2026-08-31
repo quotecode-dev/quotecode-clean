@@ -163,11 +163,11 @@ Confirmed: no `git push origin main`, no `supabase functions deploy`, no fronten
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`e78cde890b9e3f42dc628f851ed539ee9bd421e6` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Wave 2 LIVE Execution documentation update (all six files). Matching commit exists locally on `main` (`ae52638`), **not pushed**, per `MAIN PUSH: NO`.
 
 ## REMOTE GITHUB READ-BACK
 
-*(recorded after push and API verification — see chat-level Final Report.)*
+**PASS** — verified via GitHub API immediately after the `e78cde8` push: `GET /repos/quotecode-dev/quotecode-clean/git/refs/heads/proflow-continuity` returned `sha: e78cde890b9e3f42dc628f851ed539ee9bd421e6`, matching the push exactly. All six canonical files return HTTP 200 via the Contents API at `ref=proflow-continuity`; this file's real committed content (fetched via the non-cached Contents API, not the CDN-cached raw endpoint) confirmed to contain `STATUS: **PASS**`, both real quote numbers (`100700`, `100701`), `OLD DEFAULT: **RETIRED**`, and the FINAL STOP line.
 
 ---
 
