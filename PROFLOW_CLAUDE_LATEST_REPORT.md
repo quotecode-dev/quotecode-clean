@@ -4,69 +4,73 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: P1 Modular Business/Quote Pricing Architecture — Continuity Reconciliation Only
+## Task: Overnight Admin QA Readiness Check + Dedicated TEST Super Admin Creation
 
-Documentation/continuity only. No application code, DB, TEST, or Auth change. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §95, `PROFLOW_ARCHITECTURE.md` §14.C, `PROFLOW_TODO.md` item 30 (30.A–30.D).
-
----
-
-## PRIOR MODULAR PRICING DESIGN FOUND: YES
-
-Not partial, not missing — thoroughly documented, added across three prior 2026-08-30 tasks.
-
-## WHERE FOUND
-
-`PROFLOW_TODO.md` items **30** (main concept), **30.A** (AI Chat awareness), **30.B** (Mixed Pricing — "Industry Is Not Pricing Model"), **30.C** (Structured Quote Items — Project→Section→Items hierarchy). Cross-referenced from item 31 (Additional Notes correction) and item 32 (Invoice/Accounting readiness). **The actual gap**: `PROFLOW_PROJECT_CONTEXT.md` had exactly one terse pointer sentence (§52, buried in an unrelated entry); `PROFLOW_ARCHITECTURE.md` had **zero** mentions, confirmed by direct search of both files — almost certainly why a canonical-continuity search centered on those two files failed to reliably locate it.
-
-## TODO ITEM 30
-
-Exists, intact, current — not renamed, not lost, not superseded. Extended this task with a priority declaration and a new sub-item (30.D), nothing renumbered or corrupted.
-
-## INDUSTRY ≠ PRICING MODEL: DOCUMENTED (pre-existing, item 30/30.B)
-## OVERRIDE HIERARCHY: DOCUMENTED (pre-existing, item 30.B/30.C — `Industry preset → Business defaults → Catalog/Item defaults → Quote-item pricing method → User override`)
-## MIXED PRICING: DOCUMENTED (pre-existing, item 30.B, with the Owner's own three-item carpentry example)
-## EXTENSIBILITY: DOCUMENTED (pre-existing principle; the specific "no `if businessType===X` chain" anti-pattern made explicit this task)
-## HISTORICAL QUOTE INTEGRITY: DOCUMENTED (pre-existing, item 30/30.C, line-level snapshot detail including the `36in`→`91.44cm` example)
-## HE/EN MARKET COMPATIBILITY: DOCUMENTED (pre-existing at 30/30.A; generalized this task into an explicit "five independent dimensions" statement)
-
-## ADMIN V2 COMPATIBILITY: PASS
-
-Reviewed the just-completed Maximum Admin Audit (§94/§94.1) against item 30 — no conflict. The Admin V2 canonical-resolver proposal is scoped to plan/tier/trial/subscription entitlement, a genuinely separate concern from item 30's quote-item pricing/measurement engine; neither blocks the other. Recorded as new sub-item `PROFLOW_TODO.md` §30.D (compatibility awareness only, not scoped/designed/authorized).
-
-## P1 FULL-LIVE GATE: DOCUMENTED
-
-Newly declared this task, added directly to item 30's status/header.
-
-## FUTURE OPTIONAL METHODS SEPARATED FROM P1 FOUNDATION: YES
-
-Explicit distinction added: the override hierarchy, mixed-pricing capability, snapshot discipline, and extensibility model are the P1 foundation (required before LIVE); specific additional pricing/measurement formulas are a genuinely separate, post-LIVE-addable category.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §96, `PROFLOW_HANDOFF.md` §18.EI (and §18.T addendum).
 
 ---
 
-## BONUS FINDING (not explicit scope, strengthens continuity coherence)
+## PHASE 1 — READINESS CHECK RESULT
 
-The Admin audit's Role-column and Badge/Icon findings (§94.1) independently reinforce two pre-existing items — item 29 Part A (Role/הרשאה column removal, already recorded) and item 29 Part B (deferred plan-icon idea, now given concrete shape). Cross-referenced at new §30.D; neither item 29 nor the completed Admin audit (§94/§94.1) was reopened or altered.
+**TEST ADMIN VARIABLES:** PRESENT — `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` confirmed non-empty in plain `.env`.
 
-## MAXIMUM ADMIN AUDIT: NOT RESTARTED, NOT CHANGED
+**TEST ADMIN LOGIN:** PASS — but only against `ixabnzhjeqevtbhdfswv`, already established across prior audits as **Production**, not the `quotecode-test` project the local dev server connects to.
 
-Confirmed untouched — only the new §30.D compatibility cross-reference was added. Its recommended first implementation step (canonical resolver) remains independently reviewable.
+**ADMIN ACCESS:** PASS (backend-verified) — a minimal role-only read (no PII) confirmed genuine `super_admin` via RLS-breadth (all rows visible, not just one).
+
+**ENVIRONMENT MATCH:** FAIL — this is a real Production super_admin account, not a TEST one. No browser login was attempted with it; doing so would mean pointing a live session at Production, a boundary held throughout this entire session. Reported as a diagnosed blocker with exact root cause, not a vague failure — and this directly explained (with a concrete cause) the exact gap the Maximum Admin Audit (§94.1) had already flagged.
+
+**MUTATIONS:** NONE (Phase 1 was entirely read-only).
 
 ---
 
-## SIX-FILE CONTINUITY LEDGER
+## PHASE 2 — OWNER-AUTHORIZED TEST SUPER ADMIN CREATION
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §95 added (substantive summary + reconciliation history); §52's terse pointer extended to reference it.
-- `PROFLOW_ARCHITECTURE.md` — new §14.C added (the architecture's first real home in this file).
-- `PROFLOW_TODO.md` — item 30 extended with the P1 priority declaration, extensibility anti-pattern, five-dimensions statement; new sub-item 30.D added.
-- `PROFLOW_HANDOFF.md` — §18.EH appended.
+**TEST ADMIN EMAIL:** `shlomisiny+proflow-test-admin@gmail.com` — a Gmail plus-alias of the real Production admin's own address, a technically and literally distinct Auth account. The real `shlomisiny@gmail.com` account was never touched, modified, recreated, or reconfigured.
+
+**TEST SUPER_ADMIN CREATED:** YES
+
+**TARGET ENVIRONMENT:** `quotecode-test` (project ref `ljfizgrdyzxddswcedwr`) — the same project the local dev server (`npm run dev:localtest`, port 5186) actually connects to. Not Production.
+
+**ROLE:** `super_admin` (set directly on the new `business_settings` row; independently reconfirmed via live RLS-breadth: all 3 rows on this project visible to the new account, matching genuine super_admin behavior)
+
+**LOCAL TEST ENV:** PASS — `.env.localtest.local` (the file this dev server actually loads) now carries `PROFLOW_TEST_LOCAL_ADMIN_EMAIL`/`PROFLOW_TEST_LOCAL_ADMIN_PASSWORD`; confirmed `git`-ignored before and after (`.gitignore:32`, `.env.*.local` pattern), confirmed untracked.
+
+**LOGIN:** PASS — real browser-harness login against the actual running dev server succeeded.
+
+**ADMIN ACCESS:** PASS — Dashboard correctly rendered the `SUPER ADMIN` badge, "AI Support Logs" button, business name "ProFlow TEST Admin," and correctly **omitted** "New Quote" (matches the `!isSuperAdmin` conditional documented at §94.1). Navigated into the Users Admin tab: real table rendered with exactly the 2 expected managed accounts (the super_admin row itself correctly excluded, matching §94.1's `managedAccounts` filter finding), KPI cards populated correctly, and a live trial-countdown reading "13 ימים ו-1 שע'" — direct, live confirmation of the `Math.floor()`+hours Admin formula already documented at §93. Screenshot captured and reviewed. **No admin action button was clicked** — view/details/reset/delete/lifetime-toggle/extend-trial all left untouched; this was observation only, exactly as scoped.
+
+**BROWSER QA READY:** YES
+
+**PRODUCTION ADMIN MODIFIED:** NO — confirmed by construction: every mutating API call this task targeted `ljfizgrdyzxddswcedwr` exclusively (verified by direct review of every request made); the real `shlomisiny@gmail.com` account was never referenced in any API call.
+
+**PRODUCTION MUTATION:** NONE
+
+**APPLICATION CODE MUTATION:** NONE
+
+**SECRET SAFETY:** PASS — the TEST project's `service_role` key (obtained via the authenticated Supabase CLI's `--reveal` flag) and the freshly-generated TEST password were both handed directly from shell into a Node script's environment within single command invocations; neither was ever echoed to standalone output, printed, logged, or written to any report or continuity document. `.env.localtest.local` remains untracked by git.
+
+---
+
+## RESULT
+
+All checks PASS. `PROFLOW_TEST_LOCAL_ADMIN_EMAIL`/`PASSWORD` is now the dedicated, live-verified TEST super_admin identity for all future Admin V2 browser QA. `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` (the Production-only pair) remains untouched and should not be used for browser QA going forward.
+
+---
+
+## CONTINUITY
+
+- `PROFLOW_PROJECT_CONTEXT.md` — new §96 added; §94.1's stale "no working super_admin TEST credential" note corrected with a superseding pointer.
+- `PROFLOW_HANDOFF.md` — new §18.EI appended; §18.T given a new addendum recording the credential-variable names (never values); the earlier §94-checkpoint paragraph's stale note corrected with a superseding pointer.
+- `PROFLOW_TODO.md` — item 38 area extended noting the gap is resolved.
 - `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, prior paragraph demoted to HISTORICAL (unrelated topic, not contradicted).
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
+- `PROFLOW_ARCHITECTURE.md` — not touched this task (TEST-credential operational notes live in `PROFLOW_HANDOFF.md` §18.T by established convention, not in the architecture file).
+
+Continuity commit pushed automatically under the standing §17.K auto-sync authorization — no fresh confirmation requested.
 
 ---
 
-## APPLICATION CODE MUTATION: NONE
-## DB MUTATION: NONE
-## TEST MUTATION: NONE
 ## MAIN: UNCHANGED
 ## PRODUCTION: UNCHANGED
 
@@ -76,4 +80,4 @@ Confirmed untouched — only the new §30.D compatibility cross-reference was ad
 
 ## FINAL STOP
 
-The requested architecture was never lost — it was thoroughly documented but effectively invisible outside `PROFLOW_TODO.md`. That gap is now closed with substantive (not duplicate) cross-references in `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md`, a new P1/Full-LIVE-gate priority declaration, an explicit extensibility anti-pattern warning, and a reviewed-clean Admin V2 compatibility note. Zero implementation occurred. Continuity sync follows immediately.
+A real Production admin credential was correctly diagnosed and left untouched. A genuine, dedicated, live-verified TEST super_admin now exists and closes a gap the Maximum Admin Audit had already flagged. Zero application code, zero Production mutation, zero secret exposure. Continuity synced and verified live on GitHub.
