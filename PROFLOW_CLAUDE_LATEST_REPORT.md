@@ -4,91 +4,149 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Final Quote-History Polish + Local VAT Display Density + Market-Separation Fail-Closed Iron Rule + One-Click Browser QA Launchers
+## Task: Quote History Final Polish + Permanent UI Contracts + Fail-Closed Regression Framework
 
-**EFFORT LEVEL: MAXIMUM.** No commit, no push, no Production. Full detail in `PROFLOW_PROJECT_CONTEXT.md` §80.
-
----
-
-## PART A — ORDER CENTERING: PASS
-
-Same root cause as §79's Amount/Actions fix: header had `textAlign: 'center'` but the body `<td>` remained edge-aligned. Fixed by centering the Order body `<td>` to match.
-
-| | Before offset | After offset |
-|---|---|---|
-| EN Order (header center → text center) | **~5.3–6.1px** | effectively 0px |
-| HE Order (header center → text center) | **~4.3–5.1px** (captured via safe, reverted DOM-node simulation) | effectively 0px |
-
-Verified HE Desktop, EN Desktop, Tablet Landscape (renders the same Desktop table). No other header, mirroring, Email indicator, Description width, Amount, Actions, sorting, or order-number business logic touched.
-
-## PART B — HE BEFORE-VAT DISPLAY: PASS
-
-Permanent visible `לפני מע"מ: ₪X` line removed from the HE/Local Amount cell; row now shows only the final amount (e.g. `₪200.00`). Value remains available via a `title` tooltip attribute, computed from the same unchanged `beforeVatAmount` calculation, gated by the same unchanged `isLocalIsraeliBusiness && isHebrew` guard.
-
-- **Row-height reduction (measured, safe DOM simulation, reverted)**: **~13px, ~28% shorter**.
-- **Dead-code finding**: the removed JSX's English branch (`"Before VAT: ..."`) was nested inside the HE-only guard and was provably unreachable — confirmed dead code, not an active International leak, before removal.
-- **VAT calculation/percentage/totals/quote data/Public Quote/PDFs/billing/International behavior: UNCHANGED** — confirmed no other file references the removed block.
-- **Tests added**: HE — visible text excludes `לפני מע"מ`, `title` attribute contains it. EN — `title` attribute is `null` (not merely hidden — nonexistent in the DOM).
-
-## PART C — MARKET SEPARATION IRON RULE: DOCUMENTED (PERMANENT)
-
-Canonical rule written to `PROFLOW_PROJECT_CONTEXT.md` §80 Part C, cross-referenced in `PROFLOW_TODO.md` item 34. Local (HE/RTL/ILS/Israeli VAT) vs. International (EN/LTR/USD-EUR-GBP only, no ₪, no automatic Israeli tax/business semantics) is now permanent canonical policy for every agent (Owner, ChatGPT, Claude Lead, Agent HE, Agent EN, future agents). Mandatory fail-closed contradiction handling documented: any instruction that appears to cross the boundary → do not implement, report **"MARKET-SEPARATION CONFLICT"**, request clarification. No conflict was encountered this task.
-
-## PART D — BROWSER QA LAUNCHERS: PASS
-
-Created at **`C:\Users\sales\Desktop\ProFlow Browser QA\`** (outside the repo, confirmed never staged/tracked): `Start-ProFlow-Browser-QA.bat`/`.ps1`, `Stop-ProFlow-Browser-QA.bat`/`.ps1`.
-
-- **START (already running, idempotent)**: PASS — no duplicate Chrome, real `page_info()` returned, `--doctor` reported daemon alive + 1 active connection + READY.
-- **STOP (safe, dedicated-only)**: PASS — dedicated-profile Chrome process count went from 1 main+children to zero; personal Chrome's own main process confirmed **unchanged** (identical PID + `StartTime` before/after); CDP correctly became unreachable.
-- **RESTART (from genuinely-stopped state)**: Chrome launch + CDP-reachable — PASS. Daemon-bootstrap sub-step initially reported FAILED, root-caused conclusively to this session's own `BH_REQUIRE_EXISTING_DAEMON=1` (process-local, inherited only by my own tool calls, per §71) — re-ran the identical line with that variable removed for one call and it succeeded cleanly, proving the script's logic is correct for a normal Owner terminal (which never has this variable set).
-- **Personal Chrome**: UNCHANGED throughout (verified twice, before and after Stop).
-- **Keep-alive rule**: reconfirmed permanent — never close the dedicated Chrome's last tab; the Start script's own New Tab page satisfies this automatically.
-- **Two bugs found and fixed during testing**: `$ErrorActionPreference='Stop'` + merged stderr redirect crashing the script on an expected/harmless stderr line (fixed: removed global `Stop`, used `2>$null`); PowerShell 5.1's native `|` pipe injecting a UTF-8 BOM into `browser-harness`'s stdin regardless of `$OutputEncoding` (fixed: routed through `cmd /c "echo ...| browser-harness"`).
-- **Exact location**: `C:\Users\sales\Desktop\ProFlow Browser QA\`.
-
-## PART E — PLAN STATUS BADGE: DOCUMENTED, OPEN/NOT IMPLEMENTED
-
-Recorded as `PROFLOW_TODO.md` item 35. Placement: white strip between purple header and KPI/cards, same row as Dashboard nav buttons; HE/RTL = left, EN/LTR = right (mirrored by locale direction); must clearly emphasize the plan/status icon. No code written.
+**EFFORT LEVEL: MAXIMUM.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §81.
 
 ---
 
-## RESPONSIVE QA (Parts A+B): PASS
+## TYPOGRAPHY
 
-HE/EN × Desktop/Mobile (390×844)/Tablet Portrait (768×1024)/Tablet Landscape (1024×768) — zero horizontal overflow on every combination. International (EN) confirmed unaffected by Part B's HE-only change.
+**HE: PASS**
+**EN: PASS**
 
-## FOCUSED TESTS: PASS (30/30 QuotesTab)
-## FULL TESTS: PASS (82/82)
-## LINT: PASS (0 errors)
-## BUILD: PASS
+**KPI WEIGHTS**: Total Quotes 800 → 600 (now matches sibling Total Revenue, already 600). Total Revenue: 600 → 600 (unchanged, already the target).
 
----
+**CLIENT NAME**: 700 → 600 (Desktop + Mobile, both locales — no `isHebrew` branch on this value, so parity is structural).
 
-## BROWSER TAB HYGIENE
+**AMOUNT**: unchanged with reason — already 500, reduced twice in a prior/parallel round and marked "PRESERVED, do not reopen" in-file. Evidence of a sibling Agent HE/EN thread having touched this file outside this session's own visible §-history (per the Owner's own Part L framing). Left untouched rather than reopened on a guess.
 
-## STALE QA TABS: 0
-## KEEP-ALIVE TAB: 1
-## DEDICATED QA CHROME: RUNNING
+**ORDER**: 700 → 600 (Desktop + Mobile, both locales) — retains recognition via the existing approved purple color; no longer double-emphasized via maximal weight + color simultaneously.
 
-Left running at task end (final state after Part D's restart test), per the permanent tab-hygiene rule in §76.
+**OTHER TYPOGRAPHY CHANGED**: none. Font-size, color, column widths, positions, and responsive structure were not touched anywhere in this pass.
+
+**OWNER VISUAL APPROVAL: PENDING**
 
 ---
 
-## APPLICATION COMMIT: NONE
-## PUSH: NONE
-## PRODUCTION: UNCHANGED
-## DNS: UNCHANGED
-## SUPABASE: NO MUTATION
+## VIEWS NUMERIC GEOMETRY
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). `QuotesTab.jsx`/`.test.jsx` remain local/uncommitted, layered on §77/§78/§79's uncommitted changes. The 4 launcher files exist only outside the repo.
+**IMPLEMENTED: PASS**
 
-## CONTINUITY READ-BACK: PASS (this sync — see below)
+**TABULAR NUMERALS: YES** — `font-variant-numeric: tabular-nums` on the number sub-box (Desktop + Mobile), so every digit glyph occupies identical width.
+
+**RESERVED DIGIT GEOMETRY**: Desktop number sub-box fixed `22px`, right-aligned, inside a `46px` header column (widened from `28px`). Mobile number sub-box fixed `17px`, right-aligned, inside the pre-existing fixed `32px` grid track (track itself unchanged). Right-alignment is deliberately **not** locale-conditional — digit glyph order is always LTR even inside Hebrew text, so anchoring the ones-place to the right is correct in both directions.
+
+**1-DIGIT: PASS** | **2-DIGIT: PASS** | **3-DIGIT: PASS** (real data topped out at 19; 100/637/999 verified via safe, reverted DOM-node text simulation, `restored:true` confirmed each time)
+
+**EYE ICON MOVEMENT**: `0px` — identical X-coordinate across all 9 required boundary values (`0,1,9,10,19,99,100,637,999`), both locales, Desktop and Mobile.
+
+**ORDER COLUMN MOVEMENT**: `0px` — measured before/after simulating a `999` Views value in the first row; Order column's `left` unchanged.
+
+**CLIENT TYPE MOVEMENT**: `0px` — same measurement, Client Type column's `left` unchanged. Overall table width also unchanged (`950px` before/after).
+
+**HE: PASS** (30 real rows + 9 simulated boundary values, Desktop; 6 real rows, Mobile card)
+**EN: PASS** (9 simulated boundary values via safe temporary `tbody` HTML injection/revert, since the EN TEST account had 0 quotes; header-level render + `dir="ltr"` mirroring confirmed independently)
 
 ---
 
-**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Market Separation Iron Rule (item 34, now permanent policy per this task), Plan Status Badge (item 35, OPEN per this task), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry.
+## ORDER SORT
 
-## FINAL DECISION: PASS
+**ROOT CAUSE**: `Dashboard.jsx`'s sort comparator (`quoteSortField === 'id'` branch) compared `a.id`/`b.id` — the row's internal Supabase UUID — which has no relationship to the displayed Order Number (`A${quote_number}`). Effectively sorted by random UUID string, not the visible sequence.
+
+**SORT KEY**: new pure, exported `getQuoteOrderSortKey(quote)` in `src/utils/quoteNumber.js`, returning a numeric key from `quote.quote_number`. Legacy quotes without a real `quote_number` (pre-migration, displayed via the existing `#UUID`-prefix fallback) are grouped entirely before every real-numbered quote and sorted among themselves by `created_at`.
+
+**ASC: PASS** — live-verified on 30 real TEST quotes: `A100700, A100701, A100703, A100704, ...` (correct numeric sequence).
+**DESC: PASS** — same data, header clicked again: `A100732, A100731, A100730, A100729, ...` (exact reverse).
+
+**BOUNDARY CASES**: unit-tested (`src/utils/quoteNumber.test.js`, 6 tests) — `9,10,99,100,999,1000` sorted numerically (not the `"A10" < "A9"` lexicographic trap); never uses `id`/UUID as a sort signal; legacy-quotes-group-before-real-numbered; legacy quotes ordered among themselves by `created_at`.
+
+**DISPLAY FORMAT CHANGED: NO**
+**GENERATION LOGIC CHANGED: NO**
+
+---
+
+## PERMANENT CONTRACTS
+
+**NUMERIC GEOMETRY CONTRACT: PASS** — written, `PROFLOW_PROJECT_CONTEXT.md` §81.
+**TYPOGRAPHY CONTRACT: PASS** — written, §81.
+**QUOTE HISTORY CONTRACT: PASS** — written, §81 (consolidated 10-point reference).
+**MARKET FAIL-CLOSED: PRESERVED** — no conflicting instruction encountered; Amount's HE-only guard untouched.
+**CURRENCY IMMUTABILITY: PRESERVED** — not touched this task.
+**HOT QUOTE: PRESERVED** — not touched this task.
+**COMPONENT CONTRACT TRIGGER: PASS** — written as a permanent process rule, §81.
+**FILE-BY-FILE LEDGER: PASS** — written, §81 (5 files: `QuotesTab.jsx`, `QuotesTab.test.jsx`, `Dashboard.jsx`, `quoteNumber.js`, `quoteNumber.test.js`).
+**HE/EN RECONCILIATION: PASS** — written, §81 Part L (mirroring, market separation, typography parity, responsive behavior all reconciled, not assumed from independent HE-PASS/EN-PASS).
+**UI DEFINITION OF DONE: PASS** — written as a permanent process rule, §81.
+
+---
+
+## REGRESSION
+
+**ORDER ASC TEST: PASS** (`quoteNumber.test.js`)
+**ORDER DESC TEST: PASS** (`quoteNumber.test.js`)
+**VIEWS ZERO: PASS** (pre-existing test, re-confirmed still green)
+**VIEWS DIGIT GUARD: PASS** — structural jsdom assertions (fixed-width/right-align/tabular-nums presence, 18 tests) **plus** real-browser geometry proof (see above) — not brittle pixel assertions in jsdom, per instruction.
+**EMAIL INDICATOR: PASS** — new coverage this task (RED/GREEN/BLANK, 3 tests); audited first, confirmed no pre-existing duplicate guard.
+**HE BEFORE-VAT: PASS** — pre-existing guard from §80, re-confirmed still green, not touched this task.
+**EN LOCAL-VAT LEAK: NONE** — pre-existing guard from §80, re-confirmed still green.
+
+**FOCUSED TESTS: 57/57 PASS** (`QuotesTab.test.jsx`) **+ 6/6 PASS** (`quoteNumber.test.js`, new file)
+**FULL TESTS: 109/109 PASS**
+**LINT: PASS** (0 errors, 6 pre-existing warnings unchanged)
+**BUILD: PASS**
+
+---
+
+## RESPONSIVE / BROWSER
+
+**HE DESKTOP: PASS** | **EN DESKTOP: PASS**
+**HE MOBILE: PASS** | **EN MOBILE: PASS**
+**HE TABLET PORTRAIT: PASS** | **EN TABLET PORTRAIT: PASS**
+**HE TABLET LANDSCAPE: PASS** | **EN TABLET LANDSCAPE: PASS**
+
+(Corrected mid-task: an initial pass using CDP `Emulation.setDeviceMetricsOverride` alone produced false-negative "no overflow" readings at Mobile/Tablet-Portrait, because the app's own resize listener doesn't always fire from that API alone — was silently measuring the desktop table's own non-overflowing scroll wrapper. Fixed by explicitly dispatching `window.dispatchEvent(new Event('resize'))` and confirming which layout was actually active via `!!document.querySelector('table')` before trusting any reading. All 8 combinations above use the corrected methodology.)
+
+**HORIZONTAL OVERFLOW: NONE**
+
+**STALE QA TABS: 0**
+**KEEP-ALIVE: 1**
+**DEDICATED QA CHROME: RUNNING**
+
+---
+
+## PLAN STATUS BADGE
+
+**STATUS: OPEN**
+**IMPLEMENTED: NO**
+
+(Unchanged — `PROFLOW_TODO.md` item 35, not touched this task.)
+
+---
+
+## SAFETY
+
+**APPLICATION COMMIT: NONE**
+**APPLICATION PUSH: NONE**
+**PRODUCTION: UNCHANGED**
+**DNS: UNCHANGED**
+**SUPABASE: UNCHANGED**
+**CUSTOMER DATA: UNCHANGED** (one Views value was temporarily/reversibly simulated via direct DOM text mutation on two TEST accounts, immediately reverted and confirmed `restored:true` each time — no database write occurred)
+
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged).
+
+---
+
+## CONTINUITY
+
+**READ-BACK: PASS** (this sync — see below)
+
+---
+
+## FINAL DECISION
+
+**PASS**
 
 ## FINAL STOP
 
-Parts A, B, D fully implemented and verified. Part C is now permanent canonical policy. Part E remains an open, documented, unimplemented requirement. Returned to Owner + ChatGPT for review before any commit/push authorization.
+Parts A, B, C fully implemented, tested, and real-browser-verified in both locales. Parts D-P are now permanent canonical contracts/process rules, living at `PROFLOW_PROJECT_CONTEXT.md` §81. Part Q (Plan Status Badge) remains open/undone by design. Returned to Owner + ChatGPT for visual review before any commit/push authorization.

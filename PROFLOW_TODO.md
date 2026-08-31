@@ -1287,3 +1287,13 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 **Requirement**: must clearly emphasize the current plan/subscription status via icon (not a plain text label buried among the nav buttons).
 
 **Not yet scoped**: exact badge states (e.g. Trial/Active/Expired/Past Due), exact icon set, click behavior (if any), and data source (subscription table field) are all undetermined and require separate Owner specification before implementation is authorized.
+
+## 36. Permanent UI Contracts — Tabular Numeric Geometry, Typography Hierarchy, Quote History Table (added 2026-08-31, Quote History Final Polish task — DOCUMENTATION ONLY, contracts are permanent policy)
+
+**Status: 🟢 PERMANENT POLICY — not a task, applies to every future task touching these areas**
+
+**Canonical location**: `PROFLOW_PROJECT_CONTEXT.md` §81. This item is a pointer only — read §81 for the full contract text, including the permanent Component Contract Trigger and UI Definition of Done process rules.
+
+**One-line summary**: (1) any variable-digit-count table field needs deterministic geometry (fixed reserved width, tabular-nums, glyph-order-anchored alignment) — first applied to Quote History Views; (2) typography changes must identify the element's role and keep sibling elements of the same role coherent — a future agent must not leave one KPI heavier than an equivalent sibling KPI without a documented reason; (3) the Quote History table's 10-point contract (mirroring, header/body geometry, Views=0, Order sort correctness, email indicator, Description/Client Name space, row density, typography, responsive matrix) applies automatically to any future task touching that table, even if the task only names one column.
+
+**Also fixed this task (not a contract, a bug)**: Order Number ASC/DESC sorting was comparing the row's internal UUID (`id`) instead of the displayed order number's real backing field (`quote_number`) — root-caused and fixed via a new testable `getQuoteOrderSortKey` in `src/utils/quoteNumber.js`. See §81 Part C for full detail.

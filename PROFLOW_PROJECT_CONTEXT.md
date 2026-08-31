@@ -1820,3 +1820,122 @@ This rule is now canonical. Cross-referenced in `PROFLOW_TODO.md` item 34. No co
 **Part I — Safety**: NO COMMIT, NO PUSH, NO DEPLOY, NO PRODUCTION, NO DNS, NO SUPABASE mutation this task. `git rev-parse HEAD` unchanged at `5f658f3...`, `origin/main` unchanged at `e0300174...`. `src/components/QuotesTab.jsx`/`.test.jsx` remain local/uncommitted, layered on §77/§78/§79's uncommitted changes. The 4 launcher files exist only outside the repo and were confirmed never staged/tracked.
 
 **Status**: Parts A, B, D fully implemented and verified (A/B via source + tests + live geometry/row-height measurement; D via full start/stop/restart process-level testing). Part C is now permanent canonical policy. Part E remains an open, unimplemented, documented requirement. All other Owner open items (item 33 Currency Immutability, Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry, item 35 Plan Status Badge) unchanged/preserved. Awaiting Owner + ChatGPT review before any commit/push is authorized.
+
+## §81. Quote History Final Polish + Permanent UI Contracts + Fail-Closed Regression Framework (added 2026-08-31, Quote History Final Polish task)
+
+**Applicable-contracts audit performed before editing (Part J discipline, applied retroactively to this founding task since the contracts did not yet formally exist)**: QuotesTab.jsx and Dashboard.jsx are covered by §76 (Tab Hygiene), the Market-Separation Iron Rule (§80 Part C), and the informal Desktop/Mobile mirroring + header/body-centering precedents from §77-§79 — this task both applies those and formalizes new ones (below) so future tasks no longer need to rediscover them ad hoc.
+
+**IMPORTANT — evidence of a parallel/out-of-band agent lineage**: on opening `QuotesTab.jsx` for this task, the Amount cell's font-weight (already at `500`, having gone `800→600→500` across two prior rounds) carried an in-file comment marked "PRESERVED — do not reopen," and Total Revenue's KPI weight (`600`, the top of that same hierarchy) was already established — **neither round is documented anywhere in this file's own §-numbered history**. This is strong evidence that a sibling agent thread (per the Owner's own Part L "Agent HE/Agent EN are not independent silos" framing) modified this exact file between this session's visible tasks. Per that same Part L, this session (acting as Claude Lead for this task) reconciled rather than blindly reopened: Amount's weight was **left untouched** and re-confirmed live at `500`/`600` (row/KPI) rather than re-litigated on a guess.
+
+### Part A — Typography Consistency: IMPLEMENTED, LIVE-VERIFIED
+
+Audited actual current weights first (not a blind "reduce everything" pass):
+
+| Element | Role | Before | After | File |
+|---|---|---|---|---|
+| Total Quotes KPI value | KPI value | 800 | **600** | `Dashboard.jsx` |
+| Total Revenue KPI value | KPI value | 600 | 600 (unchanged, already the target) | `Dashboard.jsx` |
+| Client Name (Desktop td + Mobile card) | table primary value | 700 | **600** | `QuotesTab.jsx` |
+| Order Number (Desktop td + Mobile card) | identifier/link | 700 | **600** | `QuotesTab.jsx` |
+| Amount (Desktop td) | table primary value | 500 | 500 (unchanged — already reduced twice in a prior/parallel round, explicitly PRESERVED, not reopened) | `QuotesTab.jsx` |
+
+Font-size, color, column widths, positions, and responsive structure were **not** touched anywhere in Part A, per explicit instruction. Live-verified via `getComputedStyle` on real TEST data: HE KPI values both `600`; HE row Order/Client Name both `600`; EN KPI values both `600` (same shared JSX, no locale branch on these weights, so HE/EN parity is structural, not merely tested twice).
+
+### Part B — Views Numeric Geometry: IMPLEMENTED, LIVE-VERIFIED
+
+**Root cause** (Owner-reported): the Desktop/Mobile Views cell wrapped `[number, icon]` in an `inline-flex` with `justifyContent:'center'`, centering the *group* — since the group's own width grows with digit count, the icon's actual X position shifted row-to-row even though the column's own width never changed.
+
+**Fix**: the number is now rendered in its own fixed-width sub-box (Desktop `22px`, Mobile `17px`), `textAlign:'right'` (deliberately **not** `isHebrew`-conditional — digit glyph order is always LTR even inside Hebrew text, so right-aligning the ones-place is the correct anchor in both directions, not a market-separation violation), with `fontVariantNumeric:'tabular-nums'` so every digit glyph occupies identical width (units/tens/hundreds place-value alignment). The icon carries `flexShrink:0`. Because the number sub-box is now fixed-width, the `[number-box + icon]` group's total width is constant regardless of value, so the surrounding `textAlign:'center'` on the `<td>` now centers a genuinely constant-width unit. DOM order (`[number, icon]`) was **not** changed — the existing `dir={tableDir}` on the table continues to mirror it automatically (number-then-icon from each locale's own inline-start, exactly the pre-existing established pattern). Desktop header width was widened `28px→46px` to match the new reserved body geometry (table-layout is `auto`, so the body content would have forced this width regardless — the header `width` is now an accurate hint, not a cap).
+
+**Real-browser geometry proof** (`getBoundingClientRect()`, both locales, all 9 required boundary values `0,1,9,10,19,99,100,637,999` — 3-digit values obtained via safe temporary DOM-node text simulation where real TEST data topped out at 19, then reverted, confirmed `restored:true` each time):
+
+| | Icon X | Number-box X | Constant across all 9 values? |
+|---|---|---|---|
+| HE Desktop (30 real rows, values 0-19) | 1350.81 | 1367.81 | Yes — identical across all 30 real rows |
+| HE Desktop (simulated 3-digit, first row) | 1350.81 | 1367.81 | Yes — identical across all 9 boundary values, incl. 999 |
+| EN Desktop (simulated, empty-account tbody) | 508.91 | 483.91 (EN: number precedes icon, mirrored) | Yes — identical across all 9 boundary values |
+| HE Mobile card (6 real rows, values 0/1/2/19) | 322 | 303 | Yes — identical across all sampled rows |
+
+Adjacent protected columns (Client Type, Order Number) and overall table width (`950px`) were also measured before/after simulating a `999` value in the Views cell — **byte-identical**, confirming zero layout disturbance to neighboring columns. No horizontal overflow observed at any point (Desktop, and both Mobile/Tablet-Portrait card layouts, both locales).
+
+**Testing methodology note (self-correction during this task)**: an initial responsive-overflow pass using CDP `Emulation.setDeviceMetricsOverride` alone produced false-negative "no overflow" results at Mobile/Tablet-Portrait widths, because ProFlow's own `isMobileView` resize listener (documented in `QuotesTab.jsx` itself) does not always fire from CDP's viewport override alone — the desktop table (inside its own `overflow-x:auto` wrapper) was still silently rendering and simply not overflowing the *outer* page, which is not the same as confirming the mobile card layout. Corrected by explicitly dispatching `window.dispatchEvent(new Event('resize'))` after each CDP override and confirming via `!!document.querySelector('table')` which layout was actually active before trusting the overflow reading. Documented here as a permanent testing-methodology note for future real-browser QA of this component.
+
+### Part C — Order Number Sorting: FIXED, ROOT-CAUSED, LIVE-VERIFIED
+
+**Root cause**: `Dashboard.jsx`'s quote sort comparator (`quoteSortField === 'id'` branch) compared `a.id`/`b.id` — the row's internal Supabase UUID primary key — which has **no relationship whatsoever** to the displayed Order Number (`formatQuoteFallback(quote)` → `A${quote.quote_number}`, e.g. `A100713`). In practice this sorted by effectively-random UUID string, not by the sequence the user actually sees.
+
+**Fix**: extracted a new pure, exported, independently-unit-tested function `getQuoteOrderSortKey(quote)` in `src/utils/quoteNumber.js` (co-located with `formatQuoteFallback`, the single source of truth for how the order number is derived/displayed) that returns a numeric sort key from `quote.quote_number` directly. Legacy quotes without a real `quote_number` yet (displayed via the pre-existing `#UUID-prefix` fallback) have no meaningful numeric order position — they are placed as one group entirely before every real-numbered quote (`LEGACY_ORDER_CEILING = 1e15`, far above both any realistic `quote_number` and any `created_at` epoch-ms value), and sorted among themselves by `created_at` so their own relative order is still meaningful rather than arbitrary. `Dashboard.jsx`'s `id` branch now simply calls this function for `aVal`/`bVal` — the surrounding generic ascending/descending comparator logic was **not** rewritten, per explicit instruction to fix the narrowest root cause.
+
+**Regression tests** (`src/utils/quoteNumber.test.js`, new file, 6 tests): ascending by real `quote_number`; descending (exact reverse); no lexicographic-string trap across digit-count boundaries (`A10 < A9` as strings but `10 > 9` numerically — explicitly tested with `9,10,99,100,999,1000`); never uses `id`/UUID as a sort signal; legacy-quotes-group-before-real-numbered-quotes; legacy quotes ordered among themselves by `created_at`.
+
+**Live-verified** on real TEST data (30 real quotes, `A100700`-`A100732`, some gaps): clicking the Order header produced `A100700, A100701, A100703, A100704, ...` ascending (correct numeric sequence, confirmed **not** the pre-fix UUID-random order); clicking again produced `A100732, A100731, A100730, A100729, ...` descending (exact reverse). Displayed Order Number format and order-number generation logic were **not** changed — only the sort comparator's data source.
+
+---
+
+### PERMANENT CONTRACT — Tabular Numeric Geometry (Part D)
+
+> Any tabular numeric field whose digit count may vary must have **deterministic geometry** — changing digit count must never shift adjacent protected columns, icons, or controls. Where semantically appropriate: reserve a fixed numeric width sized for the realistic maximum digit range, use `font-variant-numeric: tabular-nums`, anchor the ones-place so digits grow away from a stable edge (typically right-aligned — this is a **glyph-order** property, not a locale/RTL-LTR property; do not make it `isHebrew`-conditional), and keep any associated icon at fixed size with `flexShrink:0` so its own position is independent of the number's rendered width. Test representative digit boundaries explicitly (`0, 1, 9, 10, 19, 99, 100`, plus the realistic maximum for that field). Do **not** blindly right-align every number in the product — fields with an established different semantic alignment (e.g. a currency amount that is intentionally centered against its header, per the Amount-column precedent in §79) keep their own established alignment; the contract is deterministic geometry, not one universal CSS rule. First applied to: Quote History Views (Desktop + Mobile). Future candidates: quantities, document counts, payment counts, any other variable-digit table field.
+
+### PERMANENT CONTRACT — ProFlow Typography Hierarchy (Part E)
+
+> Before changing any element's typography, identify its **role** first: primary page heading / KPI value / table primary value / table secondary value / identifier-link / ordinary body text / status-badge / secondary metadata. Elements sharing a role must use **coherent, intentional** emphasis relative to each other — a future agent must not leave one KPI at `800` while an equivalent sibling KPI is `600` without a documented design reason (this task's own Total Quotes fix is the canonical example of the violation this contract now forbids). HE and EN must carry equivalent visual hierarchy (this does not require identical font-family metrics where locale fonts genuinely differ). A task that touches typography on one element must check sibling/equivalent-role elements across the same view before declaring typography DONE — do not treat a single line-item font-weight change as isolated from its surrounding hierarchy. Established current hierarchy as of this task: KPI value `600` (Total Quotes, Total Revenue); table primary value `600` (Client Name) / `500` (Amount, a deliberately lighter-weight financial line-item than a KPI); identifier/link `600` (Order Number, distinguished by color, not maximal weight); status badge `700` (small pill, unaffected by this task — a different role tier, not touched).
+
+### PERMANENT CONTRACT — Quote History Table (Part F, consolidated authoritative reference)
+
+> A future task touching **any** part of the Quote History table must apply this contract even if the task prompt names only one column. At minimum:
+> 1. **Directional mirroring**: HE/RTL inline-start = right; EN/LTR inline-start = left. Current Desktop invariant: `Client Type → Views` from each locale's own inline-start (§77-§79).
+> 2. **Header/body geometry**: `text-align:center` on a header alone is **not** proof of visual centering — the header may center while the body content remains edge-aligned (discovered and fixed identically four times now: Amount/Actions in §79, Order in §80, and this task's Views numeric geometry is the same root-cause family). Protect at minimum: Order, Amount, Actions, and any future centered column, via real `getBoundingClientRect()` measurement of header-center vs. body-content-center.
+> 3. **Views**: `view_count=0` must render (never hidden via truthiness). Desktop header stays icon-only with `aria-label`/`title` preserved. Numeric geometry per the Tabular Numeric Geometry Contract above.
+> 4. **Order Number**: header/body geometric alignment (§80); correct ASC and DESC sort by the real `quote_number` via `getQuoteOrderSortKey` (§81, this task) — never by `id`/UUID, never by unguarded lexicographic string comparison.
+> 5. **Email indicator**: functional, not decorative — RED = `email_bounced` or a failed immediate send; GREEN = `emailStatus==='success'`; BLANK = no send attempted. Do not remove as part of visual cleanup without a functional audit.
+> 6. **Description**: preferred beneficiary of horizontal space reclaimed elsewhere, after required/functional columns have stable geometry; truncates cleanly with a full-value hover title.
+> 7. **Client Name**: must not disturb protected table geometry regardless of length; preserve existing ellipsis + hover-title behavior.
+> 8. **Row density**: secondary metadata should not permanently add row height where a tooltip/compact affordance safely preserves access — current approved Local-only example: HE's before-VAT value (§80 Part B), a Local/Market-Separation-scoped exception, not a general pattern to replicate for other fields without independent Owner authorization.
+> 9. **Typography**: apply the Typography Hierarchy Contract above.
+> 10. **Responsive verification**: HE/EN × Desktop/Mobile/Tablet-Portrait/Tablet-Landscape, all combinations, every time this table's layout is touched.
+
+### PERMANENT PROCESS RULE — Component Contract Trigger (Part J)
+
+> Before implementing a change in a component covered by a permanent contract, state **APPLICABLE CONTRACTS: `<exact list>`** up front. At final verification, state **CONTRACT CHECK: PASS/FAIL**. If a mandatory applicable contract was not actually checked, the task's **FINAL DECISION must not be PASS** — use `PARTIAL` or `BLOCKED` instead, and say which contract was skipped and why.
+
+### PERMANENT PROCESS RULE — UI Definition of Done (Part P)
+
+> A user-facing UI task is not DONE merely because code compiles, tests pass, one screenshot looks right, one locale/viewport passes, or the literal requested line was changed. DONE requires, as applicable: authorized behavior satisfied; applicable permanent contracts PASS; HE PASS; EN PASS; responsive matrix PASS; real-browser geometry/interaction evidence (not jsdom pixel guesses); focused tests PASS; relevant full suite PASS; lint/build PASS; no unrelated regression; Owner visual approval where required; continuity updated; browser tab hygiene complete; commit/push only through separate, explicit authorization gates.
+
+### File-by-file ledger (Part K)
+
+**`src/components/QuotesTab.jsx`** — CONTRACTS APPLICABLE: Tabular Numeric Geometry (Views), Typography Hierarchy (Client Name/Order), Quote History Table (items 3/4/9/10), Market-Separation Iron Rule (Amount cell left untouched, respecting the pre-existing HE-only guard). HE IMPACT: Order/Client Name weight 700→600; Views number sub-box fixed 22px (Desktop)/17px (Mobile), tabular-nums, right-aligned. EN IMPACT: identical (no locale-conditional logic in any of these changes — structural parity, not just tested parity). RESPONSIVE IMPACT: Views header widened 28px→46px (Desktop only; auto table-layout, no overflow observed); Mobile card Views sub-box added inside the pre-existing fixed 32px track (no track-width change). REGRESSION CHECKS: 30→57 tests in `QuotesTab.test.jsx` (Views geometry structural ×18, email indicator ×3, existing suite unmodified/still green).
+
+**`src/components/QuotesTab.test.jsx`** — CONTRACTS APPLICABLE: same as above (test-only file). New coverage: Views fixed-width/tabular-nums structural assertions (9 boundary values × 2 locales); email indicator RED/GREEN/BLANK states (previously untested in this file, audited first — confirmed no duplicate guard existed).
+
+**`src/pages/Dashboard.jsx`** — CONTRACTS APPLICABLE: Typography Hierarchy (Total Quotes KPI), Quote History Table item 4 (Order sort). HE IMPACT: Total Quotes KPI weight 800→600; Order sort now numerically correct. EN IMPACT: identical (shared JSX/comparator, no locale branch). RESPONSIVE IMPACT: none (KPI font-size/layout untouched; sort comparator has no visual footprint of its own). REGRESSION CHECKS: covered indirectly via `quoteNumber.test.js` (the extracted sort-key function) rather than a full Dashboard mount, consistent with the existing `Dashboard.hotquote.test.js` precedent of narrow targeted tests over a disproportionate full-component mount.
+
+**`src/utils/quoteNumber.js`** — CONTRACTS APPLICABLE: Quote History Table item 4. New exported `getQuoteOrderSortKey`, co-located with `formatQuoteFallback` (single source of truth for order-number derivation). Displayed format and generation logic untouched.
+
+**`src/utils/quoteNumber.test.js`** — new file, 6 tests, first test coverage for this util module.
+
+### HE/EN Reconciliation (Part L)
+
+Reconciled, not assumed from independent HE-PASS + EN-PASS: directional mirroring confirmed opposite-but-symmetric (HE Views: icon-left/number-right at X=1350.81/1367.81; EN Views: number-left/icon-right at X=483.91/508.91 — same DOM order, correctly mirrored by the pre-existing `dir` attribute, not a new per-locale branch); Market Separation confirmed clean (Amount cell's HE-only tooltip guard untouched, no new International-side text/semantic introduced anywhere in this task); shared typography hierarchy confirmed identical by construction (no `isHebrew` branch on any weight changed this task, verified live in both locales rather than assumed); responsive behavior confirmed independently in both locales after correcting the CDP-resize-dispatch gap described in Part B; no cross-market semantic leakage introduced.
+
+### Regression framework (Part M) and real-browser contract check (Part N)
+
+Audited existing tests first (did not duplicate the pre-existing Order/mirroring/icon-only-Views/HE-before-VAT/EN-no-leak guards from §77-§80). Added: Order ASC/DESC + boundary-case + legacy-grouping (`quoteNumber.test.js`, 6 tests, pure-function, not brittle pixel assertions); Views structural fixed-width/tabular-nums presence (`QuotesTab.test.jsx`, 18 tests, structural not pixel); email indicator RED/GREEN/BLANK (`QuotesTab.test.jsx`, 3 tests). Real-browser checklist (Part N, items 1-21): HE/EN Desktop PASS; Order/Amount/Actions header-body centering re-confirmed unchanged (not re-touched this task, still correct per §79/§80); Views 0/1/2-digit/3-digit (simulated) PASS both locales; long Client Name/Description unaffected (not touched this task, pre-existing ellipsis+title behavior intact, visually re-confirmed); email indicator present/functional; Order ASC/DESC live-verified PASS; zero horizontal overflow at every checked viewport; HE/EN × Mobile/Tablet-Portrait/Tablet-Landscape all PASS (Tablet-Portrait/Mobile corrected via explicit resize-dispatch after discovering the CDP-override gap).
+
+### Browser QA / batch contract (Part O)
+
+**Reused the existing launchers, did not recreate them** — `C:\Users\sales\Desktop\ProFlow Browser QA\Start-ProFlow-Browser-QA.bat`/`.ps1`, `Stop-ProFlow-Browser-QA.bat`/`.ps1` (§80 Part D). CDP confirmed reachable at task start without needing to invoke the Start script at all (dedicated Chrome was already running from a prior task). Browser Harness reconnected cleanly. At task end: two QA tabs (HE + EN dashboard) were closed after opening a fresh blank keep-alive tab first (never closing the last tab) — **STALE QA TABS: 0, KEEP-ALIVE TAB: 1, DEDICATED QA CHROME: RUNNING**.
+
+### Plan Status Badge (Part Q)
+
+Unchanged — remains `PROFLOW_TODO.md` item 35, OPEN, NOT IMPLEMENTED, not touched this task.
+
+### Safety (Part R) and Quality (Part S)
+
+No application commit, no push, no Production/DNS/Supabase/customer-data mutation this task (the two TEST accounts' existing quotes were read and one Views value was temporarily/reversibly simulated via direct DOM text mutation, immediately reverted and confirmed `restored:true` — no database write of any kind occurred). `git rev-parse HEAD` unchanged at `5f658f3...`, `origin/main` unchanged at `e0300174...`. Quality: focused (`QuotesTab.test.jsx` 57/57 including new coverage, `quoteNumber.test.js` 6/6) and full suite (109/109), lint 0 errors (6 pre-existing warnings, unchanged), build succeeds.
+
+### Owner Visual Review Gate (Part T)
+
+Typography and Views geometry are **not** declared permanently locked by this task — implemented, tested, and real-browser-geometry-proven, but still subject to Owner visual inspection on TEST before being treated as final, per explicit instruction.
+
+**Status**: Parts A, B, C fully implemented, tested, and real-browser-verified in both locales. Parts D-P are now permanent canonical contracts/process rules (this section is their authoritative home going forward). Part Q (Plan Status Badge) remains open/undone, unchanged. All prior Owner open items preserved. Local/uncommitted, layered on all prior uncommitted work in this lineage. Awaiting Owner + ChatGPT visual review before any commit/push.
