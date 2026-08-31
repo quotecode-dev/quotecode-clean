@@ -1,0 +1,35 @@
+-- PROFLOW — Item 17: RETIRED — see supabase/quote_number_counter_init.sql
+--
+-- ⚠️ This script is RETIRED as of 2026-08-28 and contains NO executable
+-- SQL. It is kept in place (not deleted) only so its history/reasoning
+-- remains auditable, and so its filename cannot be accidentally reused for
+-- something else.
+--
+-- Why it was retired: this script's entire design assumed existing
+-- `quotes` rows would have `quote_number IS NULL` and need a one-time
+-- backfill to populate them (numbering each business's existing quotes
+-- starting at A100700, oldest-first). A dedicated READ-ONLY LIVE audit
+-- (PROFLOW_TODO.md item 17, 2026-08-28) proved this premise false:
+-- `quotes.quote_number` is `NOT NULL` live, with a global sequence
+-- DEFAULT that has already assigned a real value to every existing row
+-- (a live "A90" quote was the discovery that triggered the audit). There
+-- are, and will never be, any `quote_number IS NULL` rows for this
+-- script's `WHERE` guard to match - running it today would affect zero
+-- rows and accomplish nothing.
+--
+-- Separately, and just as important: the Owner's explicit instruction
+-- following the audit is that historical quote_number values (A11, A56,
+-- A90, ...) must NEVER be renumbered, reinterpreted, or reassigned into
+-- the new A100700+ per-business scheme - they remain permanent historical
+-- identifiers. Even a rewritten version of this script's original
+-- "renumber existing rows" approach would now be the WRONG thing to do,
+-- not just an accidentally-inert one.
+--
+-- What replaces it: supabase/quote_number_counter_init.sql performs the
+-- actually-needed step - seeding each existing business's per-business
+-- counter (business_quote_sequences.next_number) so its first NEW
+-- managed quote starts at A100700 (or higher, only if that business
+-- somehow already has a historical number at/above 100700), WITHOUT
+-- touching any existing quotes.quote_number value at all.
+--
+-- Do not restore executable SQL to this file. Do not run this file.

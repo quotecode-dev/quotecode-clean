@@ -1,0 +1,52 @@
+-- PROFLOW — Item 17: per-business quote_number uniqueness (LIVE-safe index)
+--
+-- Reviewed 2026-08-28 against the completed READ-ONLY LIVE audit
+-- (PROFLOW_TODO.md item 17): unlike the other files in this package, this
+-- migration's own design was NOT invalidated by the audit and needs no
+-- rewrite. Confirmed safe to apply as-is: live `quote_number` values are
+-- already globally unique today (a single global sequence never repeats a
+-- value), so every existing (user_id, quote_number) pair is a fortiori
+-- already unique per business too - this index/constraint will build
+-- without violating any existing row. Depends on
+-- 20260827000000_add_quote_number_sequence.sql only for the surrounding
+-- package's documentation context, not for any object this file itself
+-- references.
+--
+-- LOCAL PACKAGE ONLY - NOT applied to the live/production project.
+--
+-- ⚠️ CORRECTED 2026-08-28 (Isolated Migration Validation task, found via
+-- static review — no isolated Postgres was available in this environment
+-- to catch this at runtime, see that task's report). The PREVIOUS version
+-- of this file put the `CREATE UNIQUE INDEX CONCURRENTLY` statement AND
+-- the `ALTER TABLE ... ADD CONSTRAINT ... USING INDEX` statement in the
+-- SAME file. That is unsafe: `CREATE INDEX CONCURRENTLY` cannot run
+-- inside a transaction block, and Supabase's migration runner applies
+-- each migration file as a single transaction — so the very statement
+-- this file's own original comment said justified its existence as a
+-- separate file would have failed immediately on `supabase db push`,
+-- because it was not actually alone in its own transaction. This file
+-- now contains ONLY the `CONCURRENTLY` index build. The `ADD CONSTRAINT`
+-- step (transaction-safe, fast, metadata-only) has been moved to its own
+-- follow-up file, 20260827000001a_attach_quote_number_unique_constraint.sql
+-- — do not merge them back together.
+
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS quotes_user_quote_number_unique_idx
+  ON public.quotes (user_id, quote_number);
+
+-- Per-business uniqueness only (NOT globally unique - two different
+-- businesses may each independently hold quote_number = 100700 going
+-- forward, once the per-business allocator in 20260827000000 is the only
+-- write path - see 20260827000003 for retiring the old global DEFAULT
+-- that would otherwise still hand out colliding-looking-but-technically-
+-- unique global values). The actual UNIQUE constraint that attaches this
+-- index is created by the follow-up file
+-- 20260827000001a_attach_quote_number_unique_constraint.sql, not here.
+
+-- ============================================================
+-- ROLLBACK (not part of the forward migration - run manually, BEFORE the
+-- companion 20260827000000 migration's own rollback, and AFTER
+-- 20260827000001a's own rollback since the constraint depends on this
+-- index):
+--
+-- DROP INDEX CONCURRENTLY IF EXISTS quotes_user_quote_number_unique_idx;
+-- ============================================================
