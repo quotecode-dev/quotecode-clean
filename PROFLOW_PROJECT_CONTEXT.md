@@ -3219,3 +3219,39 @@ All three: HTTP 200, clean JSON, no error field, no exception. The Supabase CLI 
 ### Boundaries held
 
 No other Edge Function deployed. No DB migration. No item 18 migration — `attn_name`/`attn_role` remain absent from Production, unaffected by this deploy. No application push (`origin/main` unchanged at `dd11015`; the local `071dad5` commit remains unpushed to `main`). No Vercel deployment triggered. No Production email sent. No real-customer data touched — all three smoke checks read already-existing TEST-account data (`tahshitishi@gmail.com`/`minhatshay@gmail.com`), nothing new was written.
+
+## §112. Resumed Authenticated Smoke — HE Completion + EN Full Cycle + Responsive (2026-08-31)
+
+**Verification-only task, resumed from the §109 checkpoint.** No code, schema, migration, Edge Function, or Vercel changes. The only mutations were the explicitly-anticipated TEST-account application-level writes (Warranty settings saves, TEST quote creation) already contemplated by the documented smoke plan.
+
+### HE completion (`tahshitishi@gmail.com`)
+
+- **Warranty step C re-verified live**: after the Path B deploy (§111), quote #91's Public Quote page now genuinely renders "אחריות: ... v1" — confirmed by direct reload. **PASS.**
+- **Warranty step D**: changed the business default to a distinguishable v2 value, reloaded quote #91 — still showed v1, unchanged. **PASS.**
+- **Warranty step E**: opened New Quote, confirmed v2 pre-fill, created and saved a second TEST quote (#92) — DB-confirmed `warranty` = v2. **PASS.**
+- **Signature Pad**: the owner's own preview correctly hides the signing area ("Admin view: signature area shown to client only") — by design, an owner cannot sign their own quote. Logged out (session-only, no data mutation) to test as an anonymous client: activate (tap-to-sign) → real draw (canvas `toDataURL()` length grew from baseline, confirming genuine ink, not just a state flag) → Clear (canvas reverted exactly to baseline) → fresh reload (pad correctly reset to tap-to-sign, no leaked state). **PASS**, full lifecycle. Deliberately did not click final "Approve & Sign" — verifying the mechanism doesn't require locking the quote.
+- **Quote History**: screenshot-verified — correct fine-grained sort (by actual timestamp, not just date), Client Type badges render distinctly (private vs business icon/color), status badges correct, view-count column correctly shows 2 anonymous views on quote #92 (the two anonymous signature-test visits) vs 0 on #91 (owner-only views never counted) — incidental proof the view-counter's owner-exclusion logic is correct. **PASS.**
+- **Responsive (390×844 mobile)**: Dashboard, Business Settings, and New Quote form all screenshot-verified — clean stacked layout, RTL intact, no broken elements. **PASS**, with one recorded discrepancy (see below).
+- **Cleanup**: default Warranty restored to empty (original state) after all checks. **DONE.**
+
+### EN full cycle (`minhatshay@gmail.com`)
+
+- **LOGIN/SESSION/PLAN-TRIAL**: PASS — LTR confirmed (`document.documentElement.dir === 'ltr'`), business "Minhat Shay (London)", trial ticker consistent with active-trial resolution, multi-currency quotes (USD/EUR/GBP) visible with zero ₪ or VAT-line leakage anywhere. **Market separation, the flagged critical gate: PASS.**
+- **Warranty A-E**: identical methodology to HE. Step A (save v1) PASS. Step B (pre-fill) PASS. Step C (Public Quote renders "Warranty: ... v1", correctly *no* VAT breakdown line since `tax_rate:0` — matching EN's own display rules, not HE's) PASS. Step D (default changed to v2, quote #93 reload still shows v1) PASS. Step E (new quote pre-fills v2) PASS.
+- **A real, initially-confusing finding, fully resolved read-only**: while verifying step E's save, quote #94 ("David Cohen" / "Replacing Forcet") appeared with an empty `warranty` and was momentarily mistaken for my own test quote (matching a KPI-count coincidence). Direct DB inspection (client name, item description, timestamps) proved it belongs to a **separate, real, concurrent write** — not created by this task — that happened to land on the shared global `quote_number` sequence between my two requests (my quotes correctly got #93 and #95; the KPI progression 8→9→10→11 exactly matches: my #93, the unrelated #94, my #95). My actual second quote, **#95**, DB-confirmed `warranty` = v2 exactly as expected. **Corrected conclusion: EN Warranty step E is PASS, not a defect** — no code investigated or touched, resolved entirely via read-only evidence. Positive side-finding: the shared global sequence handled genuine concurrent writes on live Production with zero collision or gap.
+- **Signature Pad**: same full lifecycle as HE (logout → anonymous view of quote #93 → activate → real draw, ink confirmed → Clear, reverted → fresh reload, reset confirmed). **PASS**, exact parity with HE.
+- **Quote History**: screenshot-verified — correct sort, Client Type badges, multi-currency amount column ($ / € / £ / a pre-existing ₪ row confirmed to be historical data from before this session, not a new leak), search/filter/export controls present, feature parity with HE. **PASS.**
+- **Responsive (390×844 mobile)**: EN Dashboard screenshot-verified — clean layout, LTR intact. **PASS.** EN Business Settings and New Quote form were **not separately screenshotted on mobile this task** (HE's equivalents were checked and are the same shared components, market-neutral aside from text) — disclosed as a smaller, low-risk, not-fully-covered gap rather than claimed as verified.
+- **Cleanup**: default Warranty restored to empty. **DONE.**
+
+### Discrepancy recorded as evidence, NOT fixed (per explicit instruction)
+
+**Floating "AI Chat"/"צאט AI" button overlaps Quote History card content on mobile (390×844), on both HE and EN** — observed obscuring quote-number/date text on specific cards in both markets. This is a general, market-independent responsive layout issue, distinct from and in addition to the Owner's already-separately-flagged Mobile/Public Quote and Admin visual regressions, which remain untouched and open. No fix attempted, per this task's explicit scope boundary.
+
+### Not tested, disclosed
+
+- **Public Quote page mobile responsive** — not screenshotted at mobile width for either market this task (only Dashboard/Settings/New-Quote-form were).
+- **Admin**: no real-Admin login attempted, per standing prohibition. **PENDING TEST ADMIN**, unchanged.
+- **Item 17**: reconfirmed inactive (`pg_proc` count for `allocate_quote_number` = 0) at the end of this task.
+- **Canonical host**: every navigation this task explicitly targeted `www.quotecodepro.com` — confirmed via every `page_info()`/URL check; `quotecode.vercel.app` was never landed on.
+- **Email functions**: no "Send Email" action was triggered at any point this task; not independently re-verified via `functions list` (already confirmed dormant as of §111's deploy checkpoint, unaffected by anything in this verification-only task).
