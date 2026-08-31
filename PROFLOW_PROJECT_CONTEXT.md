@@ -2827,3 +2827,60 @@ Representative coverage (4 of the 8 named personas, chosen to exercise every cri
 **Safe release sequence (documented for review — NOT executed)**: (1) apply Warranty's migration (`6430cf5`'s SQL) to Production via `supabase db push` — a genuine DB action requiring its own explicit authorization, not performed here; (2) once confirmed applied, push the full 18-commit chain (or push everything except `fde680b` first if Warranty's migration timing needs more lead time, then `fde680b` separately once (1) is done); (3) Item 17's package, if/when authorized, applies in its own documented internal order with a verification gate, entirely independent of (1)/(2); (4) Edge Function redeploy (`send-trial-expiration-email`/`send-subscription-expiration-email`) is its own separate, later decision — flagged above for its real-email-send consequence, not bundled into "push main."
 
 **FRESH PRODUCTION STATE STILL UNKNOWN**: exact RLS policy contents were not re-verified this task (out of this task's specific scope, and unchanged since the 2026-08-30 base-schema capture); whether any *other* Production automation (outside this repo, e.g. a Supabase Dashboard-configured schedule) exists cannot be fully ruled out by repo inspection alone, though `pg_cron`'s absence rules out the DB-native path specifically.
+
+## §103. Warranty Production Release Preflight + Vercel Canonical Redirect Verification (2026-08-31)
+
+**Strictly read-only.** No migration executed, no push, no deploy, no Production mutation, no email sent.
+
+### Warranty migration (`6430cf5`) — full source review
+
+`supabase/migrations/20260830000004_add_warranty_fields.sql`, read in full: exactly two `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ... text` statements (`business_settings.default_warranty`, `quotes.warranty`, both nullable, no default, no constraints, no index, no new trigger), two column-scoped `GRANT INSERT/UPDATE (default_warranty) ON business_settings TO authenticated` (matching the table's own already-established column-level least-privilege convention — `quotes` needs no new grant since it already has a table-wide grant), and two pure-metadata `COMMENT ON COLUMN` statements. A commented-out (non-executing) rollback block is included for reference only.
+
+**MIGRATION MINIMALITY: MINIMAL.** No unrelated statements found — every line traces directly to the two required columns.
+
+**Read-only Production compatibility checks performed**: `information_schema.columns` confirms zero existing column anywhere matching `%warranty%` (no naming collision); `pg_views` confirms zero views depend on `business_settings` or `quotes` (no dependent-view risk); `business_settings` currently holds 12 rows, `quotes` 23 (both sanitized counts, no PII) — trivially small, and irrelevant to risk regardless, since `ADD COLUMN ... text` with no default is a Postgres 11+ metadata-only operation (no table rewrite, no full-table lock) on any table size. Immutability is inherited automatically: the existing `guard_quote_immutability()` trigger already compares whole rows (`NEW` vs `OLD` via a `public.quotes`-typed variable), so the new `warranty` column is covered with zero trigger changes — the same pattern already proven for every other content column added since that trigger was written.
+
+**Existing data rewrite: NO.** **Idempotent: YES** (`IF NOT EXISTS` on both `ADD COLUMN`; re-granting an already-granted privilege is a no-op in Postgres). **Lock/runtime risk: LOW.** **Failure risk: near-zero** — the only plausible failure modes (insufficient privilege, missing `authenticated` role) don't apply to a Supabase-run migration.
+
+### Failure/rollback analysis
+
+| Scenario | Production effect | App remains functional? | Recovery |
+|---|---|---|---|
+| A. Migration fails before any statement applies | No change at all | Yes, unaffected | Re-run; nothing to undo |
+| B. One statement applies, a later one fails | At most: columns added, grants not yet applied (or vice versa) — Postgres DDL in one `db push` batch runs as a transaction, so a mid-batch failure normally rolls back everything | Yes — old code doesn't reference these columns yet | Re-run the migration; `IF NOT EXISTS` makes retry safe |
+| C. Migration succeeds, application push delayed | Columns exist, unused by any live code (old frontend doesn't reference them) | Yes, fully | None needed — this is actually the safest intermediate state |
+| D. Migration succeeds, later application push fails | Same as C | Yes, fully | Retry the push; no DB state to unwind |
+| E. Application push succeeds, Warranty UI has a runtime defect | Only the Warranty feature itself is affected (isolated code path); every other already-verified feature (entitlement, signature pad, quote-number sort, Attn) is independent and unaffected | Yes, for everything except Warranty specifically | Forward-fix the defect in a follow-up commit; no rollback of schema needed, since the columns being present and merely unused-by-a-buggy-UI is harmless |
+
+No destructive rollback SQL is needed for any realistic scenario — every path is forward-safe. The migration's own commented-out `DROP COLUMN` rollback exists only for a hypothetical full-reversal decision, not because failure is expected to require it.
+
+### Recommended order of operations
+
+The Owner's proposed 8-step model is **confirmed as the recommended order**, with one clarification: step 4 ("read-only smoke of existing Production app BEFORE code push") should happen both immediately after migration (to confirm the app is unaffected by the new-but-unused columns) and is inherently safe since old code never references them. No safer alternative ordering was found — schema-then-code is the only order that avoids any intermediate broken state (code-then-schema would briefly make old code try to reference not-yet-existing columns, which the Attn precedent shows is handled by explicit fail-safe retries, but Warranty's code has no such retry, so schema-first is not merely preferred here, it is required).
+
+### Production smoke-test checklist (prepared, not executed)
+
+**Pre-push, after migration**: landing page loads; login works; existing Dashboard loads; existing Quote History loads — all read-only, no mutation unless separately authorized.
+**Post-push**: Dashboard loads; Settings loads; quote creation/save using a TEST/authorized account only; default Warranty save; new quote Warranty snapshot; historical quote's warranty remains unchanged after a default-value edit; HE Public Quote Warranty section renders; EN Public Quote Warranty section renders; Trial/Expired/BASIC/PRO plan behavior spot-checked; signature pad tap-to-activate/draw/clear/deactivate; Admin table renders correctly; one representative mobile + one desktop check per market.
+
+### Vercel canonical redirect — CONFIRMED GAP, root path only
+
+**HTTP-level (curl, read-only)**: `quotecode.vercel.app/` → **200 OK**, real cached app content (`Content-Length: 3615`, `X-Vercel-Cache: HIT`, `Set-Cookie: proflow_geo_country=IL`) — **not a redirect**, confirmed not a stale-cache artifact (identical result with a cache-busting query string). `quotecode.vercel.app/dashboard`, `/dashboard?lang=he`, `/en`, `/he` → all correctly **308 Permanent Redirect** to the matching `www.quotecodepro.com` path, with query string preserved.
+
+**Browser-level (browser-harness, read-only, no login)**: navigating to `https://quotecode.vercel.app/` leaves the browser on `quotecode.vercel.app` (title renders the real Hebrew landing page) — confirms the HTTP finding is genuinely user-visible, not a curl-only artifact. Navigating to `https://quotecode.vercel.app/en` correctly ends on `https://www.quotecodepro.com/en`.
+
+**Exact root cause found**: `middleware.ts` (project root) has `export const config = { matcher: ['/'] }` — a root-only Vercel Edge Middleware that sets a geolocation cookie (`proflow_geo_country`, matching exactly what the curl response showed) and always calls `next()`, by its own explicit in-file design ("לעולם אינו מבצע redirect" — never performs a redirect). This middleware is **not host-aware** — it runs identically on every host including `quotecode.vercel.app`. Vercel's Edge Middleware executes independently of `vercel.json`'s `redirects` array for the exact root path, so the host-conditional redirect rule (`"source": "/:path*"`, `has: [{type:"host", value:"quotecode.vercel.app"}]`) never gets the chance to apply to `/` specifically — every other path (no root-scoped middleware intercepting it) reaches the redirect rule normally and works correctly. Confirmed this `vercel.json`/`middleware.ts` pair is unmodified and already on `origin/main` (`git diff origin/main HEAD` — zero difference) — a pre-existing, already-live gap, untouched by and unrelated to this session's 18-commit chain.
+
+**REDIRECT IMPLEMENTATION**: `vercel.json`'s `redirects[0]` (host-conditional, `permanent: true`) — correct in isolation; the gap is the interaction with `middleware.ts`'s root-only, non-host-aware matcher, not a defect in the redirect rule itself.
+
+**CANONICAL DOMAIN PRE-LIVE GATE: RED** — the "no independent app session on `vercel.app`" criterion is directly violated for the literal root path. Not GREEN.
+
+### Release interaction check — confirmed independent
+
+`6430cf5` touches exactly two files (`supabase/migrations/20260830000004_add_warranty_fields.sql`, `supabase/functions/get-public-quote/index.ts`) — zero overlap with Item 17's migrations (different tables/columns entirely), the Attn fallback code, Admin V2 Phase 1, the Trial/Plan resolver, the email Edge Functions, or `vercel.json`/`middleware.ts`. **Confirmed independent, not assumed.**
+
+### Final decision package
+
+**WARRANTY MIGRATION READY FOR OWNER AUTHORIZATION: YES.** Minimal, additive, idempotent, no data rewrite, low lock risk, zero dependency conflicts, fully forward-safe on every failure path. If authorized, the exact next action would be applying this one migration file to Production via `supabase db push` (a distinct DB-mutation authorization, not covered by this read-only task) — followed by the already-documented smoke checklist before any application push.
+
+**VERCEL CANONICAL REDIRECT: RED.** A real, confirmed, already-live gap exists (root path only) — independent of the Warranty decision and not blocking it, but should be fixed in its own small, separate, low-risk commit (adding an explicit `/` entry to `vercel.json`'s redirect `source`, or making `middleware.ts`'s matcher host-aware) before this repo's canonical-domain migration is considered fully complete.
