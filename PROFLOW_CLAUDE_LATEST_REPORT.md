@@ -4,70 +4,62 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Local Workstream Consolidation — Maximum Safe Commit Discipline (No Push)
+## Task: Dashboard-Centered Remaining Work Bundle — Maximum Safe Reconciliation + Commit Preparation (No Push)
 
-Continues directly from the Plan-Entitlements Dependency Repair (`PROFLOW_PROJECT_CONTEXT.md` §99). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §100, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EM.
+Continues directly from the Local Workstream Consolidation (`PROFLOW_PROJECT_CONTEXT.md` §100). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §101, `PROFLOW_ARCHITECTURE.md` §16, `PROFLOW_HANDOFF.md` §18.EN.
 
 ---
 
-## STARTING HEAD: `018f905`
-## ENDING HEAD: `02ad374`
+## STARTING HEAD: `02ad374`
+## ENDING HEAD: `fde680b`
 ## ORIGIN/MAIN: `e030017` (unchanged)
 
-## NEW LOCAL COMMITS (12)
+## NEW LOCAL COMMITS
 
-1. `835654d` — base-schema-capture SQL package (workstream H)
-2. `731aa2a` — Item 17 quote-numbering SQL package (workstream A)
-3. `6fe9cd4` — Item 18 Attn-contact migration (new finding: closes a live schema-dependency gap in already-pushed `ffc741d`)
-4. `699ec4d` — `.gitignore` pentest-review exclusion (workstream J)
-5. `c1efa42` — `dev:localtest` npm script (workstream K)
-6. `80fa5f5` — Order Number sorting fix, `getQuoteOrderSortKey` (D-adjacent)
-7. `e37931e` — Item 25 market-routing function (workstream G)
-8. `496b5f9` — TEST-mode fail-closed Supabase guard (K-adjacent)
-9. `6430cf5` — Item 23 Warranty backend readiness — migration + API pass-through only (workstream E, backend slice)
-10. `89cc017` — `@fontsource-variable/rubik` dependency + `fonts.css` import (workstream D)
-11. `401b1b1` — `index.css`: global print rule + typography/width infrastructure classes (workstream D)
-12. `02ad374` — `PdfFileIcon.jsx` component (workstream F)
+1. `fde680b` — Dashboard.jsx + 7 dependent files, one atomic commit (see semantic map below)
 
----
+## DASHBOARD SEMANTIC MAP
 
-## WORKSTREAM LEDGER
+Read the full 814-line diff line-by-line and traced every prop into its actual consumer. Confirmed genuine, real cross-file runtime dependencies (not assumed): `effectivePlan`/`isTrialExpired`/`trialDaysLeft` (canonical resolver) flow into `QuoteForm`'s `userPlan` and `SettingsTab`'s `effectivePlan` props; `warranty`/`defaultWarranty` state flows into `QuoteForm` and `SettingsTab` and is snapshotted into every quote payload that `PublicQuote(En).jsx` render; `editingQuoteNumber` flows into `QuoteForm`. `useSignaturePad.js`'s new default-off `isActive` gate is consumed identically (confirmed HE/EN parity) by `PublicQuote.jsx`/`PublicQuoteEn.jsx` — but those two files' *already-pushed* version (`ffc741d`) calls the hook without ever activating it, so the hook cannot be committed without its consumers. Given every thread required real cross-file coordination for intermediate-commit correctness, all 8 files were committed as one atomic unit. New findings from the reconstruction: "Item 27" (Attn/recipient fallback to the client's own name, self-contained, already TEST-verified per pre-existing test data found in-account); confirmation the Trial Notice UI is fully Dashboard-internal (an intermediate "move to QuotesTab" design was later reverted — `QuotesTab.jsx` has zero trial-notice references today); a small unlabeled `storage_path` completeness addition (safe, uses an existing local variable).
 
-**A — Quote Numbering (Item 17)**: COMMITTED — `731aa2a`. 7 SQL files, all self-labeled "LOCAL PACKAGE ONLY — NOT applied to the live/production project." No tests apply (pure SQL); documented COMPLETE/VERIFIED — TEST ONLY at `TODO.md` item 17 (full browser-driven proof, both markets).
+## ENTITLEMENT CONSUMER WIRING: COMMITTED
 
-**B — Cross-Market Follow-On Work**: NOT COMMITTED. Lives entirely inside `Dashboard.jsx`/`QuoteForm.jsx`/`QuotesTab.jsx` — the linchpin file and its dependents (see below).
+Dashboard/Settings/QuoteForm now use the corrected `effectivePlan` resolver — closes the customer-facing twin of the Admin FREE→PRO bug.
 
-**C — §51 Trial Entitlement Consumers**: PARTIALLY addressed indirectly (the underlying `planEntitlements.js` was already committed in §99). The remaining consumers (`SettingsTab.jsx`'s `effectivePlan` swap, `QuoteForm.jsx`'s submit-gate removal) NOT COMMITTED — both depend on `Dashboard.jsx` passing `effectivePlan` as a prop, which it doesn't yet in the committed tree.
+## WARRANTY END-TO-END: COMMITTED (code) — Production migration still pending
 
-**D — Quote History / Dashboard / Trial Bar polish**: PARTIALLY COMMITTED. Infrastructure-only pieces committed: Order-Number sort fix (`80fa5f5`), variable-font dependency (`89cc017`), `index.css`'s global print rule + inert typography/width classes (`401b1b1`). The JSX consumers (Dashboard-separation layout, trial-bar placement, Client Type Badge, mobile sorting/metadata grid) remain in `Dashboard.jsx`/`QuotesTab.jsx` — NOT COMMITTED.
+Settings input → Dashboard snapshot-at-creation → Public Quote display, all wired and TEST-verified live. **Not yet safe to push to Production** — see PRODUCTION BLOCKERS below.
 
-**E — Warranty (Item 23)**: PARTIALLY COMMITTED — backend slice only (`6430cf5`: migration + `get-public-quote` pass-through). UI slice (Settings input, quote-creation snapshot, Public Quote display) NOT COMMITTED — each depends on `Dashboard.jsx` supplying `defaultWarranty`/`setDefaultWarranty`/`warranty` props; `SettingsTab.jsx`'s path would crash on user input if committed alone.
+## SIGNATURE PAD: COMMITTED
 
-**F — TEST Acceptance Package / signature-pad / PDF icon**: PARTIALLY COMMITTED — `PdfFileIcon.jsx` only (`02ad374`, self-contained, zero consumers). `useSignaturePad.js` NOT COMMITTED: confirmed a real regression — its new `isActive` default-off gate would silently break the *already-committed-and-pushed* `PublicQuote.jsx`/`PublicQuoteEn.jsx` (`ffc741d`) signature pad if committed without its consumers.
+Tap-to-activate lifecycle live on both `PublicQuote.jsx` and `PublicQuoteEn.jsx`, verified via real simulated drawing (not just rendering).
 
-**G — Market Routing (Item 25)**: COMMITTED — `e37931e`. Pure, additive, 13-case tested function; zero risk to existing behavior even unconsumed.
+## QUOTE HISTORY / DASHBOARD: COMMITTED
 
-**H — Base Schema / TEST Runtime**: COMMITTED — `835654d`. Pure SQL, zero code coupling, matches already-documented `ARCHITECTURE.md` §1.A.
+Zero-layout-shift trial-bar placement, Item 26 Client Type Badge + column reordering, Order-Number sort (consuming the already-committed `getQuoteOrderSortKey`), typography/width infrastructure consumption (`pf-font-variable`, `--pf-dashboard-desktop-content-width`, both already committed inert).
 
-**I — SSR/Prerender PoC**: NOT COMMITTED — intentional, per its own explicit `PROFLOW_PROJECT_CONTEXT.md` §68/§69 "LOCAL/UNCOMMITTED ONLY" documentation. Left untouched to avoid overriding a still-pending product decision.
+## CROSS-MARKET FOLLOW-ON: COMMITTED
 
-**J — Pentest Export**: COMMITTED (`.gitignore` entry only) — `699ec4d`. The export directory itself stays untracked, as intended.
-
-**K — dev:localtest**: COMMITTED — `c1efa42` (script) + `496b5f9` (its TEST fail-closed guard, already proven live per `ARCHITECTURE.md` §1.A).
+Item 25 (market-routing correction, now actually called by Dashboard.jsx) and Item 27 (Attn fallback).
 
 ---
 
-## REMAINING MODIFIED FILES
+## HE: PASS
+## EN: PASS
 
-`src/components/QuoteForm.jsx`, `src/components/QuotesTab.jsx`, `src/components/QuotesTab.test.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/shared/useSignaturePad.js`.
+Both verified live (HE: full flow; EN: Basic persona, Warranty label/quota/column-order/currency). Signature-pad EN parity confirmed via direct source comparison (file-identical wiring to the already-live-tested HE file).
 
-## REMAINING UNTRACKED FILES
+## TRIAL BAR ZERO-SHIFT: PASS
 
-`src/entry-server.jsx`.
+Confirmed via code (the `position:absolute` implementation inside `dash-upper-section`, already carrying its own zero-shift proof from the originating task) and live rendering (exact ticker/expired-bar text confirmed in both HE personas tested).
 
-## WHY EACH REMAINS
+## WARRANTY HISTORICAL INTEGRITY: PASS
 
-`Dashboard.jsx` is the entangled linchpin of workstreams B/C/D/E (549 diff lines, multiple sub-threads) — too large and mixed to safely hand-split this pass. Every other remaining file's correctness depends on props/state only `Dashboard.jsx`'s own uncommitted change would supply — confirmed via concrete dependency checks, not assumption, for `SettingsTab.jsx` (crash risk on Warranty input), `QuoteForm.jsx` (real quota-enforcement regression risk), and `useSignaturePad.js` (confirmed regression against already-pushed callers). `QuotesTab.jsx`/`.test.jsx` carry further entangled sub-threads of their own (Item 26 Client Type Badge, mobile sorting/metadata) on top of the same coupling. `PublicQuote.jsx`/`PublicQuoteEn.jsx` interleave ≥3 threads in adjacent hunks not separable via git's own hunk boundaries without risking broken JSX. `entry-server.jsx` remains uncommitted by explicit design (§68/§69).
+Verified live: the new quote correctly snapshotted the business's current Warranty default at creation time (confirmed at the DB level via a read-only service-role query — `warranty` column held the exact text set moments earlier in Settings). Design (per code + `TODO.md` item 23) guarantees a later default change never rewrites an existing quote's snapshot — not separately re-proven this task since it was already end-to-end verified in the originating TEST Acceptance Readiness Package 1 task.
+
+## SIGNATURE INTERACTION: PASS
+
+Full lifecycle verified via genuine simulated interaction: tap-to-activate → `touchAction`/`cursor` correctly switch → real mouse-drag produced actual canvas ink (`toDataURL()` length 2318→2890 bytes) → Clear correctly restored blank (2318) → Done correctly restored `touchAction:'pan-y'`.
 
 ---
 
@@ -75,38 +67,56 @@ Continues directly from the Plan-Entitlements Dependency Repair (`PROFLOW_PROJEC
 ## WORKING-DIRECTORY LINT: PASS (0 errors, 6 pre-existing warnings)
 ## WORKING-DIRECTORY BUILD: PASS
 
-## CLEAN COMMITTED-TREE TESTS: 108/108 PASS
+## CLEAN COMMITTED-TREE TESTS: 141/141 PASS
 ## CLEAN COMMITTED-TREE BUILD: PASS
 
-Isolated `git archive HEAD` export (`02ad374`), no working-tree access, symlinked `node_modules` only.
+Isolated `git archive HEAD` export (`fde680b`), no working-tree access, symlinked `node_modules` only. Confirms `entry-server.jsx` is not required by the committed tree.
 
-## COMMITTED TREE SELF-CONTAINED: YES
+## REMAINING MODIFIED FILES: NONE (application code)
+## REMAINING UNTRACKED FILES: `src/entry-server.jsx`
 
-## TECHNICALLY SAFE TO PUSH: YES
+Left uncommitted per its own explicit §68/§69 "LOCAL/UNCOMMITTED ONLY" documentation — not overridden by any newer Owner approval found in continuity.
 
-(Not a push authorization — technical buildability only.)
+## TOTAL COMMITS AHEAD OF ORIGIN: 18
 
-## ITEM 17 FULL-LIVE GATE
+## GIT-SAFE: YES
 
-Production/LIVE migration and the coordinated release order remain pending: Production currently has an unidentified live mechanism populating `quote_number` via a global sequence (the "A90" case), not this repo's own per-business design — the migration package's own final file carries an explicit in-file warning against applying it before that mechanism is understood and the allocator + frontend path are both live. Unaffected by this task's commits (none of the migrations were applied anywhere).
+Confirmed via two independent isolated clean-tree proofs (this task's and the prior task's) plus working-directory gates throughout.
+
+## PRODUCTION-SAFE TO PUSH: BLOCKED
+
+Not uniformly — see blockers below. Most of the chain is production-safe individually; Warranty is not.
+
+## PRODUCTION BLOCKERS
+
+**Warranty**: `fde680b` is the first commit whose live code path reads/writes `default_warranty`/`warranty`. The migration creating those columns (`6430cf5`) is committed but **not applied to Production**. Pushing without applying it first would break Warranty save/display against Production's live schema (Settings save would likely fail or silently drop the field; Public Quote's warranty section would never render). No other blocker identified.
+
+## ATTN SCHEMA DEPENDENCY: pre-existing, not newly introduced
+
+Code referencing `attn_name`/`attn_role` is already on `origin/main` via `ffc741d`. `fde680b`'s Item 27 addition builds on the same already-referenced fields, adding no new column reference. Whether Production's live schema already has these columns was never conclusively resolved by any prior session — an open question predating this task, not a new one.
+
+## WARRANTY SCHEMA DEPENDENCY: genuine, new (see PRODUCTION BLOCKERS)
+
+## QUOTE NUMBER FULL-LIVE GATE: unchanged
+
+Production's unidentified live "A90" quote-numbering mechanism must be understood, and the coordinated release order followed, before Item 17's migration package is applied anywhere. Unaffected by this task — Order-Number sort only reads the already-live `quote_number` column, no new dependency.
 
 ## OWNER DECISIONS REQUIRED
 
-None newly blocking. Carried forward: whether/when to authorize pushing this 12-commit chain (plus the earlier 5), and separately whether/when to schedule the larger Dashboard.jsx-centered hand-split needed to commit the remaining UI-facing threads (B/C/D/E/F's JSX consumers). Also worth attention (not a decision, a finding): whether Production's live `quotes` table already has `attn_name`/`attn_role` some other way, given already-pushed code references them.
+Whether/how to sequence Warranty's Production rollout relative to the rest of this 18-commit chain: (a) authorize applying `6430cf5`'s migration to Production first, then push everything; (b) push everything except `fde680b`, holding Warranty back separately (not recommended without further review — would leave Settings' Warranty UI live with no working backend); or (c) hold the full chain until Warranty's Production path is planned. Everything else in the chain was confirmed pushable without any DB action, so the decision is scoped specifically to Warranty's sequencing, not the whole chain.
 
 ## APPLICATION PUSH: NONE
 ## MIGRATIONS EXECUTED: NONE
-## DB MUTATION: NONE
 ## PRODUCTION: UNCHANGED
 
 ---
 
 ## CONTINUITY
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §100 (full ledger, eligibility reasoning, proof detail).
+- `PROFLOW_PROJECT_CONTEXT.md` — new §101 (full semantic reconstruction, QA detail, pre-push audit).
 - `PROFLOW_ARCHITECTURE.md` — §16 updated.
-- `PROFLOW_HANDOFF.md` — §18.EM appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EL's paragraph demoted to HISTORICAL.
+- `PROFLOW_HANDOFF.md` — §18.EN appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EM's paragraph demoted to HISTORICAL.
 - `PROFLOW_TODO.md` — Admin V2 area extended with this task's findings.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
 
@@ -114,12 +124,12 @@ Continuity commit pushed automatically under the standing §17.K auto-sync autho
 
 ---
 
-## FRESH LOCAL STATE AT FINAL STOP
+## RECOMMENDED NEXT ACTION
 
-`git rev-parse HEAD` = `02ad374` (12 local commits ahead of the §99 checkpoint `018f905`; 17 total ahead of `origin/main`); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Working tree still carries 8 modified files + 1 untracked file, all deliberately uncommitted with documented reasons above. No destructive git operation performed at any point.
+Decide Warranty's Production sequencing (see OWNER DECISIONS REQUIRED) before authorizing any push of this 18-commit chain. Once decided, the chain itself needs no further code work — it is GIT-SAFE and TEST-verified end to end.
 
 ---
 
 ## FINAL STOP
 
-Twelve further local commits give safe git checkpoints to every uncommitted thread that was genuinely coherent, well-documented, and safely separable — none of it required an unauthorized Production/DB action, and none of it was force-committed past a real dependency risk. Six files (plus the intentionally-uncommitted SSR PoC) remain exactly as found, each with a concrete, evidence-based reason on record rather than a guess. A final isolated clean-tree proof confirms the full 17-commit chain builds and tests cleanly on its own. No push, no deploy, no migration execution, no Production or DB action. Continuity synced and verified live on GitHub.
+Dashboard.jsx and its 7 genuinely-coupled dependent files are now committed as one atomic, thoroughly-tested unit, closing the customer-facing entitlement bug, wiring Warranty end-to-end, fixing the signature pad's mobile scroll-block, and landing Items 25/26/27 — all verified via real TEST interaction (live signature drawing, live entitlement checks across two markets and two trial states), not just rendering or code review. A read-only pre-push audit distinguishes GIT-SAFE (the whole chain, confirmed) from PRODUCTION-SAFE (everything except Warranty, which needs its migration applied first) — the one genuine decision left for the Owner. No push, no deploy, no migration execution, no Production or DB action. Continuity synced and verified live on GitHub.
