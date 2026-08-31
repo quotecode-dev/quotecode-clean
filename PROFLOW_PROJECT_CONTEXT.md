@@ -3823,3 +3823,119 @@ This manifest is the gate every later Recovery wave (2 onward) must produce and 
 **Remaining risks**: the release-candidate model above depends on disciplined execution (checking `git status` clean before treating a TEST review as valid for a specific SHA) — it is a process rule, not a technical enforcement mechanism (e.g., no git hook was installed to block this; none was proposed, per "do not introduce unnecessary infrastructure"). This is a known, accepted limitation of the smallest-safe-solution approach, not an oversight.
 
 **Recommended next Wave**: Wave 2 — Production schema/backend parity (fix the migration filename bug, then apply Item 17 + Item 18 as one coordinated window) — not started, not authorized this task.
+
+### Wave 2 — Pre-LIVE Safety Gate, COMPLETE (2026-08-31, Owner-authorized GATE ONLY — not execution authorization; read/inspect/verify/plan only, zero mutation)
+
+**Fresh Local State**: `HEAD = main = 071dad5`, `origin/main = dd11015` (fresh fetch), 1 ahead/0 behind (unchanged, Path B only). Working tree: six continuity docs + untracked `entry-server.jsx`, identical to every prior check this engagement. Every Item 17/18 file confirmed via `git status`/`git log` as **fully committed, clean, part of `origin/main`'s ancestry** (commits `731aa2a` for the 5-file Item 17 package + `quote_number_counter_init.sql`, `6fe9cd4` for Item 18) — nothing uncommitted, nothing only-local.
+
+#### Exact Wave 2 file manifest
+
+| # | Full path | Purpose | Depends on | Committed? | In TEST? | In Production? | Applied anywhere? |
+|---|---|---|---|---|---|---|---|
+| 1 | `supabase/migrations/20260827000000_add_quote_number_sequence.sql` | Creates `business_quote_sequences` table + `allocate_quote_number()` function | None (foundational) | Yes (`731aa2a`) | Yes, live | **MISSING** (fresh-confirmed) | TEST only |
+| 2 | `supabase/migrations/202608270000015_attach_quote_number_unique_constraint.sql` — **malformed filename, intended name per its own header: `20260827000001a_attach_quote_number_unique_constraint.sql`** | Attaches UNIQUE constraint to the index built by file #3 | File #3's index must exist first | Yes (`731aa2a`) | Yes, live | **MISSING** | TEST only |
+| 3 | `supabase/migrations/20260827000001_add_quote_number_unique_index.sql` | Builds `quotes_user_quote_number_unique_idx` (CONCURRENTLY) | None | Yes (`731aa2a`) | Yes, live | **MISSING** | TEST only |
+| 4 | `supabase/migrations/20260827000002_protect_quote_number_immutability.sql` | New trigger `quotes_protect_quote_number` blocking any post-assignment change | None (independent of #1-3's objects) | Yes (`731aa2a`) | Yes, live | **MISSING** | TEST only |
+| 5 | `supabase/migrations/20260827000003_drop_quote_number_default.sql` | Drops the old global-sequence `DEFAULT`, revokes client access to that sequence | **Hard release-order dependency**: must not apply before #1's allocator is live and the (already-live) frontend RPC call is the active path | Yes (`731aa2a`) | Yes, live | **N/A** (default still present, fresh-confirmed unchanged) | TEST only |
+| 6 | `supabase/migrations/20260828000000_add_quote_attn_contact.sql` | Adds `quotes.attn_name`/`attn_role` (nullable) | None — independent of Item 17, confirmed via reading both files, zero shared objects | Yes (`6fe9cd4`) | Yes, live | **MISSING** (fresh-confirmed, both columns) | TEST only |
+| 7 | `supabase/quote_number_counter_init.sql` (**not** in `supabase/migrations/` — deliberately, so it can never auto-apply via `db push`) | One-time (idempotent) per-business counter seeding, so a business with historical quotes doesn't get its A100700 silently skipped | Must run after #1 (table must exist), before real allocations begin for any business with history | Yes (`731aa2a`) | Not yet exercised against real TEST business data this task | Not run | Not run anywhere against real business data |
+
+**Newly found this task**: `send-quote-email` (Edge Function) also references `quote_number` (`.select('...quote_number')`, formats it as `` `A${quote_number}` `` for the email subject) but was **last deployed 2026-08-25 13:21 UTC — before** the commit (`ffc741d`, 2026-08-28) that added this code. It is running a stale, pre-quote_number version on Production today, exactly the same class of gap already found and fixed (via Path B) for `get-public-quote`. This is a Wave 3 (Edge Function) item, not Wave 2, but is recorded here since it directly affects Item 17's "coordinated release" scope.
+
+#### Migration filename bug — final confirmation
+
+Renaming file #2 to its own header's suggested `20260827000001a_attach_quote_number_unique_constraint.sql` was verified this task, precisely: `LC_ALL=C sort` of the two candidate filenames confirms `20260827000001_add_quote_number_unique_index.sql` now correctly sorts **before** `20260827000001a_attach_quote_number_unique_constraint.sql` — the fix is confirmed correct, not merely proposed. **Not performed** — file renaming remains explicitly out of scope for this gate-only task.
+
+#### Migration history audit
+
+- **Chronological/dependency ordering**: file #5 (drop default) carries the one hard behavioral dependency, already documented in its own header, already reconciled in §115's Wave 0 dependency graph — must apply in the same coordinated window as #1 (and after #1 is confirmed live). Files #2/#3 have a structural ordering dependency (constraint needs its index) currently broken by the filename bug. File #7 (counter-init) has its own ordering requirement (after #1, before real allocations for historical businesses) and is **not** part of the auto-applied migration set at all.
+- **Does the malformed filename change ordering**: **YES**, confirmed three ways already in §113/§114/§115 (byte comparison, `LC_ALL=C sort`, Supabase CLI's own `migration list`) — re-confirmed this task, unchanged.
+- **Does Supabase consider any of these already applied**: **NO** — fresh query of `supabase_migrations.schema_migrations` (ground truth, not the CLI's own summary) shows **exactly one row**, `20260831000000` (the already-applied, unrelated security fix). None of the 7 manifest items appear.
+- **Does Production schema already contain any of these objects**: **NO** — comprehensive fresh existence check (single query, 8 objects) confirms every one of `business_quote_sequences`, `allocate_quote_number`, `quotes_user_quote_number_unique_idx`, `quotes_user_quote_number_unique`, `protect_quote_number_immutability`, `quotes_protect_quote_number`, `attn_name`, `attn_role` is **absent**. Zero partial application anywhere.
+- **Collision risk**: **NONE** — fresh check of `quotes`' existing triggers found exactly `guard_quote_immutability_delete_trigger` and `guard_quote_immutability_update`; the new trigger name (`quotes_protect_quote_number`) and new function name (`protect_quote_number_immutability`) collide with neither.
+- **Idempotency**: files #1, #6 use `IF NOT EXISTS`/`CREATE TABLE IF NOT EXISTS`; file #3 uses `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS`; file #2 (post-rename) uses an explicit existence-guarded `DO $$ ... IF NOT EXISTS ... $$` block; file #4 uses `CREATE OR REPLACE FUNCTION` + `DROP TRIGGER IF EXISTS`/`CREATE TRIGGER` (safely re-runnable); file #5's `DROP DEFAULT`/`REVOKE` are naturally idempotent (no error if already absent/revoked); file #7 is explicitly documented and designed as idempotent (`GREATEST(...)` never moves a counter backward). **All 7 items are safely re-runnable.**
+- **Destructive operations**: **NONE** anywhere in the package — zero `DROP TABLE`, zero `DROP COLUMN` (in the forward direction — rollback-only), zero `DELETE`, zero `UPDATE` against `quotes` or any other existing-data table.
+- **Existing data modified**: **NO** for files #1-6 (all schema/metadata-only or purely additive). File #7 **writes** to `business_quote_sequences` (a new, currently-empty table) but is fresh-confirmed, via real Production data, to be a **mathematical no-op relative to `allocate_quote_number`'s own direct-INSERT default path** for every real business today — every business's actual historical max `quote_number` is ≤95 (fresh-queried this task, all 7 businesses: 95/92/89/87/81/57/46), far below the `GREATEST(100699, ...)` floor, so seeded or unseeded, every business's first real allocation resolves to exactly 100700. Running it is still the documented, Owner-established, zero-risk, idempotent step — recommended, not skipped, since skipping relies on an assumption (no business exceeds 100700) that could theoretically change before actual execution, however unlikely today.
+- **Drop/replace/rename of existing objects**: only file #5's `DROP DEFAULT` (a column attribute, not the column/table itself) and its `REVOKE` on the now-superseded `quotes_quote_number_seq` (the sequence object itself is explicitly, deliberately retained, not dropped, per the file's own documented reasoning).
+- **RLS/grants/triggers/functions/indexes affected**: `business_quote_sequences` gets RLS enabled with zero client policies (default-deny) plus one super-admin read-only policy — no change to any *existing* table's RLS. `allocate_quote_number`/`protect_quote_number_immutability` are new `SECURITY DEFINER` functions with explicit `REVOKE`/`GRANT` (execute limited to `authenticated`, explicitly revoked from `anon`/`service_role`/`PUBLIC`). One new index, one new trigger, both additive. Two `attn_name`/`attn_role` columns inherit `quotes`' existing per-row RLS automatically — no new policy needed or added.
+
+#### Production schema parity — classification per object
+
+| Object | Classification |
+|---|---|
+| `business_quote_sequences` (table) | **MISSING** |
+| `allocate_quote_number()` (function) | **MISSING** |
+| `quotes_user_quote_number_unique_idx` (index) | **MISSING** |
+| `quotes_user_quote_number_unique` (constraint) | **MISSING** |
+| `protect_quote_number_immutability()` (function) | **MISSING** |
+| `quotes_protect_quote_number` (trigger) | **MISSING** |
+| `quotes.quote_number` `DEFAULT` | **DIFFERENT from target** (still the old global sequence; target state removes this default) |
+| `quotes.attn_name` (column) | **MISSING** |
+| `quotes.attn_role` (column) | **MISSING** |
+| Existing `guard_quote_immutability_*` triggers | **MATCH** (unaffected by any Wave 2 item, confirmed via name-collision check) |
+
+**No drift found anywhere** — Production is a genuinely clean, unapplied baseline for this entire package, exactly matching the documented expectation. Migration history alone was not trusted as proof (per instruction) — every conclusion above is backed by a fresh, direct schema/ledger query, not an inference from the migration-tracking table.
+
+#### Edge Function / backend parity
+
+| Function | Local source references | Production deployed version | Gap |
+|---|---|---|---|
+| `get-public-quote` | `quote_number`, `attn_name`, `attn_role` all in committed source | **v7** (Path B) — selects `quote_number` but **not** `attn_name`/`attn_role` (deliberately, per Path B's own scope) | Needs redeploy once Item 18's columns exist (Wave 3, not Wave 2) |
+| `send-quote-email` | `quote_number` referenced (added `ffc741d`, 2026-08-28) | **Stale** — last deployed 2026-08-25, before that commit; confirmed via `functions list` timestamp vs `git log` | Needs redeploy for full Item 17 email-surface parity (Wave 3, newly identified this task) |
+
+Required secrets/env vars for either redeploy: none beyond what's already configured (both already read `SUPABASE_SECRET_KEYS`/`SUPABASE_URL`, unchanged by this package). Deployment ordering relative to DB migrations: **after** the relevant migration(s) land — deploying either function before its columns exist would reintroduce exactly the outage class Path B was built to avoid (already proven for `get-public-quote`; the same logic applies to `send-quote-email` selecting `quote_number`, though that specific column already exists today so this specific function is not currently at outage risk — only display-staleness risk). Rollback: redeploy the currently-archived pre-change source for either function (same pattern already used twice this engagement). **No deployment performed or proposed by this gate task.**
+
+#### Mandatory Pre-LIVE Backup Gate
+
+**Critical finding, not previously verified this engagement**: `supabase backups list --project-ref ixabnzhjeqevtbhdfswv` (read-only) returns `walg_enabled: true, pitr_enabled: false, backups: []` — **Point-In-Time-Recovery is OFF and zero automated physical backups currently exist for Production.** The platform's own safety net cannot be relied on; a manual backup is a required, explicit pre-condition for Wave 2 execution, not optional.
+
+| What | How | Where stored | How verified | Restore method |
+|---|---|---|---|---|
+| Full schema (all objects Wave 2 touches: `quotes`, the new table/functions/triggers/indexes once they'd exist) | `supabase db dump --linked --schema public -f <path>` (confirmed available and correctly flagged via `--help`; not executed this task, per explicit instruction not to create backups in a planning-only task) | A local file outside the repo (e.g. the session scratchpad), never committed | Re-run `db dump --dry-run` to confirm the exact `pg_dump` invocation, then diff the dump's row/object counts against a fresh live count immediately after | Restore via `psql < dump.sql` against a fresh/recovery target, or selectively replay only the pre-Wave-2 object definitions |
+| `quotes` table data specifically (the one table every Wave 2 item touches or reads) | `supabase db dump --linked --data-only -x 'public.quotes' ... ` inverted (i.e. explicitly include only `quotes`) or a plain `SELECT *` export | Same as above | Row count cross-checked against the already-known baseline (7 businesses, quote_numbers up to 95, confirmed fresh this task) | Same |
+| Currently deployed application SHA | Already captured — `dd11015` (Wave 0's tag), independent of any DB backup | Git (two local tags, `proflow-continuity`'s own record) | Already verified repeatedly | `git checkout`/re-push if a frontend rollback were ever needed (unrelated to DB rollback) |
+| Edge Function current source (`get-public-quote` v7, `send-quote-email` v24) | `supabase functions download <name> --project-ref ...` (already used successfully twice this engagement, confirmed safe/non-mutating) | Isolated scratch directory | Byte-diff against the git-committed source to confirm which exact version is captured | Redeploy the downloaded source |
+
+**The backup itself is a required Wave 2 EXECUTION step (its own first action), not a deliverable of this gate task** — per the explicit instruction not to create Production backups during planning. This gate confirms the mechanism is available, correctly scoped, and sufficient; it does not perform the backup.
+
+#### Rollback plan — per component
+
+| Component | Forward action | Rollback action | Data-loss risk | Rollback limitations | Verification after rollback |
+|---|---|---|---|---|---|
+| #1 table+function | `CREATE TABLE`/`CREATE FUNCTION` | Inline SQL in the file itself (drop function, drop policy, drop table) | None | Safe any time before real allocations begin | Re-run the 8-object existence check, confirm `false` again |
+| #2/#3 index+constraint | `CREATE INDEX CONCURRENTLY` + `ADD CONSTRAINT` | Inline rollback in each file (`DROP INDEX CONCURRENTLY`, `DROP CONSTRAINT`) | None | Constraint must be dropped before its index, per the files' own documented order | Re-check `pg_class`/`pg_constraint` |
+| #4 trigger | `CREATE TRIGGER` | Inline rollback (`DROP TRIGGER`, `DROP FUNCTION`) | None | Safe any time | Re-check `pg_trigger` |
+| #5 drop default | `ALTER COLUMN DROP DEFAULT` + `REVOKE` | Inline rollback (restore `DEFAULT nextval(...)`, re-`GRANT`) | None to existing rows | **Explicitly flagged by the file's own header**: safe only if no real per-business (A100700+) numbers have been issued yet — once they have, rolling back resumes the old global sequence from wherever it left off, which would coexist oddly with already-issued new-format numbers. Effectively a one-way door after meaningful live use, exactly as already recorded in §115. | Re-check column default, re-verify a test INSERT falls back to the old sequence correctly |
+| #6 attn columns | `ADD COLUMN IF NOT EXISTS` | `DROP COLUMN IF EXISTS` (standard, safe — nothing else depends on their existence) | None | None identified | Re-check `information_schema.columns` |
+| #7 counter-init | `INSERT ... ON CONFLICT DO UPDATE` into a new table | `DELETE FROM business_quote_sequences` | None to `quotes` (confirmed strict no-op on that table by the script's own design and its own documented verification query) | **Safe only if run immediately after seeding, before any real `allocate_quote_number()` call has happened** — once real allocations exist, seeded-only rows and once-allocated rows become indistinguishable by `next_number` alone (file's own explicit caveat) | Re-run the script's own documented verification queries |
+
+#### Safe execution order — dependency-derived, not assumed
+
+1. **Manual Production backup** (schema + `quotes` data + both Edge Function sources) — prerequisite for everything below.
+2. **Verify backup** (row counts, object list, byte-diff of downloaded Edge Function source vs git).
+3. **Rename file #2** to `20260827000001a_...` (local, committed, no Production action yet).
+4. **Isolate and push files #1, #2(renamed), #3, #4, #6** to Production in one `supabase db push` (files #7's script and file #5 are deliberately excluded from this first push — #7 because it's outside `migrations/` by design, #5 because of its hard release-order dependency) — using the same isolation technique already proven twice this engagement (temporarily move the other ~10 unrelated pending migration files out of `supabase/migrations/`, `--dry-run` first to confirm exactly the intended 5 files would apply, then the real push, then restore the moved files).
+5. **Verify**: re-run the 8-object existence check, expect all except the `DEFAULT` removal to now read present/MATCH.
+6. **Run `quote_number_counter_init.sql`** manually (`db query -f`, not `db push`, exactly like Warranty's own precedent) — confirms every business gets a correctly-seeded counter.
+7. **Verify**: re-run the script's own documented verification queries (one row per business, all `next_number >= 100699`; `quotes` table byte-identical before/after).
+8. **Apply file #5** (drop default) as its own, final, explicitly-flagged step, only after 4-7 are confirmed live and stable.
+9. **Verify**: a real test allocation (via an already-established TEST-safe account, or read-only confirmation that the frontend's existing RPC call path is now the active one) succeeds and returns a real `A100700`-range number; confirm the old global sequence's grants are correctly revoked.
+10. **Redeploy `get-public-quote`** with `attn_name`/`attn_role` restored (Wave 3 scope, sequenced here since it has a hard dependency on step 4's Item 18 columns already being live).
+11. **Redeploy `send-quote-email`** with current `quote_number` code (Wave 3 scope, independent of step 10, sequenced any time after step 4).
+12. **Production smoke**: HE + EN, a representative existing quote (confirm unaffected) and one freshly-created quote per market (confirm real `A100700+` number, confirmed `attn_name` capture/display if entered, confirmed email subject reflects the real number).
+
+**STOP conditions at every step**: any existence check returning an unexpected result, any `db push --dry-run` listing more or fewer than the intended files, any verification query returning an unexpected row count, any smoke-test quote failing to save. **Rollback trigger**: any STOP condition — use the per-component rollback table above, in reverse dependency order.
+
+#### HE/EN regression impact
+
+Every Wave 2 item (numbering, Attn, both Edge Functions) is confirmed market-neutral by source (no `isHebrew`/currency/VAT branch anywhere in `allocate_quote_number`, `protect_quote_number_immutability`, the attn columns, or either Edge Function's relevant code paths — already established in §113/§114, re-confirmed by this task's own fresh file reads). **Required verification, both markets, once executed (not performed by this gate)**: quote creation receives a real per-business number (HE and EN independently, per the already-established "do not infer one market from the other" discipline); Attn capture/display renders correctly (HE "לידי:", EN "ATTN:"); no VAT/₪ leakage into EN; existing quotes (both markets) remain fully unaffected (a representative already-existing HE and EN quote should be re-viewed post-migration and confirmed unchanged).
+
+#### Release-gate integration
+
+Wave 2's DB/backend changes are **not** a frontend release candidate in the `RC_SHA` sense (§17.L) — they are Production infrastructure actions with their own migration/Edge-Function manifest, executed and verified independently of any application-code SHA. Once Wave 2 (DB) and Wave 3 (Edge Functions) are both live and verified, the frontend RC that assumes their presence (already-existing, already-committed code — no new frontend commit is required for numbering/Attn to start working, since the RPC call and `quote.attn_name` rendering are already live in the current `dd11015`-descended source) can be certified via the full release-manifest template from Wave 1, with `DATABASE MIGRATIONS`/`EDGE FUNCTIONS` fields populated for the first time with real values instead of `NONE`. **No final Recovery RC is created by this task.**
+
+#### GO / NO-GO
+
+**READY FOR OWNER REVIEW.**
+
+Every readiness criterion is met with direct evidence, not assumption: exact scope is known (7-item manifest, every file read in full); migration ordering is known (the filename bug found, confirmed, and its exact fix verified); Production state is known (comprehensive fresh check, zero drift, zero partial application); dependencies are known (full order derived, including two newly-found items — the filename bug's precise fix and `send-quote-email`'s parallel staleness); backup is viable (mechanism confirmed available and correctly scoped; the automated-backup gap itself — PITR off, zero existing backups — was discovered and is now a known, explicit precondition rather than an unknown risk); rollback is viable for every component, with the one genuinely time-limited item (file #5) already flagged prominently, not hidden; verification is defined (HE/EN/Desktop/Mobile pattern, MUST-RE-TEST scoping already established in §115); no unexplained drift remains anywhere. **This is a readiness verdict on the plan, not an authorization to execute it — Wave 2 execution itself requires its own separate Owner authorization, exactly as every other Production action in this engagement has.**

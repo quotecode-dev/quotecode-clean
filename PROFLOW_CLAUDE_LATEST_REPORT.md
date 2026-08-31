@@ -4,134 +4,129 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 1 — Release-Gate Discipline (EXECUTED)
+## Task: Wave 2 Pre-LIVE Safety Gate (GATE ONLY — not execution)
 
-Continues directly from Wave 0 (`PROFLOW_PROJECT_CONTEXT.md` §115). Full detail: §115's Wave 1 addendum, new permanent rule §17.L, `PROFLOW_HANDOFF.md` §18.FB.
+Continues directly from Wave 1 (`PROFLOW_PROJECT_CONTEXT.md` §115). Full detail: §115's Wave 2 addendum.
 
-**Owner-authorized execution of Wave 1 only. Documentation/process only — zero application-code, DB, TEST, Production, Edge Function, or Vercel mutation. Wave 2 not started.**
-
----
-
-## WAVE: 1 — RELEASE GATE
-
-## STATUS: PASS
-
-## WAVE 0 TAG: `proflow-pre-recovery-2026-08-31` → `dd110155a927f708f00467e1017bd183582b42aa` (re-verified fresh, unchanged)
-
-## CURRENT HEAD: `071dad55f8cd6c742eb89aed053e68c59fc87cf8`
-## LOCAL MAIN: `071dad55f8cd6c742eb89aed053e68c59fc87cf8`
-## ORIGIN/MAIN: `dd110155a927f708f00467e1017bd183582b42aa` (freshly fetched)
-## CURRENT PRODUCTION SHA: `dd11015` (Vercel deploys `origin/main`; live behavior re-confirmed — `X-Vercel-Id` present, canonical-redirect 308 still live, matching `dd11015`'s own specific signature)
-
-## CURRENT TEST SHA: **N/A — no such artifact exists**
-
-TEST has no build/deploy step. `dev:localtest` runs a live Vite dev server (confirmed running, HTTP 200 on port 5186) that transforms and serves the current disk state on every request. There is no commit-pinning of any kind.
-
-## TEST DEPLOYMENT SOURCE: Local Vite dev server (`vite --mode localtest --host --port 5186 --strictPort`) reading the live working tree directly — not Git, not a build artifact, not Vercel Preview (no such config exists in `vercel.json`), not a dedicated branch (only `main`/`proflow-continuity` exist).
-
-## CAN UNCOMMITTED CODE AFFECT TEST: **YES**
-
-Structurally proven, not theoretical: `src/entry-server.jsx` is an uncommitted file that Vite's dev server would transform and serve immediately if the running app imported it. It doesn't (confirmed via a full codebase reference search), so nothing is currently affected — but the mechanism by which uncommitted code *would* reach TEST is real and always active. This is the precise structural root of the original TEST/Production divergence.
-
-## ENTRY-SERVER.JSX: Authorized, documented, deliberately-uncommitted SSR/prerender feasibility PoC (Owner+ChatGPT, `PROFLOW_PROJECT_CONTEXT.md` §68/§69, explicit instruction: "keep local/uncommitted"). Zero references anywhere else in the codebase — unreachable from `main.jsx`/router, structurally inert for both TEST and Production. Untouched: not deleted, not modified, not committed.
-
-## PRODUCTION DEPLOYMENT SOURCE: Vercel's standard GitHub integration, auto-deploying the tip of `main` on every push. Empirically re-proven this task, not assumed: `origin/main` fresh-fetched (`dd11015`); the deploy-on-push behavior itself was already independently proven twice this engagement via real before/after live-behavior checks (`dd11015`'s and `b5583e5`'s own pushes each visibly changed live Production behavior).
-
-## EXACT PRODUCTION DEPLOY TRIGGER: A push to `main` (fast-forward or otherwise) that changes its tip commit.
-
-## CAN PROFLOW-CONTINUITY DEPLOY PRODUCTION: **NO**
-
-Orphan branch, no shared history with `main`, empirically re-confirmed across every continuity push this entire engagement (dozens) — zero observed Production behavior change from any of them.
+**Owner-authorized: preparation of the safety gate only. This is NOT authorization to execute Wave 2. Read/inspect/verify/plan only — zero mutation of any kind.**
 
 ---
 
-## RELEASE-CANDIDATE INVARIANT
-
-```
-RECOVERY WORK (app code edits)
-   -> COMMIT (working tree returns to exactly-clean)
-   -> IMMUTABLE RC SHA (tagged, per Wave 0's pattern)
-   -> TEST VERIFICATION (valid only if working tree == HEAD == tagged SHA
-      at the moment of review — TEST has no separate deploy step, so this
-      is the only way "TEST passed" can mean anything commit-specific)
-   -> HE / EN / Desktop / Mobile verification
-   -> OWNER APPROVAL, bound to that exact SHA (new PERMANENT rule §17.L:
-      any application-code change invalidates approval for that RC;
-      continuity-only commits on proflow-continuity do not)
-   -> NO CODE CHANGES between approval and promotion
-   -> PROMOTE the same SHA (push it as the new main tip — Vercel's existing
-      auto-deploy-on-push behavior IS the promotion mechanism, no new
-      infrastructure)
-   -> PRODUCTION SMOKE
-```
-
-## RELEASE MANIFEST (template established, not yet populated — no real candidate exists)
-
-```
-RELEASE SHA: <sha>
-APPLICATION: <exact sha, must equal RELEASE SHA>
-DATABASE MIGRATIONS: <ordered filenames, or NONE>
-EDGE FUNCTIONS: <function + source/version, or NONE>
-ENVIRONMENT CHANGES: <exact list, or NONE>
-HE VERIFICATION: PASS / FAIL / NOT RUN
-EN VERIFICATION: PASS / FAIL / NOT RUN
-DESKTOP: PASS / FAIL / NOT RUN
-MOBILE: PASS / FAIL / NOT RUN
-OWNER APPROVED SHA: <sha, must equal RELEASE SHA / NONE>
-PRODUCTION AUTHORIZATION: YES / NO
-```
+## TASK: Wave 2 Pre-LIVE Safety Gate
+## EFFORT: MAXIMUM / EXHAUSTIVE
+## STATUS: **READY FOR OWNER REVIEW**
 
 ---
 
-## FILES CHANGED DURING WAVE 1
+## FRESH LOCAL STATE
 
-The six continuity files only (documentation/process, including one new permanent rule, §17.L, in `PROFLOW_PROJECT_CONTEXT.md`). `src/entry-server.jsx` was read/investigated, not modified.
+`HEAD = main = 071dad55f8cd6c742eb89aed053e68c59fc87cf8`. `origin/main` (fresh fetch) `= dd110155a927f708f00467e1017bd183582b42aa`. 1 ahead/0 behind (unchanged — Path B only). Working tree: six continuity docs + untracked `entry-server.jsx`, identical to every prior check. Every Item 17/18 file confirmed committed and part of `origin/main`'s ancestry (`731aa2a` for Item 17 + counter-init, `6fe9cd4` for Item 18) — nothing uncommitted, nothing local-only.
+
+---
+
+## WAVE 2 EXACT FILE MANIFEST
+
+| # | File | Purpose | Depends on | Production state |
+|---|---|---|---|---|
+| 1 | `supabase/migrations/20260827000000_add_quote_number_sequence.sql` | `business_quote_sequences` table + `allocate_quote_number()` | None | **MISSING** |
+| 2 | `supabase/migrations/202608270000015_attach_quote_number_unique_constraint.sql` (malformed — intended name `20260827000001a_...`) | Attaches UNIQUE constraint | File #3's index | **MISSING** |
+| 3 | `supabase/migrations/20260827000001_add_quote_number_unique_index.sql` | Builds the unique index | None | **MISSING** |
+| 4 | `supabase/migrations/20260827000002_protect_quote_number_immutability.sql` | New immutability trigger | None | **MISSING** |
+| 5 | `supabase/migrations/20260827000003_drop_quote_number_default.sql` | Drops old global-sequence default | Hard release-order dependency on #1 + live frontend RPC path | Old default still present (unchanged) |
+| 6 | `supabase/migrations/20260828000000_add_quote_attn_contact.sql` | `attn_name`/`attn_role` columns | None (independent of Item 17) | **MISSING** (both columns) |
+| 7 | `supabase/quote_number_counter_init.sql` (not in `migrations/`, manual only) | Per-business counter seeding | After #1, before real allocations for historical businesses | Not run anywhere |
+
+**New this task**: `send-quote-email` also references `quote_number` (added in `ffc741d`, 2026-08-28) but was last deployed 2026-08-25 — running stale, pre-quote_number code on Production. Same class of gap as `get-public-quote`'s already-known Attn gap. Wave 3 item.
+
+---
+
+## MIGRATION FILENAME ISSUE
+
+Confirmed (again) via three independent methods this task and last: `202608270000015_...` sorts *before* its own dependency, `20260827000001_add_quote_number_unique_index.sql`. **The exact fix was independently re-verified this task**: renaming to `20260827000001a_attach_quote_number_unique_constraint.sql` produces correct ordering, confirmed via `LC_ALL=C sort` on the two candidate filenames. Not performed — renaming remains out of scope for this gate.
+
+## PRODUCTION MIGRATION STATE
+
+Direct query of `supabase_migrations.schema_migrations` (ground truth, not the CLI's summary): **exactly one row**, `20260831000000` (the already-applied, unrelated security fix). None of the 7 manifest items appear.
+
+## PRODUCTION SCHEMA PARITY
+
+Single comprehensive fresh query, 8 objects: `business_quote_sequences` MISSING, `allocate_quote_number` MISSING, unique index MISSING, unique constraint MISSING, immutability function MISSING, immutability trigger MISSING, `attn_name` MISSING, `attn_role` MISSING. `quote_number`'s column default is DIFFERENT from target (still the old global sequence). Zero collision with existing triggers (`guard_quote_immutability_delete_trigger`/`guard_quote_immutability_update` — different names, different functions). **Zero drift, zero partial application anywhere.**
+
+## EDGE/BACKEND PARITY
+
+`get-public-quote`: v7 (Path B), selects `quote_number` but not `attn_name`/`attn_role`, needs redeploy after Item 18 lands. `send-quote-email`: stale (last deployed 2026-08-25, before its own `quote_number` code was committed), needs redeploy for full Item 17 email parity. Neither deployed by this task.
+
+---
+
+## PRE-LIVE BACKUP PLAN
+
+**Critical finding**: `supabase backups list` (read-only) → `pitr_enabled: false`, `backups: []`. No automated Production backup exists. Manual `supabase db dump --linked --schema public -f <path>` confirmed available and correctly scoped (via `--help`, not executed). Full table (schema dump, `quotes` data dump, deployed app SHA already tagged, Edge Function source download) with WHAT/HOW/WHERE/VERIFIED/RESTORE for each, recorded at `PROFLOW_PROJECT_CONTEXT.md` §115. **The backup itself is a required Wave 2 execution precondition, not a deliverable of this gate — not created here.**
+
+## ROLLBACK PLAN
+
+Full per-component table at §115. Six of seven components: no data-loss risk, fully reversible via inline rollback SQL already present in each file. One component (dropping the old `quote_number` default, file #5) is **explicitly flagged as effectively one-way after meaningful live use** — already documented in the file's own header, re-confirmed here, not hidden.
+
+## SAFE EXECUTION ORDER
+
+12 dependency-derived steps: backup → verify → rename file #2 → coordinated isolated push of files #1/#2/#3/#4/#6 → verify (8-object check) → run counter-init script → verify (its own documented queries) → apply file #5 (drop default) → verify (real allocation test) → redeploy `get-public-quote` → redeploy `send-quote-email` → Production smoke (HE+EN). Every step carries its own STOP condition and rollback trigger.
+
+## HE IMPACT
+
+Market-neutral by source (no `isHebrew`/currency/VAT branch in any Wave 2 object). Required post-execution verification: HE quote creation gets a real `A100700+` number; "לידי:" renders when Attn is entered; an existing HE quote remains unaffected.
+
+## EN IMPACT
+
+Same neutrality, independently confirmed via source (not inferred from HE). Required verification: EN numbering, "ATTN:" rendering, zero VAT/₪ leakage, an existing EN quote unaffected.
+
+## RELEASE-GATE INTEGRATION
+
+Wave 2's DB/backend changes are Production infrastructure actions with their own manifest — not a frontend `RC_SHA` in the §17.L sense. No new frontend commit is required (the RPC call and `quote.attn_name` rendering are already live in `dd11015`'s own descended source). Once Wave 2+3 are live and verified, the release manifest template from Wave 1 gets its `DATABASE MIGRATIONS`/`EDGE FUNCTIONS` fields populated with real values for the first time. **No final Recovery RC created by this task.**
+
+## UNKNOWNS: NONE
+
+Every question this gate needed to answer was answered with direct, fresh evidence.
+
+## RISKS
+
+File #5 (drop default)'s time-limited rollback window (already flagged). The release-candidate model from Wave 1 remains process-only, not tool-enforced (already flagged, unchanged). No automated Production backup exists until one is manually taken as Wave 2's own first execution step.
+
+---
+
+## FILES CHANGED: continuity documentation only
+
+`PROFLOW_PROJECT_CONTEXT.md` (Wave 2 addendum to §115), `PROFLOW_HANDOFF.md` (§18.FC), `PROFLOW_CHAT_HANDOFF.md` (§14 resume pointer), `PROFLOW_ARCHITECTURE.md` (§1.A backup-infrastructure note), `PROFLOW_TODO.md` (continuity log), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file).
 
 ## APPLICATION CODE CHANGED: NO
 ## TEST MUTATED: NO
 ## PRODUCTION MUTATED: NO
 ## DB MUTATED: NO
 ## EDGE FUNCTIONS MUTATED: NO
+## MAIN PUSH: NO
 ## PRODUCTION DEPLOY: NONE
 
 ---
 
-## RISKS / BLOCKERS
+## SIX-FILE RECONCILIATION
 
-The release-candidate model is a **process** rule, not a technical enforcement mechanism — no git hook or automated gate was installed to force the "working tree clean at TEST-review time" discipline (deliberately, per "do not introduce unnecessary infrastructure"). This is a known, accepted limitation, not an oversight — future waves should follow the model deliberately rather than rely on tooling to enforce it.
-
-## WAVE 1 PASS CONDITIONS — RESULTS
-
-- Wave 0 re-verified fresh: **PASS**.
-- TEST deployment source determined fresh (not assumed): **PASS** — live dev server, no commit-pinning.
-- Production deployment source determined fresh (not assumed): **PASS** — push-to-`main` empirically re-confirmed.
-- `entry-server.jsx` investigated fully, left untouched: **PASS**.
-- Release-candidate invariant + manifest format established: **PASS**.
-- Production protection proven (no accidental trigger from commit/tag/continuity push): **PASS**.
-- No final Recovery RC falsely designated: **PASS** — none created.
-- Zero application/DB/TEST/Production/Edge/Vercel mutation: **PASS**.
-
-## RECOMMENDED NEXT STEP (ONE step only)
-
-Wave 2 — Production schema/backend parity: fix the migration filename bug (`202608270000015_...` → its intended name), then apply Item 17's 4-file package + Item 18's 1 file to Production as one coordinated window, per the existing Mandatory Pre-LIVE Backup & Rollback Gate. Not started, not authorized this task.
+| File | Status |
+|---|---|
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — full Wave 2 gate appended to §115 |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — §14 resume pointer, Wave 1 paragraph retained |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — §1.A backup-infrastructure finding |
+| `PROFLOW_HANDOFF.md` | UPDATED — §18.FC appended |
+| `PROFLOW_TODO.md` | UPDATED — continuity log extended |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED — this file, fully rewritten |
 
 ---
 
-## CONTINUITY
+## RECOMMENDED NEXT STEP (ONE step only)
 
-- `PROFLOW_PROJECT_CONTEXT.md` — Wave 1 addendum appended to §115; new permanent rule §17.L added.
-- `PROFLOW_HANDOFF.md` — Wave 1 addendum appended to §18.FB.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated; Wave 0 paragraph retained (not superseded).
-- `PROFLOW_ARCHITECTURE.md` — §1.A updated with the TEST-has-no-build-step structural finding.
-- `PROFLOW_TODO.md` — continuity log extended with the Wave 1 summary.
-- `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
-
-Continuity commit to be pushed under the standing §17.K auto-sync authorization, verified live on GitHub before FINAL STOP.
+Owner + ChatGPT review this gate; if approved, the next authorized action would be Wave 2 Step 1 specifically — the manual Production backup (`supabase db dump`) — as its own separately-authorized execution step, not bundled with anything else.
 
 ---
 
 ## FINAL STOP
 
-Wave 1 is complete: the release-gate mechanism is fully specified (invariant, manifest, binding rule, production-trigger proof), TEST's and Production's actual deployment sources are now precisely, freshly determined rather than assumed, and `entry-server.jsx` is fully accounted for and left untouched. No real release candidate was created — Waves 2-4 have not run, so none could honestly exist yet. Zero mutation of any kind beyond documentation occurred.
+Every Wave 2 readiness criterion is met with direct, fresh evidence: exact scope known (7-item manifest, every file read in full), migration ordering known (filename bug found and its fix verified), Production state known (comprehensive fresh check, zero drift), dependencies known (including two newly-found items this task), backup mechanism viable (though no automated backup currently exists — now a known precondition, not an unknown), rollback viable for every component with the one time-limited item flagged prominently, verification defined for both markets independently. **This is a readiness verdict on the plan, not execution authorization.**
 
-DO NOT START WAVE 2. WAIT FOR OWNER + CHATGPT REVIEW.
+DO NOT EXECUTE WAVE 2. DO NOT START WAVE 3. WAIT FOR OWNER + CHATGPT REVIEW.
