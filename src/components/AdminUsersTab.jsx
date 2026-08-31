@@ -11,6 +11,34 @@ import {
 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
+import { getPlanDefinition, PLAN_CATALOG } from '../utils/planCatalog';
+
+// חוק ברזל (Admin V2 Foundation — Phase 1.5, Plan Icon/Badge Wiring, Owner-
+// authorized): מקור-אמת יחיד לזהות ויזואלית של חבילה - planCatalog.js -
+// במקום שרשרת-ternary כפולה ובלתי-תלויה (טבלת-דסקטופ + כרטיסי-מובייל,
+// שתיהן באותו קובץ, שתי גרסאות-כמעט-זהות-אך-נפרדות של אותה לוגיקה).
+// אין שינוי חזותי מכוון - כל אייקון/צבע/רקע נשאר בדיוק זהה לקודם (מאומת
+// ע"י בדיקה חוזרת בדפדפן אחרי השינוי), רק המקור שממנו הם נגזרים השתנה.
+// Crown (Lifetime) נשאר case מיוחד מחוץ לקטלוג בכוונה - ר' planCatalog.js -
+// Lifetime הוא overlay-תצוגה, לא planId בקטלוג עצמו. שימור-מדויק של ההתנהגות
+// ההיסטורית: כש-isGrantedLifetimePro, הצבע/רקע תמיד היו (וממשיכים להיות)
+// אלה של PRO ללא תלות ב-planValue בפועל - זו ההתנהגות הקיימת, לא שינוי.
+const PLAN_ICON_RENDERERS = {
+  Gem: (size) => <Gem size={size} fill="currentColor" strokeWidth={1} />,
+  Layers: (size) => <Layers size={size} strokeWidth={2.2} />,
+  CircleUser: (size) => <CircleUser size={size} strokeWidth={2.2} />,
+};
+
+function getPlanBadgeVisual(planValue, isGrantedLifetimePro) {
+  const badge = isGrantedLifetimePro ? PLAN_CATALOG.pro.badge : getPlanDefinition(planValue).badge;
+  return {
+    bg: badge.bgTint,
+    color: NEON[badge.colorToken],
+    renderIcon: (size) => isGrantedLifetimePro
+      ? <Crown size={size} strokeWidth={2.2} />
+      : (PLAN_ICON_RENDERERS[badge.icon] || PLAN_ICON_RENDERERS.CircleUser)(size),
+  };
+}
 
 // Edge Function errors return the real reason in the response body (e.g. "Cannot delete
 // a Super Admin account") - supabase-js's default error.message is just a generic
@@ -697,6 +725,7 @@ export default function AdminUsersTab({
                   currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
                   lastSignInDateStr, lastSignInFullStr,
                 } = getAccountDerived(acc);
+                const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
 
                 return (
                   <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.78rem', height: '46px' }}>
@@ -717,20 +746,12 @@ export default function AdminUsersTab({
                     {/* Plan Icon */}
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
                       <span
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isGrantedLifetimePro ? 'rgba(139, 92, 246, 0.15)' : planValue === 'pro' ? 'rgba(139, 92, 246, 0.15)' : planValue === 'basic' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.08)', color: isGrantedLifetimePro ? NEON.violetLight : planValue === 'pro' ? NEON.violetLight : planValue === 'basic' ? NEON.sky : NEON.textSecondary }}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: planBadge.bg, color: planBadge.color }}
                         title={isHebrew
                           ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}`
                           : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
                       >
-                        {isGrantedLifetimePro ? (
-                          <Crown size={12} strokeWidth={2.2} />
-                        ) : planValue === 'pro' ? (
-                          <Gem size={12} fill="currentColor" strokeWidth={1} />
-                        ) : planValue === 'basic' ? (
-                          <Layers size={12} strokeWidth={2.2} />
-                        ) : (
-                          <CircleUser size={12} strokeWidth={2.2} />
-                        )}
+                        {planBadge.renderIcon(12)}
                       </span>
                     </td>
 
@@ -904,6 +925,7 @@ export default function AdminUsersTab({
               currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
               lastSignInDateStr, lastSignInFullStr,
             } = getAccountDerived(acc);
+            const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
 
             const isExpanded = expandedMobileRows.has(acc.id);
 
@@ -962,13 +984,10 @@ export default function AdminUsersTab({
                 {/* Plan / Region / Role badges */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                   <span
-                    style={chipStyle(
-                      isGrantedLifetimePro || planValue === 'pro' ? 'rgba(139, 92, 246, 0.15)' : planValue === 'basic' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.08)',
-                      isGrantedLifetimePro || planValue === 'pro' ? NEON.violetLight : planValue === 'basic' ? NEON.sky : NEON.textSecondary
-                    )}
+                    style={chipStyle(planBadge.bg, planBadge.color)}
                     title={isHebrew ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}` : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
                   >
-                    {isGrantedLifetimePro ? <Crown size={12} strokeWidth={2.2} /> : planValue === 'pro' ? <Gem size={12} fill="currentColor" strokeWidth={1} /> : planValue === 'basic' ? <Layers size={12} strokeWidth={2.2} /> : <CircleUser size={12} strokeWidth={2.2} />}
+                    {planBadge.renderIcon(12)}
                     {planValue.toUpperCase()}
                   </span>
 
