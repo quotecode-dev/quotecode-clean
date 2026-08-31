@@ -1,6 +1,7 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveTrialReminderStage } from "./eligibility.ts";
 
 // ==========================================
 // 🚨 פונקציה זו אחראית באופן בלעדי על מיילי תזכורת תום תקופת ניסיון חינמית
@@ -238,22 +239,18 @@ serve(async (req) => {
     const errors: string[] = [];
 
     for (const biz of candidates || []) {
-      if (!biz.email || biz.role === 'super_admin') continue;
-      if ((biz.plan || 'free').toLowerCase() !== 'free') continue;
+      const stage = resolveTrialReminderStage(biz, now);
+      if (!stage) continue;
 
-      const trialEndsMs = new Date(biz.trial_ends_at).getTime();
-      if (Number.isNaN(trialEndsMs)) continue;
-
-      const daysLeft = (trialEndsMs - now) / MS_PER_DAY;
       const isHebrew = (biz.country || 'Local') !== 'International';
 
       try {
-        if (!biz.trial_reminder_3d_sent && daysLeft <= 3 && daysLeft > 1) {
+        if (stage === '3d') {
           const { subject, html, text } = buildTrialReminderEmail({ stage: '3d', businessName: biz.business_name, trialEndsAt: biz.trial_ends_at, isHebrew });
           await sendViaResend(resendApiKey, { from: senderAddressFor(isHebrew), to: biz.email, subject, html, text });
           await adminClient.from('business_settings').update({ trial_reminder_3d_sent: true }).eq('user_id', biz.user_id);
           sent3d++;
-        } else if (!biz.trial_reminder_24h_sent && daysLeft <= 1 && daysLeft > 0) {
+        } else {
           const { subject, html, text } = buildTrialReminderEmail({ stage: '24h', businessName: biz.business_name, trialEndsAt: biz.trial_ends_at, isHebrew });
           await sendViaResend(resendApiKey, { from: senderAddressFor(isHebrew), to: biz.email, subject, html, text });
           await adminClient.from('business_settings').update({ trial_reminder_24h_sent: true }).eq('user_id', biz.user_id);

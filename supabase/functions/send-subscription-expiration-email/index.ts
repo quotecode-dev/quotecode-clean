@@ -1,6 +1,7 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildSubscriptionEmailSafeResponse } from "./safeResponse.ts";
 
 // ==========================================
 // 🚨 פונקציה זו אחראית באופן בלעדי על מיילי תזכורת תפוגת מנוי בתשלום
@@ -225,50 +226,30 @@ serve(async (req) => {
       return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
-    const { data: candidates, error: candidatesErr } = await adminClient
-      .from('business_settings')
-      .select('user_id, email, business_name, country, plan, role, subscription_ends_at, subscription_reminder_3d_sent, subscription_reminder_24h_sent')
-      .not('subscription_ends_at', 'is', null)
-      .or('subscription_reminder_3d_sent.is.false,subscription_reminder_24h_sent.is.false');
-
-    if (candidatesErr) throw candidatesErr;
-
-    const now = Date.now();
-    let sent3d = 0;
-    let sent24h = 0;
-    const errors: string[] = [];
-
-    for (const biz of candidates || []) {
-      if (!biz.email || biz.role === 'super_admin') continue;
-      const plan = (biz.plan || 'free').toLowerCase();
-      if (plan !== 'basic' && plan !== 'pro') continue;
-
-      const endsMs = new Date(biz.subscription_ends_at).getTime();
-      if (Number.isNaN(endsMs)) continue;
-
-      const daysLeft = (endsMs - now) / MS_PER_DAY;
-      const isHebrew = (biz.country || 'Local') !== 'International';
-
-      try {
-        if (!biz.subscription_reminder_3d_sent && daysLeft <= 3 && daysLeft > 1) {
-          const { subject, html, text } = buildSubscriptionReminderEmail({ stage: '3d', businessName: biz.business_name, subscriptionEndsAt: biz.subscription_ends_at, isHebrew });
-          await sendViaResend(resendApiKey, { from: senderAddressFor(isHebrew), to: biz.email, subject, html, text });
-          await adminClient.from('business_settings').update({ subscription_reminder_3d_sent: true }).eq('user_id', biz.user_id);
-          sent3d++;
-        } else if (!biz.subscription_reminder_24h_sent && daysLeft <= 1 && daysLeft > 0) {
-          const { subject, html, text } = buildSubscriptionReminderEmail({ stage: '24h', businessName: biz.business_name, subscriptionEndsAt: biz.subscription_ends_at, isHebrew });
-          await sendViaResend(resendApiKey, { from: senderAddressFor(isHebrew), to: biz.email, subject, html, text });
-          await adminClient.from('business_settings').update({ subscription_reminder_24h_sent: true }).eq('user_id', biz.user_id);
-          sent24h++;
-        }
-      } catch (sendErr: unknown) {
-        const msg = sendErr instanceof Error ? sendErr.message : 'Unknown send error';
-        console.error(`Failed to send subscription reminder to ${biz.email}:`, msg);
-        errors.push(`${biz.email}: ${msg}`);
-      }
-    }
-
-    return jsonResponse({ success: true, sent3d, sent24h, errors }, 200);
+    // חוק ברזל (P0 Email Bug #2, fail-safe guard — לא תוקן ברמת סכימה
+    // הלילה, במכוון): business_settings אינה מכילה subscription_ends_at /
+    // subscription_reminder_3d_sent / subscription_reminder_24h_sent (מאומת
+    // מול תפיסת הסכימה החיה מ-Production, supabase/migrations/
+    // 20260830000000_capture_base_schema_tables.sql - שלוש העמודות האלה לא
+    // מופיעות שם, ולא נכתבות על ידי אף נתיב קוד אחר בריפו). קריאה ל-.select
+    // עליהן הייתה גורמת ל-error מה-DB בכל הפעלה (batch), ללא שום מייל בפועל
+    // בין אם היה נשלח ובין אם לא - לכן זה "בטוח" מבחינת risk, אך שבור.
+    //
+    // כלל מוצר מפורש מהבעלים: מנוי בתשלום רגיל מתחדש אוטומטית - אסור לשלוח
+    // "המנוי שלך עומד לפוג" מדי חודש ללקוח בריא שממשיך להתחדש. תזכורת
+    // כזאת נכונה רק למצב מחזור-חיים מוגדר שבו יש תאריך סיום אמיתי וידוע
+    // (לדוגמה: cancel-at-period-end מאושר) - סכימה כזאת עדיין לא קיימת.
+    // אין הרשאה הלילה ליצור מיגרציה או להמציא עמודות. הפונקציה הזו נשארת
+    // מכוונת (short-circuit בטוח) עד שהשלב הבא של הבנייה (subscription-
+    // status axis) ייבנה במפורש ויאושר.
+    //
+    // תלות סכימה מדויקת לשלב הבא: טבלת/עמודת סטטוס-מנוי אמיתית (לדוגמה
+    // subscription_status text + subscription_period_end timestamptz +
+    // subscription_reminder_3d_sent/24h_sent boolean), הנכתבת אך ורק כאשר
+    // המנוי נכנס למצב cancel-at-period-end מאושר (או שקול) - לא בכל חידוש
+    // חודשי רגיל. עד אז, batch mode מחזיר תשובה מפורשת "לא מיושם" ולעולם
+    // לא שולח מייל.
+    return jsonResponse(buildSubscriptionEmailSafeResponse(), 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('send-subscription-expiration-email error:', message);
