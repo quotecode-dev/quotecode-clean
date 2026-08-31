@@ -1318,4 +1318,6 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 
 **Verified**: both the normal/expanded state and the row-dropped/collapsed state (triggered by the existing `≤768px` KPI-grid media query, which forces the grid to 2 columns) — content-driven height correctly adapts (`246px→300px→351px` across breakpoints) with zero clipping, zero overlap, zero dead space, zero horizontal overflow, in both HE and EN, across the full 8-point responsive matrix. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §84.
 
-**Remaining**: Owner visual approval on the live TEST result — not yet given, not claimed.
+**Spec correction (2026-08-31, Owner-Approved Option B Spec Correction task)**: the §84 implementation used `NEON.border`/`#e4e1ee` and `14px` radius — an unauthorized substitution, not the Owner's actual approved reference. Corrected to the exact authoritative spec: `border: 1px solid #E9D5FF` (hex-literal, no token substitution), `border-radius: 12px`, `background: #FFFFFF`, no shadow, plus a `200ms` height transition. Live-verified exact match in both locales; both layout states and the full responsive matrix re-confirmed unaffected by the styling-only change. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §85.
+
+**Remaining**: Owner visual approval on the corrected live TEST result — not yet given, not claimed.
