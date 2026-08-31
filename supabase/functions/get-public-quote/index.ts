@@ -82,7 +82,7 @@ serve(async (req) => {
       .from('quotes')
       .select(`
         id, user_id, created_at, valid_until, tax_rate, subtotal, total,
-        discount, terms, notes, subject, status, signature, currency, client_type,
+        discount, terms, warranty, notes, subject, status, signature, currency, client_type,
         quote_number, attn_name, attn_role,
         clients ( company_name, email, phone, address ),
         quote_items ( description, quantity, unit_price, total_price )
@@ -128,6 +128,7 @@ serve(async (req) => {
         total: quote.total,
         discount: quote.discount,
         terms: quote.terms,
+        warranty: quote.warranty,
         notes: quote.notes,
         subject: quote.subject,
         status: quote.status,
