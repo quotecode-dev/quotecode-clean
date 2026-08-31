@@ -138,15 +138,13 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`44df721ec5c21a7d997481eaccbe874ea41310ff` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive Function 2 deployment record (all six files). Matching commit exists locally on `main` (`f73c7ed`), **not pushed**, per `MAIN PUSH: NO`.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB SIX-FILE READ-BACK: **PASS**
 
-## REMOTE GITHUB SIX-FILE READ-BACK
-
-*(recorded after push and API verification — see chat-level Final Report.)*
+Verified via GitHub API immediately after the `44df721` push: branch ref SHA for `proflow-continuity` matches `44df721ec5c21a7d997481eaccbe874ea41310ff` exactly. All six canonical files return HTTP 200 (`PROFLOW_HANDOFF.md`, >1MB, fetched via the Git Blobs API). Real committed content decoded and confirmed for all six: this report's `STATUS: **PASS**`, `v25`, `END-TO-END EMAIL DELIVERY TEST: **NOT PERFORMED**`, `REAL EMAIL SENT: **NO**`; `PROFLOW_PROJECT_CONTEXT.md`'s Function 2 addendum; `PROFLOW_CHAT_HANDOFF.md`'s "BOTH Edge Functions now deployed" resume pointer; `PROFLOW_ARCHITECTURE.md`'s "RESOLVED 2026-09-01" status; `PROFLOW_TODO.md`'s Function 2 entry; `PROFLOW_HANDOFF.md`'s §18.FL.
 
 ---
 
