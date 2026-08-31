@@ -2670,3 +2670,38 @@ Verified `planEntitlements.js` (`computeEffectivePlan()`) is pure and dependency
 **Clean committed-tree proof, repeated after the fix**: a fresh `git archive HEAD` (now `018f905`) export, isolated, no working-tree access — `vite build` **PASS**, `vitest run` **88/88 PASS** (fewer than the working-directory's 162 since several test files, e.g. `quoteNumber.test.js`/`regionConfig.test.js`, remain part of the still-uncommitted threads A/B/G). Build success is exhaustive proof of import resolution — Vite statically resolves the full graph and errors hard on any gap, exactly as it did before this fix.
 
 **ROUND 2 COMMITTED TREE: SELF-CONTAINED.** **ROUND 2 SAFE TO PUSH TECHNICALLY: YES** (technical buildability only — not a push authorization). `main` HEAD is now `018f905` (5 local commits ahead of `origin/main` = `e030017`). No other uncommitted thread (A/B/D/E/F/G/H/I/J/K) was touched, staged, or altered by this task. No push, no deploy, no Production/DB action.
+
+## §100. Local Workstream Consolidation — Maximum Safe Commit Discipline (2026-08-31)
+
+**Owner-authorized, no push.** Processed the 8+ uncommitted threads from §99 one at a time, workstream-by-workstream, applying 10 eligibility criteria and hunk-level discipline. 12 new local commits, none pushed. `main` HEAD is now `02ad374` (12 commits ahead of `origin/main` = `e030017`, unchanged).
+
+### Committed this task
+
+- **H (base-schema-capture)** — `835654d`. 4 files, each self-labeled "TEST / BOOTSTRAP MIGRATION", zero code coupling.
+- **A (Item 17 quote-numbering SQL package)** — `731aa2a`. 7 files, all "LOCAL PACKAGE ONLY — NOT applied to the live/production project," documented COMPLETE/VERIFIED — TEST ONLY at `TODO.md` item 17.
+- **Item 18 (Attn-contact migration)** — `6fe9cd4`. New finding: the already-committed-and-pushed `ffc741d` references `attn_name`/`attn_role` columns that only this migration creates — the same class of gap as §99's `planEntitlements.js` fix, at the DB-schema layer. Committing the migration (not applying it) closes the documentation/git gap; whether Production's live `quotes` table already has these columns some other way is flagged for Owner attention, not resolved here.
+- **J (pentest export)** — `699ec4d`. `.gitignore` entry only; `pentest-source-review/` itself stays untracked, as intended.
+- **K (dev:localtest script)** — `c1efa42`. Isolated via a temporary, fully-reversed manual edit of `package.json` (git's own diff algorithm grouped this with an unrelated dependency addition in one hunk) — committed alone, then the dependency line was restored to the working tree exactly as found.
+- **D-adjacent (Order Number sorting fix)** — `80fa5f5`. `quoteNumber.js`'s new `getQuoteOrderSortKey` + its 6-case test, purely additive, no existing export touched.
+- **G (Item 25 market-routing correction)** — `e37931e`. `regionConfig.js`'s new `getMarketRoutingCorrection` + its 13-case test (matching the item's own documented scenario list), purely additive.
+- **K-adjacent (TEST fail-closed guard)** — `496b5f9`. `shared/supabase.js`'s already-proven-live guard (ARCHITECTURE §1.A Step A), inert outside `--mode localtest`.
+- **E backend (Warranty)** — `6430cf5`. The migration + `get-public-quote`'s `warranty` select/return only — source-only (Edge Function commits don't auto-deploy). The UI-facing slice (Settings input, quote-creation snapshot, Public Quote display) stays uncommitted, see below.
+- **D (variable-font infrastructure)** — `89cc017`. `@fontsource-variable/rubik` dependency (`package.json`/`package-lock.json`, isolated from `dev:localtest` the same way) + `fonts.css`'s `@import` — inert until a JSX consumer applies the class.
+- **D (index.css)** — `401b1b1`. Three additions: the global `@media print { .no-print {...} }` rule (verified safe — activates print-hiding for many already-committed elements: every modal, the AI chat widget, Dashboard's mobile nav/footer — all previously undefined-for-print, now correctly hidden, a pure improvement); `.pf-font-variable` and `--pf-dashboard-desktop-content-width`, both inert until referenced.
+- **F (PdfFileIcon)** — `02ad374`. Self-contained SVG component, zero imports, zero current consumers.
+
+### NOT committed — with concrete, evidence-based reasons
+
+- **Dashboard.jsx** — the central linchpin of workstreams B/C/D/E (549 diff lines); every other mixed file's entanglement traces back to props/state this file owns. Too large and too mixed to safely hand-split within this task.
+- **QuoteForm.jsx** — confirmed real regression risk if committed alone: `warranty`/`setWarranty` and `editingQuoteNumber` are new props only Dashboard.jsx's own uncommitted change would supply (a `setWarranty(undefined)` call would throw on user input); more importantly, the removal of the `isTrialExpired && !isSuperAdmin` submit-button gate depends on Dashboard.jsx's own §51 entitlement fix already being in place — committing the removal alone, against the *old*, still-buggy committed Dashboard.jsx quota logic, would let an expired-trial account create unlimited quotes with no gate at all.
+- **QuotesTab.jsx + `.test.jsx`** — confirmed at least 3 further entangled sub-threads of its own (Item 26 Client Type Badge across multiple owner-revision rounds, Mobile Sorting fields, Mobile Metadata Columns grid), on top of the same Dashboard.jsx coupling, across 622 diff lines.
+- **SettingsTab.jsx** — same class of risk as QuoteForm.jsx: `effectivePlan`/`defaultWarranty`/`setDefaultWarranty` are new props Dashboard.jsx alone would supply; committing alone would either always show the Logo-gate as locked (`undefined !== 'pro'`) or crash on Warranty-textarea input.
+- **PublicQuote.jsx + PublicQuoteEn.jsx** — confirmed ≥3 tightly-interleaved threads in immediately-adjacent hunks (Item 7 Public Quote Bottom Actions/print, Item 23 Warranty display, the signature-pad activation UI) — not safely splittable via git's own hunk boundaries without risking broken JSX.
+- **`useSignaturePad.js`** — confirmed a genuine regression if committed alone: its new `isActive` gating defaults to `false`, and the *already-committed-and-pushed* `PublicQuote.jsx`/`PublicQuoteEn.jsx` (`ffc741d`) call the hook without ever calling the new `activateSigning()` — committing this hook alone would silently stop the live signature pad from accepting any input.
+- **`entry-server.jsx`** — left exactly as found, per §68/§69's own explicit "LOCAL/UNCOMMITTED ONLY" documentation; not committed to avoid overriding an intentional, still-pending product decision.
+
+### Final proof
+
+**Clean committed-tree** (`git archive HEAD`, isolated, no working-tree access, `02ad374`): build **PASS**, tests **108/108 PASS**, lint **0 errors** (3 warnings, all pre-existing/unrelated). **Working directory**: tests **162/162 PASS**, lint **0 errors** (6 warnings — the extra 3 come from the still-present `pentest-source-review/` copy, unrelated), build **PASS**.
+
+**COMMITTED TREE SELF-CONTAINED: YES.** **TECHNICALLY SAFE TO PUSH: YES** (not a push authorization). `main` HEAD `02ad374`, `origin/main` unchanged (`e030017`). No push, no deploy, no migration executed, no DB mutation, no Production action, no destructive git operation.
