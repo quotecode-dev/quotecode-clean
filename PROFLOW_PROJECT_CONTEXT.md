@@ -3081,3 +3081,40 @@ Two `super_admin` accounts exist on Production. Neither carries a `+test-admin`-
 **Outcome C: the correct TEST accounts exist and are exactly identified, but the Owner needs to supply the actual password** for `tahshitishi@gmail.com` and/or `minhatshay@gmail.com` (or confirm a secure way to obtain it) before authenticated Production smoke can proceed. No Admin-tier TEST identity currently exists (a secondary, smaller gap — outcome E) — HE/EN functional smoke is fully coverable once credentials are available; Admin-tier smoke would need either a newly-authorized `+test-admin`-style Production account (matching the already-proven `quotecode-test` pattern) or Owner guidance on an existing safe option not found here.
 
 **No user was created. No password was reset. No existing session was destroyed (none existed). No Production data was mutated.**
+
+## §109. Authenticated Production Release Certification — HE Partial + get-public-quote Pre-Deploy Audit (2026-08-31)
+
+**Authorization and credential handling**: the Owner explicitly authorized authenticated Production smoke using only the two identities found in §108, then supplied the current password for both directly in-conversation, with an explicit, itemized non-disclosure requirement (never write it to any file, `.env`, commit, log, screenshot, continuity document, or the task's own report). **Honored throughout**: the password was used only in-memory, embedded directly in the single browser-automation script performing each login, never printed, echoed, or persisted anywhere. It does not appear anywhere in this file or any of the other five continuity files.
+
+### HE authenticated smoke — completed steps, all real, against live Production
+
+Using `tahshitishi@gmail.com` on `https://www.quotecodepro.com`:
+
+- **LOGIN: PASS.** Real login form (native React-controlled-input fill, real submit click), landed on `/dashboard?lang=he`, canonical host maintained throughout.
+- **SESSION: PASS.** RTL layout, business name "תכשיט אישי", email identity, ₪ currency, trial ticker ("8 days remaining"), a real pre-existing Quote History (quotes up to #89, consistent with a genuinely real, previously-used account).
+- **SESSION PERSISTENCE: PASS.** Fresh navigation to the dashboard URL (simulating a refresh) kept the session and business identity intact.
+- **PLAN/TRIAL: PASS.** Displayed trial ticker consistent with the account's raw `plan:free` + future `trial_ends_at` (2026-09-08) resolving to effective PRO via `computeEffectivePlan()` — UI and resolver agree.
+- **WARRANTY step A (save default): PASS.** Settings' Default Warranty textarea (`אחריות ברירת מחדל`, confirmed empty beforehand) filled with a clearly-TEST-labeled value (`[RELEASE-CERT-TEST] ... v1`), save succeeded with the expected success banner.
+- **WARRANTY step B (snapshot into new-quote form): PASS.** Opening "New Quote" showed the Warranty field pre-filled with exactly the just-saved default.
+- **QUOTE CREATE/SAVE: PASS.** A minimal clearly-TEST-labeled quote (`client_type:private`, chosen deliberately to avoid the Tax-ID-required-for-business gate) saved successfully — success banner, Total Quotes KPI incremented 6→7, and a direct DB read confirmed the new row: `id 295f4efc-...`, `quote_number 91` (continuing the existing global sequence — Item 17 still confirmed inactive), `warranty` correctly holding the v1 snapshot text.
+
+### Warranty historical-integrity step C — blocked, root-caused, NOT a Warranty defect
+
+Opening the new quote's Public Quote page (`/quote/295f4efc-.../?lang=he`) rendered correctly in every other respect (recipient, items, totals, terms) but showed **no Warranty section at all**, despite the DB snapshot being provably correct. Traced precisely, not guessed: the page's data comes from the `get-public-quote` Edge Function (via `SmartPublicQuote.jsx`), not a direct client query — see the pre-deploy audit below for the exact cause. **Warranty save/snapshot mechanism itself: fully proven correct on Production. Only its Public-Quote *display* is blocked, and only because of a stale deployment, not a code or data defect.**
+
+### get-public-quote Production Pre-Deploy Audit — Owner-directed, strictly read-only, no deploy performed
+
+The Owner explicitly redirected from "should this be deployed" to an audit-only path: verify everything, deploy nothing, stop and report.
+
+1. **Exact live version, proven not inferred**: `supabase functions list` showed `get-public-quote` v6, `updated_at` = 2026-08-25 22:33:23 UTC. Rather than trust the timestamp alone, the actual deployed source was downloaded (`supabase functions download`, run from an isolated scratch directory so the real repo working tree was never touched — confirmed clean via `git status` immediately after) and diffed byte-for-byte against the committed HEAD. **Result**: the live code contains zero references to `warranty`, `quote_number`, `attn_name`, or `attn_role` — it predates all three, matching commit `ab3de79` (2026-08-26, ~4 minutes before the deploy timestamp), not the intended warranty-only change.
+2. **The accumulated diff is three features, not one**: `ab3de79`→`ffc741d` (2026-08-28, added `quote_number`/`attn_name`/`attn_role`) →`6430cf5` (2026-08-31, added `warranty`) — all committed, none deployed together as the code's own inline comment already anticipated.
+3. **Deploy-blocking schema mismatch, confirmed via direct query**: Production's `quotes` table has `quote_number` and `warranty` (both fine), but **does not have `attn_name` or `attn_role`** — exactly the standing gap already documented in `PROFLOW_TODO.md` item 18. Since the committed function's `.select()` includes both unconditionally with no defensive fallback, deploying it as-is would make PostgREST reject every single request (`column "attn_name" does not exist`), returning "Quote not found or expired" for **every** Public Quote page, both markets — a full feature outage, not a partial gap.
+4. **Test coverage**: zero unit tests exist for `get-public-quote/index.ts` (unlike two sibling email functions) — a pre-existing gap, not introduced this session.
+5. **Client-code readiness**: both `PublicQuote.jsx` and `PublicQuoteEn.jsx` already correctly gate on `quote.warranty &&`, styled per-market — confirmed ready; the Edge Function alone is the blocker.
+6. **One-function-only deploy**: technically feasible in isolation, but isolation alone doesn't resolve the schema mismatch.
+7. **Rollback**: not needed (nothing deployed); the exact byte-identical pre-warranty source from step 1 is already archived and could be redeployed immediately if ever required.
+8. **Two safe forward paths identified, neither chosen**: (A) apply item 18's `attn_name`/`attn_role` migration to Production first, then deploy the current committed source as-is — fixes quote-number display, Attn display, and Warranty display together, matching the code's own documented "coordinated release" intent; (B) write, review, and commit a narrower warranty-only variant of the function (drop `attn_name`/`attn_role`), then deploy just that.
+
+### Status at this checkpoint
+
+**Task paused by explicit Owner direction after the audit**, not resumed to further smoke steps. Not yet attempted: HE Warranty historical-integrity steps D/E, HE Signature Pad, HE Quote History/Dashboard detail, the entire EN identity side, responsive smoke, Admin (expected verdict: `PENDING TEST ADMIN`, no real-Admin login attempted). **NO EDGE FUNCTION DEPLOY. NO APPLICATION PUSH. NO DB MUTATION beyond the one Owner-authorized in-app Warranty Settings save and the one TEST quote creation, both performed through the real UI as explicitly authorized. NO PRODUCTION MUTATION beyond those two authorized application-level writes. Password never written to any file, commit, log, screenshot, or continuity document.**
