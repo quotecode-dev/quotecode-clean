@@ -3255,3 +3255,111 @@ No other Edge Function deployed. No DB migration. No item 18 migration — `attn
 - **Item 17**: reconfirmed inactive (`pg_proc` count for `allocate_quote_number` = 0) at the end of this task.
 - **Canonical host**: every navigation this task explicitly targeted `www.quotecodepro.com` — confirmed via every `page_info()`/URL check; `quotecode.vercel.app` was never landed on.
 - **Email functions**: no "Send Email" action was triggered at any point this task; not independently re-verified via `functions list` (already confirmed dormant as of §111's deploy checkpoint, unaffected by anything in this verification-only task).
+
+## §113. TEST vs Production Drift / Regression Root-Cause Audit (2026-08-31, READ-ONLY)
+
+**Strictly read-only. No code, CSS, DB, migration, commit, push, deploy, or mutation of any kind.**
+
+### 1. Fresh state
+
+`branch: main`, `HEAD = 071dad5` (Path B, uncommitted-to-remote), `origin/main = dd11015`, **1 ahead / 0 behind** — the only local-ahead commit is `071dad5`, which touches only `supabase/functions/get-public-quote/index.ts` (an Edge Function, never deployed via `git push` anyway). Working tree: the six continuity docs (expected) + untracked `entry-server.jsx` (pre-existing, documented). **Current Production frontend commit: `dd11015`** (Vercel auto-deploys `origin/main` on push — re-confirmed, not assumed). **There is no separate Vercel "TEST" deployment or project** — confirmed via `vercel.json` (one file, no preview/TEST-specific config) and the entire continuity record: "TEST" throughout this engagement has always meant the **local Vite dev server** (`npm run dev` / `dev:localtest`) pointed at the separate `quotecode-test` Supabase project — not a second deployed environment with its own pinned commit. This is itself a foundational finding (see §9/§10 below).
+
+### 2. Promotion chain — did tested code reach Production?
+
+**Frontend/CSS/component code: YES.** Every UI file directly implicated in the Owner's reports was diffed `origin/main` vs local `HEAD` and found **byte-identical** — `PublicQuoteHeader.jsx`, `AIChatWidget.jsx`, `AdminUsersTab.jsx`, `UserDetailsModal.jsx`, `LifetimeConfirmModal.jsx`, `AILogs.jsx` all show an **empty diff**. Whatever was last committed to these files did reach Production via the push to `origin/main`. No evidence of lost, unpushed, reverted, or overwritten work for any of them.
+
+**DB-schema-dependent features: NO.** Item 17's per-business numbering (`business_quote_sequences` table, `allocate_quote_number` RPC) and Item 18's Attn columns (`attn_name`, `attn_role`) exist on `quotecode-test` but were **never applied to Production** — this is not new information (every task since Item 17's original design has recorded "Not applied to Production, separate authorization required") but its **visible consequence** (real-looking-but-wrong quote numbers, a silently-missing Attn card) had not been directly inspected by the Owner against real Production until now.
+
+**Conclusion: DID THE CODE THAT PASSED TEST ACTUALLY REACH PRODUCTION? → PARTIALLY.** Frontend code: yes, faithfully. DB-dependent behavior: no, by a long-standing, previously-disclosed, still-open gap — not an accidental loss.
+
+### 3-4. Owner-observed items, individually investigated
+
+#### A. Quote Numbering (A93/A94) — ROOT CAUSE: **G (DB/schema divergence)**, proven
+
+Direct schema comparison, read-only, both projects:
+
+| | Production (`ixabnzhjeqevtbhdfswv`) | TEST (`quotecode-test`) |
+|---|---|---|
+| `quote_number` column default | `nextval('quotes_quote_number_seq')` | `NULL` (app-allocated only) |
+| `allocate_quote_number` RPC exists | **NO** (count=0) | **YES** (count=1) |
+| `business_quote_sequences` table exists | **NO** (count=0) | **YES** (count=1) |
+
+`formatQuoteNumber()` (`src/utils/quoteNumber.js:15-19`) does exactly what it was designed to do — `` `A${quoteNumber}` `` — for *whatever* is in `quote.quote_number`. On TEST that's the intended per-business `A100700+` value (via the RPC). On Production, since the RPC/table never exist there, `quote_number` is instead populated by an **entirely different, pre-existing, unrelated global Postgres sequence** that predates Item 17's design by an unknown margin and was never meant to be customer-facing in this form. The display code is correct and identical everywhere; the **data source underneath it is not** — Production shows "A91"-style small numbers because that's genuinely what's in the column, not because of a display bug. This is the Item 17 "coordinated release" gap, now visibly consequential rather than merely theoretical.
+
+#### B. Public Quote layout/proportions/oversized buttons — ROOT CAUSE: **I / J (never formally approved; insufficient reference to pinpoint one exact defect)**
+
+Investigated the actual CSS backing the "action tiles" (`.pq-action-tile` etc., defined inline in `PublicQuote.jsx`/`PublicQuoteEn.jsx`'s own `<style>` block, not a separate stylesheet) — values (`min-height:92px`/`78px` mobile, `padding:14px 8px`/`10px 4px` mobile, `flex:1 1 0`) read as deliberate, reasoned choices from a documented pass, not obviously "oversized" by the numbers alone, and this file is byte-identical to Production. **The more precise, evidence-backed finding**: `PROFLOW_TODO.md` item 14.A records **thirteen sequential implementation passes** for Public Quote, and **every single one carries `OWNER FINAL VISUAL ACCEPTANCE: 🔴 PENDING`** except one narrowly-scoped Mobile-width sub-item from the seventh pass. There is no continuity record of the Owner ever formally approving the cumulative Desktop/proportions/button/totals state as a whole. **This materially changes the audit's framing**: the premise "differs from the approved TEST state" cannot be fully verified against the record, because no such formally-approved end-state exists to diff against — what the Owner is now seeing in Production, for the first time under real scrutiny, is simply the last committed iteration of an explicitly still-under-review design, not a regression from something once accepted.
+
+#### C. Mobile Public Quote — HE — ROOT CAUSE: **two distinct causes, both proven**
+
+- **"לידי:" (Attn) missing** — direct, deliberate, already-disclosed consequence of the Path B `get-public-quote` deploy (§110/§111, two tasks ago). `PublicQuote.jsx`/`PublicQuoteEn.jsx` gate the Attn card on `{quote.attn_name && (...)}` — a single shared conditional, not Mobile-specific. Path B's live function (v7) does not select or return `attn_name`/`attn_role` at all (confirmed via the real HTTP responses captured during that deploy), because those columns don't exist on Production (item 18, same gap as item A above). The card is therefore silently absent on **every** Production Public Quote — desktop and mobile, HE and EN alike — not a Mobile-specific or HE-specific bug. **Category G.**
+- **"Call Me"/quote-number "moved back" to the header/upper area** — a genuine, precisely-located implementation asymmetry. `PublicQuoteHeader.jsx`'s own code comment (lines 153-160) documents an Owner-requested Desktop fix: swap the CTA and the quote-info box so the info box comes first, CTA second. That fix **was applied to the Desktop branch only** (lines 161-193: info box at 163-182, CTA at 184-192). The **Mobile branch of the exact same file** (lines 46-112) still has the CTA **first** (79-87) and the quote-number/date metadata **second** (88-107) — the pre-correction order, never updated to match. This file is byte-identical to `origin/main` — the inconsistency is baked into the one commit that both introduced and partially fixed it (`ffc741d`), not a promotion gap. **Category I**, and a direct, self-referential confirmation of the audit's own stated lesson (§8): a fix applied to one breakpoint is not proof it was applied to the sibling breakpoint in the same shared component.
+
+#### D. Public Quote — EN — independently verified, not inferred from HE
+
+`PublicQuoteHeader.jsx` is confirmed, by directly reading both call sites, to be the **literal same imported component** used by `PublicQuote.jsx` (HE) and `PublicQuoteEn.jsx` (`isHebrew={false}`) — not a separate EN implementation. Both root causes under item C therefore apply to EN identically and with the same evidence, verified structurally rather than assumed: the Attn-card gap (same shared conditional, same Path B response) and the Mobile CTA-order asymmetry (same shared Mobile branch, only text/alignment differ via `isHebrew`). "New quote still uses Axx numbering" is the same root cause as item A, confirmed on real EN Production quotes (#93/#95) during the immediately preceding smoke task.
+
+#### E. Admin / Super Admin — ROOT CAUSE: **I (the full redesign was designed but never authorized/built)**
+
+All four Admin-relevant files (`AdminUsersTab.jsx`, `UserDetailsModal.jsx`, `LifetimeConfirmModal.jsx`, `AILogs.jsx`) are byte-identical between `HEAD` and `origin/main` — **Production is running one single, fully-committed, fully-pushed version, not a mix of old and new code.** What's live is commit `4088c2c` ("Finalize Admin UI redesign and Super Admin visibility") plus the later entitlement-resolver fix (`c4491a8`/`f482d69`, unrelated to visuals). The much more ambitious **"Admin V2" redesign** (consolidated visual system, new Information Architecture, 9-phase implementation sequence) that a prior Maximum Admin Audit (§94.1) produced was **explicitly, in its own words, "design-only... zero implementation, zero code touched"** — it was never authorized for building, so it cannot be live anywhere. The Owner's observation that "the redesign changed very little" is therefore consistent with the record: the *narrow* redesign pass is what's live; the *large* one was only ever a proposal.
+
+#### F. AI Chat mobile overlap — ROOT CAUSE: **H (pre-existing responsive defect, identical in TEST and Production)**
+
+`AIChatWidget.jsx` is byte-identical to `origin/main`, and its `position:fixed`/`zIndex:999999`/`bottom:85px`-on-mobile styling traces back to a **much older base commit** (`ec0fa59`/`3f6cd27`/`1992de8`), predating this entire Item-17/Warranty engagement by a wide margin. No Dashboard/Quote-History container has ever reserved bottom padding to keep its last visible card clear of this fixed overlay. Because the code is identical in both environments, **TEST would show the exact same overlap if scrolled to the same position at the same viewport** — this is not environment divergence, it's a long-standing gap that simply hadn't been specifically checked (scroll-to-bottom, 390×844, Quote History) before this engagement's own smoke task found it.
+
+### 5. Build/config/environment audit
+
+| Area | Finding |
+|---|---|
+| Separate Vercel TEST project | **NOT DIFFERENT** — none exists; confirmed via `vercel.json` (single file, no TEST-specific block) |
+| Vercel build command/output | **NOT DIFFERENT** — standard `vite build`, no override (re-confirmed, already established in §102/§106) |
+| Environment variables affecting UI | **UNVERIFIABLE** without Vercel dashboard access beyond what's already been checked; no `import.meta.env`-driven UI branch found in any file investigated this task |
+| NODE_ENV/mode/hostname conditionals affecting these surfaces | **NOT DIFFERENT** — none of the six investigated files (`PublicQuoteHeader.jsx`, `AIChatWidget.jsx`, `PublicQuote.jsx`, `PublicQuoteEn.jsx`, Admin files) contain any such conditional |
+| Supabase project (TEST vs Production) | **PROVEN DIFFERENT** — this *is* the root cause for items A/C(Attn)/D(numbering), detailed above |
+| Stale/cached build | **NOT DIFFERENT** — Path B's own deploy (§111) and every prior push (§107) independently proved fresh deployments take effect; no caching anomaly found |
+| Ignored/untracked files affecting these surfaces | **NOT DIFFERENT** — the only untracked file (`entry-server.jsx`) is unrelated, pre-existing, documented since §68/§69 |
+| Tailwind/CSS build output | **NOT DIFFERENT** for the files checked — `.pq-*` and AI-chat styles are inline `<style>` blocks bundled with the component, not Tailwind-generated; confirmed present in the same form on both sides via identical source |
+| Responsive breakpoints | **NOT DIFFERENT** (same code) but **PROVEN INCOMPLETE** for item C/D's Mobile CTA order — see above |
+| Data/schema divergence capable of changing rendering | **PROVEN** — items A and C(Attn)/D, both fully evidenced above |
+
+### 6. Git history / lost work audit
+
+No unpushed/reverted/overwritten commits were found for any file directly implicated in the Owner's reports — every relevant file's `origin/main` vs `HEAD` diff is empty. The one genuine "lost-work-shaped" nuance is structural, not file-specific: **because TEST has always meant the local dev server serving the live working tree (including uncommitted changes), any given Owner review session could have reflected code that was never committed at all**, later superseded by a different working-tree state before anything was finally committed (the large `fde680b` "Dashboard-Centered Remaining Work Bundle" commit, which consolidated many previously-uncommitted threads at once, is the clearest example of this pattern already on record). This is a testing-methodology characteristic, not a lost-commit incident — no specific instance of it was proven for any of the six items audited here, but it is the most plausible explanation for any residual "I remember it looking different" feeling that the concrete per-item findings above don't otherwise account for.
+
+### 7-8. Evidence discipline
+
+This audit used git diffs (not commit messages), direct schema queries on both Supabase projects (not assumption), and direct source reading (not the prior task's own summary). Per the audit's own stated lesson: **HE and EN were independently verified via source (not inferred), Desktop and Mobile were checked as separate code branches within the same file (not assumed to share a fix), and "TEST" was treated as a fundamentally different, sometimes-uncommitted, always-differently-migrated environment — never conflated with "Production," "origin/main," or a prior Claude report's own PASS verdict.**
+
+### 9. Root-cause matrix
+
+| Item | Root cause | Category |
+|---|---|---|
+| A. Quote numbering | Item 17's migration/RPC never applied to Production; Production's `quote_number` comes from an unrelated pre-existing global sequence | **G** |
+| B. Public Quote general layout/proportions | No single code defect found; every relevant file matches what's committed and pushed; the real gap is that no visual pass ever received full Owner acceptance | **I / J** |
+| C. HE Mobile — Attn missing | Direct, disclosed consequence of the Path B deploy (columns absent on Production) | **G** |
+| C. HE Mobile — CTA/number order | Desktop-only fix, Mobile branch of the same file never updated; baked into the committed source itself | **I** |
+| D. EN Public Quote | Same two root causes as C, independently confirmed via the shared component | **G + I** |
+| E. Admin | The narrow, actually-implemented redesign is live and consistent; the larger "Admin V2" redesign was only ever proposed, never authorized/built | **I** |
+| F. AI Chat mobile overlap | Long-standing, pre-existing, identical-in-both-environments responsive gap | **H** |
+
+### 10. Blast radius
+
+**Can TEST currently be trusted as a Production release gate? → PARTIALLY.**
+
+For pure frontend/CSS/component code with no DB dependency: **yes** — every file audited this task proves the exact code reviewed locally is the exact code that reached Production once committed and pushed; there is no evidence of any promotion-layer unreliability (no silent overwrite, no wrong-commit-deployed, no stale cache). The gap is upstream of promotion: reviews have not consistently covered every breakpoint/market/scroll-position combination before something was called "done," and formal Owner sign-off has been recorded as PENDING for nearly every visual pass in this engagement's history.
+
+For anything reading or writing real data through DB schema/RPCs: **no** — TEST's Supabase project (`quotecode-test`) carries roughly a dozen migrations, including Item 17's full per-business numbering scheme and Item 18's Attn columns, that Production does not have. A feature verified end-to-end on TEST can look completely different — or, worse, **silently substitute unrelated pre-existing data** (as with quote numbering) rather than cleanly falling back — on Production, with zero code difference to explain it.
+
+**What would need to change** (not implemented, plan only): a documented, binding rule that no DB-dependent feature is described as "TEST-verified" without a parallel statement of its exact Production-schema gap; and/or a lightweight schema-parity check (comparing `information_schema` between the two projects) run as part of any pre-push audit, so a gap like items A/C/D is caught and named *before* the Owner discovers it by inspecting real customer-facing pages.
+
+### 11. Remediation plan — PLAN ONLY, nothing implemented
+
+1. **Release/promotion integrity**: adopt the schema-parity check above as a standing pre-push gate item. *Files*: none (process only). *Risk*: none. *TEST requirement*: N/A. *HE/EN/Production impact*: none directly; reduces future surprise. *Order*: first, since it's process not code.
+2. **Quote numbering**: apply Item 17's full migration package to Production (already fully specified, already TEST-verified) as its own explicitly-authorized step, per the existing Mandatory Pre-LIVE Backup & Rollback Gate. *Files*: 5 migration files (already written), `get-public-quote`, `send-quote-email` (redeploy). *Risk*: medium (schema change + two Edge Function redeploys, needs the full documented gate). *TEST requirement*: already satisfied. *HE/EN impact*: both, symmetric. *Production impact*: every quote going forward gets a real per-business number; historical low numbers remain as-is (not renumbered). *Order*: after item 1, since it's the highest-value, most-specified fix.
+3. **Public Quote desktop/mobile — Mobile CTA/number order**: swap the two children in `PublicQuoteHeader.jsx`'s Mobile branch to match the already-approved Desktop order. *Files*: `PublicQuoteHeader.jsx` only. *Risk*: low (pure JSX reorder, no style change, same pattern already proven safe on Desktop). *TEST requirement*: quick re-verify both breakpoints, both markets. *HE/EN impact*: both, symmetric (shared component). *Production impact*: cosmetic only. *Order*: early, cheap and low-risk.
+4. **HE/EN Attn card**: covered by item 2 (Item 18's migration) plus redeploying `get-public-quote` with `attn_name`/`attn_role` restored once those columns exist. *Files*: `get-public-quote/index.ts` (revert the Path B removal). *Risk*: low, contingent entirely on item 2 landing first. *Order*: immediately after item 2's migration, same coordinated release.
+5. **AI Chat mobile overlap**: reserve bottom padding on the Dashboard's scrollable Quote History container (or an equivalent scroll-margin) sized to the widget's mobile footprint. *Files*: `Dashboard.jsx` and/or `AIChatWidget.jsx`. *Risk*: low, purely additive spacing. *HE/EN impact*: both (shared layout). *Order*: independent of everything else, can go any time.
+6. **Public Quote general layout/proportions**: requires an actual Owner review session (real device, both markets, both breakpoints) against the current live state, since no prior formally-approved reference exists to diff against — remediation here should start with the Owner naming *specific* elements that look wrong, not a blind re-pass. *Order*: last, deliberately, since it depends on Owner input this audit cannot substitute for.
+7. **Admin UI**: no code defect found: current Admin is exactly what was authorized and committed. Whether to pursue the larger "Admin V2" redesign is a fresh product decision, not a bug fix. *Order*: separate, future, Owner-initiated.
+
+**No remediation performed. Waiting for Owner review and authorization on any of the above.**
