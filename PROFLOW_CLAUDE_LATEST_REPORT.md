@@ -4,84 +4,87 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 2 — Backup Restore Proof
+## Task: Wave 2 / Step 2 — Malformed Migration Filename Correction
 
-Continues directly from Wave 2 / Step 1 (`PROFLOW_PROJECT_CONTEXT.md` §115). Full detail: §115's Restore Proof addendum.
+Continues directly from the Wave 2 Backup Restore Proof (`PROFLOW_PROJECT_CONTEXT.md` §115). Full detail: §115's Step 2 addendum.
 
-**Owner-authorized: restore-proof of the existing backup only. NOT Wave 2 Step 2 authorization. NO Production/TEST mutation.**
+**Owner-authorized: filename correction only. No rename was performed — a genuine ambiguity was found first, per this task's own explicit instruction to stop.**
 
 ---
 
-## TASK: Wave 2 — Backup Restore Proof
+## TASK: Wave 2 / Step 2 — Migration Filename Correction
 ## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
-## STATUS: **PASS**
+## STATUS: **BLOCKED**
 
 ---
 
-## ORIGINAL BACKUP CHECKSUMS
+## FRESH LOCAL STATE
 
-All 5 documented Step 1 artifacts re-checksummed against `CHECKSUMS.sha256` — **all 5: OK**, byte-identical, nothing regenerated or substituted.
+`HEAD = main = 071dad55f8cd6c742eb89aed053e68c59fc87cf8`, `origin/main` (fresh fetch) `= dd110155a927f708f00467e1017bd183582b42aa`, working tree at standard baseline (six continuity docs + untracked `entry-server.jsx`). Wave 0 tag `proflow-pre-recovery-2026-08-31` re-verified intact, resolves exactly to `dd11015`. Migrations directory freshly enumerated — unchanged from every prior check.
 
-## DISPOSABLE TARGET — PROOF
+## CURRENT PATH
 
-- Container: `wave2-restore-proof` — new, unique, never used for TEST/Production.
-- Bound address: `127.0.0.1:55433` — localhost-only, not externally reachable.
-- Image: `postgres:17`, vanilla Docker Hub image, unrelated to Supabase's hosted infrastructure or CLI-managed local stack.
-- No ambiguity about target existed at any point — confirmed via name, binding, and image identity before any restore command ran.
+`supabase/migrations/202608270000015_attach_quote_number_unique_constraint.sql`
 
-## POSTGRES VERSION: `PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2)`
-## PSQL VERSION: `17.11`
+## CORRECTED PATH
 
-## RESTORE COMMANDS (sanitized)
-
-```
-docker cp <schema-backup> wave2-restore-proof:/tmp/schema.sql
-docker cp <data-backup> wave2-restore-proof:/tmp/data.sql
-docker exec wave2-restore-proof psql -U postgres -d postgres -f /tmp/schema.sql
-docker exec wave2-restore-proof psql -U postgres -d postgres -f /tmp/data.sql
-```
-
-(Between passes: minimal stand-in Supabase-platform prerequisites added — `CREATE ROLE anon/authenticated/service_role NOLOGIN`, a stub `auth` schema + `auth.users` table, a stub `auth.uid()` function — since a project-level `public`-schema dump never includes these by design.)
+**Not determined with confidence — this is the core of the block.** The previously-identified target (`20260827000001a_attach_quote_number_unique_constraint.sql`) is now known to be unsafe (see below). A reasoned alternative, `20260827000004_attach_quote_number_unique_constraint.sql`, is offered for review but was **not authorized by this task's scope** and was **not** applied.
 
 ---
 
-## SCHEMA RESTORE: **PASS**
+## RENAME JUSTIFICATION — WHY THIS IS BLOCKED
 
-First pass: exit 0 but ~100 errors, all traced precisely to the missing platform prerequisites above — not a backup defect (core tables, including `quotes` with its exact correct default, had already been created despite these errors). After adding prerequisites and re-running cleanly: **zero errors.** All 9 tables, 12 functions, 5 triggers, 24 RLS policies, grants restored.
+A full-codebase reference search for the malformed filename (required by this task's own Step 2 checklist, section 2) surfaced a direct, material contradiction:
 
-## DATA RESTORE: **PASS**
+- **This Recovery effort's own prior conclusion** (`PROFLOW_PROJECT_CONTEXT.md` §115, citing the malformed file's own header comment): rename to `20260827000001a_...`.
+- **An earlier, independently-authored, runtime-tested entry** (`PROFLOW_HANDOFF.md` §18.BO, "Disposable Supabase Runtime Migration Validation" — a task that actually ran `supabase db push --dry-run` against a real disposable Supabase project, not a static review): *"202608270000015 [renamed from 00001a during the prior static-review task, since a plain `a` suffix on a timestamp broke Supabase's filename pattern and was **silently skipped by `db push`** — caught this pass by the tool itself, fixed by using a purely-numeric 15-digit timestamp, re-verified via `--dry-run`]."*
 
-`COPY 28` (exact), `setval` → `95` (exact), zero errors.
+**The header comment's suggested fix is the exact naming pattern an earlier task already discovered, via real tool behavior, to be silently skipped by Supabase's migration tooling** — a failure mode strictly worse than the current, at least loud, ordering-collision error. Executing the previously-planned rename would not have corrected the filename — it would have regressed it to an already-discovered, already-fixed defect.
 
-## RESTORED QUOTE COUNT: **28**
-## EXPECTED QUOTE COUNT: **28** — MATCH
-
-## SEQUENCE/NUMBERING COMPARISON
-
-`quotes_quote_number_seq` `setval` = 95 in both the restored target and the original data dump's own trailing statement — MATCH. `quote_number` column default = `nextval('quotes_quote_number_seq'::regclass)` in both restored and documented Production baseline — MATCH.
-
-## STRUCTURAL COMPARISON
-
-| Object | Restored | Baseline | Result |
-|---|---|---|---|
-| `business_quote_sequences` | absent | absent | MATCH |
-| `allocate_quote_number()` | absent | absent | MATCH |
-| Unique index/constraint | absent | absent | MATCH |
-| Immutability trigger/function | absent | absent | MATCH |
-| `attn_name` / `attn_role` | absent | absent | MATCH |
-| Existing `quotes` triggers | `guard_quote_immutability_delete_trigger`, `guard_quote_immutability_update` | same | MATCH |
-| `public` function count | 12 | 12 | MATCH |
-| `public` RLS policy count | 24 | 24 | MATCH |
-
-## STATE SNAPSHOT COMPARISON
-
-Per-business max `quote_number` — all 7 businesses, same `user_id`s, same row counts, same max values (95/92/89/87/81/57/46) — **byte-for-byte identical** to the Step 1 state snapshot. No customer-sensitive row content (names, contact info, terms text) was printed at any point — only IDs, counts, and numeric values.
+**Why this wasn't caught earlier in this Recovery effort**: every prior audit (§113, §114, §115's Safety Gate, Step 1, and Restore Proof) exhaustively verified the *sort-order* problem via three independent methods — but never cross-referenced the header comment's suggested name against the fuller continuity history for a second, independent reason it might be unsafe. This task's own explicit reference-search requirement, combined with its "if any ambiguity exists, STOP" instruction, is precisely what surfaced it.
 
 ---
+
+## PRE-RENAME SHA-256: N/A — no rename attempted
+## POST-RENAME SHA-256: N/A — no rename attempted
+## CONTENT BYTE-IDENTICAL: N/A (file untouched)
+
+## MIGRATION ORDER BEFORE
+
+`20260827000000` → `202608270000015` (malformed, sorts here) → `20260827000001` → `20260827000002` → `20260827000003` → `20260828000000` → ... — unchanged from every prior audit.
+
+## MIGRATION ORDER AFTER
+
+**Unchanged — no rename performed.**
+
+## ORDER DEFECT RESOLVED: **NO**
+
+Not resolved this task. The defect remains, correctly un-"fixed" rather than incorrectly "fixed" with a regression.
+
+---
+
+## BACKUP ARTIFACTS: **PRESENT**
+## BACKUP CHECKSUMS: **MATCH**
+
+All 5 Step 1 artifacts re-verified via `sha256sum -c CHECKSUMS.sha256` — all OK, unaffected by this task (no backup regeneration).
 
 ## RESTORE READINESS: **VERIFIED**
 
-Not classified VERIFIED merely because SQL executed. Classified VERIFIED because: a real restore ran against a genuinely isolated disposable target; every structural check matched the documented baseline exactly; every data check matched exactly; the one class of real errors encountered was correctly diagnosed as a test-environment artifact (missing platform scaffolding a real Supabase project always has) rather than rationalized away as acceptable noise in the backup itself.
+Unchanged from the prior task's real, complete, isolated restore proof — unaffected by this task's finding, since no file was touched.
+
+---
+
+## FILES CHANGED: continuity documentation only
+
+`PROFLOW_PROJECT_CONTEXT.md` (§115 Step 2 addendum), `PROFLOW_ARCHITECTURE.md` (§14.A correction + new permanent rule), `PROFLOW_HANDOFF.md` (§18.FF), `PROFLOW_CHAT_HANDOFF.md` (§14 resume pointer), `PROFLOW_TODO.md` (continuity log), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). **No migration file, no application file, no other source file changed.**
+
+## COMMIT CREATED: **NO**
+
+No rename occurred, so there is nothing to commit for this step — per the task's own instruction, a commit is only appropriate once the authorized rename is actually performed. Not inventing a new git policy; simply nothing to stage.
+
+## COMMIT SHA: N/A
+
+## PUSH TO MAIN: NO
 
 ---
 
@@ -89,27 +92,19 @@ Not classified VERIFIED merely because SQL executed. Classified VERIFIED because
 ## PRODUCTION SCHEMA MUTATED: NO
 ## TEST MUTATED: NO
 ## EDGE FUNCTIONS MUTATED: NO
-## APPLICATION CODE CHANGED: NO
-## MAIN PUSH: NO
+## APPLICATION RUNTIME CHANGED: NO
+## VERCEL CHANGED: NO
 ## PRODUCTION DEPLOY: NONE
 
-Fresh post-proof checks confirm all of the above: live Production `quotes` count still 28, migration ledger still exactly one row, linked project still Production, canonical redirect still live.
-
-## DISPOSABLE ENVIRONMENT CLEANED: YES
-
-`docker rm -f wave2-restore-proof` — confirmed via `docker ps -a` (no match) and `docker volume ls` (no match).
-
-## BACKUP ARTIFACTS RETAINED: YES
-
-Re-verified present and checksum-matching after the restore proof — not deleted, remain available for the Recovery rollback window.
+---
 
 ## UNEXPECTED EVENTS
 
-None requiring correction this task. (The ~100 initial schema-restore errors were investigated and resolved as documented above, not an uncorrected surprise.) No repo pollution this time — a plain Docker container was used instead of the Supabase-CLI-managed local stack that left an artifact last time.
+A genuine, material contradiction was found in the continuity record between this Recovery effort's own prior conclusion and an earlier, independently-authored, runtime-tested finding — reported in full above, not hidden or minimized.
 
 ## RISKS
 
-None new. The standard `psql -f` restore path is now proven, not merely documented.
+If the previously-identified filename target (`...001a...`) had been used without this cross-reference, the constraint would have been silently, permanently absent from any future Production migration run, with the whole batch otherwise appearing to succeed — a significant, hard-to-detect data-integrity gap (the per-business quote_number uniqueness constraint would simply never exist, with no error surfaced anywhere). Catching this now, before any execution, is the entire value of this gate-driven process.
 
 ---
 
@@ -117,10 +112,10 @@ None new. The standard `psql -f` restore path is now proven, not merely document
 
 | File | Status |
 |---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — Restore Proof addendum appended to §115 |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — §14 resume pointer, Step 1 paragraph retained |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED — §1.A proven restore-path note |
-| `PROFLOW_HANDOFF.md` | UPDATED — §18.FE appended |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — Step 2 addendum (BLOCKED) appended to §115 |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — §14 resume pointer, Restore Proof paragraph retained |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — §14.A corrected, new permanent rule on migration filename format |
+| `PROFLOW_HANDOFF.md` | UPDATED — §18.FF appended |
 | `PROFLOW_TODO.md` | UPDATED — continuity log extended |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED — this file, fully rewritten |
 
@@ -128,12 +123,12 @@ None new. The standard `psql -f` restore path is now proven, not merely document
 
 ## RECOMMENDED NEXT STEP (ONE step only)
 
-Owner + ChatGPT review this VERIFIED restore proof; if satisfied, the next authorized action is Wave 2 Step 2 (renaming the malformed migration filename) as its own separately-authorized step.
+Owner + ChatGPT review this finding and either (a) authorize the reasoned alternative filename (`20260827000004_attach_quote_number_unique_constraint.sql`) as the new Step 2 target, or (b) provide additional context this task may be missing (e.g., a Supabase CLI version change since §18.BO's finding that might have resolved the silent-skip behavior) before any rename is attempted.
 
 ---
 
 ## FINAL STOP
 
-Restore readiness is now genuinely, evidentially VERIFIED — not structural inspection alone, but a real, complete, isolated restore with every structural and data check matching the documented pre-Wave-2 Production baseline exactly. Zero Production, TEST, DB, Edge Function, or application-code mutation occurred at any point. The disposable environment is fully destroyed; the real backup artifacts remain safely retained.
+A genuine, material ambiguity was found and reported rather than resolved by guessing or by mechanically executing the previously-identified fix. The malformed migration file remains completely unchanged — same name, same content, same location. No rename, no commit, no mutation of any kind occurred. This is the correct outcome of a safety gate working as intended.
 
-DO NOT START WAVE 2 STEP 2. WAIT FOR OWNER + CHATGPT REVIEW.
+DO NOT START WAVE 2 STEP 3. WAIT FOR OWNER + CHATGPT REVIEW.
