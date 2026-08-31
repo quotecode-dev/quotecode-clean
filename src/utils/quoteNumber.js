@@ -31,3 +31,28 @@ export const formatQuoteNumber = (quoteNumber) => {
 export const formatQuoteFallback = (quote) => {
   return formatQuoteNumber(quote?.quote_number) || `#${(quote?.id || '').slice(0, 8)}`;
 };
+
+// חוק ברזל (Quote History Final Polish task - Order Number Sorting Fix):
+// מספר-ההזמנה המוצג ללקוח (formatQuoteFallback, למשל "A100713") נגזר תמיד
+// מ-quote.quote_number (מספר שלם) - מפתח-מיון עבור עמודת "מספר הזמנה" חייב
+// להשוות את אותו שדה בדיוק, לא את quote.id (UUID פנימי, ללא שום קשר לרצף
+// המוצג - זה היה הבאג המקורי שהבעלים דיווח עליו ב-Dashboard.jsx). מוחזר
+// כמפתח-מיון נומרי בודד (לא פונקציית-השוואה זוגית) כדי להישאר תואם לחלוטין
+// לתבנית ה-aVal/bVal + עלייה/ירידה הגנרית הקיימת כבר ב-Dashboard.jsx - לא
+// נדרש לשכתב את מנגנון-המיון הכללי בשביל התיקון הזה.
+// הצעות legacy בלי quote_number אמיתי עדיין (fallback ל-#UUID-מקוצר בתצוגה,
+// ר' formatQuoteFallback למעלה) אין להן מיקום-סדר מספרי משמעותי משלהן - הן
+// ממוינות כקבוצה אחת שלמה שנופלת תמיד *לפני* כל הצעה עם מספר-הזמנה אמיתי
+// (LEGACY_ORDER_CEILING גבוה בהרבה מכל timestamp אמיתי של created_at וגם
+// מכל quote_number מציאותי), ובתוך הקבוצה הזו עצמה ממוינות לפי created_at
+// כך שהסדר היחסי ביניהן עדיין משמעותי ולא שרירותי-UUID.
+const LEGACY_ORDER_CEILING = 1e15; // מעל epoch ms נוכחי (~1.7e12) בהרבה, ומעל כל quote_number מציאותי
+export const getQuoteOrderSortKey = (quote) => {
+  const num = quote?.quote_number;
+  const hasRealNumber = num !== null && num !== undefined && !Number.isNaN(Number(num));
+  if (hasRealNumber) {
+    return LEGACY_ORDER_CEILING + Number(num);
+  }
+  const created = quote?.created_at ? new Date(quote.created_at).getTime() : 0;
+  return Number.isFinite(created) ? created : 0;
+};
