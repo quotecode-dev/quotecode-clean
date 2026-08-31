@@ -4,75 +4,64 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Owner Visual Correction — Frame B Rounded Corners + Missing Slider
+## Task: Trial Bar Owner-Reference Correction — Exact Visual Match
 
-**EFFORT LEVEL: HIGH.** Full detail in `PROFLOW_PROJECT_CONTEXT.md` §87. No commit, no push, no Production.
+**Full detail in `PROFLOW_PROJECT_CONTEXT.md` §89 (supersedes §88).** No commit, no push, no Production.
 
----
-
-## FRAME A CORNERS: ROUNDED
-
-Unchanged this task (plain `<div>`, never affected by the table-cell limitation below).
-
-## FRAME B TOP-LEFT: ROUNDED
-## FRAME B TOP-RIGHT: ROUNDED
-## FRAME B BOTTOM-LEFT: ROUNDED
-## FRAME B BOTTOM-RIGHT: ROUNDED
-
-**Root cause of the prior FAIL**: `border-radius` on `<th>`/`<td>` cells does not actually render under `border-collapse:'collapse'` — a known CSS limitation. `getComputedStyle` still faithfully reports the authored `12px` value regardless, which is exactly what produced the earlier false PASS. **Fix**: switched the table from `borderCollapse:'collapse'` to `'separate'` + `borderSpacing:0`. Safety-tested *before* touching source via a reverted DOM-style simulation: 9 of 10 header columns were byte-identical before/after; the 10th (the single outer-edge column) shifted by exactly `0.5px` — an expected, unavoidable side-effect of the border model itself (the table's own outer border is no longer half-collapsed into the boundary), not a genuine column-geometry regression. **Verified this time via actual zoomed, cropped screenshots of all 4 corners** in both locales — not computed-style inspection alone — confirmed visibly rounded, correctly mirrored (HE: right-side rounding on Client Type, left-side on Actions; EN: the opposite).
-
-## FRAME A + FRAME B VISUAL MATCH: PASS
-
-Same `#E9D5FF` / `1px` / `12px` on both, confirmed visually.
+The Owner supplied an explicit, authoritative visual reference image mid-task, stating it overrides any prior written instruction and is not to be reinterpreted. It shows the correct structure: **Frame A → a narrow, separate "track" the trial bar lives and slides within (not merged into the control row, not its own oversized row) → the Quote History control row → Frame B (table header only) → data rows.** A same-day intermediate attempt (merging the trial bar into the control row, per an earlier written instruction) was reverted before it was ever shown to the Owner as final.
 
 ---
 
-## SLIDER VISIBLE IN GAP: PASS
+## APPROVED MOCKUP STRUCTURE MATCH: PASS
 
-Built as a real, accessible toggle switch (`role="switch"`, `aria-checked`), theme-purple gradient when ON, centered in the gap via `position:'absolute'` inside a `position:'relative'` control-row container.
+Frame A → thin trial-bar track → control row → Frame B → data rows, confirmed via real-browser geometry and screenshots in both markets, matching the reference image.
 
-## EXTRA ROW CREATED: NO
+## TRIAL BAR HAS OWN OVERSIZED ROW: NO
 
-The absolute positioning removes the control entirely from the row's normal flex flow — it is structurally incapable of participating in the row's `flexWrap` calculation, so it cannot itself trigger a wrap/extra row.
+## TRIAL BAR MERGED INTO CONTROL ROW: NO
+
+Neither of the two previously-tried (and rejected) placements. It lives in its own compact, content-driven track directly beneath Frame A.
+
+## EXTRA VERTICAL GAP WHEN HIDDEN: NONE
+
+Conditionally rendered only while `trialNoticeVisible` is true — zero DOM presence, zero space reserved, when inactive. Control row's resting position (`top:293.39`) measured identical whether the notice was ever shown, dismissed, or timed out naturally.
+
+## SEARCH FUNCTIONAL: PASS
+## STATUS FUNCTIONAL: PASS (unmoved)
+## EXPORT FUNCTIONAL: PASS (unmoved)
+
+Search verified live (13 rows → 1 empty-state row on a non-matching query → 13 rows restored).
 
 ## TABLE GEOMETRY REGRESSION: NONE
 
-Full ledger re-run after both fixes — unchanged from the prior task's own measurements (see below).
-
-**OFF→ON→OFF proof** (both locales, live-clicked, not simulated): Frame A bottom, `<thead>` top, Export-CSV button left, search-input left, and the slider's own position were measured in all three states — **byte-identical across every state, both locales**. `aria-checked` correctly toggled `false→true→false`. Zero horizontal overflow throughout.
-
-**Note on function**: the toggle's own presence, placement, and zero-layout-impact are fully built and verified. Its *function* remains intentionally unwired — its only historically-implied purpose (an Expanded/Collapsed dashboard state) was explicitly abandoned by the Owner in an earlier task, so nothing was invented to replace it. This is disclosed transparently rather than left ambiguous.
+No table-geometry/typography code path was touched this task (only the trial-notice container's mount location moved) — full column/typography audit not re-run from scratch, consistent with the Component Contract Trigger rule.
 
 ---
 
-## HE: PASS
-## EN: PASS
+## REAL-BROWSER PROOF (both markets, dedicated TEST accounts, not a page-level toggle)
 
-Structurally and visually symmetric throughout — frames, gap, and slider all confirmed correctly mirrored.
+| | Frame A top/bottom | Trial track top/bottom | Track left/right |
+|---|---|---|---|
+| HE (Local TEST account) | 16 / 262.39 | 278.39 / 306.39 | 462.5 / 1442.5 |
+| EN (International TEST account) | 16 / 262.39 | 278.39 / 306.39 | 462.5 / 1442.5 |
 
----
+Byte-identical between markets. Track width exactly matches Frame A's own width. Screenshots in both locales visually confirmed against the Owner's reference image. Dismiss-button proof: control row moved from `top:337.39` to `top:293.39` immediately after clicking the trial bar's own X — the same position independently measured after the notice's natural auto-hide timeout.
 
-## ALL-COLUMN GEOMETRY: PASS
+**Note on market verification method**: this app's HE/EN content is tied to the account's own configured market, not a client-side language toggle — confirmed live that a `localStorage` language-key change altered only the `dir`/`lang` HTML attributes, not the rendered text. Verification therefore used the two distinct dedicated TEST accounts (`PROFLOW_TEST_LOCAL_*` for HE/ILS, `PROFLOW_TEST_INTL_*` for EN/USD), per the standing Market Isolation Verification Discipline.
 
-Date, Order, Amount, Status, Actions, Client Type, Views all `0–0.01px`, both locales, re-verified after both fixes.
-
-## AMOUNT PLACE-VALUE: PASS
-## VIEWS GEOMETRY: PASS
-## ORDER SORT: PASS (ASC re-confirmed both locales)
-## TYPOGRAPHY 500/400/500: PRESERVED
+**Credential dead-end diagnosed and resolved, read-only, before proceeding** (at the Owner's explicit request): the dev server on port 5186 (`vite --mode localtest`) loads `.env.localtest.local` on top of `.env`, pointing at a different Supabase project than the documented `PROFLOW_TEST_USER1/USER2` pair belongs to — a genuine target mismatch (confirmed via a `fetch` hook returning HTTP 400), not a stale password or rate-limit. `PROFLOW_HANDOFF.md` §18.T updated with this finding so it isn't rediscovered.
 
 ---
 
 ## RESPONSIVE: PASS
 
-HE/EN × Desktop / Tablet Landscape / Tablet Portrait / Mobile — full 8-point matrix, zero horizontal overflow.
+Desktop 1920px / Tablet Landscape 1024px / Tablet Portrait 768px / Mobile 390px — zero horizontal overflow at every width; Mobile card view renders cleanly with no orphaned gap.
 
 ---
 
 ## FULL TESTS: 111/111 PASS (unchanged)
-## LINT: PASS (0 errors, 6 pre-existing warnings unchanged)
-## BUILD: PASS
-## BROWSER CONSOLE: CLEAN
+## LINT: PASS (0 errors, 1 pre-existing unrelated warning)
+## BUILD: PASS (pre-existing chunk-size advisory only, unrelated)
 
 ---
 
@@ -90,4 +79,4 @@ HE/EN × Desktop / Tablet Landscape / Tablet Portrait / Mobile — full 8-point 
 
 ## FINAL STOP
 
-Frame B now genuinely renders with visibly rounded corners in both locales, proven this time via zoomed screenshots rather than computed-style inspection alone — the exact methodology gap that produced the earlier false PASS is now documented as a permanent lesson. A real, accessible, structurally-safe toggle switch now exists in the gap with a fully verified zero-layout-impact OFF→ON→OFF cycle in both locales; its function remains honestly reported as unwired pending a future specification. Returned to Owner + ChatGPT for visual review.
+The trial bar now renders exactly where the Owner's authoritative visual reference shows it — a narrow, self-contained track between Frame A and the Quote History control row, not merged into the control row and not a full-height standalone row. Both the earlier (now-superseded) control-row-merge attempt and this final placement are documented for the historical record. Returned to Owner for visual review.
