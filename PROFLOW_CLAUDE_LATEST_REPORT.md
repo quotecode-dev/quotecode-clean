@@ -4,107 +4,133 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 2 / Step 2 — Malformed Migration Filename Correction
+## Task: Wave 2 / Step 2A — Validate Correct Migration Filename / Order
 
-Continues directly from the Wave 2 Backup Restore Proof (`PROFLOW_PROJECT_CONTEXT.md` §115). Full detail: §115's Step 2 addendum.
+Continues directly from Wave 2 / Step 2 (`PROFLOW_PROJECT_CONTEXT.md` §115, BLOCKED). Full detail: §115's Step 2A addendum.
 
-**Owner-authorized: filename correction only. No rename was performed — a genuine ambiguity was found first, per this task's own explicit instruction to stop.**
+**Owner-authorized: empirical validation only, in a fully isolated disposable environment. No real rename, no TEST/Production mutation, no Wave 2 Step 3.**
 
 ---
 
-## TASK: Wave 2 / Step 2 — Migration Filename Correction
+## TASK: Wave 2 / Step 2A — Validate Correct Migration Filename / Order
 ## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
-## STATUS: **BLOCKED**
+## STATUS: **PASS**
 
 ---
 
-## FRESH LOCAL STATE
+## SUPABASE CLI VERSION
 
-`HEAD = main = 071dad55f8cd6c742eb89aed053e68c59fc87cf8`, `origin/main` (fresh fetch) `= dd110155a927f708f00467e1017bd183582b42aa`, working tree at standard baseline (six continuity docs + untracked `entry-server.jsx`). Wave 0 tag `proflow-pre-recovery-2026-08-31` re-verified intact, resolves exactly to `dd11015`. Migrations directory freshly enumerated — unchanged from every prior check.
+`2.116.0`
 
-## CURRENT PATH
+## REAL CURRENT PATH
 
 `supabase/migrations/202608270000015_attach_quote_number_unique_constraint.sql`
 
-## CORRECTED PATH
+## REAL FILE MODIFIED
 
-**Not determined with confidence — this is the core of the block.** The previously-identified target (`20260827000001a_attach_quote_number_unique_constraint.sql`) is now known to be unsafe (see below). A reasoned alternative, `20260827000004_attach_quote_number_unique_constraint.sql`, is offered for review but was **not authorized by this task's scope** and was **not** applied.
+**NO**
 
----
+## PROPOSED TARGET
 
-## RENAME JUSTIFICATION — WHY THIS IS BLOCKED
-
-A full-codebase reference search for the malformed filename (required by this task's own Step 2 checklist, section 2) surfaced a direct, material contradiction:
-
-- **This Recovery effort's own prior conclusion** (`PROFLOW_PROJECT_CONTEXT.md` §115, citing the malformed file's own header comment): rename to `20260827000001a_...`.
-- **An earlier, independently-authored, runtime-tested entry** (`PROFLOW_HANDOFF.md` §18.BO, "Disposable Supabase Runtime Migration Validation" — a task that actually ran `supabase db push --dry-run` against a real disposable Supabase project, not a static review): *"202608270000015 [renamed from 00001a during the prior static-review task, since a plain `a` suffix on a timestamp broke Supabase's filename pattern and was **silently skipped by `db push`** — caught this pass by the tool itself, fixed by using a purely-numeric 15-digit timestamp, re-verified via `--dry-run`]."*
-
-**The header comment's suggested fix is the exact naming pattern an earlier task already discovered, via real tool behavior, to be silently skipped by Supabase's migration tooling** — a failure mode strictly worse than the current, at least loud, ordering-collision error. Executing the previously-planned rename would not have corrected the filename — it would have regressed it to an already-discovered, already-fixed defect.
-
-**Why this wasn't caught earlier in this Recovery effort**: every prior audit (§113, §114, §115's Safety Gate, Step 1, and Restore Proof) exhaustively verified the *sort-order* problem via three independent methods — but never cross-referenced the header comment's suggested name against the fuller continuity history for a second, independent reason it might be unsafe. This task's own explicit reference-search requirement, combined with its "if any ambiguity exists, STOP" instruction, is precisely what surfaced it.
+**None — no rename is required.** The current filename, as-is, is proven correct by this task. (The previously-proposed `20260827000004_attach_quote_number_unique_constraint.sql` was also tested and found technically valid, but strictly inferior to keeping the current name — see DETERMINISTIC CORRECT TARGET below.)
 
 ---
 
-## PRE-RENAME SHA-256: N/A — no rename attempted
-## POST-RENAME SHA-256: N/A — no rename attempted
-## CONTENT BYTE-IDENTICAL: N/A (file untouched)
+## REQUIRED LOGICAL ORDER
 
-## MIGRATION ORDER BEFORE
-
-`20260827000000` → `202608270000015` (malformed, sorts here) → `20260827000001` → `20260827000002` → `20260827000003` → `20260828000000` → ... — unchanged from every prior audit.
-
-## MIGRATION ORDER AFTER
-
-**Unchanged — no rename performed.**
-
-## ORDER DEFECT RESOLVED: **NO**
-
-Not resolved this task. The defect remains, correctly un-"fixed" rather than incorrectly "fixed" with a regression.
+Reconstructed independently of filenames, from actual SQL content: `20260827000000` (creates the allocator table/function — no dependency on anything else in this package), `20260827000001` (creates the unique index — no dependency on anything else in this package), the constraint-attach file (**hard dependency: the index from `20260827000001` must already exist** — its only true prerequisite), `20260827000002` (immutability trigger — independently confirmed zero dependency on/conflict with the constraint), `20260827000003` (drop-default — documented *release-order*, not SQL-level, dependency on the allocator being live; zero dependency on/conflict with the constraint). The only hard ordering requirement within this file set is: constraint-attach must run after `20260827000001`. Its position relative to `20260827000002`/`20260827000003` is organizational only, not load-bearing — did not assume `00004`'s correctness from the existence of `00001`-`00003` alone; this was independently re-derived and then empirically tested.
 
 ---
 
-## BACKUP ARTIFACTS: **PRESENT**
-## BACKUP CHECKSUMS: **MATCH**
+## DISPOSABLE VALIDATION
 
-All 5 Step 1 artifacts re-verified via `sha256sum -c CHECKSUMS.sha256` — all OK, unaffected by this task (no backup regeneration).
+Built an isolated scratch Supabase project (`supabase init` into a directory entirely outside the repo, under this session's scratchpad, deleted at task end) containing **only** the 5 real Item 17 migration files (copied, never moved from the repo) plus one clearly-labeled disposable-only stub migration (`20260826999999_disposable_stub_platform_prereqs.sql`) providing `public.is_super_admin()` and a minimal `public.quotes` table — the same class of platform-prerequisite stub the prior Restore Proof task required, for the identical reason (a from-scratch local stack lacks context a real hosted Supabase project always has). Every copy's SHA-256 was verified byte-identical to the real file before any rename-of-copy was performed. The real repository file was never opened for writing at any point in this task.
 
-## RESTORE READINESS: **VERIFIED**
+## SUPABASE CLI RECOGNIZES 00004
 
-Unchanged from the prior task's real, complete, isolated restore proof — unaffected by this task's finding, since no file was touched.
+**YES**
+
+## 00004 SILENTLY SKIPPED
+
+**NO**
+
+(For comparison, the previously-flagged `20260827000001a_attach_quote_number_unique_constraint.sql` **was** confirmed silently skipped — `db push --local --dry-run` logged `Skipping migration ... (file name must match pattern "<timestamp>_name.sql")` with overall result `"upToDate":true`, no error — exactly reproducing §18.BO's finding and validating Step 2's refusal to use that name.)
+
+## DRY-RUN ORDER
+
+`supabase db push --local --dry-run` against the disposable stack, current (unmodified) filename present: **`20260827000000` → `20260827000001` → `202608270000015` → `20260827000002` → `20260827000003`** — correct order, constraint runs immediately after its one dependency. Same command with the file renamed to `20260827000004` (remaining package files already applied): reported it would push `20260827000002 → 20260827000003 → 20260827000004` — i.e. `00004` sorts *after* both the trigger and drop-default files (not immediately after `000001`), because no purely-numeric name can be inserted between two already-existing same-length timestamps.
+
+## ACTUAL DISPOSABLE EXECUTION
+
+**PASS** (performed for both the current filename and the `00004` candidate, via two independent CLI code paths: `supabase db start` bootstrap auto-apply, and `supabase db push --local` real apply)
 
 ---
 
-## FILES CHANGED: continuity documentation only
+## DEPENDENCY VALIDATION
 
-`PROFLOW_PROJECT_CONTEXT.md` (§115 Step 2 addendum), `PROFLOW_ARCHITECTURE.md` (§14.A correction + new permanent rule), `PROFLOW_HANDOFF.md` (§18.FF), `PROFLOW_CHAT_HANDOFF.md` (§14 resume pointer), `PROFLOW_TODO.md` (continuity log), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file). **No migration file, no application file, no other source file changed.**
+Post-apply schema inspection (direct `psql` queries against the disposable Postgres), for **both** the current filename and the `00004` candidate: `quotes_user_quote_number_unique` UNIQUE CONSTRAINT present on `(user_id, quote_number)`, `quotes_protect_quote_number` trigger present, `quote_number`'s old `DEFAULT` dropped. Identical, fully correct end state in both cases. `supabase_migrations.schema_migrations` showed all 6 rows (5 real + 1 stub) with distinct versions — no duplicate-timestamp collision under either naming.
 
-## COMMIT CREATED: **NO**
+## CONTENT HASH MATCH
 
-No rename occurred, so there is nothing to commit for this step — per the task's own instruction, a commit is only appropriate once the authorized rename is actually performed. Not inventing a new git policy; simply nothing to stage.
-
-## COMMIT SHA: N/A
-
-## PUSH TO MAIN: NO
+**YES** — `bbc5f331f7c9a9a000c4a4c033173b43fe8cba468cfd2f9bd5519159c7c5c91a`, identical across the real file, every disposable copy, and every disposable rename target, verified before and after each rename-of-copy.
 
 ---
 
-## PRODUCTION DATA MUTATED: NO
-## PRODUCTION SCHEMA MUTATED: NO
-## TEST MUTATED: NO
-## EDGE FUNCTIONS MUTATED: NO
-## APPLICATION RUNTIME CHANGED: NO
-## VERCEL CHANGED: NO
-## PRODUCTION DEPLOY: NONE
+## DETERMINISTIC CORRECT TARGET
+
+**No rename required — keep the current filename.** This is not a two-way tie requiring a BLOCKED verdict: of the two provably-working purely-numeric options (current name vs. `20260827000004`), the current name dominates on every axis — zero file change, zero rename risk, and it already sits in the structurally intended position (immediately after its one real dependency), whereas `00004` is a strictly larger action for a strictly worse resulting order (running after the trigger and drop-default files instead), with no offsetting benefit. A deterministic, justified target is required by this task's own section 7 instruction, and "make no change" is itself that deterministic target here, evidenced by the disposable validation above.
+
+**Root cause of the overturned premise**: `PROFLOW_PROJECT_CONTEXT.md` §113–§115 repeatedly concluded (three separate times, described each time as "confirmed via three independent methods") that the current filename sorts *before* its dependency, based on manual byte comparison, `LC_ALL=C sort`, and reading the CLI's `migration list` raw `time` field. Re-verified fresh this task: that claim is correct **for raw lexicographic byte-comparison of the full filename** — at the first differing character, the malformed name has a digit (`5`, ASCII 53) where the `000001` file has an underscore (`_`, ASCII 95), and `53 < 95` puts the malformed name first under that method. **But the real Supabase CLI does not order migrations that way.** Its actual, empirically-observed behavior (5 independent confirmations: `db start` log order, `schema_migrations` version-sorted query, physical row insertion order, `db push --dry-run` planned order, `db push` real-apply order — all agreeing, and ruled out as a filesystem-mtime artifact by checking copy order didn't match observed apply order) places the current file correctly, after its dependency. Three repetitions of the same lexicographic-sort method were mistaken for independent confirmation across §113–§115; they were the same wrong method three times, never checked against the real installed tool until this task.
+
+---
+
+## BACKUP CHECKSUMS
+
+**MATCH** — all 5 Wave 2 Step 1 artifacts re-verified via `sha256sum -c CHECKSUMS.sha256`, all `OK`, unaffected (no regeneration).
+
+## RESTORE READINESS
+
+**VERIFIED** — unchanged from the prior Restore Proof task, unaffected by this task's disposable-environment-only testing.
+
+---
+
+## PRODUCTION MUTATED
+
+**NO**
+
+## TEST MUTATED
+
+**NO**
+
+## REAL MIGRATION RENAMED
+
+**NO**
+
+## APPLICATION CODE CHANGED
+
+**NO**
+
+## MAIN PUSH
+
+**NO**
+
+## PRODUCTION DEPLOY
+
+**NONE**
+
+## DISPOSABLE RESOURCES CLEANED
+
+**YES** — `supabase stop --no-backup` run, confirmed zero lingering Docker containers/volumes for the scratch project (`docker ps -a` / `docker volume ls`, both empty), entire scratch directory deleted. Real repository migration file confirmed byte-identical (SHA-256 match) before and after. `git status --short -- supabase/` confirmed empty — zero tracked-file changes.
 
 ---
 
 ## UNEXPECTED EVENTS
 
-A genuine, material contradiction was found in the continuity record between this Recovery effort's own prior conclusion and an earlier, independently-authored, runtime-tested finding — reported in full above, not hidden or minimized.
+A material, evidence-based reversal of this Recovery effort's own standing conclusion occurred: the "malformed migration filename ordering collision" that drove Wave 2 Step 2's investigation and this Step 2A validation task does not reproduce under real Supabase CLI testing. This was not hidden or softened — it is reported in full, with the exact mechanism of the prior methodology's error identified (lexicographic byte-comparison of the full filename vs. the CLI's actual internal ordering behavior, which diverge once timestamp digit-counts differ).
 
 ## RISKS
 
-If the previously-identified filename target (`...001a...`) had been used without this cross-reference, the constraint would have been silently, permanently absent from any future Production migration run, with the whole batch otherwise appearing to succeed — a significant, hard-to-detect data-integrity gap (the per-business quote_number uniqueness constraint would simply never exist, with no error surfaced anywhere). Catching this now, before any execution, is the entire value of this gate-driven process.
+If Wave 2 Step 3 had proceeded on the unverified premise from Step 2 (i.e., authorizing and executing a rename to `20260827000004`), it would have made an unnecessary file change, reordered the constraint to run after the trigger and drop-default files instead of immediately after its dependency (a strictly worse, though not broken, arrangement), and consumed review time on a non-problem. Catching this before any real rename — which is exactly what this gate-driven, empirically-testing task was for — avoids that cost entirely. Separately: this finding means Wave 2 Step 3's scope should be reconsidered before it is planned, since it may not need to include any migration filename change.
 
 ---
 
@@ -112,23 +138,29 @@ If the previously-identified filename target (`...001a...`) had been used withou
 
 | File | Status |
 |---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — Step 2 addendum (BLOCKED) appended to §115 |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — §14 resume pointer, Restore Proof paragraph retained |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED — §14.A corrected, new permanent rule on migration filename format |
-| `PROFLOW_HANDOFF.md` | UPDATED — §18.FF appended |
-| `PROFLOW_TODO.md` | UPDATED — continuity log extended |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — Step 2A addendum appended to §115 |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — §14 resume pointer rewritten, prior Step 2 paragraph retained below it for history |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — §14.A corrected in place (prior ordering-bug claim marked overturned, permanent rule narrowed to the still-valid letter-suffix finding only) |
+| `PROFLOW_HANDOFF.md` | UPDATED — §18.FG appended |
+| `PROFLOW_TODO.md` | UPDATED — continuity log extended, Step 2 entry marked superseded |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED — this file, fully rewritten |
+
+## CONTINUITY COMMIT
+
+Pending — to be created against the `proflow-continuity` worktree, documentation-only, after the standard secret-scan of all six files (both in the main repo and the continuity worktree copies).
+
+## REMOTE GITHUB READ-BACK
+
+Pending — to be verified (branch-ref SHA match + raw-content fetch confirming the new Step 2A markers are present and readable) immediately after the continuity commit/push, before FINAL STOP.
 
 ---
 
 ## RECOMMENDED NEXT STEP (ONE step only)
 
-Owner + ChatGPT review this finding and either (a) authorize the reasoned alternative filename (`20260827000004_attach_quote_number_unique_constraint.sql`) as the new Step 2 target, or (b) provide additional context this task may be missing (e.g., a Supabase CLI version change since §18.BO's finding that might have resolved the silent-skip behavior) before any rename is attempted.
+Owner + ChatGPT review this finding and decide how it reshapes Wave 2 Step 3's scope — most likely dropping the migration-filename-rename sub-task from Step 3 entirely, since the current filename is now empirically proven correct as-is, and re-scoping Step 3 to whatever of the original Item 17/18 release-order steps remain genuinely necessary.
 
 ---
 
 ## FINAL STOP
 
-A genuine, material ambiguity was found and reported rather than resolved by guessing or by mechanically executing the previously-identified fix. The malformed migration file remains completely unchanged — same name, same content, same location. No rename, no commit, no mutation of any kind occurred. This is the correct outcome of a safety gate working as intended.
-
-DO NOT START WAVE 2 STEP 3. WAIT FOR OWNER + CHATGPT REVIEW.
+FINAL STOP. DO NOT PERFORM THE REAL RENAME. DO NOT START WAVE 2 STEP 3. WAIT FOR OWNER + CHATGPT REVIEW.
