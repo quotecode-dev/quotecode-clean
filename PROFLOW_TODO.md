@@ -1297,3 +1297,27 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 **One-line summary**: (1) any variable-digit-count table field needs deterministic geometry (fixed reserved width, tabular-nums, glyph-order-anchored alignment) — first applied to Quote History Views; (2) typography changes must identify the element's role and keep sibling elements of the same role coherent — a future agent must not leave one KPI heavier than an equivalent sibling KPI without a documented reason; (3) the Quote History table's 10-point contract (mirroring, header/body geometry, Views=0, Order sort correctness, email indicator, Description/Client Name space, row density, typography, responsive matrix) applies automatically to any future task touching that table, even if the task only names one column.
 
 **Also fixed this task (not a contract, a bug)**: Order Number ASC/DESC sorting was comparing the row's internal UUID (`id`) instead of the displayed order number's real backing field (`quote_number`) — root-caused and fixed via a new testable `getQuoteOrderSortKey` in `src/utils/quoteNumber.js`. See §81 Part C for full detail.
+
+## 37. Exact 50% Typography Reduction — BLOCKED, Owner decision required (added 2026-08-31, Owner Visual QA Correction task)
+
+**Status: 🔴 BLOCKED — genuine technical limitation confirmed, Owner decision required before this item can proceed**
+
+**Canonical location**: `PROFLOW_PROJECT_CONTEXT.md` §82, Item 3. This item is a pointer only.
+
+**The requirement**: the Owner mandated an exact 50% font-weight reduction (not approximate, not a CSS "one step" reduction) from the current pre-correction weight, for Client Name (`600→300`), Amount (`500→250`), Total Quotes KPI (`600→300`), and Total Revenue KPI (`600→300`).
+
+**Why it's blocked**: `src/fonts.css` confirms Rubik is self-hosted via discrete per-weight `@font-face` files at **400/500/600/700/800/900 only** (Latin and Hebrew both) — no `300` file exists, and `250` is not a valid weight step at all. Setting either value would not render a genuinely distinct, thinner glyph — the browser would silently substitute the nearest loaded face (most likely `400`), which is not a 50% reduction and risks visually collapsing these elements into the same weight as ordinary body text.
+
+**Owner decision needed — one of**: (a) add a genuine `300`-weight Rubik font file (Latin + Hebrew) so an exact 50% is real; (b) explicitly authorize a nearest-available substitute (`400`) despite it not being mathematically 50%; (c) redefine the target as a different, achievable percentage/step; (d) leave the current weights (`600`/`500`) as final.
+
+**No weight was changed pending this decision**, per the Owner's own explicit instruction not to silently substitute.
+
+## 38. Dashboard Separation Mockup — Option B (Soft/Light) selected, next visual design direction (added 2026-08-31, Owner Visual QA Correction task — DOCUMENTATION ONLY, not implemented)
+
+**Status: 🔴 OPEN — Owner-selected next direction, NOT IMPLEMENTED**
+
+**The decision**: of the dashboard separation mockup options presented, the Owner selected **Option B — Soft / Light**.
+
+**Before implementation is authorized**: must be tested with the mockup's own slider in both the **expanded** state and the **row-dropped/collapsed** state — both states need Owner visual review, not just one.
+
+**Not yet scoped**: exact implementation task has not been requested or begun. This item exists purely to preserve the Owner's selection for whenever that task is authorized.

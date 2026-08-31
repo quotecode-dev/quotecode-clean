@@ -1872,9 +1872,15 @@ Adjacent protected columns (Client Type, Order Number) and overall table width (
 
 ---
 
-### PERMANENT CONTRACT — Tabular Numeric Geometry (Part D)
+### PERMANENT CONTRACT — Tabular Numeric Geometry (Part D, generalized in §82)
 
-> Any tabular numeric field whose digit count may vary must have **deterministic geometry** — changing digit count must never shift adjacent protected columns, icons, or controls. Where semantically appropriate: reserve a fixed numeric width sized for the realistic maximum digit range, use `font-variant-numeric: tabular-nums`, anchor the ones-place so digits grow away from a stable edge (typically right-aligned — this is a **glyph-order** property, not a locale/RTL-LTR property; do not make it `isHebrew`-conditional), and keep any associated icon at fixed size with `flexShrink:0` so its own position is independent of the number's rendered width. Test representative digit boundaries explicitly (`0, 1, 9, 10, 19, 99, 100`, plus the realistic maximum for that field). Do **not** blindly right-align every number in the product — fields with an established different semantic alignment (e.g. a currency amount that is intentionally centered against its header, per the Amount-column precedent in §79) keep their own established alignment; the contract is deterministic geometry, not one universal CSS rule. First applied to: Quote History Views (Desktop + Mobile). Future candidates: quantities, document counts, payment counts, any other variable-digit table field.
+> Any tabular numeric field whose digit count may vary must have **deterministic geometry** — changing digit count must never shift adjacent protected columns, icons, headers, or controls, and must never let the actual **place value** of a digit (units/tens/hundreds/thousands) drift row-to-row. Where semantically appropriate: reserve a fixed numeric width sized for the realistic maximum digit range, use `font-variant-numeric: tabular-nums`, anchor the ones-place (or, for currency, the cents/decimal end) so digits grow away from a stable edge — **right-aligned by default**, since this is a **glyph-order** property, not a locale/RTL-LTR property; do not make it `isHebrew`-conditional. Keep any associated icon or currency symbol at fixed size/position so its own placement is independent of the number's rendered width. Test representative digit boundaries explicitly (`0, 1, 9, 10, 19, 99, 100`, plus the realistic maximum for that field — for currency, representative formatted values across the realistic range, e.g. `$10.00` through `$99,999.00`).
+>
+> **Centering a complete formatted value (a full currency string, or any other variable-length numeric string) as one unit is *not* deterministic geometry — it is the same class of bug as the original Views icon-shift issue** (§80/§81), just applied to a currency string instead of a bare integer: a longer formatted string centered in the same box places its ones-place/decimal-end at a *different* X position than a shorter one. This was found live on the Amount column in §82 (§79's original Amount-centering fix solved header-vs-body misalignment but **inadvertently introduced** this place-value violation) and is now corrected: the reconciliation is a **fixed-width sub-box, right-aligned, inside the outer header-centered cell** (exactly the Views pattern) — this satisfies both the header/body-centering contract *and* place-value alignment simultaneously, they are not in tension once implemented this way. Do not re-introduce naive whole-string centering for any numeric/currency field going forward.
+>
+> **Enforceable trigger**: if a future task touches Amount or Views numeric CSS, width, typography, padding, formatting, or alignment in `QuotesTab.jsx` (or any other component with a numeric table field), verifying this contract — real-browser geometry proof across representative digit/value boundaries, in both locales — is **mandatory**, not optional. Skipping this verification when the trigger applies is itself a contract failure: **FINAL DECISION cannot be PASS** in that case (per the Component Contract Trigger process rule below) — use `PARTIAL` or `BLOCKED` instead, and say which verification was skipped.
+>
+> First applied to: Quote History Views (Desktop + Mobile, §81). Second applied to: Quote History Amount (Desktop + Mobile, §82). Future candidates: quantities, document counts, payment counts, any other variable-digit/variable-length-formatted table field.
 
 ### PERMANENT CONTRACT — ProFlow Typography Hierarchy (Part E)
 
@@ -1939,3 +1945,75 @@ No application commit, no push, no Production/DNS/Supabase/customer-data mutatio
 Typography and Views geometry are **not** declared permanently locked by this task — implemented, tested, and real-browser-geometry-proven, but still subject to Owner visual inspection on TEST before being treated as final, per explicit instruction.
 
 **Status**: Parts A, B, C fully implemented, tested, and real-browser-verified in both locales. Parts D-P are now permanent canonical contracts/process rules (this section is their authoritative home going forward). Part Q (Plan Status Badge) remains open/undone, unchanged. All prior Owner open items preserved. Local/uncommitted, layered on all prior uncommitted work in this lineage. Awaiting Owner + ChatGPT visual review before any commit/push.
+
+## §82. Owner Visual QA Correction — Amount Numeric Place-Value Alignment + Exact Typography Standard (added 2026-08-31, Owner Visual QA Correction task)
+
+**Applicable contracts identified up front** (Component Contract Trigger, §81 Part J): Tabular Numeric Geometry (§81 Part D, generalized above), Typography Hierarchy (§81 Part E), Quote History Table (§81 Part F, items 2/9), Market Separation (§80 Part C, unaffected).
+
+### Item 1 — Amount Numeric Place-Value Alignment: FIXED, REAL-BROWSER-VERIFIED
+
+**Root cause** (Owner-detected, correctly identified): §79's Amount-centering fix solved a *different* problem (header text visually off-center from the body) by centering the **entire formatted currency string** (`{quoteSym}{formatNum(quote.total)}`) as one unit. That fix was correct for its own stated goal but never checked place-value alignment — centering a variable-length string (`$10.00` is 6 characters, `$5,625.00` is 9) means the cents/ones-place lands at a *different* X position depending on the formatted string's total length. This is the exact same bug class as the pre-fix Views icon-shift issue (§81), just applied to a currency string instead of a bare integer.
+
+**Fix**: identical reconciliation pattern to Views — the money `<span className="pf-money">` is now wrapped in a fixed-width (`92px` Desktop), right-aligned inner `<div>`, itself centered within the outer `<td>` (`textAlign:'center'`, unchanged). Because the inner box's width is now constant regardless of the formatted string's length, centering it satisfies §79's header/body-centering contract, while the right-alignment *inside* that fixed box anchors the cents/ones-place to the same X position on every row — both contracts hold simultaneously, they are not actually in tension once implemented this way. `.pf-money`'s pre-existing `direction:ltr; font-variant-numeric:tabular-nums;` (defined in `index.css`, unaffected) already handled digit-glyph order and per-digit width consistency — only the *container's* alignment mechanism needed to change. The currency symbol was not treated specially: it is part of the same right-aligned string, and digit-count growth simply pushes it further left (exactly the "grows away from the anchor" principle), never disturbing the anchor itself.
+
+**Mobile**: the money `<div>` was already inside a genuinely fixed-width CSS Grid track (`MOBILE_META_AMOUNT_COL=78px`, unchanged) — but its `textAlign` was `isHebrew ? 'left' : 'right'`, which in the HE case anchored the string's *leftmost* character (the most-significant digit or currency symbol, since `pf-money` forces LTR digit order even inside RTL text) rather than the ones-place — meaning digit-count growth in HE would have drifted the cents position rightward, violating the same invariant. Fixed to unconditional `textAlign:'right'` (direction-independent, matching Views/Order's established pattern) — the track's own fixed width was not touched.
+
+**Real-browser geometry proof** (`getBoundingClientRect()` + `Range.getBoundingClientRect()` on the text node itself, both locales, all 7 Owner-specified representative values plus one stress case not in the Owner's list, `$10.00, $100.00, $150.00, $200.00, $999.00, $1,000.00, $5,625.00, $99,999.00`, via safe reverted DOM text simulation — `restored:true` confirmed each time):
+
+| | Text right-edge (all 8 values) | Header-vs-body-center offset | Overflow |
+|---|---|---|---|
+| HE Desktop (real rows + simulated) | **861.98px, identical across all 8** | 0.01px | none |
+| EN Desktop (real rows + simulated) | **1117.39px, identical across all 8** | 0.01px | none |
+| HE Mobile card (fixed 78px track) | **104px, identical across `$10/$999/$5,625`** | n/a (no header for card layout) | none |
+| EN Mobile card (fixed 78px track, real `$5,625.00` row present) | **364px, identical across all 13 real rows + `$10/$999/$5,625` simulated** | n/a | none |
+
+**Disclosed, non-blocking edge case**: at the stress-test value `$99,999.00` (beyond the Owner's own representative set, and beyond `MOBILE_META_AMOUNT_COL`'s own pre-existing documented limit of "~6 digits with currency+cents" — a limitation that predates this task, not a regression introduced by it), the Mobile card's text overflows its 78px track by ~6.47px. Not fixed in this task, since it falls outside both the Owner's explicit test range and this task's authorized scope — flagged here for future reference rather than silently left undocumented.
+
+**Testing-methodology self-correction**: an early Mobile measurement mistakenly mutated `document.querySelectorAll('.pf-money')[0]`, which is actually the Total Revenue **KPI** value (first in DOM order, Dashboard renders KPI cards before the Quote History table) — not a table/card row at all. Caught before being reported as evidence; corrected by filtering `.pf-money` elements to exclude `.closest('.dash-kpi-value')` before re-measuring. Documented here so a future agent doesn't repeat the same DOM-order assumption.
+
+**Tests**: `QuotesTab.test.jsx`'s existing 51 tests continued to pass unmodified (the Amount fix changed only inline styles, not any text/structure the existing tests assert on — the before-VAT tooltip tests, which target the same `<td>`, still pass since only the inner `<div>` changed, not the `<td>`'s own `title` attribute).
+
+### Item 2 — Numeric Geometry Contract Generalized: DONE
+
+The contract text itself (§81 Part D) was rewritten in place (see above) to: (a) explicitly remove the now-incorrect "Amount is an example of an established exception to right-alignment" line (that was the bug, not a valid exception), (b) state the whole-string-centering anti-pattern explicitly, (c) add the mandatory enforceable trigger — touching Amount/Views numeric CSS/width/typography/padding/formatting/alignment now requires real-browser Numeric Geometry Contract verification, and skipping it means `FINAL DECISION` cannot be `PASS`.
+
+### Item 3 — Typography EXACT 50% Standard: BLOCKED, TECHNICAL LIMITATION CONFIRMED, NOT IMPLEMENTED
+
+**Audited actual current (pre-this-correction) computed weights** via live `getComputedStyle`, both locales:
+
+| Role | Current weight |
+|---|---|
+| Client Name (Desktop + Mobile) | `600` |
+| Amount | `500` |
+| Total Quotes KPI | `600` |
+| Total Revenue KPI | `600` |
+
+**Exact 50% targets computed**: Client Name `600→300`, Amount `500→250`, Total Quotes `600→300`, Total Revenue `600→300`.
+
+**Technical limitation, confirmed via `src/fonts.css`** (read directly, not assumed): Rubik is self-hosted via `@fontsource/rubik`, imported as **discrete per-weight files** — `latin-400/500/600/700/800/900.css` and the matching `hebrew-*` files — **only**. There is no `300` weight file (Latin or Hebrew), and `250` is not a standard CSS font-weight multiple-of-100 value at all. Setting `fontWeight:'300'` or `fontWeight:'250'` would not synthesize a genuinely thinner, distinct glyph — the browser's font-matching algorithm would substitute the nearest available loaded face (almost certainly `400`, the lightest available), which the file's own pre-existing documentation already establishes as unacceptable practice in this codebase ("500 is a real, distinct render, not a synthetic fallback" — the same reasoning applies to any weight without its own loaded file). A silent `400` substitution would **not** be a 50% reduction (600→400 is ~33%; 500→400 is only 20%) and risks visually collapsing Client Name/KPI/Amount into the same weight as ordinary body text, which the Typography Hierarchy Contract (§81 Part E) explicitly forbids without a documented reason.
+
+**Per the Owner's own explicit instruction — STOP and report rather than silently substitute.** No typography weight was changed in this task. This blocks Item 3 and, downstream, Item 4 (Parity) for these four specific values (parity trivially still holds today since no `isHebrew`-conditional logic exists on any of them, but the *approved final* value cannot be confirmed until this is resolved).
+
+**Owner decision required** (options surfaced, not chosen unilaterally): (a) add a genuine `300`-weight Rubik font file (Latin + Hebrew) so an exact 50% is real and distinct; (b) explicitly authorize a nearest-available substitute (`400`) despite it not being mathematically 50%; (c) redefine the target as a different, achievable percentage/step; (d) leave current weights (`600`/`500`) as final and close this item without further reduction.
+
+### Item 4 — Parity: PASS (structurally, pending Item 3 resolution)
+
+Compared directly: Amount HE ↔ Amount EN (both `500`, no locale branch — identical by construction); Client Name HE ↔ Client Name EN (both `600`, no locale branch); Total Quotes HE ↔ Total Quotes EN (both `600`, live-confirmed via `getComputedStyle` in both locales, no locale branch); Total Revenue HE ↔ Total Revenue EN (both `600`, live-confirmed, no locale branch). All four pairs share the same approved role/token today; none can drift independently since none carry an `isHebrew` conditional. This structural guarantee is unaffected by Item 3's block — whatever final value the Owner approves, it will apply identically to both locales since the source has no per-locale branch to remove.
+
+### Item 5 — Regression preservation: PASS, RE-VERIFIED
+
+Explicitly re-ran rather than assumed: Views geometry (real-browser, unaffected by this task's changes — not touched); Order sorting (live re-clicked on the same HE Desktop table post-fix — ASC still correct, `A100700, A100701, A100703, ...`); Order centering (not touched, structurally unaffected by the Amount-only edit); email indicator (existing 3 tests re-passed unmodified); HE before-VAT tooltip (existing 2 tests re-passed unmodified, same `<td>` as Amount but only the sibling inner `<div>` changed, not the `title` attribute); Market Separation (no new instruction crossed the Local/International boundary this task — Amount's fix is locale-symmetric by design, not a Local-only change); responsive behavior (HE + EN, Desktop + Mobile, re-verified specifically for the Amount fix, zero overflow).
+
+### Item 6 — Option B (Dashboard separation mockup, Soft/Light): DOCUMENTED, NOT IMPLEMENTED
+
+Recorded as the Owner-selected next visual design direction: **Option B — Soft / Light**, from the dashboard-separation mockup slider. Not implemented this task. Must eventually be tested with the slider in both **expanded** and **row-dropped/collapsed** states before implementation is authorized. No code written. Cross-referenced in `PROFLOW_TODO.md` item 37.
+
+### Item 7 — Safety: PASS
+
+No application commit, no push, no Production/DNS/Supabase/customer-data mutation. Two TEST accounts' Amount values were temporarily/reversibly simulated via direct DOM text mutation on both Desktop and Mobile card layouts, immediately reverted and confirmed `restored:true` every time — no database write occurred. `git rev-parse HEAD` unchanged at `5f658f3...`, `origin/main` unchanged at `e0300174...`.
+
+### Quality
+
+Full suite 109/109 (unchanged count — no tests added or removed this task, existing coverage re-confirmed green), lint 0 errors (6 pre-existing warnings, unchanged), build succeeds.
+
+**Status**: Item 1 (Amount place-value alignment) and Item 2 (contract generalization) fully implemented and real-browser-verified. Item 3 (exact 50% typography) is genuinely **BLOCKED** on a confirmed technical limitation — no weight was changed, per explicit Owner instruction not to silently substitute. Item 4 (parity) holds structurally pending Item 3's resolution. Item 5 (regression) re-verified PASS. Item 6 (Option B) recorded as OPEN/next-direction, not implemented. Awaiting Owner decision on Item 3's four options before that specific sub-item can proceed. All other prior Owner open items unchanged/preserved.
