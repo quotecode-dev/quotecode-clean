@@ -4,117 +4,91 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Quote History Desktop Final Layout Pass — Width Optimization + Header Cleanup + Centering + Email Indicator Preservation
+## Task: Resume Quote History Live QA + Fix Amount/Actions Header Centering Only
 
-**EFFORT LEVEL: MAXIMUM.** No commit, no push, no Production. Continuing on the still-uncommitted working tree after the prior isolated-commit was correctly blocked.
-
-**RESULT: BLOCKED for live QA.** The dedicated automation Chrome itself went down (not just its tabs) at the very start of this task, before any live inspection could occur. All source-level audit, implementation, and non-browser quality gates were completed and are reported honestly; nothing requiring the browser was fabricated.
+**EFFORT LEVEL: HIGH.** No commit, no push, no Production.
 
 ---
 
-## CURRENT MIRRORING BEFORE CHANGE
+## BROWSER HARNESS: PASS
 
-Re-audited fresh (not relying on the prior report): the §77 Desktop mirroring fix (`Client Type` first, `Views` second, relying on the existing `dir={tableDir}` for RTL/LTR mirroring) was confirmed intact and uncommitted at task start, untouched by this task's changes. This task's own changes are additive layout/styling work on top of it.
+`http://127.0.0.1:9222/json/version` reachable, `browser-harness --doctor` reported daemon alive with 1 active connection. The Owner's Chrome restart succeeded; §78's blocker is resolved.
 
----
-
-## HEADER CENTERING: PASS (source-level; not live-verified — see blocker)
-
-All textual Desktop headers (`#Order`, `Client Name`, `Description`, `Amount`, `Date`, `Status`, `Actions`) now use `textAlign: 'center'` (previously edge-aligned per locale). `Client Type`, `Views`, and the email-status header were already centered. Body/row data alignment was deliberately left unchanged — only headers were addressed, per the instruction's own scope.
-
-## DECORATIVE HEADER ICONS REMOVED
-
-`Hash` (#Order), `Building2` (Client Name header usage only — the import itself is preserved since it's also used by `ClientTypeBadge`), `AlignLeft` (Description), `Banknote` (Amount), `Calendar` (Date), `CircleDot` (Status). Confirmed via `grep` that none of these five (Hash/AlignLeft/Banknote/Calendar/CircleDot) had any other usage in the file before their imports were removed entirely.
-
-## FUNCTIONAL ICONS PRESERVED
-
-- `Eye` (Views) — now the column's sole visible header content, per explicit instruction.
-- `Mail` (email status) — already icon-only, unchanged in kind.
-- `Building2`/`User` (inside `ClientTypeBadge`) — the actual per-row client-type indicator, functionally load-bearing.
-
-None of the removed icons participated in sort/click/tooltip/accessibility — confirmed by reading the handler wiring (`onClick` is bound to the whole `<th>`, not the icon) before removing anything.
+## LIVE QA: PASS
 
 ---
 
-## EMAIL INDICATOR
+## Resumed verification (continuing §78's implementation, not re-implementing)
 
-Audited `renderEmailDot` directly (existing, unmodified function):
+Confirmed via real TEST data (`PROFLOW_TEST_LOCAL_*`/HE, `PROFLOW_TEST_INTL_*`/EN): Desktop `Client Type`+`Views` mirroring unchanged (HE: outermost-right/contiguous; EN: outermost-left/contiguous — identical to §77's original measurement), `Views`/`Email` headers icon-only, `#Order` compact, `Description` visibly wider. Zero horizontal overflow across Desktop/Mobile/Tablet Portrait/Tablet Landscape, both locales.
 
-**RED**: two distinct causes render identically — (a) `quote.email_bounced` true (recipient address doesn't exist / message bounced, detected asynchronously by a `resend-email-webhook`, stays red until a successful resend), or (b) `emailStatus` truthy but not `'success'` (the immediate send attempt failed). Tooltip differs per cause.
+## Owner feedback — Amount/Actions centering root cause
 
-**GREEN**: `emailStatus === 'success'` — sent successfully.
+`textAlign: 'center'` on a header only centers the header's own text *within the column box* — it says nothing about where the body content sits. `Amount`'s and `Actions`' body `<td>` cells were still edge-aligned (pre-existing, untouched by §78). Measured live before any fix (EN): `Amount` header-center 1068.55 vs body money-center 1056.79 (**11.76px offset**); `Actions` header-center 1375.48 vs button-center 1385.26 (**9.78px offset**) — a real, measurable misalignment, not a subjective impression.
 
-**BLANK**: both `quote.email_bounced` is falsy and `emailStatus` is null/undefined — no email sent for this quote yet (no entry in the `emailStatuses` map).
+## Fix
 
-**OTHER**: none — exactly these three visual states exist.
-
-No email-sending logic, backend, data field, or status semantic was touched — only the header's width/padding changed.
+Centered only these two body `<td>` elements (`textAlign: 'center'`), so header and body sit on the same column-box center regardless of content length or locale. Confirmed safe first: `handleToggleDropdown`'s dropdown-menu positioning computes live from the clicked button's own `getBoundingClientRect()`, not a fixed column edge — centering the button cannot break menu placement. No other column, no other row/body alignment, no business logic touched.
 
 ---
 
-## ORDER WIDTH
-before → after: unconstrained (content/text-driven) → **72px** (explicit, source-declared)
+## HE AMOUNT CENTERING: PASS
+## HE ACTIONS CENTERING: PASS
+## EN AMOUNT CENTERING: PASS
+## EN ACTIONS CENTERING: PASS
 
-## VIEWS WIDTH
-before → after: **46px → 28px** (source-declared)
+## GEOMETRY
 
-## EMAIL WIDTH
-before → after: **36px → 28px** (source-declared)
+| | Before offset | After offset |
+|---|---|---|
+| HE Amount (header center → body center) | pre-existing edge-align, same issue class as EN | 820.3047 → 820.2969 (**~0.008px, effectively 0**) |
+| HE Actions (header center → button center) | " | 532.375 → 532.3672 (**~0.008px, effectively 0**) |
+| EN Amount (header center → body center) | 1068.5547 vs 1056.7891 (**11.76px**) | 1068.5547 vs 1068.5547 (**0px, exact**) |
+| EN Actions (header center → button center) | 1375.4766 vs 1385.2578 (**9.78px**) | 1375.4766 vs 1375.4766 (**0px, exact**) |
 
-## DESCRIPTION WIDTH
-before → after (header `minWidth`): **130px → 190px** (source-declared)
-before → after (body `maxWidth`, governs the actual ellipsis truncation point): **190px → 260px** (source-declared)
-
-## DESCRIPTION WIDTH GAIN
-**+60px header minWidth (+46%) / +70px body maxWidth (+37%)** — **source-declared values, not live-rendered pixel measurements.** Real rendered widths depend on font metrics, badge/icon dimensions, and the table's `table-layout: auto` column distribution, none of which can be confirmed without the browser. Reported honestly as source intent rather than fabricated as a live measurement, per the task's own "do not report merely 'looks better'" standard — the same standard extends to not reporting an unverified number as if it were measured.
-
----
-
-## HE DESKTOP: BLOCKED (not verified)
-## EN DESKTOP: BLOCKED (not verified)
-## MIRRORING PRESERVED: NOT RE-VERIFIED THIS TASK (untouched by this task's changes; last independently DOM-measured and confirmed in §77)
-## VIEWS ZERO: NOT RE-VERIFIED THIS TASK (body logic `quote.view_count || 0` untouched)
-## EMAIL FUNCTION PRESERVED: PASS (source-confirmed — `renderEmailDot` byte-identical to before this task)
-## MOBILE/TABLET REGRESSION: BLOCKED (not verified — Mobile card layout code path untouched by this task's changes)
-## HORIZONTAL OVERFLOW: BLOCKED (not verified)
-
-**Why**: at the very start of this task, before any inspection could occur, `browser-harness --doctor` reported 0 active browser connections, and `http://127.0.0.1:9222/json/version` was unreachable. A read-only process check confirmed no `chrome.exe` process anywhere carries a `--remote-debugging-port` flag — the entire dedicated automation Chrome instance is gone, not merely its tabs. Root cause: the prior task's end-of-task cleanup closed the *last* remaining tab in that instance; a fully tab-less dedicated Chrome apparently self-terminates. This session cannot restart it (`BH_REQUIRE_EXISTING_DAEMON=1`). **Tab-hygiene rule refinement recorded**: never close the dedicated Chrome's very last tab during cleanup — leave one idle tab as a keep-alive.
+Re-verified identically on HE Tablet Landscape (Amount: 379.8047 vs 379.7969) and EN Tablet Landscape (Amount and Actions both exact 0px) — the fix holds at the same breakpoint that renders the Desktop table.
 
 ---
 
-## FOCUSED TESTS: PASS
-## FULL TESTS: PASS (80/80 — 76 prior + 4 net new/updated this task)
+## MIRRORING: PASS (unchanged, re-confirmed — not touched by this fix)
+## DESCRIPTION WIDTH: PASS (unchanged from §78, visually confirmed live this task)
+## EMAIL FUNCTION: PASS (unchanged — only header width/padding was ever touched, in §78; this task touched nothing email-related)
+## MOBILE/TABLET: PASS
+
+Zero horizontal overflow on every combination (HE/EN × Desktop/Mobile/Tablet Portrait/Tablet Landscape). Mobile and Tablet Portrait correctly still render the untouched Mobile card layout.
+
+---
+
+## FOCUSED TESTS: PASS (28/28 QuotesTab)
+## FULL TESTS: PASS (80/80)
 ## LINT: PASS (0 errors)
 ## BUILD: PASS
 
-Updated the existing Views-header-order test (now asserts text is **absent**, `aria-label`/`title` present instead). Added a header-centering assertion test. Added a decorative-icon-count assertion test (header row contains exactly 2 `<svg>` — Eye + Mail).
+No test needed updating — this fix changed only two body cells' alignment, not any header's own text/structure that the existing centering/order/icon-count tests assert on.
 
 ---
 
-## BROWSER TAB CLEANUP: PASS (trivially — see caveat)
+## STALE QA TABS: 0
+## KEEP-ALIVE TAB: 1
 
-## CLAUDE-CREATED STALE QA TABS: 0
-
-**Caveat**: 0 tabs remain, but only because the entire dedicated automation Chrome process is down, not because this task performed an active, successful cleanup. Disclosed honestly rather than claimed as a hygiene success.
+Reused a single QA tab throughout (both HE and EN logins, all viewport changes). At task end, closed one stray diagnostic tab (`127.0.0.1:9222/json/version`) and deliberately left the dashboard tab open as the single keep-alive — confirmed via `browser-harness --doctor` immediately after: daemon alive, 1 active connection, dedicated Chrome still running. The §78-recorded tab-hygiene refinement (never close the very last tab) is now directly validated.
 
 ---
 
 ## APPLICATION COMMIT: NONE
-## APPLICATION PUSH: NONE
+## PUSH: NONE
 ## PRODUCTION: UNCHANGED
 
-`src/components/QuotesTab.jsx` and `.test.jsx` remain local/uncommitted, layered on §77's uncommitted mirroring fix, on top of the still-unpushed Hot Quote commit (`5f658f3f5b59207933e4053d8b5484b4a27e41a7`, confirmed unchanged).
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). `QuotesTab.jsx`/`.test.jsx` remain local/uncommitted, layered on §78's and §77's uncommitted changes.
 
 ## CONTINUITY READ-BACK: PASS (this sync — see below)
 
 ---
 
-**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry. Email sending/backend, currency implementation, Hot Quote, Landing, Vercel, Supabase, Production were not touched.
+**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry.
 
-## FINAL DECISION: BLOCKED
-
-Implementation and all non-browser quality gates are complete and passing. Live visual/pixel QA — required to actually confirm this task's PASS criteria (HE/EN Desktop centering and widths, Mobile/Tablet regression, real before/after measurements) — is blocked pending the Owner restarting the dedicated automation Chrome (same procedure as §71).
+## FINAL DECISION: PASS
 
 ## FINAL STOP
 
-Returned to Owner + ChatGPT. Recommend the Owner restart the dedicated automation Chrome so live QA can complete; implementation remains local/uncommitted in the meantime.
+Quote History Desktop layout work (§77+§78+§79 combined) is now fully live-QA-verified in both languages across the full responsive matrix, with the Owner's Amount/Actions centering feedback specifically resolved and geometrically proven. Returned to Owner + ChatGPT for visual review before any commit/push authorization.

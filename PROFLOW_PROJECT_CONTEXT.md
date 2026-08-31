@@ -1702,6 +1702,40 @@ These are the exact source-code width *values/hints* changed, honestly labeled a
 
 **Next step recommendation**: the Owner needs to restart the dedicated automation Chrome using the exact procedure already documented in §71 (launch with `--remote-debugging-port=9222 --user-data-dir=<dedicated dir>` etc.) before the required live visual/pixel QA (HE/EN Desktop centering and widths, Mobile/Tablet regression, before/after `getBoundingClientRect()` measurements) can be completed for this task's implementation.
 
+## §79. Resume Quote History Live QA + Amount/Actions Header Centering Fix — LIVE-VERIFIED, LOCAL/UNCOMMITTED (added 2026-08-31, Resume Quote History Live QA task)
+
+**Browser Harness reconnection**: the Owner restarted the dedicated automation Chrome. Confirmed reachable this task: `http://127.0.0.1:9222/json/version` returned a valid response, `browser-harness --doctor` reported daemon alive with 1 active connection. §78's blocker is resolved.
+
+**Resumed live QA (continuing the §78 implementation, not re-implementing)**: confirmed via real TEST data, both `PROFLOW_TEST_LOCAL_*` (HE) and `PROFLOW_TEST_INTL_*` (EN) accounts, that all of §78's changes render correctly: Desktop `Client Type`+`Views` mirroring unchanged and re-confirmed (HE: `ClientType.right`=1427.5/`Views.right`=1393.3, contiguous, outermost-right; EN: `ClientType.left`=477.5/`Views.left`=529.3, contiguous, outermost-left — identical to §77's original measurement, confirming zero regression from §78's styling-only changes), `Views` header icon-only, `Email` header icon-only, `#Order`/`Views`/`Email` visibly compact, `Description` visibly wider. Zero horizontal overflow on Desktop, Mobile, Tablet Portrait, and Tablet Landscape, both locales.
+
+**Owner visual feedback — Amount/Actions header centering, root cause found and fixed**: the Owner reported these two headers still didn't look centered despite already having `textAlign: 'center'`. Live `getBoundingClientRect()` measurement immediately explained why: `textAlign: 'center'` on a header only centers the header's own text *within the column box* — it says nothing about where the column's actual **body content** sits. `Amount`'s body `<td>` was still edge-aligned (`isHebrew ? 'right' : 'left'`) and `Actions`' body `<td>` was still opposite-edge-aligned (`isHebrew ? 'left' : 'right'`), both pre-existing, untouched by §78. Measured (EN, before fix): `Amount` header-center = 1068.55, actual money-text-center = 1056.79 (**11.76px offset**); `Actions` header-center = 1375.48, actual button-center = 1385.26 (**9.78px offset**). This is a real, measurable geometric misalignment, not merely a subjective visual impression.
+
+**Fix — narrowest safe correction**: changed only these two body `<td>` elements' `textAlign` to `'center'` (from their prior edge-aligned values), so header and body are centered on the exact same column box, guaranteeing alignment regardless of content length or locale — rather than attempting to calculate and hardcode a manual header offset to match an off-center body position (fragile, breaks whenever content length changes). Confirmed safe before making the change: `handleToggleDropdown`'s menu-position calculation (defined in the parent, not this file) computes live from the clicked button's own `getBoundingClientRect()` at click time — it does not assume any fixed column-edge position, so centering the Actions button cannot break the dropdown menu's placement. No other column, no row/body alignment elsewhere, no business logic was touched.
+
+**Geometry evidence (real `getBoundingClientRect()`, both locales, before and after)**:
+| | Before offset | After offset |
+|---|---|---|
+| HE Amount (header center → body center) | not separately re-measured before this task's fix (pre-existing edge-align, same class of issue as EN) | 820.3047 → 820.2969 (**0.008px**, sub-pixel/effectively 0) |
+| HE Actions (header center → button center) | " | 532.375 → 532.3672 (**0.008px**, effectively 0) |
+| EN Amount (header center → body center) | 1068.5547 → 1056.7891 (**11.76px**) | 1068.5547 → 1068.5547 (**0px, exact**) |
+| EN Actions (header center → button center) | 1375.4766 → 1385.2578 (**9.78px**) | 1375.4766 → 1375.4766 (**0px, exact**) |
+
+Re-verified identically on HE Tablet Landscape (Amount: 379.8047 vs 379.7969, effectively 0) and EN Tablet Landscape (Amount: 628.0547 vs 628.0547 exact; Actions: 934.9766 vs 934.9766 exact) — the fix holds across the same breakpoint that renders the Desktop table.
+
+**Responsive regression re-run after the fix — all combinations PASS**: HE/EN × Desktop, Mobile (390×844), Tablet Portrait (768×1024), Tablet Landscape (1024×768) — zero horizontal overflow on every combination; Mobile and Tablet Portrait correctly still render the untouched, pre-existing Mobile card layout (unaffected by a Desktop-table-only fix); Tablet Landscape correctly renders the Desktop table with the corrected centering.
+
+**No other headers touched**, per explicit instruction — `Order`, `Client Name`, `Description`, `Date`, `Status`, `Views`, `Email`, `Client Type` were not modified this task.
+
+**Tests**: `QuotesTab.test.jsx`'s existing centering/order/icon-count tests continued to pass unmodified (this fix didn't change any header's own styling, only two body cells') — 28/28 `QuotesTab` tests, 80/80 full suite, lint 0 errors, build PASS.
+
+**Browser hygiene — refined rule applied and confirmed working**: reused the single existing QA tab throughout (both HE and EN logins, all viewport changes) rather than opening new tabs per case. At task end, closed one extra stray tab (a `127.0.0.1:9222/json/version` diagnostic tab, not the dashboard tab) and explicitly did **not** close the last remaining dashboard tab, leaving it as the keep-alive — confirmed via `browser-harness --doctor` immediately after: `daemon alive`, `1 active browser connection`, dedicated Chrome still running. This directly validates the §78-recorded rule refinement.
+
+**Local/uncommitted state**: `src/components/QuotesTab.jsx` and `.test.jsx` remain local/uncommitted, layered on §78's uncommitted layout-pass changes, on top of §77's uncommitted mirroring fix, on top of the still-unpushed Hot Quote commit (`5f658f3f5b59207933e4053d8b5484b4a27e41a7`, confirmed unchanged). **No commit, no push, no Production action this task.**
+
+**Owner open items preserved, none acted on**: International Currency Immutability (item 33), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry — all unchanged.
+
+**Status**: Quote History Desktop layout work (§77+§78+§79 combined) is now fully live-QA-verified in both languages across the full responsive matrix, with the Owner's Amount/Actions centering feedback specifically resolved and geometrically proven. Awaiting Owner visual review before any commit/push is authorized.
+
 ## §74. Hot Quote Fixed Geometry / No Layout Shift — IMPLEMENTED, TEST-VERIFIED, LOCAL/UNCOMMITTED (added 2026-08-31, Hot Quote Fixed Geometry task)
 
 **Owner requirement**: the Hot Quote ("הצעה חמה") card's 4-second rotation among qualifying quotes must never change Dashboard geometry — long content should truncate, not push the page.
