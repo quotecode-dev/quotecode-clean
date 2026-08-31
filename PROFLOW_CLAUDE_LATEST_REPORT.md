@@ -4,107 +4,47 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Hot Quote Fixed Geometry / No Layout Shift
+## Task: Hot Quote Isolated Commit Only
 
-**EFFORT LEVEL: MAXIMUM.** Fix the Hot Quote layout-jump bug on the Business Owner Dashboard — local/uncommitted only, no commit/push, no Production action.
-
----
-
-## FRESH LOCAL STATE
-
-**BRANCH**: `main` — **LOCAL HEAD**: `e03001745859ae6b81f162a4af5bdca3c95cac5a` — **REMOTE MAIN**: identical — **WORKING TREE**: `Dashboard.jsx` already carried substantial pre-existing uncommitted changes from earlier sessions (347/-76 before this task); all other carried-forward untracked/modified files preserved untouched. **Hot Quote had no local/uncommitted changes of its own before this task.**
+**EFFORT LEVEL: HIGH.** Commit ONLY the already-verified Hot Quote fixed-geometry implementation. No push authorized. No unrelated pre-existing `Dashboard.jsx` work may be swept in.
 
 ---
 
-## HOT QUOTE ROOT CAUSE
+## COMMIT: PASS
 
-The Hot Quote card (`.dash-kpi-card.dash-kpi-hot` in `Dashboard.jsx`, inside a CSS Grid row) rotates every 4 seconds among qualifying quotes (`view_count >= 3`, not approved/paid) via an existing `setInterval` effect. The displayed message embeds the rotating quote's real client `company_name` — an unbounded free-text field. The card's text column had no reserved `minHeight` and the message `div` had no line-clamp, so each rotation's differing text length changed the number of wrapped lines, which changed the card's height, which shifted the entire KPI grid row and everything below it on the Dashboard. Confirmed no CSS file references any `dash-kpi-*` class — the fix is fully self-contained to inline JSX styles.
+## COMMIT SHA
 
----
+`5f658f3f5b59207933e4053d8b5484b4a27e41a7`
 
-## FILES CHANGED
+## FILES/HUNKS INCLUDED
 
-`src/pages/Dashboard.jsx` (Hot Quote card block only, ~10 net lines within this file's larger pre-existing uncommitted diff). New: `src/pages/Dashboard.hotquote.test.js` (regression guard).
+- `src/pages/Dashboard.jsx`: exactly one hunk (+13/-3) — the Hot Quote comment block plus the `minHeight: '52px'`, `justifyContent: 'center'`, `lineHeight` adjustment, and `WebkitLineClamp: 2` / `overflow: 'hidden'` additions on the text column and message `div`. No other hunk in this file was staged.
+- `src/pages/Dashboard.hotquote.test.js`: new file, +37 lines (the 2-test source-level regression guard).
 
----
+**Method**: `git diff -- src/pages/Dashboard.jsx | grep -n "^@@"` located every hunk; a targeted search for `dash-kpi-hot`/`WebkitLineClamp`/`52px` identified the exact hunk (already cleanly self-contained — the immediately-following hunk, an unrelated pre-existing "Total Revenue Hierarchy" font-weight change, was confirmed to be a **separate** `@@` block). Extracted that one hunk plus the diff's file header into a standalone patch file, validated with `git apply --cached --check` (passed), then staged with `git apply --cached` — no `git add`, `git add -A`, or `git add .` was used on `Dashboard.jsx` at any point. The new test file was staged separately via plain `git add` (a wholly new file, no isolation risk).
 
-## IMPLEMENTATION
+## UNRELATED CHANGES INCLUDED: NO
 
-Added `minHeight: '52px'` + `justifyContent: 'center'` to the text column wrapping the card's label and message; added the standard CSS line-clamp pattern (`display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'`) to the message `div`. Card height is now fully content-independent: short content no longer collapses the reserved space, long content truncates at exactly 2 lines instead of growing the card. No typography/color/spacing/icon/copy/animation/surrounding-card/business-logic change.
+Verified before commit via `git diff --cached --stat` (exactly the 2 expected files, expected line counts) and `git diff --cached -- src/pages/Dashboard.jsx` (read in full — contained only the Hot Quote lines, zero unrelated content). Verified after commit via `git show --stat HEAD` (exactly those 2 files) and by confirming the remaining **unstaged** `Dashboard.jsx` diff reverted to exactly its original pre-task size (347 insertions / 76 deletions — identical to the fresh-local-state check performed at the start of the Hot Quote fix task) with **zero** remaining occurrences of `WebkitLineClamp`/`minHeight: '52px'` (i.e., cleanly moved into history, not duplicated).
 
----
+## UNRELATED WORKING TREE PRESERVED: PASS
 
-## RESPONSIVE QA MATRIX (real TEST data, real DOM geometry measurement)
+`git status --short` after the commit shows every pre-existing modified file (`.gitignore`, `PROFLOW_ARCHITECTURE.md`, `package.json`, `QuoteForm.jsx`, `QuotesTab.jsx`, `SettingsTab.jsx`, `index.css`, `Dashboard.jsx` — now showing only its remaining unrelated diff, `PublicQuote.jsx`, `PublicQuoteEn.jsx`, `supabase.js`, `useSignaturePad.js`, `regionConfig.js`, `get-public-quote/index.ts`) and every pre-existing untracked file (`PdfFileIcon.jsx`, `entry-server.jsx`, `planEntitlements.js`/`.test.js`, `regionConfig.test.js`, the full Quote Number migration package) present, unchanged, and un-staged, exactly as before this task. Nothing disappeared, nothing was accidentally staged.
 
-**HE DESKTOP: PASS** — **EN DESKTOP: PASS** — **HE MOBILE: PASS** — **EN MOBILE: PASS** — **HE TABLET PORTRAIT: PASS** — **EN TABLET PORTRAIT: PASS** — **HE TABLET LANDSCAPE: PASS** — **EN TABLET LANDSCAPE: PASS**
+## PUSH: NONE
 
-Viewports: Desktop 1920×1080 (native window); Mobile 390×844 @3x; Tablet Portrait 768×1024 @2x; Tablet Landscape 1024×768 @2x. Tested against the real running TEST dev server (`npm run dev:localtest`, port 5186), logged into both `PROFLOW_TEST_LOCAL_*` (HE) and `PROFLOW_TEST_INTL_*` (EN) — the established, precedented TEST-only credential pair, read directly from the gitignored `.env` file within the verification script and **never printed to any log, screenshot, report, or continuity file**.
+Not performed, per explicit instruction. `git rev-parse HEAD` = `5f658f3...`; `git ls-remote origin main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). Local `main` is now exactly one commit ahead of `origin/main`.
 
----
+## PRODUCTION: UNCHANGED
 
-## HOT QUOTE GEOMETRY: STABLE
-
-**SURROUNDING CONTENT MOVEMENT: NONE**
-**PAGE JUMP: NONE**
-
-Verified by injecting extreme long-text and short-text content directly into the actual rendered `.dash-kpi-sub` node (a one-time DOM write for measurement purposes only — React's own rotation mechanism and the real message template were never modified) and comparing `getBoundingClientRect()` of the card, the grid, and a fixed reference element below it. Result, identical across all 8 combinations: card/grid `top` and `height` were **byte-for-byte identical** across baseline real content, extreme long text, and extreme short text. The line-clamp was confirmed actively engaging (unclamped `scrollHeight` ~83-100px vs clamped `clientHeight` capped at 33px — roughly 3 lines of real content actively suppressed). Screenshots at every step confirm clean 2-line ellipsis truncation, with the ellipsis correctly appearing at the RTL-correct edge for HE, and zero card-boundary change.
-
----
-
-## LONG HE TEXT: PASS
-## LONG EN TEXT: PASS
-
-Confirmed truncation (not layout movement) is the actual outcome for extreme-length (150-190 character) synthetic company names in both languages. No existing tooltip/title/full-text-on-hover UX exists for this element; none was invented, per explicit instruction.
-
----
-
-## FOCUSED REGRESSION: PASS
-## FULL TESTS: PASS (72/72 — 70 pre-existing + 2 new)
-## LINT: PASS (0 errors; same 1 pre-existing unrelated `Dashboard.jsx` warning)
-## BUILD: PASS
-
-`src/pages/Dashboard.hotquote.test.js` — 2 new Vitest tests. A full-Dashboard-mount test was judged disproportionate: `Dashboard.jsx` is a large, non-decomposed authenticated-page component (unlike `QuotesTab.jsx`, which is props-driven and already has a test file) that would require heavy Supabase/auth/routing mocking for no proportionate benefit. Instead, a narrow source-level guard reads `Dashboard.jsx`'s own source, extracts the Hot Quote JSX block, and asserts the `minHeight: '52px'` and `WebkitLineClamp: 2` / `overflow: 'hidden'` properties remain present — this fails immediately if a future edit silently removes the geometry-stabilizing CSS.
-
-No regression observed to Quote History, navigation, or HE/EN directionality — all visually confirmed unaffected across all 8 screenshot captures taken this task.
-
----
-
-## GUIDED SUPPORT ENTRY: DOCUMENTED OPEN
-
-Recorded as a new OPEN follow-up in `PROFLOW_TODO.md` §2 (AI Chat) — the full product concept (a 1-2-step guided category-selection opener before free-text AI chat, HE+EN, independent of the existing `GENERAL`/`CANCELLATION`/`FEATURE_REQUEST`/`HARD_QUESTION` classification system). **No AI code was touched this task.**
-
----
-
-## DESKTOP HE/EN MIRRORING: OPEN / DOCUMENTED
-
-(preserved unchanged, not acted on)
-
----
-
-## LANDING PRODUCTION: NOT AUTHORIZED
-
-(Landing Prerender Phase 4 remains technically PASS from the prior task; ChatGPT's independent external access test is still pending; Production was not touched this task)
-
----
-
-## APPLICATION COMMIT: NONE
-## APPLICATION PUSH: NONE
-## PRODUCTION DEPLOY: NONE
-
-Confirmed via `git rev-parse HEAD` before and after this task — unchanged.
-
----
+A local git commit has no deploy consequence by itself; no Vercel/DNS/Supabase action of any kind occurred.
 
 ## CONTINUITY READ-BACK: PASS (this sync — see below)
 
 ---
 
-## FINAL DECISION: PASS
-
-All required verification passed: root cause identified before any code change, narrowest fix implemented, full 8-combination responsive QA matrix passed with real DOM geometry evidence (not just screenshots), long-text truncation confirmed both languages, focused regression test added, full test suite/lint/build all clean, no regression elsewhere, all other open items preserved, Guided Support Entry documented (not implemented), zero commit/push/Production action.
-
----
+**Desktop Quote History HE/EN mirroring: explicitly NOT begun this task, per direct instruction.** All other Owner open items unchanged (Vercel legacy root 308 OPEN; Landing Prerender Phase 4 technically PASS, ChatGPT access pending, Production not authorized; static Landing SEO gaps OPEN; Approved Status Color TODO; P1/Session Timeout OPEN; EN Mobile/Tablet AI-button overlap OPEN).
 
 ## FINAL STOP
 
-Returned to Owner + ChatGPT. Implementation remains local/uncommitted, awaiting review and separate commit/push authorization.
+Returned to Owner + ChatGPT. Hot Quote fix now committed locally on `main` at `5f658f3`, not pushed.
