@@ -3503,3 +3503,241 @@ Source code (100% of frontend), build inputs, Tailwind/CSS configuration, enviro
 **Regression tests required after any of the above, once authorized**: full HE+EN Public Quote re-verification (desktop + mobile) for whichever item was touched; for item 2 specifically, the already-existing 8-step Warranty-style snapshot/immutability proof pattern applied to quote numbering (per-business isolation, no-reuse-on-delete, duplicate-gets-fresh-number); for item 3, explicit before/after DOM-order screenshots at 390×844 for both markets; for item 5, a scroll-to-bottom check on Quote History at 390×844 confirming the last card is no longer obscured.
 
 **No remediation performed. Waiting for Owner review and approval.**
+
+## §115. Approved TEST State → Production Recovery — MASTER PREFLIGHT (2026-08-31, EXHAUSTIVE, NO IMPLEMENTATION)
+
+**Preflight only. No code, CSS, DB, migration, TEST mutation, Production mutation, Edge Function deploy, Vercel deploy, or commit to application branches. Ends with an execution-ready recovery plan for Owner + ChatGPT review, not with any change made.**
+
+### 1. Preserved baseline, freshly established
+
+`branch: main`, `HEAD = 071dad5`, `origin/main = dd11015`, 1 ahead / 0 behind (the one ahead commit is Path B's Edge-Function-only change, already fully documented, not application-frontend code). Working tree: clean except the six continuity docs and the pre-existing untracked `entry-server.jsx`. **Nothing exists only in the working tree, only in local commits, or only in an ungit-tracked state** — every piece of approved work traced this task (§58-§61's forensic-audit/security-fix/width-lock/mobile-grid work, and everything already covered in §99-§114) is confirmed either (a) fully committed and already an ancestor of `origin/main`/Production, or (b) explicitly and precisely characterized as not-yet-applied to Production *by schema/migration state*, never by missing/lost code. **No safe-checkpoint tag is proposed to be created this task** (per the explicit "do not implement anything yet" instruction) — but one is recommended in the plan below (Wave 0).
+
+**Newly reconciled this task**: a forensic check confirmed commit `b5583e5` (`fix(security): reject business-account signing in public_approve_quote`) — referenced in `PROFLOW_PROJECT_CONTEXT.md` §58/§60 but not previously reviewed in this visible session — **is a genuine ancestor of both `origin/main` and local `HEAD`**, with zero divergence. This is a real, already-completed, already-Production-verified critical security fix (a business account could previously forge customer signatures; now correctly rejected). It requires **no recovery action** — it is fully preserved and live. Full detail already on record at §58/§60; re-verified here only for continuity, not re-investigated from scratch.
+
+**Also newly reconciled**: §61's "Mobile Quote History Metadata Grid + Sort Control" — its own continuity status reads "AWAITING OWNER VISUAL APPROVAL," which could be misread as "not yet shipped." **Direct source verification proves otherwise**: the Mobile "מיון:"/"Sort:" control and the 4-column mobile metadata grid (`gridTemplateColumns` with Type/Views/Name/Amount tracks) are both present in the *current* `QuotesTab.jsx` — already proven byte-identical to `origin/main`. **This feature is already live on Production.** Its continuity status is stale documentation, not an actual gap — the code was swept into the later `fde680b` consolidation commit and reached Production via the same 19-commit release already certified in §106/§107. Formal Owner visual sign-off was never explicitly recorded, but the underlying work is not lost, not incomplete, and requires no code action — only, if the Owner wishes, a documentation-only status update once they've had a chance to actually look at it live.
+
+### 2. Approved Baseline Ledger
+
+| Feature / Item | Classification | Basis |
+|---|---|---|
+| Public Quote Desktop width (`980px` token, table density) | **APPROVED — PRESERVE** | §59: Owner's own words on record — "THE CURRENT DESKTOP WIDTH IS APPROVED. DO NOT CHANGE IT." Explicitly LOCKED. |
+| Public Quote Mobile width utilization (`15px` gutter baseline) | **APPROVED — PRESERVE** | §59: Owner's own words — "THE CURRENT MOBILE WIDTH UTILIZATION IS APPROVED AS THE BASE." |
+| Critical Signature Authorization Fix (`public_approve_quote` business-account rejection) | **APPROVED — PRESERVE, ALREADY PRODUCTION-LIVE** | §60: full regression matrix, Owner+ChatGPT authorized, isolated commit, Production-verified. No recovery action. |
+| Mobile Quote History metadata grid + Sort control | **IMPLEMENTED, ALREADY PRODUCTION-LIVE, FORMAL VISUAL APPROVAL NOT YET RECORDED** | §61 (status stale) + this task's direct source verification (already live via `fde680b`→`dd11015`). Not a code gap — a documentation-lag item only. |
+| Warranty (snapshot-at-creation, display, both markets) | **APPROVED — PRESERVE, PRODUCTION-LIVE (display), DB-LIVE** | §104 (migration applied), §111 (display fixed via Path B), §112 (full HE+EN certification). Complete. |
+| Item 17 per-business quote numbering (`A100700+`) | **APPROVED CONCEPT/DESIGN, TEST-VERIFIED — PRODUCTION-INCOMPLETE** | TODO item 17: full TEST regression matrix passed (§18.BO/BQ history); migration package never applied to Production. Recovery item A below. |
+| Item 18 Attn/"לידי" contact | **APPROVED CONCEPT/DESIGN, TEST-VERIFIED — PRODUCTION-INCOMPLETE** | TODO item 18; frontend code already live (both `Dashboard.jsx` and `PublicQuote(En).jsx`); backend columns/data path missing on Production. Recovery item B below. |
+| Public Quote Mobile CTA/header order (Desktop-vs-Mobile asymmetry) | **KNOWN DEFECT** | §113/§114: proven via source + live rendering; Desktop got the Owner-requested reorder, Mobile branch of the same file never did. Recovery item C below. |
+| AI Chat mobile overlap on Quote History | **KNOWN DEFECT** | §113/§114: pre-existing, identical in both environments, no scroll-content padding reserved. Recovery item D below. |
+| "Admin V2" full redesign (consolidated visual system, new IA) | **OPEN / NOT COMPLETED — DESIGN ONLY, NEVER AUTHORIZED FOR BUILD** | §94.1's own conclusion: "zero implementation, zero code touched." Not a recovery item — a separate future product decision. |
+| Admin narrow redesign pass (currently live) | **APPROVED — PRESERVE** | Commit `4088c2c` "Finalize Admin UI redesign," confirmed the actual, only, fully-committed Admin state; no defect found. |
+| Trial banner (thin ticker vs. fuller expiring-soon bar) | **APPROVED — PRESERVE, NOT A DEFECT** | This task: precisely root-caused as intentional `trialDaysLeft <= 5` conditional — see §6/Item F below. Not a recovery item. |
+| Public Quote general layout/proportions (Owner's broader "feels different" impression) | **IMPLEMENTED BUT NEVER FORMALLY OWNER-APPROVED** | §113: 13 sequential passes, all but one narrow sub-item still marked PENDING in continuity. Not reclassified as "needs redesign" — classified precisely as awaiting the Owner's own first full review, per instruction not to reopen approved work merely because a formal record is incomplete. |
+
+**Explicit compliance with the "do not reopen approved work" instruction**: the two items with genuine, on-record Owner approval quotes (Desktop width, Mobile width baseline) are marked **APPROVED — PRESERVE** and are **not** touched, questioned, or included in any recovery-wave file list below. The Critical Signature Fix and the Mobile Quote History grid — both fully implemented, tested, and already live — are likewise marked preserved, not reopened, despite one of them having a stale "AWAITING APPROVAL" label; that label is corrected here as evidence-based documentation lag, not treated as license to redesign already-working code.
+
+### 3. Recovery root causes — reconciled from the exhaustive audit, re-litigated only where new evidence required it
+
+**A. Quote Numbering** — unchanged from §113/§114: Production's `quote_number` is populated by a pre-existing global sequence (`nextval('quotes_quote_number_seq')`); Item 17's `allocate_quote_number()`/`business_quote_sequences` exist only on TEST. **New this task — a genuine migration-package bug found, not previously documented anywhere**: the 5-file numbering package's filenames do not sort in their intended application order. `202608270000015_attach_quote_number_unique_constraint.sql` (15-digit malformed timestamp — the file's own header says it should have been named `20260827000001a_...`) **sorts lexicographically *before*** `20260827000001_add_quote_number_unique_index.sql` — confirmed three independent ways: manual byte comparison, `LC_ALL=C sort`, and the Supabase CLI's own `migration list` (which shows the malformed file's `time` field as the raw unparsed string `"202608270000015"`, unlike every other file's correctly-parsed `"YYYY-MM-DD HH:MM:SS"`). **A plain `supabase db push` of this package as-is would apply the constraint-attach file before its own index exists, and fail.** This must be fixed (a file rename, no SQL content change) before the package can be safely applied — see Recovery Plan item A.
+
+**B. Attn/"לידי"** — unchanged from §113/§114: frontend code (`Dashboard.jsx`, `PublicQuote.jsx`, `PublicQuoteEn.jsx`) is fully in place and already live; `attn_name`/`attn_role` columns don't exist on Production (item 18's migration, `20260828000000_add_quote_attn_contact.sql`, never applied there); Path B's `get-public-quote` deploy deliberately omits these fields as a result. Dependency: item 18's migration must land before `get-public-quote` can safely re-include these fields.
+
+**C. Mobile Public Quote CTA/header order** — unchanged: `PublicQuoteHeader.jsx`'s Mobile branch (lines ~46-112) has the CTA before the quote-number/date box; the Desktop branch (lines ~161-193) has the Owner-corrected order (info box, then CTA). Smallest exact fix: swap the two children inside the Mobile branch's second column — a pure JSX reorder, no style change, same technique already proven safe when applied to Desktop.
+
+**D. AI Chat mobile overlap** — unchanged: `AIChatWidget.jsx` is `position:fixed`, `bottom:85px` on mobile (`≤768px`), `zIndex:999999`; no Dashboard scroll-container padding was ever reserved to keep the last visible Quote History card clear of it. Smallest exact fix: add `paddingBottom` (or `scroll-padding-bottom`) to the mobile Quote History scroll container, sized to roughly the widget's own footprint (~60-70px) plus a small margin.
+
+**E. Admin** — unchanged: current Production Admin is one single, consistent, fully-committed version (`4088c2c` + the later entitlement fix); the larger "Admin V2" redesign was only ever a paper proposal. **Explicit answer to "must not block recovery of already-approved customer-facing work unless there is a real dependency": there is no dependency.** Admin shares zero files, zero components, zero migrations with any of items A-D above. It is excluded from every recovery wave below.
+
+**F. Trial Banner** — **fully resolved this task, not a recovery item.** Exact condition, read directly from `Dashboard.jsx:496-497`:
+```
+isExpiringSoon = trialDaysLeft !== null && trialDaysLeft <= 5 && trialDaysLeft > 0 && !isSuperAdmin
+isPlainActiveTrial = Boolean(trialEndsAt) && !isTrialExpired && !isExpiringSoon && !isSuperAdmin
+```
+When `trialDaysLeft > 5`: the thin, transparent, self-dismissing "ticker" renders (`NEON.violet` text, `נותרו לך X ימים`/`X days remaining`, 28px tall, no background) — this is what a fresh-trial TEST account shows. When `trialDaysLeft <= 5` (and `> 0`): the fuller "slidebar" renders (`NEON.gradient` purple background, white text, `תקופת הניסיון שלך מסתיימת בעוד X ימים!`/`Your trial period expires in X days!`, stays until dismissed) — this is what an account closer to trial end shows, which is what the Owner's own Production inspection likely hit (the exact TEST accounts used throughout this engagement's own smoke work were at `trialDaysLeft` values of 8 and 4 across different points in time — both are plausible to cross the 5-day threshold depending on exactly when either the Owner's or this session's own inspection happened). **Both variants are the same already-approved, already-correctly-implemented code, identical in TEST and Production. Not included in any recovery wave.**
+
+### 4. Parity definition
+
+**PARITY REQUIRED** (must match for the recovery to be considered complete):
+
+| Area | Required parity |
+|---|---|
+| Application release (frontend commit) | Same SHA promoted that TEST/Owner certified |
+| Schema contract for numbering | `business_quote_sequences` + `allocate_quote_number()` present and correct |
+| Schema contract for Attn | `attn_name`/`attn_role` columns present with correct grants |
+| Edge Function behavior/version | `get-public-quote` returns the same fields on both, once schema parity is reached |
+| Functional behavior | Quote creation, numbering, Attn capture/display, Warranty (already done), signature, immutability |
+| Visual behavior for equivalent state | Same component code already guarantees this (proven identical) — only data-state (e.g. trial days remaining) legitimately varies |
+| HE/EN architecture | Same shared components, same market-prop-driven behavior |
+| Responsive behavior | Same breakpoints, same code — once items C/D are fixed, behavior parity extends to those specific elements too |
+
+**INTENTIONAL DIFFERENCE** (never required to match, never a recovery item):
+
+| Area | Why intentionally different |
+|---|---|
+| Supabase project identity | Two genuinely separate projects by design (`PROFLOW_PROJECT_CONTEXT.md` §17.D) |
+| Domain/hostname | `quotecode-test`/`localhost` vs `www.quotecodepro.com` |
+| Credentials/secrets/API keys | Per-project, never shared |
+| Customer/test data | David Aluminum and all real customers exist only on Production (§19); fixture data exists only on TEST |
+| Quote-number historical values already assigned | Existing Production quotes (#11-#95 range) keep their already-assigned numbers under any recovery — never renumbered |
+| Trial-days-remaining-driven banner variant | Legitimate, data-state-dependent, both variants are the same correct code (item F above) |
+
+### 5. Release-gate recovery design
+
+**Design goal, restated precisely**: the version the Owner certifies in TEST must be the exact, unmodified version promoted to Production — no silent working-tree drift between certification and promotion.
+
+**Minimal mechanism, not a CI/CD rewrite**: (1) once a recovery candidate is implemented and passes its own TEST certification, tag the exact commit (e.g., `git tag recovery-candidate-v1 <sha>`) — an immutable pointer, zero infrastructure. (2) The DB migration manifest and Edge Function manifest for that candidate are stated explicitly in the same continuity entry as the tag (already this project's standing discipline — every migration/deploy task in this engagement has named its exact file(s)). (3) A schema-compatibility preflight (a lightweight `information_schema` diff between the two Supabase projects, already demonstrated ad hoc in §113/§114/§115 — formalizing it as a repeatable check, not a new tool) runs before promotion. (4) HE, EN, Desktop, and Mobile verification against that exact tagged commit — not against "whatever's currently in the working tree." (5) Owner approval is recorded against that specific tag/SHA, not a vague "the recent work." (6) Promotion pushes *that exact SHA* — verified via `git rev-parse` before and after the push, exactly as already practiced in §107/§111. (7) Production smoke immediately after, exactly as already practiced. (8) A named rollback point (the SHA/tag immediately prior) is identified *before* promotion begins, not improvised afterward.
+
+This is the existing conservative workflow, made explicit and pinned to an immutable reference — not a new system.
+
+### 6. Recovery dependency graph — proven, not assumed
+
+Tracing actual technical dependencies (not the suggested structure blindly):
+
+- Item A (numbering) requires: (a1) the filename fix (no SQL dependency, but must happen first or the package cannot be pushed at all), then (a2) the 5-file package applied as one coordinated release window (per `20260827000003`'s own explicit "MUST be deployed in the SAME release window" requirement — this is a hard, file-documented dependency, not a suggestion).
+- Item B (Attn) requires: item 18's single migration file applied (no dependency on item A — these are independent schema additions, confirmed via reading both migration files, neither references the other's objects) — **then** `get-public-quote` redeployed with `attn_name`/`attn_role` restored (a hard dependency: deploying the function before the columns exist would reintroduce the exact outage Path B was created to avoid).
+- Item C (Mobile CTA order) has **zero** DB/backend dependency — pure frontend, can happen independently of A/B, any time.
+- Item D (AI Chat overlap) has **zero** dependency on anything else — pure frontend spacing, fully independent.
+- Items C and D can be bundled into the same frontend commit/release as each other, or as a follow-up to A/B's frontend-side pieces, with no technical requirement either way.
+- Admin (item E) has **zero** dependency on A/B/C/D and is excluded from the graph entirely.
+- Trial Banner (item F) requires **no work** and has no place in the graph.
+
+**Proven minimal order**: `[A-filename-fix] → [B-migration, independent of A] → [A-migration-package, same release window internally] → [Edge Function redeploy: get-public-quote with Attn restored] → [C+D frontend fixes, independently timeable] → [TEST certification of the exact candidate] → [Owner gate] → [same SHA promoted] → [Production smoke]`. Unlike the Owner's suggested structure, **A and B's migrations do not have to be sequenced relative to each other** (proven via reading both files — zero shared objects) — they can be applied together in one migration batch, which is simpler and lower-risk than treating them as strictly ordered.
+
+### 7. Migration safety — every file, in full
+
+| File | Objects | Operations | Destructive? | Existing data changed? | Existing quote numbers changed? | Existing customers affected? | Lock/downtime risk | Rollback | TEST evidence | HE impact | EN impact |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `20260827000000_add_quote_number_sequence.sql` | New table `business_quote_sequences`, new function `allocate_quote_number()` | CREATE TABLE IF NOT EXISTS, CREATE POLICY, CREATE FUNCTION, GRANT/REVOKE | No | No | No | No | None (new objects only, no lock on `quotes`) | Full inline rollback provided (drop function/policy/table) | Full TEST regression matrix already passed (§18.BO/BQ) | Symmetric | Symmetric |
+| `202608270000015_attach_quote_number_unique_constraint.sql` **(needs rename before use)** | New constraint on existing index | `ALTER TABLE ... ADD CONSTRAINT ... UNIQUE USING INDEX` (idempotent, guarded) | No | No | No | No | Low — metadata-only catalog change, does not rebuild the index | Inline rollback provided | Same package | Symmetric | Symmetric |
+| `20260827000001_add_quote_number_unique_index.sql` | New index on `quotes(user_id, quote_number)` | `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS` | No | No | No | No | Low — `CONCURRENTLY` explicitly avoids the table-lock a plain `CREATE INDEX` would take; confirmed already correctly isolated into its own migration file (transaction-safety fix already applied 2026-08-28) | Inline rollback provided | Same package | Symmetric | Symmetric |
+| `20260827000002_protect_quote_number_immutability.sql` | New trigger on `quotes` | `CREATE TRIGGER` (not yet read in full this task — already reviewed and TEST-verified in prior tasks per TODO item 17's own record; re-verify at implementation time, not re-derived here) | No (additive trigger) | No | No | No | Low | Inline rollback expected (per package convention) | Same package | Symmetric | Symmetric |
+| `20260827000003_drop_quote_number_default.sql` | `quotes.quote_number` column default | `ALTER COLUMN ... DROP DEFAULT`, `REVOKE` on the old sequence | **Behaviorally yes if applied out of order** — makes every new-quote INSERT fail (NOT NULL violation) unless the allocator is already live and the frontend's RPC call is already the active path (it already is, byte-identical to Production since `ffc741d`) | No existing row is rewritten (metadata-only ALTER) | **No — explicitly, by design**: existing quotes keep their already-assigned global-sequence numbers untouched; only the column's *default-for-new-rows* behavior changes | No | Low for the ALTER itself; **high operational risk if release-order is violated** (real quote-creation outage) — this is the one file requiring the most care | Inline rollback provided (restores the old DEFAULT); explicitly only safe if no new per-business numbers have been issued yet that would need reconciling | Package's own file header explicitly documents the release-order requirement | Symmetric | Symmetric |
+| `20260828000000_add_quote_attn_contact.sql` | `quotes.attn_name`, `quotes.attn_role` | `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ... text` (nullable, no default) | No | No | N/A | No | None — metadata-only, additive nullable columns | Standard `DROP COLUMN` rollback (not yet re-read in full this task; same additive-nullable pattern already proven safe for Warranty) | Live on TEST, frontend's schema-fallback retry pattern already handles the pre-migration state gracefully (already proven for the current unmigrated Production state) | Symmetric | Symmetric |
+
+**Explicit answer to the Owner's special requirement**: "Existing historical Production quote numbers must NOT be silently rewritten." **Confirmed across every file above: none of them touch, rewrite, or renumber a single existing row.** The only behavioral change is which mechanism supplies a number to a *newly created* quote going forward.
+
+### 8. Production customer safety
+
+| Question | Answer |
+|---|---|
+| Can existing users continue working? | **YES** — no auth/session table touched by any item; every migration is additive or metadata-only |
+| Can existing Public Quote links continue working? | **YES** — `get-public-quote`'s core select (`id`, `terms`, `warranty`, items, business, client, attachments, signature, status) is unaffected by any of these changes; only the *addition* of `attn_name`/`attn_role`/`quote_number` fields once their columns exist |
+| Can existing signed/finalized quotes remain unchanged? | **YES** — `guard_quote_immutability()` already protects any locked quote; none of items A/B touch that trigger; the Critical Signature Fix (already live) only tightens *who* may trigger a first-time approval, never alters existing approved rows |
+| Can existing currencies remain correct? | **YES** — no currency/tax logic touched by any recovery item |
+| Can Israel/International separation remain intact? | **YES** — every item confirmed market-neutral (shared components, `isHebrew`-prop-driven only) |
+| Is there any Auth/session risk? | **NO** — zero Auth-table or Auth-config change in any proposed item |
+| Is there any data-loss risk? | **NO** — every migration is additive (new table, new columns, new index, new trigger, new function) or metadata-only (drop default, revoke grant); zero `DROP TABLE`/`DROP COLUMN`/`DELETE`/`UPDATE` against existing data anywhere in the package |
+
+**No uncertain answer above — no STOP GATE required by this section's own test.** (A STOP GATE remains required regardless before any actual execution, per the Owner Decision Gates in §14/below — this section only confirms none of the *safety* answers are themselves uncertain.)
+
+### 9. HE/EN invariants, per item
+
+| Item | HE impact | EN impact |
+|---|---|---|
+| A. Numbering | Same allocator, same display function (`formatQuoteNumber`), no market branch anywhere in the mechanism | Same, independently confirmed via live TEST rendering (`A100713`) this task |
+| B. Attn | Same shared conditional (`quote.attn_name &&`) in `PublicQuote.jsx`/`PublicQuoteEn.jsx` respectively | Same, independently confirmed via live TEST rendering ("ATTN: Simon Levy Test") this task |
+| C. Mobile CTA order | `PublicQuoteHeader.jsx` is the literal same component for both, confirmed via both call sites | Same file, same fix, confirmed via direct source reading (not inferred) |
+| D. AI Chat overlap | Same shared widget, same Dashboard layout | Same |
+| E. Admin | N/A — no HE/EN distinction in Admin's core inventory beyond existing label branching, untouched | N/A |
+| F. Trial Banner | Same shared code, `isHebrew`-driven text swap only | Same |
+
+No item in this recovery was inferred for one market from the other — every claim above traces to either shared-component source reading or independent live rendering for both markets specifically.
+
+### 10. Execution waves — dependency-proven, adapted from the suggested structure
+
+The suggested 8-wave structure holds up well against the proven dependency graph (§6 above), with one adjustment: Waves 2 and 3's schema work can be merged (A and B have no ordering dependency on each other), and Admin is explicitly excluded rather than silently omitted.
+
+- **WAVE 0** — Preserve immutable baseline: tag current `origin/main` (`dd11015`) before any recovery work begins, so there is always a known-good rollback point independent of anything that follows.
+- **WAVE 1** — Release-gate mechanics: adopt the tag-and-verify promotion discipline from §5 (process only, no code).
+- **WAVE 2** — Production schema/backend parity: fix the migration filename bug (item A), then apply the full Item 17 package (5 files, one coordinated window) + Item 18's single file (independent, can be batched together) to Production, per the existing Mandatory Pre-LIVE Backup & Rollback Gate.
+- **WAVE 3** — Edge Function parity: redeploy `get-public-quote` with `attn_name`/`attn_role` restored (single-function deploy, same low-risk pattern already proven twice this engagement).
+- **WAVE 4** — Frontend implementation-gap closure: item C (Mobile CTA order) and item D (AI Chat overlap) — two small, independent, zero-dependency fixes, can be one commit or two.
+- **WAVE 5** — TEST certification of the exact tagged candidate (not a fresh working-tree state).
+- **WAVE 6** — Owner approval gate against that specific tag/SHA.
+- **WAVE 7** — Promote the same SHA to Production (`git push`), verified via SHA comparison before/after, exactly as already practiced.
+- **WAVE 8** — Production smoke (the same HE+EN+desktop+mobile pattern already used in §109/§112) + explicit rollback go/no-go decision.
+
+Admin (item E) and Trial Banner (item F) appear in **no wave** — confirmed no dependency, nothing to do.
+
+### 11. Re-testing scope — minimize, do not eliminate rigor
+
+**MUST RE-TEST** (recovery can materially affect it):
+- Quote creation + numbering, both markets (Wave 2/3 changes the numbering mechanism directly).
+- Public Quote page load, both markets, both breakpoints (Wave 3 changes the Edge Function response shape; Wave 4 changes Mobile layout).
+- Attn display, both markets (Wave 3).
+- AI Chat / Quote History scroll interaction, mobile, both markets (Wave 4).
+
+**DOES NOT REQUIRE FULL RE-TEST** (evidence proves the recovery cannot materially affect it):
+- Warranty (already fully certified in §112, untouched by any recovery item — no shared file, no shared migration).
+- Signature Pad / approval flow (the Critical Signature Fix is already live and unaffected by anything in this recovery; `guard_quote_immutability` untouched).
+- Admin (zero dependency, confirmed in §6).
+- Auth/login/session (zero item touches Auth).
+- Desktop Public Quote width/density (§59's Owner-approved-and-locked state; no recovery item touches `--pf-desktop-content-width` or the table density CSS).
+- Trial Banner (confirmed data-state-driven, not code-driven; no recovery item touches it).
+- EN/HE currency, VAT, market-routing logic (no recovery item touches `regionConfig.js` or related).
+
+**Distinguishing the three retest tiers**:
+- **FULL OWNER RE-APPROVAL**: only for Wave 6's own gate, against the specific new candidate — not a re-approval of anything already listed as APPROVED — PRESERVE in §2.
+- **AUTOMATED/CLAUDE REGRESSION SMOKE**: the "MUST RE-TEST" list above, using the same real-authenticated-UI methodology already established (§109/§112), scoped narrowly to what actually changed.
+- **NO RETEST REQUIRED**: the "DOES NOT REQUIRE" list — explicitly not asked of the Owner.
+
+### 12. Exact change manifest (proposed, not yet authorized)
+
+**Application files to modify**: `PublicQuoteHeader.jsx` (Mobile CTA reorder), `Dashboard.jsx` and/or `AIChatWidget.jsx` (scroll-clearance padding), `supabase/functions/get-public-quote/index.ts` (restore `attn_name`/`attn_role`, contingent on migrations landing first).
+
+**Application files NOT to touch**: everything else — specifically, no touch to `PublicQuote.jsx`/`PublicQuoteEn.jsx` beyond what's already live (Attn/Warranty rendering already correct), no touch to any Admin component, no touch to `index.css`'s locked width tokens, no touch to `send-quote-email` or any email function.
+
+**Migrations to apply**: `202608270000015_attach_quote_number_unique_constraint.sql` (renamed first — see §7), `20260827000000/000001/000002/000003` (Item 17 package, one coordinated window), `20260828000000_add_quote_attn_contact.sql` (Item 18, independent, can batch with Item 17).
+
+**Migrations NOT to apply**: the four base-schema-capture files (`20260830000000-3`) — these are TEST-only schema *documentation* captures of Production's own existing state, not forward changes, and applying them to Production would be a category error (confirm this framing at execution time, not assumed further here since it wasn't the subject of this task's re-investigation). `20260831000000` — already applied.
+
+**Edge Functions to deploy**: `get-public-quote` only, once Item 18's migration has landed.
+
+**Edge Functions NOT to touch**: every other function, exactly as every prior deploy in this engagement has scoped itself.
+
+**Vercel action required**: **YES**, but indirectly — a `git push origin main` containing Wave 4's frontend fixes auto-triggers a Vercel rebuild (standing rule, §17.E); no separate manual Vercel action needed or proposed.
+
+**TEST actions required**: apply the renamed/reordered migration package to `quotecode-test` first if not already fully matching (TEST already has Item 17/18 live per §113/§114 — verify, don't reapply, at execution time), then run the MUST-RE-TEST list against the exact tagged candidate.
+
+**Production actions required**: the Wave 2/3 migration + Edge Function deploy, and the Wave 7 frontend promotion — each its own explicit Owner authorization, exactly as this engagement's own standing practice already requires.
+
+### 13. Rollback master plan
+
+| Layer | Rollback | Reversible? |
+|---|---|---|
+| Frontend (Mobile CTA reorder, AI Chat spacing) | `git revert` the commit, redeploy via push | Fully reversible |
+| DB migration — Item 17 package | Inline rollback SQL already written in each file; safe **only if** no per-business numbers have been issued yet (per `20260827000003`'s own explicit caveat) — the longer the new numbering runs live, the more a rollback would need manual reconciliation, not a pure schema revert | Reversible with decreasing ease over time — recommend confirming rollback readiness *before* Wave 2, not after |
+| DB migration — Item 18 (Attn columns) | `DROP COLUMN IF EXISTS attn_name, attn_role` — safe, since nothing else depends on their existence structurally | Fully reversible |
+| Edge Function (`get-public-quote` with Attn restored) | Redeploy the already-archived pre-change source (same pattern used in Path B's own rollback plan) | Fully reversible |
+| Numbering (behavioral) | Once real per-business numbers exist, "rollback" means reverting to the old global-sequence default — historical new-format numbers already issued would coexist oddly with resumed old-format numbers; recommend treating this as effectively a one-way door once Wave 2 has been live for more than a trivial window | **Not cleanly reversible after meaningful live use** — flag this explicitly to the Owner before Wave 2 |
+| Attn (behavioral) | Fully reversible at any time (additive, display-only) | Fully reversible |
+| Responsive frontend changes (C/D) | `git revert` | Fully reversible |
+
+**No future Production execution should begin without this table reviewed fresh at that time** — this preflight version is not a substitute for a final check immediately before Wave 2/3/7 specifically.
+
+### 14. Owner decision gates
+
+| Gate | Scope | Not the same as |
+|---|---|---|
+| **GATE A** | Approve recovery implementation in TEST/local (Waves 2-4 as code, applied to TEST + committed locally) | Not Production authorization of any kind |
+| **GATE B** | Approve the Production DB migration (Wave 2) | Not Edge Function or frontend authorization |
+| **GATE C** | Approve the Production Edge Function deployment (Wave 3) | Not frontend promotion authorization |
+| **GATE D** | Approve the final Production frontend promotion (Wave 7, the tagged SHA push) | Not implied by A, B, or C individually |
+
+A TEST implementation approval (Gate A) is not Production authorization. A commit is not a push. A push is not a deploy. A deploy is not LIVE authorization unless explicitly approved — restated here as the explicit, binding sequencing this recovery will follow, matching this engagement's entire standing practice to date (every single migration/deploy/push in §104/§107/§110/§111 required its own separate, explicit authorization; none was ever assumed from an earlier one).
+
+### 15. What is preserved vs. what needs new work
+
+**Preserved, untouched, no recovery action**: Public Quote Desktop width/table density (Owner-locked), Public Quote Mobile width baseline (Owner-approved), the Critical Signature Authorization Fix (already Production-live), the Mobile Quote History grid+sort control (already Production-live, only its documentation status needs a correction), Warranty end-to-end (already fully certified both markets), Admin's current narrow redesign (no defect), Trial Banner (confirmed correct, data-driven).
+
+**Requires only promotion/backend parity, zero new design work**: Item 17 numbering (fully designed, fully TEST-verified — needs the filename fix + coordinated migration application + already-live frontend code activating automatically), Item 18 Attn (fully designed, fully TEST-verified — needs the migration + one Edge Function redeploy).
+
+**Requires a small, precisely-scoped implementation completion**: Mobile CTA/header order (one component, swap two children), AI Chat mobile overlap (one small spacing addition).
+
+**Genuinely requires new work**: none identified by this preflight — every proven item above is either a promotion gap or a small, already-fully-specified fix.
+
+**Genuinely requires Owner re-review** (not re-approval of already-approved work): the general Public Quote layout/proportions impression (§113 item B) — because no formally-approved reference state exists to diff against, this is the one area where the honest answer is "the Owner needs to look at the current live state fresh and name anything specific," not a code-audit deliverable. This is explicitly **not** a request to redo four days of work — it is a request for the one piece of feedback that was never actually captured in continuity as a completed approval.
+
+### 16. Continuity
+
+Recorded across all six canonical files as **RECOVERY PREFLIGHT — NO IMPLEMENTATION YET**, with the approved baseline, proven parity gaps, dependency graph, exact proposed change manifest, execution waves, safety gates, rollback plan, required retesting, and Owner approvals required all captured above. Documentation-only sync to `proflow-continuity` to follow, with remote GitHub read-back verification before FINAL STOP.

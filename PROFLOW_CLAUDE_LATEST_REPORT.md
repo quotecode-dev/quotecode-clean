@@ -4,129 +4,125 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Exhaustive TEST vs Production Reconciliation Audit — Maximum Depth
+## Task: Approved TEST State → Production Recovery — Master Preflight
 
-Continues directly from the prior drift audit (`PROFLOW_PROJECT_CONTEXT.md` §113). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §114, `PROFLOW_HANDOFF.md` §18.FA.
+Continues directly from the exhaustive drift audit (`PROFLOW_PROJECT_CONTEXT.md` §114). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §115, `PROFLOW_HANDOFF.md` §18.FB.
 
-**Strictly read-only, maximum depth, no time/token optimization. No code, CSS, DB, migration, commit, push, or deploy of any kind.**
-
----
-
-## SCOPE
-
-Every domain listed by the Owner's specification was independently examined: source code, commits/refs, branches, build inputs, build outputs, deployed artifacts, Vercel deployment state, Supabase/Edge Functions, environment variables, feature flags, CSS/generated CSS, responsive breakpoints, viewport-dependent behavior, fonts, caching/CDN, stale assets, browser/runtime, production-only/TEST-only conditions, locale/RTL/LTR, HE/EN separation, data-dependent rendering, DB/schema, quote numbering, Public Quote/Dashboard/mobile/desktop rendering, trial banner, layout dimensions, scroll indicators, button placement, service worker, and generated assets.
-
-**New this task beyond the prior audit**: real browser rendering proof on TEST (not source-reading alone), an exhaustive `import.meta.env`/feature-flag sweep, a build-input audit, a build-output audit (which surfaced a genuine historical font-pipeline incident, already fixed), a deployed-artifact/CDN audit, and a complete responsive-breakpoint/service-worker/generated-asset inventory.
+**Preflight only. No code, CSS, DB, migration, TEST mutation, Production mutation, Edge Function deployment, Vercel deployment, or commit to application branches. Ends with an execution-ready recovery plan, not a change.**
 
 ---
 
-## COMPLETE DOMAIN LEDGER
+## MODE: RECOVERY PREFLIGHT · IMPLEMENTATION: NONE · TEST MUTATION: NONE · PRODUCTION MUTATION: NONE
 
-| Domain | Verdict |
-|---|---|
-| Source code (100% of `src/`) | **VERIFIED IDENTICAL** |
-| Exact commits/refs | **VERIFIED** (`origin/main = HEAD~1 = dd11015`) |
-| Branches | **NOT APPLICABLE** (single branch, no TEST branch/environment) |
-| Build inputs | **VERIFIED IDENTICAL** |
-| Build outputs (fonts) | **VERIFIED IDENTICAL now**; historical incident found, confirmed already fixed |
-| Deployed artifact (asset hash) | **VERIFIED DIFFERENT (expected, not drift)** |
-| Vercel deployment state (CLI) | **BLOCKED** (unauthenticated), independently corroborated otherwise |
-| Supabase/Edge Functions | **VERIFIED DIFFERENT** (root cause of numbering + Attn gaps) |
-| Environment variables (rendering) | **VERIFIED IDENTICAL** |
-| Feature flags | **NOT APPLICABLE** (none exist) |
-| CSS/generated CSS | **VERIFIED IDENTICAL** |
-| Responsive breakpoints (full inventory) | **VERIFIED IDENTICAL** (code); one bug is a code defect, not env divergence |
-| Viewport-dependent behavior | **VERIFIED** via real rendering |
-| Fonts/font metrics | **VERIFIED IDENTICAL** |
-| Caching/CDN | **VERIFIED, secondary finding, not root cause** |
-| Stale assets | **VERIFIED — no risk** |
-| Browser/runtime | **NOT APPLICABLE** |
-| Production-only conditions | **VERIFIED, documented** (middleware host check) |
-| TEST-only conditions | **VERIFIED, documented** (fail-closed guard) |
-| Locale/RTL/LTR | **VERIFIED IDENTICAL** (code) |
-| HE/EN market separation | **VERIFIED, independently both markets** |
-| Data-dependent rendering | **VERIFIED DIFFERENT** |
-| DB/schema/function differences | **VERIFIED DIFFERENT** |
-| Quote numbering | **VERIFIED DIFFERENT, root-caused, rendering-proven** |
-| Public Quote rendering (general) | **VERIFIED IDENTICAL code**, no approved reference exists |
-| Dashboard rendering | **VERIFIED IDENTICAL** |
-| Mobile rendering | **VERIFIED DIFFERENT (one bug, present in both envs)** |
-| Desktop rendering | **VERIFIED IDENTICAL to its own corrected design** |
-| Trial banner | **VERIFIED IDENTICAL** |
-| Layout dimensions/spacing | **VERIFIED IDENTICAL code**, no approved reference exists |
-| Scroll/trial indicator | **VERIFIED IDENTICAL** |
-| Button/order placement | **VERIFIED DIFFERENT, root-caused, rendering-proven** |
-| Service worker | **NOT APPLICABLE** |
-| Generated assets | **VERIFIED IDENTICAL** |
+## APPROVED WORK PRESERVED: YES
+
+Fresh state confirms nothing exists only in the working tree, only in local commits, or only untracked. Every piece of approved work is either already an ancestor of `origin/main`/Production, or precisely characterized as a schema/migration gap — never a lost-code gap.
+
+## APPROVED BASELINE: `HEAD = 071dad5` (Path B, Edge-Function-only, unpushed) · `origin/main = dd11015` · `1 ahead / 0 behind` · Production frontend commit = `dd11015`
 
 ---
 
-## A. VERIFIED ROOT CAUSES
+## KEY NEW RECONCILIATIONS THIS TASK (neither requires recovery action)
 
-1. Item 17's numbering migration/RPC never applied to Production — confirmed via schema AND live rendering both markets.
-2. Path B deploy deliberately excludes `attn_name`/`attn_role` — confirmed via live rendering both markets.
-3. `PublicQuoteHeader.jsx` Mobile branch never received the Desktop-only CTA reorder — confirmed via live rendering both markets, baked into already-pushed source.
-4. No formally-approved Owner sign-off exists for general Public Quote/Admin layout beyond one narrow sub-item.
-5. "Admin V2" was only ever a paper proposal, never authorized/built.
-6. AI Chat mobile overlap is long-standing and identical in both environments.
+1. **Critical Signature Authorization Fix** (`PROFLOW_PROJECT_CONTEXT.md` §58/§60): a real vulnerability — any authenticated business account could forge a customer's approval/signature on a quote by calling `public_approve_quote` directly, bypassing the UI. Already fixed, full TEST regression matrix passed, already promoted to Production (commit `b5583e5`). Forensically confirmed this task: `b5583e5` **is a genuine ancestor of both `origin/main` and local `HEAD`**, zero divergence, zero lost work. Fully preserved, fully live, no action needed.
+2. **Mobile Quote History metadata grid + Sort control** (§61): its own continuity status still reads "AWAITING OWNER VISUAL APPROVAL." Direct source verification this task proves the feature (the "מיון:"/"Sort:" control, the 4-column mobile grid) is **already live on Production**, swept into the `fde680b` consolidation commit. A documentation-lag finding, not a code gap.
 
-## B. VERIFIED TEST-vs-PRODUCTION DIFFERENCES
+## NEW MIGRATION-SAFETY FINDING
 
-- `quotes.quote_number` generation mechanism (schema).
-- `attn_name`/`attn_role` availability (schema + deployed function).
-- Deployed JS asset hash (expected build non-determinism, explicitly not source drift).
+Item 17's numbering package has a real filename bug: `202608270000015_attach_quote_number_unique_constraint.sql` (malformed 15-digit timestamp) sorts **before** its own dependency, `20260827000001_add_quote_number_unique_index.sql` — confirmed three independent ways, including the Supabase CLI's own `migration list`. **A plain `supabase db push` of this package as committed today would fail.** Must be renamed (no SQL change) before Wave 2.
 
-## C. SECONDARY EFFECTS
+## TRIAL BANNER — FULLY RESOLVED, NOT A DEFECT
 
-- Every new Production quote continues getting a non-per-business number until Item 17 lands — compounding, not one-time.
-- Every Production Public Quote shared since the Path B deploy silently omits any entered Attn contact — live, real, customer-facing (data safe in DB, just not rendered).
-- Future visual passes risk repeating the same Desktop-fixed/Mobile-not-updated pattern unless explicitly checked both ways.
-
-## D. VERIFIED IDENTICAL
-
-Source code (100%), build inputs, Tailwind/CSS config, environment-variable rendering logic (none exists), feature flags (none exist), fonts, trial banner, all static breakpoints + the one JS breakpoint threshold, Dashboard rendering, Desktop Public Quote order, generated static assets, service worker (absent both).
-
-## E. UNRESOLVED / BLOCKED
-
-- **Vercel CLI deployment queries**: BLOCKED, unauthenticated session; missing evidence = Owner token or interactive login. Not required for the audit's conclusions (corroborated otherwise).
-- **General Public Quote proportions**: no single defect pinpointed; missing evidence = a real reference screenshot/measurement, since no approved end-state exists to diff against.
-- **Residual "TEST looked different" feeling**: most plausible explanation is TEST reviews serving live/sometimes-uncommitted working tree rather than a pinned artifact — structural, not proven for any specific item audited here.
-
-## F. COMPLETE REMEDIATION PLAN — ORDERED, NOT IMPLEMENTED
-
-1. Release/promotion integrity — schema-parity pre-push check. Zero risk, process only.
-2. Quote numbering — apply Item 17's full migration package via the existing Backup & Rollback Gate. Medium risk, HE+EN symmetric.
-3. Mobile CTA/number order — swap two children in `PublicQuoteHeader.jsx`'s Mobile branch. Low risk, one file, HE+EN symmetric.
-4. Attn card restoration — revert Path B's field removal once item 2 lands. Low risk, contingent on item 2.
-5. AI Chat overlap — reserve bottom padding on Dashboard's Quote History container. Low risk, additive.
-6. Public Quote general proportions — requires real Owner review session; cannot be substituted by further code audit.
-7. Admin UI — no defect to fix; Admin V2 is a fresh product decision.
-
-**Regression tests required**: full HE+EN Public Quote re-verification (desktop+mobile) for any touched item; for item 2, the existing Warranty-style snapshot/immutability proof pattern applied to numbering; for item 3, explicit before/after 390×844 DOM-order screenshots both markets; for item 5, a scroll-to-bottom check at 390×844.
+Exact condition (`Dashboard.jsx:496-497`): `isExpiringSoon = trialDaysLeft <= 5 && trialDaysLeft > 0`. Above 5 days remaining → thin transparent "ticker" (purple text, self-dismissing). At 5 or fewer days remaining → fuller purple "slidebar" (white text, stays until dismissed). Both are the same already-approved, identical-in-both-environments code — the Owner's two observations were two different, both-correct states of one already-correct feature.
 
 ---
 
-## KEY NEW EVIDENCE THIS TASK
+## PARITY REQUIRED vs INTENTIONAL DIFFERENCE
 
-- **Real rendering proof, both markets**: TEST dev server (port 5186, already running, non-mutating) rendered actual Public Quote pages at 390×844 for HE and EN independently — confirmed `A100732`/`A100713` numbering, Attn card rendering, and the CTA-order bug all with real DOM/pixels, not source inference.
-- **Exhaustive env-conditional sweep**: 4 `import.meta.env` references total, codebase-wide, all in one file, all Supabase-target-selection only. Zero feature flags anywhere.
-- **Build-input audit**: package.json/vite.config/tailwind.config all environment-neutral.
-- **Build-output audit found a real historical incident, already fixed**: fonts once silently 404'd in the actual Production build (Tailwind pipeline stripping font `url()`s) despite looking correct in dev — re-verified fixed via a fresh build (all 30 font files emit correctly).
-- **Deployed-artifact audit**: live Production's JS hash differs from a fresh local build's hash — explicitly documented as expected non-determinism, not drift, to prevent future false-positive.
-- **Caching audit**: Vercel edge warm, browsers always revalidate — no stale-content risk.
-- **Vercel CLI**: present but unauthenticated — BLOCKED for direct deployment queries, non-critical given other corroborating evidence.
-- **Full breakpoint inventory**: 640/768/1024px + print/reduced-motion, all environment-independent; the one JS breakpoint check matches the CSS threshold.
-- **Service worker**: none exists anywhere.
+**Required**: application release SHA, numbering + Attn schema contract, Edge Function behavior once schema lands, functional behavior, HE/EN architecture, responsive behavior.
+**Intentional, never a recovery item**: Supabase project identity, domain, credentials, customer/test data (David Aluminum protected per §19), already-assigned historical quote numbers (never renumbered), trial-days-driven banner variant.
+
+## PROVEN RECOVERY ITEMS
+
+| Item | Root cause | Recovery |
+|---|---|---|
+| A. Quote Numbering | Item 17 migration never applied to Production; malformed filename would also block a naive push | Rename file, apply 5-file package as one coordinated window |
+| B. Attn/"לידי" | Item 18 migration never applied; Path B deliberately omits the fields as a result | Apply migration, then redeploy `get-public-quote` |
+| C. Mobile CTA/header order | Desktop got the Owner-requested reorder; Mobile branch of the same file never did | Swap two children in `PublicQuoteHeader.jsx`'s Mobile branch |
+| D. AI Chat mobile overlap | No scroll-content padding reserved to clear the fixed widget | Add bottom padding/scroll-margin to Dashboard's Quote History container |
+
+**Admin (E)**: no defect, zero dependency on A-D, excluded from every wave. **Trial Banner (F)**: not a recovery item.
+
+---
+
+## MIGRATION SAFETY — FULL TABLE (7 files)
+
+All additive or metadata-only; **none rewrite existing quote numbers or existing rows**. One file (`20260827000003_drop_quote_number_default.sql`) carries a real *operational* risk if applied out of its documented release-order window (would fail every new-quote INSERT) — this is already explicitly flagged in the file's own header, and the recovery plan honors it by treating the 4-file Item 17 package as one coordinated application. Full per-file breakdown (objects, operations, destructive?, data changed?, lock risk, rollback, TEST evidence, HE/EN impact) recorded in full at `PROFLOW_PROJECT_CONTEXT.md` §115.7.
+
+## PRODUCTION CUSTOMER SAFETY — ALL YES/NO, NONE UNCERTAIN
+
+Existing users: unaffected. Existing Public Quote links: unaffected. Existing signed/finalized quotes: unaffected (immutability trigger untouched). Currencies: unaffected. Market separation: unaffected. Auth/session risk: none. Data-loss risk: none (zero DROP/DELETE/UPDATE against existing data anywhere in the package). **No STOP GATE triggered by this section's own test** — a fresh safety re-check is still required immediately before actual execution.
+
+---
+
+## DEPENDENCY GRAPH (proven, not assumed)
+
+`[Rename malformed migration file] → [Item 18 migration, independent of Item 17] → [Item 17's 4-file package, one coordinated window] → [get-public-quote redeploy] → [Mobile CTA fix + AI Chat spacing fix, independently timeable] → [TEST certification of the exact tagged candidate] → [Owner gate] → [same SHA promoted] → [Production smoke]`. Items C and D have zero backend dependency and zero dependency on each other. Admin and Trial Banner appear nowhere in the graph.
+
+## RECOVERY WAVES (9, adapted from the suggested 8 — merged the schema waves since A/B have no ordering dependency on each other)
+
+0. Tag current `dd11015` as an immutable rollback point.
+1. Adopt the tag-and-verify promotion discipline (process only).
+2. Fix the migration filename; apply Item 17 (4 files, one window) + Item 18 (1 file, independent) to Production.
+3. Redeploy `get-public-quote` with Attn restored.
+4. Fix Mobile CTA order + AI Chat overlap (frontend only).
+5. TEST-certify the exact tagged candidate.
+6. Owner approval gate against that SHA.
+7. Promote the same SHA to Production.
+8. Production smoke + rollback go/no-go.
+
+## MUST RE-TEST vs NO FULL RE-TEST REQUIRED
+
+**Must re-test**: quote creation/numbering both markets, Public Quote load both markets/breakpoints, Attn display both markets, AI Chat/scroll interaction mobile both markets.
+**No full re-test required**: Warranty (already certified, untouched), Signature/approval flow (already live, unaffected), Admin (zero dependency), Auth/session (untouched), Desktop width/density (Owner-locked, untouched), Trial Banner (confirmed data-driven), currency/VAT/market-routing (untouched).
+
+## OWNER RE-APPROVAL REQUIRED — only where genuinely necessary
+
+Wave 6's gate against the new candidate. **Not** a re-approval of Desktop/Mobile width (already on record as approved) or anything else in the "APPROVED — PRESERVE" ledger.
+
+---
+
+## ROLLBACK PLAN — PER LAYER
+
+Frontend: `git revert`, fully reversible. DB (Item 17): inline rollback SQL provided, safe only before real per-business numbers accumulate — flagged as effectively one-way after meaningful live use. DB (Item 18/Attn): fully reversible (`DROP COLUMN`). Edge Function: redeploy the archived pre-change source, fully reversible. Full table at §115.13.
+
+## OWNER GATES — 4, never combined
+
+A: TEST/local implementation. B: Production DB migration. C: Production Edge Function deploy. D: Production frontend promotion. A commit ≠ a push ≠ a deploy ≠ LIVE authorization.
+
+---
+
+## WHAT'S PRESERVED FROM THE LAST FOUR DAYS
+
+Desktop/Mobile Public Quote width (Owner-locked), the Critical Signature Fix (already live), the Mobile Quote History grid+sort (already live), Warranty (fully certified), Admin's current redesign (correct as-is), Trial Banner (correct as-is).
+
+## WHAT ACTUALLY NEEDS NEW WORK
+
+Nothing requires genuinely new design. Numbering and Attn need only promotion/backend parity (already fully designed and TEST-verified). Mobile CTA order and AI Chat overlap need small, precisely-scoped, already-fully-specified fixes. The one item requiring actual new Owner input (not new code) is a fresh look at general Public Quote proportions, since no formally-approved reference state exists to diff against — not a request to redo prior work, a request for the one piece of feedback never actually captured.
+
+## RECOMMENDED FIRST EXECUTION WAVE
+
+**Wave 0**: tag `dd11015` as the immutable pre-recovery checkpoint. Zero risk, zero code change, establishes the rollback anchor before anything else begins.
 
 ---
 
 ## CONTINUITY
 
-- `PROFLOW_PROJECT_CONTEXT.md` — new §114 (complete domain ledger, A-F structured findings, all new evidence).
-- `PROFLOW_HANDOFF.md` — §18.FA appended.
-- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.EZ's paragraph demoted to HISTORICAL.
-- `PROFLOW_ARCHITECTURE.md` — §1.A updated with the exhaustive structural finding and the font-pipeline historical incident.
-- `PROFLOW_TODO.md` — continuity log extended with the full exhaustive audit summary.
+- `PROFLOW_PROJECT_CONTEXT.md` — new §115 (complete recovery plan: baseline ledger, root causes, parity tables, release-gate design, dependency graph, migration safety, customer safety, HE/EN invariants, execution waves, retest scoping, change manifest, rollback plan, Owner gates, preserved-vs-new summary).
+- `PROFLOW_HANDOFF.md` — §18.FB appended.
+- `PROFLOW_CHAT_HANDOFF.md` — §14 resume pointer updated, §18.FA's paragraph demoted to HISTORICAL.
+- `PROFLOW_ARCHITECTURE.md` — §14.A updated with the migration filename bug.
+- `PROFLOW_TODO.md` — continuity log extended with the full preflight summary.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — this file, fully rewritten.
 
 Continuity commit to be pushed under the standing §17.K auto-sync authorization, verified live on GitHub before FINAL STOP.
@@ -135,6 +131,6 @@ Continuity commit to be pushed under the standing §17.K auto-sync authorization
 
 ## FINAL STOP
 
-Every domain in the Owner's specification was independently examined, with evidence, to completion — this is not a partial diagnosis. Every headline root cause from the prior audit is now confirmed via real browser rendering, not source inference alone. One genuine historical build-pipeline incident was found and confirmed already fixed. No new discrepancy beyond what was already identified was found despite the exhaustive sweep. **Nothing was implemented, no mutation of any kind occurred.**
+An execution-ready recovery plan is complete: nothing approved was reopened, nothing lost was found, two items previously thought incomplete are confirmed already live, one previously-undiscovered migration-package bug was found and precisely characterized, and the Trial Banner concern is fully resolved as correct existing behavior. Every proposed action is traced to a proven dependency, a named risk, a named rollback, and an explicit Owner gate. **Nothing was implemented.**
 
-STOP after presenting the complete evidence-backed audit and wait for Owner approval.
+DO NOT IMPLEMENT. WAIT FOR OWNER + CHATGPT REVIEW.
