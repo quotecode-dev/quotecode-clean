@@ -4,91 +4,91 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Resume Quote History Live QA + Fix Amount/Actions Header Centering Only
+## Task: Final Quote-History Polish + Local VAT Display Density + Market-Separation Fail-Closed Iron Rule + One-Click Browser QA Launchers
 
-**EFFORT LEVEL: HIGH.** No commit, no push, no Production.
-
----
-
-## BROWSER HARNESS: PASS
-
-`http://127.0.0.1:9222/json/version` reachable, `browser-harness --doctor` reported daemon alive with 1 active connection. The Owner's Chrome restart succeeded; §78's blocker is resolved.
-
-## LIVE QA: PASS
+**EFFORT LEVEL: MAXIMUM.** No commit, no push, no Production. Full detail in `PROFLOW_PROJECT_CONTEXT.md` §80.
 
 ---
 
-## Resumed verification (continuing §78's implementation, not re-implementing)
+## PART A — ORDER CENTERING: PASS
 
-Confirmed via real TEST data (`PROFLOW_TEST_LOCAL_*`/HE, `PROFLOW_TEST_INTL_*`/EN): Desktop `Client Type`+`Views` mirroring unchanged (HE: outermost-right/contiguous; EN: outermost-left/contiguous — identical to §77's original measurement), `Views`/`Email` headers icon-only, `#Order` compact, `Description` visibly wider. Zero horizontal overflow across Desktop/Mobile/Tablet Portrait/Tablet Landscape, both locales.
-
-## Owner feedback — Amount/Actions centering root cause
-
-`textAlign: 'center'` on a header only centers the header's own text *within the column box* — it says nothing about where the body content sits. `Amount`'s and `Actions`' body `<td>` cells were still edge-aligned (pre-existing, untouched by §78). Measured live before any fix (EN): `Amount` header-center 1068.55 vs body money-center 1056.79 (**11.76px offset**); `Actions` header-center 1375.48 vs button-center 1385.26 (**9.78px offset**) — a real, measurable misalignment, not a subjective impression.
-
-## Fix
-
-Centered only these two body `<td>` elements (`textAlign: 'center'`), so header and body sit on the same column-box center regardless of content length or locale. Confirmed safe first: `handleToggleDropdown`'s dropdown-menu positioning computes live from the clicked button's own `getBoundingClientRect()`, not a fixed column edge — centering the button cannot break menu placement. No other column, no other row/body alignment, no business logic touched.
-
----
-
-## HE AMOUNT CENTERING: PASS
-## HE ACTIONS CENTERING: PASS
-## EN AMOUNT CENTERING: PASS
-## EN ACTIONS CENTERING: PASS
-
-## GEOMETRY
+Same root cause as §79's Amount/Actions fix: header had `textAlign: 'center'` but the body `<td>` remained edge-aligned. Fixed by centering the Order body `<td>` to match.
 
 | | Before offset | After offset |
 |---|---|---|
-| HE Amount (header center → body center) | pre-existing edge-align, same issue class as EN | 820.3047 → 820.2969 (**~0.008px, effectively 0**) |
-| HE Actions (header center → button center) | " | 532.375 → 532.3672 (**~0.008px, effectively 0**) |
-| EN Amount (header center → body center) | 1068.5547 vs 1056.7891 (**11.76px**) | 1068.5547 vs 1068.5547 (**0px, exact**) |
-| EN Actions (header center → button center) | 1375.4766 vs 1385.2578 (**9.78px**) | 1375.4766 vs 1375.4766 (**0px, exact**) |
+| EN Order (header center → text center) | **~5.3–6.1px** | effectively 0px |
+| HE Order (header center → text center) | **~4.3–5.1px** (captured via safe, reverted DOM-node simulation) | effectively 0px |
 
-Re-verified identically on HE Tablet Landscape (Amount: 379.8047 vs 379.7969) and EN Tablet Landscape (Amount and Actions both exact 0px) — the fix holds at the same breakpoint that renders the Desktop table.
+Verified HE Desktop, EN Desktop, Tablet Landscape (renders the same Desktop table). No other header, mirroring, Email indicator, Description width, Amount, Actions, sorting, or order-number business logic touched.
+
+## PART B — HE BEFORE-VAT DISPLAY: PASS
+
+Permanent visible `לפני מע"מ: ₪X` line removed from the HE/Local Amount cell; row now shows only the final amount (e.g. `₪200.00`). Value remains available via a `title` tooltip attribute, computed from the same unchanged `beforeVatAmount` calculation, gated by the same unchanged `isLocalIsraeliBusiness && isHebrew` guard.
+
+- **Row-height reduction (measured, safe DOM simulation, reverted)**: **~13px, ~28% shorter**.
+- **Dead-code finding**: the removed JSX's English branch (`"Before VAT: ..."`) was nested inside the HE-only guard and was provably unreachable — confirmed dead code, not an active International leak, before removal.
+- **VAT calculation/percentage/totals/quote data/Public Quote/PDFs/billing/International behavior: UNCHANGED** — confirmed no other file references the removed block.
+- **Tests added**: HE — visible text excludes `לפני מע"מ`, `title` attribute contains it. EN — `title` attribute is `null` (not merely hidden — nonexistent in the DOM).
+
+## PART C — MARKET SEPARATION IRON RULE: DOCUMENTED (PERMANENT)
+
+Canonical rule written to `PROFLOW_PROJECT_CONTEXT.md` §80 Part C, cross-referenced in `PROFLOW_TODO.md` item 34. Local (HE/RTL/ILS/Israeli VAT) vs. International (EN/LTR/USD-EUR-GBP only, no ₪, no automatic Israeli tax/business semantics) is now permanent canonical policy for every agent (Owner, ChatGPT, Claude Lead, Agent HE, Agent EN, future agents). Mandatory fail-closed contradiction handling documented: any instruction that appears to cross the boundary → do not implement, report **"MARKET-SEPARATION CONFLICT"**, request clarification. No conflict was encountered this task.
+
+## PART D — BROWSER QA LAUNCHERS: PASS
+
+Created at **`C:\Users\sales\Desktop\ProFlow Browser QA\`** (outside the repo, confirmed never staged/tracked): `Start-ProFlow-Browser-QA.bat`/`.ps1`, `Stop-ProFlow-Browser-QA.bat`/`.ps1`.
+
+- **START (already running, idempotent)**: PASS — no duplicate Chrome, real `page_info()` returned, `--doctor` reported daemon alive + 1 active connection + READY.
+- **STOP (safe, dedicated-only)**: PASS — dedicated-profile Chrome process count went from 1 main+children to zero; personal Chrome's own main process confirmed **unchanged** (identical PID + `StartTime` before/after); CDP correctly became unreachable.
+- **RESTART (from genuinely-stopped state)**: Chrome launch + CDP-reachable — PASS. Daemon-bootstrap sub-step initially reported FAILED, root-caused conclusively to this session's own `BH_REQUIRE_EXISTING_DAEMON=1` (process-local, inherited only by my own tool calls, per §71) — re-ran the identical line with that variable removed for one call and it succeeded cleanly, proving the script's logic is correct for a normal Owner terminal (which never has this variable set).
+- **Personal Chrome**: UNCHANGED throughout (verified twice, before and after Stop).
+- **Keep-alive rule**: reconfirmed permanent — never close the dedicated Chrome's last tab; the Start script's own New Tab page satisfies this automatically.
+- **Two bugs found and fixed during testing**: `$ErrorActionPreference='Stop'` + merged stderr redirect crashing the script on an expected/harmless stderr line (fixed: removed global `Stop`, used `2>$null`); PowerShell 5.1's native `|` pipe injecting a UTF-8 BOM into `browser-harness`'s stdin regardless of `$OutputEncoding` (fixed: routed through `cmd /c "echo ...| browser-harness"`).
+- **Exact location**: `C:\Users\sales\Desktop\ProFlow Browser QA\`.
+
+## PART E — PLAN STATUS BADGE: DOCUMENTED, OPEN/NOT IMPLEMENTED
+
+Recorded as `PROFLOW_TODO.md` item 35. Placement: white strip between purple header and KPI/cards, same row as Dashboard nav buttons; HE/RTL = left, EN/LTR = right (mirrored by locale direction); must clearly emphasize the plan/status icon. No code written.
 
 ---
 
-## MIRRORING: PASS (unchanged, re-confirmed — not touched by this fix)
-## DESCRIPTION WIDTH: PASS (unchanged from §78, visually confirmed live this task)
-## EMAIL FUNCTION: PASS (unchanged — only header width/padding was ever touched, in §78; this task touched nothing email-related)
-## MOBILE/TABLET: PASS
+## RESPONSIVE QA (Parts A+B): PASS
 
-Zero horizontal overflow on every combination (HE/EN × Desktop/Mobile/Tablet Portrait/Tablet Landscape). Mobile and Tablet Portrait correctly still render the untouched Mobile card layout.
+HE/EN × Desktop/Mobile (390×844)/Tablet Portrait (768×1024)/Tablet Landscape (1024×768) — zero horizontal overflow on every combination. International (EN) confirmed unaffected by Part B's HE-only change.
 
----
-
-## FOCUSED TESTS: PASS (28/28 QuotesTab)
-## FULL TESTS: PASS (80/80)
+## FOCUSED TESTS: PASS (30/30 QuotesTab)
+## FULL TESTS: PASS (82/82)
 ## LINT: PASS (0 errors)
 ## BUILD: PASS
 
-No test needed updating — this fix changed only two body cells' alignment, not any header's own text/structure that the existing centering/order/icon-count tests assert on.
-
 ---
+
+## BROWSER TAB HYGIENE
 
 ## STALE QA TABS: 0
 ## KEEP-ALIVE TAB: 1
+## DEDICATED QA CHROME: RUNNING
 
-Reused a single QA tab throughout (both HE and EN logins, all viewport changes). At task end, closed one stray diagnostic tab (`127.0.0.1:9222/json/version`) and deliberately left the dashboard tab open as the single keep-alive — confirmed via `browser-harness --doctor` immediately after: daemon alive, 1 active connection, dedicated Chrome still running. The §78-recorded tab-hygiene refinement (never close the very last tab) is now directly validated.
+Left running at task end (final state after Part D's restart test), per the permanent tab-hygiene rule in §76.
 
 ---
 
 ## APPLICATION COMMIT: NONE
 ## PUSH: NONE
 ## PRODUCTION: UNCHANGED
+## DNS: UNCHANGED
+## SUPABASE: NO MUTATION
 
-`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). `QuotesTab.jsx`/`.test.jsx` remain local/uncommitted, layered on §78's and §77's uncommitted changes.
+`git rev-parse HEAD` = `5f658f3f5b59207933e4053d8b5484b4a27e41a7` (unchanged); `origin/main` = `e03001745859ae6b81f162a4af5bdca3c95cac5a` (unchanged). `QuotesTab.jsx`/`.test.jsx` remain local/uncommitted, layered on §77/§78/§79's uncommitted changes. The 4 launcher files exist only outside the repo.
 
 ## CONTINUITY READ-BACK: PASS (this sync — see below)
 
 ---
 
-**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry.
+**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Market Separation Iron Rule (item 34, now permanent policy per this task), Plan Status Badge (item 35, OPEN per this task), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry.
 
 ## FINAL DECISION: PASS
 
 ## FINAL STOP
 
-Quote History Desktop layout work (§77+§78+§79 combined) is now fully live-QA-verified in both languages across the full responsive matrix, with the Owner's Amount/Actions centering feedback specifically resolved and geometrically proven. Returned to Owner + ChatGPT for visual review before any commit/push authorization.
+Parts A, B, D fully implemented and verified. Part C is now permanent canonical policy. Part E remains an open, documented, unimplemented requirement. Returned to Owner + ChatGPT for review before any commit/push authorization.

@@ -1265,3 +1265,25 @@ Whenever item 30 is eventually implemented, the existing AI Chat feature must be
 **This task authorized documentation only.** No currency code, database schema, or Business Profile logic was changed; no currency test quotes were created; no TEST or Production data was mutated.
 
 **Future OPEN audit item (not yet authorized to execute)**: verify the invariant end-to-end on TEST — create a USD quote, change Business currency to EUR, verify the old quote remains USD; create a new EUR quote, change Business currency to GBP, verify both older quotes retain their original currencies (USD and EUR respectively); create a new GBP quote and verify it is GBP. This audit requires separate Owner + ChatGPT authorization before execution.
+
+## 34. Market Separation Fail-Closed Iron Rule (permanent canonical policy, added 2026-08-31, Final Quote-History Polish task — DOCUMENTATION ONLY)
+
+**Status: 🟢 PERMANENT POLICY — not a task, applies to every future task**
+
+**Canonical location**: `PROFLOW_PROJECT_CONTEXT.md` §80, Part C. This item is a pointer only — read §80 for the full rule text.
+
+**One-line summary**: Local (Hebrew/RTL/ILS/Israeli VAT) and International (English/LTR/USD-EUR-GBP only, no ₪, no automatic Israeli tax/business semantics) are separate markets. HE/EN parity means mirroring equivalent UX, not translating Local-specific business semantics into English. Any agent (Owner, ChatGPT, Claude Lead, Agent HE, Agent EN, future agents) encountering an instruction that appears to cross this boundary must fail closed, not implement it, and report **"MARKET-SEPARATION CONFLICT"** rather than proceed.
+
+**Worked example cited in the rule**: `לפני מע"מ` (before-VAT) must never automatically become an English `"Before VAT"` label in International just because it exists in Local — it is an Israeli-tax-law concept, not a translatable UI string.
+
+## 35. Subscription/Plan Status Badge (added 2026-08-31, Final Quote-History Polish task — DOCUMENTATION ONLY, not implemented)
+
+**Status: 🔴 OPEN — NOT IMPLEMENTED, no code written**
+
+**Placement**: in the white strip between the purple top header area and the KPI/cards section, on the same row as the Dashboard nav buttons (New Quote / Business Settings / Clients / Finances / Catalog).
+
+**Position, mirrored by locale direction**: HE/RTL = left side of that row; EN/LTR = right side of that row — consistent with the Dashboard's existing RTL/LTR mirroring pattern elsewhere.
+
+**Requirement**: must clearly emphasize the current plan/subscription status via icon (not a plain text label buried among the nav buttons).
+
+**Not yet scoped**: exact badge states (e.g. Trial/Active/Expired/Past Due), exact icon set, click behavior (if any), and data source (subscription table field) are all undetermined and require separate Owner specification before implementation is authorized.
