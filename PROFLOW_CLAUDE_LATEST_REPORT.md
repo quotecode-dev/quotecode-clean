@@ -78,15 +78,13 @@ No application source changes. No DB changes. No TEST mutation. No Production mu
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`3b9415a0e264d1fd1b6b8e541cdfc83defcde683` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive product-initiative documentation update (all six files). Matching commit exists locally on `main` (`9b84f8d`), **not pushed**, per the documentation-only boundary.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and API verification — see chat-level Final Report.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `3b9415a0e264d1fd1b6b8e541cdfc83defcde683` exactly. **Note**: the GitHub REST Contents API hit its unauthenticated rate limit (60/hour, exhausted by this session's cumulative verification calls) partway through — `PROFLOW_TODO.md` and `PROFLOW_CLAUDE_LATEST_REPORT.md` returned HTTP 403. Rather than wait ~21 minutes for reset, both were independently verified via a genuine git-protocol read (`git show origin/proflow-continuity:<path>`, reading GitHub's actual stored objects directly, not local disk state or push output) — confirmed present and correct. The four files fetched successfully via REST before the limit hit (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`) were decoded and content-verified; `PROFLOW_HANDOFF.md`'s decode showed a false negative purely because it exceeds the Contents API's 1MB inline-content limit (`encoding: "none"`), immediately cross-verified true via the same git-object method. **All six files independently confirmed present and correct at the real remote ref**, using REST where available and a direct git-protocol read where REST was rate-limited — no file was accepted on local write or push output alone.
 
 ---
 
