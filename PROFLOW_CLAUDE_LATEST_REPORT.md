@@ -4,111 +4,117 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Quote History Desktop HE/EN Mirroring + International Currency Invariant Documentation
+## Task: Quote History Desktop Final Layout Pass — Width Optimization + Header Cleanup + Centering + Email Indicator Preservation
 
-**EFFORT LEVEL: MAXIMUM.** Fix Desktop Client Type + Views placement/order only; document (do not implement) the International Quote Currency Immutability invariant. No commit, no push, no Production action.
+**EFFORT LEVEL: MAXIMUM.** No commit, no push, no Production. Continuing on the still-uncommitted working tree after the prior isolated-commit was correctly blocked.
 
----
-
-## ROOT CAUSE
-
-The Desktop table (`QuotesTab.jsx`) already relies on a single, non-language-conditional DOM order plus `dir={tableDir}` (`isHebrew ? 'rtl' : 'ltr'`) on the `<table>` for automatic RTL/LTR mirroring — the same pattern already established for Mobile (§63). Before this fix, DOM order was `[#Order, ClientName, ClientType, Description, Amount, Date, Status, Email, Actions]`: `ClientType` was the 3rd column from the inline-start edge, `Views` the 8th (far away). This did not satisfy the Owner's contract requiring `ClientType` + `Views` to be the first two, contiguous columns at the outermost inline-start position.
-
-## FILES CHANGED
-
-`src/components/QuotesTab.jsx` (Desktop `<thead>`/`<tbody>` blocks only — `ClientType`/`Views` `<th>`/`<td>` moved to the front of the existing DOM order; every other column's own styling/relative order unchanged). `src/components/QuotesTab.test.jsx` (4 new tests).
+**RESULT: BLOCKED for live QA.** The dedicated automation Chrome itself went down (not just its tabs) at the very start of this task, before any live inspection could occur. All source-level audit, implementation, and non-browser quality gates were completed and are reported honestly; nothing requiring the browser was fabricated.
 
 ---
 
-## HE DESKTOP: PASS
-## EN DESKTOP: PASS
+## CURRENT MIRRORING BEFORE CHANGE
 
-## HE ORDER
-Client Type → Views from RIGHT: **PASS**
-
-## EN ORDER
-Client Type → Views from LEFT: **PASS**
-
-Verified via real `getBoundingClientRect()` on real TEST data, logged into `PROFLOW_TEST_LOCAL_*` (HE) and `PROFLOW_TEST_INTL_*` (EN) — credentials read from the gitignored `.env`, never printed. **HE**: `ClientType.right` = 1427.5 (outermost/maximum among header cells), `Views.right` = 1393.3125 (exactly `ClientType.left` — pixel-contiguous). **EN**: `ClientType.left` = 477.5 (outermost/minimum), `Views.left` = 529.3125 (exactly `ClientType.right` — pixel-contiguous). Both measured twice this task — once initially, once during a full clean re-verification after a same-origin session cross-contamination testing artifact was discovered and corrected (see the Browser Tab Cleanup section below) — byte-identical both times.
-
-## VIEWS ZERO: PASS
-
-`quote.view_count || 0` (pre-existing, untouched) correctly renders the literal digit `0`; confirmed on real rows both locales and via a new regression test.
-
-## LONG CLIENT NAME: PASS
-
-The existing `maxWidth`/`overflow: hidden`/`textOverflow: ellipsis`/`title` truncation on the `Client Name` cell is untouched and occupies a fixed-width column independent of `ClientType`/`Views`' new position — cannot displace them.
+Re-audited fresh (not relying on the prior report): the §77 Desktop mirroring fix (`Client Type` first, `Views` second, relying on the existing `dir={tableDir}` for RTL/LTR mirroring) was confirmed intact and uncommitted at task start, untouched by this task's changes. This task's own changes are additive layout/styling work on top of it.
 
 ---
 
-## HE MOBILE PRESERVED: PASS
-## EN MOBILE PRESERVED: PASS
-## HE TABLET PORTRAIT: PASS
-## EN TABLET PORTRAIT: PASS
-## HE TABLET LANDSCAPE: PASS
-## EN TABLET LANDSCAPE: PASS
+## HEADER CENTERING: PASS (source-level; not live-verified — see blocker)
 
-Viewports: Desktop 1920×1080; Mobile 390×844 @3x; Tablet Portrait 768×1024 @2x; Tablet Landscape 1024×768 @2x. Confirmed via the existing, unmodified `isMobileView` breakpoint (`matchMedia('(max-width: 768px)')`): Mobile and Tablet Portrait (768px is inclusive) correctly still render the pre-existing, untouched Mobile card layout (§63's order, unaffected); Tablet Landscape (1024px) correctly renders the Desktop table with the new mirrored order, DOM-measured identically to Desktop's own results.
+All textual Desktop headers (`#Order`, `Client Name`, `Description`, `Amount`, `Date`, `Status`, `Actions`) now use `textAlign: 'center'` (previously edge-aligned per locale). `Client Type`, `Views`, and the email-status header were already centered. Body/row data alignment was deliberately left unchanged — only headers were addressed, per the instruction's own scope.
 
-**Testing-methodology note**: confirmed `Emulation.setDeviceMetricsOverride` doesn't always trigger the `resize`/`matchMedia`-change listeners `isMobileView` needs to recompute post-mount — a quirk already documented in the codebase's own comments from an earlier session. Worked around via explicit `window.dispatchEvent(new Event('resize'))` after each viewport change, per the codebase's own prescribed pattern.
+## DECORATIVE HEADER ICONS REMOVED
 
-## HORIZONTAL OVERFLOW: NONE
+`Hash` (#Order), `Building2` (Client Name header usage only — the import itself is preserved since it's also used by `ClientTypeBadge`), `AlignLeft` (Description), `Banknote` (Amount), `Calendar` (Date), `CircleDot` (Status). Confirmed via `grep` that none of these five (Hash/AlignLeft/Banknote/Calendar/CircleDot) had any other usage in the file before their imports were removed entirely.
 
-Confirmed (`scrollWidth <= clientWidth`) on all 8 combinations.
+## FUNCTIONAL ICONS PRESERVED
+
+- `Eye` (Views) — now the column's sole visible header content, per explicit instruction.
+- `Mail` (email status) — already icon-only, unchanged in kind.
+- `Building2`/`User` (inside `ClientTypeBadge`) — the actual per-row client-type indicator, functionally load-bearing.
+
+None of the removed icons participated in sort/click/tooltip/accessibility — confirmed by reading the handler wiring (`onClick` is bound to the whole `<th>`, not the icon) before removing anything.
+
+---
+
+## EMAIL INDICATOR
+
+Audited `renderEmailDot` directly (existing, unmodified function):
+
+**RED**: two distinct causes render identically — (a) `quote.email_bounced` true (recipient address doesn't exist / message bounced, detected asynchronously by a `resend-email-webhook`, stays red until a successful resend), or (b) `emailStatus` truthy but not `'success'` (the immediate send attempt failed). Tooltip differs per cause.
+
+**GREEN**: `emailStatus === 'success'` — sent successfully.
+
+**BLANK**: both `quote.email_bounced` is falsy and `emailStatus` is null/undefined — no email sent for this quote yet (no entry in the `emailStatuses` map).
+
+**OTHER**: none — exactly these three visual states exist.
+
+No email-sending logic, backend, data field, or status semantic was touched — only the header's width/padding changed.
+
+---
+
+## ORDER WIDTH
+before → after: unconstrained (content/text-driven) → **72px** (explicit, source-declared)
+
+## VIEWS WIDTH
+before → after: **46px → 28px** (source-declared)
+
+## EMAIL WIDTH
+before → after: **36px → 28px** (source-declared)
+
+## DESCRIPTION WIDTH
+before → after (header `minWidth`): **130px → 190px** (source-declared)
+before → after (body `maxWidth`, governs the actual ellipsis truncation point): **190px → 260px** (source-declared)
+
+## DESCRIPTION WIDTH GAIN
+**+60px header minWidth (+46%) / +70px body maxWidth (+37%)** — **source-declared values, not live-rendered pixel measurements.** Real rendered widths depend on font metrics, badge/icon dimensions, and the table's `table-layout: auto` column distribution, none of which can be confirmed without the browser. Reported honestly as source intent rather than fabricated as a live measurement, per the task's own "do not report merely 'looks better'" standard — the same standard extends to not reporting an unverified number as if it were measured.
+
+---
+
+## HE DESKTOP: BLOCKED (not verified)
+## EN DESKTOP: BLOCKED (not verified)
+## MIRRORING PRESERVED: NOT RE-VERIFIED THIS TASK (untouched by this task's changes; last independently DOM-measured and confirmed in §77)
+## VIEWS ZERO: NOT RE-VERIFIED THIS TASK (body logic `quote.view_count || 0` untouched)
+## EMAIL FUNCTION PRESERVED: PASS (source-confirmed — `renderEmailDot` byte-identical to before this task)
+## MOBILE/TABLET REGRESSION: BLOCKED (not verified — Mobile card layout code path untouched by this task's changes)
+## HORIZONTAL OVERFLOW: BLOCKED (not verified)
+
+**Why**: at the very start of this task, before any inspection could occur, `browser-harness --doctor` reported 0 active browser connections, and `http://127.0.0.1:9222/json/version` was unreachable. A read-only process check confirmed no `chrome.exe` process anywhere carries a `--remote-debugging-port` flag — the entire dedicated automation Chrome instance is gone, not merely its tabs. Root cause: the prior task's end-of-task cleanup closed the *last* remaining tab in that instance; a fully tab-less dedicated Chrome apparently self-terminates. This session cannot restart it (`BH_REQUIRE_EXISTING_DAEMON=1`). **Tab-hygiene rule refinement recorded**: never close the dedicated Chrome's very last tab during cleanup — leave one idle tab as a keep-alive.
 
 ---
 
 ## FOCUSED TESTS: PASS
-## FULL TESTS: PASS (76/76 — 72 prior + 4 new)
+## FULL TESTS: PASS (80/80 — 76 prior + 4 net new/updated this task)
 ## LINT: PASS (0 errors)
 ## BUILD: PASS
 
-4 new tests added to `QuotesTab.test.jsx` (`describe.each` HE/EN): assert the first two `<thead>` header cells are `Client Type` then `Views` in DOM order, and the first two `<tbody>` first-row cells render consistently, including the literal `0` Views value. These test DOM source order (what `jsdom` can assert reliably); the real-browser `getBoundingClientRect()` evidence above is what proves actual visual mirroring — same "narrow, structure-level guard" philosophy as the Hot Quote regression test.
+Updated the existing Views-header-order test (now asserts text is **absent**, `aria-label`/`title` present instead). Added a header-centering assertion test. Added a decorative-icon-count assertion test (header row contains exactly 2 `<svg>` — Eye + Mail).
 
 ---
 
-## INTERNATIONAL CURRENCY IMMUTABILITY: DOCUMENTED PERMANENT INVARIANT
+## BROWSER TAB CLEANUP: PASS (trivially — see caveat)
 
-Recorded as `PROFLOW_TODO.md` item 33: a quote's currency is fixed at creation time from the Business Profile's then-current currency and never retroactively changes when the Business Profile's currency later changes (full worked example and applicable surfaces documented there). **No currency code, schema, or Business Profile logic changed. No TEST or Production data mutated. No currency test quotes created.**
+## CLAUDE-CREATED STALE QA TABS: 0
 
-## CURRENCY AUDIT: OPEN / NOT EXECUTED
-
-Recorded as a future item in the same `PROFLOW_TODO.md` entry — requires separate Owner + ChatGPT authorization before execution.
+**Caveat**: 0 tabs remain, but only because the entire dedicated automation Chrome process is down, not because this task performed an active, successful cleanup. Disclosed honestly rather than claimed as a hygiene success.
 
 ---
-
-## BROWSER TAB CLEANUP
-
-**BROWSER TAB CLEANUP: PASS**
-
-Mid-task, the Owner reported heavy machine load; `list_tabs()` found **34 open tabs**, almost all stale Claude-created QA tabs accumulated across this session's prior tasks. Closed 32 immediately, consolidating to the 1-2 tabs genuinely needed for this task's remaining QA. At task end, closed the final remaining tab.
-
-**CLAUDE-CREATED STALE QA TABS: 0** — confirmed via `browser-harness --doctor` reporting `active browser connections — 0` after final cleanup.
-
-**DEDICATED QA BROWSER: PRESERVED** — the dedicated automation Chrome instance and daemon remain alive and available for future sessions; only the tabs/pages were closed, not the browser/daemon itself.
-
-**CONTINUITY RULE: DOCUMENTED** — recorded as a new permanent operational rule in `PROFLOW_PROJECT_CONTEXT.md` §76, including the same-origin session-sharing testing pitfall discovered while investigating this.
-
----
-
-## HOT QUOTE COMMIT
-
-`5f658f3f5b59207933e4053d8b5484b4a27e41a7` — **UNPUSHED**, confirmed unchanged this task (`git rev-parse HEAD` before and after this task both returned this SHA; `origin/main` confirmed unchanged at `e03001745859ae6b81f162a4af5bdca3c95cac5a`).
 
 ## APPLICATION COMMIT: NONE
 ## APPLICATION PUSH: NONE
 ## PRODUCTION: UNCHANGED
 
----
+`src/components/QuotesTab.jsx` and `.test.jsx` remain local/uncommitted, layered on §77's uncommitted mirroring fix, on top of the still-unpushed Hot Quote commit (`5f658f3f5b59207933e4053d8b5484b4a27e41a7`, confirmed unchanged).
 
 ## CONTINUITY READ-BACK: PASS (this sync — see below)
 
 ---
 
-**Other Owner open items preserved, none acted on**: Vercel legacy root 308 — OPEN. Landing Prerender Phase 4 technically PASS, ChatGPT access pending, Production NOT authorized. Static Landing SEO gaps — OPEN. Approved Status Color — TODO. P1/Session Timeout — OPEN. EN Mobile/Tablet AI-button overlap — OPEN. Guided Support Entry — OPEN/DOCUMENTED.
+**Other Owner open items preserved, none acted on**: International Currency Immutability (item 33), Vercel legacy root 308, Landing Prerender Phase 4/ChatGPT-pending, static Landing SEO gaps, Approved Status Color, P1/Session Timeout, EN Mobile/Tablet AI-button overlap, Guided Support Entry. Email sending/backend, currency implementation, Hot Quote, Landing, Vercel, Supabase, Production were not touched.
 
-## FINAL DECISION: PASS
+## FINAL DECISION: BLOCKED
+
+Implementation and all non-browser quality gates are complete and passing. Live visual/pixel QA — required to actually confirm this task's PASS criteria (HE/EN Desktop centering and widths, Mobile/Tablet regression, real before/after measurements) — is blocked pending the Owner restarting the dedicated automation Chrome (same procedure as §71).
 
 ## FINAL STOP
 
-Returned to Owner + ChatGPT. Desktop mirroring fix remains local/uncommitted, on top of the still-unpushed Hot Quote commit, awaiting review and separate commit authorization.
+Returned to Owner + ChatGPT. Recommend the Owner restart the dedicated automation Chrome so live QA can complete; implementation remains local/uncommitted in the meantime.
