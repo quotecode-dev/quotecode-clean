@@ -117,7 +117,7 @@ Committed to local `main`: `855d64c` (application fix). Continuity docs: `f67320
 
 ## 20. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`e0b75800b6e66155a147d81929be835bb111b852` on `proflow-continuity` (pushed; content commit `2c13e27` + this SHA-follow-up commit). Matching commits exist locally on `main` (`f673203` content, `b4dab96` follow-up), **not pushed** — consistent with this task's own no-push-authorization instruction. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2c13e27e9d2ac46756bc4a6a8018e5a5c0f89eaf` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §129 and `PROFLOW_HANDOFF.md` §18.GC both present and correct. `origin/main` re-fetched and confirmed unchanged at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`.
 
 ## 21. AUDIT-001/002/003/004 — Explicit Statement
 
