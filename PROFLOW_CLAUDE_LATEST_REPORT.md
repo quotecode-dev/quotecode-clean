@@ -92,7 +92,7 @@ Same six-file discipline as every task this session: `PROFLOW_PROJECT_CONTEXT.md
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`2b475dd` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`4970646`) — not pushed to `origin/main` (documentation only; zero application code this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2b475dd` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §144 present in `PROFLOW_PROJECT_CONTEXT.md`, the update present in `PROFLOW_TODO.md`, §18.GP present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ---
 
