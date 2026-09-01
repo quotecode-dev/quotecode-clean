@@ -4383,3 +4383,39 @@ Wave 3 was restarted cleanly from Section 0 per the prior BSOD reconstruction's 
 **No application/DB/TEST/Production/Edge Function/Vercel mutation occurred.** No quote was submitted, approved, signed, edited, deleted, or sent — only `GET`-equivalent page loads and screenshots against the app's own already-existing, already-safe TEST-owned Production quotes. The disposable CDP script and its output remain in the session scratchpad only, never copied into the repository. No `main` push, no RC tag push, no rollback, no Wave 7, no browser-harness repair.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §119 addendum); `PROFLOW_HANDOFF.md` UPDATED (new §18.FT); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph — Wave 6 now PASS); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (verification-only task, no architecture change); `PROFLOW_TODO.md` REVIEWED — NO CHANGE REQUIRED (no product/backlog item affected); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application/DB/TEST/Production/Edge/Vercel mutation; no `main` push; no RC tag push.**
+
+## §120. PROFLOW RECOVERY: CLOSED (2026-09-01, formal documentation-only closure, applying the Recovery Finalization Audit's verdict)
+
+**Owner authorization**: formal documentation-only closure of the ProFlow Recovery program, applying the Recovery Finalization Audit's `RECOVERY CAN CLOSE` verdict exactly as concluded. This section is the authoritative closure record.
+
+**Fresh bootstrap, re-verified immediately before writing**: `origin/main` fresh-fetched, unchanged at `83e677a488a6a17b9a195c5a360726307398f445`; local `main` unchanged at `6150189...` (4 documentation-only commits ahead, none pushed); working tree clean besides the standing `src/entry-server.jsx`; RC tag `proflow-rc-2026-09-01-wave4-complete` re-confirmed dereferencing to `988688f20d8293f9c056432846a085d074290c94`, still local-only. Zero drift from the Finalization Audit's own findings.
+
+**Final Wave classification, as concluded by the Finalization Audit and now formally recorded**:
+
+| Wave | Objective | Status |
+|---|---|---|
+| 0 | Immutable pre-Recovery rollback checkpoint | **COMPLETE / PASS** |
+| 1 | Release-gate discipline / RC process model | **COMPLETE / PASS** |
+| 2 | Production DB LIVE — Item 17 + Item 18 | **COMPLETE / PASS** |
+| 3 | Production Edge Function parity | **COMPLETE / PASS** |
+| 4 | Frontend Item C + Item D | **COMPLETE / PASS** |
+| 5 | RC composition audit + local checkpoint tag | **COMPLETE / PASS** |
+| 6 | `main` push + Vercel deployment + Production rendered verification | **COMPLETE / PASS** |
+| 7 | *(original draft: "final Production frontend promotion, the tagged SHA push")* | **OBJECTIVE ALREADY SATISFIED BY LATER AUTHORIZED WORK** — fully achieved by the more conservative Waves 5+6 execution, with more rigor than originally scoped (byte-level tree-hash proofs, exact-commit Vercel deployment confirmation, real rendered-browser verification with screenshots and measured DOM rects) |
+| 8 | *(never independently defined)* | **SUPERSEDED / NO LONGER APPLICABLE** — exhaustive search across all six canonical files found zero independent Wave 8 content ever authored; it existed only as an unused placeholder within the original "Waves 1-8" range estimate |
+
+**PROFLOW RECOVERY: CLOSED.**
+
+**What closure means, precisely**: the Recovery program's own defined scope — Item 17 (per-business quote numbering), Item 18 (Attn contact), Item C (Mobile CTA/info order), Item D (AI Chat mobile overlap) — is fully live on Production, DB-confirmed, Edge-Function-confirmed, and rendered-browser-confirmed on both markets. No further Recovery-scoped mutation is required or outstanding.
+
+**What closure does NOT mean**: it does not mean every historical `OWNER FINAL VISUAL ACCEPTANCE: PENDING` label anywhere in this engagement's history is resolved — those predate Recovery and concern pre-existing, already-live features outside Recovery's own scope. It does not mean the three explicitly-excluded backlog findings (Trial banner presentation, LIFETIME Upgrade CTA, Dashboard scale/layout) are resolved — they were **never part of Recovery's scope**, logged from the start as *"open, unassigned backlog items pending their own dedicated investigation."* It does not mean items 39-41 (Professional Print/PDF, Clients List density, Business Document Branding) are implemented — they remain documented future product requirements, unrelated to Recovery.
+
+**browser-harness incident (§118)**: remains classified `BROWSER-HARNESS LOCAL QA INFRASTRUCTURE ISSUE, OPEN / NON-PRODUCT BLOCKER` — explicitly **not** a Recovery blocker, and Recovery closure does not depend on it being resolved. Its completed troubleshooting sequence must not be restarted automatically by a future session; Direct CDP (proven working this session, §119) is the standing approved fallback whenever a rendered browser is needed and browser-harness is unavailable.
+
+**RC tag**: `proflow-rc-2026-09-01-wave4-complete` is preserved exactly as-is — **not pushed, not moved, not recreated, not deleted**. It remains a valid historical checkpoint marking the exact application tree (byte-identical to what's live on Production today, per §119's tree-hash proof) that was audited before promotion. No new "Recovery complete" tag was created — the Finalization Audit established that no tag action is technically required for closure, and none was taken.
+
+**Next canonical workstream**: `PROFLOW_TODO.md` item 30.E (Professional/Industry-Aware Quote Item Model) is now the Owner's designated first major post-Recovery product/design workstream, explicitly ahead of Admin UI work — per its own long-standing sequencing note, whose precondition ("confirm Recovery closure") is satisfied by this section. Admin UI work remains deferred behind this priority unless the Owner explicitly reprioritizes it.
+
+**No application/DB/TEST/Production/Edge Function/Vercel mutation occurred.** This is a documentation-only closure record. No RC tag action. No `main` push.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §120 closure record); `PROFLOW_HANDOFF.md` UPDATED (new §18.FU); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph declaring Recovery CLOSED); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (Recovery status is not itself an architecture principle; §14.C's existing item 30.E cross-reference remains accurate and needs no edit); `PROFLOW_TODO.md` UPDATED (item 30's sequencing note gets a small addendum recording that Recovery is now formally closed, satisfying its own stated precondition); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (Phase A closure report). **Zero application/DB/TEST/Production/Edge/Vercel mutation; no `main` push; no RC tag push/move/recreate/delete.**
