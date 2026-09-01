@@ -4667,3 +4667,15 @@ Applying the Recovery Finalization Audit's `RECOVERY CAN CLOSE` verdict exactly.
 **Next canonical workstream**: `PROFLOW_TODO.md` item 30.E — the Owner's designated first major post-Recovery product/design workstream, ahead of Admin UI, its own stated precondition ("confirm Recovery closure") now satisfied.
 
 No application/DB/TEST/Production/Edge/Vercel mutation. No `main` push. No RC tag action. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §120.
+
+## §18.FV. Item 30.E — Phase B AUDIT + PRODUCT-DESIGN complete, IMPLEMENTATION NOT AUTHORIZED (2026-09-01)
+
+Read-only audit of the real current quote-item schema (`quotes`/`quote_items`/`services`) and code (`QuoteForm.jsx`, `Dashboard.jsx`) found the entire current item model is `description × quantity × unit_price` with zero specification/measurement columns anywhere — and a directly reusable asset, `guard_quote_child_immutability()`, already enforcing finalized-quote immutability on `quote_items`.
+
+**Three architecture options compared, Option 1 (Generic Specification Bag — additive JSONB + a small measurement-rows table) recommended first**, explicitly sequenced so Option 3 (Catalog-template-driven) is a future addition, never a rewrite. HE/EN confirmed one shared data model with no market-specific column needed. David Aluminum and simple-business backward compatibility both demonstrated with zero real-account experimentation.
+
+**Six visual concept mockups built** (Simple/Measured/Repeating-measurements/Mobile/HE-RTL/EN-LTR) in the session scratchpad using ProFlow's real design tokens — not built by touching the real application. The first `claude.ai` artifact publish came back "Page not found" for the Owner; per explicit instruction no second link was created — the local file was opened directly in Chrome instead. **The scratchpad HTML file, not any hosted URL, is the authoritative copy.**
+
+Five Owner decisions recorded as open (architecture option, per-item vs. per-quote toggle scope, day-one unit list, Public Quote display of specification detail, Catalog-template timing) — full plain-language framing at `PROFLOW_TODO.md` item 30.E.
+
+**No application/DB/TEST/Production/Edge/Vercel mutation. No implementation performed or authorized.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §121, `PROFLOW_TODO.md` item 30.E.
