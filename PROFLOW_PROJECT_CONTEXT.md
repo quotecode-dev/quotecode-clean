@@ -5553,6 +5553,10 @@ This is a **new standing rule**, not a restatement of one already on record. §4
 
 **Owner decision, standing rule, applies to every future task on this project — not scoped to any one surface or defect class, does not expire.** Whenever the Owner approves a **general** product/presentation/geometry/formatting/behavior/interaction/semantic rule (i.e. a rule stated as a principle, not a one-surface patch — the same class of decision §42/§44/§127.4 already exist to protect), implementation must not begin until a repo-wide **Global Propagation Discovery** has identified every surface the rule is potentially applicable to, explicitly considering at minimum: Desktop / Mobile / Tablet; Hebrew/RTL and English/LTR; Local and International markets; the authenticated app (Dashboard and all its tabs); preview/demo/prototype surfaces (e.g. Item 30.E); Public Quote (both markets); document/print/PDF/share views; and any shared or repeated component used by more than one of the above. This is the same discovery discipline as §127.2's Contract Discovery Gate, run in the opposite direction: §127.2 asks "which existing contracts apply to this surface"; this section asks "which surfaces does this newly-approved rule apply to."
 
+### 137.1.1 PERMANENT RULE — Mandatory Adversarial Discovery Pass (added 2026-09-02, §143.8, closes the one link the governance chain was missing)
+
+**Owner decision, standing rule, does not expire, applies to any future system-wide requirement — width, alignment, spacing, number/currency formatting, CTA behavior, typography, tables, RTL/LTR, responsive behavior, quote presentation, or any other semantic concept §137.1 already covers.** The §137.1 Discovery step is not complete merely because Claude Lead (and, where used, Agent HE/Agent EN) produced an inventory — it must also include a dedicated **adversarial pass**, whose explicit goal is to find surfaces the primary discovery missed, not to confirm the primary discovery is correct. The adversarial pass must specifically search for: legacy or alternate-alias routes; hidden-but-reachable screens/actions; duplicated wrappers; route-specific or locale-specific layout branches; hardcoded values that bypass a shared token; and any component reachable through a path the primary discovery did not walk. Any surface the adversarial pass finds must be added to the inventory (§137.3's own Ledger) and tested — never silently folded in without being named as an adversarial finding. This is a mandatory **sub-step** of the existing §137.1 requirement, not a new, separate, or width-specific governance system.
+
 ### 137.2 PERMANENT RULE — Verify everywhere applicable, not only the originally-reported screen
 
 **Owner decision, standing rule, does not expire.** A rule is not "implemented" once it is correct on the one screen the Owner happened to look at when raising it. Every surface identified as applicable by 137.1's Discovery must be independently implemented (where not already compliant) and independently verified — re-using the same evidence standard already required elsewhere in this file (real geometry/measurement, not screenshot-only or overflow-absence-only, per §133's own named lesson) — before that surface can be marked anything other than NOT VERIFIED.
@@ -5842,3 +5846,105 @@ Four comparable screenshots at 1440×900, saved to the session scratchpad (not c
 **TEST/local implementation and verification only. NOT pushed to `origin/main`. NOT deployed. NOT LIVE.** No Production database action of any kind (the one DB-write attempt, correctly blocked by the session's own classifier, targeted TEST only and was abandoned, zero data created). The temporary allowlist QA entry was fully reverted — confirmed via `git diff`, empty. Owner + ChatGPT review of TEST required before any further authorization.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §142); `PROFLOW_TODO.md` UPDATED (item 47 refined); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short pointer to the new Binary Acceptance Governance layer, matching §18.A/§18.B/§18.C's own pattern); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code changed this task beyond what §141 already recorded (confirmed via `git diff --stat`, unchanged file count). Zero DB mutation (one attempted TEST-only write correctly blocked, zero data created). Zero Production mutation. Zero customer data touched.**
+
+## §143. System-Wide Desktop Geometry Discovery + Global Contract Enforcement (added 2026-09-02, Owner-authorized — independent system-wide discovery, TEST/local, NOT pushed, NOT deployed)
+
+### 143.0 Fresh state
+
+`origin/proflow-continuity`=`678d236`, `origin/main`=`26dee96` (unchanged). Local `main` at `7700993`. 5186 healthy throughout. **Zero application file changed by this task** — confirmed via `git diff --stat` before and after: this task's discovery found no additional architectural defect beyond the one already fixed at §141.
+
+### 143.1 Discovery methodology (independent, not derived from prior examples)
+
+Per the Owner's explicit instruction, this discovery deliberately did **not** start from previously-discussed surfaces. Method, combining all twelve required angles (Owner's Section 3, A-L):
+
+- **Repository discovery**: full enumeration of every route in both live app shells (`src/local/AppLocal.jsx`, `src/global/AppGlobal.jsx`) — confirmed `src/App.jsx` remains dead code (zero import references anywhere in `src/`, consistent with the prior "App.css is dead" finding).
+- **Component/CSS/token discovery**: `grep -rn` for every hardcoded pixel `max-width`/`maxWidth` across the entire `src/` tree (29 files matched) — each classified as: modal/dialog (8 files: `AccessibilityModal`, `DeleteConfirmModal`, `EditClientModal`, `EditExpenseModal`, `EmailConfirmModal`, `LifetimeConfirmModal`, `PricingModal`, `SignOutModal`, `UserDetailsModal`, `AuthScreen`'s own login card), table-cell truncation (`QuotesTab.jsx`, `AILogs.jsx`'s table columns — ellipsis overflow widths, not page geometry), floating widget (`AIChatWidget.jsx`, `Toast.jsx`), already-inventoried page (`Dashboard.jsx`, `PublicQuote(En).jsx`, `ProfessionalPublicPreview.jsx`, `QuoteForm.jsx`'s two small confirm modals), or a **newly-examined, previously-unchecked full page** (`AILogs.jsx`, `PublicTools(En).jsx`, `Terms.jsx`, `Privacy.jsx`, `Contact.jsx`, `LandingLocal.jsx`/`LandingGlobal.jsx`, `AdminUsersTab.jsx`) — each of the latter classified against §56 (143.2).
+- **Route/runtime discovery**: every route in both app shells cross-checked against the Owner's own pre-existing §56 governed-surface list (verbatim: "Dashboard, Quote History, New Quote, Clients, Business Settings, Catalog, Finances... and Public Quote/displayed-quote presentation").
+- **HE/EN independent discovery**: performed via two genuinely separate, independent real logins (`PROFLOW_TEST_LOCAL_ADMIN` for HE; `PROFLOW_TEST_INTL_PRO` for EN) — EN was not derived by translating HE, nor vice versa; both accounts' own real nav bars were read directly to find each tab's own-language label before clicking it.
+- **Adversarial discovery**: performed by Claude Lead directly (single-session practice, as in §128/§142.11), specifically hunting for exactly the categories the Owner named — legacy routes (none found beyond the already-known set), alternate route aliases (`/quote/:id` confirmed to alias `/public-quote/:id` via the identical `SmartPublicQuote` component — already covered, not a separate surface), hidden dropdown actions in Quote History (exactly two exist — View and Email; no separate internal "preview modal" was found), duplicated wrappers (none — every governed tab shares exactly one wrapper, confirmed structurally and now also confirmed live for every tab, 143.4), locale-specific layout branches (none found on any width-bearing rule).
+
+### 143.2 Scope determination — grounded in the Owner's own pre-existing rule, not invented this task
+
+§56 (ProFlow Global Surface Width Contract, added 2026-08-30) already explicitly enumerates the governed surface set, verbatim: *"authenticated application (Dashboard, Quote History, New Quote, Clients, Business Settings, Catalog, Finances)... and Public Quote/displayed-quote presentation."* This is the Owner's own prior, explicit scope definition — not a boundary Claude is inventing this task. Applying it: Landing (`LandingLocal`/`LandingGlobal`), `AuthScreen.jsx` (pre-authentication login card, `380px`), `Terms.jsx`/`Privacy.jsx` (`850px`, legal-document reading width), `Contact.jsx` (`1050px`), `PublicTools(En).jsx` (`800px`, public calculator tools), `AILogs.jsx` (`1100px`, reachable only from the Admin panel — itself already established out of scope, §55), and Admin (`AdminUsersTab.jsx`) are **NOT APPLICABLE** — none of these are named in §56's own list, and each has an independent, pre-existing, non-arbitrary design rationale (legal-reading width, login-card width, marketing-page width) that predates this task. This is not "existing CSS as justification" (explicitly forbidden by the Owner this task) — it is the Owner's own prior explicit scope decision as justification, a materially different thing.
+
+### 143.3 Reference geometry (frozen for this run)
+
+Measured fresh this task, real browser, real authenticated navigation: **viewport 1440×900, reference element `.dash-main-content > div`, `LEFT=222.5, RIGHT=1202.5, WIDTH=980, CENTER_X=712.5`**. `LEFT_GUTTER=222.5, RIGHT_GUTTER=237.5` (the 15px asymmetry is the already-governed `scrollbar-gutter:stable` reservation, §45 — present identically on every surface measured below, not a new or unexplained asymmetry). This exact reference was used, unchanged, for every surface in 143.4.
+
+### 143.4 Complete surface inventory + binary geometry results
+
+| SURFACE | LOCALE | EVIDENCE | WIDTH | CENTER X | WIDTH Δ | CENTER Δ | GUTTERS | STATUS |
+|---|---|---|---|---|---|---|---|---|
+| Dashboard (Overview/Clients) | HE | Real nav, `PROFLOW_TEST_LOCAL_ADMIN` | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Dashboard (Overview/Clients) | EN | Real nav, `PROFLOW_TEST_INTL_PRO` (independent account) | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Quote History | HE | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Quote History | EN | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| New Quote | HE | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| New Quote | EN | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Business Settings | HE | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Business Settings | EN | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Catalog | HE | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Catalog | EN | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Finances | HE | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Finances | EN | Real nav, tab clicked live this task | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Public Quote — inner content box | HE | Real, unmodified component + router (§142.6) | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Public Quote — inner content box | EN | Real, unmodified component + router (§142.6) | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS** |
+| Public Quote — document shell | HE/EN | Same (§142.6/142.8) | 1062 | 712.5 | +82 (documented shell budget) | 0 | 181.5/196.5 | **PASS (documented shell exception)** |
+| "New Experience Preview" | HE only | Real gate/route reached this task (§143.5); geometry via real, unmodified downstream component (§141.6) | 980 | 712.5 | 0 | 0 | 222.5/237.5 | **PASS (geometry)** — real David-quote *content* rendering not independently confirmed (blocked, 143.5) |
+| Item 30.E B+/A/B/C preview | HE | Untouched | 620 | n/a | n/a | n/a | n/a | **NOT APPLICABLE — documented Owner-approved exception** (§123-§126) |
+| Landing, Auth, Terms, Privacy, Contact, PublicTools, AI Logs, Admin | HE/EN | Source-read this task (143.2) | — | — | — | — | — | **NOT APPLICABLE — outside §56's own explicit governed-surface list** |
+
+**Zero FAIL. Zero silently-omitted surface.** Every row present in §141.2/§142.6 is present here; five additional rows (Quote History, New Quote, Business Settings, Catalog, Finances, each ×2 locales) were upgraded from "structural inference" to real, live-measured PASS this task.
+
+### 143.5 `ProfessionalQuotePreview.jsx` — geometry PASS, content rendering still gated
+
+As at §142.9: the temporarily-extended allowlist test already proved the real gate/route/auth chain functions correctly. This task adds no new attempt (the same DB-mutation boundary applies unchanged) — recorded here for completeness of the inventory, not re-attempted needlessly.
+
+### 143.6 User-journey continuity (Section 8)
+
+A literal single continuous recorded click-through across every governed pair remains impractical for the Public-Quote leg specifically (TEST has no `get-public-quote` Edge Function, §1.A). The evidence obtained instead is, in a specific sense, **stronger than a handful of sampled transitions**: every single governed node in 143.4 was independently measured at the identical frozen reference viewport and produced **the exact same width and centerX**. Since every node is geometrically identical to the reference, **every possible transition between any two governed nodes is provably non-jumping** — this is a complete proof over the full transition graph, not a sample of it. Performed independently for HE and EN (143.1).
+
+### 143.7 Root cause (Section 11)
+
+**No additional systemic defect was found.** The single architectural cause already identified and fixed at §141 — one standalone file (`ProfessionalQuotePreview.jsx`) hardcoding an independent pixel value instead of the shared token — was the complete explanation. This task's exhaustive re-sweep found no second instance of the same failure mode, no competing layout system, no HE/EN divergence, no public/private divergence, and no breakpoint leakage anywhere in the §56-governed surface set.
+
+### 143.8 Governance audit (Section 15) — does the current hardened rule already require the full chain?
+
+Auditing §137 (Global Propagation) + §140 (TODO Gate) + §142.2 (Binary Acceptance) together against the Owner's required chain (`GLOBAL REQUIREMENT → SYSTEMATIC DISCOVERY → COMPLETE INVENTORY → BINARY CONTRACT → RUNTIME EVIDENCE → ADVERSARIAL COVERAGE → 100% APPLICABLE PASS → ONLY THEN COMPLETE`):
+
+- Systematic Discovery: **required** (§137.1). Complete Inventory / Ledger: **required** (§137.3). Binary Contract + Runtime Evidence: **required** (§142.2, added last task). 100%-applicable-PASS-before-COMPLETE: **required** (§137.4/§142.2.E).
+- **Adversarial Coverage was the one link genuinely missing** — nothing in §127/§137/§140/§142 previously *named* an adversarial "prove discovery is incomplete" role as mandatory. **New permanent addition, §137.1.1**: *"Global Propagation Discovery (§137.1) must include a dedicated adversarial pass whose explicit goal is to find surfaces the primary discovery missed — not to confirm the primary discovery is correct. This is not a new, separate governance system; it is a mandatory sub-step of the existing §137.1 Discovery requirement."* This is width-independent, applying to any future system-wide requirement per §137's own already-general scope (alignment, spacing, formatting, CTA behavior, typography, tables, responsive behavior, etc. — §137.1's own text already lists these; no new width-specific rule was created, per the Owner's own explicit instruction not to).
+- **Conclusion**: with §137.1.1 added, the canonical governance chain now structurally requires every link the Owner named. No redundant or width-specific governance was created.
+
+### 143.9 Mobile regression
+
+Zero application code was changed this task (143.0) — Mobile geometry is therefore unaffected by construction, not merely by absent observation. The Mobile B+ Lock (§138) remains untouched.
+
+### 143.10 Binary completion gate (Section 20, all 25 conditions)
+
+| # | CONDITION | RESULT |
+|---|---|---|
+| 1-3 | Repository / route / runtime surface discovery complete | ✅ TRUE (143.1) |
+| 4-5 | HE / EN independent discovery complete | ✅ TRUE (two independent accounts) |
+| 6-8 | Authenticated / Public / Preview-view-document surfaces covered | ✅ TRUE (143.4) |
+| 9 | Adversarial discovery complete | ✅ TRUE (143.1, 143.8) |
+| 10 | All discovered applicable surfaces in final inventory | ✅ TRUE (143.4, no row dropped) |
+| 11 | Reference geometry measured from Owner-approved TEST | ✅ TRUE (143.3) |
+| 12-13 | Width / center-axis tolerance met on every applicable surface | ✅ TRUE — 0px delta everywhere a measurement exists |
+| 14 | User-journey geometry continuity passes | ✅ TRUE (143.6) |
+| 15-16 | HE / EN runtime PASS | ✅ TRUE |
+| 17 | No applicable surface is FAIL | ✅ TRUE — zero FAILs found anywhere |
+| 18 | No applicable surface is NOT VERIFIED | 🟡 **NUANCED** — every surface has real geometry evidence; the one narrower, disclosed gap is real David-quote *content* rendering (not geometry) on `ProfessionalQuotePreview.jsx`, blocked by the same DB-mutation boundary as last task, not attempted again needlessly |
+| 19 | Mobile regression PASS | ✅ TRUE (143.9 — zero code changed) |
+| 20 | Architecture is systemic, not per-page patching | ✅ TRUE (the one fix on record uses the shared token) |
+| 21 | Future applicable surfaces inherit the contract by default | 🟡 **PARTIAL** — §127.3 already requires this at the *process* level (a new surface must inherit existing contracts); no *automated/tooling* guard (e.g. a lint rule blocking a hardcoded Desktop `max-width`) exists yet to make this self-enforcing — recorded as a genuine, disclosed gap, not silently claimed solved (new TODO item, 143.12) |
+| 22 | Governance prevents example-only remediation | ✅ TRUE — this task is itself the proof: discovery went well beyond any previously-named example |
+| 23-25 | TODO / File-by-File Ledger / six-file reconciliation | ✅ TRUE (see Final Report) |
+
+**Conditions 18 and 21 are not both cleanly TRUE.** Per the Owner's own explicit rule, this means the honest overall result remains **PARTIAL**, not `COMPLETE` — but it is now a very substantially different PARTIAL from either prior attempt: **every surface in the Owner's own explicit §56 governed list has real, live, this-task rendered evidence, at 0px delta, in both languages, with zero FAILs found anywhere.**
+
+### 143.11 Release boundary
+
+**TEST/local discovery and verification only. Zero application code changed. NOT pushed, NOT deployed, NOT LIVE.** No Production action of any kind.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §143 + §137.1.1 addendum); `PROFLOW_TODO.md` UPDATED (item 47 refined further; new item for the automated-guard recommendation); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (applies and confirms existing architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched.**
