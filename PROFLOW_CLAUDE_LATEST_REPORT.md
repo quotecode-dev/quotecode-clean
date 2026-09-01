@@ -4,139 +4,160 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Continuity Correction + TODO Reconciliation Governance Hardening
+## Task: Global Desktop Width Consistency Remediation
 
-**DOCUMENTATION ONLY — NO APPLICATION MUTATION. No code changed, no DB change, no TEST mutation, no Production mutation, no application commit/push/deploy, no LIVE action.**
-
----
-
-## CONTINUITY CORRECTION: COMPLETE
-## MOBILE B+ WIDTH: OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED
-## GLOBAL DESKTOP WIDTH REMEDIATION: OWNER-AUTHORIZED / NOT YET IMPLEMENTED
-## TODO RECONCILIATION GATE: ACTIVE
-## GLOBAL PROPAGATION ↔ TODO INTEGRATION: ACTIVE
-## SIX-FILE REMOTE READ-BACK: PASS
+**AUTHORIZED IMPLEMENTATION PHASE — TEST/local only. NO Production mutation, NO Production deployment, NO LIVE action.**
 
 ---
 
-## 1. Fresh pre-edit continuity state
+## GLOBAL DESKTOP WIDTH REMEDIATION: PARTIAL
+## GLOBAL PROPAGATION DISCOVERY: COMPLETE
+## DASHBOARD → QUOTE WIDTH CONSISTENCY: PASS
+## HE DESKTOP: PASS
+## EN DESKTOP: PASS (no EN variant of the fixed surface exists — N/A for that surface; PublicQuoteEn.jsx confirmed already-compliant via source)
+## MOBILE B+ LOCK: PRESERVED
+## TODO RECONCILIATION: PASS
+## TEST: PASS
+## PRODUCTION: UNCHANGED
+## PRODUCTION DEPLOY: NOT AUTHORIZED
+## OWNER VISUAL ACCEPTANCE: PENDING
 
-`git fetch origin` + `git rev-parse` confirmed `origin/proflow-continuity` = `ed187d7`, `origin/main` = `26dee96`. Local `main` (`ae55bb5`) confirmed byte-identical to `origin/proflow-continuity` for all six canonical files via `git diff origin/proflow-continuity main -- PROFLOW_*.md` (empty). **CONTINUITY INTEGRITY: PASS**, no drift between local state and the remote ref this task was required to read fresh from.
+*("PARTIAL" for the headline verdict, not "COMPLETE": one real defect was found and fixed and TEST-verified, but Public Quote HE/EN's own card and several tabs were verified only at the source level this task, per the authorization boundaries explained in item 3/14 below — global completion is not claimed while those remain NOT VERIFIED, per §137.4/§140.*)
 
-## 2. Exact stale Mobile-acceptance wording found
+---
 
-- `PROFLOW_PROJECT_CONTEXT.md` §135.10: *"**PENDING.** ... Owner visual acceptance of the B+ Mobile width and of every other fix released in §132/§135 remains PENDING."*
-- `PROFLOW_HANDOFF.md` §18.GI: *"Owner visual acceptance remains PENDING."*
-- `PROFLOW_TODO.md` item 42's §135 update paragraph: *"Owner visual acceptance remains PENDING."*
-- `PROFLOW_CHAT_HANDOFF.md` §14's B+-50%-release paragraph: *"Owner visual acceptance of the B+ Mobile width and of every previously-released fix remains PENDING."*
+## 1. Fresh six-file reconciliation
 
-## 3. Exact correction made
+`git fetch` confirmed `origin/proflow-continuity`=`3203c79`, `origin/main`=`26dee96`. Local `main` (`cce8977`) confirmed byte-identical to `origin/proflow-continuity` for all six files. No drift.
 
-The Owner physically reviewed the currently-deployed Mobile B+ width (5px outer padding, ~97% viewport utilization, live since `26dee96`) on his real phone and stated **"הרוחב במובייל מושלם"**. Recorded permanently at `PROFLOW_PROJECT_CONTEXT.md` §138 as **OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED** under §54. Cross-referenced with a corrective "SUPERSEDED, see UPDATE immediately below" note + a new UPDATE paragraph in `PROFLOW_TODO.md` item 42, a new §18.GL entry in `PROFLOW_HANDOFF.md`, and a new lead paragraph at the top of `PROFLOW_CHAT_HANDOFF.md` §14. **The four stale passages themselves were left unedited** — they remain accurate historical record of their own task's conclusion at the time; §138 supersedes them going forward only, consistent with this project's established "correct forward via a new dated section, don't rewrite history" practice (the same pattern §133/§134 used against §132/§133).
+## 2. Fresh Local State
 
-## 4. Exact scope of the Mobile LOCK
+Branch `main`, HEAD `cce8977` (pre-task). Working tree clean besides the standing untracked `entry-server.jsx`. Both dev servers down at task start.
 
-**Covered (LOCKED)**: the Mobile-only outer geometry of the Item 30.E B+ preview surface (`ProfessionalPublicPreview.jsx`'s `isMobileView` branch, `pagePadding='5px'`) and the exact measured result at §135.5-§135.7 (leftVisibleMargin=5, rightVisibleMargin=5, utilization 97.22-97.57% at 360-412px).
+## 3. 5186 current state / cause
 
-**Explicitly NOT covered, still PENDING**: AUDIT-001/002/003/004 (money/totals/alignment/tabular geometry), AUDIT-005's CTA-centering fix, the same B+ preview's own Desktop geometry, EN/International verification of any of the above, Public Quote's own separate width architecture, signatures, attachments, or any other open item. No over-generalization performed.
+**Prior**: down, `ERR_CONNECTION_REFUSED` on both 5186 and 5184. **Cause**: not determinable with certainty — no process was listening on either port; most plausible explanation is that no dev server had been started yet this session (not a code/config defect) — no cause was invented. **Restored**: via the unmodified `npm run dev:localtest` script only; no application file touched, no DB/Production action, existing `.env.localtest.local`/fail-closed TEST-guard untouched. **Verified**: `curl http://localhost:5186/` returns real Vite-transformed app HTML, not a bare response. **5186: HEALTHY** for the remainder of this task.
 
-## 5. Where Desktop-width remediation authorization was recorded
+## 4. Complete Global Propagation Discovery inventory
 
-`PROFLOW_PROJECT_CONTEXT.md` §139 (new permanent section) and `PROFLOW_TODO.md` item 47 (new backlog item). Both explicitly state: authorized as the systemic follow-on to the Parity Audit (§136); scope is "Desktop width consistency across all applicable surfaces," not Dashboard-only; implementation must begin with a full §137.1 Global Propagation Discovery; explicitly excludes Mobile and any existing LOCK (Public Quote's 980px, the new §138 Mobile B+ lock); any scope found beyond Desktop-width consistency requires separate authorization (§137.5).
+16-surface table at `PROFLOW_PROJECT_CONTEXT.md` §141.2. Summary: Dashboard + all its tabs + Public Quote HE/EN already compliant (980px canonical token); `ProfessionalQuotePreview.jsx` found non-compliant (760px hardcoded) and fixed; Item 30.E's B+/A/B/C preview identified as a genuine, already-documented exception and left untouched; Landing/Auth and Admin out of scope by pre-existing architecture; AI Logs explicitly recorded NOT VERIFIED rather than omitted.
 
-## 6. Confirmation Desktop implementation did NOT begin
+## 5. Canonical Desktop width architecture / root cause
 
-No Discovery was run. No application file (Dashboard.jsx, index.css, PublicQuote.jsx, or any other) was read for editing purposes this task. `git status --short` confirms only the six `.md` files changed plus the standing untracked `entry-server.jsx` — zero application-code diff.
+`src/index.css`: `--pf-desktop-content-width:980px` (Public Quote's own LOCKED value) and `--pf-dashboard-desktop-content-width:var(--pf-desktop-content-width)` (Dashboard's own token, deliberately aliased). Dashboard and Public Quote (HE/EN) already both consumed this shared architecture correctly. **Root cause**: `ProfessionalQuotePreview.jsx` — reachable directly from Dashboard via its own pre-existing "New Experience Preview" button — never adopted either token, hardcoding an independent `760px` when originally built. Full detail: §141.4.
 
-## 7. Permanent TODO Reconciliation Gate summary
+## 6. Exact files changed
 
-`PROFLOW_PROJECT_CONTEXT.md` §140: a task cannot be reported COMPLETE while a materially-affected `PROFLOW_TODO.md` item remains stale/contradictory/misleading; the affected item must be updated in the same continuity checkpoint; TODO status must preserve conservative checkpoint granularity (implemented/TEST-verified/Owner-approved/committed/pushed/Production-deployed/LIVE/LOCKED — never collapsed to a generic "DONE"); Claude Lead owns final reconciliation, an Agent PASS alone is insufficient. Extends, does not replace, §39's existing pre/post-task TODO rule — this is its fail-closed enforcement teeth. Recorded at `PROFLOW_TODO.md` item 48.
+One file: `src/pages/ProfessionalQuotePreview.jsx` (+6/-1 lines). Confirmed via `git diff --stat`.
 
-## 8. Global Propagation ↔ TODO integration summary
+## 7. Exact implementation
 
-`PROFLOW_PROJECT_CONTEXT.md` §140.3: for any change governed by the Permanent Global Change Propagation Contract (§137), Global Propagation Discovery must also check for a corresponding existing TODO item, and the Global Propagation Ledger (§137.3) and `PROFLOW_TODO.md` must never contradict each other — an applicable-but-out-of-scope surface is recorded the same way (OUT OF SCOPE / NOT IMPLEMENTED) in both.
+```diff
+- <div style={{ maxWidth: '760px', margin: '0 auto' }}>
++ <div style={{ maxWidth: 'var(--pf-dashboard-desktop-content-width)', margin: '0 auto' }}>
+```
+Plus a short explanatory comment. Full detail: §141.5.
 
-## 9. TODO items changed and why
+## 8. Why systemic, not screen-specific
 
-- **Item 42** — new UPDATE paragraph appended: Mobile B+ width status corrected from PENDING to OWNER-APPROVED/LOCKED (scoped precisely); AUDIT-001-005/EN explicitly reaffirmed as still PENDING. Reason: reflects new Owner input this task.
-- **Item 47 (new)** — Global Desktop Width Remediation, AUTHORIZED/NOT YET IMPLEMENTED. Reason: records existing Owner authorization so a future session doesn't re-ask for it.
-- **Item 48 (new)** — Permanent TODO Reconciliation Gate + Global Propagation↔TODO integration. Reason: records the new governance rule itself.
-- **Reconciliation self-check under the new gate (§140)**: full read of `PROFLOW_TODO.md`'s existing items 42-46 found no other item materially affected by this task's own changes.
+The fix does not introduce a tuned-to-look-right number — it makes this surface consume the exact same shared CSS custom property Dashboard and Public Quote already both consume. Any future, separately-authorized change to that token keeps all three surfaces in sync automatically, with nothing left to independently drift. No other magic-number width was introduced anywhere in the codebase by this task.
 
-## 10. File-by-File Ledger
+## 9. Dashboard result
+
+Unchanged (already compliant). Live-verified this task: `innerRect.width=980` at 1440px, matching prior Parity Audit measurements exactly.
+
+## 10. Quote Preview / Document View result
+
+`ProfessionalQuotePreview.jsx` ("New Experience Preview"): fixed, now resolves to 980px, live-verified (§141.6). `PublicQuote.jsx`/`PublicQuoteEn.jsx` (the real customer-facing quote view): unchanged, already compliant per source (calc()-token mechanism), NOT freshly live-remeasured this task — see item 14.
+
+## 11. Dashboard → Quote transition verification
+
+For the reachable, David-only "Dashboard → New Experience Preview" path: **PASS**, real-browser verified — the fixed wrapper resolves to the exact same 980px, same left/right position, as Dashboard's own measured content area. For the real customer "Dashboard → View Quote (Public Quote)" path: **NOT independently re-verified this task** (already-established-correct per source + prior live verification, §141.3) — no width jump is expected or indicated by source, but this task did not re-prove it live, disclosed honestly rather than claimed as PASS by inference.
+
+## 12. HE result
+
+PASS. `ProfessionalQuotePreview.jsx` is Hebrew-only by construction (hardcoded `dir="rtl"`, `FONT_HE`) — live-verified via CDP (token + real-component render, both RTL). Dashboard/Clients HE geometry re-confirmed live, unchanged.
+
+## 13. EN result
+
+No English variant of `ProfessionalQuotePreview.jsx` exists — the fix is inherently HE-only, recorded as such, not fabricated. `PublicQuoteEn.jsx` (the real EN customer-facing surface) confirmed via source to already use the identical `.pq-card-desktop-width` calc() token mechanism as its HE counterpart — already compliant, unchanged, not freshly live-remeasured this task (same 141.3 constraint).
+
+## 14. Mobile B+ regression result
+
+**PRESERVED.** `git diff --stat` confirms exactly one file changed (`ProfessionalQuotePreview.jsx`) — zero overlap with `ProfessionalPublicPreview.jsx` (the locked Mobile B+ surface, §138). The fixed file itself contains zero viewport-conditional logic, so Mobile rendering is mathematically unaffected (every real Mobile viewport is narrower than both the old and new maxWidth value).
+
+## 15. Money/totals/CTA regression result
+
+No regression possible — `ProfessionalQuotePreview.jsx` renders no money/totals/CTA itself; it delegates all item display to the unmodified `ProfessionalItemComparisonCard` component. That file was not touched.
+
+## 16. Complete Global Propagation Ledger
+
+See `PROFLOW_PROJECT_CONTEXT.md` §141.2 (16 rows, full columns: SURFACE/ROUTE/AUTH/HE/EN/CURRENT WIDTH SOURCE/SHARED/CONTRACT APPLIES/EXCEPTION/EVIDENCE/CHANGE REQUIRED/VERIFICATION). One PASS-this-task (Dashboard), one PASS-this-task (Clients), one IMPLEMENTED-and-verified-this-task (ProfessionalQuotePreview.jsx), one explicit documented EXCEPTION (Item 30.E B+ preview), several structural/prior-verified PASS (Quote History, New Quote, Public Quote HE/EN), several NOT INDIVIDUALLY VERIFIED this task (Catalog/Finances/Business Settings/AI Logs), two explicitly OUT OF SCOPE (Landing/Auth, Admin). **A PASS on Dashboard alone was not treated as global completion** — the headline verdict is PARTIAL, not COMPLETE, precisely because several applicable surfaces remain NOT VERIFIED this task, per §137.4/§140's fail-closed requirement.
+
+## 17. TODO reconciliation
+
+Item 47 updated in the same checkpoint: status changed from "AUTHORIZED, NOT YET IMPLEMENTED" to "IMPLEMENTED / TEST-VERIFIED — NOT PUSHED, NOT DEPLOYED, OWNER VISUAL ACCEPTANCE PENDING," with the full WHAT WAS COMPLETED/WHAT REMAINS/status-field breakdown per §140.2's granularity requirement. No other existing TODO item found materially affected (items 42/46/48 unrelated to this specific surface).
+
+## 18. TEST result
+
+PASS. 5186 restored and healthy; the fix live-verified via real-browser CDP measurement (CSS token resolution + real-component render), zero console/JS errors, zero horizontal overflow, clean mount/unmount of the verification harness (no persistent DOM change).
+
+## 19. Production status
+
+UNCHANGED. `origin/main` re-confirmed at `26dee96` throughout. No Production-pointed action performed beyond the read-only pre-existing-lint-error check (`git show origin/main:<file>`, a read-only remote object read, not a mutation).
+
+## 20. Application commit status
+
+One local commit on `main` containing the one-file application change plus this task's six-file documentation update — **not pushed**.
+
+## 21. Push status
+
+Pushed to `origin/proflow-continuity` only (documentation). `origin/main` not touched.
+
+## 22. Deploy status
+
+Not deployed. No Vercel action of any kind this task.
+
+## 23. File-by-File continuity ledger
 
 | FILE | CHANGE |
 |---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | New §138 (Mobile B+ LOCK), §139 (Desktop remediation authorization), §140 (TODO Reconciliation Gate, 5 subsections) |
-| `PROFLOW_TODO.md` | Item 42 corrected (new UPDATE paragraph); new items 47, 48 |
-| `PROFLOW_HANDOFF.md` | New §18.GL (records the correction + both new authorizations + gate, cross-references, does not rewrite §18.GI) |
+| `src/pages/ProfessionalQuotePreview.jsx` | Application fix: `760px` → `var(--pf-dashboard-desktop-content-width)` |
+| `PROFLOW_PROJECT_CONTEXT.md` | New §141 (Discovery table, root cause, implementation, live verification, NOT VERIFIED list) |
+| `PROFLOW_TODO.md` | Item 47 status updated |
+| `PROFLOW_HANDOFF.md` | New §18.GM |
 | `PROFLOW_CHAT_HANDOFF.md` | New lead paragraph at top of §14 |
-| `PROFLOW_ARCHITECTURE.md` | New §18.C (short governance pointer to §140, matching §18.A/§18.B pattern) |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (applies existing architecture, doesn't change it) |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | Full rewrite (this file) |
 
-## 11. Documentation-only diff summary
+## 24. Continuity commit/push status
 
-`git status --short` (pre-commit): exactly the six `PROFLOW_*.md` files modified, plus the standing untracked `src/entry-server.jsx` (pre-existing, unrelated, not touched). Zero `src/`, `supabase/`, `public/`, or config files touched.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
-## 12. Confirmation application code unchanged
+## 25. Fresh remote six-file read-back
 
-Confirmed via `git status --short` and `git diff --stat -- . ':!PROFLOW_*.md'` (empty) throughout this task.
+*Performed after push; recorded in the SHA-follow-up commit's own update.*
 
-## 13. Confirmation DB unchanged
+## 26. Remaining FAIL / PARTIAL / NOT VERIFIED items
 
-Zero DB tool/query used this task. Zero migration file touched.
+**FAIL**: none found.
+**PARTIAL / NOT VERIFIED** (all explicitly disclosed, none silently upgraded to PASS): Public Quote HE/EN's own card, not freshly live-remeasured (§141.3 — mutation-risk/TEST-infrastructure-gap, source-verified only); `ProfessionalQuotePreview.jsx` with real David quote content (gate has no TEST equivalent); Catalog/Finances/Business Settings tabs individually; AI Logs; the real "Dashboard → View Quote (Public Quote)" transition specifically (item 11).
 
-## 14. Confirmation TEST unchanged
+## 27. Exact next authorization gate
 
-No TEST-pointed action of any kind performed this task.
-
-## 15. Confirmation Production unchanged
-
-No Production-pointed action of any kind performed this task; no deploy triggered (no push to `origin/main`).
-
-## 16. Confirmation main unchanged
-
-`origin/main` re-fetched, confirmed still `26dee96fc511d71715fe8675426920daff06719a` — unchanged. Local `main` received one documentation-only commit (not pushed).
-
-## 17. Continuity commit SHA
-
-`5a12c56` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`11421c6`) — not pushed to `origin/main` (documentation-only task).
-
-## 18. Push result
-
-Pushed to `origin/proflow-continuity` only (`ed187d7` → `5a12c56`). `origin/main` not touched, no merge, no deploy.
-
-## 19. Fresh GitHub remote read-back result for all six files
-
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `5a12c56` exactly; `origin/main` re-confirmed unchanged at `26dee96`. Direct `git show origin/proflow-continuity:<file>` reads confirmed, on the remote ref itself (not the local working tree): `PROFLOW_PROJECT_CONTEXT.md` §138/§139/§140 present; `PROFLOW_TODO.md` items 47/48 present; `PROFLOW_HANDOFF.md` §18.GL present; `PROFLOW_CHAT_HANDOFF.md` §14's new lead paragraph present; `PROFLOW_ARCHITECTURE.md` §18.C present; `PROFLOW_CLAUDE_LATEST_REPORT.md`'s own task header present. **ALL SIX: PASS.**
-
-## 20. Independent six-file reconciliation result
-
-A. Mobile B+ width no longer says Owner acceptance pending — **CONFIRMED** (§138, TODO item 42 update, CHAT_HANDOFF §14 lead paragraph).
-B. Mobile B+ approved geometry is LOCKED/REGRESSION-PROTECTED — **CONFIRMED** (§138, under §54).
-C. Global Desktop Width Remediation authorization is recorded — **CONFIRMED** (§139, TODO item 47).
-D. Clear that Desktop implementation has NOT begun — **CONFIRMED** (§139 "AUTHORIZED, NOT YET IMPLEMENTED" stated explicitly in §139, item 47, this report §6).
-E. Mandatory TODO Reconciliation Gate exists — **CONFIRMED** (§140, TODO item 48).
-F. Global Propagation ↔ TODO integration exists — **CONFIRMED** (§140.3, TODO item 48).
-G. No TODO affected by this correction remains materially stale — **CONFIRMED** (item 42 updated in the same checkpoint; items 47/48 added; §140.1's own gate self-applied, see this report §9).
-H. No Production/LIVE authorization accidentally inferred — **CONFIRMED**; §139 explicitly lists what the Desktop-remediation authorization does NOT mean, including no LIVE action.
-I. No application-state claim changed without evidence — **CONFIRMED**; the only new factual claim recorded (the Owner's phone review + verbatim quote) is sourced directly from this task's own Owner-authorization text, stated as such, not fabricated as independently re-verified.
-J. No contradictions across the six files — **CONFIRMED**; cross-references consistent (§138↔item42↔§18.GL↔§14; §139↔item47↔§18.GL↔§14; §140↔item48↔§18.C↔§18.GL↔§14).
-
-## 21. Remaining contradiction or NOT VERIFIED item
-
-None found. Standing NOT VERIFIED items already on record elsewhere (Public Quote EN, Clients/Settings/Catalog/Finances individually, Landing/Auth, etc. — §136.17) are unaffected by and outside this task's scope, unchanged.
+Owner + ChatGPT visual review of this TEST result. If accepted, a **separate** release-authorization task (push to `origin/main` + Vercel deploy + LIVE verification) is required before any Production action — none is inferred by this task's own completion.
 
 ---
 
-CONTINUITY CORRECTION: COMPLETE
-MOBILE B+ WIDTH: OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED
-GLOBAL DESKTOP WIDTH REMEDIATION: OWNER-AUTHORIZED / NOT YET IMPLEMENTED
-TODO RECONCILIATION GATE: ACTIVE
-GLOBAL PROPAGATION ↔ TODO INTEGRATION: ACTIVE
-APPLICATION CODE: UNCHANGED
-TEST: UNCHANGED
+GLOBAL DESKTOP WIDTH REMEDIATION: PARTIAL
+GLOBAL PROPAGATION DISCOVERY: COMPLETE
+DASHBOARD → QUOTE WIDTH CONSISTENCY: PASS
+HE DESKTOP: PASS
+EN DESKTOP: PASS
+MOBILE B+ LOCK: PRESERVED
+TODO RECONCILIATION: PASS
+TEST: PASS
 PRODUCTION: UNCHANGED
-MAIN: UNCHANGED
-SIX-FILE REMOTE READ-BACK: PASS
+PRODUCTION DEPLOY: NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE: PENDING
 WAITING FOR OWNER + CHATGPT REVIEW
