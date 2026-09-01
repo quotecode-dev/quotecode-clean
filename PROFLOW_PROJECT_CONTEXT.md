@@ -5758,6 +5758,8 @@ Answering Section C's diagnostic questions directly, not assuming an answer:
 
 **F. Numeric tolerance for geometry claims.** For any Desktop visual-content-width consistency claim specifically: PASS requires `ABS(surface_width − reference_width) ≤ 1 CSS px` **and** `ABS(surface_centerX − reference_centerX) ≤ 1 CSS px` **and** no unexplained asymmetric outer gutter beyond an already-governed cause (e.g. the existing `scrollbar-gutter:stable` rule, §45). This generalizes §127.4.B's "protected axis" requirement into a checkable number.
 
+**G. Qualitative concept approval does not authorize or lock an unreviewed numeric exception (added 2026-09-02, §146.8, closing the gap found by the Item 30.E `620px` case).** When the Owner approves a **qualitative** design direction (a look, a density, a "document-like" character, a general concept), that approval does **not**, by itself, authorize or LOCK any **specific numeric value** that happens to implement it — including a numeric value that bypasses an existing canonical geometry contract (§56/§137). A hardcoded exception to a canonical contract requires its own **explicit, separate, numeric** product rationale and Owner review — not merely "the Owner approved the general direction this number happened to ship inside." §54's own "nothing becomes LOCKED without actual Owner review of the result" already implied this for LOCKING; this clause makes it explicit for the narrower, upstream question of whether an unreviewed numeric bypass may be treated as an *authorized exception* in a Discovery/Ledger classification (§137.1/§137.3) at all — it may not, absent that separate numeric review, and must instead be recorded as an unjustified bypass pending remediation or explicit Owner ratification.
+
 **Relationship to existing rules**: this section does not replace §127.4 (Visual Geometry Contract — "CSS intent is not proof"), §127.7 (Fail-Closed PASS Gate), or §137.2/§137.4 (verify everywhere applicable; fail-closed global completion) — it makes their shared, previously-implicit standard ("rendered evidence, not intent") into an explicit, checkable, binary contract with a numeric tolerance and an evidence-tier/freshness discipline none of them stated this precisely.
 
 ### 142.3 Global propagation strengthened beyond width
@@ -6083,3 +6085,125 @@ Real, live, read-only measurement of **both** candidate pages David's Dashboard 
 ### 145.4 Six-File Continuity ledger for this task
 
 `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §145); `PROFLOW_TODO.md` UPDATED (item 47 cross-referenced with this refined finding); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched. No commit of application code, no push to `origin/main`, no deploy, no LIVE action.**
+
+## §146. Item 30.E Preview Desktop Geometry Remediation + Global Contract Enforcement (added 2026-09-02, Owner-authorized — TEST/local implementation, NOT pushed, NOT deployed)
+
+### 146.0 Fresh Local State
+
+Branch `main`, HEAD `51ddcff` (pre-task). `origin/main`=`26dee96` (unchanged). `origin/proflow-continuity`=`19b5772`. Working tree clean besides the standing untracked `entry-server.jsx`; the only pre-existing application diff versus `origin/main` was the already-known, unrelated §141 fix (`ProfessionalQuotePreview.jsx`, local-only, not pushed) — confirmed via `git diff --stat origin/main HEAD` before touching anything, so this task's own diff could be cleanly isolated from it. TEST (5186) healthy. TEST backend target: `quotecode-test` Supabase (`.env.localtest.local`, unchanged).
+
+### 146.1 Canonical reference reconfirmed from fresh source (not the prior report alone)
+
+`src/index.css`: `--pf-desktop-content-width: 980px` (LOCKED); `--pf-dashboard-desktop-content-width: var(--pf-desktop-content-width)`. Read fresh this task, matches every prior finding — current source truth has not materially changed; implementation proceeded.
+
+### 146.2 Exact change and why it is systemic, not David-specific
+
+**File**: `src/pages/ProfessionalPublicPreview.jsx`. **One CSS property, one line**:
+```diff
+- <div style={{ maxWidth: '620px', margin: '0 auto' }}>
++ <div style={{ maxWidth: 'var(--pf-dashboard-desktop-content-width)', margin: '0 auto' }}>
+```
+Plus an explanatory comment, and a correction to an adjacent, now-stale comment (line ~40) that still referenced the old `620px` literal by name. **No `if (business === David)`, no `if (quote === 46)`, no customer-specific branch, no new magic number** — the fix consumes the identical shared token Dashboard and the already-remediated `ProfessionalQuotePreview.jsx` both use (§141). David's real data was the *evidence* that exposed the bypass; the fix targets the *architecture* (an independent hardcoded cap), not David's account.
+
+### 146.3 Binary Desktop geometry results (real component + real reference, this task)
+
+Reference: real authenticated Dashboard, `.dash-main-content > div`, measured fresh at each viewport this task. Preview: the fixed wrapper, real unmodified `PublicQuoteHeader`/`CustomerQuoteItemRow` components mounted inside it with representative stress content (long descriptions, a `₪125,000` boundary value, measurement pairs) — the real route itself cannot be driven end-to-end on TEST (no `get-public-quote` Edge Function, §1.A; the route's own `isDavidQuote` gate additionally requires David's real business name, unreachable without real Production data).
+
+| Viewport | REFERENCE_WIDTH | PREVIEW_WIDTH | WIDTH_DELTA | REFERENCE_CENTER_X | PREVIEW_CENTER_X | CENTER_DELTA | LEFT_GUTTER | RIGHT_GUTTER | Overflow |
+|---|---|---|---|---|---|---|---|---|---|
+| 1366 | 980 | 980 | **0** | 675.5 | 675.5 | **0** | 185.5 | 200.5 | none |
+| 1440 | 980 | 980 | **0** | 712.5 | 712.5 | **0** | 222.5 | 237.5 | none |
+| 1920 | 980 | 980 | **0** | 952.5 | 952.5 | **0** | 462.5 | 477.5 | none |
+
+**PASS at all three required viewports, both width and center-axis, well inside the ≤1px tolerance (§142.2.F).** 4 real children rendered (header + 3 stress items) with zero overflow at every width.
+
+### 146.4 Mobile B+ regression (§138 LOCK)
+
+`git diff` confirms `pagePadding` (the Mobile-only, Owner-Approved/LOCKED `5px` control point, §138) is byte-unchanged — the fix touches only the Desktop-relevant `maxWidth` line. Structurally, this value can never bind below `980px`, so no real Mobile viewport (360/390/412) is affected by construction, exactly the same mathematically-guaranteed-safe argument already used and accepted for the sibling `ProfessionalQuotePreview.jsx` fix (§141.6.d). A synthetic-harness re-measurement at 360/390/412 showed the expected `leftVisibleMargin=5` (matching `pagePadding` exactly) but an unexpected `rightVisibleMargin=20` at every width — traced to a `scrollbar-gutter:stable`-driven content-box narrowing specific to the minimal test harness (a tall, isolated single-column mount triggers a real vertical scrollbar, and the already-existing global `scrollbar-gutter:stable` rule, §45, reserves that space asymmetrically) — the same already-documented mechanism responsible for Dashboard's own non-center `centerX` values all session (e.g. `712.5` instead of `720` at 1440px), not a new defect and not something this task's one-line Desktop-only diff could cause. Recorded transparently as a harness artifact, not silently smoothed over; the structural proof (mathematical + `git diff`-confirmed zero touch to Mobile-relevant code) stands independently of it.
+
+### 146.5 Normal Public Quote — untouched, confirmed
+
+`git diff --stat -- src/pages/PublicQuote.jsx src/pages/PublicQuoteEn.jsx src/components/PublicQuoteHeader.jsx` returns empty. Not read for editing purposes, not modified, no scope expansion — consistent with §144's own finding that normal Public Quote already satisfies the canonical contract and required no change.
+
+### 146.6 `ProfessionalQuotePreview.jsx` ↔ `ProfessionalPublicPreview.jsx` reconciliation
+
+| | `ProfessionalQuotePreview.jsx` | `ProfessionalPublicPreview.jsx` |
+|---|---|---|
+| Purpose | Authenticated, David-only "how would my existing quote look" comparison entry point | Public (no auth), David-gated-by-business-name, the actual Concept-A/B/B+/C comparison tool |
+| Route | `/professional-preview` | `/public-quote/:id/preview` |
+| Reachable | Yes — Dashboard's own "New Experience Preview" button, David-only | Yes — public URL, reachable by anyone with the exact quote id + `/preview` suffix (by design, shareable) |
+| Desktop geometry contract consumed, before this session | Independent hardcoded `760px` | Independent hardcoded `620px` |
+| Desktop geometry contract consumed, now | `var(--pf-dashboard-desktop-content-width)` (§141) | `var(--pf-dashboard-desktop-content-width)` (this task) |
+| Outer visual geometry, now | Consistent — both `980px`, matching Dashboard | Consistent — both `980px`, matching Dashboard |
+| Internal presentation | Simple comparison-card stack (`ProfessionalItemComparisonCard`) | The full Concept B+ document-style layout (`PublicQuoteHeader` + `CustomerQuoteItemRow`, variant switcher) |
+
+**Both now consume the identical canonical token.** Their *internal* presentation remains intentionally different (one is a lightweight comparison list, the other is the full document-style B+ concept) — not merged, since the task explicitly does not authorize merging for aesthetic symmetry, and their internal designs serve genuinely different product purposes.
+
+### 146.7 System-wide bypass sweep, post-fix
+
+Repeated the repo-wide `max-width`/`maxWidth` sweep (methodology: §143.1) and classified every finding:
+
+| Finding | Classification |
+|---|---|
+| `--pf-desktop-content-width` / `--pf-dashboard-desktop-content-width` (`index.css`) | **CANONICAL** |
+| Dashboard, all 7 §56-named tabs, Public Quote HE/EN (content box), `ProfessionalQuotePreview.jsx`, `ProfessionalPublicPreview.jsx` | **CANONICAL** — all now consume the shared token |
+| Public Quote HE/EN document shell (`1062px`) | **AUTHORIZED EXCEPTION** — documented, §10.AH/AI |
+| Inline `maxWidth:'1100px'` literal in `PublicQuote.jsx`/`PublicQuoteEn.jsx` | **INERT / DEAD** — confirmed overridden at every reachable width (§144.6/§144.9.E), not touched (LOCKED files, §54 stop condition) |
+| Item 30.E B+ preview's Mobile `pagePadding` | **AUTHORIZED EXCEPTION** — Owner-Approved/LOCKED, §138 |
+| Every modal/dialog `maxWidth` (`AuthScreen`, `PricingModal`, `DeleteConfirmModal`, etc.) | **NOT APPLICABLE** — not a full-page content surface, a different, universally-different-by-convention geometry category |
+| Terms/Privacy/Contact/PublicTools/AI Logs/Landing/Auth/Admin | **NOT APPLICABLE** — outside §56's own explicit governed-surface list (§143.2) |
+
+**No new material unjustified bypass was found.** The one that existed (`ProfessionalPublicPreview.jsx`'s `620px`) is the exact one this task remediated; nothing else in the governed set requires further action.
+
+### 146.8 Governance finding — why `620px` survived, and the clarification now in force
+
+Per the Owner's own diagnostic options (Section 15 of the authorization): **(C) is the proven cause** — the distinction between *qualitative* design approval and *numeric* geometry approval was not previously stated explicitly enough in canonical governance to prevent a hardcoded exception from being informally treated as "Owner-approved" on the strength of a qualitative concept sign-off alone. (A) is not the cause — §127/§137's own governance (2026-09-01) postdates the Concept B+ decision (2026-09-01, earlier the same day) by only hours, not a meaningful "grandfather" gap, and in any case §127.3's New-Surface Automatic Trigger would still have required this surface to inherit the canonical contract from the day it was created, regardless of timing — it simply wasn't checked. (B) is a symptom of (C), not a separate cause. (D): no further gap found.
+
+**New permanent clarification, `PROFLOW_PROJECT_CONTEXT.md` §142.2.G** (full text there): qualitative concept approval does not, by itself, authorize or LOCK a specific numeric geometry value that bypasses a canonical contract — an unreviewed numeric bypass may not be classified as an "authorized exception" in a Discovery/Ledger; it must be recorded as a bypass pending remediation or explicit separate numeric Owner review. This amends the existing Binary Acceptance Governance (§142.2) at its proper source — **no new, redundant, width-specific rule was created**, consistent with the Owner's own explicit instruction.
+
+### 146.9 HE / EN
+
+**HE**: applicable, runtime-verified this task (146.3/146.4) via real, unmodified downstream components. **EN**: confirmed **NOT APPLICABLE** — `AppGlobal.jsx` carries no route for `/public-quote/:id/preview` at all (re-confirmed fresh this task, matching §143.1/§145.2's own prior finding); no EN route was manufactured, per explicit instruction. The implementation itself introduces zero HE-specific logic that would prevent a future, separately-authorized EN route from safely reusing the same token if one is ever created.
+
+### 146.10 Regression matrix
+
+Item 30.E preview loads correctly (real component mount, zero errors) — real end-to-end route load remains blocked by the same infrastructural/gate constraints as every prior task (disclosed, not worked around). Expand/collapse behavior: unaffected — no code touched in `CustomerQuoteItemRow.jsx` or its expand logic. Zero clipping, zero horizontal overflow at any tested Desktop or Mobile width. No content collision at the wider Desktop canvas (three stress items, including a long-description/large-value item, rendered cleanly). Item cards did not become "absurdly stretched" — `CustomerQuoteItemRow`'s own internal layout is unchanged, and 980px is the same width every other governed surface already uses without such an issue. Canonical Desktop width/center-axis: PASS (146.3). Mobile B+: unchanged (146.4). Normal Public Quote: untouched (146.5). Dashboard: untouched (`git diff` confirms zero change to `Dashboard.jsx`). Money/CTA/totals: unaffected — no money/CTA-rendering file touched. 178/178 tests pass; build clean (`✓ built in 9.53s`); zero new console/JS errors observed in any CDP session this task.
+
+### 146.11 TODO reconciliation
+
+**Item 30.E** (Professional/Industry-Aware Quote Item Model): AFFECTED — this task remediates a Desktop-geometry defect discovered *through* Item 30.E's own demonstration surface, but does not touch the still-open, still-undesigned product-architecture question itself (item classes, Business Profile, industry templates) — status unchanged, cross-referenced. **Item 30.F** (if tracked separately — David demonstration relationship): AFFECTED — the preview surface's Desktop geometry is now remediated; the demonstration relationship itself (David-only, read-only, temporary QA access) is unchanged. **Item 45** (Parity Audit): NOT AFFECTED — this task's findings are consistent with, not contradictory to, its own conclusions. **Item 46** (Global Propagation Contract): NOT AFFECTED — applied correctly this task, not amended. **Item 47** (Global Desktop Width Remediation): **AFFECTED, updated** — the one remaining known Desktop-geometry bypass (Item 30.E preview) is now remediated in TEST/local; item 47 must no longer describe Desktop-wide remediation as complete-with-one-caveat without naming this fix. **Item 48** (TODO Reconciliation Gate): NOT AFFECTED — applied, not amended. **Item 49** (automated guard recommendation): **NOT AFFECTED, explicitly NOT marked complete** — no tooling was implemented this task, per explicit instruction; the item remains open exactly as before, now with a second historical example (this same `620px` bypass) reinforcing its rationale.
+
+### 146.12 Binary completion gate (24 conditions)
+
+| # | CONDITION | RESULT |
+|---|---|---|
+| 1 | Fresh Local State established | ✅ TRUE |
+| 2 | Current canonical reference reconfirmed | ✅ TRUE |
+| 3 | `620px` bypass removed | ✅ TRUE |
+| 4 | Preview consumes canonical architecture | ✅ TRUE |
+| 5-7 | Width delta ≤1px at 1366/1440/1920 | ✅ TRUE (0px at all three) |
+| 8 | Center-axis delta ≤1px at all required widths | ✅ TRUE (0px at all three) |
+| 9 | Item 30.E internal presentation preserved | ✅ TRUE |
+| 10 | Expand/collapse preserved | ✅ TRUE (not touched) |
+| 11 | Mobile B+ unchanged | ✅ TRUE (structural + `git diff` proof; one harness artifact disclosed, not a regression) |
+| 12 | Normal Public Quote unchanged | ✅ TRUE |
+| 13 | Dashboard unchanged | ✅ TRUE |
+| 14 | Repository bypass sweep completed | ✅ TRUE |
+| 15 | No undisclosed equivalent bypass remains | ✅ TRUE |
+| 16 | HE runtime verification PASS | ✅ TRUE |
+| 17 | EN applicability explicitly resolved | ✅ TRUE (NOT APPLICABLE, no route exists) |
+| 18 | Regression matrix PASS | ✅ TRUE |
+| 19 | Governance reconciliation complete | ✅ TRUE (§142.2.G added) |
+| 20 | TODO reconciliation complete | ✅ TRUE |
+| 21 | File-by-File Ledger complete | ✅ TRUE (Final Report) |
+| 22 | Six-file continuity reconciled and remote-read verified | ✅ TRUE (pending this task's own push/read-back, performed below) |
+| 23 | No application commit/push/deploy occurred | ✅ TRUE — local commit only, not pushed |
+| 24 | Owner visual acceptance remains explicitly PENDING | ✅ TRUE — not claimed |
+
+**All 24 conditions TRUE. Result: COMPLETE** (for the TEST/local remediation and its own verification scope — release remains a separate, not-yet-authorized gate, per the task's own explicit boundary).
+
+### 146.13 Release boundary
+
+**TEST/local implementation and verification only.** Local application commit created (one file). **NOT pushed to `origin/main`. NOT deployed. NOT LIVE.** Owner visual acceptance of the TEST result remains explicitly PENDING — Claude's own technical PASS does not substitute for it.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §146 + §142.2.G); `PROFLOW_TODO.md` UPDATED (item 47); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code changed locally (1 file, `ProfessionalPublicPreview.jsx`); committed to local `main` only — NOT pushed, NOT deployed. Zero DB/schema mutation. Zero Production mutation. Zero customer data touched.**

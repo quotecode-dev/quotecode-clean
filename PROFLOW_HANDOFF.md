@@ -4928,4 +4928,28 @@ Owner + ChatGPT reviewed §144/§18.GP and raised two unresolved issues: an obse
 
 **Release boundary**: READ-ONLY throughout. **Zero application file touched, zero DB/TEST/Production mutation, no commit of application code, no push, no deploy, no LIVE action.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §145.
 
+## §18.GR. Item 30.E Preview Desktop Geometry Remediation + Global Contract Enforcement (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §146 — TEST/local implementation, NOT pushed, NOT deployed)
+
+**Fresh Local State established first**: confirmed the only pre-existing application diff versus `origin/main` was the already-known, unrelated §141 fix, cleanly isolated before touching anything. Canonical reference (`--pf-desktop-content-width:980px`) reconfirmed fresh from source, unchanged.
+
+**Fix**: `ProfessionalPublicPreview.jsx`'s independent hardcoded `maxWidth:'620px'` (Desktop) → `var(--pf-dashboard-desktop-content-width)`, the same shared token Dashboard and the already-remediated `ProfessionalQuotePreview.jsx` both consume. One CSS property, one line, plus a stale adjacent comment corrected. **Explicitly not** a David-specific or quote-specific condition — the fix targets the architecture, not the account that exposed it.
+
+**Binary geometry, real evidence**: real, unmodified `PublicQuoteHeader`/`CustomerQuoteItemRow` components mounted inside the fixed wrapper with representative stress content (a `₪125,000` boundary value, long descriptions, real measurement pairs) at 1366/1440/1920px — `0px` width delta and `0px` center-axis delta at every viewport, matching a freshly-measured real Dashboard reference exactly, zero overflow. The real route itself remains unreachable on TEST (no `get-public-quote` Edge Function; the route's own `isDavidQuote` gate additionally requires David's real business name) — same disclosed, unchanged infrastructural constraint as every prior task.
+
+**Mobile B+ Lock (§138)**: `pagePadding` confirmed byte-unchanged via `git diff`; structurally cannot bind below 980px regardless. A synthetic-harness re-measurement showed an unexpected asymmetric gutter, traced to a `scrollbar-gutter:stable`-driven artifact specific to the minimal test rig (the same mechanism already responsible for Dashboard's own off-center `centerX` readings all session) — disclosed transparently as a harness quirk, not a real regression, with the structural + `git diff` proof standing independently of it.
+
+**Normal Public Quote**: `PublicQuote.jsx`/`PublicQuoteEn.jsx`/`PublicQuoteHeader.jsx` confirmed untouched (`git diff --stat`, empty).
+
+**`ProfessionalQuotePreview.jsx` ↔ `ProfessionalPublicPreview.jsx` reconciled**: both now consume the identical canonical token; their internal presentations (a lightweight comparison list vs. the full Concept B+ document layout) remain intentionally different, not merged.
+
+**Bypass sweep, repeated post-fix**: no further unjustified bypass found — the inert `1100px` literal in the LOCKED Public Quote files remains flagged, not touched; every other governed surface already consumes the canonical token or carries a documented exception.
+
+**Governance clarified, `PROFLOW_PROJECT_CONTEXT.md` §142.2.G**: qualitative concept approval (the Concept B+ direction) never, by itself, authorized or locked the specific `620px` number — an unreviewed numeric bypass may not be classified as an authorized exception on the strength of a qualitative sign-off alone. Amends the existing Binary Acceptance Governance at its proper source; no new redundant rule created.
+
+**HE/EN**: HE applicable, runtime-verified. EN confirmed NOT APPLICABLE — no route exists in `AppGlobal.jsx`; none was manufactured.
+
+**Regression matrix**: 178/178 tests pass, build clean, zero new console errors, zero clipping/overflow, Dashboard/money/CTA/totals unaffected (no such file touched).
+
+**Release boundary**: TEST/local only. **Local application commit created (1 file); NOT pushed, NOT deployed, NOT LIVE.** Owner visual acceptance remains explicitly PENDING. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §146, `PROFLOW_TODO.md` item 47 (updated).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.
