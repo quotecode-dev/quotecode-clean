@@ -4,96 +4,105 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: B+ Mobile Width Target Correction — Approximately 50% Visual-Margin Reduction
+## Task: B+ Mobile 50% Visible-Margin Reduction — Production Release
 
-**Narrow correction. WIDTH ONLY — B+ design, money geometry, item-column geometry, CTA alignment, typography, professional-detail behavior, totals, header, customer block, terms, Desktop, and AUDIT-001–005 all preserved. Implementation + local verification only — not pushed, not deployed.**
+**Release-only task, separately Owner-authorized from implementation. Release of the already-verified `40aa710` correction — no additional application changes made.**
 
 ---
 
-## 1. Exact Reason 10px → 8px Did Not Represent the Owner's Requirement
+## B+ 50% MOBILE MARGIN RELEASE: **COMPLETE**
 
-The prior task's `10px→8px` was a ~20% CSS-value reduction. The Owner's actual requirement, communicated as "looks like 4mm → looks like 2mm," was an **approximately 50% reduction of the visually perceived outer margin** — a magnitude gap, not a repeat of the prior task's verification-method question (that geometry was already being measured correctly with real `getBoundingClientRect()`/`getComputedStyle()`, reconfirmed fresh this task).
+---
 
-## 2. Full Effective-Margin Source/Ancestor Analysis
+## 1. Pre-Release Gate
 
-Extended the full ancestor-chain method to explicitly measure the min/max rendered edge across **all six visible B+ cards** (toolbar, header, recipient block, item list, totals, terms), not just one wrapper div. Confirmed: all six share identical edges, zero contribution from any other ancestor (`html`/`body`/`#root` all carry `0` padding/margin) — the single `pagePadding` constant remains the sole correct control point. Box-shadow on the purple header confirmed non-contributing to the layout edge and not clipped.
+Confirmed `40aa71007ee1b228f04dd0fae05aefb39f580b51` exists locally with `pagePadding` Mobile `= '5px'`. `git diff origin/main 40aa710 -- src/pages/ProfessionalPublicPreview.jsx` confirmed the entire difference between `origin/main`'s state and the release candidate is exactly the width-only change; `git diff --stat` (excluding `.md` files) confirmed no other application file differs at all. Money/totals/CTA geometry structurally untouched by this diff; Desktop structurally unaffected (`pagePadding` only branches on `isMobileView`).
 
-## 3. BEFORE Geometry
+## 2. How the Abandoned 8px Local-History State Was Safely Handled
 
-Real Production (the `10px` state the Owner actually evaluated — `8px` was never pushed/deployed): viewportWidth=390, visibleLeftEdge=10, visibleRightEdge=380, **leftVisibleMargin=10, rightVisibleMargin=10**, visibleContentWidth=370, **viewportUtilizationPercent=94.87%**.
+Rather than pushing local `main` (which still carried the abandoned, never-pushed `8px` commit ahead of the authorized `5px` fix), a **clean release candidate was constructed**: a new commit (`26dee96`) built by checking out only `src/pages/ProfessionalPublicPreview.jsx`'s content from the authorized `40aa710` commit directly onto `origin/main`'s tip — verified identical via the same diff method — then pushed directly. No force-push, no remote history rewrite, no further rebase attempt.
 
-## 4. Derived 50% Target
+## 3. Exact Clean Release Diff
 
-`10px × 50% = 5px`, both sides — derived from the deployed/Owner-evaluated `10px` baseline, not the never-deployed `8px` local experiment.
+Identical to the diff verified at step 1 — one file, one CSS-value change plus an explanatory comment. Confirmed via `git show origin/main:src/pages/ProfessionalPublicPreview.jsx | grep pagePadding` reading `'5px'` after push.
 
-## 5. Exact Implementation
+## 4. origin/main Before
 
-One constant, one file: `pagePadding = isMobileView ? '5px' : '16px'` (was `'8px'`). No other container/architecture change; same single correct control point as identified in the prior task.
+`8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
 
-## 6. AFTER Geometry
+## 5. Clean Application Release SHA
+
+`26dee96fc511d71715fe8675426920daff06719a`
+
+## 6. origin/main After
+
+`26dee96fc511d71715fe8675426920daff06719a`
+
+## 7. Push Result
+
+`git push origin release-clean-b48ac9:main` succeeded, fast-forward. AUTHORIZED CHANGE PRESENT: **YES**.
+
+## 8. Vercel Deployment Result
+
+First build attempt returned `● Error` — but only *after* the build itself completed successfully (`✓ built in 14.80s`, correct output); the failure occurred during Vercel's own "Deploying outputs" phase, with Vercel's own message stating "This may be a transient issue, please try rebuilding your project." Retried via `vercel redeploy` (same commit, zero code change) — succeeded, `✓ Ready in 43s`.
+
+## 9. Exact Deployed SHA
+
+`26dee96fc511d71715fe8675426920daff06719a`, confirmed via `vercel inspect --logs`: `Cloning ... (Branch: main, Commit: 26dee96)`, status `● Ready`. Canonical domain (`https://www.quotecodepro.com/`) confirmed serving this exact build (asset filename `index-BxCROk9Z.js` matched exactly between the build log and a live `curl`).
+
+## 10-12. LIVE Geometry (real Production, read-only)
 
 | Viewport | leftVisibleMargin | rightVisibleMargin | visibleContentWidth | utilization |
 |---|---|---|---|---|
-| 390 (primary) | 5 | 5 | 380 | **97.44%** |
-| 360 | 5 | 5 | 350 | **97.22%** |
-| 412 | 5 | 5 | 402 | **97.57%** |
-| 1280 Desktop | 322.5 | 337.5 | 620 | 48.44% (unchanged) |
+| 360 | 5 | 5 | 350 | 97.22% |
+| **390 (primary)** | **5** | **5** | **380** | **97.44%** |
+| 412 | 5 | 5 | 402 | 97.57% |
 
-## 7. Actual Margin-Reduction Percentage
+Exact match to every local pre-release prediction.
 
-`(10 − 5) / 10 = 50%` exactly, both sides, every tested Mobile width — precisely matching the Owner's stated ratio.
+## 13. Actual Margin Reduction
 
-## 8. 360/390/412 Results
+`(10 − 5) / 10 = 50%` exactly, both sides, at every tested Mobile width — confirmed live, precisely matching the Owner's stated ratio.
 
-**PASS at all three.** Zero horizontal overflow, zero clipping, borders/shadows fully visible, descriptions readable, price column protected, expanded professional detail re-verified fully usable (real click via CDP, all 8 measurement rows revealed, zero overflow), totals and terms confirmed readable.
-
-## 9. Money-Geometry Regression Result
+## 14. Money Geometry LIVE Regression Result
 
 `itemMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
 
-## 10. Totals-Geometry Regression Result
+## 15. Totals Geometry LIVE Regression Result
 
 `totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
 
-## 11. CTA Regression Result
+## 16. CTA LIVE Regression Result
 
-`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching every prior release's own measured values.
+`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching every prior release's own measured values exactly.
 
-## 12. Desktop Result
+## 17. Desktop LIVE Result
 
-**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected — byte-identical to prior records.
+**PASS, zero regression.** `leftVisibleMargin=322.5, rightVisibleMargin=337.5, visibleContentWidth=620, utilization=48.44%` — byte-identical to every prior record. Both the B+ preview and the real, unrelated `PublicQuote.jsx` re-screenshotted, zero console errors on either.
 
-## 13. Tests/Build/Console
+## 18. Overflow/Clipping/Console Result
 
-Full suite: **178/178 pass**. Lint: 0 new errors (same single pre-existing unused-import warning, confirmed unrelated). Build: clean. Console: zero errors throughout.
+Zero horizontal overflow at every tested viewport. Zero clipping (screenshot-confirmed, borders/shadows fully visible). Zero console errors on every page load performed this task.
 
-## 14. Exact Local Application Commit / Release Candidate
+## 19. Six-File Continuity Ledger
 
-`40aa71007ee1b228f04dd0fae05aefb39f580b51` (`fix: correct B+ Mobile width target - ~50% visual margin reduction (10px->5px)`), local `main`.
-
-**History note**: the prior task's abandoned `8px` commit (`023a0d1`, confirmed never pushed anywhere) was targeted for removal via a non-interactive `git rebase --onto`; it produced merge conflicts in the documentation files and was **aborted immediately**, working tree recovered cleanly via `git stash`/`git stash pop` with zero data loss. Local history therefore honestly retains the abandoned intermediate step rather than hiding it — only the final committed file content (`5px`, correct) matters once release is separately authorized.
-
-## 15. Push Status
-
-**NOT AUTHORIZED** by this task. `origin/main` unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826` throughout.
-
-## 16. Deploy Status
-
-**NOT AUTHORIZED.** No Vercel deployment triggered.
-
-## 17. Six-File Continuity Ledger
-
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§134)
-- `PROFLOW_TODO.md` — **UPDATED** (item 42 addendum)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GH)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§135)
+- `PROFLOW_TODO.md` — **UPDATED** (item 42 status → LIVE)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GI)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-## 18. Continuity Commit SHA + Remote Read-Back
+**Branch reconciliation note**: local `main` had diverged from the newly-pushed clean `origin/main` (built on a separate temporary branch). Resolved via `git reset --hard origin/main` on local `main` — safe, since every superseded local commit's content was already independently preserved (app state now correctly on `origin/main`; every documentation update from §131 through §134 already confirmed pushed to `origin/proflow-continuity`). Temporary branch `release-clean-b48ac9` deleted after reconciliation. The working tree's six canonical files were refreshed from `origin/proflow-continuity`'s true latest state before writing this task's own update.
 
-`f7adf2f410f37c0df40ffdcc7d6e343ba075690b` on `proflow-continuity` (pushed; content commit `88ab58e` + this SHA-follow-up commit). Matching commits exist locally on `main` (`17d7a08` content, `6e0c64f` follow-up) — **not pushed**, per this task's own no-release-authorization boundary. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `88ab58e1cf3800f23d6b3386992ef52dbbdfdfac` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §134 and `PROFLOW_HANDOFF.md` §18.GH both present and correct. `origin/main` re-fetched and confirmed unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`.
+## 20. Continuity Commit SHA + Remote Read-Back
+
+*(recorded after push — see below.)*
+
+## 21. Owner Visual Acceptance Status
+
+**PENDING.** Claude Lead's own LIVE verification is real-browser evidence, not a substitute for the Owner's personal inspection on his physical Mobile device. Nothing in this task is marked Owner-LOCKED.
 
 ---
 
-Application code committed locally only. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
+Application code pushed and deployed (`26dee96`). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
