@@ -54,15 +54,13 @@ Zero application/DB/TEST/Production/Edge Function/Vercel mutation. No `main` pus
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below.)*
+`e9c0e32251f83d5111b6065b3551e88c38b460b4` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the five genuinely-changed files. Matching commit exists locally on `main` (`ed0192e`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e9c0e32251f83d5111b6065b3551e88c38b460b4` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§120, "PROFLOW RECOVERY: CLOSED" present, correct) and `PROFLOW_CHAT_HANDOFF.md` (§14 lead paragraph present, correct) — both confirmed present and correct. `origin/main` re-fetched, confirmed unaffected (`83e677a488a6a17b9a195c5a360726307398f445`); RC tag re-confirmed absent from the remote.
 
 ---
 
