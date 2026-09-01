@@ -4607,3 +4607,13 @@ A subsequent task requested resuming Function 2 (`send-quote-email`) deployment,
 **Item C**: confirmed still present, unfixed, via fresh source read of `PublicQuoteHeader.jsx` - `git diff origin/main HEAD` empty for this file, local = Production byte-identical. **Item D**: a `.dash-footer { padding-bottom: 100px !important; }` mobile rule already exists in `Dashboard.jsx`, its own comment describing it as solving exactly item D's overlap problem, also already live on Production (`git diff origin/main HEAD` empty) - never previously cross-referenced against item D's "KNOWN DEFECT" status. May already be resolved, pending live re-confirmation, not new code.
 
 **PRE-MUTATION GATE: GO** - proposed order: (1) live-verify item D before writing anything; (2) implement item C's well-specified JSX reorder; (3) HE+EN/Desktop+Mobile verification of both. Not executed - plan only. Zero application/DB/TEST/Production/Edge/Vercel mutation.
+
+## §18.FP. Wave 4 EXECUTION — Item C fixed + verified PASS (4/4), Item D confirmed already-resolved (no code change, both markets) — WAVE 4 COMPLETE (2026-09-01, local application commit only)
+
+**Item D verified live first, per the required sequence, before any code was touched**: real DOM measurement (`getBoundingClientRect()` at true scroll-bottom) on both TEST accounts found 100+px of clean clearance between the last Quote History row and the floating AI Chat button on both HE/Local (102.5px) and EN/International (101.8px), screenshot-confirmed both times. **Verdict: ALREADY RESOLVED — NO CODE CHANGE REQUIRED, both markets.** `Dashboard.jsx`/`AIChatWidget.jsx` untouched.
+
+**Item C implemented and verified PASS on all 4 combinations**: `PublicQuoteHeader.jsx`'s Mobile branch reordered so the info box (quote number/date) renders before the CTA, matching Desktop — pure DOM reorder, no style/text/logic change. Build clean (`✓ built in 9.63s`). Live-verified via real public quote URLs: HE Mobile PASS, EN Mobile PASS, HE Desktop PASS (unchanged), EN Desktop PASS (unchanged).
+
+**Local application commit**: `bf7a047e43a714a53f3845267107ab068587e401`, `PublicQuoteHeader.jsx` only, `src/entry-server.jsx` excluded. **Not pushed to `main`.**
+
+**Wave 4 status: PASS — COMPLETE.** No RC tag, no Wave 5, no `main` push, no deploy, no DB/Edge mutation — awaiting Owner + ChatGPT review. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §115 Wave 4 Execution addendum.
