@@ -4,102 +4,95 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: B+ Mobile Width Correction — Verification/Reporting Process Escape
+## Task: B+ Mobile Width Target Correction — Approximately 50% Visual-Margin Reduction
 
-**Narrow, Owner-authorized correction. AUDIT-001–005 not reopened, money geometry untouched, CTA alignment untouched, no redesign. Implementation + local verification only — not pushed, not deployed.**
-
----
-
-## B+ MOBILE WIDTH CORRECTION: **COMPLETE**
-## OUTER MOBILE MARGINS: **VERIFIED**
-## MONEY GEOMETRY: **UNCHANGED**
-## CTA GEOMETRY: **UNCHANGED**
-## OWNER VISUAL ACCEPTANCE: **PENDING**
+**Narrow correction. WIDTH ONLY — B+ design, money geometry, item-column geometry, CTA alignment, typography, professional-detail behavior, totals, header, customer block, terms, Desktop, and AUDIT-001–005 all preserved. Implementation + local verification only — not pushed, not deployed.**
 
 ---
 
-## 1. Root Cause of Why Prior Width Refinement Had No Material Visible Effect
+## 1. Exact Reason 10px → 8px Did Not Represent the Owner's Requirement
 
-**Finding: the prior refinement did have the intended effect — the deployed code was, and remains, genuinely correct.** A fresh, exhaustive re-audit this task (full DOM ancestor chain `html`→`body`→`#root`→outer page div→wrapper, cross-checked via both `getBoundingClientRect()` and `getComputedStyle()`, plus individual measurement of all six sibling cards) confirmed the real-Production deployed value was exactly `10px` padding on every visible card, matching the prior task's own report precisely. This is **not a code regression**, and the prior task's own verification already used real geometry (not overflow-absence or screenshot judgment alone) — a factual correction to this task's own framing, recorded transparently. The route's `Cache-Control` header is confirmed the correct `public, max-age=0, must-revalidate` (no server/CDN caching defect). The most plausible explanation for the Owner's conflicting real-device evidence is a stale client-side cache on his own device (bfcache, or a tab open from before the deployment) — not directly confirmable from this environment, disclosed as the best available explanation rather than asserted as fact.
+The prior task's `10px→8px` was a ~20% CSS-value reduction. The Owner's actual requirement, communicated as "looks like 4mm → looks like 2mm," was an **approximately 50% reduction of the visually perceived outer margin** — a magnitude gap, not a repeat of the prior task's verification-method question (that geometry was already being measured correctly with real `getBoundingClientRect()`/`getComputedStyle()`, reconfirmed fresh this task).
 
-## 2. Exact Controlling Container / File
+## 2. Full Effective-Margin Source/Ancestor Analysis
 
-`src/pages/ProfessionalPublicPreview.jsx`, the `pagePadding` constant — the single correct control point, consumed uniformly by all six sibling cards via the shared `maxWidth:620px` wrapper one level below it. No per-row/per-component compensation was made or needed.
+Extended the full ancestor-chain method to explicitly measure the min/max rendered edge across **all six visible B+ cards** (toolbar, header, recipient block, item list, totals, terms), not just one wrapper div. Confirmed: all six share identical edges, zero contribution from any other ancestor (`html`/`body`/`#root` all carry `0` padding/margin) — the single `pagePadding` constant remains the sole correct control point. Box-shadow on the purple header confirmed non-contributing to the layout edge and not clipped.
 
-## 3. Before Outer-Margin Measurements
+## 3. BEFORE Geometry
 
-Real Production, re-confirmed fresh this task: viewportWidth=390, leftOuterMargin=10, rightOuterMargin=10, documentWidth=370, **documentWidth/viewportWidth = 94.9%**.
+Real Production (the `10px` state the Owner actually evaluated — `8px` was never pushed/deployed): viewportWidth=390, visibleLeftEdge=10, visibleRightEdge=380, **leftVisibleMargin=10, rightVisibleMargin=10**, visibleContentWidth=370, **viewportUtilizationPercent=94.87%**.
 
-## 4. Exact Implementation
+## 4. Derived 50% Target
 
-One constant changed, one file: `pagePadding = isMobileView ? '8px' : '16px'` (was `'10px'`) — the low end of the already Owner-approved 8-12px range. No per-row compensation, no negative margins, no `100vw` hacks, no David-only pixel offset.
+`10px × 50% = 5px`, both sides — derived from the deployed/Owner-evaluated `10px` baseline, not the never-deployed `8px` local experiment.
 
-## 5. After Outer-Margin Measurements
+## 5. Exact Implementation
 
-Local build, real geometry:
+One constant, one file: `pagePadding = isMobileView ? '5px' : '16px'` (was `'8px'`). No other container/architecture change; same single correct control point as identified in the prior task.
 
-| Viewport | leftOuterMargin | rightOuterMargin | documentWidth | utilization |
+## 6. AFTER Geometry
+
+| Viewport | leftVisibleMargin | rightVisibleMargin | visibleContentWidth | utilization |
 |---|---|---|---|---|
-| 390 (primary) | 8 | 8 | 374 | **95.9%** |
-| 360 | 8 | 8 | 344 | **95.6%** |
-| 412 | 8 | 8 | 396 | **96.1%** |
-| 1280 Desktop | 322.5 | 337.5 | 620 | 48.4% (unchanged — Desktop is governed by the fixed 620px cap) |
+| 390 (primary) | 5 | 5 | 380 | **97.44%** |
+| 360 | 5 | 5 | 350 | **97.22%** |
+| 412 | 5 | 5 | 402 | **97.57%** |
+| 1280 Desktop | 322.5 | 337.5 | 620 | 48.44% (unchanged) |
 
-## 6. Viewport Utilization Before/After
+## 7. Actual Margin-Reduction Percentage
 
-**94.9% → 95.9%** at the primary 390px viewport (total margin 20px → 16px, a real, measured further reduction). Consistent across all three tested real device-class Mobile widths.
+`(10 − 5) / 10 = 50%` exactly, both sides, every tested Mobile width — precisely matching the Owner's stated ratio.
 
-## 7. Money-Geometry Regression Result
+## 8. 360/390/412 Results
 
-`itemMaxSpreadPx = 0`, `totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
+**PASS at all three.** Zero horizontal overflow, zero clipping, borders/shadows fully visible, descriptions readable, price column protected, expanded professional detail re-verified fully usable (real click via CDP, all 8 measurement rows revealed, zero overflow), totals and terms confirmed readable.
 
-## 8. CTA-Geometry Regression Result
+## 9. Money-Geometry Regression Result
 
-`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching the prior release's own live-measured values.
+`itemMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
 
-## 9. Mobile Result
+## 10. Totals-Geometry Regression Result
 
-**PASS.** Zero horizontal overflow, zero clipping, borders/shadows fully visible, zero console errors at all three tested widths. Expand interaction re-verified fully functional via a real click (not static rendering) at the new width — all 8 real measurement rows revealed correctly, zero overflow after expansion. Totals and terms sections re-confirmed readable.
+`totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
 
-## 10. Desktop Result
+## 11. CTA Regression Result
 
-**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected — byte-identical to the prior release's own Desktop record.
+`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching every prior release's own measured values.
 
-## 11. Tests/Build/Console
+## 12. Desktop Result
 
-Full suite: **178/178 pass**. Lint: 0 new errors (the same single pre-existing unused-import warning already documented in prior tasks, confirmed unrelated). Build: clean. Console: zero errors on every page load this task.
+**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected — byte-identical to prior records.
 
-## 12. Contract Trigger Ledger
+## 13. Tests/Build/Console
 
-**FILE**: `src/pages/ProfessionalPublicPreview.jsx`
-**SEMANTIC RESPONSIBILITY**: Mobile-width host for the B+ quote-context comparison preview.
-**APPLICABLE CONTRACTS**: Mobile/Desktop Responsive Geometry (§45/§49/§56/§57); Visual Geometry/Alignment Contract (§127.4).
-**WHY TRIGGERED**: direct Owner-reported width-target discrepancy on the exact surface this contract governs.
-**PROTECTED AXIS**: Mobile outer margin (both sides), now 8px.
-**VERIFICATION**: real `getBoundingClientRect()` + `getComputedStyle()`, full ancestor chain, every sibling card, three Mobile widths, plus a live expand-interaction test.
-**HE**: PASS (local build). **EN**: N/A (no locale-conditional logic; surface remains HE-only by construction). **MOBILE**: PASS. **DESKTOP**: PASS (zero regression).
-**PASS/PARTIAL/BLOCKED**: **PASS** for everything measurable; the "why the Owner saw something different" question is disclosed as unresolved-with-best-explanation, not silently assumed away.
+Full suite: **178/178 pass**. Lint: 0 new errors (same single pre-existing unused-import warning, confirmed unrelated). Build: clean. Console: zero errors throughout.
 
-## 13. Local Commit SHA
+## 14. Exact Local Application Commit / Release Candidate
 
-`023a0d14b0e4b28b521296012e8ef5fbd8a46f1b` (application fix, local `main`).
+`40aa71007ee1b228f04dd0fae05aefb39f580b51` (`fix: correct B+ Mobile width target - ~50% visual margin reduction (10px->5px)`), local `main`.
 
-## 14. Push/Deploy Status
+**History note**: the prior task's abandoned `8px` commit (`023a0d1`, confirmed never pushed anywhere) was targeted for removal via a non-interactive `git rebase --onto`; it produced merge conflicts in the documentation files and was **aborted immediately**, working tree recovered cleanly via `git stash`/`git stash pop` with zero data loss. Local history therefore honestly retains the abandoned intermediate step rather than hiding it — only the final committed file content (`5px`, correct) matters once release is separately authorized.
+
+## 15. Push Status
 
 **NOT AUTHORIZED** by this task. `origin/main` unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826` throughout.
 
-## 15. Six-File Continuity Ledger
+## 16. Deploy Status
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§133)
+**NOT AUTHORIZED.** No Vercel deployment triggered.
+
+## 17. Six-File Continuity Ledger
+
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§134)
 - `PROFLOW_TODO.md` — **UPDATED** (item 42 addendum)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GG)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GH)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-## 16. Continuity Commit SHA + Remote Read-Back
+## 18. Continuity Commit SHA + Remote Read-Back
 
-`fdbd3b5389199cd91a4143c9e96fb8193c12f391` on `proflow-continuity` (pushed; content commit `4359e91` + this SHA-follow-up commit). Matching commits exist locally on `main` (`c0b568b` content, `e9c8bca` follow-up) — **not pushed**, per this task's own no-release-authorization boundary. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `4359e911f735b765ca973bec0069a593b05931de` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §133 and `PROFLOW_HANDOFF.md` §18.GG both present and correct. `origin/main` re-fetched and confirmed unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`.
+*(recorded after push — see below.)*
 
 ---
 
