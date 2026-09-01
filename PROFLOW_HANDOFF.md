@@ -4737,3 +4737,17 @@ Owner authorized one temporary QA link ("בדיקת תצוגה חדשה") in Dav
 **Deploy status**: implementation authorization did not include commit/push/deploy per this task's own explicit instruction not to infer one from the other — **application code committed to local `main` only, NOT pushed, NOT deployed, NOT LIVE.** `origin/main` unchanged throughout.
 
 **AUDIT-001/002/003/004: explicitly untouched, unchanged, still open, not authorized for remediation.** Owner visual acceptance of this fix is PENDING. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §129, `PROFLOW_TODO.md` item 42 (updated) and item 43 (cross-referenced).
+
+## §18.GD. AUDIT-005 Production release — push/deploy/LIVE verification (2026-09-01, extends §18.GC, release only — AUDIT-005 unchanged from §129, AUDIT-001/002/003/004 untouched)
+
+**Release-scope proof before push**: fresh ancestry (`855d64c` confirmed ancestor of local HEAD `df6476f`) and a full diff across the entire pushed range showed exactly the same two files as §129's commit (`PublicQuoteHeader.jsx`, `PublicQuoteHeader.test.jsx`) — zero DB/schema files, zero AUDIT-001/002/003/004 files anywhere in the pushed history. 8 interleaved documentation-only commits from the two immediately-prior tasks rode along in the same push, consistent with this project's own already-documented standing fact that `main` pushes deploy identically regardless of commit type (`PROFLOW_ARCHITECTURE.md` §2) — zero effect on the deployed bundle since `.md` files aren't part of the build. Pre-push gate: 178/178 tests, clean build, **GO**.
+
+**Push**: `origin/main` `2e7cebe` → `df6476f`. **Vercel**: `Cloning ... (Branch: main, Commit: df6476f)`, status `Ready`, canonical domain confirmed serving it.
+
+**LIVE geometry, real Production, read-only**: quoteNumberCenterX=71.07px, dateLineCenterX=71.08px, validityCenterX=71.08px, **maxSpreadPx=0.01** (pre-fix live spread was 12.28px) — `getComputedStyle` confirms `textAlign:'center'`. Zero horizontal overflow, zero console errors. Mobile screenshot captured for Owner review. Desktop HE re-screenshotted live, unchanged, zero regression.
+
+**EN**: **EN LIVE: NOT VERIFIED** — no safe existing International Public Quote available without a DB query outside scope (same constraint as §129, not retried); no test data created to manufacture evidence. CODE/STRUCTURAL VERIFIED (§129) stands unchanged.
+
+**AUDIT-001/002/003/004**: `git diff --stat` across the entire deployed range confirms byte-identical — **UNCHANGED** on all four, post-deployment.
+
+**Not Owner-LOCKED by this task** — Claude's own LIVE verification is evidence, not a substitute for the Owner's personal review (§43). **Owner visual acceptance of the live result remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §130, `PROFLOW_TODO.md` item 42 (status → LIVE).
