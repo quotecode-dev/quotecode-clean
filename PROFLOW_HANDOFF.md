@@ -4805,3 +4805,15 @@ Owner's real physical-device Production screenshot conflicted with §132's own r
 **History note**: a non-interactive `git rebase --onto` was attempted to remove the abandoned §133 `8px` commit from local history before it was ever pushed; it produced merge conflicts in the documentation files and was **aborted immediately**, working tree safely recovered via `git stash`/`git stash pop` with zero data loss, consistent with this project's standing caution around history-rewriting operations. The local history therefore honestly retains the abandoned intermediate step rather than hiding it — only the final committed file content (correct, `5px`) matters once release is separately authorized.
 
 **Release boundary**: implementation authorized, release was not. **Local application commit created; NOT pushed; NOT deployed.** **Owner visual acceptance of the B+ Mobile presentation and every prior fix remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §134, `PROFLOW_TODO.md` item 42.
+
+## §18.GI. B+ Mobile 50% visible-margin reduction — Production release (2026-09-01, extends §18.GH, release of the already-verified §134 correction via a clean release candidate)
+
+**Clean release candidate built rather than pushing local `main` directly**: local `main` still carried the abandoned, never-pushed §133 `8px` commit ahead of the authorized `5px` fix. `git diff origin/main 40aa710 -- src/pages/ProfessionalPublicPreview.jsx` confirmed the entire difference between `origin/main` and the authorized commit is exactly the width-only change; a new commit (`26dee96`) was built by checking out only that file's content from `40aa710` directly onto `origin/main`'s tip, verified identical via the same diff method, and pushed directly — `origin/main` `8bb777c` → `26dee96`. No force-push, no remote history rewrite.
+
+**Deployment**: first Vercel build attempt errored during "Deploying outputs" (a Vercel-flagged transient platform issue — the build itself had already succeeded cleanly) — retried via `vercel redeploy`, succeeded, `Ready`, exact commit confirmed, canonical domain confirmed serving the exact new build (asset hash matched).
+
+**LIVE geometry, real Production**: leftVisibleMargin=5, rightVisibleMargin=5 at 360/390/412px — utilization 97.22%/97.44%/97.57% — an exact **50% reduction** from the pre-existing live 10px. Money (`itemMaxSpreadPx=0`), totals (`totalsMaxSpreadPx=0`), and CTA (`ctaMaxSpreadPx=0.02`) geometry all re-confirmed unchanged live. Desktop unaffected. Zero overflow, zero console errors.
+
+**Branch reconciliation**: local `main` had diverged from the new `origin/main` (built on a separate temporary branch) — resolved via `git reset --hard origin/main` on local `main`, safe because every superseded local commit's content was already independently preserved (app state now correctly on `origin/main`; every documentation update already confirmed pushed to `origin/proflow-continuity`). Temporary branch deleted after reconciliation.
+
+**Owner visual acceptance remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §135, `PROFLOW_TODO.md` item 42 (status → LIVE).

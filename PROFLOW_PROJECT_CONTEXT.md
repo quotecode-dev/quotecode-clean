@@ -5343,3 +5343,64 @@ DEPLOY: NOT AUTHORIZED (this task).
 **Owner visual acceptance of the B+ Mobile presentation (and of every fix released in §132) remains PENDING.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §134); `PROFLOW_TODO.md` UPDATED (item 42 addendum correcting the interpretation); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).**
+
+## §135. B+ Mobile 50% Visible-Margin Reduction — Production Release (added 2026-09-01, Owner-authorized, release of the already-verified §134 correction — a clean release candidate constructed to bypass the abandoned §133 commit)
+
+### 135.1 Pre-release gate
+
+Confirmed release candidate `40aa71007ee1b228f04dd0fae05aefb39f580b51` exists locally with `pagePadding` Mobile `= '5px'`. `git diff origin/main 40aa710 -- src/pages/ProfessionalPublicPreview.jsx` confirmed the **entire** difference between `origin/main`'s state (`8bb777c`) and the release candidate's file state is exactly the width-only change (one CSS value + an explanatory comment) — nothing else. `git diff --stat origin/main 40aa710 -- . ':!PROFLOW_*.md'` confirmed **no other application file differs at all** across that span. Money geometry, totals geometry, and CTA geometry are untouched in source (structurally impossible to have regressed, confirmed by the diff itself containing zero lines touching those areas) — later re-confirmed live regardless (135.5-135.7). Desktop is structurally unaffected (`pagePadding` only branches on `isMobileView`).
+
+### 135.2 How the abandoned 8px local-history state was safely handled
+
+Local history contained an abandoned, never-pushed `8px` commit (`023a0d1`) sitting between `origin/main` and the authorized `5px` release candidate. Rather than pushing the full local `main` branch (which would carry that intermediate commit into `origin/main`'s permanent history, even though the *final* deployed content would still be correct), a **clean release candidate was constructed**: a new commit (`26dee96`), built by checking out only `src/pages/ProfessionalPublicPreview.jsx`'s content from the authorized `40aa710` commit directly on top of `origin/main`'s current tip — verified via the same diff method as 135.1 to contain *exactly* the width-only change and nothing else, then pushed directly as the new `origin/main` tip. This avoids the risk of a further history-rewrite attempt (the prior task's `git rebase --onto` attempt hit conflicts and was safely aborted) while still guaranteeing the published history shows only the correct, authorized change — no force-push, no remote history rewrite, only a normal fast-forward push of a freshly-built commit.
+
+### 135.3 Push
+
+`git push origin release-clean-b48ac9:main` (a local branch built at 135.2, pushed to the `main` ref).
+
+ORIGIN/MAIN BEFORE: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
+RELEASE SHA: `26dee96fc511d71715fe8675426920daff06719a`
+ORIGIN/MAIN AFTER: `26dee96fc511d71715fe8675426920daff06719a`
+AUTHORIZED CHANGE PRESENT: **YES** — confirmed via `git show origin/main:src/pages/ProfessionalPublicPreview.jsx | grep pagePadding` reading `'5px'`.
+
+### 135.4 Production deployment
+
+First Vercel build attempt returned `● Error` *after* a fully successful build step (`✓ built in 14.80s`, correct output) — the failure occurred during Vercel's own "Deploying outputs" phase, with Vercel's own message explicitly stating "This may be a transient issue, please try rebuilding your project." Retried via `vercel redeploy` (same commit, no code change) — succeeded, `✓ Ready in 43s`. Confirmed via `vercel inspect --logs`: `Cloning ... (Branch: main, Commit: 26dee96)`, status `● Ready`. Canonical domain confirmed serving the exact new build (asset filename `index-BxCROk9Z.js` matched exactly between the build log and a fresh `curl` of the live route).
+
+DEPLOYMENT STATUS: **PASS** (after one Vercel-side transient retry, unrelated to this change).
+DEPLOYED SHA: `26dee96fc511d71715fe8675426920daff06719a`
+PRODUCTION READY: **YES**
+PRODUCTION DOMAIN: `https://www.quotecodepro.com/` — confirmed serving the exact deployed build.
+
+### 135.5 LIVE Mobile geometry (real Production, read-only)
+
+| Viewport | leftVisibleMargin | rightVisibleMargin | visibleContentWidth | utilization | overflow |
+|---|---|---|---|---|---|
+| 360 | 5 | 5 | 350 | 97.22% | none |
+| **390 (primary)** | **5** | **5** | **380** | **97.44%** | none |
+| 412 | 5 | 5 | 402 | 97.57% | none |
+| 1280 Desktop | 322.5 | 337.5 | 620 | 48.44% (unchanged) | none |
+
+Exact match to every local pre-release prediction (§134.6).
+
+### 135.6 Actual margin reduction, LIVE
+
+`(10 − 5) / 10 = 50%` exactly, both sides, at every tested Mobile width — confirmed live on real Production, matching the Owner's stated ratio precisely.
+
+### 135.7 LIVE regression lock
+
+`itemMaxSpreadPx = 0`, `totalsMaxSpreadPx = 0`, `ctaMaxSpreadPx = 0.02` (Mobile) / `0.01` (Desktop) — all **UNCHANGED**, real Production, at every tested viewport. Zero horizontal overflow, zero console errors anywhere. A full-page Mobile screenshot was captured showing the near-edge-to-edge live result. Desktop re-screenshotted (both the B+ preview and the real, unrelated `PublicQuote.jsx`) — zero regression, zero console errors.
+
+### 135.8 Safety confirmation
+
+Zero mutation performed — every verification action was a read-only page load plus client-side geometry reads. No DB query, no Edge Function change, no customer data touched.
+
+### 135.9 Local branch reconciliation
+
+Local `main` had diverged from the newly-pushed clean `origin/main` (11 local-only commits vs. 1 remote-only commit) as a direct consequence of building the clean release candidate on a fresh branch rather than the local `main` lineage. Reconciled via `git reset --hard origin/main` on the local `main` branch — safe because every local-only commit's *content* was already independently preserved: application state is exactly reflected in the new `origin/main` tip itself, and every documentation update from the diverged commits (§131-§134 and their own SHA-follow-ups) was already independently pushed to and confirmed present on `origin/proflow-continuity`. No data was lost; only redundant local commit objects (still recoverable via `git reflog` if ever needed) were superseded. The temporary `release-clean-b48ac9` branch was deleted after the reset. The working tree's six canonical `.md` files were then refreshed from `origin/proflow-continuity`'s current tip before writing this section, so this update builds on the true latest state, not a stale `main`-frozen snapshot.
+
+### 135.10 Owner visual acceptance
+
+**PENDING.** Claude Lead's own LIVE verification is real-browser evidence; it does not substitute for the Owner's personal inspection on his physical Mobile device. **Owner visual acceptance of the B+ Mobile width and of every other fix released in §132/§135 remains PENDING.**
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §135); `PROFLOW_TODO.md` UPDATED (item 42 status → LIVE); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`26dee96`); zero DB/schema/Edge Function mutation; zero customer communication; zero signature/approval action; David's original quote data untouched (read-only page loads only).**
