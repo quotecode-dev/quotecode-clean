@@ -92,7 +92,7 @@ Full suite: **178/178 pass**. Lint: 0 new errors (same single pre-existing unuse
 
 ## 18. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`f7adf2f410f37c0df40ffdcc7d6e343ba075690b` on `proflow-continuity` (pushed; content commit `88ab58e` + this SHA-follow-up commit). Matching commits exist locally on `main` (`17d7a08` content, `6e0c64f` follow-up) — **not pushed**, per this task's own no-release-authorization boundary. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `88ab58e1cf3800f23d6b3386992ef52dbbdfdfac` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §134 and `PROFLOW_HANDOFF.md` §18.GH both present and correct. `origin/main` re-fetched and confirmed unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`.
 
 ---
 
