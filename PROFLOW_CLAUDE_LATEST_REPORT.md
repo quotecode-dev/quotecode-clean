@@ -116,7 +116,7 @@ Full-page Mobile screenshot (`audit005_LIVE_he_mobile.png`) captured showing the
 
 ## 18. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`f0e6eb418cd44357337e7c788ce3f77eba6b19fe` on `proflow-continuity` (pushed; content commit `2d55859` + this SHA-follow-up commit). Matching commits exist locally on `main` (`3ba34fb` content, `1d26f50` follow-up) — `main` itself is already fully pushed via the application release (§6-8 above), so this docs-only follow-up simply continues the local history; only `proflow-continuity` needed a separate push for the documentation layer. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2d55859536e980a9a1a2684f62b202fd7dc2b4e0` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §130 and `PROFLOW_HANDOFF.md` §18.GD both present and correct. `origin/main` re-fetched and confirmed at `df6476fd0e5a80c35c6e920108b83efbeabfece0` — the deployed AUDIT-005 release.
 
 ## 19. Explicit Owner Visual Acceptance Status
 
