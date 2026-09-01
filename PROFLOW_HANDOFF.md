@@ -4679,3 +4679,13 @@ Read-only audit of the real current quote-item schema (`quotes`/`quote_items`/`s
 Five Owner decisions recorded as open (architecture option, per-item vs. per-quote toggle scope, day-one unit list, Public Quote display of specification detail, Catalog-template timing) — full plain-language framing at `PROFLOW_TODO.md` item 30.E.
 
 **No application/DB/TEST/Production/Edge/Vercel mutation. No implementation performed or authorized.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §121, `PROFLOW_TODO.md` item 30.E.
+
+## §18.FW. Item 30.E decision refinement + Owner LIVE Acceptance checklist prepared — TWO TRACKS (2026-09-01)
+
+**New requirement recorded**: `PROFLOW_TODO.md` item 42 — Public Quote mobile top-card centering/balance (distinct from Wave 4 Item C's already-fixed ordering issue), not investigated, not fixed.
+
+**Item 30.E (Track 2, continuing not restarting)**: Owner reacted positively to the reviewed visual concepts. Five decisions refined with experience/recommendation/alternative/consequence/reversibility for each — architecture (Option 1 first), item mode (per item), units (refined to unit/m²/linear-m/kg/hour/**day**), Public Quote display (collapsed by default), Catalog templates (defer, cheap duplicate-shortcut alternative proposed). Calculation semantics made fully explicit — reuses the existing `guard_quote_child_immutability()` trigger for freezing, duplication mirrors the proven Warranty/Terms snapshot rule. Full detail: `PROFLOW_TODO.md` item 30.E, `PROFLOW_PROJECT_CONTEXT.md` §122.
+
+**Owner LIVE Acceptance (Track 1, already-Production work — kept explicitly distinct from Track 2)**: consolidated, surface-organized checklist prepared at `PROFLOW_PROJECT_CONTEXT.md` §122, covering Dashboard, New Quote, Quote History, Business Settings, Public Quote, and Auth/routing — every row's technical verification is PASS, every row's Owner acceptance is explicitly **PENDING**, never conflated. Public Quote's row flags item 42 as a known unfixed defect, not something to accept.
+
+**No application/DB/TEST/Production/Edge/Vercel mutation. No Item 30.E implementation. No `main` push.**
