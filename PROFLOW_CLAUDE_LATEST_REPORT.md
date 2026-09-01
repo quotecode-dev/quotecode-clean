@@ -74,7 +74,7 @@ Real, live, read-only measurement of both candidate pages David's Dashboard can 
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`ee89d7a` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`b996992`) — not pushed to `origin/main` (documentation only). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `ee89d7a` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §145 present in `PROFLOW_PROJECT_CONTEXT.md`, the update present in `PROFLOW_TODO.md`, §18.GQ present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header and sign-off present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`. This resolves the reported staleness — a fresh GitHub read of `proflow-continuity/PROFLOW_CLAUDE_LATEST_REPORT.md` now returns this report, not the prior one.
 
 ---
 
