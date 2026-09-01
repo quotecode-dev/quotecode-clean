@@ -5578,3 +5578,64 @@ This is **complementary to, not a replacement for**, the three ledgers already r
 This contract postdates every task recorded above it in this file — no prior task produced a Global Propagation Ledger, and none is retroactively created here. Recorded only as a useful cross-check: the Contract-Enforcement Audit (§127-§128) and the Parity Audit's own Recent-Commit Impact Trace (§136.6/§136.9) already independently confirmed, via real file-diff analysis rather than assumption, that the recent Money/Geometry contract remediation (AUDIT-001-004, §131/§132), the CTA-centering fix (AUDIT-005, §129/§130/§132), and the B+ Mobile width reductions (§133-§135) each touched exactly the files already named in their own authorizations, with zero shared file/CSS-class/state with any surface outside that scope (Dashboard, Quote History, and all other tabs specifically confirmed unaffected, structurally). This is offered as evidence that the *substance* of over-narrow propagation has not, in practice, been a live problem on this project so far — it does not substitute for running full 137.1-137.4 Discovery/Verification/Ledger/Fail-Closed process on any future task this contract now governs.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §137); `PROFLOW_TODO.md` UPDATED (new item recording the contract); `PROFLOW_HANDOFF.md` UPDATED (new cross-reference entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short pointer, matching §18.A's own pattern for §127); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code was read for editing purposes and none was changed. No DB/TEST/Production mutation of any kind. No commit/push/deploy of application code.**
+
+## §138. Mobile B+ Width — Owner-Approved / Locked / Regression-Protected (added 2026-09-01, Continuity Correction task, Owner-established — supersedes the "Owner visual acceptance PENDING" framing at §135.10, `PROFLOW_HANDOFF.md` §18.GI, `PROFLOW_TODO.md` item 42, and `PROFLOW_CHAT_HANDOFF.md` §14, specifically and only for the Mobile B+ width claim below)
+
+**Owner decision, standing rule under §54 (Owner-Approved = LOCKED / Regression-Protected), applies from this point forward.** The Owner physically reviewed the currently-deployed Mobile B+ width/geometry on his real phone (the `5px` outer-padding, ~97%-viewport-utilization result released at §135, live on Production since `26dee96`) and explicitly stated: **"הרוחב במובייל מושלם"** ("the width on mobile is perfect"). Per §54, this satisfies the third and final condition (implemented + TEST/LIVE-verified + Owner-reviewed-and-accepted) — the Mobile B+ width is now:
+
+**OWNER-APPROVED / LOCKED / REGRESSION-PROTECTED.**
+
+**Exact scope of this lock** (per §54's own "protects observable behavior, not merely a file" addendum, and per this task's own explicit instruction not to over-generalize the acceptance):
+
+- **Covered**: the Mobile-only outer geometry of the Item 30.E B+ preview surface (`ProfessionalPublicPreview.jsx`'s `isMobileView` branch, `pagePadding = '5px'`) and its resulting visible-margin/viewport-utilization result exactly as measured live at §135.5-§135.7 (leftVisibleMargin=5, rightVisibleMargin=5, utilization 97.22-97.57% across 360-412px real device-class widths). Any future change that alters this specific geometry — directly, or indirectly through a shared/parent/layout component, per §54's own addendum — is a regression requiring §54's stop condition (report + explicit new Owner authorization before touching it).
+- **NOT covered by this lock** (explicitly preserved as still open, per instruction not to over-generalize): AUDIT-001/002/003/004 (money formatting/totals/alignment/tabular geometry), AUDIT-005's CTA-centering fix, Desktop geometry of the same B+ preview, English/International verification of any of the above, Public Quote's own separate width architecture, signatures, attachments, or any other still-open item recorded elsewhere in this file or in `PROFLOW_TODO.md`. **Owner visual acceptance of all of the above remains PENDING**, exactly as already recorded at §132/`PROFLOW_HANDOFF.md` §18.GF, and unchanged by this section.
+
+**Historical statements not rewritten.** §135.10, `PROFLOW_HANDOFF.md` §18.GI, and the corresponding `PROFLOW_TODO.md`/`PROFLOW_CHAT_HANDOFF.md` passages stating "Owner visual acceptance remains PENDING" as of the §135 release task remain accurate historical record of that task's own conclusion at the time — left untouched, not retroactively edited, consistent with this project's standing practice of correcting forward via a new dated section rather than rewriting history (the same pattern §133/§134 already used against §132/§133). This section supersedes them **going forward**, for the Mobile-width claim specifically.
+
+**No application code was read or changed by this task.** This section records an Owner acceptance already given in person; it does not itself re-verify the geometry (already verified live at §135) or perform any new implementation.
+
+## §139. Global Desktop Width Remediation — Owner-Authorized, Not Yet Implemented (added 2026-09-01, Continuity Correction task, Owner-established)
+
+**Owner decision, standing authorization, recorded so a future session must not re-request authorization already granted for this same scope.** Following the Comprehensive TEST↔Production UI/Layout Parity Audit (§136 — which found no bug, but did find Dashboard's own Desktop width intentionally, separately aliased from Public Quote's own locked 980px value, §136.8), the Owner has authorized the next implementation phase: **Global Desktop Width Remediation** — making Desktop width behavior consistent across all applicable ProFlow surfaces, not Dashboard alone. The intent is systemic, not Dashboard-only.
+
+**Explicit scope and process.** This is a systemic/global change of exactly the kind §42 and the Permanent Global Change Propagation Contract (§137) exist to govern. Implementation of this phase must therefore begin with a full §137.1 **Global Propagation Discovery** — mapping every surface with its own Desktop width architecture (at minimum: Dashboard/authenticated-app tabs, Public Quote HE/EN, the Item 30.E B+/A/B/C preview, Landing/Auth, document/print/PDF views) — before any code change, subject to each surface's own already-established contracts and existing LOCKS, including but not limited to: Public Quote's own 980px LOCKED value (§10.AI) and the Mobile B+ width now LOCKED at §138 (Desktop-only remediation must not touch either).
+
+**This authorization explicitly does NOT mean, and must not be read to authorize**:
+- starting implementation during this or any other documentation-only task;
+- changing Mobile behavior anywhere;
+- overriding any existing Owner-approved LOCK (§54);
+- any DB/schema change;
+- any Production deployment or LIVE action;
+- silently expanding into unrelated layout redesign beyond Desktop-width consistency.
+
+**If Discovery reveals a material scope expansion** beyond "Desktop width consistency across applicable surfaces" (e.g. a request to also redesign typography, spacing, or component structure), the implementing task must stop at that boundary and seek separate, explicit Owner authorization for the expanded scope — per §137.5's Authorization Safety Boundary.
+
+**Status: AUTHORIZED, NOT YET IMPLEMENTED.** No Discovery has been run, no surface has been touched, no application file has been read for editing purposes by this documentation task. See `PROFLOW_TODO.md` item 47 for the corresponding backlog entry.
+
+## §140. Permanent TODO Reconciliation Gate — PERMANENT REQUIREMENT (added 2026-09-01, Continuity Correction + TODO Reconciliation Governance Hardening task, Owner-established)
+
+### 140.0 Relationship to existing rules (no duplication, no contradiction)
+
+§39 (Pre-Task Six-Document Read + TODO Reconciliation Rule) already requires reading `PROFLOW_TODO.md` before a task begins (§39.A/§39.B) and reconciling it after (§39.D) — but §39.D's own wording ("re-read... and reconcile") has never been stated as a **hard gate on reporting completion**, and does not by itself say a task *cannot* be reported complete while reconciliation is outstanding. This section makes that gate explicit and mandatory, and extends §39.D's substance with the status-granularity (140.2) and Global-Propagation-integration (140.3) requirements below. §39 itself is not replaced — this is its enforcement teeth.
+
+### 140.1 The gate
+
+**Owner decision, standing rule, applies to every meaningful ProFlow task, does not expire.** Before being reported complete, every meaningful task must determine whether its work implements, changes, verifies, partially resolves, blocks, supersedes, reopens, discovers new scope for, or otherwise materially affects an existing `PROFLOW_TODO.md` item. If yes, the affected item **must** be updated in the same continuity checkpoint (the same commit/push cycle as the rest of that task's documentation) to reflect the actual current state. **A task must not be reported COMPLETE while an affected TODO item remains materially stale, contradictory, or misleading.**
+
+### 140.2 Status granularity — never collapse to a generic "DONE"
+
+TODO updates must preserve the conservative checkpoint distinctions already established by this project's own practice (implemented / TEST-verified / Owner-approved / committed / pushed / Production-deployed / Production-verified / LIVE-authorized / LOCKED are all different states — see e.g. §131-§135's own careful staging). A TODO entry affected by a task should state, as applicable: WHAT WAS COMPLETED / WHAT REMAINS / IMPLEMENTATION STATUS / TEST STATUS / OWNER ACCEPTANCE / PRODUCTION STATUS / LIVE STATUS / LOCK STATUS / BLOCKERS / NEXT STEP. An item must never be marked DONE merely because code exists — restating §39.C's existing rule specifically for the reconciliation-gate context.
+
+### 140.3 Global Propagation ↔ TODO integration
+
+For every general Owner-approved rule governed by the Permanent Global Change Propagation Contract (§137): the §137.1 Global Propagation Discovery must also identify whether any applicable surface corresponds to an existing TODO item, and the resulting Global Propagation Ledger (§137.3) and `PROFLOW_TODO.md` must never contradict each other. Concretely: if a global rule applies to N surfaces and fewer than N are implemented/verified, the relevant TODO item must not claim the change is globally complete; if an applicable surface is outside current Owner authorization, it must be recorded accurately (OUT OF SCOPE / NOT IMPLEMENTED, per §137.5) in both the Ledger and the TODO item — never silently expanded into, and never used to falsely close the TODO item early.
+
+### 140.4 Claude Lead responsibility
+
+Claude Lead owns final TODO reconciliation. Agent HE/Agent EN and any other worker role must report findings that affect TODO state, but Claude Lead must independently reconcile agent findings, implementation state, verification state, Owner acceptance, Production state, the Global Propagation Ledger (where applicable), and `PROFLOW_TODO.md` before declaring a task complete. **An agent PASS is not, by itself, sufficient** to close or update a TODO item — the same discipline §127.7's Fail-Closed PASS Gate already applies to contract verification is applied here to TODO-state claims.
+
+### 140.5 Fail-closed
+
+A task's own Final Report must not claim its work is accurately reflected in `PROFLOW_TODO.md` unless this gate was actually run. If a task genuinely cannot determine whether it affects an existing TODO item (e.g. its scope is fully novel), that determination itself — "no existing TODO item found to be affected, checked via `<method>`" — must be stated, not silently omitted.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (§138/§139/§140); `PROFLOW_TODO.md` UPDATED (item 42 correction + new items 47/48); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short pointer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code was read for editing purposes and none was changed. No DB/TEST/Production mutation of any kind. No commit/push/deploy of application code. `origin/main` unchanged.**
