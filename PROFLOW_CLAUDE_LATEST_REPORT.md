@@ -132,11 +132,11 @@ Not deployed. No Vercel action of any kind this task.
 
 ## 24. Continuity commit/push status
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`1467a76` on `proflow-continuity` (content commit; the application-code diff itself lives only on local `main`, commit `ae4e657` — not pushed). Pushed: `3203c79` → `1467a76`. `origin/main` untouched.
 
 ## 25. Fresh remote six-file read-back
 
-*Performed after push; recorded in the SHA-follow-up commit's own update.*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `1467a76` exactly; `origin/main` re-confirmed unchanged at `26dee96`. Direct `git show origin/proflow-continuity:<file>` reads confirmed, on the remote ref itself: `PROFLOW_PROJECT_CONTEXT.md` §141 present; `PROFLOW_TODO.md` item 47's updated status line present; `PROFLOW_HANDOFF.md` §18.GM present; `PROFLOW_CHAT_HANDOFF.md` §14's new lead paragraph present; `PROFLOW_ARCHITECTURE.md` confirmed **unchanged** (`git diff` against the prior commit, empty — correctly REVIEWED/NO CHANGE, not silently modified); `PROFLOW_CLAUDE_LATEST_REPORT.md`'s own task header present. **ALL SIX: PASS.**
 
 ## 26. Remaining FAIL / PARTIAL / NOT VERIFIED items
 
