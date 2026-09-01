@@ -4751,3 +4751,21 @@ Owner authorized one temporary QA link ("בדיקת תצוגה חדשה") in Dav
 **AUDIT-001/002/003/004**: `git diff --stat` across the entire deployed range confirms byte-identical — **UNCHANGED** on all four, post-deployment.
 
 **Not Owner-LOCKED by this task** — Claude's own LIVE verification is evidence, not a substitute for the Owner's personal review (§43). **Owner visual acceptance of the live result remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §130, `PROFLOW_TODO.md` item 42 (status → LIVE).
+
+## §18.GE. AUDIT-001-004 remediation + AUDIT-005 CTA completion + B+ Mobile width refinement (2026-09-01, extends §18.GD — IMPLEMENTATION + LOCAL VERIFICATION ONLY, not pushed/deployed)
+
+Owner reviewed real Production on a physical Mobile device and reported the item price column and totals block still visibly misaligned, plus a remaining CTA-vs-info-stack center mismatch in the already-partially-fixed AUDIT-005 header. Combined authorization to remediate AUDIT-001-004 as a system, complete AUDIT-005's CTA, and widen B+ Mobile.
+
+**One shared fix, not four patches**: all three David-preview files' independent local `money()` reimplementations now delegate to the canonical `formatMoney` + `.pf-money` (AUDIT-001). The totals block's three `justifyContent:'space-between'` rows converted to the same CSS Grid pattern `PublicQuote.jsx`'s own totals block already uses (AUDIT-002). `current`-variant table cells unconditionally right-aligned (AUDIT-003). Every repeated-row item-money site across variants A/B/B+/C now uses one shared literal constant (`MONEY_COL_WIDTH='92px'`) as a fixed-width, right-anchored box (AUDIT-004) — a fresh, more precise root cause than originally assumed: B+ already had the correct `flex:1` edge-anchor, just no fixed box width, live-measured pre-fix spread 23.13px.
+
+**AUDIT-005 CTA completion**: root cause was `alignItems: isHebrew?'flex-start':'flex-end'` edge-pinning two independently-sized children (info text + CTA) to the same edge without matching their centers — live-measured pre-fix gap 10.78px (ctaCenterX=81.85 vs. info-stack ~71.08). Fixed with `alignItems:'center'` (unconditional), matching Desktop's own already-identical pattern in the same file. After: maxSpreadPx=0.02 across the full 4-element group.
+
+**Real-browser proof, all real David A46 data + stress values**: item price column maxSpreadPx 23.13→0 (variants A/B/C/B+ all 0; `current` table columns natively 0 per column); totals maxSpreadPx (from §128's original ~55px record)→0; CTA group 10.78→0.02. Stress-tested `₪550.00`-`₪125,000.00` and `A1`/`A46`/`A10000` — 0px spread, zero overflow, `restored:true` (safe reversible DOM simulation, zero DB touch) in every case.
+
+**B+ Mobile width**: outer page padding 16px→10px on Mobile only (real `matchMedia` pattern, same as `PublicQuoteHeader.jsx`'s own established technique) — confirmed 10px both sides at 360/390/412px, zero overflow, Desktop's 620px wrapper fully unaffected. No redesign — purple header, item-row visual language, numbering, expandable detail, totals hierarchy, terms all byte-unchanged.
+
+**HE**: PASS, live-measured (local build). **EN**: CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED (unchanged constraint — David's account is Hebrew-market only; no test data fabricated). **Desktop**: zero regression, re-confirmed at 1280px. **178/178 tests pass**, build clean, 2 pre-existing unrelated lint warnings confirmed via `git show origin/main` to predate this task, left untouched.
+
+**Landing Page requirement recorded** (`PROFLOW_TODO.md` item 44, new): future Landing Page revision must communicate ProFlow's professional/trade quote-building capability — generic across trades, explicitly not aluminum-specific. Documentation only, not implemented.
+
+**Release boundary**: implementation authorized, release was not. **Local application commit created; NOT pushed; NOT deployed.** `origin/main` unchanged. AUDIT-001/002/003/004/005-CTA all: IMPLEMENTED / LOCAL-VERIFIED / NOT YET LIVE. **Owner visual acceptance of everything in this task remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §131, `PROFLOW_TODO.md` items 42/43/44.

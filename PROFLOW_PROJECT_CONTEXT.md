@@ -4982,3 +4982,143 @@ Not touched, not re-evaluated, not re-scored by this task. Their status from §1
 **GLOBAL ITEM 30.E ROLLOUT: NOT AUTHORIZED. AUDIT-001/002/003/004 REMEDIATION: NOT AUTHORIZED.** **AUDIT-005 is NOT Owner-LOCKED by this task** — Claude Lead's own LIVE verification is real-browser evidence, not a substitute for the Owner's own visual review (§43 item 1: "actual result overrides reported PASS... Owner's own review is the final word"). **Owner visual acceptance of the live Production result remains PENDING.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §130); `PROFLOW_TODO.md` UPDATED (item 42 status → LIVE, pending Owner acceptance); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (a Production release of an already-documented bug fix, not a new architectural fact); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`df6476f`); zero DB/schema/Edge Function mutation; zero customer communication; zero signature/approval action; David's original quote data untouched (read-only page loads only).**
+
+## §131. AUDIT-001–004 Remediation + AUDIT-005 CTA Completion + B+ Mobile Width Refinement (added 2026-09-01, Owner-authorized combined remediation — IMPLEMENTATION + LOCAL VERIFICATION ONLY, not pushed/deployed)
+
+### 131.0 Fresh state confirmed before mutation
+
+Local `main` at task start: `b61f0cb` (matches the deployed AUDIT-005 release's own continuity trailer exactly). `origin/main`: `df6476fd0e5a80c35c6e920108b83efbeabfece0`, unchanged. `origin/proflow-continuity`: `5b10580...`. Working tree clean besides the standing untracked `entry-server.jsx`. All six canonical files fresh-read before any edit.
+
+### 131.1 Root causes freshly re-verified against current code (not assumed from the prior audit)
+
+**AUDIT-001** (non-canonical money formatter): confirmed unchanged in `CustomerQuoteItemRow.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalItemComparisonCard.jsx` — all three still independently reimplemented `.toLocaleString('he-IL', ...)` rather than importing `formatMoney`.
+
+**AUDIT-002** (totals block RTL flex anti-pattern): confirmed unchanged — three `justifyContent:'space-between'` rows.
+
+**AUDIT-003** (`current`-variant hardcoded `textAlign:'left'`): confirmed unchanged.
+
+**AUDIT-004** (no fixed-width numeric geometry on per-item money): confirmed. **Fresh finding, corrected from the original audit's assumption**: the B+ variant's row already used `flex:'1 1 auto'` on the description block (not the two-independent-auto-width anti-pattern AUDIT-002 named) — but the money `<div>` itself still had no fixed width, only `whiteSpace:'nowrap'` shrink-to-fit. Live-measured this task, before any fix, real Production B+: item-row money boxes shared a constant `left=29` (the flex:1-pushed true edge) but `right` varied 98.98-122.11px — a real **23.13px spread**, confirming the digit-count-dependent drift the Owner reported, via a *different* precise mechanism than AUDIT-002's totals block (a non-deterministic box width, not a wrong-edge anchor) — both are real, both are now fixed by the same shared-geometry principle.
+
+### 131.2 System-level remediation (one shared solution, per this task's own explicit instruction)
+
+Rather than four separate patches, one shared pattern was applied everywhere money renders in these files:
+1. **Canonical formatter**: all three local `money()` helpers now delegate to `formatMoney` (`src/utils/money.js`) and return a real `<span className="pf-money">` element (not a plain string) — every call site gets correct `direction:ltr`/`tabular-nums`/bidi-isolation for free, with zero per-call-site JSX changes needed.
+2. **Deterministic item-row geometry** (`CustomerQuoteItemRow.jsx`, all variants A/B/B+/C): replaced every `justifyContent:'space-between'` two-child row with `flex:'1 1 auto'` on the description block + a single shared constant, `MONEY_COL_WIDTH = '92px'`, applied as a fixed `width` + `textAlign:'right'` on the money box — identical literal value at every call site, guaranteeing byte-identical geometry across every row by construction, not by per-row computation. The `current` (table) variant needed no fixed-width hack — `<table>` already gives native per-column width sharing (the contract's own named ideal case); only `textAlign:'right'` (unconditional, AUDIT-003) was needed there.
+3. **Deterministic totals geometry** (`ProfessionalPublicPreview.jsx`): converted the three flex `space-between` rows to one CSS Grid (`gridTemplateColumns:'1fr auto'`) — the exact same reference pattern `PublicQuote.jsx`'s own totals block already uses, not an invented new one.
+4. **AUDIT-005 CTA completion** (`PublicQuoteHeader.jsx`): see 131.3.
+5. **B+ Mobile width refinement**: see 131.4.
+
+### 131.3 AUDIT-005 completion — CTA center-axis
+
+**Group defined**: quote number, date, validity (already centered per the prior AUDIT-005 round) + the phone CTA pill — determined to share **CENTER-X** as the correct protected axis, matching the info-stack's own already-centered text and the Desktop branch of the identical component, which already uses this exact relationship.
+
+**Root cause**: the outer info column used `alignItems: isHebrew?'flex-start':'flex-end'` — pinning both children (the text wrapper and the CTA) to the *same edge*, but since each has its own independent auto-content-width, edge-pinning does not imply center-matching. Live-measured before fix (real Production, carried over from the prior task's own LIVE record, still current): quoteNumberCenterX=71.07, dateLineCenterX=71.08, validityCenterX=71.08, **ctaCenterX=81.85 — a 10.78px gap**.
+
+**Fix**: `alignItems: isHebrew?'flex-start':'flex-end'` → unconditional `alignItems:'center'` — one CSS property, matching Desktop's own already-correct identical relationship (line 167 of the same file) exactly. No CTA-specific nudge of any kind.
+
+**After** (local, fixed, live-measured): quoteNumberCenterX=75.25, dateLineCenterX=75.25, validityCenterX=75.26, **ctaCenterX=75.27 — maxSpreadPx=0.02**.
+
+**Optical centering check** (§9 of this task): visually re-inspected via screenshot — the pill's own icon+text+padding composition, RTL text/icon order, and its position relative to the business-info column were all unaffected by this change (only the CTA's own *position within its column* moved, its own internal rendering is untouched) — confirmed as a genuinely balanced rendered object, not merely a passing coordinate.
+
+### 131.4 B+ Mobile width refinement
+
+**Mechanism**: `ProfessionalPublicPreview.jsx` gained the same real JS `matchMedia`-based `isMobileView` pattern already established in `PublicQuoteHeader.jsx` (not a new pattern), driving the page's own outer padding: `16px` (unchanged Desktop/default) → **`10px`** on Mobile (≤768px) — within the Owner's own named 8-12px target range, derived from real measurement rather than guessed. Desktop is structurally untouched (still governed by the pre-existing `maxWidth:620px` wrapper).
+
+**Verified at three representative Mobile widths** (360/390/412px): outer margin measured at exactly **10px both sides** at every width, card width scaling correctly (340/370/392px), zero horizontal overflow at any width. Desktop (1280px) re-confirmed unaffected (620px wrapper, 322.5/337.5px margins, unchanged).
+
+**No redesign performed**: purple header, customer block, item-row visual language, numbering, expandable detail, totals hierarchy, and terms are all byte-unchanged — confirmed via `git diff` showing only the `MONEY_COL_WIDTH`/Grid/`pagePadding` changes, no JSX structural rewrite of any accepted element.
+
+### 131.5 Real-browser geometry proof (item price column + totals + CTA)
+
+**Item price column, B+ variant** (7 real David A46 items, `₪10,000.00` down to `₪550.00`): before — `right` edges varied 98.98-122.11px, **maxSpreadPx=23.13**. After — every row's money box shares `left=23, right=115, centerX=69, width=92` exactly, **maxSpreadPx=0**. Re-confirmed identical (`maxSpreadPx=0`) for variants A, B, C, and correctly per-column-native-zero for the `current` table variant (unit-price column spread=0, total-price column spread=0, measured separately since they are two different columns, not one repeated column).
+
+**Totals block**: before — (carried from the original §128 audit, still the accurate pre-fix record) three money spans shared `left=166px` but `right` varied 230.6-285.4px under `dir=rtl`. After — `subtotal`/`vat`/`total` share `right=151.64` exactly, **maxSpreadPx=0**.
+
+**CTA group**: see 131.3 — before spread 10.78px, after spread 0.02px.
+
+**Variable-content stress test** (safe, reversible DOM simulation, `restored:true` confirmed, zero DB touch): item-row money boundary values `₪550.00`/`₪1,250.00`/`₪10,000.00`/`₪21,889.00`/`₪125,000.00` (the last an explicit stress case beyond David's own real range) — **maxSpreadPx=0 in every case**, zero horizontal overflow in every case. Quote-number boundary values `A1`/`A46`/`A10000` — zero overflow in every case.
+
+### 131.6 HE / EN / Mobile / Desktop results
+
+**HE**: PASS, live-measured (local fixed build; the fix has not been pushed/deployed this task, so "live" here means the real running application against real David A46 data, not yet Production).
+**EN**: **CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED** — unchanged constraint from §129/§130 (the entire David preview surface is HE-only by construction; no genuine live EN quote was available without an out-of-scope DB query, none was created). The underlying shared code (`formatMoney`, `.pf-money`, the `flex:1`+fixed-width money pattern, the Grid totals pattern, `alignItems:'center'`) carries zero `isHebrew` branches on any of this task's changes — structurally symmetric by construction, consistent with the money contract's own "not a locale property" principle.
+**Mobile**: PASS, primary surface, live-measured at 360/390/412px.
+**Desktop**: PASS, zero regression — B+/A variants re-confirmed `maxSpreadPx=0` at 1280px too; the real, unrelated Production `PublicQuote.jsx`/`PublicQuoteHeader.jsx` Desktop branch re-screenshotted as a sanity check, zero console errors (that file/branch was not touched by this task at all).
+
+### 131.7 Testing
+
+Full suite: **178/178 pass** (no new tests added this task — the existing `PublicQuoteHeader.test.jsx` from AUDIT-005 already covers the Mobile/Desktop branch split and continues to pass unmodified against the new `alignItems` value, since it asserts `textAlign`, not `alignItems`). Lint: 0 new errors — two pre-existing unused-variable warnings (`KIND_COLOR` in `ProfessionalItemComparisonCard.jsx`, `formatQuoteFallback` in `ProfessionalPublicPreview.jsx`) confirmed via `git show origin/main:<file>` to already exist before this task, not introduced by it, and left untouched per the explicit "do not broaden into unrelated refactoring" instruction. Build: clean.
+
+### 131.8 Contract Trigger Ledger
+
+**FILE**: `src/components/CustomerQuoteItemRow.jsx`
+**SEMANTIC RESPONSIBILITY**: renders one quote item across 5 presentation variants (current/A/B/B+/C), money value in every variant.
+**APPLICABLE CONTRACTS**: Global Money Numeric Alignment (§44); Tabular Numeric Geometry (§81/§82); Visual Geometry/Alignment Contract (§127.4); HE/RTL + EN/LTR (§37).
+**WHY TRIGGERED**: repeated-row money rendering, the exact semantic type §44/§81/§82 already govern.
+**PROTECTED AXES**: money right edge (shared `92px` column, every variant); `current` variant relies on native `<table>` column geometry instead.
+**MONEY GEOMETRY**: canonical formatter (`formatMoney`) + `.pf-money` + fixed-width right-anchored box (or table column) — verified via real-browser `maxSpreadPx=0` at every variant, every representative and stress-test value.
+**OPTICAL CENTERING**: N/A for this file (right-anchor is the protected axis here, not centering).
+**HE**: PASS (live). **EN**: CODE/STRUCTURAL VERIFIED (no `isHebrew` branch on any changed line). **MOBILE**: PASS. **DESKTOP**: PASS.
+**REAL-BROWSER VERIFICATION**: yes, all variants, both viewport classes.
+**PASS/PARTIAL/BLOCKED**: **PARTIAL** — every available verification passed; live EN remains the one disclosed, unavailable-not-skipped gap.
+
+**FILE**: `src/pages/ProfessionalPublicPreview.jsx`
+**SEMANTIC RESPONSIBILITY**: full-quote-context comparison preview (header, client block, items, totals, terms); Mobile-width host.
+**APPLICABLE CONTRACTS**: same as above, plus Mobile/Desktop Responsive Geometry (§45/§49/§56/§57) for the width refinement.
+**WHY TRIGGERED**: totals block is a repeated money column (§44); page-level outer margin is a Mobile/Desktop responsive-geometry surface.
+**PROTECTED AXES**: totals money right edge (Grid column); Mobile outer margin (10px both sides).
+**MONEY GEOMETRY**: canonical formatter + `.pf-money` + CSS Grid `1fr auto` column — verified `maxSpreadPx=0`.
+**OPTICAL CENTERING**: N/A.
+**HE**: PASS (live). **EN**: CODE/STRUCTURAL VERIFIED. **MOBILE**: PASS (10px margin confirmed at 3 widths, zero overflow). **DESKTOP**: PASS (unaffected, 620px wrapper unchanged).
+**REAL-BROWSER VERIFICATION**: yes.
+**PASS/PARTIAL/BLOCKED**: **PARTIAL** (same live-EN caveat).
+
+**FILE**: `src/components/ProfessionalItemComparisonCard.jsx`
+**SEMANTIC RESPONSIBILITY**: business-side OLD-vs-NEW item comparison card (authenticated route, `ProfessionalQuotePreview.jsx`).
+**APPLICABLE CONTRACTS**: Global Money Numeric Alignment (§44) — formatter only, this file has no repeated-row shared-column concern (each card is a standalone OLD/NEW pair, not a list).
+**WHY TRIGGERED**: AUDIT-001 (non-canonical formatter).
+**PROTECTED AXES**: N/A (no shared column across multiple card instances).
+**MONEY GEOMETRY**: canonical formatter + `.pf-money` for correct tabular-nums/bidi only — no structural layout change.
+**OPTICAL CENTERING**: N/A.
+**HE**: code-review verified (this file sits behind authentication; no David login credentials exist or were sought, consistent with §123's established practice) — build/lint/test all pass, confirming no syntax/render error. **EN**: CODE/STRUCTURAL VERIFIED (no `isHebrew` branch on the changed lines). **MOBILE**: not independently re-tested this task (unauthenticated route unavailable; no structural change made here beyond the formatter). **DESKTOP**: same.
+**REAL-BROWSER VERIFICATION**: no (authenticated route, out of reach without David's credentials — consistent, not a new gap).
+**PASS/PARTIAL/BLOCKED**: **PARTIAL** — formatter fix verified by build/lint/test; live rendering not independently re-confirmed this task.
+
+**FILE**: `src/components/PublicQuoteHeader.jsx`
+**SEMANTIC RESPONSIBILITY**: shared HE/EN Public Quote header (real, live, Production component).
+**APPLICABLE CONTRACTS**: Visual Geometry/Alignment Contract (§127.4); HE/RTL + EN/LTR (§37); Public Quote Accepted Visual State (§54).
+**WHY TRIGGERED**: AUDIT-005 completion (remaining CTA misalignment).
+**PROTECTED AXES**: CENTER-X across the quote-number/date/validity/CTA group.
+**MONEY GEOMETRY**: N/A (no money in this file).
+**OPTICAL CENTERING**: verified — CTA's own rendering (icon, padding, pill shape) unaffected, only its position within the column changed; visually re-confirmed via screenshot.
+**HE**: PASS (live, local build — real Production not yet updated, pending release authorization). **EN**: CODE/STRUCTURAL VERIFIED (no `isHebrew` branch on the changed `alignItems` line — identical to the already-live `textAlign:'center'` fix's own reasoning). **MOBILE**: PASS (primary surface). **DESKTOP**: PASS (zero diff to the Desktop branch, which already used this exact `alignItems:'center'` pattern before this task).
+**REAL-BROWSER VERIFICATION**: yes.
+**PASS/PARTIAL/BLOCKED**: **PARTIAL** (live-EN caveat, and this fix itself is not yet Production-live — implementation-verified only, per this task's own commit-only authorization boundary).
+
+### 131.9 Audit status
+
+**AUDIT-001** — ROOT CAUSE: three independently-reimplemented, non-canonical `money()` helpers. FIX: all three delegate to `formatMoney` + `.pf-money`. VERIFICATION: build/lint/test pass; real-browser geometry confirms correct rendering. STATUS: **IMPLEMENTED, LOCAL-VERIFIED, NOT YET LIVE.**
+
+**AUDIT-002** — ROOT CAUSE: totals block's three `justifyContent:'space-between'` rows, the historically-named RTL wrong-edge anti-pattern. FIX: converted to CSS Grid (`PublicQuote.jsx`'s own reference pattern). VERIFICATION: real-browser `maxSpreadPx` 0 (was non-zero pre-fix, per §128's own original measurement). STATUS: **IMPLEMENTED, LOCAL-VERIFIED, NOT YET LIVE.**
+
+**AUDIT-003** — ROOT CAUSE: hardcoded `textAlign:'left'` on the `current`-variant total-price cell. FIX: unconditional `'right'` (both unit and total price cells). VERIFICATION: native `<table>` column geometry confirmed `maxSpreadPx=0` per column. STATUS: **IMPLEMENTED, LOCAL-VERIFIED, NOT YET LIVE.**
+
+**AUDIT-004** — ROOT CAUSE: no fixed-width numeric box on per-item money across variants A/B/B+/C (B+ already had the correct flex:1 edge-anchor, but not a fixed-width box — a real, freshly-corrected, more precise root cause than the original audit's assumption). FIX: shared `MONEY_COL_WIDTH='92px'` fixed-width right-anchored box applied identically at every call site. VERIFICATION: real-browser `maxSpreadPx=0` across all variants, all representative and stress-test values (`₪550.00`-`₪125,000.00`). STATUS: **IMPLEMENTED, LOCAL-VERIFIED, NOT YET LIVE.**
+
+**AUDIT-005** — PREVIOUS FIX: quote-number/date/validity centering (§129, LIVE since §130). REMAINING CTA DEFECT: CTA pill's own center-X did not match the info-stack's center-X (10.78px gap), reported by the Owner from a real Production screenshot. COMPLETION FIX: `alignItems:'center'` (unconditional), matching Desktop's own already-correct identical pattern. VERIFICATION: real-browser `maxSpreadPx=0.02` across the full 4-element group (quote number/date/validity/CTA). OWNER ACCEPTANCE: **PENDING** — not claimed, not inferred. STATUS: **CTA COMPLETION IMPLEMENTED, LOCAL-VERIFIED, NOT YET LIVE.**
+
+### 131.10 Landing Page product-messaging requirement — recorded, not implemented
+
+Recorded as `PROFLOW_TODO.md` item 44 (new) — see that item for the full requirement text. **Not implemented in this task, as explicitly instructed.**
+
+### 131.11 Commit / push / deploy authorization boundary
+
+Per this task's own explicit §23: implementation is authorized; release is not independently granted by this task. **A local application commit was created after all required local verification passed. It was NOT pushed to `origin/main` and NOT deployed.**
+
+PUSH: NOT AUTHORIZED (this task).
+DEPLOY: NOT AUTHORIZED (this task).
+LIVE: NOT EXECUTED.
+
+**GLOBAL ITEM 30.E ROLLOUT: NOT AUTHORIZED.** David-only gate, allowlist, and routes all unchanged. **Owner visual acceptance of every fix in this task remains PENDING** — nothing in this section is Owner-LOCKED; Claude's own verification is evidence, not a substitute for the Owner's personal review (§43).
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §131); `PROFLOW_TODO.md` UPDATED (item 42 addendum, item 43 cross-reference, new item 44 — Landing Page requirement); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (bug fixes + a documented future requirement within already-documented architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads + safe, fully-reverted DOM text simulation only).**
