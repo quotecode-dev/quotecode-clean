@@ -4769,3 +4769,19 @@ Owner reviewed real Production on a physical Mobile device and reported the item
 **Landing Page requirement recorded** (`PROFLOW_TODO.md` item 44, new): future Landing Page revision must communicate ProFlow's professional/trade quote-building capability — generic across trades, explicitly not aluminum-specific. Documentation only, not implemented.
 
 **Release boundary**: implementation authorized, release was not. **Local application commit created; NOT pushed; NOT deployed.** `origin/main` unchanged. AUDIT-001/002/003/004/005-CTA all: IMPLEMENTED / LOCAL-VERIFIED / NOT YET LIVE. **Owner visual acceptance of everything in this task remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §131, `PROFLOW_TODO.md` items 42/43/44.
+
+## §18.GF. AUDIT-001-005 + B+ Mobile width — Production release (2026-09-01, extends §18.GE, release of the already-verified §131 commit only)
+
+Pre-release gate: `11af77d` confirmed ancestor of local HEAD, diff across the entire pushed range matched exactly the 4 previously-verified files, zero DB/schema files, fresh 178/178 tests, clean build. **GO.**
+
+**Push**: `origin/main` `df6476f` → `8bb777c`. `11af77d` confirmed present on new `origin/main`. **Vercel**: `Cloning ... Commit: 8bb777c`, status `Ready`, canonical domain confirmed serving it.
+
+**LIVE verification, real Production, read-only, all three of the Owner's originally-reported failures**: item price column (7 real David A46 items) — `itemMaxSpreadPx=0` (was 23.13px pre-fix); totals (`₪18,550.00`/`₪3,339.00`/`₪21,889.00`) — `totalsMaxSpreadPx=0` (was ~55px pre-fix); header CTA group (quote number/date/validity/CTA) — `ctaMaxSpreadPx=0.02` (was 10.78px pre-fix). All three match the local pre-release build's own measured spreads exactly (absolute centerX values shifted slightly due to real-Production font/layout environment, an expected, harmless difference — the protected *relative* geometry is what the contract requires, and it holds).
+
+**B+ Mobile width live**: outer margin confirmed exactly 10px both sides on real Production, zero overflow, zero clipping, borders/shadows fully visible.
+
+**HE LIVE**: PASS. **EN LIVE**: NOT VERIFIED (unchanged constraint, no test data fabricated) — CODE/STRUCTURAL VERIFIED stands. **Desktop LIVE**: zero regression, both the B+ preview and the real, unrelated `PublicQuote.jsx` re-screenshotted, zero console errors on either.
+
+**Safety**: zero mutation of any kind — every action this task was a read-only `GET` plus client-side geometry reads. No DB query performed (no tool available, consistent with prior tasks); this task's own code changes carry no data-fetching/mutation path.
+
+**Owner visual acceptance remains PENDING** — Claude's own LIVE verification is evidence, not the Owner's personal review, which now has a genuinely live real Production result to inspect on his physical Mobile device. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §132, `PROFLOW_TODO.md` items 42/43 (updated to LIVE).

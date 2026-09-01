@@ -5122,3 +5122,69 @@ LIVE: NOT EXECUTED.
 **GLOBAL ITEM 30.E ROLLOUT: NOT AUTHORIZED.** David-only gate, allowlist, and routes all unchanged. **Owner visual acceptance of every fix in this task remains PENDING** — nothing in this section is Owner-LOCKED; Claude's own verification is evidence, not a substitute for the Owner's personal review (§43).
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §131); `PROFLOW_TODO.md` UPDATED (item 42 addendum, item 43 cross-reference, new item 44 — Landing Page requirement); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (bug fixes + a documented future requirement within already-documented architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads + safe, fully-reverted DOM text simulation only).**
+
+## §132. AUDIT-001–005 + B+ Mobile Width — Production Release (added 2026-09-01, Owner-authorized, release of the already-verified §131 commit only)
+
+### 132.0 Pre-release gate
+
+Fresh ancestry (`11af77d` confirmed ancestor of local HEAD `8bb777c`) and a full diff across the entire pushed range showed exactly the same four files as §131's own commit — `CustomerQuoteItemRow.jsx`, `ProfessionalItemComparisonCard.jsx`, `PublicQuoteHeader.jsx`, `ProfessionalPublicPreview.jsx` — zero DB/schema files anywhere in the pushed history. `entry-server.jsx` confirmed still in its standing untracked, ungitignored, deliberately-never-committed state, unaffected. Fresh 178/178 tests, clean build. **GO.**
+
+### 132.1 Push
+
+`git push origin main` → `origin/main` `df6476f` → `8bb777c`. `git merge-base --is-ancestor 11af77d origin/main` confirmed `11af77d` is present on the new `origin/main`.
+
+LOCAL RELEASE SHA: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
+ORIGIN/MAIN BEFORE: `df6476fd0e5a80c35c6e920108b83efbeabfece0`
+ORIGIN/MAIN AFTER: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
+REMOTE CONTAINS 11af77d: **YES**
+
+### 132.2 Vercel deployment
+
+Confirmed via `vercel inspect --logs`: `Cloning github.com/quotecode-dev/quotecode-clean (Branch: main, Commit: 8bb777c)`, status `● Ready`. Canonical domain confirmed serving it (`HTTP 200`).
+
+PUSH: **PASS**
+DEPLOYMENT: **PASS**
+DEPLOYED SHA: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
+PRODUCTION READY: **YES**
+
+### 132.3 LIVE verification — the Owner's three observed failures, real Production, read-only
+
+**A. Item price column** (7 real David A46 items, `₪10,000.00`-`₪550.00`): every row's money box shares `left=23, right=115, centerX=69` exactly — **itemMaxSpreadPx = 0**.
+
+**B. Totals** (`₪18,550.00`/`₪3,339.00`/`₪21,889.00`): all three share `right=151.64` exactly — **totalsMaxSpreadPx = 0**.
+
+**C. Header CTA centering**: quoteNumberCenterX=79.25, dateLineCenterX=79.25, validityCenterX=79.26, ctaCenterX=79.27 — **ctaMaxSpreadPx = 0.02**.
+
+All three exactly match the local pre-release build's own measurements in spread (absolute centerX values shifted slightly, e.g. 71→79, an expected consequence of the real Production font/layout environment differing marginally from the local dev server — the protected *relative* geometry, not the absolute position, is the contract's actual requirement, and it holds identically).
+
+Zero horizontal overflow (`bodyScrollWidth === innerWidth === 390`), zero console errors.
+
+### 132.4 LIVE B+ Mobile width
+
+`outerMarginLeft = 10, outerMarginRight = 10` — confirmed exactly 10px both sides on real Production (matches the local pre-release measurement exactly). Zero overflow, zero clipping, borders/shadows fully visible (screenshot-confirmed), price/description columns remain cleanly separated, no redesign performed.
+
+### 132.5 HE / RTL LIVE
+
+**HE LIVE: PASS.** All of 132.3/132.4 measured directly against real Production HE data. Expanded professional details, customer/business blocks all screenshot-confirmed intact and unchanged in visual language.
+
+### 132.6 EN / LTR
+
+**EN LIVE: NOT VERIFIED.** No safe existing International Public Quote was available to this session without a live authenticated DB query, which remains outside this task's scope (same constraint as every prior task in this lineage — not retried, no Production test data created). The CODE/STRUCTURAL VERIFIED result recorded at §131 stands unchanged.
+
+### 132.7 Desktop LIVE regression
+
+Both the B+ comparison preview (1280px) and the real, unrelated `PublicQuote.jsx` (1280px, a file never touched by any task in this lineage) re-screenshotted against real Production post-deploy — both render identically to their accepted states, zero console errors on either.
+
+### 132.8 Safety confirmation
+
+Zero mutation of any kind performed this task — every action was a read-only page `GET` plus client-side DOM geometry reads. No edit, sign, approve, send, or notify action of any kind was performed. David's quote #46 was not queried this task (no DB tool available, consistent with every prior task in this lineage) — this task's own code changes contain no data-fetching or mutation path (confirmed at §126/§127.1/§129), and the destination pages loaded here are unmodified by this task's release beyond the already-verified visual fixes.
+
+### 132.9 Fail-closed contract gate
+
+Every claim above is backed by an actual rendered-geometry measurement, not build/push/deploy/screenshot status alone — consistent with §127.7. No contract failure was found LIVE; nothing required stopping for Owner review on a failed contract. (A separate, non-contract item remains: Owner's own personal visual acceptance, tracked below, not a contract-verification gap.)
+
+### 132.10 Owner visual acceptance
+
+**Not marked PASS/LOCKED by this task.** Claude Lead's own LIVE verification is real-browser evidence; it does not substitute for the Owner's personal inspection on his physical Mobile device (§43 item 1/2). **Owner visual acceptance of AUDIT-001–005 and the B+ width refinement remains PENDING**, now that the result is genuinely live for the Owner to review.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §132); `PROFLOW_TODO.md` UPDATED (items 42/43/44 status → LIVE where applicable); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`8bb777c`); zero DB/schema/Edge Function mutation; zero customer communication; zero signature/approval action; David's original quote data untouched (read-only page loads only).**
