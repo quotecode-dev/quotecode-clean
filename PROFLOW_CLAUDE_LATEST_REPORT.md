@@ -4,73 +4,101 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Phase A — Formal Recovery Closure
+## Task: Phase B — Item 30.E Audit + Product-Design (READ-ONLY, no implementation)
 
-**DOCUMENTATION ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation. No `main` push, no RC tag action.**
-
----
-
-## PHASE A: **PASS**
-## PROFLOW RECOVERY: **CLOSED**
+**AUDIT + DESIGN ONLY. Zero application code, schema, migration, DB, TEST, Production, Edge Function, or Vercel mutation. No implementation. No `main` push.**
 
 ---
 
-## FRESH LOCAL STATE
+## PROFLOW RECOVERY: **CLOSED** (Phase A, prior task this session)
+## ITEM 30.E IMPLEMENTATION: **NOT AUTHORIZED**
 
-- `origin/main` fresh-fetched, unchanged: `83e677a488a6a17b9a195c5a360726307398f445`.
-- Local `main`: `6150189...` (4 documentation-only commits ahead, none pushed).
-- Working tree: clean besides the standing `src/entry-server.jsx`.
-- RC tag `proflow-rc-2026-09-01-wave4-complete`: re-confirmed dereferencing to `988688f20d8293f9c056432846a085d074290c94`, still local-only.
+---
 
-Zero drift from the Recovery Finalization Audit's own findings.
+## CURRENT-ARCHITECTURE AUDIT
 
-## CLOSURE, APPLYING THE FINALIZATION AUDIT VERDICT EXACTLY
+Traced from real schema (`supabase/migrations/20260830000000_capture_base_schema_tables.sql`, the authoritative captured-from-Production schema) and real code (`QuoteForm.jsx`, `Dashboard.jsx`, `ServicesCatalog.jsx`):
 
-| Wave | Status |
-|---|---|
-| 0 | COMPLETE / PASS |
-| 1 | COMPLETE / PASS |
-| 2 | COMPLETE / PASS |
-| 3 | COMPLETE / PASS |
-| 4 | COMPLETE / PASS |
-| 5 | COMPLETE / PASS |
-| 6 | COMPLETE / PASS |
-| 7 | OBJECTIVE ALREADY SATISFIED BY LATER AUTHORIZED WORK |
-| 8 | SUPERSEDED / NO LONGER APPLICABLE |
+- **`quotes`** (parent): no item data — `quote_number`, `attn_*`, `warranty`, `tax_rate`/`currency` snapshot, etc.
+- **`quote_items`** (real FK child table): exactly `id, quote_id, description, quantity, unit_price, total_price` — the **entire** current item model. Zero specification/measurement columns exist anywhere today.
+- **`services`** (Catalog): exactly `id, name, price, user_id` — flat, no units/categories/spec fields.
+- **Reusable asset found**: `guard_quote_child_immutability()` already locks `quote_items` on approved/paid/signed quotes — directly reusable by any new 30.E child table.
+- **Market isolation**: `tax_rate`/`currency` are per-quote snapshots derived at creation, never from viewer session — must be preserved.
 
-**PROFLOW RECOVERY: CLOSED.** Item 17 (quote numbering), Item 18 (Attn contact), Item C (Mobile CTA/info order), and Item D (AI Chat overlap) are all live on Production — DB-confirmed, Edge-Function-confirmed, and rendered-browser-confirmed on both markets.
+## FILE-BY-FILE LEDGER
 
-**What closure does not mean**: the three explicitly-excluded backlog findings (Trial banner, LIFETIME Upgrade CTA, Dashboard scale/layout) remain open — never part of Recovery's scope. Items 39-41 remain documented future work, unrelated to Recovery. The browser-harness incident (§118) remains `OPEN / NON-PRODUCT BLOCKER` — not a Recovery blocker; its completed troubleshooting sequence is not to be restarted automatically; Direct CDP is the standing approved fallback.
+| File | Role | 30.E touches? |
+|---|---|---|
+| `src/components/QuoteForm.jsx` | Item-entry UI | **Yes — core** |
+| `src/pages/Dashboard.jsx` (item state + `handleSaveQuote`) | Item state + persistence | **Yes — core** |
+| `src/components/ServicesCatalog.jsx` | Catalog CRUD | Only if Option 3 (templates) pursued |
+| `src/pages/PublicQuote.jsx` / `PublicQuoteEn.jsx` | Customer-facing item rendering | Optional, additive |
+| `supabase/functions/get-public-quote/index.ts` | Public Quote data API | Only if new columns reach the public page |
+| `supabase/migrations/20260830000000...` / `...000001...` | Authoritative schema / immutability functions | Reference + reuse, not modified |
 
-**RC tag**: `proflow-rc-2026-09-01-wave4-complete` preserved exactly as-is — not pushed, moved, recreated, or deleted. No new tag created; none was technically required.
+## THREE ARCHITECTURE OPTIONS
 
-**Next canonical workstream**: `PROFLOW_TODO.md` item 30.E — the Owner's designated first major post-Recovery product/design workstream, ahead of Admin UI, its own stated precondition now satisfied.
+1. **Generic Specification Bag** (additive JSONB `specification` + `quote_item_measurements` table) — smallest diff, fully additive, weak native SQL reportability. **Recommended first.**
+2. **Structured Relational Model** (typed measurement columns + EAV specification table) — stronger reportability for measurements, ~2x migration surface, still needs a JSONB escape hatch for the long tail.
+3. **Catalog-Template-Driven Model** (Catalog carries a declared field/pricing schema a quote item copies from) — best long-term mobile UX and AI-readiness, needs template UI before any professional item unless an ad hoc path ships alongside it.
+
+**Recommendation**: Option 1 first, explicitly sequenced so Option 3 is a pure future addition, never a rewrite — matches 30.E's own anti-overengineering principle, uses only additive migrations.
+
+## HE / EN / RECONCILIATION
+
+One shared data model confirmed sufficient for both markets — Hebrew (מ״ר/מטר רץ/ק״ג/שעה) and English (m²/linear meter/kg/hour) unit vocabulary both read naturally with zero separate architecture. Currency/VAT untouched, remain the existing per-quote snapshot.
+
+## BACKWARD COMPATIBILITY / DAVID ALUMINUM / SIMPLE BUSINESS
+
+All proposed columns/tables additive and nullable — zero backfill, zero behavior change for existing quotes. David Aluminum's historical quotes stay byte-identical; a future measured item could preserve their real per-unit pricing while giving dimensions a structured home — no experiment performed on their real account. Simple businesses see zero change.
+
+## MOBILE UX / AI-READINESS
+
+Mobile concept: single-column stacked fields, one-tap add-measurement, visual `calc`-vs-`manual` badge. Simple path entirely unaffected on mobile. Proposed JSONB shape is directly AI-parse-consumable later, without any schema change — not implemented now, just not blocked.
+
+## VISUAL CONCEPT MOCKUPS
+
+Six static HTML/CSS concepts built in the session scratchpad (`quote_engine_concepts.html`), styled with ProFlow's real design tokens (Rubik typeface, `#7c3aed` violet, `#e9d5ff` border) — **not built by modifying the real application**. An initial `claude.ai` artifact publish returned "Page not found" for the Owner; per explicit instruction, no second artifact link was created — the same local file was opened directly in Chrome for in-person review instead. **The scratchpad HTML file is the sole authoritative copy** — no hosted URL should be assumed live for this content.
+
+## OWNER DECISIONS REQUIRED
+
+1. Which architecture option to approve — *Rec: Option 1 first, Option 3 later.*
+2. Simple/Measured per item, or per quote/business — *Rec: per item.*
+3. Day-one unit list — *Rec: unit, m², linear m, kg, hour.*
+4. Show specification detail on Public Quote page — *Rec: yes, collapsed by default.*
+5. Build Catalog templates now or defer — *Rec: defer.*
+
+## RECOMMENDED (NOT AUTHORIZED) IMPLEMENTATION SEQUENCE
+
+Owner approves architecture + 5 decisions → finalize schema design → additive TEST migration → `QuoteForm.jsx`/`Dashboard.jsx` UI + persistence (desktop then mobile) → optional Public Quote display → HE+EN/Desktop+Mobile TEST verification → separate Owner authorization for Production migration + deploy, same Preflight→backup→apply→verify gates as Recovery.
 
 ## MUTATION BOUNDARY
 
-Zero application/DB/TEST/Production/Edge Function/Vercel mutation. No `main` push. No RC tag push, move, recreate, or delete.
+Zero application/DB/TEST/Production/Edge Function/Vercel mutation. No implementation performed or authorized.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`e9c0e32251f83d5111b6065b3551e88c38b460b4` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the five genuinely-changed files. Matching commit exists locally on `main` (`ed0192e`), **not pushed**.
+*(recorded after push — see below.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e9c0e32251f83d5111b6065b3551e88c38b460b4` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§120, "PROFLOW RECOVERY: CLOSED" present, correct) and `PROFLOW_CHAT_HANDOFF.md` (§14 lead paragraph present, correct) — both confirmed present and correct. `origin/main` re-fetched, confirmed unaffected (`83e677a488a6a17b9a195c5a360726307398f445`); RC tag re-confirmed absent from the remote.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification.)*
 
 ---
 
-## SIX-FILE CONTINUITY LEDGER (Phase A)
+## SIX-FILE CONTINUITY LEDGER (Phase B)
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§120 — formal closure record)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FU)
-- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph — Recovery CLOSED)
-- `PROFLOW_TODO.md` — **UPDATED** (item 30's sequencing note — precondition satisfied)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (Recovery status is not itself an architecture principle)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§121)
+- `PROFLOW_TODO.md` — **UPDATED** (item 30.E — full audit/design findings)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FV)
+- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (no architecture implemented)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Mutation boundary**: documentation-only. Zero application/DB/TEST/Production/Edge/Vercel mutation. No `main` push. No RC tag action.
+**Mutation boundary**: audit/design only. Zero application/DB/TEST/Production/Edge/Vercel mutation. No implementation. No `main` push.
