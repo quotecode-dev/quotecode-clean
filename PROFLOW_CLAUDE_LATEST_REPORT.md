@@ -4,39 +4,64 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Document New High-Priority Product Initiative — Professional / Industry-Aware Quote Item Model
+## Task: Wave 3 / Function 2 — send-quote-email Production Deployment + Source-Level Verification Only (Re-verification)
 
-**Documentation only. No application code, database, TEST, Production, Edge Function, or Vercel change of any kind. Does not affect Wave 3's own state (Function 1/Function 2 remain exactly as reported previously — Wave 3 IN PROGRESS, end-to-end send test still pending).**
-
----
-
-## TASK: Document New High-Priority Product Initiative
-## EFFORT: EXHAUSTIVE / PRODUCT-DESIGN DOCUMENTATION
-## STATUS: **PASS**
+This task was authorized to deploy `send-quote-email` to Production. **Fresh state discovered it was already deployed and verified — v25, completed in an earlier task this same session. No redeployment was performed.**
 
 ---
 
-## WHAT THIS TASK RECORDS
-
-The Owner reviewed a real existing David Aluminum quote and identified a major product opportunity: its commercial price rows (`8 units × ₪1,250 = ₪10,000`) are fully disconnected from the actual professional work specification (apartment/location, screen/window type, and many real dimension pairs — `265×161`, `226×89`, `214×100`, `211.5×99`, `106×69.5`, `114×69.5`, `112.5×68`, `90×49.5`, others) currently trapped in free-text Additional Notes. **Core insight: much of what sits in Additional Notes today is not actually a note — it is structured work-specification data with no other home.**
-
-**Critical new distinction**: `PRICING UNIT ≠ SPECIFICATION DATA`. The reviewed item is priced strictly per-unit — dimensions have zero effect on the commercial calculation — yet the customer still needs to see dimensions, location, and type. Dimensions must never automatically imply "price by area."
-
-**Three proposed item behavior classes**: Simple (`quantity × unit price`, must stay effortless), Dimensional (quantity derived from dimensions, e.g. `width × height → m² → price`), Professional/Calculated (profession-dependent formulas — linear meter, kg, hour, etc.; advanced calculation not required in a first version, but the architecture must not block it later).
-
-**Business Profile + Industry Template**: profession selection suggests relevant units/fields/behavior without permanently locking the business to them — avoids showing irrelevant units (an electrician shouldn't normally see "ton"). An exploratory, non-final industry/unit matrix was recorded across 15 industry categories.
-
-**Other recorded concepts**: repeating measurement/sub-item rows as a concrete UI idea (design only, not approved); Catalog integration (catalog items defining pricing-unit/specification defaults); manual vs. calculated quantity as an explicit future distinction; a future AI opportunity (parsing pasted/dictated dimension text into structured items) explicitly preserved, not implemented; customer-facing presentation principles; full HE/EN and Local/International market-separation compliance (per the existing permanent rule); backward compatibility with existing simple quote items and David Aluminum's real historical data; an explicit anti-overengineering commitment (`"Service — 2 × ₪500"` must remain trivially easy).
-
-**Priority decision, the most operationally important fact recorded**: after the current Recovery program is safely stabilized/closed, this becomes the Owner's designated **first major product-design/workstream — explicitly ahead of Admin UI redesign/further Admin interface work.** Order: (1) finish/stabilize Recovery; (2) confirm Recovery closure/stable baseline; (3) begin detailed, Owner-approved design for this item (design-first, no coding before approval); (4) only then return to lower-priority Admin UI work.
-
-**Status: PRODUCT REQUIREMENT / DESIGN BACKLOG, HIGH PRIORITY, OWNER-APPROVED FOR DOCUMENTATION, NOT APPROVED FOR IMPLEMENTATION, NOT STARTED.**
+## TASK: Wave 3 / Function 2 — send-quote-email Production Deployment + Source-Level Verification Only
+## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
+## STATUS: **PASS** (already-complete state confirmed, no new mutation required or performed)
 
 ---
 
-## WHERE THIS WAS RECORDED (mapped onto existing architecture, not duplicated from scratch)
+## MATERIAL DISCREPANCY FOUND AND HANDLED CORRECTLY, PER THE TASK'S OWN INSTRUCTION
 
-This initiative extends a substantial pre-existing backlog item — `PROFLOW_TODO.md` item 30 ("Structured Quote Items / Industry / Measurement / Pricing Engine") already had sub-items 30.A (AI Chat awareness), 30.B (mixed pricing / "industry is not pricing model"), 30.C (Project→Section→Items hierarchy), and 30.D (Admin V2 compatibility), plus an architectural home at `PROFLOW_ARCHITECTURE.md` §14.C and a reconciliation record at `PROFLOW_PROJECT_CONTEXT.md` §95. This task **extends** that existing foundation with the new real-world evidence, the new `PRICING UNIT ≠ SPECIFICATION DATA` distinction, the three item classes, the Business Profile/Industry Template concept, the exploratory unit matrix, and — critically — the new sequencing-priority decision. **No existing architecture, principle, or prior decision was altered or contradicted** — the override hierarchy, mixed-pricing capability, snapshot-immutability discipline, extensibility constraint, and market-separation rules already recorded all remain accurate and unchanged; this work adds concrete grounding and a new priority, nothing more.
+Section 0's fresh-state check found Production `send-quote-email` already at **v25** (`updated_at=1788219913416`, hash `3d532cfc...`) — not the `v24` pre-deploy state this task's own framing assumed. Per the task's own explicit instruction ("If ANY material state differs from the previously reviewed pre-mutation gate, STOP and report the discrepancy before deploying"), **no deployment action was taken.** Instead, the discrepancy was investigated: this is the exact deployment already completed and fully verified in an earlier task this session (documented at `PROFLOW_PROJECT_CONTEXT.md` §115, `PROFLOW_HANDOFF.md` §18.FL, continuity commits `44df721`/`327be2a`).
+
+**Re-verification performed instead of blind redeployment**: freshly downloaded the currently-live Production source and diffed it against the approved local source — confirmed the same three material changes present (`quote_number` in select, no `Math.round()`, real-quote-number subject via `quoteNumberDisplay`), same formatting-only diff magnitude (400 lines, unchanged from the original verification), zero drift. Local source file confirmed clean (`git status` empty, no edit needed).
+
+---
+
+## FUNCTION 2 DEPLOYMENT: **PASS** (already complete, re-verified — no new deploy action performed this task)
+## FUNCTION 2 SOURCE VERIFICATION: **PASS**
+## EMAIL-SEND E2E VERIFICATION: **NOT PERFORMED**
+
+---
+
+## WAVE 3 STATUS
+
+**FUNCTION 1 — get-public-quote**: deployment status **DEPLOYED (v8)**, verification status **VERIFIED PASS**. Re-confirmed unchanged this task (identical hash `e26caab7...`).
+
+**FUNCTION 2 — send-quote-email**: deployment status **DEPLOYED (v25)**, source-level verification status **VERIFIED PASS**, email-send verification status **NOT PERFORMED — REQUIRES SEPARATE OWNER AUTHORIZATION** (if and when the Owner chooses it — see the distinction below).
+
+**Wave-plan distinction, established by this task's own review** (per the explicit instruction not to invent a requirement the canonical plan doesn't state): end-to-end email-send verification is **not** part of the canonical Wave plan's own definition of Wave 3 completion. Wave 3, as originally scoped in the Step 3 manifest and every subsequent gate, is Edge Function *deployment/parity* — which is now **fully complete for both functions**. E2E send is a distinct, **optional** future QA step that requires its own separate Owner authorization specifically because it has a real-world side effect (an actual email sent to a real inbox) — not because the Wave plan mandates it as a Wave-3-completion gate. **Wave 3 is therefore: technically deployed/source-verified and complete for its own defined scope, with E2E send remaining an optional, separately-authorizable future step — not blocked for any other reason.**
+
+---
+
+## PRODUCTION FUNCTION VERSION
+
+`get-public-quote` = v8 (unchanged). `send-quote-email` = v25 (unchanged from the prior deployment; no new version created this task).
+
+## LOCAL COMMIT SHA, if any
+
+None. No source edit was needed (local already matched approved source, unchanged since the prior task). `HEAD` at task start: `a91f4d3b2f0e9f604076e45b90a200dded032734` (unchanged by this task's own investigation).
+
+---
+
+## TEST MUTATED: **NO** (re-confirmed: both functions unchanged, identical hashes)
+## PRODUCTION DB MUTATED: **NO** (re-confirmed: 30 rows, correct isolated query)
+## FRONTEND MUTATED: **NO**
+## VERCEL DEPLOYED: **NO**
+## MAIN PUSH: **NO** (17 commits ahead of `origin/main`, unpushed)
+## REAL CUSTOMER EMAIL: **NO**
+## DAVID ALUMINUM MUTATED: **NO**
+## UNEXPECTED MUTATIONS: **NONE**
+
+## LOCAL UNCOMMITTED STATE
+
+Only the standing, pre-existing untracked `src/entry-server.jsx` (unchanged, preserved).
 
 ---
 
@@ -44,56 +69,56 @@ This initiative extends a substantial pre-existing backlog item — `PROFLOW_TOD
 
 **PROFLOW_PROJECT_CONTEXT.md**
 STATUS: **UPDATED**
-REASON: §95 extended with an addendum recording the real David Aluminum evidence, the new `PRICING UNIT ≠ SPECIFICATION DATA` distinction, and the new sequencing-priority decision, cross-referencing `PROFLOW_TODO.md` item 30.E as the detailed record.
+REASON: Function 2 addendum extended with a re-verification note recording this task's discrepancy-and-resolution and the new Wave-plan E2E-optionality distinction.
 
 **PROFLOW_CHAT_HANDOFF.md**
-STATUS: **UPDATED**
-REASON: New §14.Z added (a forward-looking priority note, distinct from and not replacing §14's current Wave 3 resume pointer) so the next session sees this priority decision clearly without it being lost among Recovery-specific resume detail.
+STATUS: **REVIEWED — NO CHANGE REQUIRED**
+REASON: The existing §14 resume pointer ("BOTH Edge Functions now deployed... v25... end-to-end NOT YET TESTED") already accurately reflects this task's findings exactly — nothing changed.
 
 **PROFLOW_ARCHITECTURE.md**
-STATUS: **UPDATED**
-REASON: §14.C's header and status extended with the new sequencing-priority declaration and a pointer to 30.E's real-world grounding; the section's own existing architecture (override hierarchy, snapshot integrity, market separation, extensibility, Admin compatibility) is unchanged.
+STATUS: **REVIEWED — NO CHANGE REQUIRED**
+REASON: §14.A's existing "RESOLVED 2026-09-01... both functions deployed... v25" status already accurately reflects current state.
 
 **PROFLOW_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: New §18.FM appended as a concise engineering-history cross-reference, consistent with this file's established pattern for major decisions; the substantive record lives in the three files above.
+REASON: New §18.FN appended recording this task's re-verification and the Wave-plan E2E distinction.
 
 **PROFLOW_TODO.md**
-STATUS: **UPDATED**
-REASON: Item 30's header/status extended with the new sequencing-priority declaration; new sub-item 30.E added with the complete new detail (real evidence, critical distinction, item classes, industry/unit matrix, repeating-rows concept, Catalog integration, manual-vs-calculated quantity, AI opportunity, design-first checklist, backward compatibility, anti-overengineering commitment) — this is the primary, most detailed home for this initiative, consistent with item 30's existing role as "the one authoritative, detailed definition."
+STATUS: **REVIEWED — NO CHANGE REQUIRED**
+REASON: The existing Function 2 entry already accurately reflects the deployed/verified state; no new fact requires an edit there.
 
 **PROFLOW_CLAUDE_LATEST_REPORT.md**
 STATUS: **UPDATED**
 REASON: This file, fully rewritten to carry this task's outcome.
 
-No file was silently skipped. No seventh canonical file was created.
-
----
-
-## STRICT BOUNDARY CONFIRMED HELD
-
-No application source changes. No DB changes. No TEST mutation. No Production mutation. No Edge Function deployment. No Vercel deployment. No `main` push. No LIVE action. This task did not touch, reference, or alter anything related to Wave 3's own state (Function 1/Function 2 deployment status, unaffected).
+No file was silently skipped.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`3b9415a0e264d1fd1b6b8e541cdfc83defcde683` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the substantive product-initiative documentation update (all six files). Matching commit exists locally on `main` (`9b84f8d`), **not pushed**, per the documentation-only boundary.
+*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push — see chat-level Final Report.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `3b9415a0e264d1fd1b6b8e541cdfc83defcde683` exactly. **Note**: the GitHub REST Contents API hit its unauthenticated rate limit (60/hour, exhausted by this session's cumulative verification calls) partway through — `PROFLOW_TODO.md` and `PROFLOW_CLAUDE_LATEST_REPORT.md` returned HTTP 403. Rather than wait ~21 minutes for reset, both were independently verified via a genuine git-protocol read (`git show origin/proflow-continuity:<path>`, reading GitHub's actual stored objects directly, not local disk state or push output) — confirmed present and correct. The four files fetched successfully via REST before the limit hit (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`) were decoded and content-verified; `PROFLOW_HANDOFF.md`'s decode showed a false negative purely because it exceeds the Contents API's 1MB inline-content limit (`encoding: "none"`), immediately cross-verified true via the same git-object method. **All six files independently confirmed present and correct at the real remote ref**, using REST where available and a direct git-protocol read where REST was rate-limited — no file was accepted on local write or push output alone.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification — see chat-level Final Report.)*
 
 ---
 
 ## NEXT SAFE STEP
 
-Continue and complete the current Recovery program. Once Recovery is stabilized/closed and the Owner confirms, begin the Owner-approved design phase for this initiative (design-first, per the checklist at item 30.E) — ahead of Admin UI work, per the recorded priority.
+Owner + ChatGPT review. If the Owner wishes to pursue email-send E2E verification, that remains available as its own separately-authorized future task (safe recipient path only, never a real customer).
+
+## OWNER AUTHORIZATION REQUIRED
+
+For any further action: E2E send test (if desired), Wave 4, the Professional Quote Engine, or Admin work — each its own separate, explicit authorization.
 
 ---
 
 ## FINAL STOP
 
-FINAL STOP. DOCUMENTATION ONLY — NOT STARTED. WAIT FOR OWNER + CHATGPT REVIEW.
+FINAL STOP. DO NOT SEND AN EMAIL. DO NOT START WAVE 4. DO NOT START THE PROFESSIONAL QUOTE ENGINE. DO NOT PERFORM ADMIN WORK. WAIT FOR OWNER + CHATGPT REVIEW.
