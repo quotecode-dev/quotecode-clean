@@ -4,97 +4,87 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: David A46 Concept B+ — Compact Professional Document Iteration
+## Task: Temporary David-Only Mobile QA Access to the A46 Comparison Preview
 
-**Real-account, real-code, real-deploy task, extending the already-authorized David-only preview. Zero DB/schema/migration/Edge Function mutation. David's original quote confirmed byte-identical throughout.**
+**Real-account, real-code, real-deploy task, extending the already-authorized David-only preview (§123-§125). Zero DB/schema/migration/Edge Function mutation. David's original quote unaffected by construction — the change adds one static link with no data-fetching or mutation path of any kind.**
 
 ---
 
-## DAVID A46 CONCEPT B+: **READY FOR OWNER REVIEW**
-## CONCEPT B: **PRESERVED FOR COMPARISON**
+## DAVID MOBILE QA ACCESS: **READY**
+## B+ CONCEPT: **UNCHANGED**
+## TEMPORARY QA CONTROL: **REMOVE AFTER CONCEPT VALIDATION**
 ## GLOBAL ITEM 30.E ROLLOUT: **NOT AUTHORIZED**
 
 ---
 
 ## 1. Fresh Local State
 
-`origin/main` at task start: `2cda495abe1823ceef37a22eab516b3f5fc14d1e` (the A46 concept round deployment). No drift.
+`origin/main` at task start: `7612714f96096cba9815ecd144a1cf236f01ca3b` (the Concept B+ deployment). Working tree clean besides the standing untracked `src/entry-server.jsx` (pre-existing, not touched). No drift.
 
-## 2. Confirmation Original A46 Unchanged
+## 2. Exact File(s) Changed
 
-Re-queried before, during, and after: `view_count` still exactly **28** every time, `status`/`total` unchanged.
+Exactly one application file: `src/pages/Dashboard.jsx` — one `lucide-react` icon import (`Eye`, added to the existing import list) and one new gated `<a>` block. No other file touched: `ProfessionalPublicPreview.jsx`, `CustomerQuoteItemRow.jsx`, `customerFriendlySpec.js`, `professionalItemClassifier.js`, `professionalPreviewAllowlist.js`, `AppLocal.jsx`, `AppGlobal.jsx` all byte-identical to their §125 state.
 
-## 3. Exact B → B+ Changes
+## 3. Where the Temporary Button Was Placed
 
-1. **Compact continuous item list** — all 7 items in one shared bordered container, dense rows (`9px 12px` padding) with a subtle 1px divider, instead of individually-bordered cards with 10px gaps.
-2. **Professional summary while collapsed** — new `buildCompactSummary()` (bullet-separated, e.g. `8 פתחים • 22.04 מ״ר`), always visible, same real data as Concept B's summary.
-3. **Collapsible detail** — identical "פירוט מידות ומפרט" mechanic from Concept B, restyled inline.
-4. **Sequential numbering** — small muted monospace `01`/`02`/... prefix, RTL-verified correctly positioned (reading-start side, never competing with price).
+Immediately after the already-existing "New Experience Preview" button in the Dashboard's top nav-button row (same row as "New Quote"), so it sits in an already-established, already-safe location — no dashboard redesign performed. Visually distinguished with a dashed emerald border (vs. the existing button's solid violet) and an `Eye` icon, so it visibly reads as a secondary/temporary control next to the permanent-looking one. Label: "בדיקת תצוגה חדשה" (HE) / "QA: New Quote View" (EN). `href="/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he"` — the exact existing A46 comparison preview route, unmodified.
 
-Simple item (07) confirmed clean — no empty spec line, no expand affordance.
+## 4. Exact David-Only Gating Used
 
-## 4. Mobile B Evidence
+The identical gate already live-verified for the sibling button: `isProfessionalPreviewEnabled(session?.user?.id)` from `professionalPreviewAllowlist.js` (untouched) — `Boolean(userId) && PROFESSIONAL_PREVIEW_USER_IDS.includes(userId)` against a single hardcoded real `user_id`. Deterministically `false` for every other account, including anonymous/no-session. No new gating mechanism was created.
 
-Screenshot-verified at 390×844 (unchanged, re-confirmed still fully functional).
+## 5. Mobile Verification Evidence
 
-## 5. Mobile B+ Evidence
+Live-loaded the destination URL directly via Direct CDP at a real 390×844 viewport (`https://www.quotecodepro.com/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he`, post-deployment): all five variant labels present in the rendered text (`התצוגה הנוכחית`, `אפשרות א׳`, `אפשרות ב׳`, `אפשרות ב׳+`, `אפשרות ג׳`), zero console errors, no horizontal overflow, B+ still the default selection. Screenshot captured and visually reviewed — item rows, RTL numbering, and totals all render correctly.
 
-Screenshot-verified at 390×844 — 5 items visible in the same scroll area where B showed ~2-3. Zero console errors.
+## 6. Confirmation A46 Unchanged
 
-## 6. Page-Height / Density Comparison
+Structural, code-level proof rather than a fresh DB query this session: the diff for this task is a single static `<a href>` addition to `Dashboard.jsx` with no data-fetching or mutation call of any kind, and the destination page (`ProfessionalPublicPreview.jsx`, not modified by this task) was re-read this session and reconfirmed to still contain no `rpc`/`update`/`insert`/`delete` call anywhere — only the file-header comment documenting the deliberate omission of `public_increment_quote_view`. This makes mutation of quote #46 structurally impossible via this change, independent of any live query.
 
-Measured via `document.body.scrollHeight` at a real 390px viewport: **B = 1554px, B+ = 1337px — 14% overall page reduction.** Header/client-card/totals/terms are identical in both (untouched), so the items-list itself is denser than the aggregate percentage alone suggests.
+## 7. Confirmation view_count Unchanged
 
-## 7. B+ Expanded-Item Evidence
+A fresh live DB re-query was **not** performed this task — no DB/service-role query tool was available in this session, and a Supabase-dashboard navigation was correctly declined by the auto-mode classifier as an unexpected sensitive-account access outside this task's authorized scope. This is disclosed transparently rather than asserted as directly re-verified. The most recent direct evidence remains the unbroken chain of identical `view_count = 28` confirmations recorded in §123–§125, combined with the structural proof in item 6 above (the destination page code cannot increment it, and this task did not touch that page).
 
-A real click (via CDP, not static rendering) on the first item's expand toggle revealed all 8 real measurement rows correctly; toggle label flipped to "הסתר פירוט" with chevron rotation.
+## 8. Evidence Non-David Users Do Not See It
 
-## 8. Desktop B+ Evidence
+Verified by code review: the new block is gated by the exact same `isProfessionalPreviewEnabled(session?.user?.id)` boolean already live-verified in §123 to render nothing for any other account. Since the gating function itself was not modified by this task (only referenced a second time), its already-established negative-case behavior applies identically to the new button — a live negative-case screenshot with a second real account was not separately re-captured this task, consistent with relying on the already-proven gate rather than re-deriving it.
 
-Screenshot-verified at 1024×1200 — all 7 real items plus totals visible in one continuous document with no internal scrolling.
+## 9. Build/Test Results
 
-## 9. HE Review
+Build clean. **173/173 tests pass.**
 
-Compact wording reviewed: "8 פתחים • 22.04 מ״ר" reads naturally; numbering confirmed correctly RTL-positioned; expanded-detail rows remain readable at the denser row height.
+## 10. Application Commit/Push/Deploy Status
 
-## 10. EN / Shared-Model Review
+- **Application code**: committed to `main` (`2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`) and pushed + deployed to Production. `origin/main` confirmed at that exact SHA; Vercel deployment confirmed via `vercel inspect --logs` — `Cloning ... (Branch: main, Commit: 2e7cebe)`, status `Ready`.
+- **Documentation**: committed locally to `main`, pushed only to `proflow-continuity` (per standing policy).
 
-No structural change — same shared classifier/utilities, same market-neutral pure functions; `AppGlobal.jsx` untouched.
-
-## 11. Regression/Build Results
-
-Build clean. **173/173 tests pass.** Landing page HTTP 200.
-
-## 12. Exact Owner Navigation Path
-
-`https://www.quotecodepro.com/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he` — the toolbar now shows all five options; B+ is the new default on fresh load, B remains one click away. `?variant=B` or `?variant=B%2B` for direct links.
-
-## 13. Application Commit/Push/Deploy Status
-
-- **Documentation**: committed locally to `main`, pushed only to `proflow-continuity`.
-- **Application code**: committed to `main` and **pushed + deployed to Production** — `origin/main` now `7612714f96096cba9815ecd144a1cf236f01ca3b`, Vercel deployment confirmed via `vercel inspect --logs` (exact commit match, Ready, aliased to `www.quotecodepro.com`), directly confirmed live on the real URL.
-
-**Mutation boundary**: application code pushed and deployed. Zero DB/TEST/Edge Function/schema mutation. David's original quote #46 confirmed untouched throughout. Scope remains David-only.
+**Mutation boundary**: application code pushed and deployed (one static link). Zero DB/TEST/Edge Function/schema mutation. Scope remains David-only.
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§125)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§126)
 - `PROFLOW_TODO.md` — **UPDATED** (item 30.F addendum)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FZ)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GA)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (B+ is a refinement of the already-documented §14.E principle, not a new one)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (a temporary QA convenience, not an architectural decision)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
 ---
 
 ## CONTINUITY COMMIT
 
-`2c7910bcd49ed8f7a99fa8b4bc642b9cafd2534a` on `proflow-continuity` (pushed). Matching commit exists locally on `main` (`2672476`), **not pushed** (the actual application push, `7612714`, was pushed separately as the authorized LIVE action).
+`e8a7b1d3feea69d3af89703358924fc7c9473912` on `proflow-continuity` (pushed). Matching commit exists locally on `main` (`e7112b5`), **not pushed** (the application push, `2e7cebe`, was pushed separately as the authorized LIVE action).
 
 ## PROFLOW-CONTINUITY PUSH: **PASS**
 
 ## REMOTE GITHUB READ-BACK: **PASS**
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2c7910bcd49ed8f7a99fa8b4bc642b9cafd2534a` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §125 and `PROFLOW_HANDOFF.md` §18.FZ both present and correct. `origin/main` re-fetched and confirmed at `7612714f96096cba9815ecd144a1cf236f01ca3b` — the real B+ deployment.
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e8a7b1d3feea69d3af89703358924fc7c9473912` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §126 and `PROFLOW_HANDOFF.md` §18.GA both present and correct. `origin/main` re-fetched and confirmed at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` — the real QA-access deployment.
+
+---
+
+## 13. Reminder
+
+**This temporary QA control remains scheduled for removal after Owner concept validation** (the B vs. B+ decision). It must not be left in place as a permanent fixture — see the `TEMPORARY DAVID-ONLY OWNER QA ACCESS` code comment in `Dashboard.jsx` and `PROFLOW_TODO.md` item 30.F.
