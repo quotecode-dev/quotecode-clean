@@ -76,15 +76,12 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
           </div>
 
           <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-start' : 'flex-end', gap: '5px' }}>
-            {bizPhone && (
-              <a
-                href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}
-              >
-                <Phone size={11} strokeWidth={2.6} />
-                {isHebrew ? 'חייג/י אליי' : 'Call me'}
-              </a>
-            )}
+            {/* חוק ברזל (Wave 4 Recovery - Item C, תיקון סדר CTA/מובייל):
+                לפני התיקון, ה-CTA "חייג/י אליי" ישב *לפני* תיבת מספר-הצעה/
+                תאריך בענף Mobile - בניגוד לענף Desktop (למטה), שכבר תוקן
+                בעבר לסדר ההפוך (תיבה קודם, CTA אחריה) לפי בקשת הבעלים.
+                הוחלף סדר שני הילדים כאן כדי שהמובייל יתאים לדסקטופ - שינוי
+                DOM בלבד, בלי שינוי style/תוכן/טקסט/מספרים. */}
             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.3', textAlign: isHebrew ? 'left' : 'right', whiteSpace: 'nowrap' }}>
               {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
                   לפני התיקון, ענף ה-fallback (formattedNumber falsy - המצב
@@ -105,6 +102,15 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
                 <div style={{ color: '#fecaca', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}</div>
               )}
             </div>
+            {bizPhone && (
+              <a
+                href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}
+              >
+                <Phone size={11} strokeWidth={2.6} />
+                {isHebrew ? 'חייג/י אליי' : 'Call me'}
+              </a>
+            )}
           </div>
         </div>
       </div>
