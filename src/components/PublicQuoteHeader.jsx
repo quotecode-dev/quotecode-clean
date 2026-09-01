@@ -75,7 +75,19 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
             </div>
           </div>
 
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-start' : 'flex-end', gap: '5px' }}>
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+            {/* חוק ברזל (AUDIT-005 השלמה - יישור CTA למרכז-X משותף): לפני
+                התיקון, alignItems כאן היה isHebrew?'flex-start':'flex-end' -
+                זה מצמיד את שני הילדים (תיבת המידע והכפתור) לאותה קצה
+                פיזית, אך מכיוון שלכל אחד רוחב-תוכן עצמאי משלו (auto-width,
+                לא stretch), הצמדה לאותה קצה אינה מבטיחה מרכז-X משותף - נמדד
+                חי אחרי תיקון המרכוז הפנימי של תיבת המידע (§129): מרכז-X של
+                השורות = 71.08px, מרכז-X של הכפתור = 81.85px, פער ~10.8px.
+                תוקן ל-alignItems:'center' קבוע (לא isHebrew-מותנה, אותו
+                עיקרון בדיוק כמו textAlign למטה) - תואם בדיוק את הענף Desktop
+                של אותו רכיב עצמו (שורה 167 למטה, שכבר משתמש ב-
+                alignItems:'center' לאותו יחס בדיוק, נמדד חי כזהה - ר'
+                PROFLOW_PROJECT_CONTEXT.md §131). */}
             {/* חוק ברזל (Wave 4 Recovery - Item C, תיקון סדר CTA/מובייל):
                 לפני התיקון, ה-CTA "חייג/י אליי" ישב *לפני* תיבת מספר-הצעה/
                 תאריך בענף Mobile - בניגוד לענף Desktop (למטה), שכבר תוקן

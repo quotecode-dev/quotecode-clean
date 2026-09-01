@@ -6,6 +6,7 @@ import { classifyQuoteItems } from '../utils/professionalItemClassifier';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import CustomerQuoteItemRow from '../components/CustomerQuoteItemRow';
 import { formatQuoteFallback } from '../utils/quoteNumber';
+import { formatMoney } from '../utils/money';
 
 // Customer-facing preview: full-quote-context comparison of the CURRENT
 // public quote presentation against three distinct new customer-facing
@@ -25,8 +26,35 @@ const VARIANTS = [
   { key: 'C', label: 'אפשרות ג׳ — מקצועית מפורטת' },
 ];
 
+// AUDIT-001 (PROFLOW_PROJECT_CONTEXT.md §128/§131): delegates to the
+// canonical formatMoney, same fix pattern as the other Item 30.E preview
+// files.
 function money(n) {
-  return `₪${Number(n).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return <span className="pf-money">₪{formatMoney(n)}</span>;
+}
+
+// B+ Mobile width refinement (Owner-approved, PROFLOW_PROJECT_CONTEXT.md
+// §131): the outer page padding was a flat 16px on every viewport - on real
+// Mobile widths this left more margin than the Owner wants for a "near-full-
+// width professional document" feel. Desktop is explicitly out of scope
+// (already governed by maxWidth:620px below, unaffected by this) - only the
+// Mobile-viewport padding value changes, via the same real JS matchMedia
+// pattern already established in PublicQuoteHeader.jsx (not a new pattern).
+function useIsMobileView() {
+  const [isMobileView, setIsMobileView] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const recompute = () => setIsMobileView(window.matchMedia('(max-width: 768px)').matches);
+    recompute();
+    const mq = window.matchMedia('(max-width: 768px)');
+    mq.addEventListener ? mq.addEventListener('change', recompute) : mq.addListener(recompute);
+    window.addEventListener('resize', recompute);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', recompute) : mq.removeListener(recompute);
+      window.removeEventListener('resize', recompute);
+    };
+  }, []);
+  return isMobileView;
 }
 
 export default function ProfessionalPublicPreview() {
@@ -34,6 +62,8 @@ export default function ProfessionalPublicPreview() {
   const [state, setState] = useState({ status: 'loading', dto: null });
   const initialVariant = new URLSearchParams(window.location.search).get('variant');
   const [variant, setVariant] = useState(VARIANTS.some((v) => v.key === initialVariant) ? initialVariant : 'B+');
+  const isMobileView = useIsMobileView();
+  const pagePadding = isMobileView ? '10px' : '16px';
 
   useEffect(() => {
     if (!id) { setState({ status: 'notfound', dto: null }); return; }
@@ -80,7 +110,7 @@ export default function ProfessionalPublicPreview() {
   const vat = Number(quote.subtotal) * Number(quote.tax_rate || 0);
 
   return (
-    <div dir="rtl" style={{ fontFamily: FONT_HE, background: LIGHT.bg, minHeight: '100vh', padding: '16px' }}>
+    <div dir="rtl" style={{ fontFamily: FONT_HE, background: LIGHT.bg, minHeight: '100vh', padding: pagePadding }}>
       <div style={{ maxWidth: '620px', margin: '0 auto' }}>
 
         {/* Owner-only comparison toolbar - never shown to a real customer,
@@ -161,18 +191,26 @@ export default function ProfessionalPublicPreview() {
           </div>
         )}
 
-        {/* Totals - always the real, unmodified numbers. */}
-        <div style={{ background: LIGHT.bgCardAlt, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: LIGHT.textSecondary, marginBottom: '4px' }}>
-            <span>סכום לפני מע״מ:</span><span>{money(quote.subtotal)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: LIGHT.textSecondary, marginBottom: '8px' }}>
-            <span>מע״מ ({Math.round(Number(quote.tax_rate || 0) * 100)}%):</span><span>{money(vat)}</span>
-          </div>
-          <div style={{ borderTop: `1px solid ${LIGHT.border}`, paddingTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: '800', fontSize: '1rem' }}>סה״כ לתשלום:</span>
-            <span style={{ fontWeight: '800', fontSize: '1.2rem', color: LIGHT.violet }}>{money(quote.total)}</span>
-          </div>
+        {/* Totals - always the real, unmodified numbers.
+            AUDIT-002 (PROFLOW_PROJECT_CONTEXT.md §128/§131): each row was an
+            independent display:flex, justifyContent:'space-between' pair -
+            the exact historically-rejected anti-pattern §44.D item 3 already
+            names (live-measured pre-fix: three money spans shared left=166px
+            but right edges varied 230.6-285.4px under dir=rtl, since the
+            flex "end" item pins the wrong edge under RTL). Replaced with a
+            single shared CSS Grid (gridTemplateColumns:'1fr auto'), the
+            exact same reference pattern PublicQuote.jsx's own totals block
+            already uses (lines ~545 there) - a Grid column gives every row
+            the same computed column width automatically, right-anchoring
+            every amount at one shared edge regardless of digit count. */}
+        <div style={{ background: LIGHT.bgCardAlt, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '14px', display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '6px', columnGap: '12px' }}>
+          <span style={{ fontSize: '0.82rem', color: LIGHT.textSecondary }}>סכום לפני מע״מ:</span>
+          <span style={{ fontSize: '0.82rem', color: LIGHT.textSecondary, textAlign: 'right' }}>{money(quote.subtotal)}</span>
+          <span style={{ fontSize: '0.82rem', color: LIGHT.textSecondary }}>מע״מ ({Math.round(Number(quote.tax_rate || 0) * 100)}%):</span>
+          <span style={{ fontSize: '0.82rem', color: LIGHT.textSecondary, textAlign: 'right' }}>{money(vat)}</span>
+          <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${LIGHT.border}`, marginTop: '2px', paddingTop: '8px' }} />
+          <span style={{ fontWeight: '800', fontSize: '1rem' }}>סה״כ לתשלום:</span>
+          <span style={{ fontWeight: '800', fontSize: '1.2rem', color: LIGHT.violet, textAlign: 'right' }}>{money(quote.total)}</span>
         </div>
 
         {quote.terms && (
