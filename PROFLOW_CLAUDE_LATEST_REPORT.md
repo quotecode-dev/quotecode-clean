@@ -185,15 +185,13 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log... note: `PROFLOW_TODO.md` was not updated this task, so the SHA will be stated directly in the chat-level Final Report, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`c332f9b29bf4ae76b67ff89ddca738bf65ecec9a` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the four genuinely-changed files. Matching commit exists locally on `main` (`b2701a7`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification — see chat-level Final Report.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `c332f9b29bf4ae76b67ff89ddca738bf65ecec9a` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for all six files (four updated, two spot-checked unchanged) — all confirmed present and correct.
 
 ---
 
