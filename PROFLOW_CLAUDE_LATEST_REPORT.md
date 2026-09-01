@@ -4,124 +4,149 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: AUDIT-005 Production Release — Push / Deploy / LIVE Verification
+## Task: Item 30.E Visual Contract Remediation — AUDIT-001–004 + AUDIT-005 Completion + B+ Mobile Width + Landing Page Documentation
 
-**Release-only task, separately Owner-authorized from implementation. AUDIT-005 only — AUDIT-001/002/003/004 not touched, no B/B+/A/C changes, no DB/schema/Edge Function mutation, no wider Item 30.E rollout.**
+**Combined, Owner-authorized implementation + local verification task. Release (push/deploy) not independently authorized — a local application commit was created and the task stops there, per explicit instruction.**
 
 ---
 
-## AUDIT-005 PRODUCTION RELEASE: **COMPLETE**
-## PUBLIC QUOTE HEADER GEOMETRY LIVE: **VERIFIED**
+## AUDIT-001–004 REMEDIATION: **COMPLETE (implementation + local verification)**
+## AUDIT-005 CTA COMPLETION: **COMPLETE (implementation + local verification)**
+## B+ MOBILE WIDTH REFINEMENT: **COMPLETE**
+## MONEY GEOMETRY: **VERIFIED (local build)**
+## HE: **VERIFIED**
+## EN: **PARTIAL (CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED)**
+## APPLICATION PUSH: **NOT AUTHORIZED**
+## PRODUCTION DEPLOY: **NOT AUTHORIZED**
 ## OWNER VISUAL ACCEPTANCE: **PENDING**
-## AUDIT-001/002/003/004: **UNCHANGED**
 
 ---
 
 ## 1. Fresh Local State
 
-Task start: local `main` at `df6476f` (the AUDIT-005 implementation task's final continuity commit, already containing application commit `855d64c` in its ancestry). `origin/main` at task start: `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`. Working tree clean besides the standing untracked `src/entry-server.jsx`.
+Task start: local `main` at `b61f0cb` (matching the deployed AUDIT-005 release's continuity trailer exactly). `origin/main`: `df6476fd0e5a80c35c6e920108b83efbeabfece0`, unchanged throughout this task. `origin/proflow-continuity`: `5b10580...` at start. Working tree clean besides the standing untracked `src/entry-server.jsx`. All six canonical files fresh-read before any edit.
 
-## 2. Pre-Push Release-Gate Result
+## 2. Exact Files Changed
 
-- **LOCAL COMMIT**: `df6476f`, confirmed to contain `855d64c` in its ancestry (`git merge-base --is-ancestor` → yes).
-- **ORIGIN/MAIN BEFORE PUSH**: `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`.
-- **WORKING TREE**: clean besides the standing untracked `entry-server.jsx`.
-- **RELEASE DIFF**: `git diff --stat origin/main..HEAD` (excluding `PROFLOW_*.md`) showed exactly two files — `src/components/PublicQuoteHeader.jsx`, `src/components/PublicQuoteHeader.test.jsx` — identical to the verified §129 implementation diff. Zero DB/schema/migration files anywhere in the pushed range. Zero `CustomerQuoteItemRow.jsx`/`ProfessionalPublicPreview.jsx`/`ProfessionalItemComparisonCard.jsx` changes anywhere in the pushed range. Fresh full test suite: 178/178 pass. Fresh build: clean.
-- **GO / BLOCKED**: **GO**.
+- `src/components/CustomerQuoteItemRow.jsx`
+- `src/components/ProfessionalItemComparisonCard.jsx`
+- `src/components/PublicQuoteHeader.jsx`
+- `src/pages/ProfessionalPublicPreview.jsx`
 
-## 3. Exact Application Diff Released
+No other file touched. Confirmed via `git status --short` throughout.
 
-Identical to the diff already recorded in commit `855d64c` (see §129/prior report) — one CSS property change (`textAlign: isHebrew?'left':'right'` → `'center'`) plus a comment in `PublicQuoteHeader.jsx`, and the new `PublicQuoteHeader.test.jsx` (5 tests). Nothing else.
+## 3-6. AUDIT-001/002/003/004 Results
 
-## 4. Application Commit SHA
+All four remediated as one shared system, not four separate patches:
+- **AUDIT-001**: three independent local `money()` reimplementations → all delegate to canonical `formatMoney` + `.pf-money`.
+- **AUDIT-002**: totals block's three `justifyContent:'space-between'` rows → converted to CSS Grid (`1fr auto`), the same reference pattern `PublicQuote.jsx` already uses.
+- **AUDIT-003**: `current`-variant hardcoded `textAlign:'left'` → unconditional `'right'` (both money cells).
+- **AUDIT-004**: no fixed-width numeric box on repeated item-row money (all variants A/B/B+/C) → shared literal constant `MONEY_COL_WIDTH='92px'`, fixed-width + right-anchored, identical at every call site.
 
-`855d64c79b6c9bfcc4db9b922696e5f48526e4e5` (unchanged from the implementation task — not reimplemented, not re-committed).
+Full root-cause/fix/verification/status detail per audit: `PROFLOW_PROJECT_CONTEXT.md` §131.9.
 
-## 5. origin/main Before and After
+## 7. AUDIT-005 CTA Completion Result
 
-Before: `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`. After: `df6476fd0e5a80c35c6e920108b83efbeabfece0`.
+Root cause: `alignItems: isHebrew?'flex-start':'flex-end'` edge-pinned two independently-sized children (info-stack + CTA) to the same edge without matching centers. Fixed with unconditional `alignItems:'center'`, matching Desktop's own already-identical pattern in the same file. Before: 10.78px center gap. After: 0.02px.
 
-## 6. Push Result
+## 8. B+ Mobile-Width Result
 
-`git push origin main` succeeded, fast-forward. 8 documentation-only commits from the two immediately-prior tasks rode along in the same push (interleaved in local history before/after the app commit) — consistent with this project's own already-documented standing fact that `main` pushes deploy identically regardless of commit type (`PROFLOW_ARCHITECTURE.md` §2); zero effect on the deployed application bundle since `.md` files are never part of the Vite build.
+Outer page padding: `16px` → `10px` on Mobile only (real `matchMedia`-driven, same established technique as `PublicQuoteHeader.jsx`). Confirmed 10px both sides at 360/390/412px, zero overflow. Desktop (`maxWidth:620px` wrapper) fully unaffected. No redesign — every accepted visual element unchanged.
 
-## 7. Vercel Deployment Result
+## 9. Before/After Item-Money Geometry Measurements
 
-Confirmed via `vercel inspect --logs`: `Cloning github.com/quotecode-dev/quotecode-clean (Branch: main, Commit: df6476f)`, status `● Ready`.
+B+ variant, 7 real David A46 items (₪10,000.00 down to ₪550.00), real Production before / local fixed build after:
 
-## 8. Exact Deployed SHA
+| | left | right | spread |
+|---|---|---|---|
+| BEFORE | constant 29 | varied 98.98-122.11 | **23.13px** |
+| AFTER | constant 23 | constant 115 | **0px** |
 
-`df6476fd0e5a80c35c6e920108b83efbeabfece0` — exact match to the pushed SHA. Canonical domain (`https://www.quotecodepro.com/`) confirmed serving it (`HTTP 200`).
+Re-confirmed `maxSpreadPx=0` for variants A, B, C (mobile) and B+/A (desktop, 1280px). `current` table variant: native per-column geometry, unit-price column spread=0, total-price column spread=0 (measured separately, since they are different columns).
 
-## 9. LIVE Mobile Geometry Measurements
+## 10. Before/After Totals Geometry Measurements
 
-Real Production, read-only (`https://www.quotecodepro.com/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89`, David's real A46 quote, HE, 390×844):
+Before (from the original §128 audit record, still accurate): three money spans shared `left=166px`, `right` varied 230.6-285.4px. After (local, fixed): `subtotal`/`vat`/`total` share `right=151.64` exactly — **maxSpreadPx=0**.
 
-- **quoteNumberCenterX**: 71.07px
-- **dateLineCenterX**: 71.08px
-- **validityCenterX**: 71.08px
-- **maxSpreadPx**: **0.01**
+## 11. Before/After CTA Center-X Measurements
 
-Within tolerance (≤0.5px treated as effectively equal) — the pre-fix live spread was 12.28px; this matches the implementation task's local-build result exactly. `getComputedStyle` confirms `textAlign:'center'` live. CTA remains at its own pre-existing, untouched position (centerX=81.85, unaffected by this fix, out of scope). Zero horizontal overflow (`bodyScrollWidth === innerWidth === 390`), zero unexpected wrapping, no clipping. Zero console errors/warnings.
+Before (real Production, carried from §130's own LIVE record): quoteNumberCenterX=71.07, dateLineCenterX=71.08, validityCenterX=71.08, ctaCenterX=81.85 → spread **10.78px**. After (local, fixed): 75.25/75.25/75.26/75.27 → spread **0.02px**.
 
-## 10. LIVE Desktop Result
+## 12. HE Agent Result
 
-HE Desktop (1280px) re-screenshotted against real Production post-deploy — renders identically to its accepted pre-existing state, zero console errors, zero geometry drift (Desktop branch has zero code diff by construction, confirmed via `git diff`).
+**PASS.** All geometry live-measured against the local running application with real David A46 data: item price column, totals, CTA group, all variants, Mobile and Desktop. Zero overflow, zero console errors throughout.
 
-## 11. HE Result
+## 13. EN Agent Result
 
-**PASS, live-verified.**
+**CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED.** Unchanged constraint from the AUDIT-005 tasks: the entire David preview surface is HE-only by construction (gated to one Hebrew-market real account); no genuine live EN quote was available without an out-of-scope DB query, none fabricated. None of this task's changed lines carry an `isHebrew` branch — structurally symmetric by construction (canonical formatter, `.pf-money`, the `flex:1`+fixed-width money pattern, the Grid totals pattern, `alignItems:'center'` are all locale-independent).
 
-## 12. EN Result
+## 14. Mobile Result
 
-**EN LIVE: NOT VERIFIED.** No safe, existing, real International Public Quote was available to this session without a live authenticated DB query, which remains outside this task's authorized scope (the same constraint already disclosed in the implementation task, not retried). No Production test data was created to manufacture EN evidence. The existing CODE/STRUCTURAL VERIFIED result (HE≡EN structural parity via `PublicQuoteHeader.test.jsx`) stands unchanged.
+**PASS**, primary surface. 360/390/412px all checked: zero overflow, 10px outer margin confirmed, `maxSpreadPx=0` on all money geometry, CTA group `maxSpreadPx=0.02`.
 
-## 13. Console / Overflow / Regression Result
+## 15. Desktop Result
 
-Zero console errors/warnings on every live page load performed this task (Mobile and Desktop). Zero horizontal overflow. Zero regression detected on Desktop or on any other Public Quote element (business info, customer block, items, totals, terms — all unchanged, since only one CSS line in the Mobile branch was touched).
+**PASS**, zero regression. B+/A variants re-confirmed at 1280px (`maxSpreadPx=0`). Desktop branch of `PublicQuoteHeader.jsx` has zero code diff (already used the correct `alignItems:'center'` pattern this task's Mobile fix now matches). The real, unrelated Production `PublicQuote.jsx` Desktop rendering re-screenshotted as a sanity check — zero console errors (untouched file).
 
-## 14. Production Screenshot / Evidence
+## 16. Variable-Content Stress Results
 
-Full-page Mobile screenshot (`audit005_LIVE_he_mobile.png`) captured showing the corrected, visually-balanced header (quote number, date, and validity now share one visible center axis) on real Production. Desktop HE screenshot (`audit005_LIVE_desktop_he.png`) captured as a regression check.
+Safe, reversible DOM simulation (`restored:true` confirmed, zero DB touch): item-row money boundary values `₪550.00`/`₪1,250.00`/`₪10,000.00`/`₪21,889.00`/`₪125,000.00` (the last an explicit stress case beyond David's real range) — **maxSpreadPx=0 in every case**, zero horizontal overflow in every case. Quote-number boundary values `A1`/`A46`/`A10000` — zero overflow in every case.
 
-## 15. Contract Trigger Ledger
+## 17. Tests/Lint/Build/Console Results
 
-**FILE**: `src/components/PublicQuoteHeader.jsx`
-**SEMANTIC RESPONSIBILITY**: shared HE/EN Public Quote header — business identity, quote-number/date/validity metadata, phone CTA.
-**APPLICABLE CONTRACTS**: Visual Geometry/Alignment Contract (§127.4); HE/RTL + EN/LTR Geometry (§37); Mobile/Desktop Responsive Geometry (§45 family, §84); Public Quote Accepted Visual State / Owner-Approved=LOCKED (§54).
-**PROTECTED AXIS**: CENTER X, shared across the quote-number/date/validity stack.
-**LIVE VERIFICATION**: PASS — real Production `getBoundingClientRect()`/`Range` geometry measured, maxSpreadPx=0.01.
-**HE**: PASS (live). **EN**: CODE/STRUCTURAL VERIFIED (not live). **MOBILE**: PASS (live, primary surface). **DESKTOP**: PASS (live regression check).
-**PASS / PARTIAL / BLOCKED**: **PARTIAL** — every available verification passed; the one disclosed gap (no live EN Production data) is honest, not hidden, per the Fail-Closed PASS Gate (§127.7).
+Full suite: **178/178 pass** (no new tests added — the existing `PublicQuoteHeader.test.jsx` continues to pass unmodified, asserting `textAlign` not `alignItems`). Lint: 0 new errors; 2 pre-existing unused-variable warnings (`KIND_COLOR`, `formatQuoteFallback`) confirmed via `git show origin/main:<file>` to predate this task, left untouched. Build: clean. Console: zero errors on every page load performed this task.
 
-**FILE**: `src/components/PublicQuoteHeader.test.jsx` — test infrastructure, not a live-rendered surface. PASS (178/178 full suite green post-deploy).
+## 18. Contract Trigger Ledger
 
-## 16. AUDIT-001/002/003/004 Unchanged Confirmation
+Full ledger (FILE/SEMANTIC RESPONSIBILITY/APPLICABLE CONTRACTS/WHY TRIGGERED/PROTECTED AXES/MONEY GEOMETRY/OPTICAL CENTERING/HE/EN/MOBILE/DESKTOP/REAL-BROWSER VERIFICATION/PASS-PARTIAL-BLOCKED) for all 4 changed files recorded at `PROFLOW_PROJECT_CONTEXT.md` §131.8. All four: **PARTIAL** — every available verification passed; the disclosed, unavoidable gap (no live EN Production data; `ProfessionalItemComparisonCard.jsx`'s authenticated route not independently re-tested live) is honest, not hidden, per the Fail-Closed PASS Gate (§127.7).
 
-`git diff --stat 2e7cebe..df6476f` against `src/components/CustomerQuoteItemRow.jsx`, `src/pages/ProfessionalPublicPreview.jsx`, `src/components/ProfessionalItemComparisonCard.jsx` returns **empty** — byte-identical across the entire deployed range.
+## 19. Application Commit SHA
 
-**AUDIT-001: UNCHANGED**
-**AUDIT-002: UNCHANGED**
-**AUDIT-003: UNCHANGED**
-**AUDIT-004: UNCHANGED**
+`11af77dd1be1629bb3f7da64648efed94c28ceff` (application fix, local `main`).
 
-## 17. Six-File Continuity Ledger
+## 20. Push Status
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§130)
-- `PROFLOW_TODO.md` — **UPDATED** (item 42 status → LIVE, item 43 cross-reference)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GD)
+**NOT AUTHORIZED** by this task — `origin/main` unchanged at `df6476fd0e5a80c35c6e920108b83efbeabfece0` throughout.
+
+## 21. Deploy Status
+
+**NOT AUTHORIZED.** No Vercel deployment triggered.
+
+## 22. LIVE Status
+
+**NOT EXECUTED.** All "after" evidence in this report is against the local running application (`http://localhost:5184`), not Production.
+
+## 23. Owner Visual Acceptance Status
+
+**PENDING**, for every fix in this task — Claude Lead's own verification is evidence, not a substitute for the Owner's personal review (§43). Nothing in this task is Owner-LOCKED.
+
+## 24. Landing Page Requirement Documentation Location
+
+`PROFLOW_TODO.md` item 44 (new) — full requirement text recorded there (generic professional/trade quote-building capability messaging, explicitly not aluminum-specific). Not implemented, per explicit instruction.
+
+## 25. Six-File Continuity Ledger
+
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§131)
+- `PROFLOW_TODO.md` — **UPDATED** (item 42 addendum, item 43 cross-reference, new item 44)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GE)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (a Production release of an already-documented bug fix, not a new architectural fact)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (bug fixes + a documented future requirement within already-documented architecture)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-## 18. Continuity Commit SHA + Remote Read-Back
+## 26. Continuity Commit SHA + Remote Read-Back
 
-`f0e6eb418cd44357337e7c788ce3f77eba6b19fe` on `proflow-continuity` (pushed; content commit `2d55859` + this SHA-follow-up commit). Matching commits exist locally on `main` (`3ba34fb` content, `1d26f50` follow-up) — `main` itself is already fully pushed via the application release (§6-8 above), so this docs-only follow-up simply continues the local history; only `proflow-continuity` needed a separate push for the documentation layer. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2d55859536e980a9a1a2684f62b202fd7dc2b4e0` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §130 and `PROFLOW_HANDOFF.md` §18.GD both present and correct. `origin/main` re-fetched and confirmed at `df6476fd0e5a80c35c6e920108b83efbeabfece0` — the deployed AUDIT-005 release.
+*(recorded after push — see below.)*
 
-## 19. Explicit Owner Visual Acceptance Status
+## 27. Remaining NOT VERIFIED Items
 
-**PENDING.** Claude Lead's own real-browser LIVE verification is evidence, not a substitute for the Owner's personal review — per §43 item 1 ("actual result overrides reported PASS... the Owner's own review is the final word"). AUDIT-005 is **not** Owner-LOCKED by this task; it becomes LOCKED only once the Owner personally reviews the live Production result and accepts it (§54).
+- Live EN rendering of any of this task's changed files (CODE/STRUCTURAL VERIFIED only, throughout).
+- Live rendering of `ProfessionalItemComparisonCard.jsx` (authenticated route, no David credentials exist or were sought — consistent with established practice, not a new gap).
+- The broader NOT VERIFIED surfaces already disclosed at §128.9 (Auth/Landing, Clients/Settings/Catalog/Finances, Admin) — unaffected by, and unrelated to, this task's scope.
+
+## 28. Exact Recommended Next Checkpoint (recommendation only)
+
+A separate, explicit Owner authorization for the **Production release** of this task's four-file commit (`11af77d`) — mirroring the established two-step pattern already used for AUDIT-005 (implementation task, then a separate release task). Owner visual review of the local/staged result is the natural gate before that authorization is sought.
 
 ---
 
-Application code pushed and deployed (`df6476f`). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
+Application code committed locally only (`11af77d`). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads + safe, fully-reverted DOM text simulation only, `restored:true` confirmed every time).
