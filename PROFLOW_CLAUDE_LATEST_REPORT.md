@@ -66,15 +66,13 @@ Each result is backed by a real screenshot plus measured `getBoundingClientRect(
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below, per the established two-commit convention.)*
+`f5f14fd2ba4e7649c29c05f204e01592556e1837` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the four genuinely-changed files. Matching commit exists locally on `main` (`27190db`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `f5f14fd2ba4e7649c29c05f204e01592556e1837` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§119 present, correct) and `PROFLOW_HANDOFF.md` (§18.FT present, correct) — both confirmed present and correct. `origin/main` re-fetched, confirmed unaffected (`83e677a488a6a17b9a195c5a360726307398f445`); RC tag `proflow-rc-2026-09-01-wave4-complete` re-confirmed absent from the remote.
 
 ---
 
