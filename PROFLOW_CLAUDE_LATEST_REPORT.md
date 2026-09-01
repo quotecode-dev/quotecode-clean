@@ -4,91 +4,103 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: AUDIT-001–005 + B+ Mobile Width Refinement — Production Release
+## Task: B+ Mobile Width Correction — Verification/Reporting Process Escape
 
-**Release-only task, separately Owner-authorized from implementation. Release of the already-verified commit `11af77d` only — no additional application changes made.**
-
----
-
-## PRODUCTION RELEASE: **COMPLETE**
+**Narrow, Owner-authorized correction. AUDIT-001–005 not reopened, money geometry untouched, CTA alignment untouched, no redesign. Implementation + local verification only — not pushed, not deployed.**
 
 ---
 
-## 1. Pre-Release Gate Result
+## B+ MOBILE WIDTH CORRECTION: **COMPLETE**
+## OUTER MOBILE MARGINS: **VERIFIED**
+## MONEY GEOMETRY: **UNCHANGED**
+## CTA GEOMETRY: **UNCHANGED**
+## OWNER VISUAL ACCEPTANCE: **PENDING**
 
-`11af77d` confirmed ancestor of local HEAD (`8bb777c`). Full diff across the entire pushed range matched exactly the 4 previously-verified files (`CustomerQuoteItemRow.jsx`, `ProfessionalItemComparisonCard.jsx`, `PublicQuoteHeader.jsx`, `ProfessionalPublicPreview.jsx`) — zero DB/schema/migration files anywhere. `src/entry-server.jsx` confirmed still in its standing untracked, never-committed state, unaffected. Fresh 178/178 tests, clean build. **GO.**
+---
 
-## 2. Application Diff Released
+## 1. Root Cause of Why Prior Width Refinement Had No Material Visible Effect
 
-Identical to the diff already recorded and verified at `PROFLOW_PROJECT_CONTEXT.md` §131 — no reimplementation performed.
+**Finding: the prior refinement did have the intended effect — the deployed code was, and remains, genuinely correct.** A fresh, exhaustive re-audit this task (full DOM ancestor chain `html`→`body`→`#root`→outer page div→wrapper, cross-checked via both `getBoundingClientRect()` and `getComputedStyle()`, plus individual measurement of all six sibling cards) confirmed the real-Production deployed value was exactly `10px` padding on every visible card, matching the prior task's own report precisely. This is **not a code regression**, and the prior task's own verification already used real geometry (not overflow-absence or screenshot judgment alone) — a factual correction to this task's own framing, recorded transparently. The route's `Cache-Control` header is confirmed the correct `public, max-age=0, must-revalidate` (no server/CDN caching defect). The most plausible explanation for the Owner's conflicting real-device evidence is a stale client-side cache on his own device (bfcache, or a tab open from before the deployment) — not directly confirmable from this environment, disclosed as the best available explanation rather than asserted as fact.
 
-## 3. Push Result
+## 2. Exact Controlling Container / File
 
-LOCAL RELEASE SHA: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
-ORIGIN/MAIN BEFORE: `df6476fd0e5a80c35c6e920108b83efbeabfece0`
-ORIGIN/MAIN AFTER: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
-REMOTE CONTAINS 11af77d: **YES**
+`src/pages/ProfessionalPublicPreview.jsx`, the `pagePadding` constant — the single correct control point, consumed uniformly by all six sibling cards via the shared `maxWidth:620px` wrapper one level below it. No per-row/per-component compensation was made or needed.
 
-## 4. Production Deployment Result
+## 3. Before Outer-Margin Measurements
 
-PUSH: **PASS**
-DEPLOYMENT: **PASS**
-DEPLOYED SHA: `8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
-PRODUCTION READY: **YES**
+Real Production, re-confirmed fresh this task: viewportWidth=390, leftOuterMargin=10, rightOuterMargin=10, documentWidth=370, **documentWidth/viewportWidth = 94.9%**.
 
-Confirmed via `vercel inspect --logs`: `Cloning ... (Branch: main, Commit: 8bb777c)`, status `● Ready`. Canonical domain confirmed serving it (`HTTP 200`).
+## 4. Exact Implementation
 
-## 5-7. LIVE Mobile — the Owner's Three Observed Failures
+One constant changed, one file: `pagePadding = isMobileView ? '8px' : '16px'` (was `'10px'`) — the low end of the already Owner-approved 8-12px range. No per-row compensation, no negative margins, no `100vw` hacks, no David-only pixel offset.
 
-**A. Item price column** (7 real David A46 items, `₪10,000.00`-`₪550.00`): every row's money box shares `left=23, right=115, centerX=69` — **itemMaxSpreadPx = 0**.
+## 5. After Outer-Margin Measurements
 
-**B. Totals** (`₪18,550.00`/`₪3,339.00`/`₪21,889.00`): all three share `right=151.64` — **totalsMaxSpreadPx = 0**.
+Local build, real geometry:
 
-**C. Header CTA centering**: quoteNumberCenterX=79.25, dateLineCenterX=79.25, validityCenterX=79.26, ctaCenterX=79.27 — **ctaMaxSpreadPx = 0.02**.
+| Viewport | leftOuterMargin | rightOuterMargin | documentWidth | utilization |
+|---|---|---|---|---|
+| 390 (primary) | 8 | 8 | 374 | **95.9%** |
+| 360 | 8 | 8 | 344 | **95.6%** |
+| 412 | 8 | 8 | 396 | **96.1%** |
+| 1280 Desktop | 322.5 | 337.5 | 620 | 48.4% (unchanged — Desktop is governed by the fixed 620px cap) |
 
-All three exactly match the local pre-release build's own measured spreads (absolute centerX values shifted slightly, an expected consequence of the real Production environment's own font/layout metrics — the protected relative geometry, which is what the contract requires, holds identically).
+## 6. Viewport Utilization Before/After
 
-## 8. LIVE B+ Mobile Width
+**94.9% → 95.9%** at the primary 390px viewport (total margin 20px → 16px, a real, measured further reduction). Consistent across all three tested real device-class Mobile widths.
 
-`outerMarginLeft = 10, outerMarginRight = 10` — confirmed exactly 10px both sides on real Production. Zero overflow, zero clipping, borders/shadows fully visible, price/description columns cleanly separated.
+## 7. Money-Geometry Regression Result
 
-## 9. HE / RTL Live
+`itemMaxSpreadPx = 0`, `totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
 
-**PASS.**
+## 8. CTA-Geometry Regression Result
 
-## 10. EN / LTR
+`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching the prior release's own live-measured values.
 
-**NOT VERIFIED.** No safe existing International Public Quote was available without an out-of-scope DB query — none fabricated. CODE/STRUCTURAL VERIFIED (from §131) stands unchanged.
+## 9. Mobile Result
 
-## 11. Desktop Live Regression
+**PASS.** Zero horizontal overflow, zero clipping, borders/shadows fully visible, zero console errors at all three tested widths. Expand interaction re-verified fully functional via a real click (not static rendering) at the new width — all 8 real measurement rows revealed correctly, zero overflow after expansion. Totals and terms sections re-confirmed readable.
 
-**PASS, zero regression.** Both the B+ comparison preview (1280px) and the real, unrelated `PublicQuote.jsx` (1280px, never touched by any task in this lineage) re-screenshotted against real Production — both render identically to their accepted states, zero console errors on either.
+## 10. Desktop Result
 
-## 12-13. Safety / Fail-Closed Gate
+**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected — byte-identical to the prior release's own Desktop record.
 
-Zero mutation performed — every action this task was a read-only `GET` plus client-side DOM geometry reads. No edit/sign/approve/send/notify action of any kind. Every LIVE claim above is backed by an actual rendered-geometry measurement, not push/deploy/screenshot status alone.
+## 11. Tests/Build/Console
 
-## 14. Owner Visual Acceptance Status
+Full suite: **178/178 pass**. Lint: 0 new errors (the same single pre-existing unused-import warning already documented in prior tasks, confirmed unrelated). Build: clean. Console: zero errors on every page load this task.
 
-**PENDING.** Claude Lead's own LIVE verification is real-browser evidence, not a substitute for the Owner's personal inspection on his physical Mobile device. Nothing in this task is marked Owner-LOCKED.
+## 12. Contract Trigger Ledger
+
+**FILE**: `src/pages/ProfessionalPublicPreview.jsx`
+**SEMANTIC RESPONSIBILITY**: Mobile-width host for the B+ quote-context comparison preview.
+**APPLICABLE CONTRACTS**: Mobile/Desktop Responsive Geometry (§45/§49/§56/§57); Visual Geometry/Alignment Contract (§127.4).
+**WHY TRIGGERED**: direct Owner-reported width-target discrepancy on the exact surface this contract governs.
+**PROTECTED AXIS**: Mobile outer margin (both sides), now 8px.
+**VERIFICATION**: real `getBoundingClientRect()` + `getComputedStyle()`, full ancestor chain, every sibling card, three Mobile widths, plus a live expand-interaction test.
+**HE**: PASS (local build). **EN**: N/A (no locale-conditional logic; surface remains HE-only by construction). **MOBILE**: PASS. **DESKTOP**: PASS (zero regression).
+**PASS/PARTIAL/BLOCKED**: **PASS** for everything measurable; the "why the Owner saw something different" question is disclosed as unresolved-with-best-explanation, not silently assumed away.
+
+## 13. Local Commit SHA
+
+`023a0d14b0e4b28b521296012e8ef5fbd8a46f1b` (application fix, local `main`).
+
+## 14. Push/Deploy Status
+
+**NOT AUTHORIZED** by this task. `origin/main` unchanged at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826` throughout.
 
 ## 15. Six-File Continuity Ledger
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§132)
-- `PROFLOW_TODO.md` — **UPDATED** (items 42/43 status → LIVE)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GF)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§133)
+- `PROFLOW_TODO.md` — **UPDATED** (item 42 addendum)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GG)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
 ## 16. Continuity Commit SHA + Remote Read-Back
 
-`e6f32ce00cf7a93ccd3675dbb82fed3db8c73a2f` on `proflow-continuity` (pushed; content commit `555c98c` + this SHA-follow-up commit). Matching commits exist locally on `main` (`98de41b` content, `9b53415` follow-up) — `main` itself already carries the pushed application release (§3-4 above); this follow-up is documentation-only, mirrored to `proflow-continuity`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `555c98c70bc19571d79364b15ad4754a5aa609c0` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §132 and `PROFLOW_HANDOFF.md` §18.GF both present and correct. `origin/main` re-fetched and confirmed at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826` — the deployed release.
-
-## 17. Remaining NOT VERIFIED Items
-
-Live EN rendering of any of this release's files (CODE/STRUCTURAL VERIFIED only). Live rendering of `ProfessionalItemComparisonCard.jsx`'s authenticated route (no David credentials exist or were sought, consistent with established practice). The broader NOT VERIFIED surfaces already disclosed at §128.9 (Auth/Landing, Clients/Settings/Catalog/Finances, Admin) — unaffected by and unrelated to this task.
+*(recorded after push — see below.)*
 
 ---
 
-Application code pushed and deployed (`8bb777c`). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
+Application code committed locally only. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
