@@ -82,7 +82,20 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
                 בעבר לסדר ההפוך (תיבה קודם, CTA אחריה) לפי בקשת הבעלים.
                 הוחלף סדר שני הילדים כאן כדי שהמובייל יתאים לדסקטופ - שינוי
                 DOM בלבד, בלי שינוי style/תוכן/טקסט/מספרים. */}
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.3', textAlign: isHebrew ? 'left' : 'right', whiteSpace: 'nowrap' }}>
+            {/* חוק ברזל (AUDIT-005 - תיקון יישור אופטי, Public Quote Mobile
+                Header Alignment Fix): לפני התיקון, ה-textAlign כאן היה
+                isHebrew?'left':'right' - התוריש ליישור-קצה את שורות
+                "תאריך:"/"בתוקף עד:", בעוד תת-הבלוק של מספר-ההצעה (למטה)
+                דרס למרכוז עצמאי - שתי אסטרטגיות יישור שונות בתוך אותו מחסנית
+                מידע חזותית אחת, ללא ציר משותף עם כפתור ה-CTA שמתחתיה (נמדד
+                חי: מרכז-X של מספר ההצעה=75.25px מול מרכז-X של שורת
+                התאריך=62.98px - פער ~12px, ר' PROFLOW_PROJECT_CONTEXT.md
+                §129). תוקן ל-textAlign:'center' קבוע (לא isHebrew-מותנה,
+                באותה עקרון בדיוק של Money Numeric Alignment - מרכוז טקסט
+                אינו תכונת-locale) - תואם בדיוק את הענף Desktop של אותו
+                רכיב עצמו (שורה 169 למטה, שכבר משתמש ב-textAlign:'center'
+                אחיד לאותו תוכן בדיוק, בלי יישור מעורב). */}
+            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.3', textAlign: 'center', whiteSpace: 'nowrap' }}>
               {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
                   לפני התיקון, ענף ה-fallback (formattedNumber falsy - המצב
                   היחיד הקיים בפועל היום, לפני הפעלת ה-migration) הציג רק
