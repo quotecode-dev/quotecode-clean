@@ -5188,3 +5188,84 @@ Every claim above is backed by an actual rendered-geometry measurement, not buil
 **Not marked PASS/LOCKED by this task.** Claude Lead's own LIVE verification is real-browser evidence; it does not substitute for the Owner's personal inspection on his physical Mobile device (§43 item 1/2). **Owner visual acceptance of AUDIT-001–005 and the B+ width refinement remains PENDING**, now that the result is genuinely live for the Owner to review.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §132); `PROFLOW_TODO.md` UPDATED (items 42/43/44 status → LIVE where applicable); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`8bb777c`); zero DB/schema/Edge Function mutation; zero customer communication; zero signature/approval action; David's original quote data untouched (read-only page loads only).**
+
+## §133. B+ Mobile Width Correction — Verification/Reporting Process Escape (added 2026-09-01, Owner-authorized, IMPLEMENTATION + LOCAL VERIFICATION ONLY, not pushed/deployed)
+
+### 133.1 Owner Production observation
+
+The Owner's real physical-device Production screenshot, taken after §132's live release, showed the B+ Mobile outer horizontal margins still materially wider than the approved 8-12px target — despite §132's own report of `outerMarginLeft=10, outerMarginRight=10` measured directly on real Production.
+
+### 133.2 Fresh investigation — root cause of the apparent discrepancy
+
+Before writing any code, the currently-deployed real Production state was re-audited exhaustively: the full DOM ancestor chain (`html`→`body`→`#root`→outer page div→the `maxWidth:620px` wrapper→the item-list card) was measured via both `getBoundingClientRect()` **and** `getComputedStyle()` (not inferred from one alone), and **every one of the wrapper's six direct children** (comparison toolbar, purple header, recipient block, item list, totals, terms) was individually measured. **Finding: the currently-deployed code is genuinely, correctly computing exactly `10px` padding on every visible card, real Production, right now** — `computedPaddingLeft`/`computedPaddingRight` both read `10px`, matching the §131/§132 implementation exactly. This is **not a code regression** — §132's own prior LIVE measurement (`outerMarginLeft=10, outerMarginRight=10`, via real `getBoundingClientRect()`) was accurate and remains reproducible.
+
+**Correction to this task's own framing**: the instruction states the prior task "passed a width requirement without proving the requested outer-width change actually occurred" — this is not accurate as stated; §132's own record already used real `getBoundingClientRect()` geometry (not overflow-absence or screenshot judgment alone) and its measured value is independently reproduced here. The permanent lesson the instruction itself states — **"a width requirement must be verified using actual viewport-to-container geometry, not only overflow absence or screenshots"** — is recorded as a standing principle regardless (it is correct and worth keeping permanent), but the specific claim that the prior verification method was insufficient does not hold up under this task's own re-audit.
+
+**Most plausible explanation for the Owner's conflicting real-device evidence**: a stale client-side cache on the Owner's physical device (the route's `Cache-Control` header is confirmed `public, max-age=0, must-revalidate` — the correct, safe pattern requiring revalidation on every navigation — so no server/CDN-side caching defect was found; a browser back-forward-cache (bfcache) hit, or a tab left open from before the §132 deployment and not hard-refreshed, remains the most likely explanation, though it cannot be directly confirmed from this environment). **Classified under the permanent contract system as a VERIFICATION / REPORTING PROCESS ESCAPE per this task's own instruction, with the correction above recorded alongside it for accuracy.**
+
+### 133.3 Controlling container / file
+
+`src/pages/ProfessionalPublicPreview.jsx`, the `pagePadding` constant (driving the outer page `<div>`'s own `padding`), consumed by every one of the six sibling cards via the shared `maxWidth:620px, margin:'0 auto'` wrapper one level below it — confirmed the single correct control point (not per-row/per-component padding, matching this task's own explicit "do not compensate by widening individual inner item rows independently" instruction).
+
+### 133.4 Before outer-margin measurements (real Production, re-confirmed fresh this task)
+
+viewportWidth=390, leftOuterMargin=10, rightOuterMargin=10, documentWidth=370, documentWidth/viewportWidth=**94.9%**.
+
+### 133.5 Exact implementation
+
+One constant changed, one file: `pagePadding = isMobileView ? '8px' : '16px'` (was `'10px'`) — the low end of the already Owner-approved 8-12px range. No other change. No per-row compensation, no negative margins, no `100vw` hacks, no David-only pixel offset — matching every explicit prohibition in this task.
+
+### 133.6 After outer-margin measurements (local build, real geometry)
+
+| Viewport | leftOuterMargin | rightOuterMargin | documentWidth | utilization |
+|---|---|---|---|---|
+| 390 (primary) | 8 | 8 | 374 | **95.9%** |
+| 360 | 8 | 8 | 344 | **95.6%** |
+| 412 | 8 | 8 | 396 | **96.1%** |
+| 1280 Desktop | 322.5 | 337.5 | 620 | 48.4% (unchanged, expected — Desktop governed by the fixed `maxWidth:620px` cap, not a percentage target) |
+
+### 133.7 Viewport utilization before/after
+
+**94.9% → 95.9%** at the primary 390px viewport (a real, measured, further reduction: 20px total margin → 16px total margin). Confirmed consistently across 360/412px real device-class widths too.
+
+### 133.8 Money-geometry regression result
+
+`itemMaxSpreadPx = 0`, `totalsMaxSpreadPx = 0` at every tested viewport (390/360/412/1280) — **UNCHANGED**, zero regression.
+
+### 133.9 CTA-geometry regression result
+
+`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, zero regression, matching §132's own live-measured values.
+
+### 133.10 Mobile result
+
+**PASS.** Zero horizontal overflow, zero clipping, borders/shadows fully visible (screenshot-confirmed), zero console errors, at all three tested Mobile widths. Expand interaction (`getBoundingClientRect`-verified, real click via CDP, not static rendering) re-confirmed fully functional at the new width — all 8 real measurement rows revealed correctly, zero overflow after expansion. Totals and terms sections re-confirmed readable and unaffected.
+
+### 133.11 Desktop result
+
+**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected (`pagePadding` only changes when `isMobileView` is true) — confirmed byte-identical geometry to §132's own Desktop record.
+
+### 133.12 Tests/build/console
+
+Full suite: **178/178 pass**. Lint: 0 new errors (the same single pre-existing unused-import warning already documented at §131/§132, confirmed unrelated, left untouched). Build: clean. Console: zero errors on every page load performed this task.
+
+### 133.13 Contract Trigger Ledger
+
+**FILE**: `src/pages/ProfessionalPublicPreview.jsx`
+**SEMANTIC RESPONSIBILITY**: Mobile-width host for the full B+ quote-context comparison preview.
+**APPLICABLE CONTRACTS**: Mobile/Desktop Responsive Geometry (§45/§49/§56/§57); Visual Geometry/Alignment Contract (§127.4) — specifically its own "verify with actual rendered measurement, not CSS-intent inspection" principle, now doubly reinforced by this task's own re-audit.
+**WHY TRIGGERED**: a direct Owner-reported width-target discrepancy on the exact surface this contract already governs.
+**PROTECTED AXIS**: Mobile outer margin (both sides), now 8px (previously 10px, both within the Owner-approved 8-12px range).
+**VERIFICATION**: real `getBoundingClientRect()` + `getComputedStyle()`, full ancestor chain, every sibling card individually, three representative Mobile widths, plus a live interaction test (expand).
+**HE STATUS**: PASS (local build). **EN STATUS**: N/A (no locale-conditional logic on this line; this surface remains HE-only by construction, unchanged from every prior task in this lineage). **MOBILE STATUS**: PASS. **DESKTOP STATUS**: PASS (zero regression).
+**PASS/PARTIAL/BLOCKED**: **PASS** for everything measurable this task; the underlying "why did the Owner see something different" question is disclosed as unresolved-with-best-explanation (133.2), not silently assumed away.
+
+### 133.14 Release boundary
+
+Per this task's own explicit instruction: implementation authorized, release was not independently granted. **A local application commit was created. It was NOT pushed and NOT deployed.**
+
+PUSH: NOT AUTHORIZED (this task).
+DEPLOY: NOT AUTHORIZED (this task).
+
+**Owner visual acceptance of the B+ Mobile presentation (and of every fix released in §132) remains PENDING.**
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §133); `PROFLOW_TODO.md` UPDATED (item 42 addendum recording the correction); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).**
