@@ -4,109 +4,93 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Forensic TEST-vs-LIVE Desktop Geometry Audit
+## Task: Forensic Follow-Up — Observed LIVE State Transition + David Aluminum Public Quote Width
 
-**MODE: READ-ONLY FORENSIC INVESTIGATION. Zero application/DB/TEST/Production mutation. No commit of application code. No push. No deploy. No LIVE action.**
+**MODE: READ-ONLY FORENSIC INVESTIGATION. NO application/DB/TEST/Production mutation.**
 
 ---
 
-## 0. Fresh Local State
+## Issue A — Observed LIVE state transition
 
-`git fetch` confirmed `origin/proflow-continuity`=`3416a98`, `origin/main`=`26dee96` (unchanged). Local `main` at `99688c8`. Working tree clean besides the standing untracked `entry-server.jsx`. **Zero application file touched by this task** — `git diff --stat` empty before and after. TEST (5186) serves the current working tree directly, no build, no pinned commit (its own already-documented nature). Production serves `origin/main`@`26dee96`, re-confirmed unchanged.
+**Earlier observed state**: LIVE Dashboard visibly narrower than TEST/LOCAL Dashboard.
+**Current observed state**: LIVE and TEST now match, under matched browser conditions.
 
-## Six canonical files — read and reconciled
+**Forensic timeline, built from real evidence** (`git reflog`, `vercel ls --prod`, `vercel inspect --logs`):
+- `origin/main` = `26dee96` continuously across both Owner observations — confirmed via `git rev-parse`, checked at the start of every task this session, never moved.
+- The current live Production deployment (`dpl_4tXyySB1...`) was built from commit `26dee96`, confirmed directly from its build log (`Cloning ... Commit: 26dee96`, `✓ built in 11.82s`), went `● Ready` at `2026-09-01 19:50:54 UTC`.
+- `vercel ls --prod` confirms **zero Production deployments since** — this is the same deployment currently serving LIVE.
+- A live `/dashboard` response header (`Last-Modified: 19:51:35 UTC`) initially appeared to predate this deployment by ~3 hours; reconciled as a timezone-representation artifact (Vercel's own "created" field displays Israel local time, GMT+3, while the HTTP header is UTC) — the two actually match, no real staleness found.
+- Real, controlled-viewport re-measurement of the live domain this task reproduced the prior task's own result: byte-identical `980px` Dashboard geometry to TEST.
 
-All six read fresh from `proflow-continuity` this session's own most recent state (this session authored the current tip); no material contradiction found between documented state and freshly-measured evidence — the investigation's own findings (below) *refine* prior evidence (upgrading proxy evidence to real evidence) rather than contradicting it.
+**Current TEST-LIVE Dashboard geometry parity**: **PASS**.
 
-## Primary observation — proven with real evidence, not assumed
+| Question | Answer |
+|---|---|
+| Application source change proven? | **NO** — proven not to have occurred |
+| Commit proven? | **NO** |
+| Push proven? | **NO** |
+| Deployment proven? | **NO** — same deployment served both observations |
+| Browser/runtime/environment cause proven? | **NO** — plausible (window width, zoom, or a local cache that later refreshed), not provable from server-side evidence |
 
-Real, controlled, same-viewport measurement of the **actual deployed** `quotecodepro.com` (a genuine real Production account, read-only, zero mutation) at 1366/1440/1920px viewport widths: **LIVE Dashboard = TEST Dashboard, byte-identical, `980px` width, matching centerX, `0px` delta at every width tested.** Full table: `PROFLOW_PROJECT_CONTEXT.md` §144.3.
+**OBSERVED STATE TRANSITION: UNEXPLAINED** — with server-side/deployment causes affirmatively ruled out by evidence, not left ambiguous; the remaining plausible explanation (a client-side viewing-condition difference between the Owner's two sessions) could not be proven and is not converted into a PASS.
 
-**This is not screenshot-derived.** No width was calculated from the two attached images; both images were treated as evidence of *what the Owner observed*, not as a source of numeric truth — exactly per this task's own explicit instruction. The numeric result above comes entirely from live `getBoundingClientRect()`/`getComputedStyle()` reads of the real, running application.
+## Issue B — David Aluminum Public Quote: two different pages, only one is actually narrow
 
-## A. Exact root cause(s)
+Real, live, read-only measurement of both candidate pages David's Dashboard can reach, using his actual real quote data:
 
-1. **Primary observation (Image 1 vs Image 2)**: no code/build/deployment cause exists. Proven, not assumed — real, controlled, same-viewport measurement shows zero delta between TEST and LIVE at every width tested. The visual difference between the two screenshots is most plausibly explained by the two images not having been captured at matched actual browser viewport/window widths.
-2. **Second symptom (David's Public Quote "narrower")**: a real, deliberate, already-Owner-reviewed architectural characteristic — a decorative document shell (`1062px` outer) wrapping a `980px` inner content box that matches Dashboard exactly. Not a bug.
+| Surface | Viewport | Primary visible width | Left/right whitespace | Utilization | Inner content | Outer shell | Scale/transform | Canonical source | Exception authorized | Status |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LIVE Dashboard HE | 1440 | 980 | 222.5 / 237.5 | 68.1% | 980 | n/a (no shell) | none | `--pf-dashboard-desktop-content-width` | n/a | reference |
+| LIVE real Public Quote HE (`/public-quote/:id`) | 1440 | 1062 (shell) | 181.5 / 196.5 | **73.8% — wider than Dashboard** | 980 | 1062 | none | `--pf-desktop-content-width` (calc()) | YES — documented shell, §10.AH/AI | PASS (content matches Dashboard exactly) |
+| TEST real Public Quote HE equivalent | 1440 | 1062 (shell) | same | same | 980 | 1062 | none | same token | same | PASS — identical to LIVE (§141/§142) |
+| LIVE Item 30.E preview HE (`/public-quote/:id/preview`) | 1440 | **620** | 402.5 / 417.5 | **43.1% — genuinely narrow** | n/a — single box, no separate inner/shell split | 620 | **none confirmed** (full ancestor chain checked, no `transform`) | own hardcoded literal, not the shared token | **PARTIAL** — qualitative B+ concept approved; the specific `620px` number never separately reviewed/locked | geometry PASS (as-implemented), Owner numeric acceptance NOT obtained |
+| LIVE Dashboard EN | — | — | — | — | — | — | — | same architecture | — | structural PASS (zero locale-conditional width logic, established §143) |
+| LIVE Public Quote EN | — | — | — | — | — | — | — | same architecture | — | structural PASS (identical `.pq-card-desktop-width` class/token confirmed via source) |
+| Item 30.E preview EN | — | — | — | — | — | — | — | **no route exists** | n/a | **NOT APPLICABLE** — `AppGlobal.jsx` has zero route for this page |
 
-## B. First divergence point(s)
+**Correction to the prior forensic report's own framing**: the real, customer-facing Public Quote page is **not the narrow surface** — it is measurably *wider* than Dashboard. **The genuinely narrow surface is the Item 30.E comparison-concept preview** (`ProfessionalPublicPreview.jsx`), confirmed this task with a direct, unscaled `max-width:620px` and David's own real live data (upgrading the prior proxy-based measurement, §141.6/§142.6, to real-route evidence).
 
-**Between TEST and LIVE**: none — byte-identical throughout, at every level checked (source, resolved CSS custom properties, rendered geometry).
+## Final questions, answered explicitly
 
-**Between Dashboard and Public Quote**: at the content-box wrapper itself — Dashboard has no decorative shell (its own div IS the visible content); Public Quote's `.pq-card` is a decorative shell with its own padding/border budget.
-
-## C. TEST-vs-LIVE source/geometry equivalence
-
-**YES, proven equivalent.** Same source (`git diff origin/main HEAD`, empty for all non-documentation files). Same resolved CSS custom-property values, read live from the real running browser. Same rendered geometry, at every viewport tested.
-
-## D. One canonical geometry system today?
-
-**YES**, for every surface measured. One shared CSS custom property (`--pf-desktop-content-width` / its Dashboard-side alias), correctly consumed everywhere checked. One already-fixed-but-not-yet-released bypass on record (`ProfessionalQuotePreview.jsx`, §141). One newly-found, currently-**inert** legacy literal (below).
-
-## E. Complete list of bypasses/exceptions discovered
-
-- `ProfessionalQuotePreview.jsx`'s former `760px` — fixed at §141, TEST/local only, not yet released to `origin/main`.
-- A dead inline `maxWidth:'1100px'` literal inside both `PublicQuote.jsx` and `PublicQuoteEn.jsx`'s own card — **confirmed inert** this task via a real LIVE Mobile-viewport read (it only becomes the "active" resolved value at Mobile widths, where nothing else constrains the card below it anyway — harmless, never the operative Desktop rule). Flagged for future cleanup, not touched (touches two LOCKED files).
-- Item 30.E's own `620px` (`ProfessionalPublicPreview.jsx`) — explicit, Owner-approved documented exception, §123-§126.
-
-## F. Why the current permanent rule failed to prevent this
-
-It didn't fail to prevent a code defect — none was found. It failed to prevent the Owner's own *perception* of a defect, because no release step currently produces a controlled, same-viewport, side-by-side TEST-vs-LIVE comparison artifact for Owner review before/after a release is treated as accepted.
-
-## G. Smallest architectural correction that would make recurrence structurally difficult
-
-1. A controlled, same-viewport TEST-and-LIVE screenshot/measurement pair as part of any future Desktop-geometry-relevant release's own documentation (process change, zero code risk).
-2. The already-recommended automated lint guard against a future hardcoded Desktop width (`PROFLOW_TODO.md` item 49) — new tooling, zero runtime-behavior risk by construction.
-3. *Optional*: remove the now-confirmed-dead `1100px` inline literal from `PublicQuote.jsx`/`PublicQuoteEn.jsx` — pure dead-code cleanup, zero behavior change.
-
-**None of these are implemented this task.** All require separate Owner authorization.
-
-## H. Blast radius of that correction
-
-(1) documentation-process only. (2) new tooling only, cannot itself change runtime output. (3) touches two LOCKED, extensively-verified files — even though the literal is confirmed inert, §54's stop condition applies to any edit of a LOCKED file's geometry-relevant code, so this specifically would need explicit Owner authorization naming the exact edit before being attempted.
-
-## I. Previously approved/locked behavior that could be endangered
-
-**None, by this task** (read-only). The Mobile B+ Lock (§138) and Public Quote's own 980px LOCK (§10.AI) are both untouched and are not implicated by any of the three G-recommendations — (3) was specifically sized to avoid touching either.
-
-## J. Required regression matrix before any implementation could be accepted
-
-HE/EN Dashboard geometry (all standard breakpoints), HE/EN Public Quote geometry (content box AND shell), Mobile B+ geometry, money/totals/CTA geometry (unrelated files, confirm zero incidental touch), zero new lint errors, zero new console errors, zero TEST/Production data mutation.
-
-## K. TODO items affected
-
-Item 47 — this task adds real LIVE confirmation, not a new implementation (updated in the same checkpoint). Item 49 — this task's finding (E, second bullet) is additional supporting evidence, not a new item.
-
-## L. Continuity files requiring updates after an authorized implementation
-
-Same six-file discipline as every task this session: `PROFLOW_PROJECT_CONTEXT.md` (a new dated section for the specific authorized change), `PROFLOW_TODO.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CHAT_HANDOFF.md` — no different requirement introduced by this finding.
+1. **What changed between the earlier and current LIVE Dashboard observations?** Nothing provable on the server/deployment side — ruled out with evidence (git history, Vercel build logs).
+2. **If nothing in the application changed, what caused the observed visual transition?** Not provable. Most plausible remaining explanation: a client-side viewing-condition difference between the two observation sessions.
+3. **What exact element creates the visible width of David Aluminum Public Quote?** Depends which page: `.pq-card` (real Public Quote, 1062px shell/980px content) or a plain `max-width:620px` div (Item 30.E preview).
+4. **Why does it visually appear substantially narrower than Dashboard?** Only true for the Item 30.E preview (43.1% utilization vs. 68.1%) — a direct, deliberate cap. The real Public Quote page is not narrower.
+5. **Is that difference intentional per an explicit product requirement, or merely existing implementation?** The qualitative Concept B+ direction is Owner-approved (§123-§126); the specific `620px` number was never independently put to the Owner and never locked (unlike Mobile's `5px`, §138).
+6. **Does the same cause exist in EN?** No EN route exists for the Item 30.E preview at all — not applicable. The real Public Quote's shell/content architecture is identical HE/EN.
+7. **Does the same cause affect any other surfaces?** No — isolated to this one file, per the exhaustive §143 system-wide discovery.
+8. **Smallest safe correction if the Owner later authorizes it?** Reference the shared canonical token instead of the hardcoded `620px`, the same technique already used for `ProfessionalQuotePreview.jsx` (§141) — not implemented, not authorized.
+9. **What previously approved/LOCKED behavior could it endanger?** Not the Mobile B+ Lock (§138, structurally independent) — but it would materially risk reopening the Concept B+ density/document-character decision itself (§125), which is a design conversation, not a mechanical fix.
+10. **Required TEST regression matrix before any future implementation?** HE Desktop re-verification at the new width; zero Mobile change (already structurally guaranteed); item-card/expand-interaction re-verification; zero overflow/console errors; and explicit fresh Owner visual review of the specific new width — not just geometry-matching, since this reopens an approved qualitative decision.
 
 ## Six-file reconciliation
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (new §144, 10 subsections)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (new §145, 5 subsections)
 - `PROFLOW_TODO.md` — **UPDATED** (item 47, new cross-referencing update)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GP)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GQ)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
 ## Continuity commit SHA + remote read-back
 
-`2b475dd` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`4970646`) — not pushed to `origin/main` (documentation only; zero application code this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2b475dd` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §144 present in `PROFLOW_PROJECT_CONTEXT.md`, the update present in `PROFLOW_TODO.md`, §18.GP present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
 ---
 
-FORENSIC DESKTOP GEOMETRY AUDIT: PASS
-TEST-vs-LIVE ROOT CAUSE: PROVEN — no code/build/deployment divergence; TEST and LIVE Dashboard geometry byte-identical at every controlled viewport tested (1366/1440/1920px)
-CANONICAL GEOMETRY CONTRACT: PRESENT
-CROSS-SURFACE PARITY: PASS — Dashboard/Public Quote content-box geometry identical; Public Quote's document shell is a documented, non-defect exception
-HE/EN GEOMETRY GOVERNANCE: PASS (HE real-verified this task; EN structural, per zero locale-conditional width logic, not independently re-verified live this task — no real LIVE International account credentials available)
-APPROVED MOBILE WORK TOUCHED: NO
+FOLLOW-UP FORENSIC AUDIT: PASS
+OBSERVED LIVE STATE TRANSITION: UNEXPLAINED
+CURRENT TEST-LIVE DASHBOARD PARITY: PASS
+DAVID PUBLIC QUOTE VISUAL GEOMETRY ROOT CAUSE: PROVEN
+DAVID PUBLIC QUOTE OWNER ACCEPTANCE: PENDING
+HE/EN PUBLIC QUOTE PARITY: PASS (real Public Quote); N/A (Item 30.E preview has no EN route)
+CROSS-SURFACE IMPACT: IDENTIFIED — isolated to one file, no other surface affected
 APPLICATION CHANGES: NONE
+DOCUMENTATION CHANGES: SIX-FILE CONTINUITY CHECKPOINT (this record, explicitly requested by the Owner after this task's own findings were delivered in-chat; the investigation itself made zero documentation edits at the time it ran)
 DATABASE CHANGES: NONE
 TEST MUTATIONS: NONE
 PRODUCTION MUTATIONS: NONE
-COMMIT: NONE (documentation only)
+COMMIT: NONE (application code)
 PUSH: NONE (application code)
 DEPLOY: NONE
 LIVE ACTION: NONE

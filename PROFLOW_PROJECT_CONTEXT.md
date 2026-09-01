@@ -6037,3 +6037,49 @@ Real, live, read-only measurement of David's own actual quote page (attached to 
 **READ-ONLY. Zero application file touched. Zero DB/TEST/Production mutation** (the one CDP `Emulation.setDeviceMetricsOverride` action affects only client-side layout reflow of already-loaded pages, no network/data effect, explicitly cleared afterward). **No commit of application code. No push to `origin/main`. No deploy. No LIVE action.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §144); `PROFLOW_TODO.md` REVIEWED — items 47/49 cross-referenced, no new item required; `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched. No commit of application code, no push to `origin/main`, no deploy.**
+
+## §145. Forensic Follow-Up — Observed LIVE State Transition + David Aluminum Public Quote Width (added 2026-09-02, READ-ONLY investigation — NO application/DB/TEST/Production mutation, NO commit of application code)
+
+### 145.0 Fresh state
+
+`origin/proflow-continuity`=`8c0ab6d`, `origin/main`=`26dee96` (unchanged). Local `main` at `768fee5`. Zero application file touched — `git diff --stat` empty throughout.
+
+### 145.1 Issue A — observed LIVE state transition (earlier narrower, now matches TEST)
+
+**Proven, with real evidence, not inferred:**
+- `origin/main` has been `26dee96` continuously across both of the Owner's observations and remains so now — confirmed via `git reflog`/`git rev-parse`, checked at the start of every task this session, never moved.
+- Vercel's own Production deployment history shows the currently-live deployment (`dpl_4tXyySB1...`) went `● Ready` at **2026-09-01 19:50:54 UTC**, built from commit `26dee96` — confirmed directly from its build log (`Cloning ... Commit: 26dee96`, `✓ built in 11.82s`). **Zero Production deployments have occurred since** — confirmed via `vercel ls --prod`, the same deployment remains the current one.
+- A `Last-Modified: 19:51:35 UTC` header on the live `/dashboard` response initially looked like it predated this deployment by ~3 hours; reconciled as a timezone-representation artifact (the deployment's own "created" field is reported in Israel local time, GMT+3) — the header in fact matches this exact deployment's own build-completion timestamp, not an older one. No stale-CDN-serving-an-old-build scenario was found.
+- Real, controlled-viewport re-measurement of the live domain (this task) reproduced the same result as the immediately preceding forensic task: byte-identical `980px` Dashboard geometry to TEST.
+
+**Conclusion**: the server-side/deployment explanation is **ruled out with evidence, not merely unconfirmed** — nothing was committed, pushed, or deployed between the Owner's two observations. Per the required binary standard, since no cause among {source change, commit, push, deployment, browser/environment} was *provable* (the last remains merely plausible — a client-side viewing-condition difference, e.g. window width/zoom/local cache, cannot be inspected from server-side evidence), the honest result is:
+
+**OBSERVED STATE TRANSITION: UNEXPLAINED** (with server/deployment causes affirmatively ruled out, not left ambiguous).
+
+### 145.2 Issue B — David Aluminum Public Quote: two different pages, only one is actually narrow
+
+Real, live, read-only measurement of **both** candidate pages David's Dashboard can reach, using his actual real quote data (`a29b1fbb-f2ca-427d-88b2-6198d138eb89`), Desktop 1440px:
+
+| Surface | Element | Width | Left/Right whitespace | Utilization |
+|---|---|---|---|---|
+| LIVE Dashboard | `.dash-main-content > div` | 980 | 222.5 / 237.5 | 68.1% |
+| LIVE real Public Quote (`/public-quote/:id`) | `.pq-card` | 1062 (shell) / 980 (content) | 181.5 / 196.5 | **73.8% — wider than Dashboard, not narrower** |
+| LIVE Item 30.E preview (`/public-quote/:id/preview`) | plain `max-width:620px` div, no transform/scale (confirmed via full ancestor chain) | **620** | 402.5 / 417.5 | **43.1%** |
+
+**Correction to §144's own framing**: the real, customer-facing Public Quote page (`PublicQuote.jsx`/`PublicQuoteEn.jsx`) is **not** the narrow surface — its content box matches Dashboard exactly and its document shell is measurably *wider*, not narrower, than Dashboard's raw content div (§144.4, reconfirmed). **The page that is genuinely, dramatically narrower is the Item 30.E comparison-concept preview** (`ProfessionalPublicPreview.jsx`, the "בחר גרסה / Option A/B/B+/C" tool) — a direct, unscaled `620px` cap, confirmed this task with David's own real live data (previously verified only via a proxy render, §141.6/§142.6).
+
+**This is almost certainly the page the Owner has been describing throughout this thread** as "David Aluminum Public Quote." It is Hebrew-only by construction — `AppGlobal.jsx` carries no route for it at all (re-confirmed, consistent with §143.1's own full route enumeration).
+
+**Root cause, refining §144.9.E's own prior framing**: §144 recorded the 620px value as "explicit, Owner-approved exception," citing the Concept B/B+ selection round (§123-§126). This task's own closer examination finds that framing **incomplete, not wrong**: the Owner explicitly, qualitatively approved the **B+ density/document design direction** — but, unlike the Mobile width (independently, explicitly confirmed by the Owner at exactly `5px`, §138), **the specific Desktop number `620px` itself was never separately put to the Owner for review and was never locked** the way Mobile was. Root cause classification (per §143's own Section-13-style taxonomy): a deliberate qualitative design decision, implemented as a hardcoded fixed width, whose specific numeric value was never itself put to Owner acceptance — not legacy code, not duplicated architecture, not scaling, not an HE/EN divergence (no EN route exists to diverge from).
+
+### 145.3 What a future correction would look like (not authorized, not implemented, recorded for the record only)
+
+**Smallest safe correction, if the Owner later authorizes it**: widen `ProfessionalPublicPreview.jsx`'s `maxWidth:'620px'` to reference the shared canonical token, the same technique already used for `ProfessionalQuotePreview.jsx` (§141) — a one-line, token-based change, not a new magic number.
+
+**What it would risk**: unlike the `ProfessionalQuotePreview.jsx` fix (a plain content page with no design rationale for its old value), widening this file's Desktop width would materially change the **Concept B+ "compact professional document" density/character** that was the entire point of choosing B+ over B in the first place (§125) — this is not a safe mechanical substitution; it risks re-opening the Concept B+ selection itself, not merely a geometry bug fix. The Mobile B+ Lock (§138) is structurally unaffected either way (`pagePadding` is `isMobileView`-gated, independent of any Desktop change) — but the qualitative design decision is squarely at stake.
+
+**Regression matrix a future implementation would need**: HE Desktop re-verification of the preview at the new width; zero Mobile change (already structurally guaranteed); item cards/expand-interaction re-verified at the new width; zero overflow; zero console errors; and — critically, given the above — **explicit fresh Owner visual review of the new width specifically**, not just token-matching, since this reopens a previously-approved qualitative design choice rather than fixing an unreviewed defect.
+
+### 145.4 Six-File Continuity ledger for this task
+
+`PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §145); `PROFLOW_TODO.md` UPDATED (item 47 cross-referenced with this refined finding); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched. No commit of application code, no push to `origin/main`, no deploy, no LIVE action.**
