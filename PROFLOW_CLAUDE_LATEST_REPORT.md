@@ -97,15 +97,13 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log for the exact SHA, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`3d2255ab2f32a5864417bb0b155da9297a851a1e` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the three genuinely-changed files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`). Matching commit exists locally on `main` (`4701982`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push — see chat-level Final Report.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification — see chat-level Final Report.)*
+Verified via `git fetch` + `git rev-parse origin/proflow-continuity` (`3d2255ab2f32a5864417bb0b155da9297a851a1e`, exact match) followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects (the REST Contents API's rate limit from the prior task had not yet reset, so the git-protocol method — already proven equally rigorous — was used directly). All six files confirmed present and correct: the three updated files' new content verified present; the three `REVIEWED — NO CHANGE REQUIRED` files spot-checked and confirmed still correct at this commit.
 
 ---
 
