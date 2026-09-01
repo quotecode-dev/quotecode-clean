@@ -8,6 +8,7 @@ import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection } from '../utils/regionConfig';
+import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { computeEffectivePlan } from '../utils/planEntitlements';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
@@ -42,7 +43,7 @@ import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextS
 import {
   AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
   Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon, Package, X
+  MessagesSquare, Accessibility as AccessibilityIcon, Package, X, Sparkles
 } from 'lucide-react';
 
 // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
@@ -3129,6 +3130,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <PlusCircle size={16} strokeWidth={2.4} />
                 {isHebrew ? 'הצעת מחיר חדשה' : 'New Quote'}
               </button>
+            )}
+            {/* Owner-authorized David Aluminum professional-item demo entry
+                point - gated to exactly one real account via
+                professionalPreviewAllowlist.js. Renders nothing for every
+                other user, including other Local/HE accounts. */}
+            {isProfessionalPreviewEnabled(session?.user?.id) && (
+              <a
+                href="/professional-preview"
+                style={{ flexShrink: 0, background: NEON.bgCard, color: NEON.violet, border: `1px solid ${NEON.violet}`, padding: '9px 16px', borderRadius: '10px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', textDecoration: 'none' }}
+              >
+                <Sparkles size={15} strokeWidth={2.4} />
+                {isHebrew ? 'תצוגה מקדימה: חוויה חדשה' : 'New Experience Preview'}
+              </a>
             )}
             {[
               { key: 'main', icon: FileText, label: t.quotesNav },

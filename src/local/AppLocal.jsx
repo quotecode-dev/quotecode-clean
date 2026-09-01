@@ -5,6 +5,8 @@ import Dashboard from '../pages/Dashboard';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicTools from '../components/PublicTools';
+import ProfessionalQuotePreview from '../pages/ProfessionalQuotePreview';
+import ProfessionalPublicPreview from '../pages/ProfessionalPublicPreview';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
@@ -203,6 +205,11 @@ export default function AppLocal() {
         <Route path="/he/tools" element={<PublicTools />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
+        {/* David Aluminum professional-item demo, Owner-authorized, David-only -
+            see src/config/professionalPreviewAllowlist.js. Deliberately not
+            mirrored into AppGlobal.jsx - International accounts never see it. */}
+        <Route path="/professional-preview" element={<ProfessionalQuotePreview />} />
+        <Route path="/public-quote/:id/preview" element={<ProfessionalPublicPreview />} />
 
         <Route path="/terms" element={<Terms isHebrew={true} />} />
         <Route path="/he/terms" element={<Terms isHebrew={true} />} />
