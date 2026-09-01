@@ -79,7 +79,7 @@ No application file was changed this task — the Ledger is empty by fact, not b
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (applies and confirms existing architecture)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-Remote read-back performed after push — see item 20 below.
+**Continuity commit**: `2a4a593` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`6eaf3ae`) — not pushed to `origin/main`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2a4a593` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §143 + §137.1.1 present in `PROFLOW_PROJECT_CONTEXT.md`, item 47's update + new item 49 present in `PROFLOW_TODO.md`, §18.GO present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header present, and `PROFLOW_ARCHITECTURE.md` confirmed **genuinely unchanged** (`git diff` against the prior commit, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ## 17. TEST/local state
 
