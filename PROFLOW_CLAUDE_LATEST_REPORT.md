@@ -4,138 +4,125 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Permanent Contract-Enforcement Hardening + Full UI Contract Compliance Audit
+## Task: AUDIT-005 — Public Quote Mobile Header Alignment Fix
 
-**DOCUMENTATION/GOVERNANCE + READ-ONLY AUDIT ONLY. Zero application code changed. Zero DB/TEST/Production mutation. No application commit/push/deploy.**
+**Narrow, Owner-authorized implementation task. AUDIT-005 only — AUDIT-001/002/003/004 explicitly not remediated. Implementation authorization only; commit/push/deploy authorization was NOT explicitly granted, so application code was committed locally only, not pushed, not deployed.**
 
 ---
 
-## CONTRACT ENFORCEMENT HARDENING: **COMPLETE**
-## FULL UI CONTRACT AUDIT: **COMPLETE**
-## APPLICATION CODE: **UNCHANGED**
-## AUDIT FINDINGS: **NOT AUTHORIZED FOR REMEDIATION**
-## B+ MONEY FIX: **NOT YET EXECUTED**
-## B+ MOBILE WIDTH REFINEMENT: **NOT YET EXECUTED**
+## AUDIT-005 IMPLEMENTATION: **COMPLETE**
+## PUBLIC QUOTE HEADER GEOMETRY: **VERIFIED**
+## OWNER VISUAL ACCEPTANCE: **PENDING**
+## AUDIT-001/002/003/004: **UNCHANGED**
 
 ---
 
 ## 1. Fresh Local State
 
-Task start: local `main` at `e7112b5` / `f015f37` / `3013752` (prior task's continuity commits, docs-only, never pushed to `main`). `origin/main` = `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` (the temporary-QA-button deployment) — **unchanged throughout this task**, reconfirmed at task end. Working tree clean besides the standing untracked `src/entry-server.jsx`.
+Task start: local `main` at `309f18d` (prior task's final continuity commit). `origin/main` = `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a`, unchanged throughout this task (reconfirmed at task end). Working tree clean besides the standing untracked `src/entry-server.jsx`.
 
-## 2. Continuity-Integrity Result
+## 2. AUDIT-005 Confirmed Root Cause
 
-Fresh `git fetch origin` + `git rev-parse origin/proflow-continuity` (task start) resolved to `db8e0b9c9d33dfaeb8f767bdb3fbb687ef457e16` — the exact SHA the prior task pushed. `git cat-file -s origin/proflow-continuity:PROFLOW_HANDOFF.md` = 1,119,736 bytes / 4,713 lines, ending correctly with the real §18.GA entry. All six canonical files independently confirmed non-trivial in size on the same ref. **CONTINUITY INTEGRITY: PASS.** ChatGPT's report of `PROFLOW_HANDOFF.md` appearing empty is recorded as a read-surface discrepancy, not a remote content problem — no reconstruction needed or performed.
+Corrects the precision of, and confirms the substance of, the prior audit's static-only hypothesis. `PublicQuoteHeader.jsx`'s Mobile branch (line 85, pre-fix) set `textAlign: isHebrew ? 'left' : 'right'` on the info-stack wrapper — inherited by the date/validity lines — while the quote-number sub-block (line 96) independently overrode to `textAlign:'center'`. Live-measured, real Production (David A46, HE, 390×844, `document.fonts.ready`-gated): quote-number centerX = 75.26px, date-line centerX = 62.98px — a confirmed **12.28px divergence**. Decisive corroboration found this task: Desktop's own branch of the identical component (lines 169-188) already uses one uniform `textAlign:'center'` wrapper for the same content — Mobile alone had diverged from Desktop's own already-accepted pattern. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §129.2.
 
-## 3. Canonical Contract Inventory
+## 3. Protected-Axis Definition
 
-Built from the real six-file system (not invented or reused blindly from memory) — ~19 canonical contracts extracted via direct read of `PROFLOW_PROJECT_CONTEXT.md` §37/§42/§44-§46/§49/§54/§56/§58/§63/§81/§82/§84 and `PROFLOW_ARCHITECTURE.md`. Full table (CONTRACT NAME / SOURCE / TRIGGER / HE / EN / MOBILE / DESKTOP / VERIFICATION / FAIL-CLOSED CONDITION) recorded at `PROFLOW_PROJECT_CONTEXT.md` §128.1.
+**CENTER X**, defined before coding. Container: the Mobile info-stack `<div>` wrapper (line 85). Inner content: quote-number label+value, date string, validity string. Chosen because it matches (a) the already-centered quote-number sub-block, (b) the CTA pill's visual center, (c) Desktop's own already-accepted pattern for identical content. RTL/LTR: the outer column's own position (right-pinned both markets, pre-existing, untouched) is fully shared; only the internal text-alignment became locale-independent (unconditional `'center'`, no `isHebrew` branch) — matching the money-alignment principle that a centering axis is not a locale property.
 
-## 4. Exact Governance Changes
+## 4. Exact Files Changed
 
-`PROFLOW_PROJECT_CONTEXT.md` §127 (new): Contract Discovery Gate (§127.2), New-Surface Automatic Trigger (§127.3), Visual Geometry/Alignment Contract (§127.4), strengthened Money Contract trigger (§127.5, substance unchanged), Contract Trigger Ledger requirement (§127.6), Fail-Closed PASS Gate (§127.7), Prototype/temporary-code exemption scope clarified (§127.8), relationship to existing rules stated explicitly (§127.9). `PROFLOW_ARCHITECTURE.md` §18.A: short pointer recording this governance layer exists.
+- `src/components/PublicQuoteHeader.jsx` — one CSS property, one line, plus an explanatory comment.
+- `src/components/PublicQuoteHeader.test.jsx` — new, 5 focused regression tests.
 
-## 5. Exact Root Cause of the Recent Process Escape
+`git diff` confirms the Desktop branch (lines 120-202) has zero changes. No other file touched.
 
-**CONTRACT DISCOVERY / CONTRACT ENFORCEMENT FAILURE, not a CSS bug.** §44 (Global Money Numeric Alignment) and §81 Part D/§82 (Tabular Numeric Geometry) already existed, in full, before any David A46 preview file was created. Three new files (`CustomerQuoteItemRow.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalItemComparisonCard.jsx`) each independently reimplemented a local, non-canonical `money()` helper rather than importing `formatMoney`. Recorded permanently: **PROMPT OMISSION DOES NOT CANCEL AN INHERITED CONTRACT.** Full detail: §127.1.
+## 5. Exact Implementation
 
-## 6. Contract Discovery Gate
+`textAlign: isHebrew ? 'left' : 'right'` → `textAlign: 'center'` (unconditional). No width change, no new component, no per-value nudge, no magic margin, no HE-only pixel correction — the smallest possible shared-geometry fix, converging Mobile onto Desktop's own already-correct existing pattern.
 
-Established permanently at §127.2 — mandatory semantic scan (by what a surface represents/renders/mutates, never by filename/CSS-class/prompt-wording/old-vs-new-file) before implementing or modifying any application surface.
+## 6. Before/After Geometry Measurements
 
-## 7. New-Surface Trigger
+| | Quote-number centerX | Date-line centerX | Validity centerX | Max spread |
+|---|---|---|---|---|
+| BEFORE (Production, unfixed) | 75.26px | 62.98px | 75.26px | **12.28px** |
+| AFTER (local, fixed) | 75.25-75.26px | 75.25px | 75.26px | **≤0.01px** |
 
-Established permanently at §127.3 — a new representation of an existing semantic type automatically triggers every applicable existing contract, including for prototype/temporary/single-account code used as Owner-acceptance evidence. Explicit relationship to §42 stated (§42 = changing requirement propagating to existing consumers; §127.3 = new consumer inheriting an unchanging existing requirement).
+Tolerance: ≤0.5px treated as equal (sub-pixel font-metric noise) — the pre-fix spread is ~25× that tolerance; post-fix is far inside it. Content-variation stress test (`A1`/`A46`/`A10000` + short/long dates, safe reversible DOM simulation, `restored:true` confirmed): max spread ≤0.01px in every case. Zero horizontal page overflow, before and after, at every tested content length.
 
-## 8. Visual Geometry / Alignment Contract
+## 7. Mobile Evidence
 
-Established permanently at §127.4 — shared column geometry (A), protected axes (B), mathematical-vs-optical centering (C), variable-content stress test (D). Generalizes the already-proven table/money geometry lessons (§81/§82/§84) into one standing principle for all structured UI, not tables alone.
+Full-header screenshots before (Production) and after (local, fixed), 390×844. A `PIL.ImageChops.difference` pixel-diff of the two confirmed a real, localized difference at exactly the date-line row (bbox `(182,423)-(1058,508)` at 9x render scale) — the full-header screenshots alone were too zoomed-out for the ~12px shift to be obvious by eye, so this was verified by measurement and pixel-diff rather than trusted from a glance. A tight crop of just the date-line row makes the rightward shift directly visible. Zero console errors on every load.
 
-## 9. Money-Contract Trigger Strengthening
+## 8. Desktop Evidence
 
-§44/§81 Part D/§82 preserved **unchanged in substance** (§127.5) — only the automatic trigger is clarified: any newly-created monetary rendering, any file, any account scope, must apply the existing approved geometry. Money Geometry is now explicitly framed as a specialized instance of the general Visual Geometry/Alignment Contract, not a competing system.
+Zero diff (`git diff` scope confirms only the one Mobile-branch line changed anywhere in the file). Desktop HE re-screenshotted (1280px, local fixed build) as a regression sanity check — renders identically to its already-accepted state, zero console errors. Desktop EN not separately re-screenshotted (zero code change to that branch — a diff-based, not screenshot-based, non-regression proof).
 
-## 10. Contract Trigger Ledger
+## 9. Agent HE Result
 
-New mandatory Final Report artifact established at §127.6 (FILE/SEMANTIC RESPONSIBILITY/APPLICABLE CONTRACTS/WHY TRIGGERED/PROTECTED AXES/HOW VERIFIED/HE/EN/MOBILE/DESKTOP STATUS/PASS-PARTIAL-BLOCKED) — complementary to, not a replacement for, the existing File-by-File HE/EN Ledger (§37) and Six-File Continuity Ledger.
+**PASS.** Live-measured on real Production data, root cause confirmed, fix confirmed, before/after geometry proof, content-variation stress test PASS, zero overflow, zero console errors, both Mobile (primary surface) and Desktop (regression check).
 
-## 11. Fail-Closed PASS Rule
+## 10. Agent EN Result
 
-Established permanently at §127.7, generalizing the narrower existing fail-closed triggers (§81 Part D/J, §84) project-wide: a skipped applicable-contract verification means the task cannot report PASS — only PARTIAL or BLOCKED, regardless of build/lint/test/screenshot status. Future violations of an established contract are recorded as a **PERMANENT CONTRACT PROCESS ESCAPE**, classified by stage (Discovery/Implementation/Verification/Reporting).
+**CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED** — stated explicitly. No genuine Production/TEST International quote was available this session for a live EN render of this exact fix (David's account is Hebrew-market only by design; obtaining a live EN quote would have required either creating new test data — a mutation outside this task's scope — or a live authenticated DB query, which the session's auto-mode classifier correctly declined as outside this task's authorized scope). Structural evidence: `PublicQuoteEn.jsx` reuses the identical, unforked `PublicQuoteHeader` component with `isHebrew={false}`; the fix removed the only locale-conditional logic on the touched line; a new regression test directly asserts (via real React rendering, not source-reading) that HE and EN resolve to the identical `textAlign` value. No LIVE EN evidence was manufactured.
 
-## 12. Agent HE Audit Report
+## 11. Responsive Result
 
-Performed by Claude Lead within this session (established single-session HE/EN verification practice, per §57/§63/§77-§84 precedent). Full table at `PROFLOW_PROJECT_CONTEXT.md` §128.4. Summary: Quote History PASS (re-confirmed by code read, existing real-browser evidence already on record); Public Quote HE PASS (static; not re-measured live this task); David A46 preview items/totals **FAIL** (AUDIT-001/002/003/004, one live-measured this task); Dashboard KPIs PASS (positive control, confirmed fresh this task); remaining surfaces (Auth, Clients, Settings, Catalog, Finances, Admin) explicitly **NOT VERIFIED**.
+Mobile: PASS (primary acceptance surface, live-measured). Desktop: PASS (zero diff + re-screenshot). No separate Tablet/medium-breakpoint verification was applicable — this component has a single boolean Mobile/Desktop switch at 768px, not a three-tier breakpoint system.
 
-## 13. Agent EN Audit Report
+## 12. Focused / Full Test Results
 
-Full table at §128.5. Summary: Quote History PASS (structural, no locale branch on any touched geometry); Public Quote EN **NOT VERIFIED** this task; David A46 preview is **NOT APPLICABLE** for EN (the entire surface is HE-only by construction — no English rendering exists to measure, though the underlying defective code carries no `isHebrew` branch and would reproduce identically if an EN rendering were ever built, per the New-Surface Trigger); Dashboard KPIs PASS (structural).
+Focused: `PublicQuoteHeader.test.jsx`, 5/5 pass (HE centered, EN centered, HE≡EN parity, fallback-quote-number case, Desktop-branch sanity check). Full suite: **178/178 pass** (173 pre-existing + 5 new).
 
-## 14. Claude Lead Independent Reconciliation
+## 13. Build / Lint / Console Results
 
-Not a merge of 12/13 — cross-checked directly against source (§128.6). Confirmed: findings are real and reproducible from current `origin/main` source; the escape is isolated to three specific Item 30.E preview files, not project-wide (two independent positive controls confirmed: `Dashboard.jsx` KPI, `PublicQuote.jsx` real totals block); the defect is a geometry/formatter-canonicalization issue, not a market-isolation violation (no ₪/$ leakage, no VAT/currency-semantic leak); AUDIT-005 (Owner's second named example) was successfully matched to the already-open `PROFLOW_TODO.md` item 42, with a new, genuine, source-grounded root-cause hypothesis found this task.
+Lint: 0 errors on both changed files. Build: clean (`✓ built in 9.55s`). Console: zero errors on every live/local page load performed this task.
 
-## 15. Complete UI Contract Compliance Matrix
+## 14. Contract Trigger Ledger
 
-Full SURFACE × CONTRACT × HE × EN × MOBILE × DESKTOP matrix at §128.7. `NOT VERIFIED` never collapsed into `PASS` anywhere.
+**FILE**: `src/components/PublicQuoteHeader.jsx`
+**SEMANTIC RESPONSIBILITY**: shared HE/EN Public Quote header — business identity, quote-number/date/validity metadata, phone CTA.
+**APPLICABLE PERMANENT CONTRACTS**: Visual Geometry/Alignment Contract (§127.4); HE/RTL + EN/LTR Geometry (§37); Mobile/Desktop Responsive Geometry (§45 family, §84); Owner-Approved=LOCKED / Public Quote Accepted State (§54).
+**WHY EACH CONTRACT TRIGGERED**: structured multi-line stacked text with a stated alignment requirement (TODO item 42); shared component for both markets by construction; distinct Mobile/Desktop branches; real, live, previously-accepted Production Public Quote UI.
+**PROTECTED VISUAL AXES**: CENTER X, shared across the quote-number/date/validity stack.
+**HOW EACH CONTRACT WAS VERIFIED**: real `getBoundingClientRect()`/`Range` geometry (before/after, live Production + local fixed build); content-variation stress test with reversible DOM simulation; a new permanent regression test asserting HE≡EN structural parity; a `git diff`-based zero-regression proof for the untouched Desktop branch.
+**HE STATUS**: PASS (live-verified). **EN STATUS**: CODE/STRUCTURAL VERIFIED (not live-verified, explicitly distinguished). **MOBILE STATUS**: PASS (live-verified). **DESKTOP STATUS**: PASS (zero diff + re-screenshot).
+**PASS / PARTIAL / BLOCKED**: **PARTIAL** — every available verification was performed and passed; the one gap (no live EN Production data) is disclosed rather than hidden, per the Fail-Closed PASS Gate (§127.7) — this is not a skipped verification, it was genuinely unavailable this session.
 
-## 16. Findings Grouped P0/P1/P2/P3
+**FILE**: `src/components/PublicQuoteHeader.test.jsx` (new) — test infrastructure, PASS (5/5), HE/EN/Mobile/Desktop status N/A (not a rendered product surface).
 
-**P0**: none found. **P1**: AUDIT-001 (non-canonical money formatter, three files), AUDIT-002 (totals-block RTL money-anchor defect, live-measured — left=166px shared, right edges 230.6-285.4px spread), AUDIT-005 (Public Quote header alignment — real Production surface, matched to TODO item 42, new static root-cause hypothesis found). **P2**: AUDIT-003 (`current`-variant hardcoded `textAlign:'left'`), AUDIT-004 (no fixed-width numeric sub-box on David-preview per-item money). **P3**: none this audit. Full finding records (ID/SEVERITY/CONTRACT/MARKET/SURFACE/FILES/VIEWPORT/OBSERVED/EXPECTED/EVIDENCE/ROOT-CAUSE CLASS/RISK/REMEDIATION/MUTATION AUTHORIZED:NO) at §128.3.
+## 15. Application Commit Status
 
-## 17. Explicit NOT VERIFIED Areas
+Committed to local `main`: `855d64c` (application fix). Continuity docs: `f673203` (local `main`).
 
-Public Quote EN full audit; Public Quote HE fresh runtime re-measurement (static PASS only); Auth/Landing (both markets); Clients, Business Settings, Catalog, Finances (both markets, both viewports); Admin/Super Admin; Mobile viewport for AUDIT-002 (Desktop-measured only this task); AUDIT-005's live/runtime confirmation (static source hypothesis only). Recorded explicitly at §128.9, never manufactured as PASS.
+## 16. Push Status
 
-## 18. Recommended Remediation Order (recommendations only, not authorized)
+**NOT pushed to `origin/main`.** Per this task's own explicit instruction not to infer deploy authorization from implementation authorization, and since the Owner's authorization for this task covered remediation only with no explicit commit/push/deploy/LIVE grant, the application commit remains local-only.
 
-1. AUDIT-005 (Public Quote header, real Production, customer-facing) — new starting hypothesis found, closes TODO item 42's prior "not investigated" gap.
-2. AUDIT-001 (canonical formatter) — root cause feeding 002/004.
-3. AUDIT-002 (totals Grid conversion) — reference implementation already exists in `PublicQuote.jsx`.
-4. AUDIT-003 (`current`-variant alignment, trivial).
-5. AUDIT-004 (per-item fixed-width box).
-6. Extend audit coverage to the explicit NOT VERIFIED surfaces before further Item 30.E-adjacent work.
+## 17. Deploy Status
 
-## 19. Confirmation: Application Code NOT Changed
+**NOT deployed.** No Vercel deployment triggered. `origin/main` confirmed unchanged at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` throughout.
 
-Confirmed via `git status --short` throughout this task: only `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md` modified; the standing untracked `src/entry-server.jsx` unchanged; zero `src/` files staged or committed. All source-file reads this task were for audit/evidence purposes only, never followed by an Edit.
+## 18. LIVE Verification Status
 
-## 20. Confirmation: DB/TEST/Production NOT Mutated
+**NOT LIVE.** All "after" evidence in this report was gathered against the local fixed build (`http://localhost:5184`), not Production — since the fix has not been pushed or deployed. The "before" evidence was gathered against real Production, confirming the defect as it currently still stands live.
 
-Zero Supabase/DB queries or mutations performed this task (no DB tool was available in-session; a Supabase-dashboard navigation attempt was correctly declined by the auto-mode classifier and not retried). The one live-measurement CDP action performed (AUDIT-002) was a read-only page `GET` plus a client-side `getBoundingClientRect()` read — no click, no form submission, no RPC call — against the already-deployed David A46 preview; zero risk to `view_count`/`status`/`total` by construction (confirmed in §126/§127.1 that the destination page contains no mutating call anywhere).
+## 19. Six-File Continuity Ledger
 
-## 21. Six-File Continuity Ledger
-
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§127, §128)
-- `PROFLOW_TODO.md` — **UPDATED** (item 42 addendum, new item 43)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GB)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§129)
+- `PROFLOW_TODO.md` — **UPDATED** (item 42 status update, item 43 cross-reference)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GC)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (new §18.A, short governance pointer)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (a bug fix within already-documented architecture, not a new architectural fact)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-Six-file reconciliation performed: fresh-read all five updated files from `origin/proflow-continuity` after push (§22 below); no contradictory status found between them — all five consistently describe the same task, same findings, same NOT-AUTHORIZED status, same file scope.
+## 20. Continuity Commit SHA + Remote Read-Back
 
-| FILE | UPDATED / REVIEWED-NO-CHANGE | PURPOSE | REMOTE READ-BACK | CONSISTENT WITH OTHER FIVE |
-|---|---|---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED | Governance rules (§127) + full audit (§128), authoritative detail | PASS — §127/§128 headers confirmed present | Yes |
-| `PROFLOW_TODO.md` | UPDATED | Item 42 addendum (new hypothesis), new item 43 (findings tracker) | PASS — item 43 header confirmed present | Yes |
-| `PROFLOW_HANDOFF.md` | UPDATED | Chronological §18.GB entry, concise cross-reference | PASS — §18.GB header confirmed present | Yes |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED | §14 resume-point lead paragraph | Confirmed via local diff + push success (not separately grepped this pass — same push, same commit as the other four) | Yes |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED | New §18.A governance-layer pointer | PASS — §18.A header confirmed present | Yes |
-| `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED | This report | (see §22/§23 below) | Yes |
+*(recorded after push — see below.)*
 
-## 22. Continuity Commit SHA
+## 21. AUDIT-001/002/003/004 — Explicit Statement
 
-`e809c77910350a07e9f9f455d364d74b38827dcb` on `proflow-continuity` (pushed; content commit `a4a647f` + this SHA-follow-up commit). Matching commits exist locally on `main` (`eed3dfa` content, `103946d` follow-up), **not pushed** (no application code push occurred or was authorized this task — `origin/main` remains `2e7cebe`, unchanged throughout).
-
-## 23. Remote proflow-continuity Read-Back Evidence: **PASS**
-
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `a4a647f78b7f22ff53c7191d65047f6b928aa7e4` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming all of: `PROFLOW_PROJECT_CONTEXT.md` §127/§128 headers, `PROFLOW_ARCHITECTURE.md` §18.A header, `PROFLOW_TODO.md` item 43 header, `PROFLOW_HANDOFF.md` §18.GB header — all present and correct on the remote. `origin/main` re-fetched and confirmed unchanged at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` — zero application deployment this task, as required.
-
-## 24. Exact Next Recommended Task (requires separate Owner authorization)
-
-**Public Quote Header Alignment Fix (TODO item 42 / AUDIT-005)** — apply the Visual Geometry/Alignment Contract (§127.4) to `PublicQuoteHeader.jsx`'s Mobile info column: a shared fixed-width sub-box for the quote-number/date/validity/CTA stack, verified via real `getBoundingClientRect()` measurement, both locales, Mobile-first per the Owner's own original report. This is the highest-priority remediation candidate identified this audit (real, live, customer-facing Production surface, not a David-only preview), and now has a concrete starting hypothesis rather than none. **Not authorized by this task — requires a separate, explicit Owner go-ahead before any code is touched.**
+**Not touched, not re-evaluated, not re-scored by this task.** Their status from `PROFLOW_PROJECT_CONTEXT.md` §128 stands exactly as recorded: all four remain open findings, NOT AUTHORIZED FOR REMEDIATION, unaffected by this task's AUDIT-005-only scope.
 
 ---
 
-Application code confirmed unchanged throughout (`git status --short`, re-verified at task end). `origin/main` confirmed unchanged at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` throughout.
+**Owner visual acceptance of the AUDIT-005 fix remains PENDING** — implemented and TEST-verified, not yet LOCKED per §54 (nothing becomes LOCKED without actual Owner review of the live result, and this fix is not yet live).
