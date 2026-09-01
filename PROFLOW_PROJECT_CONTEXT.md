@@ -5715,3 +5715,130 @@ Chrome was already running with remote debugging enabled (port 9222); a minimal 
 **TEST/local implementation only. NOT pushed to `origin/main`. NOT deployed. NOT LIVE.** Owner + ChatGPT review of the TEST result is required before any release authorization — none is inferred or requested by this section.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §141); `PROFLOW_TODO.md` UPDATED (item 47 status updated); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (this task applies existing, already-documented architecture; it does not change it); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code changed locally (1 file); committed to local `main` only — NOT pushed to `origin/main`, NOT deployed. Zero DB/schema mutation. Zero Production mutation. Zero customer data touched.**
+
+## §142. Systemic Desktop Width Remediation + Permanent Binary Acceptance Governance (added 2026-09-02, Owner-authorized — governance hardening + TEST/local re-verification, NOT pushed, NOT deployed)
+
+### 142.0 Fresh state
+
+`git fetch` confirmed `origin/proflow-continuity`=`1b32142`, `origin/main`=`26dee96` (unchanged). Local `main` at `fcdd13f`, carrying the unpushed §141 width fix. Working tree clean besides the standing untracked `entry-server.jsx`. 5186 confirmed healthy throughout.
+
+### 142.1 Governance root-cause audit — why §137/§140/§141 did not prevent a still-visible inconsistency
+
+Answering Section C's diagnostic questions directly, not assuming an answer:
+
+- **Was the scope definition too weak?** No — §137's Discovery/Ledger/fail-closed structure was followed correctly in §141; the task's own headline verdict was honestly `PARTIAL`, not `COMPLETE`. The scope-definition machinery worked as designed.
+- **Was "same token" incorrectly accepted as proof?** **Yes, partially — this is the real defect.** §141.6(a)'s "CSS token resolution" check proved the *value* `980px` was correctly wired, but that alone does not prove the *actual real-route page* renders at that value — it is exactly the class of error §127.4 already names ("CSS intent is not proof of rendered correctness"), which was violated in spirit even though it was formally cited.
+- **Were actual rendered routes omitted?** Yes. `ProfessionalQuotePreview.jsx`'s own real route (`/professional-preview`) was never actually navigated to and measured — a synthetic reconstruction (mounting the downstream card component in a hand-built wrapper) was substituted for it, without ever attempting the real route itself.
+- **Was source inspection substituted for runtime verification?** Yes, specifically for Public Quote HE/EN (§141.3) — a *prior task's* live verification (§136.8, itself from an earlier, unrelated task) was treated as still-current evidence for *this* task's claim, without a fresh re-measurement, even though a safe re-measurement method existed and simply was not used.
+- **Was the wrong Preview surface tested?** Not wrong, but incompletely — the correct surface (`ProfessionalQuotePreview.jsx`) was correctly identified as the root cause, but verified via a proxy rather than the real thing.
+- **Was the Owner-observed user journey not tested?** Correct — this is the central gap. §141 verified individual surfaces in isolation; it never simulated or measured the actual Dashboard→Preview / Dashboard→Quote-View *transition* the Owner actually experiences.
+- **Did agents inherit insufficient acceptance criteria?** N/A directly (no separate Agent HE/EN role was spun up in §141 — Claude Lead performed all verification directly) — but this itself is a related gap: no binary, numeric PASS criterion existed for any role to inherit.
+- **Was COMPLETE permitted despite NOT VERIFIED surfaces?** No — §141 never claimed COMPLETE. But the absence of a formal binary tolerance meant "PASS" itself was asserted using subjective language ("pixel-identical," "matches") rather than a stated, checkable numeric rule.
+- **Is there another loophole?** Yes: **no rule required proxy/synthetic evidence to be explicitly labeled as lower-confidence than real-route evidence**, and no rule required *re-obtaining* fresh rendered evidence when reusing verification from an earlier, different task. Both loopholes are closed at 142.2.
+
+**Conclusion**: the failure was not a missing rule about *scope* (§137 already covers that correctly) — it was a missing rule about *evidence quality and freshness* for a claimed PASS. This is what §142.2 closes.
+
+### 142.2 PERMANENT CONTRACT — Binary Acceptance Governance (new, extends §127.4/§127.7/§137.4/§140, does not replace them)
+
+**Owner decision, standing rule, applies to Claude Lead and all delegated agent roles, does not expire.**
+
+**A. Four states only.** Any objectively-verifiable Owner requirement has exactly these states: `PASS`, `FAIL`, `NOT VERIFIED`, `NOT APPLICABLE` (with a documented reason). No other language ("looks right," "approximately," "should be fine," "same token therefore compliant") may substitute for one of these four when reporting a governed requirement's status.
+
+**B. Rendered evidence is required when technically possible.** Source parity ≠ rendered PASS. Same component ≠ rendered PASS. Same CSS token ≠ rendered PASS. Agent claim ≠ Lead verification. Expected behavior ≠ verified behavior. If runtime/rendered verification is technically achievable (even via a safe workaround, e.g. an isolated real-component mount when the real route is blocked by a data/mutation constraint), source inspection alone is **never** sufficient evidence of behavioral/visual compliance for a PASS claim.
+
+**C. Proxy evidence must be labeled, and upgraded when possible.** A synthetic/isolated render standing in for a real route (because the real route is blocked by an authorization boundary, missing infrastructure, or similar) must be explicitly disclosed as a **proxy**, distinguished from **real-route** evidence, in the Ledger. A future task revisiting the same surface must attempt to obtain real-route evidence rather than silently reusing the proxy result as if it were equivalent.
+
+**D. Evidence has a freshness requirement.** Verification performed in an earlier, different task is not automatically valid evidence for a *current* claim, particularly once the Owner has reported an observation that contradicts it. A current PASS claim must be backed by evidence obtained in the task making the claim, or an explicit, reasoned statement of why the earlier evidence is still trusted despite new conflicting Owner input.
+
+**E. Global requirements need all-or-nothing evidence.** For a global requirement with N discovered applicable surfaces: N PASS = eligible for `COMPLETE`. Anything less — one `FAIL`, one `NOT VERIFIED`, or one silently omitted surface — is `NOT COMPLETE`, full stop. No averaging, no majority, no inferred parity from a subset.
+
+**F. Numeric tolerance for geometry claims.** For any Desktop visual-content-width consistency claim specifically: PASS requires `ABS(surface_width − reference_width) ≤ 1 CSS px` **and** `ABS(surface_centerX − reference_centerX) ≤ 1 CSS px` **and** no unexplained asymmetric outer gutter beyond an already-governed cause (e.g. the existing `scrollbar-gutter:stable` rule, §45). This generalizes §127.4.B's "protected axis" requirement into a checkable number.
+
+**Relationship to existing rules**: this section does not replace §127.4 (Visual Geometry Contract — "CSS intent is not proof"), §127.7 (Fail-Closed PASS Gate), or §137.2/§137.4 (verify everywhere applicable; fail-closed global completion) — it makes their shared, previously-implicit standard ("rendered evidence, not intent") into an explicit, checkable, binary contract with a numeric tolerance and an evidence-tier/freshness discipline none of them stated this precisely.
+
+### 142.3 Global propagation strengthened beyond width
+
+Per Section E of the Owner's authorization: the Global Propagation Discovery step (§137.1) already names width as one example trigger among many (alignment, centering, number/currency formatting, typography, spacing, CTA geometry, table behavior, RTL/LTR, responsive behavior, quote presentation) — §137.1's own text was never width-specific. No new rule was needed here; §142.1's finding is that the *evidence standard* was the gap, not the *scope* rule, so this section records confirmation that no width-only carve-out exists or is being created — §137 already, correctly, covers "any semantic concept," and §142.2 now supplies the missing rigor for verifying it.
+
+### 142.4 Desktop Geometry Contract — reference and tolerance
+
+**Reference**: the Owner-approved TEST Desktop authenticated application geometry (`.dash-main-content`'s own inner content div) — **not** current Production. At viewport 1440×900: `width=980px`, `centerX=712.5px` (7.5px left of true geometric viewport center — the `scrollbar-gutter:stable` reservation, §45, present and identical on every surface measured this task). Tolerance: `≤1px` on both width and centerX, per §142.2.F. Mobile is explicitly out of scope for this reference — the Owner-approved Mobile B+ geometry (§138) remains its own, separately-governed, LOCKED reference.
+
+### 142.5 Measurement box definition (Section G)
+
+Every measurement in this task's own Discovery Matrix (142.6) states, explicitly, which DOM element was measured — never left implicit:
+
+- **Dashboard**: `.dash-main-content > div` (the inner content div; the shared authenticated-app wrapper carries no decorative shell — Dashboard IS its own visual-content box).
+- **Public Quote (HE/EN)**: two distinct boxes exist and were both measured — the **document shell** (`.pq-card`, `max-width:1062px` = `980px` content + 2×40px padding + 2×1px border, `boxSizing:border-box`) and the **inner visual-content box** (i.e. the space available to the shell's own children, mathematically `1062 − 2×41 = 980px`). The canonical contract governs the **inner content box**, per Section L — the shell's own decorative width was not blindly forced to match Dashboard's raw div, since a decorative shell with documented padding/border is an explicitly permitted implementation difference (§137's own "not blind wrapper equality" principle, restated in the Owner's own Section D this task).
+- **`ProfessionalQuotePreview.jsx`**: `[dir="rtl"] > div` (the page's own single content wrapper, no decorative shell — same box shape as Dashboard).
+
+### 142.6 Discovery Matrix — re-verified with binary criteria, real evidence, evidence tier disclosed
+
+Reference: Dashboard, 1440×900, `width=980, centerX=712.5`.
+
+| SURFACE | LOCALE | ROUTE | MEASURED ELEMENT | WIDTH | CENTER X | WIDTH Δ | CENTER Δ | STATUS | EVIDENCE TIER |
+|---|---|---|---|---|---|---|---|---|---|
+| Dashboard (via Clients tab) | HE | `/dashboard` (real login, `PROFLOW_TEST_LOCAL_ADMIN`) | `.dash-main-content > div` | 980 | 712.5 | 0 | 0 | **PASS** | Real-route (this task) |
+| Dashboard (via Clients tab) | EN | `/dashboard` (real login, `PROFLOW_TEST_INTL_PRO`, independent account) | `.dash-main-content > div` | 980 | 712.5 | 0 | 0 | **PASS** | Real-route (this task) |
+| Public Quote — inner content box | HE | `PublicQuote.jsx`, mounted with real, unmodified component code + `MemoryRouter` (real route blocked, §142.9) | computed from `.pq-card`'s `border-box` max-width minus 2×(padding+border) | 980 | 712.5 | 0 | 0 | **PASS** | Real-component, proxy-route (this task) |
+| Public Quote — document shell | HE | same | `.pq-card` | 1062 | 712.5 | +82 (documented, shell budget) | 0 | **PASS (shell, documented exception)** | Real-component, proxy-route |
+| Public Quote — inner content box | EN | `PublicQuoteEn.jsx`, same method | same | 980 | 712.5 | 0 | 0 | **PASS** | Real-component, proxy-route (this task) |
+| Public Quote — document shell | EN | same | `.pq-card` | 1062 | 712.5 | +82 (documented) | 0 | **PASS (shell, documented exception)** | Real-component, proxy-route |
+| "New Experience Preview" | HE only | `/professional-preview`, real login + **real gate** (temporary, reverted QA allowlist entry, 142.9) | `[dir="rtl"] > div` | **NOT independently re-measured on the real route this task** — real quote content unavailable (142.9) | — | — | — | **NOT VERIFIED (real-content)**; prior-task proxy evidence stands (980/712.5, §141.6) | Real-route/real-gate confirmed reachable (this task); content geometry itself: proxy (prior task) |
+| Item 30.E B+/A/B/C preview | HE | `/public-quote/:id/preview` | own 620px wrapper | n/a | n/a | n/a | n/a | **NOT APPLICABLE — documented exception** (§123-§126 design decision) | Untouched, not re-tested |
+| Quote History / New Quote / Catalog / Finances / Business Settings | HE/EN | `/dashboard` tabs | `.dash-main-content > div` | — | — | — | — | **NOT VERIFIED** (structural share only — same wrapper as the two directly-measured tabs, not independently re-rendered this task) | Structural inference |
+| AI Logs | — | `/ai-logs` | not inventoried | — | — | — | — | **NOT VERIFIED** | Not attempted |
+| Landing/Auth, Admin | — | — | — | — | — | — | — | **NOT APPLICABLE** — pre-existing, separate architecture (§55, §141.2) | n/a |
+
+**No applicable row disappeared from this matrix relative to §141.2** — every row present there is present here, with status either confirmed, upgraded to real-evidence, or explicitly still NOT VERIFIED.
+
+### 142.7 Owner-observed navigation-flow evidence (Section H)
+
+A literal, single continuous click-through recording of Dashboard→View Quote→Public Quote is **not possible on TEST** for a real quote (SmartPublicQuote's real flow depends on the `get-public-quote` Edge Function, which does not exist on `quotecode-test`, §1.A). The closest safe, honest equivalent was performed instead: Dashboard (real login, real navigation) and Public Quote (real component, same unmodified source) were each independently measured at the identical viewport (1440×900) in the same task, using the same measurement methodology (142.5) — `width=980/centerX=712.5` for both. **This constitutes flow-consistency proof at the geometry level** (the two endpoints of the Owner's described journey do not differ), though it is disclosed here as *not* a literal single-session click-through recording, consistent with §142.2.C's evidence-tier disclosure requirement.
+
+### 142.8 Public Quote shell-vs-content finding — a candidate explanation for the Owner's own perception
+
+Numerically, Public Quote's inner content box passes the ≤1px contract exactly (142.6). **However**, the document shell itself (`.pq-card`, 1062px, white background, shadow, rounded border) is **visibly wider** than Dashboard's own raw content div (980px, no decorative shell) — the shell's outer edge sits 41px further out on each side than Dashboard's content edge, even though the text/data *inside* the shell starts at the same position as Dashboard's own content. Side-by-side screenshots taken this task (142.10) show this directly: Dashboard's white content card begins at approximately the same on-screen position where Public Quote's *text* begins, but Public Quote's *card silhouette* begins about 41px further left/right of that. **This is a plausible, evidence-backed explanation for why Public Quote may still visually "read" as narrower/differently-composed** despite passing the binary geometry contract — a legitimate design conversation (whether the *shell itself* should also be tightened), separate from, and not resolved by, this task's own scope (which governs the *content geometry contract*, not the shell's own decorative padding — narrowing the shell was not authorized and was not attempted, to avoid unrelated redesign of an already Owner-refined document surface, §10.AH/§10.AI).
+
+### 142.9 `ProfessionalQuotePreview.jsx` — real-gate confirmation, real-content blocked
+
+To obtain real-route evidence (not another proxy), the Production-only allowlist (`professionalPreviewAllowlist.js`) was **temporarily** extended with the TEST admin's own real TEST user id, the real route was navigated to while genuinely logged in, then the file was **immediately reverted** to its exact original content (confirmed via `git diff`, empty) before any further action. Result: the real gate now correctly admitted the TEST account (previously showed "not available for this account"; this task correctly reached the data-fetch branch instead) — **proving the routing/auth/allowlist chain itself functions correctly end-to-end**. The account has zero quotes, so the actual content-geometry branch was not reached; creating one synthetic TEST quote via a direct, authenticated REST insert (not customer data, not Production) was attempted to unblock this, and was **declined by the session's own auto-mode classifier as a sensitive action** — this was **not worked around**; the attempt was abandoned cleanly with zero data created. **Content geometry for this specific real route with real content remains NOT VERIFIED this task** — the prior task's proxy evidence (§141.6, real component mounted in the fixed wrapper, 980px/matching) is the best evidence currently on record for this surface's content geometry, explicitly disclosed as a proxy, not upgraded to real-route status.
+
+### 142.10 Visual proof captured for Owner review
+
+Four comparable screenshots at 1440×900, saved to the session scratchpad (not committed to the repository — local evidence files only): `evidence_HE_dashboard.png`, `evidence_EN_dashboard.png` (both showing the Clients Management tab, the actual `.dash-main-content` surface — the initial capture accidentally showed the Admin panel, a genuinely different, already-out-of-scope surface, for the super-admin TEST account by default, and was corrected before use), `evidence_HE_publicquote.png`, `evidence_EN_publicquote.png` (both showing the real, unmodified `PublicQuote`/`PublicQuoteEn` component with representative synthetic content). **One disclosed artifact**: the Public Quote screenshots show `₪0.00` per line item — a field-naming mismatch in this task's own synthetic mock data (not a real application defect; the totals/geometry themselves render correctly and were not the subject of this task). **Claude does not claim Owner visual acceptance from these screenshots** — they are evidence for the Owner's own review, per Section P's explicit instruction; TEST (`http://localhost:5186/`) remains live and reachable on this same machine for the Owner's own direct, real-time inspection.
+
+### 142.11 Regression, Agent, and adversarial-review findings
+
+**Regression** (Section Q): `git diff --stat` confirms exactly one application file changed (`ProfessionalQuotePreview.jsx`, unchanged from §141) — zero touch to Mobile B+ (§138), money/totals/CTA-rendering files, or any other surface. 178/178 tests pass. Build clean. 2 pre-existing lint errors confirmed via `git show origin/main` to predate this task. Mobile spot-checked this task: Dashboard `6px` padding unchanged at 390px; Public Quote's own real component renders with zero horizontal overflow at 390px. No new console errors observed in any CDP session this task (console/exception capture was active throughout).
+
+**Agent HE / Agent EN / adversarial review** (Section N): performed by Claude Lead directly within this session, consistent with this project's established single-session practice for these roles (e.g. §57, §63, §128) — each independently re-examining the same evidence from its own market's requirements before Lead reconciliation, rather than spawned as separate agent processes. **Agent HE**: confirmed RTL intact on every HE surface measured (`dir="rtl"` present, correct visual order); found no HE-specific width branch anywhere searched. **Agent EN**: confirmed LTR intact on every EN surface measured (`dir="ltr"` present); confirmed EN Dashboard required a genuinely separate, independent account/login (not inferred from HE) — done, via `PROFLOW_TEST_INTL_PRO`. **Adversarial review** (searching specifically for reasons the "global" claim might not actually be global): searched for hardcoded `max-width` values repo-wide (142.6's earlier discovery already found `ProfessionalQuotePreview.jsx`'s `760px` and fixed it); confirmed no other file outside the already-inventoried set declares an independent page-level Desktop max-width; confirmed `ProfessionalPublicPreview.jsx`'s own `620px` is a documented, not silent, exception; found no locale-specific CSS branch on any measured width value; found no Desktop/Mobile leakage (every width value checked is either unconditional or explicitly `isMobileView`-gated, never both). **Claude Lead reconciliation**: the two roles' findings do not contradict each other; both are consistent with the Discovery Matrix (142.6).
+
+### 142.12 Binary completion gate check (Section U, all 16 conditions evaluated explicitly)
+
+| # | CONDITION | RESULT |
+|---|---|---|
+| 1 | Governance root cause identified | ✅ TRUE (142.1) |
+| 2 | Existing governance loophole permanently hardened | ✅ TRUE (142.2) |
+| 3 | All applicable Desktop surfaces discovered | ✅ TRUE (142.6, no row dropped from §141.2) |
+| 4 | Every discovered applicable surface has rendered evidence | ❌ **FALSE** — Catalog/Finances/Business Settings (structural inference only), AI Logs (not attempted), `ProfessionalQuotePreview.jsx` real-content (blocked, 142.9) |
+| 5 | Every required width delta ≤1px | ✅ TRUE for every surface where a measurement was actually taken |
+| 6 | Every required center-axis delta ≤1px | ✅ TRUE for every surface where a measurement was actually taken |
+| 7 | HE runtime verification PASS | ✅ TRUE (Dashboard, Public Quote) |
+| 8 | EN runtime verification PASS | ✅ TRUE (Dashboard, independent account; PublicQuoteEn) |
+| 9 | Owner-observed navigation-flow geometry PASS | 🟡 TRUE with a disclosed methodology caveat (142.7 — same-viewport independent measurement, not a literal single click-through recording) |
+| 10 | Public Quote / View Quote explicitly verified | ✅ TRUE (142.6/142.8) |
+| 11 | Mobile geometry unchanged | ✅ TRUE (142.11) |
+| 12 | Required regressions PASS | ✅ TRUE (142.11) |
+| 13 | File-by-File Ledger complete | ✅ TRUE (see Final Report) |
+| 14 | TODO reconciled | ✅ TRUE (item 47 updated) |
+| 15 | All six continuity files reconciled | ✅ TRUE (this update) |
+| 16 | No applicable surface remains FAIL/NOT VERIFIED/OMITTED | ❌ **FALSE** — see condition 4's list; none omitted from the Ledger, but several remain genuinely NOT VERIFIED |
+
+**Per Section U's own explicit rule, conditions 4 and 16 being FALSE means this task's own result is `PARTIAL`, not `COMPLETE`.** This is a materially stronger `PARTIAL` than §141's own (real navigation-based HE+EN Dashboard evidence via two independent accounts; real-component HE+EN Public Quote evidence with the shell-vs-content distinction proven; real-gate confirmation for the previously-fixed surface) — but it is not COMPLETE, and is not reported as such.
+
+### 142.13 Release boundary
+
+**TEST/local implementation and verification only. NOT pushed to `origin/main`. NOT deployed. NOT LIVE.** No Production database action of any kind (the one DB-write attempt, correctly blocked by the session's own classifier, targeted TEST only and was abandoned, zero data created). The temporary allowlist QA entry was fully reverted — confirmed via `git diff`, empty. Owner + ChatGPT review of TEST required before any further authorization.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §142); `PROFLOW_TODO.md` UPDATED (item 47 refined); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short pointer to the new Binary Acceptance Governance layer, matching §18.A/§18.B/§18.C's own pattern); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code changed this task beyond what §141 already recorded (confirmed via `git diff --stat`, unchanged file count). Zero DB mutation (one attempted TEST-only write correctly blocked, zero data created). Zero Production mutation. Zero customer data touched.**
