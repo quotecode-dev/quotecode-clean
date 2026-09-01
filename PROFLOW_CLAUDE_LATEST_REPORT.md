@@ -4,105 +4,141 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: B+ Mobile 50% Visible-Margin Reduction — Production Release
+## Task: Comprehensive TEST ↔ Production UI/Layout Parity Audit
 
-**Release-only task, separately Owner-authorized from implementation. Release of the already-verified `40aa710` correction — no additional application changes made.**
-
----
-
-## B+ 50% MOBILE MARGIN RELEASE: **COMPLETE**
+**Full READ-ONLY diagnostic scan. No application/DB/TEST/Production mutation. No commit/push/deploy of application code.**
 
 ---
 
-## 1. Pre-Release Gate
+## TEST ↔ PRODUCTION UI PARITY AUDIT: **COMPLETE**
+## DASHBOARD WIDTH ROOT CAUSE: **NOT IDENTIFIED** (source/runtime parity proven identical; leading hypothesis is browser zoom/DPI, unconfirmable from this environment)
+## MOBILE/DESKTOP ISOLATION: **VERIFIED**
+## B+ CROSS-SURFACE IMPACT: **NO**
 
-Confirmed `40aa71007ee1b228f04dd0fae05aefb39f580b51` exists locally with `pagePadding` Mobile `= '5px'`. `git diff origin/main 40aa710 -- src/pages/ProfessionalPublicPreview.jsx` confirmed the entire difference between `origin/main`'s state and the release candidate is exactly the width-only change; `git diff --stat` (excluding `.md` files) confirmed no other application file differs at all. Money/totals/CTA geometry structurally untouched by this diff; Desktop structurally unaffected (`pagePadding` only branches on `isMobileView`).
+---
 
-## 2. How the Abandoned 8px Local-History State Was Safely Handled
+## 1. Fresh Local State
 
-Rather than pushing local `main` (which still carried the abandoned, never-pushed `8px` commit ahead of the authorized `5px` fix), a **clean release candidate was constructed**: a new commit (`26dee96`) built by checking out only `src/pages/ProfessionalPublicPreview.jsx`'s content from the authorized `40aa710` commit directly onto `origin/main`'s tip — verified identical via the same diff method — then pushed directly. No force-push, no remote history rewrite, no further rebase attempt.
+Local `main` at task start: `677d01a`, exactly `origin/main` (`26dee96`) plus documentation-only commits — confirmed via `git diff origin/main HEAD -- . ':!PROFLOW_*.md'` returning empty. Working tree clean besides the standing untracked `entry-server.jsx`.
 
-## 3. Exact Clean Release Diff
+## 2. TEST Runtime Identity
 
-Identical to the diff verified at step 1 — one file, one CSS-value change plus an explanatory comment. Confirmed via `git show origin/main:src/pages/ProfessionalPublicPreview.jsx | grep pagePadding` reading `'5px'` after push.
+Local Vite dev server, `npm run dev:localtest`, port 5186, `.env.localtest.local` → `quotecode-test` Supabase (ref `ljfizgrdyzxddswcedwr`). Serves the current working tree directly — no build, no pinned commit.
 
-## 4. origin/main Before
+## 3. Production Runtime Identity
 
-`8bb777c421ff6199e3da5e8fb37d18b73c3d2826`
+Deployed Vercel build at `https://www.quotecodepro.com/`, built via `vite build` from `origin/main` (`26dee96`), connected to `quotecode` Supabase (ref `ixabnzhjeqevtbhdfswv`).
 
-## 5. Clean Application Release SHA
+## 4. TEST vs Production Source Parity
 
-`26dee96fc511d71715fe8675426920daff06719a`
+**SAME SOURCE**, proven via `git diff` (item 1) — zero application-file difference between the local working tree (served by both local dev servers) and `origin/main` (what deployed Production is built from).
 
-## 6. origin/main After
+## 5. Dashboard Full Container-Chain Comparison
 
-`26dee96fc511d71715fe8675426920daff06719a`
+Real authenticated login (real form) against TEST-local, Production-pointed local dev, and real deployed Production — two different real accounts (one fresh/empty, one with fixture data). `.dash-main-content`/table geometry **byte-identical across all three**, every tested width.
 
-## 7. Push Result
+## 6. Exact Width Measurements
 
-`git push origin release-clean-b48ac9:main` succeeded, fast-forward. AUTHORIZED CHANGE PRESENT: **YES**.
+| Width | table left | table right | table width (all 3 envs) |
+|---|---|---|---|
+| 1280 | 157.5 | 1107.5 | 950 |
+| 1366 | 200.5 | 1150.5 | 950 |
+| 1440 | 237.5 | 1187.5 | 950 |
+| 1920 | 477.5 | 1427.5 | 950 |
 
-## 8. Vercel Deployment Result
+`.dash-main-content` padding: 16px both sides, identical everywhere.
 
-First build attempt returned `● Error` — but only *after* the build itself completed successfully (`✓ built in 14.80s`, correct output); the failure occurred during Vercel's own "Deploying outputs" phase, with Vercel's own message stating "This may be a transient issue, please try rebuilding your project." Retried via `vercel redeploy` (same commit, zero code change) — succeeded, `✓ Ready in 43s`.
+## 7. Browser Zoom/DPI Findings
 
-## 9. Exact Deployed SHA
+`devicePixelRatio` confirmed `1` in every controlled CDP session. The Owner's own original screenshot viewing conditions (zoom/DPI/window width) are unknown from this environment — recorded as the leading unconfirmed hypothesis, not asserted as proven.
 
-`26dee96fc511d71715fe8675426920daff06719a`, confirmed via `vercel inspect --logs`: `Cloning ... (Branch: main, Commit: 26dee96)`, status `● Ready`. Canonical domain (`https://www.quotecodepro.com/`) confirmed serving this exact build (asset filename `index-BxCROk9Z.js` matched exactly between the build log and a live `curl`).
+## 8. Mobile/Desktop Isolation Result
 
-## 10-12. LIVE Geometry (real Production, read-only)
+**VERIFIED, structurally.** Three independent, non-shared `isMobileView` implementations exist project-wide (`ProfessionalPublicPreview.jsx`, `PublicQuoteHeader.jsx`, `QuotesTab.jsx`), each with its own `matchMedia` listener, no shared state. `Dashboard.jsx` uses zero JS breakpoint logic. `.dash-main-content` is defined and used exclusively within `Dashboard.jsx`.
 
-| Viewport | leftVisibleMargin | rightVisibleMargin | visibleContentWidth | utilization |
-|---|---|---|---|---|
-| 360 | 5 | 5 | 350 | 97.22% |
-| **390 (primary)** | **5** | **5** | **380** | **97.44%** |
-| 412 | 5 | 5 | 402 | 97.57% |
+## 9. Recent-Commit Impact Trace
 
-Exact match to every local pre-release prediction.
+Cumulative diff across the three recent releases (AUDIT-005 CTA; AUDIT-001-005+B+-10px; B+-5px): exactly 5 files touched (`PublicQuoteHeader.jsx`+test, `CustomerQuoteItemRow.jsx`, `ProfessionalItemComparisonCard.jsx`, `ProfessionalPublicPreview.jsx`) — none shared with `Dashboard.jsx` or `index.css`'s Dashboard-relevant variables. Zero possible cross-surface impact.
 
-## 13. Actual Margin Reduction
+## 10. Full User-Facing Width/Layout Inventory
 
-`(10 − 5) / 10 = 50%` exactly, both sides, at every tested Mobile width — confirmed live, precisely matching the Owner's stated ratio.
+Confirmed via `Dashboard.jsx`'s own source comment: Dashboard, Quote History, Clients, New Quote, Business Settings, Catalog, and Finances all render inside the exact same `.dash-main-content` wrapper already measured at item 6 — structural parity extends to all of them by direct construction (individual tabs not separately live-remeasured this task — recorded as NOT VERIFIED, not assumed). Public Quote and the Item 30.E B+ preview each use their own separate, isolated width architecture. Full matrix at `PROFLOW_PROJECT_CONTEXT.md` §136.7.
 
-## 14. Money Geometry LIVE Regression Result
+## 11. Global CSS/Shared-Layout Findings
 
-`itemMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
+No unexpected `100vw`/`zoom`/`transform:scale` rules in `index.css`. `App.css` confirmed dead (zero imports). **One significant, fully-explained finding**: `--pf-dashboard-desktop-content-width` is currently aliased to Public Quote's own locked `--pf-desktop-content-width` (980px) — a later, Owner-final, already-documented-in-source decision superseding the earlier §55-§57 experimental-width history. Not a bug.
 
-## 15. Totals Geometry LIVE Regression Result
+## 12. Environment-Conditional Rendering Findings
 
-`totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
+Exactly 4 `import.meta.env` references, all in `src/shared/supabase.js`, all Supabase-target selection only — reconfirmed fresh, matching the prior exhaustive sweep on record. Zero layout/width/breakpoint/locale conditional logic anywhere.
 
-## 16. CTA LIVE Regression Result
+## 13. Data-Dependent Layout Findings
 
-`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching every prior release's own measured values exactly.
+Container width structurally independent of data density — confirmed by the same measurement (item 5) using one empty account and one populated account, byte-identical geometry either way.
 
-## 17. Desktop LIVE Result
+## 14. Scrollbar/Center-Axis Findings
 
-**PASS, zero regression.** `leftVisibleMargin=322.5, rightVisibleMargin=337.5, visibleContentWidth=620, utilization=48.44%` — byte-identical to every prior record. Both the B+ preview and the real, unrelated `PublicQuote.jsx` re-screenshotted, zero console errors on either.
+`scrollbar-gutter: stable` on `html`, global, unconditional — the already-documented fix. Not independently re-measured live this task (no fresh evidence of regression; recorded NOT VERIFIED for this specific sub-item).
 
-## 18. Overflow/Clipping/Console Result
+## 15. Agent HE Report
 
-Zero horizontal overflow at every tested viewport. Zero clipping (screenshot-confirmed, borders/shadows fully visible). Zero console errors on every page load performed this task.
+PASS — RTL confirmed correctly applied in both sessions tested; Dashboard geometry byte-identical; no HE-specific width-token branch found.
 
-## 19. Six-File Continuity Ledger
+## 16. Agent EN Report
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§135)
-- `PROFLOW_TODO.md` — **UPDATED** (item 42 status → LIVE)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GI)
+Structural PASS (same shared wrapper, no market-conditional branch on it) — **not independently live-tested this task** (only Local/HE accounts were used for the three-way comparison). Recorded as a gap.
+
+## 17. Claude Lead Reconciliation
+
+Independently re-derived from the same evidence — HE and EN findings are consistent with each other; no additional discrepancy surfaced by either role beyond what direct measurement already established.
+
+## 18. Contract-Process Escapes
+
+None found this audit. The one informational finding (item 11 / stale session working-memory of §55-§57 vs. the current source) is recorded as a "prior history ≠ current source truth" lesson, not a contract violation.
+
+## 19. Full Parity Matrix
+
+See `PROFLOW_PROJECT_CONTEXT.md` §136.7 for the complete SURFACE × TEST/Production source/width-rule/HE/EN/Mobile/Desktop/parity table.
+
+## 20. Root-Cause Answers A–J
+
+Full answers at `PROFLOW_PROJECT_CONTEXT.md` §136.15. Summary: source parity (A: same code) and runtime geometry parity (B: same geometry) are both proven; the Owner's original observed difference (C) remains unidentified from this environment — leading hypothesis is a zoom/DPI/viewport mismatch between the two compared screenshots. B+ did not affect Dashboard (D: no). Mobile/Desktop isolation is sound (E: yes). One intentional shared-value alias was found and fully explained (F/G). No bugs found (H: none). No Production risk identified (I: none). No remediation required by this audit's own findings (J).
+
+## 21. P0/P1/P2/P3 Findings
+
+P0/P1/P2: none. P3: one informational-only item (stale session memory of superseded width history, corrected via source read this task).
+
+## 22. Explicit NOT VERIFIED List
+
+Clients/New Quote/Business Settings/Catalog/Finances tabs individually; Public Quote HE/EN fresh live remeasurement; Landing/Auth; Document-preview route; a live International/EN account's Dashboard geometry; the Owner's own screenshot viewing conditions; scrollbar-gutter live re-verification.
+
+## 23. Recommended Remediation Order (recommendation only — none required)
+
+1. If available, the Owner's original two screenshots (or a stated zoom/window-width) would let a future task close the root-cause question definitively.
+2. Optional: a forward-pointing note in §55-§57 toward the superseding §58/`index.css` decision (this audit's §136.8 now serves that purpose).
+3. Extend live coverage to the NOT VERIFIED surfaces whenever a future task next touches any of them.
+
+## 24. Confirmation: Application Code Unchanged
+
+Confirmed via `git status --short` throughout — only the standing untracked `entry-server.jsx`. Zero edits made to any application file this task.
+
+## 25. Confirmation: TEST/Production Unchanged
+
+Zero DB mutation (only pre-existing accounts' own read-only login + page loads). Zero TEST mutation. Zero Production mutation. No commit/push/deploy of application code.
+
+## 26. Six-File Continuity Ledger
+
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§136)
+- `PROFLOW_TODO.md` — **UPDATED** (new item 45)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GJ)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
 - `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Branch reconciliation note**: local `main` had diverged from the newly-pushed clean `origin/main` (built on a separate temporary branch). Resolved via `git reset --hard origin/main` on local `main` — safe, since every superseded local commit's content was already independently preserved (app state now correctly on `origin/main`; every documentation update from §131 through §134 already confirmed pushed to `origin/proflow-continuity`). Temporary branch `release-clean-b48ac9` deleted after reconciliation. The working tree's six canonical files were refreshed from `origin/proflow-continuity`'s true latest state before writing this task's own update.
+## 27. Continuity Commit SHA + Remote Read-Back
 
-## 20. Continuity Commit SHA + Remote Read-Back
-
-`137d961f91e4ff10e9965dc70ef95c76f1c30c38` on `proflow-continuity` (pushed; content commit `b696ee1` + this SHA-follow-up commit). Matching commits exist locally on `main` (`dd43a6f` content, `a92a529` follow-up) — `main` itself already carries the pushed application release (§4-9 above); this follow-up is documentation-only, mirrored to `proflow-continuity`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `b696ee1dee5f4ebed2d73f2da952774a426cd520` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §135 and `PROFLOW_HANDOFF.md` §18.GI both present and correct. `origin/main` re-fetched and confirmed at `26dee96fc511d71715fe8675426920daff06719a` — the deployed release.
-
-## 21. Owner Visual Acceptance Status
-
-**PENDING.** Claude Lead's own LIVE verification is real-browser evidence, not a substitute for the Owner's personal inspection on his physical Mobile device. Nothing in this task is marked Owner-LOCKED.
+*(recorded after push — see below.)*
 
 ---
 
-Application code pushed and deployed (`26dee96`). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).
+Application code confirmed unchanged throughout. Zero DB/TEST/Production mutation of any kind. No commit/push/deploy of application code this task.
