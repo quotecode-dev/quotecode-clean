@@ -43,7 +43,7 @@ import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextS
 import {
   AlertTriangle, Crown, Shield, LogOut, Clock, FileText, Wallet,
   Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon, Package, X, Sparkles
+  MessagesSquare, Accessibility as AccessibilityIcon, Package, X, Sparkles, Eye
 } from 'lucide-react';
 
 // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
@@ -3142,6 +3142,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               >
                 <Sparkles size={15} strokeWidth={2.4} />
                 {isHebrew ? 'תצוגה מקדימה: חוויה חדשה' : 'New Experience Preview'}
+              </a>
+            )}
+            {/* TEMPORARY DAVID-ONLY OWNER QA ACCESS
+                Owner-authorized temporary Mobile QA shortcut straight into the
+                existing A46 current/A/B/B+/C comparison preview, so the Owner
+                can review it from a real phone on David's account without
+                typing a URL. Gated by the same David-only allowlist as the
+                button above. This is NOT the final product navigation - it
+                must be removed after the professional-quote concept
+                validation checkpoint (see PROFLOW_TODO.md item 30.F). */}
+            {isProfessionalPreviewEnabled(session?.user?.id) && (
+              <a
+                href="/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he"
+                style={{ flexShrink: 0, background: NEON.bgCard, color: NEON.emerald, border: `1px dashed ${NEON.emerald}`, padding: '9px 16px', borderRadius: '10px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', textDecoration: 'none' }}
+              >
+                <Eye size={15} strokeWidth={2.4} />
+                {isHebrew ? 'בדיקת תצוגה חדשה' : 'QA: New Quote View'}
               </a>
             )}
             {[
