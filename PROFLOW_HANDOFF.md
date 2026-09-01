@@ -4639,3 +4639,17 @@ Three product/UX findings recorded as new `PROFLOW_TODO.md` top-level items, all
 **Production rendered-browser verification (HE/EN × Desktop/Mobile) was NOT performed** — `browser-harness` became non-functional mid-task (full incident chronology at `PROFLOW_PROJECT_CONTEXT.md` §118): repeated `doctor` checks showed `daemon alive: FAIL`/`active browser connections: 0` despite Chrome running; AVG quarantined a disposable troubleshooting script and later blocked `browser-harness.exe` itself, requiring a specific single-executable AVG exception (not a broad exclusion) before the CLI worked again; a dedicated debug-Chrome relaunch and a manual `python -m browser_harness.daemon` run proved CDP connectivity and IPC-listening genuinely work, yet the CLI's own health check still reported unhealthy — root cause isolated only to that boundary, not further. **Owner decision: stop debugging this for now** — classified `BROWSER-HARNESS LOCAL QA INFRASTRUCTURE ISSUE, OPEN / NON-PRODUCT BLOCKER`, explicitly not a ProFlow/Production/Vercel/Supabase failure. Two safe TEST-owned Production quote URLs were identified via read-only DB lookup for whenever verification resumes (HE `A100700`/id `08d4d0da-...`; EN `#95`/id `f4a6e0cf-...`).
 
 **Wave 6 state, precise**: main push DONE; Vercel deployment CONFIRMED LIVE; Production visual verification NOT YET PERFORMED. **PARTIALLY COMPLETE — not PASS, not FAIL.** Full detail, including the complete 9-step incident chronology and standing fallback guidance for future sessions (do not restart troubleshooting from zero; use `curl`/HTML-source inspection as the approved fallback until the Owner reopens browser-harness repair): `PROFLOW_PROJECT_CONTEXT.md` §118.
+
+## §18.FT. Wave 6 COMPLETE — Production rendered verification via Direct CDP fallback (browser-harness NOT reopened) — WAVE 6: PASS (2026-09-01)
+
+**Approved fallback used**: a minimal disposable Node.js script talking raw Chrome DevTools Protocol directly (built-in `fetch`/`WebSocket` only, zero new dependencies, zero project files touched) against the already-running dedicated debug Chrome — no `browser-harness` daemon involved, no reopening of §118's incident in any form.
+
+**All 4 required surfaces PASS, with screenshot + measured-rect + zero-console-error evidence**:
+- **HE Desktop**: unchanged info-before-CTA pattern (info `top:112–128.3`, CTA `top:192.5–221.7`), ₪ correct, RTL correct.
+- **HE Mobile**: **Item C's fix confirmed live** — info `top:16–28.1` before CTA `top:64.8–89.6`, ₪ correct, RTL correct.
+- **EN Desktop**: unchanged pattern, £/GBP correct, LTR correct, zero ₪/VAT leakage.
+- **EN Mobile**: **Item C's fix confirmed live, symmetric to HE** — same rect pattern, £/GBP correct, LTR correct, zero ₪/Hebrew leakage.
+
+Zero console/runtime errors on any of the four real Production pages (real quotes A100700/A95, TEST-owned, read-only `GET`-equivalent loads only — nothing submitted/approved/signed/edited/deleted/sent).
+
+**WAVE 6: PASS.** `origin/main` reconfirmed `83e677a488a6a17b9a195c5a360726307398f445`; Vercel deployment of that SHA already confirmed live (§18.FS); this task closes the one remaining gap. No Owner visual check remains required. Zero application/DB/TEST/Production/Edge/Vercel mutation; no `main` push; no RC tag push; no Wave 7. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §119.
