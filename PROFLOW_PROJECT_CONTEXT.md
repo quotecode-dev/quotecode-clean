@@ -4867,3 +4867,92 @@ Public Quote EN full re-audit; Public Quote HE fresh runtime re-measurement (sta
 6. Separately, independent of these findings: extend audit coverage to the explicitly NOT VERIFIED surfaces (128.9) before any future Item 30.E-adjacent work touches them.
 
 **None of the above is authorized for implementation by this task.**
+
+## §129. AUDIT-005 Remediation — Public Quote Mobile Header Alignment Fix (added 2026-09-01, Owner-authorized, AUDIT-005 only — AUDIT-001/002/003/004 explicitly untouched)
+
+**Scope discipline confirmed**: exactly two files changed, both scoped to `PublicQuoteHeader.jsx`'s Mobile branch. `CustomerQuoteItemRow.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalItemComparisonCard.jsx` (AUDIT-001/002/003/004), Concept B/B+/A/C, global Item 30.E, and Public Quote's other accepted state (purple header design, logo, customer block, totals, items, money formatting, VAT, terms, signature/actions, 980px Desktop architecture, decorative shell, market behavior) are all byte-identical to their pre-task state — confirmed via `git diff` scope (below) and no other file appearing in `git status`.
+
+### 129.1 Contract triggers stated up front (§127.2 discipline)
+
+APPLICABLE CONTRACTS: Permanent Visual Geometry/Alignment Contract (§127.4); HE/RTL Geometry (§37); EN/LTR Geometry (§37); Mobile/Desktop Responsive Geometry (§45/§49/§56/§57, §84's CENTER/START/SPECIAL classification); Public Quote Accepted Visual State (§54, Owner-Approved=LOCKED — the surface being touched is real, live, customer-facing Production, so any change here is evaluated against that rule); Contract Discovery Gate + New-Surface/Changed-Surface Enforcement (§127.2/§127.3 — this task IS the enforcement mechanism being exercised, not merely referenced).
+
+### 129.2 Root-cause: corrected/confirmed via fresh source read + live geometry (not accepted from the prior static-only hypothesis)
+
+The prior audit (§128, AUDIT-005) hypothesized "three stacked elements, three independent alignment strategies, no shared axis" from static source reading alone. This task's fresh live-browser measurement **confirms the substance of that hypothesis and corrects its precision**: `PublicQuoteHeader.jsx`'s Mobile branch (line 85, pre-fix) set `textAlign: isHebrew ? 'left' : 'right'` on the info-stack wrapper — inherited by the date/validity lines — while the quote-number sub-block (line 96) independently overrode to `textAlign: 'center'`. Live-measured against real Production (`https://www.quotecodepro.com/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89`, HE, 390×844, `document.fonts.ready`-gated): quote-number text centerX = **75.26px**; date-line text centerX = **62.98px** — a confirmed **12.28px divergence**. A tight pixel-diff crop of the date-line row (before vs. after, `PIL.ImageChops.difference`, bbox `(182,423)-(1058,508)` at 9x render scale) visually confirms the shift is real, not measurement noise. **Decisive corroborating evidence found this task**: the Desktop branch of the exact same component (lines 169-188) already wraps its equivalent content in **one** outer `textAlign:'center'` container with no mixed alignment — the Mobile branch alone diverged from Desktop's own already-correct, already-accepted pattern for identical content. Box-level geometry (wrapper/qnumBox/dateDiv/validDiv `getBoundingClientRect()`) was already uniform before the fix — this was conclusively a **text-alignment inconsistency**, not a box-width problem.
+
+### 129.3 Protected axis (defined before coding, per this task's own §4 requirement)
+
+- **Container being aligned**: the Mobile info-stack `<div>` wrapper (quote-number/date/validity), `PublicQuoteHeader.jsx` line 85.
+- **Inner content block**: each line's own text (quote-number label+value; date string; validity string).
+- **Protected axis: CENTER X.** Chosen because (a) the quote-number sub-block was already centered and is the visual "headline" of the block; (b) the CTA pill below reads as visually centered; (c) Desktop's own already-accepted rendering of the identical content already uses this exact axis. Not RIGHT EDGE, not LEFT EDGE.
+- **RTL/LTR mirroring**: the outer column's own position within the header (right-pinned for both HE and EN via the pre-existing, untouched `alignItems: isHebrew?'flex-start':'flex-end'` logic) remains fully shared/untouched. Only the internal text-alignment became **locale-independent** (`'center'`, no `isHebrew` branch) — the same lesson already established for money (a centering/alignment axis is not itself a locale property).
+
+### 129.4 Exact implementation — smallest shared-geometry fix
+
+One CSS property change, one line, `src/components/PublicQuoteHeader.jsx`: `textAlign: isHebrew ? 'left' : 'right'` → `textAlign: 'center'` (plus an explanatory code comment). No new component, no new prop, no per-value nudge, no magic margin, no locale-specific pixel correction, no width change to any box (all sibling boxes already shared identical widths pre-fix; centering them was the entire fix). Matches Desktop's own already-correct pattern for the same content — this is a convergence onto an existing accepted pattern, not an invented new one.
+
+### 129.5 Before/after geometry (real-browser, `getBoundingClientRect()`/`Range`, both read-only)
+
+| | Quote-number centerX | Date-line centerX | Validity-line centerX | Max spread |
+|---|---|---|---|---|
+| **BEFORE** (Production, unfixed, HE Mobile 390×844) | 75.26px | 62.98px | 75.26px | **12.28px** |
+| **AFTER** (local dev server, fixed, HE Mobile 390×844) | 75.25-75.26px | 75.25px | 75.26px | **≤0.01px** |
+
+Tolerance: ≤0.5px treated as effectively equal (sub-pixel text-measurement/font-hinting noise); the pre-fix 12.28px spread is ~25× that tolerance, the post-fix ≤0.01px spread is far inside it.
+
+**Content-variation stress test** (safe, reversible DOM text simulation on the local fixed page — matching this project's established §81/§82 methodology, confirmed `restored:true`, zero DB touch): quote numbers `A1`/`A46`/`A10000`, short and deliberately long date/validity strings. All three lines' centerX matched each other within **0.01px in every case** (A1: 70.33/70.34/70.34; A46: 75.25/75.26/75.26; A10000+long-validity: 119.03/119.02/119.03) — the shared-center invariant holds deterministically regardless of content length, by construction of `text-align:center` within a shared-width block, not by chance.
+
+**Overflow check**: zero horizontal page overflow before and after (`document.body.scrollWidth === window.innerWidth === 390`), both at the real David A46 data and at every stress-test content variation.
+
+### 129.6 Mobile evidence
+
+Full-header screenshots captured before (Production) and after (local, fixed) at 390×844; a tight pixel-diff crop of just the date-line row makes the ~12px rightward shift directly visible (the full-header screenshots alone are too zoomed-out for the shift to be obvious to the eye at a glance — confirmed via `PIL` pixel diff that a real, localized difference exists exactly at the date-line's row before concluding the fix was visually real, rather than trusting eyeball comparison of the full header alone). Zero console errors on any load.
+
+### 129.7 Desktop evidence
+
+Desktop branch (`PublicQuoteHeader.jsx` lines 120-202) has **zero diff** — confirmed via `git diff` showing only the one Mobile-branch line changed. Desktop HE screenshot (1280px, local fixed build) re-captured this task as a regression check: renders identically to its already-accepted state, zero console errors. Desktop EN not separately re-screenshotted (zero code change to that branch, zero regression risk by construction — a diff-based, not screenshot-based, non-regression proof).
+
+### 129.8 Agent HE result
+
+**PASS.** Live-measured, real Production data (David A46), Mobile: root cause confirmed, fix confirmed, before/after geometry proof above, content-variation stress test PASS, zero overflow, zero console errors. Desktop HE: PASS (unchanged, re-confirmed via screenshot + diff-scope proof).
+
+### 129.9 Agent EN result
+
+**CODE/STRUCTURAL VERIFIED, NOT LIVE VERIFIED** — stated explicitly, not blurred. No genuine Production/TEST International quote was available to this session for a live EN render of this exact fix (David's account is Hebrew-market only, by design/Iron Rule; obtaining one would have required either creating new test data — a mutation outside this task's authorized scope — or a live sign-in/query action that the session's own auto-mode classifier correctly declined as outside this task's scope). Structural evidence instead: (a) `PublicQuoteEn.jsx` line 262 reuses the identical, unforked `PublicQuoteHeader` component with `isHebrew={false}` — the fix is structurally shared, not HE-only code; (b) the fix itself removed the *only* locale-conditional logic on this line (`isHebrew?'left':'right'` → unconditional `'center'`) — there is no remaining branch that could behave differently per locale; (c) a new focused regression test (`PublicQuoteHeader.test.jsx`, 5 tests, real React rendering via `@testing-library/react`, not just source reading) directly asserts `HE wrapper textAlign === EN wrapper textAlign === 'center'` — passing. Desktop EN: zero diff, zero regression risk (diff-based proof, not live-rendered).
+
+### 129.10 Responsive result
+
+Mobile: PASS (primary acceptance surface, live-measured). Desktop: PASS (zero diff, re-screenshotted HE only). No Tablet/medium-breakpoint structural change exists in this component (`isMobileView` is a single boolean switch at 768px, not a three-tier breakpoint system) — no separate Tablet verification was applicable.
+
+### 129.11 Tests / Build / Lint
+
+New focused test file `src/components/PublicQuoteHeader.test.jsx` (5 tests: HE centered, EN centered, HE≡EN parity, fallback-quote-number case, Desktop-branch-unaffected sanity check) — all pass. Full suite: **178/178 pass** (173 pre-existing + 5 new). Lint: 0 errors on both changed files. Build: clean (`✓ built in 9.55s`).
+
+### 129.12 Contract Trigger Ledger (§127.6, mandatory)
+
+**FILE**: `src/components/PublicQuoteHeader.jsx`
+**SEMANTIC RESPONSIBILITY**: shared HE/EN Public Quote header — business identity, quote-number/date/validity metadata, phone CTA.
+**APPLICABLE PERMANENT CONTRACTS**: Visual Geometry/Alignment Contract (§127.4); HE/RTL + EN/LTR Geometry (§37); Mobile/Desktop Responsive Geometry (§45 family, §84 classification); Owner-Approved=LOCKED / Public Quote Accepted State (§54).
+**WHY EACH CONTRACT TRIGGERED**: the file renders structured, multi-line stacked text whose mutual alignment is a stated product requirement (TODO item 42); it is the shared component for both markets (§37 applies by construction, not by choice); it has a distinct Mobile/Desktop branch (§45 family); it is real, live, Production, previously-accepted Public Quote UI (§54).
+**PROTECTED VISUAL AXES**: CENTER X, shared across the quote-number/date/validity stack (§129.3).
+**HOW EACH CONTRACT WAS VERIFIED**: real `getBoundingClientRect()`/`Range` geometry, before/after, both a live Production baseline and a local fixed build; a content-variation stress test with reversible DOM simulation; a new permanent regression test asserting HE≡EN structural parity; a `git diff`-based zero-regression proof for the untouched Desktop branch.
+**HE STATUS**: PASS (live-verified). **EN STATUS**: CODE/STRUCTURAL VERIFIED (not live-verified, explicitly distinguished per §129.9). **MOBILE STATUS**: PASS (live-verified, primary acceptance surface). **DESKTOP STATUS**: PASS (zero diff + re-screenshot).
+**PASS / PARTIAL / BLOCKED**: **PARTIAL** — every contract's *available* verification was performed and passed; the one gap (no live EN Production data) is explicitly disclosed rather than hidden, per §127.7's fail-closed rule ("a task cannot report PASS if an applicable contract trigger existed but its required verification was not performed" — live EN verification was not skipped by oversight, it was genuinely unavailable, and the honest label is PARTIAL, not PASS, until either real EN data becomes available or the Owner accepts CODE/STRUCTURAL verification as sufficient for this finding).
+
+**FILE**: `src/components/PublicQuoteHeader.test.jsx` (new)
+**SEMANTIC RESPONSIBILITY**: permanent regression coverage for the AUDIT-005 fix.
+**APPLICABLE PERMANENT CONTRACTS**: same as above (test-only file, mirrors the component it covers).
+**HE/EN/MOBILE/DESKTOP STATUS**: N/A (test infrastructure, not a rendered product surface) — 5/5 tests pass, covering HE Mobile, EN Mobile, HE≡EN parity, the fallback-quote-number case, and a Desktop-branch sanity check.
+**PASS / PARTIAL / BLOCKED**: PASS.
+
+### 129.13 Application commit / push / deploy status
+
+Per this task's own explicit instruction not to infer deploy authorization from implementation authorization, and since the Owner's authorization for this task states remediation only, with no explicit commit/push/deploy/LIVE authorization: **implementation complete and TEST-verified locally; application code committed to local `main` only; NOT pushed to `origin/main`; NOT deployed; NOT LIVE.** `origin/main` remains unchanged at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` throughout this task.
+
+### 129.14 AUDIT-001/002/003/004 — explicitly unchanged
+
+Not touched, not re-evaluated, not re-scored by this task. Their status from §128 stands exactly as recorded: all four remain open findings, NOT AUTHORIZED FOR REMEDIATION, unaffected by this task's AUDIT-005-only scope.
+
+**Owner visual acceptance of the AUDIT-005 fix remains PENDING** — implemented and TEST-verified, not yet LOCKED per §54 (nothing becomes LOCKED without actual Owner review of the live result).
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §129); `PROFLOW_TODO.md` UPDATED (item 42 status update); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (a bug-fix within already-documented architecture, not a new architectural fact); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only (not pushed, not deployed). Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action.**
