@@ -75,13 +75,13 @@ Build clean. **173/173 tests pass.**
 
 ## CONTINUITY COMMIT
 
-`e8a7b1d3feea69d3af89703358924fc7c9473912` on `proflow-continuity` (pushed). Matching commit exists locally on `main` (`e7112b5`), **not pushed** (the application push, `2e7cebe`, was pushed separately as the authorized LIVE action).
+`bb97c2da09dd644e0094e9dd4dc39f318d4dbd45` on `proflow-continuity` (pushed; content commit `e8a7b1d` + this SHA-follow-up commit). Matching commits exist locally on `main` (`e7112b5` content, `f015f37` follow-up), **not pushed** (the application push, `2e7cebe`, was pushed separately as the authorized LIVE action).
 
 ## PROFLOW-CONTINUITY PUSH: **PASS**
 
 ## REMOTE GITHUB READ-BACK: **PASS**
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e8a7b1d3feea69d3af89703358924fc7c9473912` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §126 and `PROFLOW_HANDOFF.md` §18.GA both present and correct. `origin/main` re-fetched and confirmed at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` — the real QA-access deployment.
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e8a7b1d3feea69d3af89703358924fc7c9473912` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §126 and `PROFLOW_HANDOFF.md` §18.GA both present and correct. `origin/main` re-fetched and confirmed at `2e7cebece8cbbfb09f98221ac22c19d0293b1b1a` — the real QA-access deployment.
 
 ---
 
