@@ -100,15 +100,15 @@ No Production-pointed action of any kind performed this task; no deploy triggere
 
 ## 17. Continuity commit SHA
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`5a12c56` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`11421c6`) — not pushed to `origin/main` (documentation-only task).
 
 ## 18. Push result
 
-Pushed to `origin/proflow-continuity` only. `origin/main` not touched, no merge, no deploy.
+Pushed to `origin/proflow-continuity` only (`ed187d7` → `5a12c56`). `origin/main` not touched, no merge, no deploy.
 
 ## 19. Fresh GitHub remote read-back result for all six files
 
-*Performed after push; recorded in the SHA-follow-up commit's own section 17/19 update.*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `5a12c56` exactly; `origin/main` re-confirmed unchanged at `26dee96`. Direct `git show origin/proflow-continuity:<file>` reads confirmed, on the remote ref itself (not the local working tree): `PROFLOW_PROJECT_CONTEXT.md` §138/§139/§140 present; `PROFLOW_TODO.md` items 47/48 present; `PROFLOW_HANDOFF.md` §18.GL present; `PROFLOW_CHAT_HANDOFF.md` §14's new lead paragraph present; `PROFLOW_ARCHITECTURE.md` §18.C present; `PROFLOW_CLAUDE_LATEST_REPORT.md`'s own task header present. **ALL SIX: PASS.**
 
 ## 20. Independent six-file reconciliation result
 
