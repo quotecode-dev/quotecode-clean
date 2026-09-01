@@ -63,7 +63,19 @@ export default function ProfessionalPublicPreview() {
   const initialVariant = new URLSearchParams(window.location.search).get('variant');
   const [variant, setVariant] = useState(VARIANTS.some((v) => v.key === initialVariant) ? initialVariant : 'B+');
   const isMobileView = useIsMobileView();
-  const pagePadding = isMobileView ? '10px' : '16px';
+  // B+ Mobile width target correction (PROFLOW_PROJECT_CONTEXT.md §134):
+  // the Owner's requirement was never a small CSS-value nudge (10px->8px,
+  // ~20% - confirmed still live/deployed and genuinely correct via a fresh
+  // full-ancestor-chain audit, §133) but an approximately 50% reduction of
+  // the VISUALLY PERCEIVED outer margin ("looks like 4mm -> looks like
+  // 2mm"). Measured pre-change on real Production: the visible margin
+  // equals the pagePadding value exactly, on every one of the six B+ cards,
+  // with zero contribution from any other ancestor (html/body/#root all
+  // carry 0 padding/margin) - 10px was therefore the correct base for the
+  // 50% target, giving 5px, not a re-derivation from the never-deployed 8px
+  // value. No other container/architecture change was needed - this single
+  // constant is the sole correct control point (confirmed at §133).
+  const pagePadding = isMobileView ? '5px' : '16px';
 
   useEffect(() => {
     if (!id) { setState({ status: 'notfound', dto: null }); return; }
