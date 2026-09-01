@@ -135,7 +135,7 @@ Full ledger (FILE/SEMANTIC RESPONSIBILITY/APPLICABLE CONTRACTS/WHY TRIGGERED/PRO
 
 ## 26. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`74e11de584c177cd63ba47b450b66c08fb2bcad6` on `proflow-continuity` (pushed; content commit `e248515` + this SHA-follow-up commit). Matching commits exist locally on `main` (`746f79f` content, `777eb11` follow-up) — **not pushed**, per this task's own explicit no-release-authorization boundary. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `e248515352a925b7b443296a3edf7b7e6233c175` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §131, `PROFLOW_TODO.md` item 44, and `PROFLOW_HANDOFF.md` §18.GE all present and correct. `origin/main` re-fetched and confirmed unchanged at `df6476fd0e5a80c35c6e920108b83efbeabfece0`.
 
 ## 27. Remaining NOT VERIFIED Items
 
