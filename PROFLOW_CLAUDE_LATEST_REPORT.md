@@ -69,15 +69,13 @@ No application code was edited this task (both parts are read-only/metadata-only
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below, per the established two-commit convention.)*
+`0a6a414c6dfd0961eb889f48e9a58841d8da5844` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the four genuinely-changed files (`PROFLOW_ARCHITECTURE.md` and `PROFLOW_TODO.md` correctly REVIEWED, NO CHANGE). Matching commit exists locally on `main` (`8022479`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `0a6a414c6dfd0961eb889f48e9a58841d8da5844` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§117 present, correct) and `PROFLOW_HANDOFF.md` (§18.FR present, correct) — both confirmed present and correct. `origin/main` re-fetched in the same pass and reconfirmed unchanged at `dd110155a927f708f00467e1017bd183582b42aa`.
 
 ---
 
