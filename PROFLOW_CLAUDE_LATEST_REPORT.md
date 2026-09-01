@@ -92,6 +92,18 @@ The EN login form silently failed to submit multiple times — no network call, 
 
 ---
 
+## CONTINUITY COMMIT
+
+`c4a2f8ff16f51e4de6231441fff31b2efb080ce7` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the six-file continuity update. Matching commit exists locally on `main` (`a64a3fc`), **not pushed**. The application-code fix itself is a separate, earlier local `main` commit (`bf7a047`), also not pushed.
+
+## PROFLOW-CONTINUITY PUSH: **PASS**
+
+## REMOTE GITHUB READ-BACK: **PASS**
+
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `c4a2f8ff16f51e4de6231441fff31b2efb080ce7` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_HANDOFF.md` (§18.FP present, correct) and `PROFLOW_TODO.md` (Wave 4 Item C cross-reference present, correct) — both confirmed present and correct.
+
+---
+
 ## SIX-FILE CONTINUITY LEDGER
 
 - `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§115 Wave 4 Execution addendum)
