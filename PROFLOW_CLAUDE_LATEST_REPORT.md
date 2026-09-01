@@ -111,12 +111,10 @@ Real Hebrew terminology throughout ("נמדד"/"מדידות חוזרות"/"פש
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below.)*
+`6dd0e13875c149918bab4a507df52a7a44e90262` on `proflow-continuity` (pushed to `origin/proflow-continuity`). Matching commit exists locally on `main` (`59a8e91`), **not pushed** (the actual application push, `b29f292`, was pushed separately as the authorized LIVE action).
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `6dd0e13875c149918bab4a507df52a7a44e90262` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §123 and `PROFLOW_TODO.md` item 30.F both present and correct. `origin/main` re-fetched and confirmed at `b29f292781eea7e88b40f943eeb8200faac8ce53` — the real David Aluminum feature deployment.
