@@ -1614,3 +1614,27 @@ All three require their own dedicated future investigation task, not yet schedul
 **Scope note**: this is a distinct, newly-reported alignment concern in the same general header area as Wave 4 Item C (`src/components/PublicQuoteHeader.jsx`, the info-box/CTA column), but is **not** the same defect — Item C concerned the *order* of the info box vs. the CTA within that column (already fixed, live-verified, PASS); this item concerns the column's own *internal centering/balance*, observed fresh from a real screenshot after Item C's fix was already live. Not yet investigated against source or measured against live Production — no root cause, no fix, no scope estimate is recorded here, only the requirement itself, exactly as reported.
 
 **No implementation, investigation, or design work is authorized by recording this item.**
+
+## 30.F David Aluminum Professional-Item Quote Preview — LIVE / DAVID-ONLY (added 2026-09-01, Owner-authorized real-account demonstration — first Item 30.E-adjacent code shipped to Production, NOT a general rollout)
+
+**Status: 🟢 LIVE, DAVID-ONLY.**
+
+David Aluminum stopped actively using ProFlow after becoming disappointed with the product. The Owner authorized a safe, additive, read-only demonstration inside David's real account so he can log in and compare his real, existing, already-approved+signed quote (`#46`) against how it would present in the new Professional Quote Item experience.
+
+**Baseline**: David's one real quote (`id a29b1fbb-f2ca-427d-88b2-6198d138eb89`, `#46`, ₪21,889.00 total, approved+signed, already DB-immutable), 7 real items, real dimension data already present in the quote's own `notes` field (the same real Holon-project evidence already cited throughout item 30.E). Zero fabricated data — every dimension shown comes from that real field, matched to the correct commercial line by a tested parser; an item with no matching notes data (a corner-repair line) correctly stays Simple.
+
+**Architecture — deliberately the lightest possible, not the real 30.E persistence layer**: a pure, read-only client-side transformation (`src/utils/professionalItemClassifier.js`) of the quote's existing, unmodified data — **zero new database table or column was created**. This is not an implementation of item 30.E/Option 1's schema (§121/§122) — it is a presentational preview only, proving the concept using 100% real numbers without building the real persistence layer first. The real schema/implementation decision (§121/§122's five decisions) remains entirely open and unimplemented.
+
+**Gating**: `src/config/professionalPreviewAllowlist.js`, one real `user_id`, unit-tested. `src/global/AppGlobal.jsx` was not touched — International accounts are structurally excluded, not merely gated off.
+
+**New files**: `professionalItemClassifier.js`, `ProfessionalItemComparisonCard.jsx`, `ProfessionalQuotePreview.jsx` (authenticated/Dashboard), `ProfessionalPublicPreview.jsx` (public/customer-facing, deliberately skips the view-count-increment RPC so previewing never touches the real quote). **Modified**: `Dashboard.jsx` (one gated nav button), `AppLocal.jsx` (two new routes).
+
+**Verified**: classifier unit-tested against the exact real quote data (all 7 items correctly classified, subtotal reconciles exactly); gating unit-tested; customer preview live-rendered on Desktop+Mobile against real Production data via the local dev server, zero console errors; David's original quote confirmed byte-identical (including `view_count`) before/during/after all TEST and LIVE verification; build clean, 173/173 tests pass. Business-side authenticated page verified by code review only (mirrors Dashboard.jsx's own proven query pattern) — not live-login-tested, since no David credentials exist or were sought, correctly.
+
+**LIVE**: pushed to `main` (`b29f292781eea7e88b40f943eeb8200faac8ce53`), Vercel deployment confirmed via exact-commit match, canonical domain confirmed serving it, live preview re-verified against real Production with zero console errors and the original quote's `view_count` re-confirmed unchanged immediately after.
+
+**Rollback**: delete the one allowlist entry (or `git revert` the commit) — no database write ever occurred, so there is nothing to unwind beyond the code itself.
+
+**Explicitly not authorized by this item**: general Item 30.E rollout to all users; any real persistence layer/schema for 30.E (still fully open, see 30.E's own five decisions); implementation of Public Quote item 42 (kept separate, not touched by this work).
+
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §123.

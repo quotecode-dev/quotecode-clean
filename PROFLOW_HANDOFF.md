@@ -4689,3 +4689,13 @@ Five Owner decisions recorded as open (architecture option, per-item vs. per-quo
 **Owner LIVE Acceptance (Track 1, already-Production work — kept explicitly distinct from Track 2)**: consolidated, surface-organized checklist prepared at `PROFLOW_PROJECT_CONTEXT.md` §122, covering Dashboard, New Quote, Quote History, Business Settings, Public Quote, and Auth/routing — every row's technical verification is PASS, every row's Owner acceptance is explicitly **PENDING**, never conflated. Public Quote's row flags item 42 as a known unfixed defect, not something to accept.
 
 **No application/DB/TEST/Production/Edge/Vercel mutation. No Item 30.E implementation. No `main` push.**
+
+## §18.FX. David Aluminum professional-item quote preview — LIVE / DAVID-ONLY (2026-09-01)
+
+Owner-authorized real-account demonstration for David Aluminum (churned customer). Baseline: his one real quote (`#46`, `id a29b1fbb-...`, approved+signed, already DB-immutable, 7 real items). **Architecture chosen: pure read-only client-side transformation of existing data — zero new DB table/column.** `professionalItemClassifier.js` parses the quote's own real `notes` field and matches real dimensions to items by apartment+type; unit-tested against the exact real data (all 7 items correct, subtotal reconciles). Gated to David's `user_id` only (`professionalPreviewAllowlist.js`, unit-tested); `AppGlobal.jsx` untouched — International structurally excluded. New: `ProfessionalItemComparisonCard.jsx`, `ProfessionalQuotePreview.jsx` (authenticated), `ProfessionalPublicPreview.jsx` (public, skips the view-increment RPC so previewing never touches the real quote). Modified: `Dashboard.jsx` (one gated nav button), `AppLocal.jsx` (two routes).
+
+**TEST-first**: build clean, 173/173 tests pass, customer preview live-rendered Desktop+Mobile against real Production data via local dev server, zero console errors, original quote confirmed byte-identical (`view_count` still 28) throughout. Business-side page verified by code review only (no David login attempted, correctly).
+
+**LIVE**: pushed `main` → `b29f292781eea7e88b40f943eeb8200faac8ce53`, Vercel deployment confirmed exact-commit match, canonical domain serving it, live re-verification zero console errors, original quote re-confirmed unchanged after LIVE. Rollback: delete one allowlist entry, no DB write to unwind.
+
+**DAVID ALUMINUM NEW-EXPERIENCE DEMO: LIVE / DAVID-ONLY.** Track A (Owner LIVE Acceptance, §18.FW/§122) unaffected, not marked complete by this. Item 42 (Public Quote alignment) deliberately not touched. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §123, `PROFLOW_TODO.md` item 30.F.
