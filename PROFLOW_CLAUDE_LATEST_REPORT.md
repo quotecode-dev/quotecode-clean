@@ -58,7 +58,7 @@ Confirmed via `git status --short` throughout — only the standing untracked `e
 
 ## 8. Continuity Commit SHA + Remote Read-Back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`5f7c2fd` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`e65580f`) — not pushed to `origin/main` (documentation-only task; no application push occurred or was authorized). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `5f7c2fd` exactly, followed by `git show origin/proflow-continuity:PROFLOW_PROJECT_CONTEXT.md` reads confirming §137 present and correct on the remote ref. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ---
 
