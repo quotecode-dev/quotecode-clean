@@ -4900,4 +4900,20 @@ This generalizes, and does not replace, §42 (Global Surface Consistency — pro
 
 **Release boundary**: TEST/local discovery and verification only. **Zero application code changed. NOT pushed, NOT deployed, NOT LIVE.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §143, `PROFLOW_TODO.md` items 47 (updated)/49 (new).
 
+## §18.GP. Forensic TEST-vs-LIVE Desktop Geometry Audit (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §144 — READ-ONLY, no application/DB/TEST/Production mutation)
+
+Owner attached two screenshots (LIVE Hebrew Dashboard, visibly narrower; TEST/LOCAL Hebrew Dashboard, Owner-approved and wider) with explicit instructions to investigate the cause, not to calculate a width from the images and patch LIVE to match.
+
+**Method**: Chrome (CDP, port 9222) already had a real, useful tab open — David Aluminum's own real Public Quote page — attached to with **zero navigation** (a genuinely read-only DOM read of an already-rendered page, no new network request, no re-triggered view-count RPC). One new tab was opened to the real `quotecodepro.com/dashboard` — explicitly checked for a login form first; none appeared (this Chrome profile already had a valid cached session for a different, genuine real Production account) — had one appeared, the script was written to stop immediately without ever attempting credentials. `Emulation.setDeviceMetricsOverride` was used for controlled Desktop viewports on both tabs (identical in effect to a user resizing their window; zero navigation, zero data effect) and explicitly cleared afterward, restoring both tabs to their original state.
+
+**Primary finding, real production evidence**: at 1366/1440/1920px, real LIVE Dashboard measured **byte-identical** to TEST Dashboard — `980px` width, matching centerX, zero delta at every width tested. **No TEST-vs-LIVE code, build, or deployment divergence exists.** The Owner's two screenshots most plausibly differ because they were not captured at matched actual browser viewport/window widths — the same class of explanation already on record from an earlier, structurally similar report (§136.15.C) — not a product defect.
+
+**Second symptom, upgraded from proxy to real evidence**: David's own real, live Public Quote page was directly measured (not mocked, not a synthetic mount) — its inner content box is `980px`, identical to Dashboard's own geometry; its visible outer document shell is `1062px` (the same `40px`-padding/`1px`-border budget already established on TEST), a deliberate, already-Owner-reviewed document-styling difference, not a bug, confirmed present identically on TEST and LIVE.
+
+**One additional bypass found, flagged, not fixed**: `PublicQuote.jsx`/`PublicQuoteEn.jsx` both still carry a dead inline `maxWidth:'1100px'` literal, fully overridden at Desktop widths by the `!important` calc() rule and at Mobile widths by the file's own separate media-query branch — confirmed inert via the real LIVE Mobile-viewport read (`resolvedMaxWidth` read exactly `1100px` there, proving it's never overridden at Mobile, but harmless since nothing constrains below it at Mobile widths either). Recorded as a cleanup candidate (touches two LOCKED files, so removal requires explicit separate Owner authorization per §54's stop condition) — not touched this task.
+
+**Root-cause report** (A-L, full text `PROFLOW_PROJECT_CONTEXT.md` §144.9): no code cause for the primary observation; a real, documented architectural cause (shell vs. no shell) for the second symptom; one canonical geometry source confirmed correctly consumed everywhere measured; the release-process gap is that no step currently produces a controlled, same-viewport TEST-vs-LIVE comparison artifact for Owner review — recommended, not implemented, as a future process improvement.
+
+**Release boundary**: READ-ONLY throughout. **Zero application file touched, zero DB/TEST/Production mutation, no commit of application code, no push to `origin/main`, no deploy, no LIVE action.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §144.
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

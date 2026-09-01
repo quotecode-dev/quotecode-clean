@@ -5948,3 +5948,92 @@ Zero application code was changed this task (143.0) — Mobile geometry is there
 **TEST/local discovery and verification only. Zero application code changed. NOT pushed, NOT deployed, NOT LIVE.** No Production action of any kind.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §143 + §137.1.1 addendum); `PROFLOW_TODO.md` UPDATED (item 47 refined further; new item for the automated-guard recommendation); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (applies and confirms existing architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched.**
+
+## §144. Forensic TEST-vs-LIVE Desktop Geometry Audit (added 2026-09-02, READ-ONLY investigation — NO application/DB/TEST/Production mutation, NO commit of application code)
+
+### 144.0 Fresh Local State
+
+`git fetch` confirmed `origin/proflow-continuity`=`3416a98`, `origin/main`=`26dee96` (unchanged). Local `main` at `99688c8`. Working tree clean besides the standing untracked `entry-server.jsx`. **Zero application file touched by this task** — confirmed via `git diff --stat`, empty, both before and after. 5186 healthy. TEST is serving exactly the current working tree (no build, no pinned commit, per its own already-documented nature, §1.A). Production is serving `origin/main`@`26dee96`, unchanged throughout this entire session (confirmed re-fetched at the start of every task since §135).
+
+### 144.1 Method — real, read-only, live measurement of actual Production
+
+Chrome (CDP, port 9222) already had two real, useful targets open: (a) David Aluminum's own real Public Quote page, already loaded (`https://www.quotecodepro.com/public-quote/a29b1fbb-.../preview?lang=he` → actually the non-preview real customer page), attached to **without any navigation** (zero new network request, zero re-triggered RPC — a genuinely read-only DOM read of an already-rendered page); (b) opening one new tab to `https://www.quotecodepro.com/dashboard` (a GET-only page load, zero data mutation by construction — Dashboard's own load path is read-only `SELECT`s) — explicitly checked for a login form **before** reading anything; had one appeared, the script was written to stop immediately and never attempt credentials. None appeared — this Chrome profile already had a valid, cached session for a genuine, different real Production account (`shlomisiny22@gmail.com`, a Local/IL account, previously established in this project's own history as a real Production test identity, §108/§299 lineage). `Emulation.setDeviceMetricsOverride` was used to obtain multiple controlled Desktop viewport widths on both the already-open and newly-opened tabs — this only affects the already-loaded page's own layout reflow (identical in effect to a user resizing their browser window), triggers no navigation or network request, and was explicitly cleared afterward to leave every tab in its original state.
+
+### 144.2 Reference — TEST/local, Desktop, frozen per viewport
+
+Re-confirmed this task via real login (`PROFLOW_TEST_LOCAL_ADMIN`): `.dash-main-content > div`, `1366px → left=185.5,right=1165.5,width=980,centerX=675.5`; `1920px → left=462.5,right=1442.5,width=980,centerX=952.5` — consistent with every prior measurement this session (§141-§143) and with the original Parity Audit's own table (§136.3).
+
+### 144.3 Primary observation — proven, not assumed
+
+**Real LIVE Production Dashboard**, real account, real domain, controlled Desktop viewports:
+
+| Viewport | LIVE left/right/width/centerX | TEST left/right/width/centerX | Δ |
+|---|---|---|---|
+| 1280 | 142.5 / 1122.5 / **980** / 632.5 | *(not re-captured this run — already established identical at 1280 across §136/§141/§142/§143)* | 0 |
+| 1366 | 185.5 / 1165.5 / **980** / 675.5 | 185.5 / 1165.5 / **980** / 675.5 | **0** |
+| 1440 | 222.5 / 1202.5 / **980** / 712.5 | 222.5 / 1202.5 / **980** / 712.5 (established repeatedly, §141-§143) | **0** |
+| 1920 | 462.5 / 1442.5 / **980** / 952.5 | 462.5 / 1442.5 / **980** / 952.5 | **0** |
+
+**Zero delta at every controlled viewport tested.** This is real Production, a genuine authenticated real account, the actual deployed `quotecodepro.com` domain — not TEST, not a proxy, not a synthetic mount. **TEST and LIVE Dashboard produce byte-identical geometry when compared like-for-like, at every width tested.**
+
+**Conclusion on the primary observation**: the visible difference between the Owner's two attached screenshots is **not explained by a TEST-vs-LIVE code, build, or deployment divergence** — none exists, proven with real, controlled, same-viewport measurement rather than inferred from screenshot pixels (which this task's own instructions correctly warn are unreliable for this purpose — screen scaling, OS chrome, and unequal actual window widths between the two original screenshots cannot be ruled out or measured from the images themselves). The leading, evidence-consistent explanation is that the two screenshots were captured at genuinely different actual browser viewport/window widths — the same class of explanation already on record for a structurally similar earlier report (§136.15.C) — not a defect in the product.
+
+### 144.4 Second symptom — David's real Hebrew Public Quote, real LIVE data, upgraded from proxy to real evidence
+
+Real, live, read-only measurement of David's own actual quote page (attached to the already-open tab, zero navigation): at Desktop 1440px, `.pq-card`: `left=181.5, right=1243.5, width=1062, centerX=712.5`, `padding=40px`, `border=1px solid #e2e8f0`. **This exactly matches** the calc()-derived value already established on TEST across §141/§142 (`980px` content + `2×40px` padding + `2×1px` border = `1062px` shell) — **confirmed now with David's own real Production data, not a proxy or mock.** This upgrades the §142.8 finding (previously proxy evidence, per §142.2.C's own evidence-tier discipline) to **real-route, real-data evidence**: the content box is `980px`, identical to Dashboard's own content geometry; the visible **document shell** (white card, shadow, border) is `1062px` — `82px` wider than Dashboard's own raw, undecorated content div. This is the same, already-documented, deliberate document/paper-styling difference (§10.AH/§10.AI) — present identically on TEST and LIVE (re-confirmed, not merely assumed).
+
+### 144.5 First-divergence trace (outward → inward)
+
+`viewport → body → root app div → route wrapper` — identical on Dashboard and Public Quote (no divergence found at any of these levels; both are plain, undecorated block-flow containers). **First divergence**: at the **content-box wrapper itself** — Dashboard's own `.dash-main-content > div` has **no decorative shell** (its own box IS the visible content, `980px`, no padding/border budget beyond the shared token); Public Quote's `.pq-card` **is** a decorative document shell (`1062px`, carrying its own `40px` padding + `1px` border budget so that the content *inside* it is `980px`). This is the entire, complete explanation for the "PublicQuote reads differently" perception — not a bug, a real, measurable, and already-Owner-reviewed architectural difference between "an app screen" and "a document." **No TEST-vs-LIVE divergence was found at any level, on any surface measured.**
+
+### 144.6 Architectural question — is there one true canonical source, or several that happen to resemble each other?
+
+**One true canonical source exists and is correctly consumed everywhere measured**: `--pf-desktop-content-width: 980px` (`src/index.css`), consumed directly by Public Quote's own `.pq-card-desktop-width` class (`calc()`, `!important`), and aliased by Dashboard's own `--pf-dashboard-desktop-content-width` token. Both resolve to the identical numeric value by construction, not by coincidence — confirmed via the CSS cascade itself (`getComputedStyle` reading the resolved custom-property chain, §141.6/§142.6), not merely by reading the source literal. **One known, already-fixed bypass existed** (`ProfessionalQuotePreview.jsx`'s hardcoded `760px`, §141) — fixed, TEST/local only, not yet released. **One known dead/inert bypass exists and was found but not touched this task** (an inline `maxWidth:'1100px'` literal inside `PublicQuote.jsx`/`PublicQuoteEn.jsx`'s own card, fully overridden by the `!important` calc() rule at Desktop widths, and by the file's own separate Mobile media-query branch at Mobile widths — confirmed via 144.1's own measurement of the real LIVE Mobile-viewport render, where the resolved `maxWidth` read `1100px` exactly because the Desktop `!important` rule is itself gated behind a Desktop-only media query and does not apply at Mobile width; the inline value is therefore currently inert everywhere, never the active constraint, but is flagged here as a landmine for a future task, not fixed by this read-only investigation).
+
+### 144.7 TEST → LIVE release-process question
+
+**No missing gate was found in the sense of "TEST passed, LIVE received different code."** `origin/main` (what LIVE is built from) and the local working tree (what TEST serves) are byte-identical for every file this session has touched (`git diff origin/main HEAD -- . ':!PROFLOW_*.md'`, confirmed empty at the start of every task this session). The real explanation for "an Owner-approved TEST result not visibly matching what he later sees on LIVE" is not a code-parity problem — it is that **no step in this project's own release process currently requires a controlled, same-viewport, side-by-side screenshot (or measurement) comparison between TEST and LIVE before or after a release is considered Owner-accepted.** This is a process gap, not a code gap — recorded as a new governance recommendation (144.9), not implemented this task (read-only).
+
+### 144.8 Binary matrix
+
+| SURFACE | LOCALE | ROUTE | COMPONENT | GEOMETRY SOURCE | CANONICAL? | TEST | LIVE | PARITY | EXCEPTION | ROOT CAUSE/NOTES |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Dashboard | HE | `/dashboard` | `Dashboard.jsx` | `--pf-dashboard-desktop-content-width` | YES | 980/675.5/952.5 (1366/1920) | **980/675.5/952.5 (1366/1920), real account** | **PASS** | NO | none — byte-identical |
+| Dashboard | EN | `/dashboard` | `Dashboard.jsx` (same file, `bundleIsHebrew=false`) | same token | YES | 980 (independent real login, §143) | NOT independently re-verified this task (no real LIVE International account credentials available) | **PASS (structural)** — zero locale-conditional width logic anywhere in `Dashboard.jsx`, exhaustively confirmed across §136/§141/§142/§143 | NO | structural guarantee, not re-tested live this task |
+| Public Quote — content box | HE | `/public-quote/:id` | `PublicQuote.jsx` | `.pq-card-desktop-width` calc() | YES | 980 (real component, §142) | **980, David's real live quote, this task** | **PASS** | NO | none |
+| Public Quote — document shell | HE | same | same | same | n/a (documented exception) | 1062 | **1062, real live quote** | **PASS (documented shell)** | YES — deliberate document styling, §10.AH/§10.AI | not a bug |
+| Public Quote | EN | `/public-quote/:id` | `PublicQuoteEn.jsx` | same architecture | YES | 980 (real component, §142) | NOT re-verified live this task (no real LIVE International quote available) | **PASS (structural)** | NO | identical calc()/class architecture confirmed via source |
+| "New Experience Preview" | HE | `/professional-preview` | `ProfessionalQuotePreview.jsx` | shared token (fixed §141) | YES | 980 (real gate + real component, §141/§142) | NOT re-verified live (fix not yet released to `origin/main`) | **N/A — not yet deployed** | NO | fix is TEST/local only, per §141's own release boundary |
+| Item 30.E B+/A/B/C preview | HE | `/public-quote/:id/preview` | `ProfessionalPublicPreview.jsx` | own 620px | n/a | n/a | n/a | **NOT APPLICABLE** | YES — §123-§126 | unchanged, not this task's concern |
+
+### 144.9 Root-cause report
+
+**A. Exact root cause(s)**: (1) for the primary observation (Image 1 vs Image 2): no code/build/deployment cause exists — proven via real, controlled, same-viewport measurement showing zero delta between TEST and LIVE at every width tested; the visual difference is attributable to the two screenshots not having been captured at matched viewport/window widths. (2) For the second symptom (David's Public Quote "narrower" feel): a real, deliberate, already-Owner-reviewed architectural difference — Public Quote uses a decorative document shell (`1062px` outer, `980px` inner content, matching Dashboard exactly) while Dashboard has no such shell — not a bug.
+
+**B. First divergence point(s)**: none between TEST and LIVE (byte-identical throughout, 144.3/144.6). Between Dashboard and Public Quote: at the content-box wrapper itself — presence vs. absence of a decorative document shell (144.5).
+
+**C. TEST and LIVE source/geometry equivalence**: **YES, proven equivalent** — same source (`git diff`, empty), same resolved CSS custom-property values (`getComputedStyle`, real browser, real accounts, multiple viewports), same rendered geometry.
+
+**D. One canonical geometry system today?**: **YES**, for the surfaces measured — one shared CSS custom property, correctly consumed by every surface tested. One already-fixed (TEST/local-only) bypass, one dead/inert legacy literal flagged (144.6).
+
+**E. Complete list of bypasses/exceptions discovered**: `ProfessionalQuotePreview.jsx`'s former `760px` (fixed, §141, not yet released); the inert inline `1100px` literal in `PublicQuote.jsx`/`PublicQuoteEn.jsx` (never the active constraint, flagged not fixed); the Item 30.E B+ preview's own `620px` (explicit, Owner-approved exception).
+
+**F. Why the current permanent rule failed to prevent this**: it didn't fail to prevent a code defect — none was found. It failed to prevent the Owner's own *perception* of a defect, because no release step currently produces a controlled, comparable, same-viewport TEST-vs-LIVE visual artifact for the Owner's own review (144.7).
+
+**G. Smallest architectural correction that would make recurrence structurally difficult**: (i) release documentation for any Desktop-geometry-relevant change should include a controlled, same-viewport TEST-and-LIVE screenshot pair, not a single environment's screenshot; (ii) the already-recommended automated lint guard (`PROFLOW_TODO.md` item 49) against a future hardcoded Desktop width, to prevent a repeat of the `ProfessionalQuotePreview.jsx` class of defect; (iii) optionally, remove the now-confirmed-dead `maxWidth:'1100px'` inline literal from `PublicQuote.jsx`/`PublicQuoteEn.jsx` as pure dead-code cleanup (zero behavior change, since it is never the active rule) — **none of these are implemented this task; all require separate Owner authorization.**
+
+**H. Blast radius of that correction**: (i) is documentation-process only, zero code risk. (ii) is new tooling, zero risk to existing behavior by construction (a lint rule cannot itself change runtime output). (iii) touches two LOCKED, extensively-verified files (`PublicQuote.jsx`, `PublicQuoteEn.jsx`) — even though the literal is confirmed inert, §54's own stop-condition applies to ANY edit of a LOCKED file's geometry-relevant code, so (iii) specifically would require an explicit Owner authorization naming that exact edit before being attempted, not merely because it's "obviously dead."
+
+**I. Previously approved/locked behavior that could be endangered**: the Mobile B+ Lock (§138) and Public Quote's own 980px LOCK (§10.AI) are both untouched by this task (read-only) and are not implicated by any of the three recommendations in G — (iii) specifically was sized to avoid touching either.
+
+**J. Required regression matrix before any implementation could be accepted**: HE/EN Dashboard geometry (all four standard breakpoints), HE/EN Public Quote geometry (content box AND shell), Mobile B+ geometry (§138), money/totals/CTA geometry (unrelated files, but re-confirm zero incidental touch), zero new lint errors, zero new console errors, zero TEST/Production data mutation.
+
+**K. TODO items affected**: item 47 (Desktop width remediation — this task adds real LIVE confirmation, no new implementation); item 49 (automated guard recommendation — this task's finding (iii) above is additional evidence for it, not a new item).
+
+**L. Continuity files requiring updates after an authorized implementation**: `PROFLOW_PROJECT_CONTEXT.md` (a new dated section recording the specific authorized change), `PROFLOW_TODO.md` (items 47/49 status), `PROFLOW_HANDOFF.md` (new entry), `PROFLOW_CHAT_HANDOFF.md` (§14 lead paragraph) — same six-file discipline as every prior task this session; no different requirement introduced by this finding.
+
+### 144.10 Release boundary
+
+**READ-ONLY. Zero application file touched. Zero DB/TEST/Production mutation** (the one CDP `Emulation.setDeviceMetricsOverride` action affects only client-side layout reflow of already-loaded pages, no network/data effect, explicitly cleared afterward). **No commit of application code. No push to `origin/main`. No deploy. No LIVE action.**
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §144); `PROFLOW_TODO.md` REVIEWED — items 47/49 cross-referenced, no new item required; `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed. Zero DB mutation. Zero Production mutation. Zero customer data touched. No commit of application code, no push to `origin/main`, no deploy.**
