@@ -91,12 +91,10 @@ Build clean. **173/173 tests pass.** Landing page HTTP 200.
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below.)*
+`2c7910bcd49ed8f7a99fa8b4bc642b9cafd2534a` on `proflow-continuity` (pushed). Matching commit exists locally on `main` (`2672476`), **not pushed** (the actual application push, `7612714`, was pushed separately as the authorized LIVE action).
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `2c7910bcd49ed8f7a99fa8b4bc642b9cafd2534a` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §125 and `PROFLOW_HANDOFF.md` §18.FZ both present and correct. `origin/main` re-fetched and confirmed at `7612714f96096cba9815ecd144a1cf236f01ca3b` — the real B+ deployment.
