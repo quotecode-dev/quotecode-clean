@@ -5269,3 +5269,77 @@ DEPLOY: NOT AUTHORIZED (this task).
 **Owner visual acceptance of the B+ Mobile presentation (and of every fix released in §132) remains PENDING.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §133); `PROFLOW_TODO.md` UPDATED (item 42 addendum recording the correction); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).**
+
+## §134. B+ Mobile Width Target Correction — Approximately 50% Visual-Margin Reduction (added 2026-09-01, Owner-authorized, IMPLEMENTATION + LOCAL VERIFICATION ONLY, not pushed/deployed)
+
+### 134.1 Exact reason 10px → 8px did not represent the Owner's requirement
+
+The §133 correction reduced `pagePadding` from `10px` to `8px` — a ~20% reduction of the CSS value. The Owner's actual requirement, communicated via a physical-comparison description ("looks like 4mm, I want it to look like 2mm"), was an **approximately 50% reduction of the visually perceived outer margin**, not a small numeric nudge. 8px is not close to 50% of 10px; §133's correction, while a real, measured, non-regressive improvement, did not match the Owner's intended magnitude. This is recorded as a **target-interpretation gap**, not a repeat of §133's own verification-methodology question (§133 already established, and this task's own fresh re-measurement reconfirms, that geometry was being measured correctly with real `getBoundingClientRect()`/`getComputedStyle()` — the gap here is about the *size* of the correction, not whether it was measured).
+
+### 134.2 Full effective-margin source/ancestor analysis
+
+Repeated the full ancestor-chain method from §133, extended this task to explicitly identify the **complete set of visible B+ cards** (not just one wrapper div) and take the actual min/max rendered edge across all of them, so no card-specific margin difference could be missed. Confirmed: all six visible cards (comparison toolbar, purple header, recipient block, item list, totals, terms) share **identical** left/right edges, with zero contribution from any other ancestor (`html`/`body`/`#root` all carry `0` padding/margin) — the single `pagePadding` constant on the outer page `<div>` remains the sole, correctly-identified control point. Box-shadow (present on the purple header) was also checked and confirmed non-contributing to the layout-edge measurement (shadows do not affect `getBoundingClientRect()` or cause overflow) and visually remains fully rendered, not clipped, at the new tighter margin.
+
+### 134.3 BEFORE geometry (real Production, the state the Owner actually evaluated — 10px, since the §133 8px change was never pushed/deployed)
+
+viewportWidth=390, visibleLeftEdge=10, visibleRightEdge=380, **leftVisibleMargin=10, rightVisibleMargin=10**, visibleContentWidth=370, **viewportUtilizationPercent=94.87%** — measured across all six visible cards, confirmed uniform.
+
+### 134.4 Derived 50% target
+
+**10px × 50% = 5px** (both sides). Deliberately derived from the currently-deployed/Owner-evaluated `10px` baseline, not from the never-deployed, already-superseded `8px` local experiment — the Owner's "looks like 4mm→2mm" comparison was necessarily made against what is actually live, not an unreleased local value he never saw.
+
+### 134.5 Exact implementation
+
+One constant, one file, `src/pages/ProfessionalPublicPreview.jsx`: `pagePadding = isMobileView ? '5px' : '16px'` (was `'8px'`, itself superseding the deployed `'10px'`). No other container/architecture change — the same single correct control point identified at §133 remains correct; no per-row compensation, no negative margins, no `100vw` hacks, no device-specific behavior.
+
+### 134.6 AFTER geometry (local build, real geometry, full six-card method)
+
+| Viewport | leftVisibleMargin | rightVisibleMargin | visibleContentWidth | utilization |
+|---|---|---|---|---|
+| 390 (primary) | 5 | 5 | 380 | **97.44%** |
+| 360 | 5 | 5 | 350 | **97.22%** |
+| 412 | 5 | 5 | 402 | **97.57%** |
+| 1280 Desktop | 322.5 | 337.5 | 620 | 48.44% (unchanged, expected — governed by the fixed `maxWidth:620px` cap) |
+
+### 134.7 Actual margin-reduction percentage
+
+`(10 − 5) / 10 = 50%` exactly, both sides, at every tested Mobile width — precisely matching the Owner's "4mm→2mm" (50%) requirement, derived from measured geometry rather than a literal unit conversion.
+
+### 134.8 360/390/412 results
+
+**PASS at all three.** Zero horizontal overflow, zero clipping, borders/shadows fully visible (screenshot-confirmed), item descriptions remain fully readable, price column remains protected (see 134.9), expanded professional detail re-verified fully usable (real click via CDP — all 8 real measurement rows revealed correctly, zero overflow after expansion), totals section re-confirmed correct and readable, terms section re-confirmed fully readable.
+
+### 134.9 Money-geometry regression result
+
+`itemMaxSpreadPx = 0` at every tested viewport (390/360/412/1280) — **UNCHANGED**.
+
+### 134.10 Totals-geometry regression result
+
+`totalsMaxSpreadPx = 0` at every tested viewport — **UNCHANGED**.
+
+### 134.11 CTA regression result
+
+`ctaMaxSpreadPx = 0.02` (Mobile), `0.01` (Desktop) — **UNCHANGED**, matching every prior release's own measured values exactly.
+
+### 134.12 Desktop result
+
+**PASS, zero regression.** `maxWidth:620px` wrapper fully unaffected (`pagePadding` only changes when `isMobileView` is true) — byte-identical to §132/§133's own Desktop record.
+
+### 134.13 Tests/build/console
+
+Full suite: **178/178 pass**. Lint: 0 new errors (the same single pre-existing unused-import warning already documented at §131-§133, confirmed unrelated). Build: clean. Console: zero errors on every page load performed this task.
+
+### 134.14 Local application commit / release candidate — history note
+
+The §133 `8px` commit was created, then found not to represent the Owner's actual requirement, before ever being pushed anywhere (`origin/main` remained at `8bb777c` throughout — confirmed via `git branch --contains` returning no remote refs for that commit). An attempt to cleanly remove it from local history via a non-interactive `git rebase --onto` produced merge conflicts in the documentation files and was **aborted immediately** rather than pursued further, consistent with this project's standing caution around history-rewriting git operations — the working tree was safely recovered via `git stash`/`git stash pop`, verified clean, and the 5px fix re-applied with zero data loss. The local history therefore contains an honest, visible record of the abandoned intermediate `8px` step (commit `023a0d1`) followed by this task's own commit correcting it to `5px` — this is disclosed transparently rather than hidden, and does not affect the correctness of the final release candidate, since only the final committed file content matters once a future push is separately authorized.
+
+### 134.15 Release boundary
+
+Per this task's own explicit instruction: implementation authorized, release was not. **A local application commit was created. It was NOT pushed and NOT deployed.**
+
+PUSH: NOT AUTHORIZED (this task).
+DEPLOY: NOT AUTHORIZED (this task).
+
+**Owner visual acceptance of the B+ Mobile presentation (and of every fix released in §132) remains PENDING.**
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §134); `PROFLOW_TODO.md` UPDATED (item 42 addendum correcting the interpretation); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code committed locally only, not pushed, not deployed. Zero DB/schema/Edge Function mutation. Zero customer communication. Zero signature/approval action. David's original quote data untouched throughout (read-only page loads only).**
