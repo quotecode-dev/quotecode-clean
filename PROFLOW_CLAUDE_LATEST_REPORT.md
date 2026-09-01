@@ -137,7 +137,7 @@ Zero DB mutation (only pre-existing accounts' own read-only login + page loads).
 
 ## 27. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`8c11ae5293e62aa78a7192fc7f18cce7a18b2f89` on `proflow-continuity` (pushed; content commit `f5d9294` + this SHA-follow-up commit). Matching commits exist locally on `main` (`b23eeea` content, `06b7824` follow-up) — not pushed to `origin/main` (no application push occurred or was authorized this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `f5d9294f501ccdd1fbfab3375dadffe3a05ba825` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §136 and `PROFLOW_HANDOFF.md` §18.GJ both present and correct. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ---
 
