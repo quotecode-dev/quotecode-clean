@@ -66,15 +66,13 @@ No application code edited. No DB/TEST/Production/Edge Function/Vercel mutation 
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below, per the established two-commit convention.)*
+`7aec3181b566bafa6e153ba90698a2ab4cbf7c51` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the four genuinely-changed files. Matching commit exists locally on `main` (`4ed5709`), **not pushed** (this task's own instruction: continuity commit authorized, `main` push not authorized).
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `7aec3181b566bafa6e153ba90698a2ab4cbf7c51` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§118 present, correct) and `PROFLOW_HANDOFF.md` (§18.FS present, correct) — both confirmed present and correct. `origin/main` re-fetched in the same pass and confirmed unaffected by this task, still `83e677a488a6a17b9a195c5a360726307398f445`.
 
 ---
 
