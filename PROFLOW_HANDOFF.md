@@ -4817,3 +4817,15 @@ Owner's real physical-device Production screenshot conflicted with §132's own r
 **Branch reconciliation**: local `main` had diverged from the new `origin/main` (built on a separate temporary branch) — resolved via `git reset --hard origin/main` on local `main`, safe because every superseded local commit's content was already independently preserved (app state now correctly on `origin/main`; every documentation update already confirmed pushed to `origin/proflow-continuity`). Temporary branch deleted after reconciliation.
 
 **Owner visual acceptance remains PENDING.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §135, `PROFLOW_TODO.md` item 42 (status → LIVE).
+
+## §18.GJ. Comprehensive TEST ↔ Production UI/Layout Parity Audit (2026-09-01, READ-ONLY, no fixes, `PROFLOW_PROJECT_CONTEXT.md` §136)
+
+Owner requested full diagnosis of a perceived Dashboard-width difference between TEST and Production. **Source parity**: `git diff origin/main HEAD` (excl. docs) returns empty — the local working tree TEST/Production-pointed dev servers serve is byte-identical to what deployed Production is built from. **Runtime parity, live-measured**: real authenticated login (real form) against TEST-local (port 5186), Production-pointed local dev (port 5184), and real deployed Production, using two different real accounts (one fresh/empty, one with fixture data) — `.dash-main-content`/table geometry byte-identical across all three at 1280/1366/1440/1920px.
+
+**The measured width itself (950px table, ~980px content) is fully explained by an already-documented, later, Owner-final decision** in `src/index.css`: `--pf-dashboard-desktop-content-width` deliberately aliases Public Quote's own locked `--pf-desktop-content-width` (980px), superseding the earlier §55-§57 experimental-width history this session's own working memory had been carrying forward stale. Not a bug.
+
+**Mobile/Desktop isolation**: structurally verified sound — three independent, non-shared `isMobileView` implementations project-wide; `Dashboard.jsx` has zero JS breakpoint logic; `.dash-main-content` used exclusively within `Dashboard.jsx`. **Recent B+/AUDIT-001-005 releases** confirmed (cumulative diff across all three) to touch exactly 5 files, none shared with Dashboard — zero possible cross-surface impact, structurally proven, not inferred from absence of a symptom.
+
+**Root cause of the Owner's original perceived difference: not identified with certainty** — leading unconfirmed hypothesis is browser zoom/DPI/window-size difference between the compared screenshots, since both source and runtime parity are proven identical. One informational-only finding recorded (stale session working-memory vs. current source truth — corrected, not a defect).
+
+**Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

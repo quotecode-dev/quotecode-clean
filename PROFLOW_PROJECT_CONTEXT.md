@@ -5404,3 +5404,141 @@ Local `main` had diverged from the newly-pushed clean `origin/main` (11 local-on
 **PENDING.** Claude Lead's own LIVE verification is real-browser evidence; it does not substitute for the Owner's personal inspection on his physical Mobile device. **Owner visual acceptance of the B+ Mobile width and of every other fix released in §132/§135 remains PENDING.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §135); `PROFLOW_TODO.md` UPDATED (item 42 status → LIVE); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED; `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`26dee96`); zero DB/schema/Edge Function mutation; zero customer communication; zero signature/approval action; David's original quote data untouched (read-only page loads only).**
+
+## §136. Comprehensive TEST ↔ Production UI/Layout Parity Audit (added 2026-09-01, Owner-authorized, READ-ONLY DIAGNOSIS ONLY — no application/DB/TEST/Production mutation of any kind)
+
+### 136.0 Fresh Local State
+
+Local `main` at task start: `677d01a`, exactly `origin/main` (`26dee96`) plus documentation-only commits — confirmed via `git diff origin/main HEAD -- . ':!PROFLOW_*.md'` returning **empty**. Working tree clean besides the standing untracked `entry-server.jsx`. `origin/proflow-continuity`: `36b72cf` at start.
+
+### 136.1 TEST and Production runtime identity, precisely defined
+
+**TEST** = the local Vite dev server (`npm run dev:localtest`, port 5186), loading `.env.localtest.local` (`VITE_SUPABASE_URL` → `quotecode-test`, ref `ljfizgrdyzxddswcedwr`), serving whatever is currently on disk in the working tree — **not a deployed environment**, no build artifact, no pinned commit (already established at `PROFLOW_ARCHITECTURE.md` — reconfirmed, not merely cited, this task).
+
+**Production** = the deployed Vercel build at `https://www.quotecodepro.com/`, built via `vite build` from `origin/main`, currently `26dee96`, connected to the real `quotecode` Supabase project (ref `ixabnzhjeqevtbhdfswv`).
+
+Both were live-tested this task with real authenticated sessions (real login form, not a bare API call — the established, precedented technique, since a bare `signInWithPassword()` does not reliably trigger `Dashboard.jsx`'s own `loadData()` sequence).
+
+### 136.2 TEST vs Production source parity
+
+**SAME SOURCE, proven, not assumed.** `git diff origin/main HEAD -- . ':!PROFLOW_*.md'` (136.0) confirms the local working tree — which is exactly what both `npm run dev` (port 5184, Production-Supabase-pointed) and `npm run dev:localtest` (port 5186, TEST-Supabase-pointed) serve — is byte-identical to `origin/main`, which is exactly what the deployed Production build was compiled from. All three surfaces (TEST-local, Production-local-dev, Production-deployed) therefore necessarily run **the same `Dashboard.jsx`, the same `index.css`, the same every shared file** — there is no scenario under which they could render different CSS/layout from source divergence alone, given this diff result.
+
+### 136.3 Dashboard full container-chain comparison + width measurements
+
+**Method**: real authenticated login (real form submission, not a bare API call) against all three surfaces, then `getBoundingClientRect()` + `getComputedStyle()` on the `.dash-main-content` wrapper and the Quote History `<table>`, at 1280/1366/1440/1920px.
+
+**Finding — byte-identical across all three environments, every width, using two different real accounts with different data density** (a fresh/empty "New Business" admin account on Production-target/deployed; a real TEST admin account with fixture quote history on TEST-target):
+
+| Width | `.dash-main-content` padding | `table` left | `table` right | `table` width |
+|---|---|---|---|---|
+| 1280 | 16px both sides (all 3 envs) | 157.5 (all 3) | 1107.5 (all 3) | 950 (all 3) |
+| 1366 | 16px | 200.5 | 1150.5 | 950 |
+| 1440 | 16px | 237.5 | 1187.5 | 950 |
+| 1920 | 16px | 477.5 | 1427.5 | 950 |
+
+Zero pixel deviation anywhere, at any tested width, between TEST-local, Production-local-dev, and real deployed Production.
+
+### 136.4 Browser zoom / DPI findings
+
+`window.devicePixelRatio` was confirmed `1` in every CDP-emulated session this task (explicit, controlled emulation — not inherited from any host display). This does **not** and cannot determine what zoom/DPI the Owner's own physical screenshots used — that remains genuinely unknown from this environment. Recorded honestly as the leading **unconfirmed** hypothesis (136.15/C), not asserted as proven, since it is the only category of explanation left standing once source parity (136.2) and runtime geometry parity (136.3) are both proven identical.
+
+### 136.5 Mobile/Desktop isolation result
+
+**VERIFIED, structurally, by exhaustive code search — three independent, non-shared `isMobileView` implementations exist project-wide**: `ProfessionalPublicPreview.jsx` (own `useIsMobileView()` hook, written for the B+ width work), `PublicQuoteHeader.jsx` (own separate `useState`+`useEffect`, pre-existing), `QuotesTab.jsx` (own separate implementation, pre-existing). **None share a module-level variable, a common hook, or a common CSS class** — each computes its own boolean independently via its own `matchMedia` listener. `Dashboard.jsx` uses **no** `isMobileView`/`matchMedia`/JS-driven breakpoint logic of any kind (confirmed via repo search) — its own Mobile/Desktop split is pure CSS (`@media` in `index.css`), structurally unconnected to any of the three `isMobileView` implementations above.
+
+**`.dash-main-content` (Dashboard's own width-controlling class) is defined and used exclusively within `Dashboard.jsx`** (one `<style>` block, one consuming `<div>`) — confirmed via repo-wide search; zero references anywhere in `ProfessionalPublicPreview.jsx`, `PublicQuoteHeader.jsx`, `CustomerQuoteItemRow.jsx`, or `ProfessionalItemComparisonCard.jsx`.
+
+**Conclusion: the B+ Mobile width change cannot affect Dashboard Desktop, Dashboard Mobile, B+ Desktop, or Public Quote Desktop — structurally, by construction, not merely by absence of an observed effect.**
+
+### 136.6 Recent-commit impact trace
+
+Cumulative application-file diff across all three recent releases (`2e7cebe→df6476f` AUDIT-005 CTA; `df6476f→8bb777c` AUDIT-001-005+B+-10px; `8bb777c→26dee96` B+-5px), excluding documentation:
+
+**FILES CHANGED (union, all three releases)**: `PublicQuoteHeader.jsx`, `PublicQuoteHeader.test.jsx`, `CustomerQuoteItemRow.jsx`, `ProfessionalItemComparisonCard.jsx`, `ProfessionalPublicPreview.jsx`.
+**DIRECT SURFACES**: Public Quote header (shared HE/EN component, real Production surface), the David-only Item 30.E B+/A/B/C preview.
+**SHARED DEPENDENCIES**: `PublicQuoteHeader.jsx` is genuinely shared between real Public Quote (`PublicQuote.jsx`/`PublicQuoteEn.jsx`) and the Item 30.E preview — its AUDIT-005 change (`alignItems`/`textAlign` on the Mobile CTA group) was verified (§129/§130/§132) to affect only that one Mobile-branch sub-tree, not the Desktop branch, not Dashboard.
+**POSSIBLE INDIRECT SURFACES**: none identified — none of the five files import from, are imported by, or share a CSS class/token with `Dashboard.jsx`, `QuotesTab.jsx`, or `index.css`'s Dashboard-relevant variables.
+**ACTUAL VERIFIED IMPACT**: Dashboard — zero (136.3/136.5). Public Quote Desktop/other markets — zero (structural, `isMobileView`-gated). Confirmed, not assumed.
+
+### 136.7 Full user-facing width/layout inventory
+
+**Structural fact, confirmed via direct source read this task** (`Dashboard.jsx`, own code comment): "single shared content-width wrapper for the whole authenticated app (Dashboard/Quotes/Clients/Catalog/Finances/Settings all render inside this one div)" — i.e. Dashboard, Quote History, Clients, New Quote, Business Settings, Catalog, and Finances are **not separate routes/components with independent width architecture** — they are tabs rendered inside the exact same `.dash-main-content` → `maxWidth: var(--pf-dashboard-desktop-content-width)` wrapper already measured byte-identical at 136.3. This is not an inference; it is what the component's own structure and its own authoring comment state.
+
+| SURFACE | OUTER CONTAINER | DESKTOP WIDTH RULE | MOBILE WIDTH RULE | SHARED/ISOLATED | TEST STATUS | PRODUCTION STATUS | PARITY |
+|---|---|---|---|---|---|---|---|
+| Dashboard | `.dash-main-content` | `var(--pf-dashboard-desktop-content-width)` = 980px (aliased) | 6px padding (`!important` override) | Shared (the one authenticated-app wrapper) | PASS (live) | PASS (live) | **PASS** |
+| Quote History | same as Dashboard | same | same | Shared | PASS (live, table measured) | PASS (live, table measured) | **PASS** |
+| Clients | same as Dashboard | same | same | Shared | NOT VERIFIED (not independently live-tested this task; structurally identical container) | NOT VERIFIED | NOT VERIFIED (structural PASS) |
+| New Quote | same as Dashboard | same | same | Shared | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED (structural PASS) |
+| Business Settings | same as Dashboard | same | same | Shared | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED (structural PASS) |
+| Catalog | same as Dashboard | same | same | Shared | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED (structural PASS) |
+| Finances | same as Dashboard | same | same | Shared | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED (structural PASS) |
+| Public Quote (HE/EN) | `.pq-card` shell | `--pf-desktop-content-width` = 980px, LOCKED | own `@media(max-width:640px)`, hardcoded 2px shell padding | Isolated (own dedicated token, deliberately not shared with Dashboard's) | NOT VERIFIED this task (no known open defect on record beyond TODO item 42, already tracked) | NOT VERIFIED this task | NOT VERIFIED |
+| Item 30.E B+/A/B/C preview | own `maxWidth:620px` wrapper | 620px, fixed | 5px padding (Owner-approved, §135) | Isolated (own file, own `useIsMobileView`, David-only) | N/A (not TEST/Production distinction — David-gated real-account surface) | PASS (live, §135) | N/A |
+| Landing/Auth | own layout (`LandingLocal`/`LandingGlobal`) | not touched/audited this task | not touched/audited this task | Isolated (separate top-level components) | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+| Document preview ("צפה במסמך") | routes to Public Quote | same as Public Quote | same as Public Quote | Shared with Public Quote | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+
+**HE/EN**: `.dash-main-content`'s own wrapper carries no `isHebrew` conditional on width (confirmed — the maxWidth/padding values are locale-independent by construction, same structural guarantee already established for Quote History's other contracts, §81 Part L). Public Quote's own width token is likewise shared HE/EN (`PublicQuote.jsx`/`PublicQuoteEn.jsx` both consume the same `--pf-desktop-content-width`).
+
+### 136.8 Global CSS / shared-layout findings
+
+`src/index.css` searched for `max-width`, `100vw`, `scrollbar-gutter`, `transform:scale`, `zoom:` — **no unexpected rule found**. The only `scrollbar-gutter` usage is the already-documented, intentional `stable` value on `html` (§45's own "RESOLVED" center-axis fix). No `100vw`, no `zoom`, no `transform:scale` anywhere in this file. `src/App.css` confirmed **dead** (zero import references anywhere in `src/`, consistent with `App.jsx` itself being established dead code, not part of the live bundle) — not a factor in any live rendering. `src/fonts.css` is font-`@font-face` declarations only, no layout-affecting rules.
+
+**The one genuinely significant global-CSS finding this task**: `--pf-dashboard-desktop-content-width` (`src/index.css` line 152) is currently **aliased directly to `--pf-desktop-content-width`** (`var(--pf-desktop-content-width)`, i.e. `980px`) rather than holding an independently-chosen value. This is **fully documented in the same file**, in-line, as an explicit, later, Owner-final decision (task: "Critical Signature Forensic Audit + Final Canonical Width Alignment") that **superseded** the entire earlier experimental sequence recorded in this project's own history (flat `1440px` → flat `1320px` → `min(1320px,72vw)` → `min(1320px,85vw)`) — the Owner's own final ruling, quoted in the code comment: "there is no 'new width' to design/estimate/approximate: ProFlow's single canonical width is the existing, Owner-approved width of Public Quote itself (980px, LOCKED)." **This is not a bug, not a regression, and not a TEST/Production divergence** — it is the current, intentional, already-documented-in-source architecture, and it explains exactly what was measured at 136.3 (table width 950px ≈ 980px content minus `QuotesTab.jsx`'s own column-fit adjustment). It is flagged here only because this session's own earlier working memory of §55-§57 (the *pre-final-alignment* experimental values) was stale relative to this later, superseding decision — a concrete, disclosed instance of "memory ≠ fresh state," corrected by direct source read this task, not carried forward uncritically.
+
+### 136.9 Environment-conditional rendering findings
+
+Repo-wide search for `import.meta.env` returns **exactly 4 references, all in `src/shared/supabase.js`**, all scoped to Supabase backend/target selection (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, the `localtest` mode check, and the fail-closed `VITE_PROFLOW_ENV==='TEST'` guard) — **reconfirmed fresh this task**, matching and reproducing the prior exhaustive sweep already on record (`PROFLOW_PROJECT_CONTEXT.md` §114). **No environment-conditional layout, width, breakpoint, or locale logic exists anywhere in the frontend.** This structurally rules out environment selection itself as a possible source of the observed width difference.
+
+### 136.10 Data-dependent layout findings
+
+**Container width is structurally independent of data density**, confirmed by the 136.3 comparison itself: a fresh/empty "New Business" account (zero quotes, zero KPI history) and a real TEST admin account with populated quote history produced **byte-identical** `.dash-main-content`/table geometry. `CONTAINER WIDTH DIFFERENCE` and `CONTENT DENSITY DIFFERENCE` are therefore cleanly separable in this codebase — differing data (KPI card count, Hot Quote card presence, table row count, business-name length) can change the **content displayed inside** the container, but not the **container's own width**, per this task's direct measurement.
+
+### 136.11 Scrollbar / center-axis findings
+
+`scrollbar-gutter: stable` on `html` (global, unconditional — §45's own already-recorded fix) — already-established as the fix for the exact class of "one environment has a scrollbar, the other doesn't, and the center axis shifts" defect this task's own §13 anticipates. Not independently re-measured live this task (no fresh evidence of a regression found, and re-deriving the same proof already on record was not repeated to conserve scope) — **NOT VERIFIED (fresh, this task)**, though the fix itself is real, in-source, and unconditional (not data- or environment-gated).
+
+### 136.12 Agent HE report
+
+**RTL/Local layout, TEST vs Production**: PASS — both sessions tested this task used `?lang=he`, `dir=rtl` confirmed correctly applied in both, Dashboard geometry byte-identical (136.3). No HE-specific width-token branch exists anywhere searched (136.8's finding is locale-independent). Quote History's own already-extensively-verified RTL geometry contracts (§77-§84) were not touched by any of the three recent B+/AUDIT releases (136.6) — **PASS by construction, not re-tested live this task** (no code change to re-verify).
+
+### 136.13 Agent EN report
+
+**LTR/International layout architecture**: the same shared `.dash-main-content` wrapper and `--pf-dashboard-desktop-content-width` token apply identically to `AppGlobal.jsx`'s own Dashboard rendering (same `Dashboard.jsx` file, no market-conditional branch on this specific wrapper) — **PASS, structural**. **NOT VERIFIED live this task**: no International/EN account was logged into and measured this task (time/scope-bounded; the Dashboard parity proof already used two Local/HE accounts across three environments, which is sufficient to answer the TEST-vs-Production question this task was centrally about, but does not by itself constitute a fresh EN-specific live measurement). Recorded honestly as a gap, not silently assumed PASS.
+
+### 136.14 Claude Lead reconciliation
+
+Not a merge of 136.12/136.13 — independently re-derived from the same underlying evidence (136.3/136.5/136.6/136.8/136.9). Confirms: the Dashboard width question is answered with high confidence (source parity proven via `git diff`; runtime parity proven via three-way live measurement; the specific numeric value is explained by an already-documented, non-buggy architectural decision) without requiring either HE or EN agent role to have found anything additional — both roles' findings are consistent with, not contradictory to, each other.
+
+### 136.15 Root-cause decision (A–J)
+
+**A. Is TEST using different frontend code than Production?** No — proven via `git diff origin/main HEAD` returning empty for all non-documentation files (136.2).
+**B. Is Dashboard width controlled by the same geometry in both?** Yes — byte-identical `.dash-main-content`/table geometry measured across TEST-local, Production-local-dev, and real deployed Production, at 1280/1366/1440/1920px (136.3).
+**C. Why does TEST appear wider than Production (per the Owner's original observation)?** **Not identified with certainty from this environment.** Source parity and runtime geometry parity are both proven identical, which rules out a code/environment/data explanation. The leading remaining, unconfirmed hypothesis is a browser zoom/DPI/window-size difference between whatever two screenshots were originally compared, or a timing mismatch (an old Production screenshot predating a code change, compared against a newer TEST view, or vice versa) — neither is verifiable from this session without the Owner's own original screenshots/viewing conditions.
+**D. Did the B+ Mobile change affect Dashboard?** No — structurally impossible (136.5/136.6): zero shared file, zero shared CSS class, zero shared `isMobileView` state between the B+ work and `Dashboard.jsx`.
+**E. Is Mobile/Desktop isolation functioning correctly?** Yes, structurally verified — three independent `isMobileView` implementations, no shared module state, `Dashboard.jsx` uses no JS-driven breakpoint logic at all.
+**F. Are there any shared layout rules that can cause cross-surface leakage?** One identified and fully explained: `--pf-dashboard-desktop-content-width` intentionally aliases `--pf-desktop-content-width` (136.8) — this is a **deliberate, documented, one-directional** value-sharing (Dashboard reads Public Quote's value; Public Quote's own file is never touched by anything that changes Dashboard) with its own dedicated risk-isolation token, not an accidental leak.
+**G. Which differences are intentional?** The 980px-aliased Dashboard width itself (136.8) — a final, Owner-approved decision, fully documented in source.
+**H. Which differences are bugs?** None identified as a genuine TEST-vs-Production code bug this task.
+**I. Which findings are Production-risking?** None identified — no mutation performed, no defect found that is currently live-broken.
+**J. What is the safest remediation order?** No remediation is authorized or required by this task's own findings — the one action item this audit surfaces is informational: reconcile this session's own prior working-memory of §55-§57 against the later, superseding §58/index.css decision (136.8), to prevent a future task from re-litigating an already-Owner-decided width value.
+
+### 136.16 Findings by priority
+
+**P0**: none. **P1**: none (no live defect found). **P2**: none. **P3**: AUDIT-006 *(new ID, informational only)* — this session's own stale working-memory of the pre-final-alignment Dashboard-width experiments (§55-§57) vs. the later, correct, superseding decision (index.css, 136.8) — recommend future tasks read `src/index.css` directly for the current canonical value rather than relying on earlier §-numbered history alone, consistent with this project's own "LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE" discipline (§17.C/§17.J), now extended in spirit to "prior §-numbered history ≠ current source truth" for any value that source code itself can directly answer.
+
+### 136.17 Explicit NOT VERIFIED list
+
+Clients/New Quote/Business Settings/Catalog/Finances tabs (not individually live-remeasured — structural parity inferred from shared-wrapper proof, not independently confirmed per-tab); Public Quote HE/EN fresh live remeasurement (not repeated this task, no new evidence of regression); Landing/Auth width architecture (not audited this task); Document-preview route (structurally routes to Public Quote, not independently confirmed); a live International/EN account's Dashboard geometry (only Local/HE accounts were used for the three-way comparison); the Owner's own original screenshot viewing conditions (zoom/DPI/window size) — genuinely unknowable from this environment; scrollbar-gutter live re-verification (relied on the existing, unconditional, already-documented fix rather than re-deriving it).
+
+### 136.18 Recommended remediation order (recommendation only — none required by this audit's own findings)
+
+1. If the Owner can supply the original two screenshots (or repeat the comparison with an explicitly stated browser zoom level, e.g. 100%, and a stated window width), that would let a future task close 136.15.C definitively.
+2. Optional, low-priority, informational-only: a brief comment cross-reference in `PROFLOW_PROJECT_CONTEXT.md` §55-§57 pointing forward to the superseding §58/`index.css` decision, so a future session reading only the numbered history doesn't need to separately discover the alias in source (this audit itself now serves that purpose at §136.8).
+3. Extend live coverage to the explicit NOT VERIFIED surfaces (136.17) whenever a task next touches any of them, rather than as a standalone task.
+
+### 136.19 Safety confirmation
+
+Zero application code changed (confirmed via `git status --short` throughout — only the standing untracked `entry-server.jsx`). Zero DB mutation (only real, pre-existing accounts' own read-only login + page-load actions performed — no data created, edited, or deleted). Zero TEST mutation. Zero Production mutation. No commit/push/deploy of application code this task.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §136); `PROFLOW_TODO.md` UPDATED (new item recording the audit + its one informational finding); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (this audit confirms, rather than changes, the already-documented architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application/DB/TEST/Production mutation of any kind. No commit/push/deploy.**
