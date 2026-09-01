@@ -4,88 +4,87 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 5 Preflight (read-only) + RC Tag Creation Only
+## Task: Browser-Harness Incident Continuity Capture (documentation only)
 
-**LOCAL ANNOTATED TAG ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation. `main` not pushed. Tag not pushed. No Wave 6.**
-
----
-
-## TASK: Wave 5 Preflight + RC Tag Creation Only
-## EFFORT: HIGH / RELEASE SAFETY
-
-## WAVE 5 PREFLIGHT: **PASS**
-## WAVE 5 RC TAG: **PASS**
+**DOCUMENTATION / CONTINUITY ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation this task. No `main` push, no RC tag push, no rollback, no Wave 7, no further browser-harness repair attempted.**
 
 ---
 
-## PART 1 — PREFLIGHT (READ-ONLY AUDIT)
+## WAVE 6 STATE: **PARTIALLY COMPLETE — main push DONE, Vercel deployment CONFIRMED LIVE, Production browser verification NOT YET PERFORMED**
 
-**Fresh Local State, not trusted from the prior report**: `origin/main` fresh-fetched, unchanged at `dd110155a927f708f00467e1017bd183582b42aa`; local `main` 26 commits ahead at `988688f20d8293f9c056432846a085d074290c94`; both Wave 0 rollback tags re-dereferenced correctly; `src/entry-server.jsx` reconfirmed the sole untracked, non-ignored artifact; stash empty; no staged/unstaged tracked changes.
-
-**Full 26-commit ledger**: every commit individually classified via `git log --name-status` and content review — 23 documentation-only commits (touching only the six `PROFLOW_*.md` files) and 3 code-bearing commits (`071dad5`/`f25e702` on `get-public-quote/index.ts`, `bf7a047` on `PublicQuoteHeader.jsx`). Whole-range `git diff --name-only origin/main...HEAD` independently confirmed the identical 8-file set — zero discrepancy.
-
-**Structurally important finding**: `get-public-quote/index.ts`'s diff vs. `origin/main` is a **single hunk, comment-only** — `origin/main` already carries `attn_name`/`attn_role` (via pre-Recovery ancestor `ffc741d`); `071dad5` temporarily removed them for the scoped Path B deploy, `f25e702` restored them once Item 18's migration went live. Net: the RC's only genuinely new, not-yet-deployed-anywhere code is the single Wave 4 Item C commit.
-
-**Fresh live-infrastructure checks (read-only)**:
-- Production DB: allocator function exists, both Item 18 attn columns present, unique constraint present, `quotes.quote_number` DEFAULT is `null`, row count 30 — all matching Wave 2 LIVE execution's documented final state exactly.
-- Production Edge Functions: `get-public-quote` ACTIVE v8 (`ezbr_sha256 e26caab7...`), `send-quote-email` ACTIVE v25 (`ezbr_sha256 3d532cfc...`) — both matching documented deployment state exactly.
-
-**Build/test verification**: `npm run build` PASS (`✓ built in 9.44s`, only the pre-existing chunk-size advisory); `npm test -- --run` PASS (**173/173**, 13 files, 0 failures). Working tree unaffected by either command.
-
-**Safety-audit sweep — zero findings in every category**: no merge/conflict markers, no TEST-project references, no new TODO/FIXME, no secrets/credentials, no `entry-server.jsx` references anywhere in the codebase, no new debug statements, no `package.json`/`vercel.json`/`supabase/config.toml` changes, no new migration files (expected — already on `origin/main`), no stray untracked artifacts beyond the standing gitignored set.
-
-**Six-file continuity cross-check**: all six files told a materially consistent story (Wave 0-4 completion, Wave 5 not-yet-executed, local/unpushed state, Production/TEST state, Professional Quote Engine priority) — no correction required before RC creation.
-
-**Proposed RC SHA**: `988688f20d8293f9c056432846a085d074290c94` — approved by the Owner in the follow-up authorization.
+## BROWSER-HARNESS INCIDENT: **OPEN / NON-PRODUCT BLOCKER**
 
 ---
 
-## PART 2 — RC TAG CREATION (OWNER-AUTHORIZED)
+## WAVE 6 — WHAT ACTUALLY HAPPENED (stated precisely, not overclaimed)
 
-**Fresh pre-mutation safety re-check**, immediately before tagging: HEAD reconfirmed exactly `988688f20d8293f9c056432846a085d074290c94` (unchanged since the Preflight); `origin/main` reconfirmed unchanged; working tree clean besides `entry-server.jsx`; no staged/unstaged tracked changes; stash empty; proposed tag name confirmed absent both locally and on the remote. All conditions matched the approved Preflight exactly — proceeded.
+**`git push origin main` — SUCCEEDED**, in a prior task this session. `origin/main` resolves exactly to `83e677a488a6a17b9a195c5a360726307398f445` — the first Production-affecting `main` push in this entire Recovery program. Re-confirmed via fresh fetch this task.
 
-**Tag created**: `proflow-rc-2026-09-01-wave4-complete`, a **local annotated tag**, explicitly targeting the full approved SHA (`git tag -a ... 988688f20d8293f9c056432846a085d074290c94`, not implicit `HEAD`). Annotation summarizes the Wave 0-4 checkpoint content, the 26-commit reconciliation result, and explicitly states local-only status.
+**Vercel Production deployment — CONFIRMED, not assumed.** `vercel inspect <deployment> --logs` proved the live deployment (`dpl_HgxsdNbmhSaCtCrPLBE4tB8GwueY`, status `● Ready`) was built from `Branch: main, Commit: 83e677a` — an exact match to the pushed SHA — with a clean build log (`✓ built in 15.23s`, `Build Completed`, `Deployment completed`). Its aliases include `www.quotecodepro.com` and `quotecodepro.com`. A direct `curl` of the canonical domain confirmed it serves the exact same asset filenames (`index-CfCSRfN5.js`, `index-BfNte-O0.css`) the build log produced. **The canonical Production domain is proven to be serving commit `83e677a`, which includes Wave 4 Item C's fix live for the first time anywhere outside local TEST.**
 
-**Tag verified three independent ways**:
-- `git cat-file -t proflow-rc-2026-09-01-wave4-complete` → `tag` (a real annotated tag object, not lightweight).
-- `git fsck --tags` → `tagged commit 988688f20d8293f9c056432846a085d074290c94 (proflow-rc-2026-09-01-wave4-complete)` — structural integrity confirmation.
-- `git rev-list -n1 proflow-rc-2026-09-01-wave4-complete` → `988688f20d8293f9c056432846a085d074290c94` — exact match, byte-for-byte.
+**Production rendered-browser verification — NOT PERFORMED.** Before any HE/EN × Desktop/Mobile visual check could run, `browser-harness` became non-functional (full incident below). Two AskUserQuestion exchanges attempting reconnection did not restore it. **No live-browser confirmation of Item C's Production rendering has occurred.** Two safe TEST-owned Production quote URLs are pre-identified for whenever verification resumes:
+- **HE**: `https://www.quotecodepro.com/public-quote/08d4d0da-35bd-41d6-9d8f-0b7d06d5e713` (quote `A100700`, business "תכשיט אישי", ILS)
+- **EN**: `https://www.quotecodepro.com/en/public-quote/f4a6e0cf-341d-47a8-869e-96e5da76060f` (quote `#95`, business "Minhat Shay (London)", GBP)
 
-**Post-creation re-verification**:
-- `origin/main` re-fetched, still `dd110155a927f708f00467e1017bd183582b42aa` — unchanged.
-- `git ls-remote --tags origin` — the new tag does **not** exist on the remote.
-- `HEAD` unchanged at `988688f...` — local `main` was not moved (tagging is a separate ref operation).
-- `git status --short` — only the standing `src/entry-server.jsx`, confirmed untouched throughout.
+**Wave 6 verdict**: **PARTIALLY COMPLETE.** Not PASS (visual verification incomplete). Not FAIL (no defect was found — the deployment mechanics are proven correct; only the confirmation step is outstanding, blocked by tooling, not by any application problem).
 
-**This is a checkpoint, not a release.** Item C's fix remains live nowhere outside the local TEST dev server. Pushing `main` (which would deploy Item C via Vercel for the first time) and pushing this tag both remain separate, not-yet-sought Owner authorizations.
+---
+
+## BROWSER-HARNESS LOCAL QA INFRASTRUCTURE INCIDENT
+
+**Classification, explicit**: a local QA-tooling issue on this Windows workstation. **Not** a ProFlow application failure, not a Production failure, not a Vercel failure, not a Supabase failure — browser-harness is a QA tool used to observe ProFlow; it is not part of ProFlow itself.
+
+**Chronology** (full detail at `PROFLOW_PROJECT_CONTEXT.md` §118):
+
+1. Vercel CLI required one-time device-authorization login (Owner completed it) — CLI auth only, no project setting changed.
+2. `browser-harness --doctor` repeatedly showed `daemon alive: FAIL`, `active browser connections: 0` despite Chrome running — the same `BH_REQUIRE_EXISTING_DAEMON` class of blocker documented in Wave 4.
+3. AVG quarantined a disposable troubleshooting script (`bh-test.py` — not project code) and later blocked `browser-harness.exe` itself; File Shield was proven to be actively participating (a file-creation attempt failed with File Shield on, succeeded with it off).
+4. Environment repair: `uv tool uninstall`/reinstall of `browser-harness` succeeded once File Shield was temporarily disabled; File Shield was restored afterward; AVG then blocked `browser-harness.exe` again, resolved via a **specific single-executable AVG exception** (not a broad exclusion) — after which `browser-harness --version` worked.
+5. A dedicated debug-Chrome instance (separate `--user-data-dir`, distinct from the Owner's normal Chrome) was relaunched; its first-run/EULA screen was accepted, left deliberately unsigned-in.
+6. Direct Python/browser-harness environment checks all passed (`python.exe` exists, `import browser_harness` succeeds).
+7. A manual `python -m browser_harness.daemon` run proved genuine success: CDP connected, handshake completed, a tab was attached, IPC listening began on `127.0.0.1:58258` — yet `browser-harness doctor` still reported unhealthy afterward.
+8. IPC investigation: the daemon process stayed alive under its PID, but no TCP listener was visible later; the expected port file (`bu-default.port` at `C:\Users\sales\.config\browser-harness\runtime`) was absent. A controlled isolated write test proved the Python environment **can** write/replace/read/delete such a file — so the missing port file should **not** be attributed to a blanket Windows-permissions or AVG explanation without further evidence.
+9. Installed-source review of `_ipc.py`/`daemon.py` (browser-harness 0.1.10) confirmed the expected write-then-atomic-replace-then-cleanup design — consistent with what was observed, but did not pin down why the CLI's own health check disagreed with the manual daemon's real success.
+
+**Root cause, stated at the exact limit of the evidence, no further speculation**: browser-harness 0.1.10 can reach a genuine CDP handshake and IPC-listening stage on this machine, but its CLI/`doctor` path does not reliably recognize a healthy daemon/browser-ready state afterward. No more specific cause is asserted.
+
+**Owner decision**: **stop debugging this for now.** Classified `BROWSER-HARNESS LOCAL QA INFRASTRUCTURE ISSUE, OPEN / NON-PRODUCT BLOCKER`.
+
+**Standing guidance for every future session, until the Owner explicitly reopens repair**:
+- Do **not** restart this troubleshooting sequence from zero — re-read `PROFLOW_PROJECT_CONTEXT.md` §118 first.
+- Treat browser-harness daemon health as unresolved/unreliable on this workstation.
+- Use the **approved fallback**: `curl`/HTTP + HTML-source inspection for structural checks (exactly how this task confirmed the live Vercel bundle), or a manual/Owner-performed visual check when a true rendered-browser check is unavoidable.
+- `chrome running: ok` + `daemon alive: FAIL` is this exact known incident — don't re-diagnose it as new.
 
 ---
 
 ## MUTATION BOUNDARY
 
-No application code was edited this task (both parts are read-only/metadata-only by design). No DB, TEST, Production, Edge Function, or Vercel mutation of any kind occurred. `main` was not pushed. The RC tag was not pushed. Wave 6 was not started. The Professional Quote Engine (item 30.E) remains the Owner's designated first major post-Recovery product/design workstream and has **not** started — unaffected by this checkpoint.
+No application code edited. No DB/TEST/Production/Edge Function/Vercel mutation this task. `main` was not pushed this task (it was already pushed and confirmed in the prior task — unchanged here). No RC tag push. No rollback. No Wave 7. No further browser-harness repair attempted, per explicit Owner instruction.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`0a6a414c6dfd0961eb889f48e9a58841d8da5844` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the four genuinely-changed files (`PROFLOW_ARCHITECTURE.md` and `PROFLOW_TODO.md` correctly REVIEWED, NO CHANGE). Matching commit exists locally on `main` (`8022479`), **not pushed**.
+*(recorded after push — see below, per the established two-commit convention.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `0a6a414c6dfd0961eb889f48e9a58841d8da5844` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_PROJECT_CONTEXT.md` (§117 present, correct) and `PROFLOW_HANDOFF.md` (§18.FR present, correct) — both confirmed present and correct. `origin/main` re-fetched in the same pass and reconfirmed unchanged at `dd110155a927f708f00467e1017bd183582b42aa`.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification.)*
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§117 addendum, covering both Preflight and Tag Creation)
-- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (no new architectural principle; RC tagging is a release-process checkpoint, already governed by the existing §17.L SHA-binding rule)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FR)
-- `PROFLOW_TODO.md` — **REVIEWED — NO CHANGE REQUIRED** (Wave/RC tracking lives in `PROFLOW_PROJECT_CONTEXT.md`/`PROFLOW_HANDOFF.md`, not the product backlog; no backlog item's status changed)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§118 — Wave 6 push/deploy confirmation + full browser-harness incident record)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FS)
+- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph — Wave 6 precise state + fallback guidance)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (a local QA-tooling incident is not an application architecture principle)
+- `PROFLOW_TODO.md` — **REVIEWED — NO CHANGE REQUIRED** (no product/backlog item affected)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Mutation boundary**: local annotated RC tag only (`proflow-rc-2026-09-01-wave4-complete` → `988688f`). Zero application/DB/TEST/Production/Edge/Vercel mutation. No `main` push. No tag push.
+**Mutation boundary**: documentation-only. Zero application/DB/TEST/Production/Edge/Vercel mutation this task. No `main` push. No RC tag push.
