@@ -4,64 +4,152 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 3 / Function 2 — send-quote-email Production Deployment + Source-Level Verification Only (Re-verification)
+## Task: Wave 4 — Frontend/UI Parity — Pre-Mutation Gate Only
 
-This task was authorized to deploy `send-quote-email` to Production. **Fresh state discovered it was already deployed and verified — v25, completed in an earlier task this same session. No redeployment was performed.**
+**READ-ONLY AUDIT. Zero application, database, TEST, Production, Edge Function, or Vercel mutation. No file was modified, no commit created for application code, no push, no deploy.**
 
 ---
 
-## TASK: Wave 3 / Function 2 — send-quote-email Production Deployment + Source-Level Verification Only
+## TASK: Wave 4 — Frontend/UI Parity — Pre-Mutation Gate Only
 ## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
-## STATUS: **PASS** (already-complete state confirmed, no new mutation required or performed)
+
+## WAVE 4 PRE-MUTATION GATE: **GO** (with one item requiring live re-verification, not new code, before implementation)
 
 ---
 
-## MATERIAL DISCREPANCY FOUND AND HANDLED CORRECTLY, PER THE TASK'S OWN INSTRUCTION
+## HEADLINE FINDING: A REAL SCOPE DISCREPANCY, CAUGHT BEFORE ANY MUTATION
 
-Section 0's fresh-state check found Production `send-quote-email` already at **v25** (`updated_at=1788219913416`, hash `3d532cfc...`) — not the `v24` pre-deploy state this task's own framing assumed. Per the task's own explicit instruction ("If ANY material state differs from the previously reviewed pre-mutation gate, STOP and report the discrepancy before deploying"), **no deployment action was taken.** Instead, the discrepancy was investigated: this is the exact deployment already completed and fully verified in an earlier task this session (documented at `PROFLOW_PROJECT_CONTEXT.md` §115, `PROFLOW_HANDOFF.md` §18.FL, continuity commits `44df721`/`327be2a`).
+This task's own request assumed Wave 4 covered "Dashboard scale/layout, Trial banner, LIFETIME Upgrade CTA, Public Quote/UI gaps." **This does not match the canonical, locked master Recovery plan** (`PROFLOW_PROJECT_CONTEXT.md` §115, "Approved Baseline Ledger" / "Execution waves," established 2026-08-31, never since revised).
 
-**Re-verification performed instead of blind redeployment**: freshly downloaded the currently-live Production source and diffed it against the approved local source — confirmed the same three material changes present (`quote_number` in select, no `Math.round()`, real-quote-number subject via `quoteNumberDisplay`), same formatting-only diff magnitude (400 lines, unchanged from the original verification), zero drift. Local source file confirmed clean (`git status` empty, no edit needed).
+**The actual, sole canonical Wave 4 scope is exactly two items:**
+- **Item C** — Public Quote Mobile CTA/header order (Desktop-vs-Mobile asymmetry)
+- **Item D** — AI Chat mobile overlap on Quote History
 
----
+**Trial Banner is explicitly classified `APPROVED — PRESERVE, NOT A DEFECT`** in the same ledger — precisely root-caused as intentional, data-state-driven behavior (`Dashboard.jsx:496-497`, a `trialDaysLeft <= 5` threshold switching between a thin ticker and a fuller expiring-soon bar), explicitly "not included in any recovery wave."
 
-## FUNCTION 2 DEPLOYMENT: **PASS** (already complete, re-verified — no new deploy action performed this task)
-## FUNCTION 2 SOURCE VERIFICATION: **PASS**
-## EMAIL-SEND E2E VERIFICATION: **NOT PERFORMED**
+**"Dashboard scale/layout" and "LIFETIME Upgrade CTA" appear nowhere in the master plan.** They are the three separately-recorded Wave 2 "new Owner findings" (recorded during the Wave 2 Step 3 gate and Wave 2 LIVE execution), explicitly logged as "open, unassigned backlog items pending their own dedicated investigation" — never scheduled to Wave 4 or any wave. **Assigning them to Wave 4 now would be scope creep beyond what the Owner's own master plan locked in** — this requires an explicit new Owner decision, not an assumption carried forward from a task prompt.
 
----
-
-## WAVE 3 STATUS
-
-**FUNCTION 1 — get-public-quote**: deployment status **DEPLOYED (v8)**, verification status **VERIFIED PASS**. Re-confirmed unchanged this task (identical hash `e26caab7...`).
-
-**FUNCTION 2 — send-quote-email**: deployment status **DEPLOYED (v25)**, source-level verification status **VERIFIED PASS**, email-send verification status **NOT PERFORMED — REQUIRES SEPARATE OWNER AUTHORIZATION** (if and when the Owner chooses it — see the distinction below).
-
-**Wave-plan distinction, established by this task's own review** (per the explicit instruction not to invent a requirement the canonical plan doesn't state): end-to-end email-send verification is **not** part of the canonical Wave plan's own definition of Wave 3 completion. Wave 3, as originally scoped in the Step 3 manifest and every subsequent gate, is Edge Function *deployment/parity* — which is now **fully complete for both functions**. E2E send is a distinct, **optional** future QA step that requires its own separate Owner authorization specifically because it has a real-world side effect (an actual email sent to a real inbox) — not because the Wave plan mandates it as a Wave-3-completion gate. **Wave 3 is therefore: technically deployed/source-verified and complete for its own defined scope, with E2E send remaining an optional, separately-authorizable future step — not blocked for any other reason.**
+**Possible relationship, flagged not resolved**: Wave 2's finding "(A) Trial banner presentation differs between accounts/states" is worded consistently with, and doesn't describe anything beyond, the already-explained `trialDaysLeft <= 5` behavior — it's plausible this is the same already-approved behavior being freshly re-observed, not a new defect. It was never cross-referenced against the existing root cause when recorded. Worth a quick documentation cross-check (not new engineering) before any future task treats it as an open item.
 
 ---
 
-## PRODUCTION FUNCTION VERSION
+## DOCUMENTED WAVE-4 SCOPE (canonical, from `PROFLOW_PROJECT_CONTEXT.md` §115)
 
-`get-public-quote` = v8 (unchanged). `send-quote-email` = v25 (unchanged from the prior deployment; no new version created this task).
+**Item C — Mobile CTA/header order**: `PublicQuoteHeader.jsx`'s Mobile branch has the phone CTA before the quote-number/date info box; the Desktop branch has the Owner-corrected order (info box, then CTA). Proposed fix: swap the two children inside the Mobile branch's second column — pure JSX reorder, no style change, same technique already proven safe when applied to Desktop.
 
-## LOCAL COMMIT SHA, if any
+**Item D — AI Chat mobile overlap**: `AIChatWidget.jsx` is `position:fixed`, `bottom:85px` on mobile, `zIndex:999999`; historically, no Dashboard scroll-container padding was reserved to keep the last visible Quote History card clear of it. Proposed fix (per the original plan): reserve `paddingBottom`/`scroll-padding-bottom` sized to the widget's footprint.
 
-None. No source edit was needed (local already matched approved source, unchanged since the prior task). `HEAD` at task start: `a91f4d3b2f0e9f604076e45b90a200dded032734` (unchanged by this task's own investigation).
+**Explicitly excluded from Wave 4** (confirmed via the master ledger): Admin (zero dependency, separate future product decision), Trial Banner (approved, not a defect), Public Quote Desktop/Mobile width (Owner-locked, `APPROVED — PRESERVE`), the three Wave 2 open findings (unassigned to any wave).
 
 ---
 
-## TEST MUTATED: **NO** (re-confirmed: both functions unchanged, identical hashes)
-## PRODUCTION DB MUTATED: **NO** (re-confirmed: 30 rows, correct isolated query)
-## FRONTEND MUTATED: **NO**
-## VERCEL DEPLOYED: **NO**
-## MAIN PUSH: **NO** (17 commits ahead of `origin/main`, unpushed)
-## REAL CUSTOMER EMAIL: **NO**
-## DAVID ALUMINUM MUTATED: **NO**
-## UNEXPECTED MUTATIONS: **NONE**
+## FRESH LOCAL STATE
 
-## LOCAL UNCOMMITTED STATE
+`branch = main`, `HEAD = 41915c75e4f87cdadfcbfdd03e206992483e2f42`, `origin/main = dd110155a927f708f00467e1017bd183582b42aa`, ahead/behind = `0 ahead(origin) / 19 ahead(HEAD)` — i.e., local is 19 commits ahead of `origin/main`, all documentation-only (verified by the commit log: every one is a `docs:` commit from the Wave 2/3/product-initiative continuity work). Working tree: only the standing untracked `src/entry-server.jsx` (preserved, not touched). No staged files, no stash. `proflow-continuity` ref confirmed unchanged since the last task before this audit began (no external drift). **No material unexplained discrepancy found** — the only "discrepancy" is the scope one documented above, which this audit exists to surface, not a git-state anomaly.
 
-Only the standing, pre-existing untracked `src/entry-server.jsx` (unchanged, preserved).
+---
+
+## LOCAL vs origin/main FRONTEND DELTA
+
+**Zero.** `git diff origin/main HEAD` is empty for all three relevant files: `src/components/PublicQuoteHeader.jsx`, `src/pages/Dashboard.jsx`, `src/AIChatWidget.jsx`. Local and Production are byte-identical for every file this audit examined — nothing has been implemented yet, locally or remotely, for either canonical Wave 4 item.
+
+---
+
+## EXACT FILE MANIFEST
+
+### FILE: `src/components/PublicQuoteHeader.jsx`
+**CURRENT origin/main STATE**: defect present — Mobile branch's second column renders CTA (`<a href="tel:...">`) before the quote-number/date info box.
+**CURRENT local HEAD STATE**: identical (zero diff).
+**UNCOMMITTED STATE**: none.
+**INTENDED WAVE-4 STATE**: Mobile branch's second column renders the info box before the CTA, matching the Desktop branch's already-corrected order.
+**WHY REQUIRED**: Owner-observed, source-proven Desktop-vs-Mobile asymmetry; Desktop was fixed in an earlier round, Mobile's equivalent branch never received the same fix.
+**HE IMPACT**: direct — same shared component, used by `PublicQuote.jsx` (HE) with no override.
+**EN IMPACT**: direct — same shared component, used by `PublicQuoteEn.jsx` with `isHebrew={false}`; confirmed via fresh `grep` that both call sites import the identical component.
+**MOBILE IMPACT**: this is the entire fix — Mobile-branch-only change.
+**DESKTOP IMPACT**: none — Desktop branch untouched, already correct.
+**DEPENDENCIES**: none (confirmed zero DB/Edge Function dependency, pure frontend).
+**RISK**: low — isolated JSX child-order swap, no style change, technique already proven safe on the Desktop branch of the same file.
+**PROPOSED VERIFICATION**: live render, both markets, mobile viewport, confirm info-box-then-CTA order and that no visual regression occurs elsewhere in the component.
+
+### FILE: `src/pages/Dashboard.jsx`
+**CURRENT origin/main STATE**: contains `.dash-footer { padding-bottom: 100px !important; }` under a mobile media query, with an inline comment explicitly describing it as reserving clearance for the last Quote History row to scroll above the floating AI Chat button and fixed bottom nav.
+**CURRENT local HEAD STATE**: identical (zero diff).
+**UNCOMMITTED STATE**: none.
+**INTENDED WAVE-4 STATE**: unknown until live-verified — this rule may already fully resolve item D, or may be insufficient for some subtle reason (e.g., an isolated scroll context the global footer padding doesn't reach).
+**WHY REQUIRED**: this is a **new finding**, not previously cross-referenced against item D's "KNOWN DEFECT" classification anywhere in continuity. No record exists of §113/§114 (or any later task) checking this specific rule against item D specifically.
+**HE IMPACT**: shared code, no market branch in this rule.
+**EN IMPACT**: same.
+**MOBILE IMPACT**: this is the entire concern — mobile-only media query.
+**DESKTOP IMPACT**: none (rule is mobile-scoped).
+**DEPENDENCIES**: none.
+**RISK**: low either way — if already resolved, zero risk (no change needed); if a real gap remains, the fix would be the same class of change already proven safe.
+**PROPOSED VERIFICATION**: live render, mobile viewport, both markets, Quote History tab with several quotes, AI Chat widget closed — confirm the last quote row is fully visible/scrollable above the floating button. **This verification must happen before writing any new code for item D** — writing a fix for an already-fixed problem would be wasted, unauthorized-scope work.
+
+### FILE: `src/AIChatWidget.jsx`
+**CURRENT origin/main STATE**: `position:fixed`, `bottom:85px` (mobile), `zIndex:999999` when collapsed; full-screen fixed overlay when the popup is open.
+**CURRENT local HEAD STATE**: identical (zero diff).
+**UNCOMMITTED STATE**: none.
+**INTENDED WAVE-4 STATE**: no change anticipated to this file itself — the proposed fix location is `Dashboard.jsx`'s scroll-clearance padding, not the widget's own positioning (consistent with the original plan, which never proposed changing the widget).
+**WHY REQUIRED**: read for context only, to confirm the widget's exact footprint (~85px + button height) that any clearance padding must accommodate.
+**HE/EN/MOBILE/DESKTOP IMPACT**: none — not a candidate for modification.
+**DEPENDENCIES**: none.
+**RISK**: none (no change proposed).
+**PROPOSED VERIFICATION**: none needed beyond item D's own verification above.
+
+**No unrelated file was included in this manifest.**
+
+---
+
+## ALREADY IMPLEMENTED LOCALLY: NONE
+## STILL MISSING: Item C's JSX reorder (confirmed needed); Item D's status is unresolved pending live verification (may already be complete)
+## EXCLUDED / UNRELATED STATE: the standing untracked `src/entry-server.jsx` (unrelated SSR/prerender PoC, explicitly preserved, not part of Wave 4); the three Wave 2 open findings (Trial banner/LIFETIME CTA/Dashboard scale — explicitly excluded from this wave's scope, see headline finding above)
+
+---
+
+## HE RESULT: PASS (no regression risk identified)
+
+Item C's fix is a pure JSX reorder inside a component already used identically by the HE Public Quote page (`PublicQuote.jsx`, default `isHebrew` behavior) — confirmed via source, not inferred. Item D's existing/proposed fix is market-neutral CSS with no `isHebrew` branching. No RTL-specific risk identified in either item.
+
+## EN RESULT: PASS (no regression risk identified)
+
+Item C's fix applies identically via the same shared component at `PublicQuoteEn.jsx` (`isHebrew={false}`), confirmed via source. Item D is market-neutral. No LTR-specific or currency/VAT risk identified in either item.
+
+## MOBILE RESULT: PASS scope confirmed, item D status pending live re-verification
+
+Both items are mobile-only in scope (Item C's fix is Mobile-branch-only; Item D's rule is under a `≤768px`-equivalent media query). No desktop-breakpoint risk.
+
+## DESKTOP RESULT: PASS — no impact
+
+Neither item touches the Desktop branch/breakpoint of any file. Desktop's already-correct CTA order (`PublicQuoteHeader.jsx`) and full page layout remain untouched by the proposed plan.
+
+---
+
+## BUILD/RUNTIME RISKS
+
+None identified beyond the standard risk of any small JSX/CSS change: both proposed changes are isolated, additive-or-reordering, no new dependency, no new import, no change to data fetching, auth, or routing. Standard build verification (the app must still build/lint cleanly) applies as it would to any change, no special risk beyond that.
+
+## DAVID ALUMINUM RISK: NONE
+
+Neither item touches any customer data path, auth, quote content, or pricing — pure visual/layout change to shared, market-neutral components. No customer-specific behavior exists in either item.
+
+---
+
+## PROPOSED IMPLEMENTATION ORDER (NOT EXECUTED)
+
+1. **Live-verify Item D first** (mobile, both markets, Quote History tab, AI Chat widget closed) — determine whether the existing `.dash-footer` padding already fully resolves the overlap. If yes: document as already-resolved, zero code change for item D. If no: scope the exact minimal additional fix at that point (not now).
+2. **Implement Item C**: swap the two children inside `PublicQuoteHeader.jsx`'s Mobile-branch second column (info box, then CTA).
+3. **HE + EN, Desktop + Mobile verification** of both items against the exact same candidate — matching the master plan's own re-testing scope (Public Quote page load, both markets, both breakpoints is explicitly the "MUST RE-TEST" list item covering this).
+4. Only then does Wave 4 proceed toward Wave 5 (tag an RC candidate) — separately authorized, not part of this gate.
+
+## PROPOSED VERIFICATION PLAN
+
+Real authenticated UI verification (the same methodology already established throughout this Recovery effort) against the exact candidate commit — not "whatever's currently in the working tree" — per the master plan's own release-gate design (§115 "Release-gate recovery design"): tag the candidate, verify HE+EN+Desktop+Mobile against that exact tag, record Owner approval against that specific SHA before any promotion.
+
+---
+
+## RELEASE-CANDIDATE IMPLICATIONS
+
+Wave 4 (frontend/UI parity) → clean Release Candidate → locked RC SHA (`git tag`) → TEST verification on that exact SHA → Owner review/approval bound to that SHA (per the permanent §17.L rule: any subsequent code change invalidates the approval) → same SHA promoted to `main` → Production smoke verification. **Before an RC SHA can safely be locked**: both Wave 4 items must be implemented and locally verified; the exact candidate commit must be identified and tagged; no further application-code change may occur after tagging without invalidating the candidate. **None of these later stages were performed or initiated by this task.**
 
 ---
 
@@ -69,23 +157,23 @@ Only the standing, pre-existing untracked `src/entry-server.jsx` (unchanged, pre
 
 **PROFLOW_PROJECT_CONTEXT.md**
 STATUS: **UPDATED**
-REASON: Function 2 addendum extended with a re-verification note recording this task's discrepancy-and-resolution and the new Wave-plan E2E-optionality distinction.
+REASON: §115 extended with the full Wave 4 Pre-Mutation Gate addendum — the scope-discrepancy finding, item C/D fresh evidence, the proposed plan, and the GO verdict.
 
 **PROFLOW_CHAT_HANDOFF.md**
-STATUS: **REVIEWED — NO CHANGE REQUIRED**
-REASON: The existing §14 resume pointer ("BOTH Edge Functions now deployed... v25... end-to-end NOT YET TESTED") already accurately reflects this task's findings exactly — nothing changed.
+STATUS: **UPDATED**
+REASON: §14 resume pointer rewritten to lead with this gate's findings; prior Wave 3 resume content retained below it for history.
 
 **PROFLOW_ARCHITECTURE.md**
 STATUS: **REVIEWED — NO CHANGE REQUIRED**
-REASON: §14.A's existing "RESOLVED 2026-09-01... both functions deployed... v25" status already accurately reflects current state.
+REASON: no new architectural principle was established — both components (`PublicQuoteHeader.jsx`, `Dashboard.jsx`/`AIChatWidget.jsx`) and their shared-component/market-neutral nature are already documented elsewhere; this audit found evidence about their *current state*, not a new architecture fact.
 
 **PROFLOW_HANDOFF.md**
 STATUS: **UPDATED**
-REASON: New §18.FN appended recording this task's re-verification and the Wave-plan E2E distinction.
+REASON: New §18.FO appended as a concise engineering-history cross-reference.
 
 **PROFLOW_TODO.md**
 STATUS: **REVIEWED — NO CHANGE REQUIRED**
-REASON: The existing Function 2 entry already accurately reflects the deployed/verified state; no new fact requires an edit there.
+REASON: Wave 4 is Recovery-wave tracking (its canonical home is `PROFLOW_PROJECT_CONTEXT.md` §115), not product backlog — no TODO item requires editing for this finding.
 
 **PROFLOW_CLAUDE_LATEST_REPORT.md**
 STATUS: **UPDATED**
@@ -97,26 +185,28 @@ No file was silently skipped.
 
 ## CONTINUITY COMMIT
 
-`3d2255ab2f32a5864417bb0b155da9297a851a1e` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the three genuinely-changed files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`). Matching commit exists locally on `main` (`4701982`), **not pushed**.
+*(recorded after push — see chat-level Final Report and `PROFLOW_TODO.md`'s continuity log... note: `PROFLOW_TODO.md` was not updated this task, so the SHA will be stated directly in the chat-level Final Report, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push — see chat-level Final Report.)*
 
-Verified via `git fetch` + `git rev-parse origin/proflow-continuity` (`3d2255ab2f32a5864417bb0b155da9297a851a1e`, exact match) followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects (the REST Contents API's rate limit from the prior task had not yet reset, so the git-protocol method — already proven equally rigorous — was used directly). All six files confirmed present and correct: the three updated files' new content verified present; the three `REVIEWED — NO CHANGE REQUIRED` files spot-checked and confirmed still correct at this commit.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification — see chat-level Final Report.)*
 
 ---
 
 ## NEXT SAFE STEP
 
-Owner + ChatGPT review. If the Owner wishes to pursue email-send E2E verification, that remains available as its own separately-authorized future task (safe recipient path only, never a real customer).
+Owner + ChatGPT review this gate's findings, in particular the scope-discrepancy correction. If satisfied, a future, separately-authorized task may perform Step 1 of the proposed order (live-verify Item D) as its own read-only-or-minimal-mutation step, followed by Item C's implementation.
 
 ## OWNER AUTHORIZATION REQUIRED
 
-For any further action: E2E send test (if desired), Wave 4, the Professional Quote Engine, or Admin work — each its own separate, explicit authorization.
+For: any code implementation (Item C and/or D), any Wave 4 execution task, any RC tagging, any decision on whether/how to fold the three Wave 2 open findings (Trial banner ambiguity, LIFETIME CTA, Dashboard scale) into a future wave.
 
 ---
 
 ## FINAL STOP
 
-FINAL STOP. DO NOT SEND AN EMAIL. DO NOT START WAVE 4. DO NOT START THE PROFESSIONAL QUOTE ENGINE. DO NOT PERFORM ADMIN WORK. WAIT FOR OWNER + CHATGPT REVIEW.
+STOP AFTER THIS PRE-MUTATION REPORT. NO CODE CHANGES. NO IMPLEMENTATION. NO COMMIT (application). NO MAIN PUSH. NO DEPLOY. NO TEST MUTATION. NO PRODUCTION MUTATION. NO LIVE ACTION. WAIT FOR OWNER + CHATGPT REVIEW.
