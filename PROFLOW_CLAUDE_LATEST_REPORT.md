@@ -4,90 +4,90 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Post-Wave-4 Product Findings Documentation Only
+## Task: Wave 5 Preflight (read-only) + RC Tag Creation Only
 
-**DOCUMENTATION ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation. No `main` push, no RC tag, no Wave 5 execution, nothing implemented or designed.**
-
----
-
-## TASK: Post-Wave-4 Product Findings Documentation Only
-## EFFORT: HIGH / THOROUGH
-
-## RESULT: **Three new product findings recorded — all OPEN / NOT IMPLEMENTED**
+**LOCAL ANNOTATED TAG ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation. `main` not pushed. Tag not pushed. No Wave 6.**
 
 ---
 
-## FRESH LOCAL STATE, RECONFIRMED BEFORE EDITING
+## TASK: Wave 5 Preflight + RC Tag Creation Only
+## EFFORT: HIGH / RELEASE SAFETY
 
-- Working tree clean besides the standing untracked `src/entry-server.jsx`.
-- Local `main` at `8600dba` (unchanged since Wave 4's own continuity write) — 12 commits ahead of `origin/main`.
-- `origin/main` reconfirmed unchanged: `dd110155a927f708f00467e1017bd183582b42aa`.
-- `origin/proflow-continuity` fetched fresh and confirmed exactly at the prior task's own final push: `4e792a288b411b3feef0bdac54ae16efba8f028b`. Zero drift, zero surprise state.
-
----
-
-## THE THREE FINDINGS RECORDED
-
-All three are new `PROFLOW_TODO.md` top-level items, status **OPEN / NOT IMPLEMENTED**:
-
-### Item 39 — Professional Print/PDF Experience
-
-Real-world evidence: the Owner physically printed a real David Aluminum public quote and found browser-generated URL/date/title/page artifacts, page breaking that isn't document-aware, inefficient pagination, and a signature/approval page with large unused whitespace. Extends — does not duplicate — item 14.A's existing "True Download PDF remains a separately-scoped future TODO item" placeholder. Full future-design-evaluation checklist (print CSS, controlled page breaks, A4 output, HE/RTL+EN/LTR, browser-vs-application-controllable distinction) recorded at `PROFLOW_TODO.md` item 39.
-
-### Item 40 — Clients List Daily-Workflow Density/Readability Redesign
-
-The Owner explicitly frames this as an important **daily workflow surface**, not cosmetic polish. The current Clients/CRM table is visually crowded — long names wrap 2-3 lines, too many columns compete for space, the client/company name (the primary identifier) doesn't get enough visual priority. No prior TODO item covered this table's presentation specifically (item 14.B's Dashboard redesign passes touched Quote History/KPI density repeatedly but never rebuilt the Clients tab). Design principles to preserve (name-as-primary-identifier, truncation-with-reveal, compact mobile card presentation, HE/EN symmetry, no data-model change, Owner mockup approval required) recorded at `PROFLOW_TODO.md` item 40, citing existing in-codebase precedent (Quote History's truncation/mobile-card patterns) as *plausible*, not mandated, solutions.
-
-### Item 41 — Business Document Branding / Safe Logo Integration
-
-Core principle: **the business logo is content inside the ProFlow document design system — it must not be allowed to break or take control of it.** David Aluminum evidence again: its source logo (black background, metallic/silver typography) is visually dominant vs. the current restrained rendition. Proposes formalizing item 14.B's existing header/logo baseline (white/neutral container, `object-fit: contain`, aspect-ratio preserved) into a fuller Logo Slot/safe-area system, plus an optional, tightly-scoped Brand Accent Color (conceptual ~80-90% ProFlow system / ~10-20% business branding). Must eventually work across HE/RTL, EN/LTR, screen Public Quote, and Professional Print/PDF (item 39). Full detail at `PROFLOW_TODO.md` item 41.
+## WAVE 5 PREFLIGHT: **PASS**
+## WAVE 5 RC TAG: **PASS**
 
 ---
 
-## RELATION TO THE PROFESSIONAL QUOTE ENGINE — EXPLICITLY PRESERVED, NOT WEAKENED
+## PART 1 — PREFLIGHT (READ-ONLY AUDIT)
 
-All three new items are recorded as **complementary** to item 30.E (`PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md` §95), never as a replacement, collapse, or dilution:
+**Fresh Local State, not trusted from the prior report**: `origin/main` fresh-fetched, unchanged at `dd110155a927f708f00467e1017bd183582b42aa`; local `main` 26 commits ahead at `988688f20d8293f9c056432846a085d074290c94`; both Wave 0 rollback tags re-dereferenced correctly; `src/entry-server.jsx` reconfirmed the sole untracked, non-ignored artifact; stash empty; no staged/unstaged tracked changes.
 
-- Item 30.E concerns quote-item data structure and pricing (what a quote item *is*).
-- Item 39 concerns document rendering onto paper/PDF (how a quote *prints*).
-- Item 40 concerns an unrelated daily-workflow surface (the Clients list, not quotes).
-- Item 41 concerns document branding/containment (how a business's identity appears *within* the document).
+**Full 26-commit ledger**: every commit individually classified via `git log --name-status` and content review — 23 documentation-only commits (touching only the six `PROFLOW_*.md` files) and 3 code-bearing commits (`071dad5`/`f25e702` on `get-public-quote/index.ts`, `bf7a047` on `PublicQuoteHeader.jsx`). Whole-range `git diff --name-only origin/main...HEAD` independently confirmed the identical 8-file set — zero discrepancy.
 
-None of the three touch, restate, or narrow 30.E's own architecture, priority, or design-first requirements. **Item 30.E remains the Owner's designated first major post-Recovery product/design workstream, explicitly ahead of Admin UI work — unchanged by this task.**
+**Structurally important finding**: `get-public-quote/index.ts`'s diff vs. `origin/main` is a **single hunk, comment-only** — `origin/main` already carries `attn_name`/`attn_role` (via pre-Recovery ancestor `ffc741d`); `071dad5` temporarily removed them for the scoped Path B deploy, `f25e702` restored them once Item 18's migration went live. Net: the RC's only genuinely new, not-yet-deployed-anywhere code is the single Wave 4 Item C commit.
+
+**Fresh live-infrastructure checks (read-only)**:
+- Production DB: allocator function exists, both Item 18 attn columns present, unique constraint present, `quotes.quote_number` DEFAULT is `null`, row count 30 — all matching Wave 2 LIVE execution's documented final state exactly.
+- Production Edge Functions: `get-public-quote` ACTIVE v8 (`ezbr_sha256 e26caab7...`), `send-quote-email` ACTIVE v25 (`ezbr_sha256 3d532cfc...`) — both matching documented deployment state exactly.
+
+**Build/test verification**: `npm run build` PASS (`✓ built in 9.44s`, only the pre-existing chunk-size advisory); `npm test -- --run` PASS (**173/173**, 13 files, 0 failures). Working tree unaffected by either command.
+
+**Safety-audit sweep — zero findings in every category**: no merge/conflict markers, no TEST-project references, no new TODO/FIXME, no secrets/credentials, no `entry-server.jsx` references anywhere in the codebase, no new debug statements, no `package.json`/`vercel.json`/`supabase/config.toml` changes, no new migration files (expected — already on `origin/main`), no stray untracked artifacts beyond the standing gitignored set.
+
+**Six-file continuity cross-check**: all six files told a materially consistent story (Wave 0-4 completion, Wave 5 not-yet-executed, local/unpushed state, Production/TEST state, Professional Quote Engine priority) — no correction required before RC creation.
+
+**Proposed RC SHA**: `988688f20d8293f9c056432846a085d074290c94` — approved by the Owner in the follow-up authorization.
 
 ---
 
-## WAVE 4 PASS CHECKPOINT — EXPLICITLY PRESERVED, NOT REOPENED
+## PART 2 — RC TAG CREATION (OWNER-AUTHORIZED)
 
-`PROFLOW_PROJECT_CONTEXT.md` §115's Wave 4 Execution addendum stands exactly as written: Item C fixed and verified PASS on all 4 combinations, Item D confirmed already-resolved on both markets with zero code change, local application commit `bf7a047` unpushed, Wave 4 status **PASS — COMPLETE**. This task adds new future-backlog items only; it does not reopen, revise, or add conditions to Wave 4's own completed, closed scope.
+**Fresh pre-mutation safety re-check**, immediately before tagging: HEAD reconfirmed exactly `988688f20d8293f9c056432846a085d074290c94` (unchanged since the Preflight); `origin/main` reconfirmed unchanged; working tree clean besides `entry-server.jsx`; no staged/unstaged tracked changes; stash empty; proposed tag name confirmed absent both locally and on the remote. All conditions matched the approved Preflight exactly — proceeded.
+
+**Tag created**: `proflow-rc-2026-09-01-wave4-complete`, a **local annotated tag**, explicitly targeting the full approved SHA (`git tag -a ... 988688f20d8293f9c056432846a085d074290c94`, not implicit `HEAD`). Annotation summarizes the Wave 0-4 checkpoint content, the 26-commit reconciliation result, and explicitly states local-only status.
+
+**Tag verified three independent ways**:
+- `git cat-file -t proflow-rc-2026-09-01-wave4-complete` → `tag` (a real annotated tag object, not lightweight).
+- `git fsck --tags` → `tagged commit 988688f20d8293f9c056432846a085d074290c94 (proflow-rc-2026-09-01-wave4-complete)` — structural integrity confirmation.
+- `git rev-list -n1 proflow-rc-2026-09-01-wave4-complete` → `988688f20d8293f9c056432846a085d074290c94` — exact match, byte-for-byte.
+
+**Post-creation re-verification**:
+- `origin/main` re-fetched, still `dd110155a927f708f00467e1017bd183582b42aa` — unchanged.
+- `git ls-remote --tags origin` — the new tag does **not** exist on the remote.
+- `HEAD` unchanged at `988688f...` — local `main` was not moved (tagging is a separate ref operation).
+- `git status --short` — only the standing `src/entry-server.jsx`, confirmed untouched throughout.
+
+**This is a checkpoint, not a release.** Item C's fix remains live nowhere outside the local TEST dev server. Pushing `main` (which would deploy Item C via Vercel for the first time) and pushing this tag both remain separate, not-yet-sought Owner authorizations.
 
 ---
 
 ## MUTATION BOUNDARY
 
-**Zero application code, DB, TEST, Production, Edge Function, or Vercel mutation of any kind occurred.** No `main` push. No RC tag. No Wave 5 execution. No implementation or design work performed for any of the three new items beyond recording the requirements themselves.
+No application code was edited this task (both parts are read-only/metadata-only by design). No DB, TEST, Production, Edge Function, or Vercel mutation of any kind occurred. `main` was not pushed. The RC tag was not pushed. Wave 6 was not started. The Professional Quote Engine (item 30.E) remains the Owner's designated first major post-Recovery product/design workstream and has **not** started — unaffected by this checkpoint.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`3e6ec2b37fdc61b1f97dce05cd7acfe7932174ec` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the six-file continuity update. Matching commit exists locally on `main` (`4248161`), **not pushed**.
+*(recorded after push — see below, per the established two-commit convention.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `3e6ec2b37fdc61b1f97dce05cd7acfe7932174ec` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_TODO.md` (all three new items 39/40/41 present, correct headers) and `PROFLOW_ARCHITECTURE.md` (new §14.D present, correct) — both confirmed present and correct.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification.)*
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§116 addendum)
-- `PROFLOW_TODO.md` — **UPDATED** (new items 39, 40, 41 — authoritative home for all three findings)
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (new §14.D — two durable principles worth stating ahead of design work: the browser-print/PDF boundary for item 39, and the logo-containment principle for item 41; item 40 noted as pure presentation-layer redesign with no new architectural principle)
-- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph — findings raised/approved after Wave 4, without displacing Wave 4 PASS as the last-executed checkpoint)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FQ)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§117 addendum, covering both Preflight and Tag Creation)
+- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED** (no new architectural principle; RC tagging is a release-process checkpoint, already governed by the existing §17.L SHA-binding rule)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FR)
+- `PROFLOW_TODO.md` — **REVIEWED — NO CHANGE REQUIRED** (Wave/RC tracking lives in `PROFLOW_PROJECT_CONTEXT.md`/`PROFLOW_HANDOFF.md`, not the product backlog; no backlog item's status changed)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Mutation boundary**: documentation-only. Zero application/DB/TEST/Production/Edge/Vercel mutation of any kind. No `main` push.
+**Mutation boundary**: local annotated RC tag only (`proflow-rc-2026-09-01-wave4-complete` → `988688f`). Zero application/DB/TEST/Production/Edge/Vercel mutation. No `main` push. No tag push.
