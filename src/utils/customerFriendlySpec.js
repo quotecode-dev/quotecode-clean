@@ -39,3 +39,21 @@ export function buildCustomerFriendlySpec(item) {
     ),
   };
 }
+
+/**
+ * Concept B+ only: a shorter, bullet-separated one-line variant of the same
+ * summary, for a denser continuous-document layout. Same real numbers as
+ * buildCustomerFriendlySpec - never a second source of truth.
+ * @returns {string|null}
+ */
+export function buildCompactSummary(item) {
+  if (item.kind === 'simple' || !item.measurements) return null;
+
+  if (item.kind === 'measured') {
+    const [m] = item.measurements;
+    return `${m.width}×${m.height} ס״מ • ${m2Label(m.area_m2)}`;
+  }
+
+  const count = item.measurements.length;
+  return `${count} פתחים • ${m2Label(item.totalArea_m2)}`;
+}

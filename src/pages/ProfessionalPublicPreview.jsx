@@ -21,6 +21,7 @@ const VARIANTS = [
   { key: 'current', label: 'התצוגה הנוכחית' },
   { key: 'A', label: 'אפשרות א׳ — נקייה' },
   { key: 'B', label: 'אפשרות ב׳ — פירוט לפי דרישה' },
+  { key: 'B+', label: 'אפשרות ב׳+ — מקצועית קומפקטית' },
   { key: 'C', label: 'אפשרות ג׳ — מקצועית מפורטת' },
 ];
 
@@ -32,7 +33,7 @@ export default function ProfessionalPublicPreview() {
   const { id } = useParams();
   const [state, setState] = useState({ status: 'loading', dto: null });
   const initialVariant = new URLSearchParams(window.location.search).get('variant');
-  const [variant, setVariant] = useState(VARIANTS.some((v) => v.key === initialVariant) ? initialVariant : 'B');
+  const [variant, setVariant] = useState(VARIANTS.some((v) => v.key === initialVariant) ? initialVariant : 'B+');
 
   useEffect(() => {
     if (!id) { setState({ status: 'notfound', dto: null }); return; }
@@ -129,7 +130,9 @@ export default function ProfessionalPublicPreview() {
         )}
 
         {/* Items - CURRENT renders as a plain table (today's real layout);
-            A/B/C render as the new card-based professional presentation. */}
+            B+ renders as one continuous bordered document (dense rows, no
+            per-item gaps) with sequential numbering; A/B/C render as the
+            card-based professional presentation with normal spacing. */}
         {variant === 'current' ? (
           <div style={{ background: LIGHT.bgCard, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '14px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
@@ -145,6 +148,12 @@ export default function ProfessionalPublicPreview() {
                 {items.map((item, idx) => <CustomerQuoteItemRow key={idx} item={item} variant="current" />)}
               </tbody>
             </table>
+          </div>
+        ) : variant === 'B+' ? (
+          <div style={{ background: LIGHT.bgCard, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '14px' }}>
+            {items.map((item, idx) => (
+              <CustomerQuoteItemRow key={idx} item={item} variant="B+" index={idx} isLast={idx === items.length - 1} />
+            ))}
           </div>
         ) : (
           <div style={{ marginBottom: '14px' }}>

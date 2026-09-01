@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { LIGHT, FONT_HE } from '../theme/neonTheme';
-import { buildCustomerFriendlySpec } from '../utils/customerFriendlySpec';
+import { buildCustomerFriendlySpec, buildCompactSummary } from '../utils/customerFriendlySpec';
 
 // David Aluminum demo only - customer-facing item row, three presentation
 // variants (A/B/C) plus 'current' (today's plain row, for baseline
@@ -12,9 +12,10 @@ function money(n) {
   return `₪${Number(n).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function CustomerQuoteItemRow({ item, variant }) {
+export default function CustomerQuoteItemRow({ item, variant, index, isLast }) {
   const [expanded, setExpanded] = useState(false);
   const { summary, detailRows } = buildCustomerFriendlySpec(item);
+  const compactSummary = buildCompactSummary(item);
 
   // CURRENT: exactly today's real Public Quote table row - description,
   // quantity, unit price, total. No specification of any kind.
@@ -85,6 +86,50 @@ export default function CustomerQuoteItemRow({ item, variant }) {
               </div>
             )}
           </>
+        )}
+      </div>
+    );
+  }
+
+  // B+ — COMPACT PROFESSIONAL DOCUMENT: B's same collapsed-summary /
+  // expand-on-demand mechanic, but rendered as one dense row within a single
+  // continuous document (no per-item card/border/gap) with subtle sequential
+  // numbering. Caller wraps all rows in one shared bordered container and
+  // passes `isLast` to suppress the final divider.
+  if (variant === 'B+') {
+    return (
+      <div style={{ padding: '9px 12px', borderBottom: isLast ? 'none' : `1px solid ${LIGHT.border}` }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: '700', color: LIGHT.textMuted, minWidth: '18px', paddingTop: '2px', fontFamily: 'monospace' }}>
+            {String(index + 1).padStart(2, '0')}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: '700', fontSize: '0.88rem', color: LIGHT.textPrimary }}>{item.description.trim()}</div>
+            {compactSummary && <div style={{ fontSize: '0.74rem', color: LIGHT.textMuted, marginTop: '1px' }}>{compactSummary}</div>}
+          </div>
+          <div style={{ fontWeight: '800', fontSize: '0.92rem', color: LIGHT.textPrimary, whiteSpace: 'nowrap' }}>{money(item.total_price)}</div>
+        </div>
+        {detailRows.length > 0 && (
+          <div style={{ marginInlineStart: '28px' }}>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '3px', background: 'none', border: 'none',
+                color: LIGHT.violet, fontFamily: FONT_HE, fontWeight: '600', fontSize: '0.72rem',
+                cursor: 'pointer', padding: '5px 0 0', marginTop: '2px',
+              }}
+            >
+              <ChevronDown size={12} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              {expanded ? 'הסתר פירוט' : 'פירוט מידות ומפרט'}
+            </button>
+            {expanded && (
+              <div style={{ marginTop: '5px', paddingBottom: '2px' }}>
+                {detailRows.map((row, i) => (
+                  <div key={i} style={{ fontSize: '0.72rem', color: LIGHT.textSecondary, padding: '2px 0', fontFamily: 'monospace' }}>{row}</div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
