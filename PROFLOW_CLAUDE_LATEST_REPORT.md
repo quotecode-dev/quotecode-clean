@@ -4,140 +4,61 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Comprehensive TEST ↔ Production UI/Layout Parity Audit
+## Task: Permanent Global Change Propagation Contract
 
-**Full READ-ONLY diagnostic scan. No application/DB/TEST/Production mutation. No commit/push/deploy of application code.**
-
----
-
-## TEST ↔ PRODUCTION UI PARITY AUDIT: **COMPLETE**
-## DASHBOARD WIDTH ROOT CAUSE: **NOT IDENTIFIED** (source/runtime parity proven identical; leading hypothesis is browser zoom/DPI, unconfirmable from this environment)
-## MOBILE/DESKTOP ISOLATION: **VERIFIED**
-## B+ CROSS-SURFACE IMPACT: **NO**
+**Owner-issued standing governance text — recorded as a new permanent contract. DOCUMENTATION ONLY. No application code read for editing purposes, none changed. No DB/TEST/Production mutation. No commit/push/deploy of application code.**
 
 ---
 
-## 1. Fresh Local State
+## GOVERNANCE CONTRACT: RECORDED
 
-Local `main` at task start: `677d01a`, exactly `origin/main` (`26dee96`) plus documentation-only commits — confirmed via `git diff origin/main HEAD -- . ':!PROFLOW_*.md'` returning empty. Working tree clean besides the standing untracked `entry-server.jsx`.
+---
 
-## 2. TEST Runtime Identity
+## 1. What was requested
 
-Local Vite dev server, `npm run dev:localtest`, port 5186, `.env.localtest.local` → `quotecode-test` Supabase (ref `ljfizgrdyzxddswcedwr`). Serves the current working tree directly — no build, no pinned commit.
+The Owner issued a new standing rule, the **PERMANENT GLOBAL CHANGE PROPAGATION CONTRACT**: any future Owner-approved *general* product/presentation/geometry/formatting/behavior/interaction/semantic rule must trigger a repo-wide **Global Propagation Discovery** before implementation — identifying every applicable surface across Desktop/Mobile/Tablet, Hebrew/RTL and English/LTR, Local/International, the authenticated app, preview surfaces, Public Quote, document/print/PDF/share views, and shared/repeated components — must be verified everywhere applicable (not only the originally-reported screen), must produce a **Global Propagation Ledger** per surface, must fail-closed (cannot report globally COMPLETE while any applicable surface is FAIL/NOT VERIFIED), and must never let global applicability silently expand Owner authorization (an out-of-scope applicable surface must be identified, recorded, and left NOT IMPLEMENTED pending separate authorization).
 
-## 3. Production Runtime Identity
+## 2. What this task did
 
-Deployed Vercel build at `https://www.quotecodepro.com/`, built via `vite build` from `origin/main` (`26dee96`), connected to `quotecode` Supabase (ref `ixabnzhjeqevtbhdfswv`).
+Recorded the contract permanently into the six-file continuity system, following this project's own established pattern for prior governance texts (e.g. how the Contract Discovery Gate was formalized into §127). No implementation, no surface discovery, no application file was touched — this task is documentation only, matching the Owner's own framing of the request.
 
-## 4. TEST vs Production Source Parity
+## 3. Relationship to existing rules (no duplication, no contradiction)
 
-**SAME SOURCE**, proven via `git diff` (item 1) — zero application-file difference between the local working tree (served by both local dev servers) and `origin/main` (what deployed Production is built from).
+- **§42 (Global Surface Consistency Rule)** already covers propagating a *changing* requirement to every existing consumer.
+- **§127.3 (New-Surface Automatic Trigger)** already covers a *new* surface inheriting *unchanging* existing contracts.
+- Neither previously mandated: a named mandatory pre-implementation discovery **step**; a dedicated per-surface **Ledger** artifact; an explicit **fail-closed gate** on the word "globally COMPLETE"; or an explicit **authorization-safety boundary** stating that discovering wider applicability never itself authorizes wider implementation.
+- §137 adds exactly those four elements. No existing contract (§37/§42/§44/§54/§56/§63/§81/§82/§84/§127) is weakened, replaced, or superseded — this narrows *process*, not *substance*.
 
-## 5. Dashboard Full Container-Chain Comparison
+## 4. The five permanent sub-rules recorded (`PROFLOW_PROJECT_CONTEXT.md` §137)
 
-Real authenticated login (real form) against TEST-local, Production-pointed local dev, and real deployed Production — two different real accounts (one fresh/empty, one with fixture data). `.dash-main-content`/table geometry **byte-identical across all three**, every tested width.
+1. **§137.1 — Global Propagation Discovery**: mandatory repo-wide surface mapping before implementing any Owner-approved general rule.
+2. **§137.2 — Verify everywhere applicable**: every identified surface must be independently verified with real evidence (not screenshot/overflow-absence-only, per §133's own named lesson), not just the one screen originally reported.
+3. **§137.3 — Global Propagation Ledger**: new mandatory Final Report artifact, one row per surface (`SURFACE / APPLICABLE? / ALREADY COMPLIANT? / IMPLEMENTED? / VERIFIED? / STATUS / AUTHORIZATION`) — a fourth ledger alongside the existing HE/EN Change Ledger (§37), Contract Trigger Ledger (§127.6), and Six-File Continuity Ledger.
+4. **§137.4 — Fail-Closed Global Completion Gate**: cannot report globally COMPLETE while any Ledger row is FAIL/NOT VERIFIED; only `PARTIAL`/`BLOCKED` allowed otherwise, mirroring §127.7.
+5. **§137.5 — Authorization Safety Boundary**: Discovery is read-only mapping; finding a rule applicable to a surface never authorizes implementing it there. Any out-of-scope applicable surface must be recorded `OUT OF SCOPE — NOT IMPLEMENTED` and left untouched pending separate Owner authorization.
 
-## 6. Exact Width Measurements
+Plus **§137.6**, a retroactive, informational-only consistency note: using evidence already on record (§127-§128's Contract-Enforcement Audit; §136.6/§136.9's Recent-Commit Impact Trace), the recent Money/Geometry (AUDIT-001-004), CTA-centering (AUDIT-005), and B+ Mobile width (§133-§135) remediations were each independently confirmed to have touched only their intended files with zero cross-surface leakage. This is offered as reassurance that over-narrow propagation has not, in practice, been a live problem so far — **not** a claim that a Global Propagation Ledger existed for those tasks (it did not; this contract postdates them), and not a substitute for running full Discovery/Verification/Ledger/Fail-Closed process on the next general-rule task.
 
-| Width | table left | table right | table width (all 3 envs) |
-|---|---|---|---|
-| 1280 | 157.5 | 1107.5 | 950 |
-| 1366 | 200.5 | 1150.5 | 950 |
-| 1440 | 237.5 | 1187.5 | 950 |
-| 1920 | 477.5 | 1427.5 | 950 |
+## 5. Global Propagation Ledger for THIS task
 
-`.dash-main-content` padding: 16px both sides, identical everywhere.
+Not applicable — this task recorded a *process contract*, it did not implement or propagate any product rule. No surface-level Ledger is produced by this report; the first Ledger will appear on the next task that implements an Owner-approved general rule under this contract.
 
-## 7. Browser Zoom/DPI Findings
+## 6. Safety confirmation
 
-`devicePixelRatio` confirmed `1` in every controlled CDP session. The Owner's own original screenshot viewing conditions (zoom/DPI/window width) are unknown from this environment — recorded as the leading unconfirmed hypothesis, not asserted as proven.
+Confirmed via `git status --short` throughout — only the standing untracked `entry-server.jsx`. Zero edits to any application file this task. Zero DB mutation. Zero TEST mutation. Zero Production mutation. No commit/push/deploy of application code this task.
 
-## 8. Mobile/Desktop Isolation Result
+## 7. Six-File Continuity Ledger
 
-**VERIFIED, structurally.** Three independent, non-shared `isMobileView` implementations exist project-wide (`ProfessionalPublicPreview.jsx`, `PublicQuoteHeader.jsx`, `QuotesTab.jsx`), each with its own `matchMedia` listener, no shared state. `Dashboard.jsx` uses zero JS breakpoint logic. `.dash-main-content` is defined and used exclusively within `Dashboard.jsx`.
-
-## 9. Recent-Commit Impact Trace
-
-Cumulative diff across the three recent releases (AUDIT-005 CTA; AUDIT-001-005+B+-10px; B+-5px): exactly 5 files touched (`PublicQuoteHeader.jsx`+test, `CustomerQuoteItemRow.jsx`, `ProfessionalItemComparisonCard.jsx`, `ProfessionalPublicPreview.jsx`) — none shared with `Dashboard.jsx` or `index.css`'s Dashboard-relevant variables. Zero possible cross-surface impact.
-
-## 10. Full User-Facing Width/Layout Inventory
-
-Confirmed via `Dashboard.jsx`'s own source comment: Dashboard, Quote History, Clients, New Quote, Business Settings, Catalog, and Finances all render inside the exact same `.dash-main-content` wrapper already measured at item 6 — structural parity extends to all of them by direct construction (individual tabs not separately live-remeasured this task — recorded as NOT VERIFIED, not assumed). Public Quote and the Item 30.E B+ preview each use their own separate, isolated width architecture. Full matrix at `PROFLOW_PROJECT_CONTEXT.md` §136.7.
-
-## 11. Global CSS/Shared-Layout Findings
-
-No unexpected `100vw`/`zoom`/`transform:scale` rules in `index.css`. `App.css` confirmed dead (zero imports). **One significant, fully-explained finding**: `--pf-dashboard-desktop-content-width` is currently aliased to Public Quote's own locked `--pf-desktop-content-width` (980px) — a later, Owner-final, already-documented-in-source decision superseding the earlier §55-§57 experimental-width history. Not a bug.
-
-## 12. Environment-Conditional Rendering Findings
-
-Exactly 4 `import.meta.env` references, all in `src/shared/supabase.js`, all Supabase-target selection only — reconfirmed fresh, matching the prior exhaustive sweep on record. Zero layout/width/breakpoint/locale conditional logic anywhere.
-
-## 13. Data-Dependent Layout Findings
-
-Container width structurally independent of data density — confirmed by the same measurement (item 5) using one empty account and one populated account, byte-identical geometry either way.
-
-## 14. Scrollbar/Center-Axis Findings
-
-`scrollbar-gutter: stable` on `html`, global, unconditional — the already-documented fix. Not independently re-measured live this task (no fresh evidence of regression; recorded NOT VERIFIED for this specific sub-item).
-
-## 15. Agent HE Report
-
-PASS — RTL confirmed correctly applied in both sessions tested; Dashboard geometry byte-identical; no HE-specific width-token branch found.
-
-## 16. Agent EN Report
-
-Structural PASS (same shared wrapper, no market-conditional branch on it) — **not independently live-tested this task** (only Local/HE accounts were used for the three-way comparison). Recorded as a gap.
-
-## 17. Claude Lead Reconciliation
-
-Independently re-derived from the same evidence — HE and EN findings are consistent with each other; no additional discrepancy surfaced by either role beyond what direct measurement already established.
-
-## 18. Contract-Process Escapes
-
-None found this audit. The one informational finding (item 11 / stale session working-memory of §55-§57 vs. the current source) is recorded as a "prior history ≠ current source truth" lesson, not a contract violation.
-
-## 19. Full Parity Matrix
-
-See `PROFLOW_PROJECT_CONTEXT.md` §136.7 for the complete SURFACE × TEST/Production source/width-rule/HE/EN/Mobile/Desktop/parity table.
-
-## 20. Root-Cause Answers A–J
-
-Full answers at `PROFLOW_PROJECT_CONTEXT.md` §136.15. Summary: source parity (A: same code) and runtime geometry parity (B: same geometry) are both proven; the Owner's original observed difference (C) remains unidentified from this environment — leading hypothesis is a zoom/DPI/viewport mismatch between the two compared screenshots. B+ did not affect Dashboard (D: no). Mobile/Desktop isolation is sound (E: yes). One intentional shared-value alias was found and fully explained (F/G). No bugs found (H: none). No Production risk identified (I: none). No remediation required by this audit's own findings (J).
-
-## 21. P0/P1/P2/P3 Findings
-
-P0/P1/P2: none. P3: one informational-only item (stale session memory of superseded width history, corrected via source read this task).
-
-## 22. Explicit NOT VERIFIED List
-
-Clients/New Quote/Business Settings/Catalog/Finances tabs individually; Public Quote HE/EN fresh live remeasurement; Landing/Auth; Document-preview route; a live International/EN account's Dashboard geometry; the Owner's own screenshot viewing conditions; scrollbar-gutter live re-verification.
-
-## 23. Recommended Remediation Order (recommendation only — none required)
-
-1. If available, the Owner's original two screenshots (or a stated zoom/window-width) would let a future task close the root-cause question definitively.
-2. Optional: a forward-pointing note in §55-§57 toward the superseding §58/`index.css` decision (this audit's §136.8 now serves that purpose).
-3. Extend live coverage to the NOT VERIFIED surfaces whenever a future task next touches any of them.
-
-## 24. Confirmation: Application Code Unchanged
-
-Confirmed via `git status --short` throughout — only the standing untracked `entry-server.jsx`. Zero edits made to any application file this task.
-
-## 25. Confirmation: TEST/Production Unchanged
-
-Zero DB mutation (only pre-existing accounts' own read-only login + page loads). Zero TEST mutation. Zero Production mutation. No commit/push/deploy of application code.
-
-## 26. Six-File Continuity Ledger
-
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§136)
-- `PROFLOW_TODO.md` — **UPDATED** (new item 45)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GJ)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (new §137, 7 subsections)
+- `PROFLOW_TODO.md` — **UPDATED** (new item 46)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GK)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (new §18.B, short pointer matching §18.A's own pattern for §127)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-## 27. Continuity Commit SHA + Remote Read-Back
+## 8. Continuity Commit SHA + Remote Read-Back
 
-`8c11ae5293e62aa78a7192fc7f18cce7a18b2f89` on `proflow-continuity` (pushed; content commit `f5d9294` + this SHA-follow-up commit). Matching commits exist locally on `main` (`b23eeea` content, `06b7824` follow-up) — not pushed to `origin/main` (no application push occurred or was authorized this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `f5d9294f501ccdd1fbfab3375dadffe3a05ba825` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §136 and `PROFLOW_HANDOFF.md` §18.GJ both present and correct. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
 ---
 
