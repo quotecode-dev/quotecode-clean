@@ -4653,3 +4653,17 @@ Three product/UX findings recorded as new `PROFLOW_TODO.md` top-level items, all
 Zero console/runtime errors on any of the four real Production pages (real quotes A100700/A95, TEST-owned, read-only `GET`-equivalent loads only — nothing submitted/approved/signed/edited/deleted/sent).
 
 **WAVE 6: PASS.** `origin/main` reconfirmed `83e677a488a6a17b9a195c5a360726307398f445`; Vercel deployment of that SHA already confirmed live (§18.FS); this task closes the one remaining gap. No Owner visual check remains required. Zero application/DB/TEST/Production/Edge/Vercel mutation; no `main` push; no RC tag push; no Wave 7. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §119.
+
+## §18.FU. PROFLOW RECOVERY: CLOSED (2026-09-01, formal documentation-only closure)
+
+Applying the Recovery Finalization Audit's `RECOVERY CAN CLOSE` verdict exactly. **Waves 0-6: COMPLETE/PASS.** **Wave 7** (original draft: "final Production frontend promotion, tagged SHA push") — **OBJECTIVE ALREADY SATISFIED** by the more conservative Waves 5+6 execution. **Wave 8** — **SUPERSEDED/NO LONGER APPLICABLE**, no independent objective was ever defined anywhere in the six canonical files.
+
+**PROFLOW RECOVERY: CLOSED.** Item 17, Item 18, Item C, and Item D are all live on Production, DB/Edge/rendered-browser-confirmed on both markets. The three explicitly-excluded backlog findings (Trial banner, LIFETIME Upgrade CTA, Dashboard scale/layout) were **never part of Recovery's scope** and remain open backlog, unaffected by closure. Items 39-41 remain documented future product requirements, unrelated to Recovery.
+
+**browser-harness** (§18.FS) remains `OPEN / NON-PRODUCT BLOCKER` — explicitly not a Recovery blocker; Direct CDP (§18.FT) is the standing approved fallback.
+
+**RC tag `proflow-rc-2026-09-01-wave4-complete` preserved exactly as-is** — not pushed, moved, recreated, or deleted. No new tag created; none was technically required for closure.
+
+**Next canonical workstream**: `PROFLOW_TODO.md` item 30.E — the Owner's designated first major post-Recovery product/design workstream, ahead of Admin UI, its own stated precondition ("confirm Recovery closure") now satisfied.
+
+No application/DB/TEST/Production/Edge/Vercel mutation. No `main` push. No RC tag action. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §120.
