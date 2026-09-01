@@ -117,7 +117,7 @@ One file changed (`ProfessionalPublicPreview.jsx`), committed to local `main` on
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`eedb212` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`0682e71`) — not pushed to `origin/main`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `eedb212` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §146 + §142.2.G present in `PROFLOW_PROJECT_CONTEXT.md`, the update present in `PROFLOW_TODO.md`, §18.GR present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ---
 
