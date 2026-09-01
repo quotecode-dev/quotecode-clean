@@ -97,7 +97,7 @@ Zero horizontal overflow at every tested viewport. Zero clipping (screenshot-con
 
 ## 20. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`137d961f91e4ff10e9965dc70ef95c76f1c30c38` on `proflow-continuity` (pushed; content commit `b696ee1` + this SHA-follow-up commit). Matching commits exist locally on `main` (`dd43a6f` content, `a92a529` follow-up) — `main` itself already carries the pushed application release (§4-9 above); this follow-up is documentation-only, mirrored to `proflow-continuity`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `b696ee1dee5f4ebed2d73f2da952774a426cd520` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §135 and `PROFLOW_HANDOFF.md` §18.GI both present and correct. `origin/main` re-fetched and confirmed at `26dee96fc511d71715fe8675426920daff06719a` — the deployed release.
 
 ## 21. Owner Visual Acceptance Status
 
