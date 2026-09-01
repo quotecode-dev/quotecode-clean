@@ -750,7 +750,7 @@ A100700
 ```
 Same centering rule.
 
-**Current Mobile header intent**: this quote-number block remains in the compact secondary area beneath the Call CTA where applicable (see item 14.A's Mobile header composition); the date remains separate beneath/near the quote-number block per the existing compact responsive composition.
+**Current Mobile header intent**: this quote-number block remains in the compact secondary area, rendered first with the Call CTA beneath it where applicable — the same info-first/CTA-second order already used by the Desktop branch (see item 14.A's Mobile header composition; Wave 4 Item C, `PROFLOW_PROJECT_CONTEXT.md` §115, corrected the Mobile branch's original CTA-first ordering to match, 2026-09-01); the date remains separate beneath/near the quote-number block per the existing compact responsive composition.
 
 **Required pre-implementation audit**: current quote-ID generation; current DB fields; whether a `quote_number` field already exists; all consumers of the current technical ID (Public Quote URLs, emails, PDF/print, signatures, view tracking, duplicate-quote behavior, delete behavior, imports/exports); any DB constraints; the safest atomic per-business numbering mechanism.
 
