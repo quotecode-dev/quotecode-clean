@@ -83,7 +83,7 @@ Zero mutation performed — every action this task was a read-only `GET` plus cl
 
 ## 16. Continuity Commit SHA + Remote Read-Back
 
-*(recorded after push — see below.)*
+`e6f32ce00cf7a93ccd3675dbb82fed3db8c73a2f` on `proflow-continuity` (pushed; content commit `555c98c` + this SHA-follow-up commit). Matching commits exist locally on `main` (`98de41b` content, `9b53415` follow-up) — `main` itself already carries the pushed application release (§3-4 above); this follow-up is documentation-only, mirrored to `proflow-continuity`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `555c98c70bc19571d79364b15ad4754a5aa609c0` (content commit) exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §132 and `PROFLOW_HANDOFF.md` §18.GF both present and correct. `origin/main` re-fetched and confirmed at `8bb777c421ff6199e3da5e8fb37d18b73c3d2826` — the deployed release.
 
 ## 17. Remaining NOT VERIFIED Items
 
