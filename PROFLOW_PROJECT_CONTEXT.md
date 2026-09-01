@@ -4606,3 +4606,264 @@ Scope confirmed minimal: only `ProfessionalPublicPreview.jsx`, `CustomerQuoteIte
 **GLOBAL ITEM 30.E ROLLOUT: NOT AUTHORIZED.** This QA control is temporary and is scheduled for removal once the Owner's concept validation (B vs B+) concludes.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §126); `PROFLOW_TODO.md` UPDATED (item 30.F addendum); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (temporary QA convenience, not an architectural decision); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code pushed to `main` and deployed (`2e7cebe`); zero DB/schema/Edge Function mutation; David's original quote #46 unchanged by this task's own code (structural proof, see above); scope remains David-only.**
+
+## §127. Permanent Contract-Enforcement Hardening (added 2026-09-01, Owner-authorized governance task — DOCUMENTATION ONLY, NO application code changed)
+
+### 127.0 Continuity integrity check (performed first, per this task's own required order)
+
+Fresh `git fetch origin` + `git rev-parse origin/proflow-continuity` this task resolved to `db8e0b9c9d33dfaeb8f767bdb3fbb687ef457e16` — the exact SHA this session's own prior task (§126) pushed and read back. `git cat-file -s origin/proflow-continuity:PROFLOW_HANDOFF.md` returned `1,119,736` bytes / `4,713` lines, ending correctly with the real §18.GA entry — **not empty, not corrupted**. All six canonical files independently confirmed non-trivial in size on the same remote ref (`PROJECT_CONTEXT.md` 940,674B, `CHAT_HANDOFF.md` 280,087B, `ARCHITECTURE.md` 92,471B, `TODO.md` 456,148B, `CLAUDE_LATEST_REPORT.md` 7,760B). **CONTINUITY INTEGRITY: PASS.** ChatGPT's report of `PROFLOW_HANDOFF.md` appearing empty via its own GitHub read surface is recorded as a **read-surface discrepancy**, not a remote content problem — the remote git object itself, read directly via `git cat-file`/`git show` against the exact ref, is intact and current. No reconstruction was needed or performed.
+
+### 127.1 Root cause of the recent process escape (Money Contract)
+
+**Accurate classification, per explicit Owner instruction**: the recent David A46 money-alignment defects (found and quantified fresh in §128 below) are a **CONTRACT DISCOVERY / CONTRACT ENFORCEMENT FAILURE**, not merely a CSS alignment bug. The Global Money Numeric Alignment contract (§44) and the Tabular Numeric Geometry contract (§81 Part D / §82) already existed, in full, in this same file, before any of the David A46 preview files were created. Three new files created during that work (`CustomerQuoteItemRow.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalItemComparisonCard.jsx`) each independently reimplemented a **local, non-canonical `money()` helper** rather than importing `src/utils/money.js`'s `formatMoney` — directly contradicting §44.B's "single source of truth" requirement, three separate times, in three separate files, in the same task lineage. None of the three applied the `.pf-money` class, and `ProfessionalPublicPreview.jsx`'s totals block reused exactly the `justifyContent:'space-between'` flex-row anti-pattern §44.D already names as the specific, previously-rejected root cause of an earlier Owner rejection on a *different* surface (`PublicQuote.jsx`) — the fix for that original rejection (a shared CSS Grid column, right-anchored `pf-money` spans) already exists in this same codebase, in `PublicQuote.jsx` itself, as the contract's own named reference implementation, and was not consulted.
+
+**Permanent finding, recorded exactly as instructed**: **PROMPT OMISSION DOES NOT CANCEL AN INHERITED CONTRACT.** None of the David A46 task prompts mentioned "money alignment," "tabular numerals," or "§44" by name — that omission never suspended §44/§81/§82's applicability. A monetary rendering surface is *semantically* money the moment it renders a currency amount, regardless of whether the task prompt used that word. ChatGPT surfacing a relevant contract trigger in a future task prompt remains useful and welcome, but Claude Lead remains the party responsible for discovering applicable canonical contracts before implementation and before PASS — a missing prompt reminder is never a valid excuse for a missed contract.
+
+### 127.2 PERMANENT CONTRACT — Contract Discovery Gate
+
+**Owner decision, standing rule, applies to every future application-code task on this project — not scoped to money, not scoped to Item 30.E, does not expire.**
+
+Before implementing or modifying any application surface/file/component, Claude Lead must perform an explicit **semantic contract scan** of that surface. Contract applicability is determined by **what the code/surface represents, renders, mutates, or affects** — never merely by filename, by which CSS classes happen to be touched, by whether the task prompt used a particular word, or by whether an old component was edited vs. a new one created.
+
+For every new or materially changed surface, explicitly check whether it affects, at minimum: money/currency; numeric/tabular data; text/labels; structured rows/columns; quote/order identifiers; dates/times; HE/RTL; EN/LTR; responsive geometry; customer/business identity; totals/tax/VAT; quote state (draft/sent/approved/paid/signed/immutable); auth/security visibility; Local/International market separation; shared presentation geometry; data mutation; customer-facing behavior; and any other contract already recorded in this file (see the Contract Inventory, §128.1).
+
+This gate is stated up front, per file, the same way the pre-existing Component Contract Trigger rule (§81 Part J) already requires: **APPLICABLE CONTRACTS: `<exact list>`**, before implementation begins — this section generalizes that existing per-component rule into a mandatory, semantic, filename-independent discovery step applied to *every* file a task touches, new or old.
+
+### 127.3 PERMANENT CONTRACT — New-Surface Automatic Trigger
+
+**Owner decision, standing rule, does not expire.** Creating a new representation of an existing semantic type **automatically** triggers every applicable existing contract for that type — this is true regardless of whether:
+- the task prompt does not mention the contract;
+- the code is temporary, prototype, preview, demo, or concept code;
+- the work is scoped to one account (David-only or any future single-account scope);
+- it is not globally rolled out;
+- no existing CSS/component file was modified (a brand-new file is not exempt merely for being new).
+
+Worked examples, stated permanently: a new monetary rendering triggers money + currency + numeric geometry + bidi contracts (§44, §81 Part D, §82). A new customer-facing quote representation triggers Public Quote + market/language + currency + responsive + quote-state + presentation contracts (§37, §42, §45, §46, §56, §58). A new structured repeated-item layout triggers alignment/geometry + responsive + HE/EN contracts (§63, §81 Part F, §84). A new Mobile representation triggers Mobile/responsive contracts (§45, §49, §56, §57). A new quote-number rendering triggers identifier-format/display/fallback contracts (§46).
+
+**Relationship to §42 (Global Surface Consistency)**: §42 governs propagating a *changing* requirement to every existing consumer/surface once a product requirement changes. This section governs the mirror-image case §42 did not itself state explicitly: a **new** surface must inherit *already-established, unchanging* requirements from the day it is created, even when nothing about the requirement itself is changing and the task prompt never restates it. Both are instances of the same underlying discipline; neither replaces the other.
+
+### 127.4 PERMANENT CONTRACT — Visual Geometry / Alignment Contract (generalizes and codifies the existing money/numeric-geometry contracts as one governing principle)
+
+**Owner decision, standing rule, does not expire.** New or modified structured UI must have **deterministic visual geometry**. `text-align:center`, `justify-content:center`, `align-items:center`, or equal padding are CSS **intent**, not proof of rendered correctness — this file's own §81 Part F item 2 and §84 already established this exact distinction for table columns; this section generalizes it to all structured UI, not tables alone.
+
+**A. Shared column geometry.** When sibling/repeated elements visually form a column (prices, quantities, item numbers, quote/order numbers, dates, labels, values, icons, metadata, repeated cards/rows), use shared deterministic geometry — a native `<table>` column, a CSS Grid column (`grid-template-columns`), a stable reserved width, or a deterministic flex-basis where justified. Do not independently position variable-width content across sibling rows when the intended visual result is a shared column — this is the exact, already-proven root cause named in §44.D item 3 and reproduced fresh in §128's audit findings.
+
+**B. Protected axes.** Alignment-sensitive UI must explicitly identify its protected axis — left edge, right edge, center X, column start, column end, baseline, decimal/ones-place, or another explicitly justified axis — and verification must prove that specific axis, not merely that something "looks okay."
+
+**C. Mathematical vs. optical centering.** Mathematical centering ≠ optical centering. Variable text length, RTL/LTR, icons, font weight, wrapping, mixed numeric content, and asymmetric neighboring controls can make mathematically centered content appear visibly off-center — this file already records this exact lesson twice, independently, for two different surfaces: §83's "visible-text-vs-box-center trade-off" and §84's Table Column Geometry START/CENTER/SPECIAL classification. For important structured user-facing surfaces, verify both the geometric center **and** actual visual balance. Never solve an individual content case with an arbitrary per-value nudge.
+
+**D. Variable-content stress test.** Alignment-sensitive surfaces must be checked with representative content variation — short/long identifiers (`A1`/`A46`/`A10000`), digit-count boundaries (`1`/`10`/`100`/`1000`), representative money boundaries (`₪550.00`/`₪1,250.00`/`₪10,000.00`/`₪125,000.00`), short/long HE and EN labels, short/long business/customer names, optional icons/metadata, and single-line/wrapped content where wrapping is allowed. Changing content length must never unexpectedly move a protected visual axis — this generalizes the existing "representative boundary values" methodology already used throughout §81/§82/§84's real-browser verification work into a standing requirement for all future alignment-sensitive work, not only the table columns it was first proven on.
+
+### 127.5 Money Contract — trigger strengthened, substance preserved (not replaced or weakened)
+
+§44 (Global Money Display & Numeric Alignment) and §81 Part D / §82 (Tabular Numeric Geometry, as applied to money) remain **fully in force, unchanged in substance**. This section clarifies only their **automatic trigger**, per §127.3: any newly-created monetary rendering, anywhere in the codebase, in any file, for any account scope (including David-only/prototype/temporary), must apply the existing approved semantics/geometry — numeric content LTR, bidi isolation (`.pf-money`), tabular numerals, stable deterministic amount-column geometry (shared Grid/table column, never independent flex `space-between` rows), physical right-anchoring of place value (never conditional on `isHebrew`), decimal/cents alignment where required, growth away from the protected numeric anchor, no hardcoded per-value margin/padding hacks, and representative boundary-value verification (§127.4.D). Money Geometry is a **specialized instance** of the general Visual Geometry / Alignment Contract (§127.4), not a separate, competing system.
+
+### 127.6 PERMANENT CONTRACT — Contract Trigger Ledger (new mandatory Final Report artifact)
+
+Every meaningful application/UI implementation Final Report must include a **Contract Trigger Ledger**, for every new or changed application file, no silent omissions:
+
+> FILE: / SEMANTIC RESPONSIBILITY: / APPLICABLE PERMANENT CONTRACTS: / WHY EACH CONTRACT TRIGGERED: / PROTECTED VISUAL AXES: / HOW EACH CONTRACT WAS VERIFIED: / HE STATUS: / EN STATUS: / MOBILE STATUS: / DESKTOP STATUS: / PASS / PARTIAL / BLOCKED
+
+This is **complementary to, not a replacement for**, the existing File-by-File HE/EN Change Ledger (§37) and the Six-File Continuity Ledger (§0.B/every task's Final Report) — three ledgers with three distinct purposes: HE/EN parity per file, continuity-doc bookkeeping per task, and contract-trigger completeness per file, respectively.
+
+### 127.7 PERMANENT RULE — Fail-Closed PASS Gate
+
+**Owner decision, standing rule, does not expire, generalizes the existing narrower fail-closed rules already recorded at §81 Part D's "enforceable trigger," §81 Part J (Component Contract Trigger), and §84's Table Column Geometry trigger into one standing project-wide rule.**
+
+If an applicable contract trigger exists but its required verification was **not** performed, the task cannot receive `PASS`. Allowed outcomes are `PARTIAL` or `BLOCKED`, with the missing verification explicitly named. None of the following override a missing contract verification: build PASS; lint PASS; unit-test PASS; integration-test PASS; screenshot PASS; a single-viewport PASS; a single-locale PASS; or Claude's own self-review PASS.
+
+**Naming a future violation of an already-established permanent contract**: when the Owner discovers such a violation, it is recorded as a **PERMANENT CONTRACT PROCESS ESCAPE**, and the responsible stage is identified explicitly — Discovery (the contract was never identified as applicable), Implementation (identified but not correctly applied), Verification (applied but not actually checked), Reporting (checked but the report claimed more than was verified), or more than one stage at once. §128's Root-Cause Class field on every audit finding uses exactly this same taxonomy.
+
+### 127.8 Prototype / temporary code — exemption scope clarified, not widened
+
+Prototype, preview, David-only, temporary-QA, and concept code may be exempt from **global rollout** requirements (they are not required to ship to every account). They are **not** exempt from applicable semantic-correctness, money/currency, RTL/LTR, geometry/alignment, customer-data-integrity, safety, or other inherited product contracts **whenever they are being used as evidence for Owner product acceptance** — which every David A46 concept round (§123-§126) explicitly is. This clarifies, and does not change, the standing already implied by §54 (Owner-Approved=LOCKED protects observable behavior) and §37 (HE/EN parity applies to "ALL future UI/UX work," not merely globally-shipped work) — a surface does not need to be LOCKED or globally shipped to already owe money/geometry/market-separation correctness; it owes that correctness the moment a real Owner decision is being made by looking at it.
+
+### 127.9 Relationship to existing rules (no duplication, no contradiction)
+
+This section does not replace §37 (HE/EN Parity), §42 (Global Surface Consistency), §44 (Money), §54 (Owner-Approved=LOCKED), §56 (Global Surface Width Contract), §63 (Directional Symmetry), or §81/§82/§84 (Numeric/Table Geometry) — it closes the one gap none of them individually named: **an existing permanent contract can apply to a new or modified surface without being discovered, implemented, or verified before PASS.** §42 already covered a *changing* requirement propagating outward to existing consumers; §127.3 now explicitly covers a *new* consumer inheriting an *unchanging* existing requirement. §81 Part J already required naming applicable contracts for components already known to be covered by a contract; §127.2 now makes the discovery step itself — determining *which* contracts a brand-new file is covered by — an explicit, mandatory, semantic (not filename-based) step. No existing permanent rule is weakened, narrowed, or superseded by this section.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §127 + §128 below); `PROFLOW_TODO.md` UPDATED (new actionable findings, explicitly NOT AUTHORIZED for remediation); `PROFLOW_HANDOFF.md` UPDATED (new cross-reference entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short pointer to the Contract Discovery Gate as a standing governance layer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code was read for editing purposes and none was changed. No DB/TEST/Production mutation of any kind. No commit/push/deploy of application code.**
+
+## §128. Full Read-Only UI Contract Compliance Audit (added 2026-09-01, same task as §127 — READ-ONLY, NO application code changed)
+
+### 128.0 Method
+
+Performed by Claude Lead directly (this session), using both **static source review** (the authoritative method for every finding below — grep/read of real source files) and **read-only real-browser runtime measurement** via the established Direct CDP fallback tool (§119) against the already-live, already-deployed Production URL for the David A46 preview (`GET`-equivalent page loads only; zero mutation; `view_count`/`status`/`total` unaffected by construction, since only page loads occurred, no signing/approval/edit actions). Given this task's very large declared scope and the explicit instruction not to cherry-pick only recently-failed surfaces, coverage below is honest rather than exhaustive: surfaces with strong existing real-browser evidence already on record in this file (Quote History, §81-§84; Public Quote totals, §44/§82) are treated as **already-audited reference points**, re-confirmed by fresh code read rather than re-measured from scratch; the newly-created Item 30.E preview surfaces (never before subjected to this specific audit) received the deepest fresh review, both static and live-measured; broad swaths of the application (Dashboard tabs beyond Quote History, Admin, Auth, Settings, Catalog, Finances) were **not** re-audited this task and are explicitly marked NOT VERIFIED below rather than assumed compliant. Agent HE and Agent EN roles (128.4/128.5) were performed by Claude Lead within this same session, each independently re-examining the same evidence from its own market's requirements, consistent with this project's established single-session HE/Agent-EN verification practice (e.g. §57, §63, §77-§84); Claude Lead's reconciliation (128.6) is genuinely independent, not a re-statement of either.
+
+### 128.1 Canonical Contract Inventory (extracted from the existing six-file system, not invented)
+
+| CONTRACT NAME | CANONICAL SOURCE | TRIGGER CONDITIONS | HE REQUIREMENT | EN REQUIREMENT | MOBILE REQUIREMENT | DESKTOP REQUIREMENT | MANDATORY VERIFICATION | FAIL-CLOSED CONDITION |
+|---|---|---|---|---|---|---|---|---|
+| HE/RTL · EN/LTR UI Parity | §37 | Any UI/UX change applicable to both markets | RTL direction, correct RTL composition/order/alignment/icon placement | LTR direction, correctly mirrored composition/order/alignment/icon placement | Same-pass, both markets | Same-pass, both markets | Classify HE and EN **separately** PASS/FAIL/BLOCKED/NOT TESTABLE; "same code" is not evidence | Only one market checked → cannot be PASS |
+| Local/International Market Separation (Iron Rule) | Architecture §3-§5, PROJECT_CONTEXT §4/§5/§6/§8/§9 | Any change to currency, VAT, language, or market-derived data | ₪/ILS/18% VAT, Hebrew | USD/EUR/GBP (switchable), 0% VAT, English | Same rule, both viewports | Same rule, both viewports | Confirm `business_settings.country` drives behavior, never UI language | Any cross-market currency/VAT/label leakage |
+| Quote Currency Freeze | Architecture §5 | Any quote display/edit surface | ₪ on quotes created in ILS, frozen at creation | USD/EUR/GBP frozen at creation | n/a | n/a | Confirm historical quote currency never recomputed from current account settings | Currency silently recomputed on display/edit |
+| Global Money Numeric Alignment | §44 | Any new/changed money-displaying surface | `.pf-money`, physical right-anchor, `formatMoney()` canonical formatter | Same | Fixed-width amount column/track, right-anchored | Shared Grid/table column, right-anchored, never independent flex `space-between` rows | Real `getBoundingClientRect()` proof across representative boundary values, both locales | Independent money formatter created; flex `space-between` used for a sibling-row amount column |
+| Tabular Numeric Geometry | §81 Part D, §82 | Any numeric/tabular field whose digit count may vary | Right-aligned, `tabular-nums`, fixed sub-box — never `isHebrew`-conditional | Same | Same, mobile track width | Same, desktop track width | Boundary-value real-browser proof (`0,1,9,10,19,99,100` + realistic max) | Whole-string centering of a variable-length numeric value |
+| Table Column Geometry | §84 | Any task touching table width/padding/alignment/typography/geometry | Full-column audit, not just the touched column | Same | n/a (desktop-table-specific; mobile card covered by its own contracts) | CENTER/START/SPECIAL classified per column, header-vs-body measured | Re-run whole applicable column audit | Any protected column moved without re-verification |
+| Canonical Desktop Content Width / Global Surface Width Contract | §45, §49, §56, §57 | Any full-page product surface | Same content geometry as EN at same viewport | Same content geometry as HE at same viewport | n/a | One canonical width token per surface class; RTL/LTR is never a functional-reason exception | Measure wrapper/content width both markets, same viewport | Width differs between HE/EN with no Owner-approved documented exception |
+| Quote Number Presentation Consistency | §46 | Any surface displaying a quote/order identifier | Identical structure real-number vs. fallback, `formatQuoteFallback()` canonical | Same | Same | Same | Confirm single canonical source used, no third fallback format introduced | A surface constructs its own truncated-UUID/fallback string |
+| HE/EN Directional Symmetry (Inline-Start Contract) | §63 | Any shared HE/EN UI structure with defined element order | Position N from inline-start (right) | Position N from inline-start (left), same N | Established per-surface (e.g. Mobile Quote History card) | n/a unless separately extended | Compare inline-start position directly between locales, not isolated per-locale PASS | Sequence reversed between locales instead of mirrored |
+| Typography Hierarchy | §81 Part E | Any typography change | Role-consistent weight, coherent with EN | Role-consistent weight, coherent with HE | n/a | n/a | Check sibling/equivalent-role elements, not just the touched element | One sibling left inconsistent with no documented reason |
+| Global Surface Consistency | §42 | Any change to data/formatting/label/direction/business logic/money/currency/tax/quote-number/address/responsive presentation | Every HE consumer identified | Every EN consumer identified | Every viewport identified | Every viewport identified | Enumerate every consumer/surface/channel before declaring DONE | One surface fixed while an identical defect remains live elsewhere |
+| Owner-Approved = LOCKED | §54 | Any task touching a file/surface with a prior PASS/COMPLETE/VERIFIED entry | Behavior protected regardless of file touched | Same | Same | Same | Check prior ledger entry before assuming a change is safe | LOCKED behavior altered without explicit new Owner authorization |
+| Customer-Only Actions (Signature/Approval) | §58 | Any change touching signing/approval/mutation boundary | No business-side identity gains customer-side authority | Same | Same | Same | Server-side identity check at the mutation/persistence boundary, not UI-hiding alone | A business session can complete a customer-only action |
+| Quote Immutability | Architecture §8/§14.A, `guard_quote_child_immutability()`/`guard_quote_immutability()` | Any change touching quote/quote_items after approve/paid/sign | Locked fields stay locked | Same | Same | Same | Confirm DB trigger still fires; UI must not offer an edit path around it | An approved/paid/signed quote's protected fields become editable |
+| Public Quote / Anonymous Access | Architecture §14 | Any change to `get-public-quote`, `PublicQuote*.jsx`, or any new public-facing quote representation | Full HE quote context, ₪ only | Full EN quote context, USD/EUR/GBP only, zero ₪ leakage | Responsive, no overflow | Canonical width (§45) | Confirm anonymous access scope unchanged; confirm zero cross-market leakage | A new public surface exposes different data than the audited Edge Function contract, or leaks currency/market |
+| File-by-File HE/EN Change Ledger | §37 (mechanism) | Any cross-market task | Entry names exact HE impact | Entry names exact EN impact | n/a | n/a | Ledger entry present in Final Report for every changed file | A changed file has no HE/EN ledger entry |
+| UI Width Consistency | §49 | Any set of interchangeable values sharing one visual slot | Widest-legitimate-alternative sizing | Same | Responsive exception allowed if justified | Same | Confirm shorter alternative doesn't shift layout | Row/layout shifts between equivalent values |
+| Component Contract Trigger / UI Definition of Done | §81 Part J/P | Any change to a component covered by a permanent contract | State applicable contracts up front; CONTRACT CHECK: PASS/FAIL at the end | Same | Same | Same | Explicit named statement in the task, not implied | A mandatory contract skipped silently; FINAL DECISION still claimed PASS |
+| **Contract Discovery Gate** *(new, this task)* | §127.2 | Any new or modified application surface | Semantic scan performed before implementation | Same | Same | Same | Explicit "APPLICABLE CONTRACTS" statement per file, filename-independent | A contract-bearing surface implemented with no discovery step performed |
+| **New-Surface Automatic Trigger** *(new, this task)* | §127.3 | Creating a new representation of an existing semantic type | Inherits all applicable existing contracts automatically | Same | Same | Same | Same as the inherited contract's own verification | Prototype/temporary/single-account status used to excuse a skipped contract |
+| **Visual Geometry / Alignment Contract** *(new, this task, generalizes §44/§81/§84)* | §127.4 | Any new/modified structured UI | Protected axis stated; boundary-value stress test | Same | Same | Same | Real rendered-geometry measurement, not CSS-intent inspection | CSS declared centering/alignment accepted as proof without measurement |
+
+### 128.2 Audit coverage inventory (surfaces considered; not cherry-picked to only recently-failed ones)
+
+Landing/Auth, Dashboard shell/KPIs, Quote History (Desktop+Mobile), New Quote/QuoteForm, Clients, Business Settings, Catalog, Finances, Public Quote HE (`PublicQuote.jsx`), Public Quote EN (`PublicQuoteEn.jsx`), `PublicQuoteHeader.jsx` (shared), Admin/Super Admin surfaces, the five Item 30.E David-only concept surfaces (`ProfessionalQuotePreview.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalItemComparisonCard.jsx`, `CustomerQuoteItemRow.jsx`, `customerFriendlySpec.js`/`professionalItemClassifier.js`), and the temporary Dashboard QA button (§126).
+
+### 128.3 Findings
+
+**ID: AUDIT-001**
+SEVERITY: **HIGH**
+CONTRACT: Global Money Numeric Alignment (§44.B, canonical formatter)
+MARKET: SHARED (HE and EN code paths both affected — currently only exercised live in HE, since the David preview is HE-only)
+SURFACE: David A46 Item 30.E concept preview (current/A/B/B+/C)
+FILE(S): `src/components/CustomerQuoteItemRow.jsx` (line 11-13), `src/pages/ProfessionalPublicPreview.jsx` (line 28), `src/components/ProfessionalItemComparisonCard.jsx` (line 13-14)
+VIEWPORT: N/A (formatter-level, not viewport-specific)
+OBSERVED: three independent, locally-defined `money(n)` helper functions, none calling `src/utils/money.js`'s `formatMoney`, none applying the `.pf-money` CSS class.
+EXPECTED: a single canonical formatter (§44.B) — every consumer either calls `formatMoney` directly or a thin same-signature wrapper, per the existing `Dashboard.jsx`/`PublicQuoteEn.jsx` pattern.
+EVIDENCE: direct source read of all three files, quoted verbatim in this task's audit; confirmed by contrast against `Dashboard.jsx` line 3268 and `PublicQuote.jsx` lines 469-582, both of which correctly use `pf-money`/`formatMoney`-derived values.
+ROOT-CAUSE CLASS: **DISCOVERY ESCAPE** (the contract was never identified as applicable when these files were created).
+CUSTOMER/PRODUCTION RISK: currently David-only/Production-adjacent, not global; if any future surface is built by copying this pattern, the divergence compounds (exactly §44's own original founding rationale — "three divergent money-formatting implementations" was the reason §44 was created in the first place).
+RECOMMENDED REMEDIATION: replace all three local `money()` functions with `formatMoney` + `.pf-money`, matching the existing canonical pattern.
+MUTATION AUTHORIZED: NO
+
+**ID: AUDIT-002**
+SEVERITY: **HIGH**
+CONTRACT: Global Money Numeric Alignment (§44.D, physical place-value alignment)
+MARKET: HE (only market currently live for this surface)
+SURFACE: David A46 Item 30.E concept preview — totals block
+FILE(S): `src/pages/ProfessionalPublicPreview.jsx` (lines 164-176)
+VIEWPORT: Desktop (measured); not yet re-measured at Mobile, see AUDIT-004
+OBSERVED: three totals rows (subtotal, VAT, final total) each use `display:flex, justifyContent:'space-between'` independently — exactly the anti-pattern §44.D item 3 already names as the historically-rejected root cause. Live `getBoundingClientRect()` measurement against the deployed Production page (read-only, `GET` only): all three money `<span>` elements share an identical **left** edge (166px, the RTL flex "end" pin) while their **right** edges vary — 237.5px / 230.6px / 285.4px, a ~55px spread — because `dir="rtl"` places the flex "end" item's left edge, not its right, at the fixed anchor.
+EXPECTED: shared CSS Grid column (`grid-template-columns`) with `.pf-money` right-anchored spans, matching `PublicQuote.jsx`'s own totals block (lines 545-583) — the contract's own already-existing, already-approved reference implementation in the same codebase.
+EVIDENCE: live measurement performed this task (read-only `GET`, zero mutation): `{subtotal: spanLeft 166, spanRight 237.52}`, `{vat: spanLeft 166, spanRight 230.56}`, `{total: spanLeft 166, spanRight 285.44}`.
+ROOT-CAUSE CLASS: **DISCOVERY ESCAPE** (the reference implementation for this exact defect already exists in the same repository and was not consulted).
+CUSTOMER/PRODUCTION RISK: David-only preview, used as live Owner-acceptance evidence (§127.8 — prototype code is not exempt from this contract when used this way).
+RECOMMENDED REMEDIATION: convert the totals block to the same CSS Grid pattern already used by `PublicQuote.jsx`.
+MUTATION AUTHORIZED: NO
+
+**ID: AUDIT-003**
+SEVERITY: **MEDIUM**
+CONTRACT: Global Money Numeric Alignment (§44.D item 2 — "money always right-anchors regardless of language")
+MARKET: HE
+SURFACE: `current` variant (today's-table baseline) inside the David A46 concept preview
+FILE(S): `src/components/CustomerQuoteItemRow.jsx` (line 28)
+VIEWPORT: N/A (static CSS)
+OBSERVED: `total_price`'s `<td>` is hardcoded `textAlign: 'left'`; the adjacent `unit_price` `<td>` is `textAlign: 'center'` — inconsistent with each other and with the contract's own explicit rule that money always right-anchors, never conditionally.
+EXPECTED: `textAlign: 'right'`, matching the unconditional rule already stated in §44.D item 2.
+EVIDENCE: direct source read, line quoted verbatim in this task's static audit.
+ROOT-CAUSE CLASS: **DISCOVERY ESCAPE**.
+CUSTOMER/PRODUCTION RISK: David-only preview; this specific `current` variant is presented as the "today's real layout" baseline for Owner comparison, so an inaccurate baseline could itself mislead the comparison.
+RECOMMENDED REMEDIATION: `textAlign: 'right'` on both numeric `<td>` cells.
+MUTATION AUTHORIZED: NO
+
+**ID: AUDIT-004**
+SEVERITY: MEDIUM
+CONTRACT: Tabular Numeric Geometry (§81 Part D / §82)
+MARKET: SHARED
+SURFACE: David A46 Item 30.E concept preview — per-item money value (all five variants)
+FILE(S): `src/components/CustomerQuoteItemRow.jsx` (lines 51, 66, 110, 144)
+VIEWPORT: not yet boundary-value stress-tested (David's own 7 real items span `₪550.00`–`₪10,000.00`, a narrower range than the contract's own representative set)
+OBSERVED: money values use `whiteSpace:'nowrap'` only — no fixed-width sub-box, no explicit right-anchor-within-a-shared-column mechanism (each item's money div is itself the flex "end" item of its own row, same class of risk as AUDIT-002 but for per-item rows rather than totals).
+EXPECTED: fixed-width numeric sub-box per the Views/Amount reference pattern (§81 Part B, §82 Item 1).
+EVIDENCE: source read; not independently live-boundary-tested this task (David's real items don't span a wide enough digit range to make the drift visually obvious the way the totals block's three-line spread does — but the same mechanism is present).
+ROOT-CAUSE CLASS: **DISCOVERY ESCAPE**.
+CUSTOMER/PRODUCTION RISK: low today (narrow real data range), would compound if amounts vary more widely on a future real account.
+RECOMMENDED REMEDIATION: same fixed-width/right-anchored pattern as AUDIT-002, applied per-item.
+MUTATION AUTHORIZED: NO
+
+**ID: AUDIT-005**
+SEVERITY: MEDIUM
+CONTRACT: Owner's second named known example ("Public Quote visual-centering/alignment") — §23 of this task's own prompt; **identified this task as `PROFLOW_TODO.md` item 42**, already on record (added 2026-09-01, prior task) as "Public Quote — Mobile Header/Top Card Alignment," Owner-observed from a real screenshot, previously marked explicitly "not yet investigated against source."
+MARKET: HE (item 42 was reported against the Hebrew Public Quote purple header; EN not separately reported)
+SURFACE: Public Quote purple header, left-side info block (quote number / date / validity / "חייג/י אליי" CTA)
+FILE(S): `src/components/PublicQuoteHeader.jsx`, Mobile branch, lines 78-114
+VIEWPORT: Mobile (per the Owner's own report); not live-remeasured this task
+OBSERVED (new this task, static source read only — the investigation item 42 itself had explicitly not yet received): the info column (line 78) is `flexShrink:0, alignItems: isHebrew?'flex-start':'flex-end'` — i.e. **edge-aligned to its own natural content width**, not centered within any fixed/allocated column width. Inside it, three visually-stacked elements use three different alignment strategies: the quote-number/label block is internally `textAlign:'center'` **relative to its own auto-width box** (line 96); the "תאריך:"/"בתוקף עד:" lines are `textAlign: isHebrew?'left':'right'` — edge-aligned, not centered (line 85); the phone CTA pill (lines 105-112) is a separate `inline-flex` element with its own independent auto width. Because each line's own natural width differs (a full date string is wider than "A46"), and none of the three shares a common center axis or a shared fixed-width box, the column's overall visual impression is not optically centered/balanced — the exact "mathematical/CSS-intent centering ≠ optical centering" pattern this task's own §127.4.C generalizes, and the same underlying bug family already found and fixed for Quote History's table columns (§84) and the Amount column (§82/§83), here recurring in an untouched, older surface rather than a newly-created one.
+EXPECTED: per §127.4.A/B, a shared deterministic geometry (fixed-width column or shared alignment anchor) so the label, date/validity lines, and CTA all resolve to one consistent, genuinely centered or genuinely edge-aligned axis — the specific target (mathematically centered vs. a different intentional composition) is an Owner/product decision, not assumed here.
+EVIDENCE: direct source read this task (line numbers above); **not** live-remeasured via `getBoundingClientRect()` this task (Public Quote is explicitly out of scope for any mutation-adjacent action, and this task is documentation/audit-only) — classified as a well-evidenced **static** hypothesis, not yet a real-browser-measured confirmation.
+ROOT-CAUSE CLASS: **LEGACY / PRE-CONTRACT** — `PublicQuoteHeader.jsx`'s Mobile branch predates the Table/Column Geometry contracts (§81/§84), which were developed against `QuotesTab.jsx` specifically and never retroactively re-applied here; not a new-surface discovery escape like AUDIT-001 through 004.
+CUSTOMER/PRODUCTION RISK: this is the **real, live, Production Public Quote page** shown to real customers on every quote — higher customer-facing exposure than AUDIT-001 through 004 (which are David-only preview surfaces), though the defect itself is visual/cosmetic, not a data or safety issue.
+RECOMMENDED REMEDIATION: apply the Visual Geometry / Alignment Contract (§127.4) to this column — likely a shared fixed-width sub-box for the three stacked elements, verified via real `getBoundingClientRect()` measurement, both locales, Mobile-first per the Owner's own report; this is `PROFLOW_TODO.md` item 42's own existing scope, now with a concrete starting hypothesis instead of none.
+MUTATION AUTHORIZED: NO
+
+### 128.4 Agent HE audit report (Local/RTL surfaces)
+
+| Surface | RTL correctness | Physical/optical alignment | Money geometry | Quote/order-number geometry | Totals/VAT | Responsive Mobile | Responsive Desktop | Result |
+|---|---|---|---|---|---|---|---|---|
+| Quote History (Desktop+Mobile) | PASS (§63, §77-§80 on record) | PASS (§84 full-column ledger on record) | PASS (§82/§83 on record) | PASS (§81 Part C) | n/a (not a totals surface) | PASS (on record) | PASS (on record) | **PASS** (re-confirmed by fresh code read this task, not re-measured live — existing evidence already real-browser-proven) |
+| Public Quote HE (`PublicQuote.jsx`) | PASS (`dir=rtl`, `pf-money` throughout) | PASS (Grid totals, §44 reference implementation) | PASS | PASS (§46) | PASS (Grid, right-anchored) | NOT VERIFIED this task (not re-measured live; no known open defect on record) | NOT VERIFIED this task | **PASS (static), NOT VERIFIED (fresh runtime)** |
+| David A46 preview — items (A/B/B+/C) | PASS (`dir=rtl` inherited from `PublicQuoteHeader`) | **FAIL** — AUDIT-002/004 | **FAIL** — AUDIT-001/003/004 | n/a | n/a | Live-loaded 390×844 this task, zero console errors, no horizontal overflow — but money-anchor defect not visible as overflow, only as measured drift | Live-loaded ~desktop this task for AUDIT-002 measurement | **FAIL** |
+| David A46 preview — totals | PASS (`dir=rtl`) | **FAIL** — AUDIT-002 (measured) | **FAIL** — AUDIT-001/002 | n/a | Structurally correct values (subtotal/VAT/total reconcile, per §125/§126 prior verification), geometry is the defect, not the numbers | NOT VERIFIED at Mobile this task | Live-measured this task | **FAIL** |
+| Dashboard KPIs | PASS (`pf-money` confirmed, line 3268) | NOT VERIFIED this task (no known open defect on record) | PASS (positive control, confirmed this task) | n/a | n/a | NOT VERIFIED this task | NOT VERIFIED this task | **PASS (static positive control)** |
+| Auth/Landing, Clients, Business Settings, Catalog, Finances, Admin | — | — | — | — | — | NOT VERIFIED | NOT VERIFIED | **NOT VERIFIED** (not re-audited this task; no known open defect on record) |
+
+### 128.5 Agent EN audit report (International/LTR surfaces)
+
+| Surface | LTR correctness | USD/EUR/GBP semantics, no ₪ leak | Physical/optical alignment | Money geometry | Responsive Mobile | Responsive Desktop | Result |
+|---|---|---|---|---|---|---|---|
+| Quote History (Desktop+Mobile) | PASS (§63, §80 Part C on record — no `isHebrew`-conditional logic on any touched weight/geometry) | PASS (structural — Amount cell logic shared, no locale branch) | PASS (§84 on record) | PASS (§82/§83 on record, structural — no locale branch) | PASS (on record) | PASS (on record) | **PASS** (re-confirmed by fresh code read, not re-measured live this task) |
+| Public Quote EN (`PublicQuoteEn.jsx`) | NOT VERIFIED this task (not re-read line-by-line; no known open defect on record) | NOT VERIFIED this task | NOT VERIFIED this task | NOT VERIFIED this task | NOT VERIFIED this task | NOT VERIFIED this task | **NOT VERIFIED** |
+| David A46 preview (all variants) | **NOT APPLICABLE** — the entire David A46 concept surface is HE-only by construction (gated to a Hebrew-market real account, `ProfessionalPublicPreview.jsx` renders no English branch, `AppGlobal.jsx` never touched — §123/§126) | N/A | N/A | N/A (AUDIT-001 through 004 are code-level defects in shared, non-locale-conditional code — they would reproduce identically in an English rendering if one existed, but none exists to measure) | N/A | N/A | **NOT APPLICABLE (no EN surface exists for this concept work)** |
+| Dashboard KPIs | NOT VERIFIED this task (no known open defect on record) | NOT VERIFIED this task | NOT VERIFIED this task | PASS (structural — `pf-money` usage has no locale branch) | NOT VERIFIED | NOT VERIFIED | **PASS (structural), NOT VERIFIED (fresh runtime)** |
+| Auth/Landing, Clients, Business Settings, Catalog, Finances, Admin | — | — | — | — | NOT VERIFIED | NOT VERIFIED | **NOT VERIFIED** |
+
+**Important scope note, stated explicitly per this task's own anti-cherry-picking instruction**: AUDIT-001 through AUDIT-004 are findings in **shared, non-locale-conditional code** (`money()`, the flex totals layout, the `current`-variant `<td>` alignment) — none contain an `isHebrew` branch. This means the defect is not "an HE bug the EN side happens to avoid" — it is a defect that would reproduce identically the moment (if ever) an English rendering of this same preview is built, exactly as this task's own §127.3 (New-Surface Trigger) predicts. It is correctly marked NOT APPLICABLE for EN today only because no English surface of this specific preview currently exists to measure, not because the underlying code is EN-safe.
+
+### 128.6 Claude Lead independent reconciliation
+
+Not a merge of 128.4/128.5 — cross-checked directly against source. Confirms: (a) AUDIT-001/002/003/004 are real, reproducible from the current `origin/main` source, not speculative; (b) the defect is isolated to the three Item 30.E preview files, not a project-wide regression — `Dashboard.jsx` (KPI) and `PublicQuote.jsx` (production Public Quote) both independently confirmed still using the canonical `pf-money`/Grid pattern correctly, serving as genuine positive controls, not merely assumed compliant; (c) the shared, non-locale-conditional nature of the defect means Market Separation itself is not violated (no ₪/$ cross-contamination, no VAT/currency-semantic leak) — this is purely a geometry/formatter-canonicalization defect, correctly distinct from a market-isolation defect; (d) AUDIT-005 (the Owner's second named example) was successfully identified this task as the already-open `PROFLOW_TODO.md` item 42 — a real, on-record, previously-uninvestigated Public Quote defect — and a concrete, source-grounded hypothesis (three independently-aligned elements sharing no common axis in `PublicQuoteHeader.jsx`'s Mobile info column) was found via static review; this is a genuine, distinct defect from AUDIT-002 (a different file, a different surface — real Production Public Quote vs. the David-only preview totals block), not the same issue restated.
+
+### 128.7 UI Contract Compliance Matrix
+
+| SURFACE | CONTRACT | HE | EN | MOBILE | DESKTOP |
+|---|---|---|---|---|---|
+| Quote History | Money/Tabular Geometry (§44/§81/§82) | PASS | PASS | PASS | PASS |
+| Quote History | Table Column Geometry (§84) | PASS | PASS | N/A (desktop-table-specific) | PASS |
+| Quote History | Directional Symmetry (§63) | PASS | PASS | PASS | N/A (not extended to Desktop) |
+| Public Quote (`PublicQuote.jsx`/`PublicQuoteEn.jsx`) | Money Geometry (§44, reference implementation) | PASS (static) | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+| Public Quote header (`PublicQuoteHeader.jsx`) | Visual Geometry/Alignment (§127.4) | **FAIL (static hypothesis)** — AUDIT-005 / TODO item 42 | NOT VERIFIED | NOT VERIFIED (Owner report was Mobile-specific) | NOT VERIFIED |
+| Dashboard KPIs | Money Geometry (§44) | PASS (static) | PASS (structural) | NOT VERIFIED | NOT VERIFIED |
+| David A46 preview — item rows | Money Geometry (§44) | **FAIL** (AUDIT-001, 003, 004) | N/A (no EN surface exists) | FAIL (defect present, not overflow-visible) | FAIL (AUDIT-002 measured) |
+| David A46 preview — totals block | Money Geometry (§44) | **FAIL** (AUDIT-002) | N/A | NOT VERIFIED | FAIL (measured) |
+| David A46 preview — item rows | Tabular Numeric Geometry (§81/§82) | **FAIL** (AUDIT-004) | N/A | NOT VERIFIED | NOT VERIFIED |
+| David A46 preview — all variants | RTL Directional Correctness | PASS (`dir=rtl` inherited) | N/A | PASS | PASS |
+| David A46 preview — all variants | David-only gating (§123 allowlist) | PASS | N/A | PASS | PASS |
+| Temporary QA button (§126) | David-only gating | PASS | N/A | PASS | NOT VERIFIED (desktop nav not re-checked this task) |
+| Auth/Landing | any | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+| Clients / Business Settings / Catalog / Finances | any | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+| Admin/Super Admin | any | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED | NOT VERIFIED |
+
+`NOT VERIFIED` is never collapsed into `PASS` anywhere in this matrix, per explicit instruction.
+
+### 128.8 Findings by priority
+
+**P1** (violates a locked/permanent product contract; not P0 since no safety/security/data-integrity risk is present): AUDIT-001, AUDIT-002 (David-only preview, Owner-acceptance-evidence surface — §127.8 applies), AUDIT-005 (real Production Public Quote — the higher customer-facing-exposure member of this group, but still a cosmetic/visual defect, not a P0 safety/data issue).
+**P2** (material visual/functional inconsistency): AUDIT-003, AUDIT-004.
+**P3**: none this audit.
+**P0**: none found this audit.
+
+### 128.9 Explicit NOT VERIFIED areas (not manufactured as PASS)
+
+Public Quote EN full re-audit; Public Quote HE fresh runtime re-measurement (static PASS only, existing evidence not re-run live); Auth/Landing (both markets); Clients, Business Settings, Catalog, Finances (both markets, both viewports); Admin/Super Admin surfaces; Mobile viewport for the totals-block money defect (AUDIT-002 was measured at Desktop only); AUDIT-005's underlying identity/root cause.
+
+### 128.10 Recommended remediation order (recommendation only — not authorized this task)
+
+1. AUDIT-005 (Public Quote header alignment) — real, live, customer-facing Production surface; now has a concrete starting hypothesis (this task's own finding) rather than none, closing `PROFLOW_TODO.md` item 42's "not yet investigated" gap.
+2. AUDIT-001 (canonical formatter) — fixes the root cause feeding both 002 and 004.
+3. AUDIT-002 (totals Grid conversion) — highest visual impact on the David-preview surface, has a ready-made reference implementation to copy.
+4. AUDIT-003 (`current`-variant alignment) — trivial, one-line.
+5. AUDIT-004 (per-item fixed-width box) — same pattern as 002, lower urgency given narrow real-data range.
+6. Separately, independent of these findings: extend audit coverage to the explicitly NOT VERIFIED surfaces (128.9) before any future Item 30.E-adjacent work touches them.
+
+**None of the above is authorized for implementation by this task.**
