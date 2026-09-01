@@ -85,6 +85,10 @@ No new application commit this task (the one application file from §141 remains
 
 **Binary completion gate (Section U, all 16 conditions) — full table at `PROFLOW_PROJECT_CONTEXT.md` §142.12.** 14 of 16 TRUE. **2 FALSE**: condition 4 (every discovered applicable surface has rendered evidence — Catalog/Finances/Business Settings individually, AI Logs, and `ProfessionalQuotePreview.jsx`'s real-content geometry remain NOT VERIFIED, the last blocked by the session's own auto-mode classifier correctly declining a TEST data-mutation attempt, not worked around) and condition 16 (no applicable surface remains FAIL/NOT VERIFIED/omitted — same list, none silently omitted from the Ledger, but genuinely still open). Per the Owner's own explicit binary rule, any FALSE condition means the result is `PARTIAL`, not `COMPLETE` — reported honestly as such, even though this task's own evidence is materially stronger than the prior task's (two independent real logins for HE/EN Dashboard; real-component real-router-context rendering for HE/EN Public Quote; a real, safely-reverted gate test for the previously-fixed surface; a new, screenshot-confirmed shell-vs-content finding for Public Quote).
 
+## 18. Continuity commit SHA + remote read-back
+
+`a94d384` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`f34d636`) — not pushed to `origin/main` (no application push occurred or is authorized this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `a94d384` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §142, TODO item 47's update, HANDOFF §18.GN, the CHAT_HANDOFF lead paragraph, ARCHITECTURE §18.D, and the LATEST_REPORT task header all present on the remote ref itself. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
+
 ---
 
 GOVERNANCE ROOT CAUSE: IDENTIFIED — evidentiary gap (proxy evidence and stale evidence treated as equivalent to fresh real-route evidence), not a scoping gap
