@@ -71,15 +71,13 @@ None of the three touch, restate, or narrow 30.E's own architecture, priority, o
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
+`3e6ec2b37fdc61b1f97dce05cd7acfe7932174ec` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the six-file continuity update. Matching commit exists locally on `main` (`4248161`), **not pushed**.
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `3e6ec2b37fdc61b1f97dce05cd7acfe7932174ec` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_TODO.md` (all three new items 39/40/41 present, correct headers) and `PROFLOW_ARCHITECTURE.md` (new §14.D present, correct) — both confirmed present and correct.
 
 ---
 
