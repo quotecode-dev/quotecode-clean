@@ -4,117 +4,105 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: David Aluminum Real-Account New-Quote Experience — Safe LIVE Demonstration
+## Task: David Aluminum A46 — Customer-Facing Professional Quote Concept Round
 
-**Real-account, real-code, real-deploy task. Zero DB/schema/migration/Edge Function mutation. David's original historical quote confirmed byte-identical throughout.**
+**Real-account, real-code, real-deploy task, extending the already-authorized David-only preview. Zero DB/schema/migration/Edge Function mutation. David's original quote confirmed byte-identical throughout.**
 
 ---
 
-## DAVID ALUMINUM NEW-EXPERIENCE DEMO: **LIVE / DAVID-ONLY**
+## DAVID A46 CUSTOMER CONCEPTS: **READY FOR OWNER REVIEW**
+## GLOBAL ITEM 30.E ROLLOUT: **NOT AUTHORIZED**
 
 ---
 
 ## 1. Fresh Local State
 
-`origin/main` at task start: `83e677a488a6a17b9a195c5a360726307398f445`. Working tree clean besides `src/entry-server.jsx`. No drift from prior task.
+`origin/main` at task start: `b29f292781eea7e88b40f943eeb8200faac8ce53` (the prior task's deployment). No drift.
 
-## 2. Exact David Baseline Quote Identified (read-only)
+## 2. Confirmation Original A46 Unchanged
 
-Business "דוד אלומיניום" (David Aluminum), `user_id 17388fe5-a780-4e93-bfec-6a538788ac83`. Exactly one real quote: `id a29b1fbb-f2ca-427d-88b2-6198d138eb89`, `quote_number 46`, client "לונגשין", **status `approved`, signed** (already DB-immutable). ILS, `tax_rate 0.18`, subtotal ₪18,550.00, total ₪21,889.00, no warranty, `view_count 28` at start. 7 real `quote_items`. Real `notes` field contains real project dimension data (the same Holon-project evidence already cited in item 30.E).
+Re-queried at start, mid-verification, and after LIVE deployment: `view_count` still exactly **28**, `status`/`total` unchanged every time.
 
-## 3. Confirmation Original Quote Remained Untouched
+## 3. Current Public Quote Baseline
 
-Re-queried three times (before TEST, after TEST, after LIVE): `view_count` still exactly **28** every time, `status`/`subtotal`/`total`/`item_count` unchanged every time. Byte-identical throughout.
+Rendered as the `current` switcher option: today's real plain items table (description/qty/unit-price/total), zero specification detail — exactly what's live today, used as the explicit comparison point for A/B/C.
 
-## 4. Chosen Demo Architecture and Why
+## 4. Concept A — Clean/Premium
 
-**Option C — read-only presentational transformation. Not A (duplicate) or B (attached preview).** Zero new database table/column; nothing to write, nothing to roll back beyond the code itself. The safest possible reading of "additive and reversible" is a feature with no mutation path at all.
+Card per item: name, one concise spec summary line (e.g. "8 פתחים במידות שונות (סה״כ 22.04 מ״ר)"), price. Measurements visually secondary, never itemized by default.
 
-## 5. Item-by-Item OLD → NEW Mapping
+## 5. Concept B — Collapsible
 
-All 7 real items, verified against the real `notes` field:
+Same clean summary by default; a "פירוט מידות ומפרט" toggle (chevron icon) reveals the real per-measurement rows. Demonstrated both collapsed and expanded states.
 
-| Item | Qty | Unit price | Classification | Real dimensions matched |
-|---|---|---|---|---|
-| רשת ויטרינה 9000 דירה 33 | 8 | ₪1,250 | Repeating | 8 vitrine pairs, apt 33 |
-| רשת חדש דירה 33 | 4 | ₪550 | Repeating | 4 window pairs, apt 33 |
-| רשת ויטרינה 9000 דירה 32 | 1 | ₪1,250 | Measured | 1 vitrine pair, apt 32 |
-| רשת חדש דירה 32 | 1 | ₪550 | Measured | 1 window pair, apt 32 |
-| רשת ויטרינה דירה 2 | 1 | ₪1,250 | Measured | 1 vitrine pair, apt 2 |
-| רשת חדש דירה 2 | 3 | ₪550 | Repeating | 3 window pairs, apt 2 |
-| תיקון זוויות דירה 33 | 1 | ₪1,650 | **Simple** | none in notes — correctly not fabricated |
+## 6. Concept C — Professional/Transparent
 
-Sum of unmodified `total_price` = ₪18,550.00, exactly matching the real subtotal. Two real Hebrew-parsing bugs found and fixed via this exact real-data test (bare-number apartment header; final-nun vs. regular-nun mismatch).
+An always-visible "היקף העבודה" (scope of work) box beneath each item listing every real measurement inline — styled as a documented proposal, not a spreadsheet or admin form.
 
-## 6. Desktop Evidence
+## 7. Mobile Evidence (A/B/C)
 
-Screenshot-verified at 1024×900 against real Production data (local dev server, then re-verified live on `www.quotecodepro.com`). All 7 items render correctly, zero console errors.
+All three, plus `current`, screenshot-verified at 390×844 against real Production data, zero console errors. One real bug found and fixed: area values initially showed excessive precision (`22.0446 מ״ר`); `customerFriendlySpec.js` now rounds to 2 decimals for customer-facing display.
 
-## 7. Mobile Evidence
+## 8. Desktop Evidence (Recommended Concept)
 
-Screenshot-verified at 390×844. Initial layout was cramped (2-column CSS grid too narrow for RTL dimension strings); fixed to a flex-wrap layout that stacks cleanly on narrow viewports. Re-verified clean after the fix, zero console errors, both locally and live.
+Concept B verified at 1024×1400 — full quote visible in one view: header, client card, all 7 real items (including the Simple item rendering cleanly with no expand affordance), totals (₪18,550.00 / ₪3,339.00 VAT / ₪21,889.00 — exact DB match), terms.
 
-## 8. Customer-Facing OLD → NEW Comparison
+## 9. Full-Quote Contextual Preview Evidence
 
-`ProfessionalPublicPreview.jsx` at `/public-quote/:id/preview` — public route, no login, calls the existing unmodified `get-public-quote` Edge Function but deliberately skips the view-count-increment RPC. Verified: real business/client data, real totals unchanged, professional detail shown per item, zero send/approval/signature side effects (no such code path exists in the new files).
+`ProfessionalPublicPreview.jsx` now reuses the real `PublicQuoteHeader` component directly (same visual language as the live Public Quote), plus a client-info card, totals block, and terms — not isolated item cards.
 
-## 9. TEST Verification
+## 10. HE Review
 
-Build clean. **173/173 tests pass**, zero regression. Classifier unit-tested against exact real data. Gating unit-tested (David → true, all others/undefined → false). Customer preview live-rendered Desktop+Mobile against real Production data via local dev server, zero console errors. Business-side authenticated page verified by code review only (mirrors Dashboard.jsx's own proven query pattern) — no David login attempted, correctly, since no such credentials exist.
+Real, natural Hebrew customer terminology throughout ("פירוט מידות ומפרט", "היקף העבודה", "פתחים"); RTL correct; ₪/VAT correct.
 
-## 10. David-Only Gating Proof
+## 11. EN / Shared-Model Review
 
-Code-level: `isProfessionalPreviewEnabled()` checked against a one-entry array containing David's real `user_id`; unit-tested both directions. Structural: `src/global/AppGlobal.jsx` was never touched — International accounts cannot reach this code by construction, not merely by a runtime check.
+`AppGlobal.jsx` untouched; the classifier and text-generation utilities remain pure functions operating on props — no Hebrew-only data architecture introduced, only a deliberately Hebrew-only rendering scope for this one-account demo.
 
-## 11. LIVE Status
+## 12. Claude Lead Recommendation: Concept B
 
-`git push origin main` → `origin/main` = `b29f292781eea7e88b40f943eeb8200faac8ce53`. Vercel deployment confirmed via `vercel inspect --logs`: exact commit match, status Ready, canonical domain (`www.quotecodepro.com`) confirmed serving the new build. Live preview re-verified against real Production: correct rendering, zero console errors. Original quote re-confirmed unchanged (`view_count` still 28) immediately after. Regression smoke: landing page and the original unrelated Public Quote route both HTTP 200.
+Adapts to both a quick-scan customer and a detail-seeking one without forcing one detail level on everyone; collapsed-by-default is consistent with §122 Decision 4; the Simple item coexists cleanly (no expand affordance shown). Full reasoning in §124.
 
-## 12. Exact Instructions the Owner Can Give David
+## 13. Exact Owner Navigation Path to Compare
 
-1. Log into his existing ProFlow account normally.
-2. On the Dashboard, click the new purple-outlined **"תצוגה מקדימה: חוויה חדשה"** button (visible only to his account).
-3. See quote #46, item by item, old vs. new side by side — same real prices, same real total, now with structured detail instead of a Notes wall of text.
-4. A link at the bottom shows the same comparison from the customer's point of view.
-5. What to notice: nothing about the historical quote changed — the same real numbers now read more professionally.
+Open `https://www.quotecodepro.com/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he` — the toolbar at the top switches between "התצוגה הנוכחית" / "אפשרות א׳" / "אפשרות ב׳" / "אפשרות ג׳". A `?variant=A|B|C|current` URL param also jumps directly to one option.
 
-## 13. Rollback / Removal Path
+## 14. Implementation / Code Changes Made
 
-Delete the one entry in `src/config/professionalPreviewAllowlist.js` (or `git revert b29f292`) — no database write ever occurred, nothing else to unwind.
+Modified: `ProfessionalPublicPreview.jsx` (same file from the prior task). New: `customerFriendlySpec.js`, `CustomerQuoteItemRow.jsx`. **Untouched**: `Dashboard.jsx`, `AppLocal.jsx`, `AppGlobal.jsx`, the allowlist, the business-side authenticated page — same gate, same account, same quote as before.
 
-## 14. Regression Results
+## 15. Regression / Safety Verification
 
-Unrelated users: unaffected (allowlist-gated, code-proven). Normal quote flow: unaffected (only two files touched, both additively). International: unaffected (`AppGlobal.jsx` untouched). Existing historical quote: immutable and byte-identical throughout, confirmed by direct query at three separate checkpoints.
-
-## 15. HE Review
-
-Real Hebrew terminology throughout ("נמדד"/"מדידות חוזרות"/"פשוט"), RTL correct, ₪ correct — this entire demo is Local/Israel-scoped by design.
-
-## 16. EN / Shared-Architecture Review
-
-`AppGlobal.jsx` untouched — no future HE-only structural fork introduced; the classifier and card component are themselves market-neutral (pure functions/props), the Hebrew-only surface is a deliberate scoping choice for this one-account demo, not an architectural constraint.
+Build clean, **173/173 tests pass**. David's quote byte-identical throughout (`view_count` still 28). Landing page HTTP 200. Vercel CLI hit a transient npx-cache corruption error (`MODULE_NOT_FOUND: xdg-app-paths`) mid-task — resolved by clearing the stale cache directory, not a deployment issue. A bundle-hash comparison was inconclusive (consistent with this project's already-documented Vite build-hash non-determinism) — the decisive proof used instead was loading the real live URL directly and confirming the new UI renders correctly there.
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§123 — full demonstration record)
-- `PROFLOW_TODO.md` — **UPDATED** (new item 30.F)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FX)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§124)
+- `PROFLOW_TODO.md` — **UPDATED** (item 30.F addendum)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FY)
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (new §14.E — reusable read-only-transformation pattern)
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (§14.E extended with business-vs-customer presentation-separation principle)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Mutation boundary**: application code pushed to `main` and deployed (`b29f292`). Zero DB/TEST/Edge Function/schema mutation. David's original quote #46 confirmed untouched throughout.
+## Commit/Deploy Status, Clearly Separated
+
+- **Documentation**: committed locally to `main`, pushed only to `proflow-continuity` (see below).
+- **Application code**: committed to `main` and **pushed + deployed to Production** — `origin/main` now `2cda495abe1823ceef37a22eab516b3f5fc14d1e`, Vercel deployment confirmed via `vercel inspect --logs` (exact commit match, Ready, aliased to `www.quotecodepro.com`).
+
+**Mutation boundary**: application code pushed to `main` and deployed. Zero DB/TEST/Edge Function/schema mutation. David's original quote #46 confirmed untouched throughout. Scope remains David-only.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`6dd0e13875c149918bab4a507df52a7a44e90262` on `proflow-continuity` (pushed to `origin/proflow-continuity`). Matching commit exists locally on `main` (`59a8e91`), **not pushed** (the actual application push, `b29f292`, was pushed separately as the authorized LIVE action).
+*(recorded after push — see below.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `6dd0e13875c149918bab4a507df52a7a44e90262` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §123 and `PROFLOW_TODO.md` item 30.F both present and correct. `origin/main` re-fetched and confirmed at `b29f292781eea7e88b40f943eeb8200faac8ce53` — the real David Aluminum feature deployment.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification.)*
