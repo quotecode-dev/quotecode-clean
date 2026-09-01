@@ -4,113 +4,92 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Wave 4 — Frontend/UI Parity — Execution (Item C + Item D only)
+## Task: Post-Wave-4 Product Findings Documentation Only
 
-**LOCAL APPLICATION COMMIT ONLY. Zero database, TEST, Production, Edge Function, or Vercel mutation. `main` not pushed, no RC tagged, no deploy.**
-
----
-
-## TASK: Wave 4 — Frontend/UI Parity — Execution (Item C + Item D only)
-## EFFORT: EXHAUSTIVE / MAXIMUM DEPTH
-
-## WAVE 4 STATUS: **PASS — COMPLETE**
+**DOCUMENTATION ONLY. Zero application code, database, TEST, Production, Edge Function, or Vercel mutation. No `main` push, no RC tag, no Wave 5 execution, nothing implemented or designed.**
 
 ---
 
-## HEADLINE RESULT
+## TASK: Post-Wave-4 Product Findings Documentation Only
+## EFFORT: HIGH / THOROUGH
 
-Both authorized items are resolved:
-
-- **ITEM C — Public Quote Mobile CTA/header order**: defect fixed, verified PASS on all 4 required combinations (HE/EN × Mobile/Desktop).
-- **ITEM D — AI Chat mobile overlap on Quote History**: confirmed **ALREADY RESOLVED** on both markets via real, live DOM measurement — **no code change required or made.**
-
-Per this task's own explicit instruction, Item D was live-verified *before* any code was touched, and Wave 4 completion was not declared on source review alone — both items carry real browser-verified evidence, not just a diff.
+## RESULT: **Three new product findings recorded — all OPEN / NOT IMPLEMENTED**
 
 ---
 
-## ITEM D — VERIFIED FIRST, PER REQUIRED SEQUENCE
+## FRESH LOCAL STATE, RECONFIRMED BEFORE EDITING
 
-Using the browser-harness workflow against the local TEST dev server (`localhost:5186`, mirrors current disk state live, no build step), logged into both real TEST accounts independently:
-
-- **HE / Local** (`PROFLOW_TEST_LOCAL_EMAIL`): scrolled Quote History to the true page bottom (`scrollY + innerHeight === document.body.scrollHeight`, numerically confirmed: 907 + 844 = 1751 for reference on the EN pass; HE's own equivalent check also confirmed). Measured via `getBoundingClientRect()`: last quote card's Actions button bottom = **609.7px**; `.ai-chat-container` = **712.2–759px**; `.mobile-bottom-nav` = **786.2–844px**. **Clearance: 102.5px, clean.**
-- **EN / International** (`PROFLOW_TEST_INTL_EMAIL`): same methodology. Last card bottom = **610.4px**; AI Chat button = **712.2–759px**; bottom nav = **786.2–844px**. **Clearance: 101.8px, clean.**
-
-Both results screenshot-confirmed visually — the last real quote row (`Item17 E2E Client A / A100700` on both accounts, shared seed data) is fully visible and clickable, cleanly separated from both fixed elements, in both languages.
-
-**Verdict: ITEM D — ALREADY RESOLVED — NO CODE CHANGE REQUIRED**, on both markets. `Dashboard.jsx` and `src/AIChatWidget.jsx` were **not modified**. The pre-existing `.dash-footer { padding-bottom: 100px !important; }` mobile rule (already live on Production per the Wave 4 Pre-Mutation Gate) is now confirmed sufficient by direct measurement, closing the ambiguity that gate had flagged.
+- Working tree clean besides the standing untracked `src/entry-server.jsx`.
+- Local `main` at `8600dba` (unchanged since Wave 4's own continuity write) — 12 commits ahead of `origin/main`.
+- `origin/main` reconfirmed unchanged: `dd110155a927f708f00467e1017bd183582b42aa`.
+- `origin/proflow-continuity` fetched fresh and confirmed exactly at the prior task's own final push: `4e792a288b411b3feef0bdac54ae16efba8f028b`. Zero drift, zero surprise state.
 
 ---
 
-## ITEM C — IMPLEMENTED AND VERIFIED PASS (4/4)
+## THE THREE FINDINGS RECORDED
 
-**Fix**: `src/components/PublicQuoteHeader.jsx` — in the Mobile branch's second column, swapped the phone-CTA `<a>` block and the quote-number/date info `<div>` so the info box renders first and the CTA renders second, matching the already-correct Desktop branch. Pure DOM reorder: no style, text, wording, spacing, color, or HE/EN branching-logic change (15 insertions / 9 deletions; the Desktop branch was not touched).
+All three are new `PROFLOW_TODO.md` top-level items, status **OPEN / NOT IMPLEMENTED**:
 
-**Build**: `npm run build` succeeded cleanly (`✓ built in 9.63s`), no new warnings.
+### Item 39 — Professional Print/PDF Experience
 
-**Live UI verification**, via real public quote URLs resolved through the app's own authenticated, read-only `/rest/v1/quotes` fetch (no mutation, no guessing):
+Real-world evidence: the Owner physically printed a real David Aluminum public quote and found browser-generated URL/date/title/page artifacts, page breaking that isn't document-aware, inefficient pagination, and a signature/approval page with large unused whitespace. Extends — does not duplicate — item 14.A's existing "True Download PDF remains a separately-scoped future TODO item" placeholder. Full future-design-evaluation checklist (print CSS, controlled page breaks, A4 output, HE/RTL+EN/LTR, browser-vs-application-controllable distinction) recorded at `PROFLOW_TODO.md` item 39.
 
-| Market | Viewport | Result |
-|---|---|---|
-| HE | Mobile (390×844) | **PASS** — info box (`מספר הצעה` / `A100700` / `תאריך: 30.8.2026`) first, `חייג/י אליי` CTA second, RTL-mirrored correctly |
-| EN | Mobile (390×844) | **PASS** — info box (`Quote Number` / `A100713` / `Date: 30/08/2026`) first, `Call me` CTA second |
-| HE | Desktop (1440×900) | **PASS** — unchanged, info card then CTA, visually identical to pre-fix |
-| EN | Desktop (1440×900) | **PASS** — unchanged, info card then CTA |
+### Item 40 — Clients List Daily-Workflow Density/Readability Redesign
 
-All 4 combinations screenshot-confirmed.
+The Owner explicitly frames this as an important **daily workflow surface**, not cosmetic polish. The current Clients/CRM table is visually crowded — long names wrap 2-3 lines, too many columns compete for space, the client/company name (the primary identifier) doesn't get enough visual priority. No prior TODO item covered this table's presentation specifically (item 14.B's Dashboard redesign passes touched Quote History/KPI density repeatedly but never rebuilt the Clients tab). Design principles to preserve (name-as-primary-identifier, truncation-with-reveal, compact mobile card presentation, HE/EN symmetry, no data-model change, Owner mockup approval required) recorded at `PROFLOW_TODO.md` item 40, citing existing in-codebase precedent (Quote History's truncation/mobile-card patterns) as *plausible*, not mandated, solutions.
 
----
+### Item 41 — Business Document Branding / Safe Logo Integration
 
-## LOCAL APPLICATION COMMIT
-
-`bf7a047e43a714a53f3845267107ab068587e401` on local `main`:
-
-```
-fix: swap Mobile CTA/info order on public quote header (Wave 4 Item C)
-```
-
-Contains **only** `src/components/PublicQuoteHeader.jsx` (1 file changed, 15 insertions, 9 deletions). `src/entry-server.jsx` (the standing untracked file) was explicitly excluded, confirmed still untracked via `git status --short` immediately after the commit. **Not pushed** — `origin/main` unchanged.
+Core principle: **the business logo is content inside the ProFlow document design system — it must not be allowed to break or take control of it.** David Aluminum evidence again: its source logo (black background, metallic/silver typography) is visually dominant vs. the current restrained rendition. Proposes formalizing item 14.B's existing header/logo baseline (white/neutral container, `object-fit: contain`, aspect-ratio preserved) into a fuller Logo Slot/safe-area system, plus an optional, tightly-scoped Brand Accent Color (conceptual ~80-90% ProFlow system / ~10-20% business branding). Must eventually work across HE/RTL, EN/LTR, screen Public Quote, and Professional Print/PDF (item 39). Full detail at `PROFLOW_TODO.md` item 41.
 
 ---
 
-## A REAL UI-AUTOMATION OBSTACLE, RESOLVED (worth recording, not a product defect)
+## RELATION TO THE PROFESSIONAL QUOTE ENGINE — EXPLICITLY PRESERVED, NOT WEAKENED
 
-The EN login form silently failed to submit multiple times — no network call, no error, no navigation — despite the fields visually showing correct values. Root cause: the form contains a **zero-size honeypot decoy field** (`<input type="password" name="fake_pass_login">`, `width:0,height:0`), ahead of the real field (`name="user_password_field"`) in DOM order, so `document.querySelector('input[type="password"]')` silently grabbed the decoy. This is a legitimate existing bot-deterrence pattern in the app, not a bug — fixed on this end by explicitly targeting `input[name="user_password_field"]`.
+All three new items are recorded as **complementary** to item 30.E (`PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md` §95), never as a replacement, collapse, or dilution:
+
+- Item 30.E concerns quote-item data structure and pricing (what a quote item *is*).
+- Item 39 concerns document rendering onto paper/PDF (how a quote *prints*).
+- Item 40 concerns an unrelated daily-workflow surface (the Clients list, not quotes).
+- Item 41 concerns document branding/containment (how a business's identity appears *within* the document).
+
+None of the three touch, restate, or narrow 30.E's own architecture, priority, or design-first requirements. **Item 30.E remains the Owner's designated first major post-Recovery product/design workstream, explicitly ahead of Admin UI work — unchanged by this task.**
 
 ---
 
-## EXPLICITLY NOT DONE (per this task's Final Stop)
+## WAVE 4 PASS CHECKPOINT — EXPLICITLY PRESERVED, NOT REOPENED
 
-- No RC tag created.
-- Wave 5 not started.
-- `main` not pushed.
-- No deploy of any kind (Vercel, Edge Function).
-- No Production/TEST DB or Edge Function mutation.
-- Wave 2's three excluded findings (Dashboard scale/layout, Trial banner, LIFETIME Upgrade CTA) remain excluded/unassigned — no scope creep.
-- The Professional/Industry-Aware Quote Item Model (`PROFLOW_TODO.md` item 30.E) remains documented only, not started.
+`PROFLOW_PROJECT_CONTEXT.md` §115's Wave 4 Execution addendum stands exactly as written: Item C fixed and verified PASS on all 4 combinations, Item D confirmed already-resolved on both markets with zero code change, local application commit `bf7a047` unpushed, Wave 4 status **PASS — COMPLETE**. This task adds new future-backlog items only; it does not reopen, revise, or add conditions to Wave 4's own completed, closed scope.
 
-**Awaiting Owner + ChatGPT review before any further action.**
+---
+
+## MUTATION BOUNDARY
+
+**Zero application code, DB, TEST, Production, Edge Function, or Vercel mutation of any kind occurred.** No `main` push. No RC tag. No Wave 5 execution. No implementation or design work performed for any of the three new items beyond recording the requirements themselves.
 
 ---
 
 ## CONTINUITY COMMIT
 
-`c4a2f8ff16f51e4de6231441fff31b2efb080ce7` on `proflow-continuity` (pushed to `origin/proflow-continuity`) — the six-file continuity update. Matching commit exists locally on `main` (`a64a3fc`), **not pushed**. The application-code fix itself is a separate, earlier local `main` commit (`bf7a047`), also not pushed.
+*(recorded after push — see below, per the established two-commit convention: a commit cannot state its own not-yet-computed hash.)*
 
-## PROFLOW-CONTINUITY PUSH: **PASS**
+## PROFLOW-CONTINUITY PUSH
 
-## REMOTE GITHUB READ-BACK: **PASS**
+*(recorded after push.)*
 
-`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `c4a2f8ff16f51e4de6231441fff31b2efb080ce7` exactly, followed by `git show origin/proflow-continuity:<path>` reads of GitHub's actual stored objects for `PROFLOW_HANDOFF.md` (§18.FP present, correct) and `PROFLOW_TODO.md` (Wave 4 Item C cross-reference present, correct) — both confirmed present and correct.
+## REMOTE GITHUB READ-BACK
+
+*(recorded after push and verification.)*
 
 ---
 
 ## SIX-FILE CONTINUITY LEDGER
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§115 Wave 4 Execution addendum)
-- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14 resume pointer, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (§14.A status)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (§18.FP)
-- `PROFLOW_TODO.md` — **UPDATED** (item 17's Mobile-header-intent note was stale — described the pre-fix CTA-before-info order as current intent — corrected to match the now-live info-first/CTA-second order)
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (§116 addendum)
+- `PROFLOW_TODO.md` — **UPDATED** (new items 39, 40, 41 — authoritative home for all three findings)
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED** (new §14.D — two durable principles worth stating ahead of design work: the browser-print/PDF boundary for item 39, and the logo-containment principle for item 41; item 40 noted as pure presentation-layer redesign with no new architectural principle)
+- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph — findings raised/approved after Wave 4, without displacing Wave 4 PASS as the last-executed checkpoint)
+- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.FQ)
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
 
-**Mutation boundary**: local application commit only (`bf7a047`, one file). Zero DB/Edge/Production/`main`-push/deploy mutation of any kind.
+**Mutation boundary**: documentation-only. Zero application/DB/TEST/Production/Edge/Vercel mutation of any kind. No `main` push.

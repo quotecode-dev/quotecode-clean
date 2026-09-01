@@ -1501,3 +1501,70 @@ All three require their own dedicated future investigation task, not yet schedul
 **Wave 3 — Function 2 (send-quote-email) DEPLOYED, source-verified PASS; end-to-end email delivery NOT YET TESTED (2026-09-01, `PROFLOW_PROJECT_CONTEXT.md` §115 Function 2 addendum, `PROFLOW_HANDOFF.md` §18.FL, Owner LIVE authorization explicitly granted for this deployment only)**: fresh bootstrap + state re-verified before mutation, zero contradiction. Pre-mutation source proof repeated fresh (Production/TEST/local all byte-identical to the original gate diff, zero drift); every named risk category re-checked explicitly and found clean (no TEST refs/URLs, identical real `PROD_ORIGIN` everywhere, pre-existing-not-new console logging, recipient/sender/Resend/auth logic byte-equivalent aside from formatting, HE/EN currency-routing safety logic logically unchanged). Agent HE: PASS (real quote numbers correctly shown in Hebrew subject, agorot precision preserved). Agent EN: PASS (real quote numbers in English subject, USD/EUR/GBP unaffected, no ₪/VAT leakage). Claude Lead: PASS. Local source required zero edit - already the approved implementation, committed since `ffc741d`, well before this Wave 3 effort; no new commit needed. Production target re-confirmed before deploy; `send-quote-email` v24→v25, new bundle hash byte-identical to TEST's own deployed hash. Post-deploy verification (non-sending only): v25 source diffed against approved source (only formatting differences), all three required changes confirmed present, `get-public-quote` unchanged (v8), TEST unchanged, Production DB row count confirmed genuinely unchanged at 30, no email sent, no quote created, no real customer referenced, `main` not pushed. **Deployed source integrity: PASS. Rollback: NOT REQUIRED.** **Both Wave 3 Edge Functions are now deployed to Production.** This proves deployment/source parity only, not end-to-end email delivery - that verification remains its own separately-gated future task.
 
 **Item 17 and Item 18's DB + Edge Function deployment work is now fully COMPLETE on Production for both functions.** The only remaining Wave 3 item is a separately-authorized end-to-end send test for `send-quote-email`.
+
+## 39. Professional Print / PDF Experience (added 2026-09-01, Post-Wave-4 Product Findings Documentation task — Owner-approved future direction, DOCUMENTATION ONLY, NOT IMPLEMENTED, NOT STARTED)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED.**
+
+**Real-world evidence driving this item**: the Owner physically printed a real David Aluminum public quote from ProFlow and inspected the paper output. Observed issues: the browser-generated URL appears at the bottom of printed pages; browser date/time/title/page-number headers/footers may appear depending on the visitor's own browser print settings; page breaking is not document-aware (sections can split awkwardly across a page boundary); content distribution across pages is inefficient; the signature/approval page can end up with a very large amount of unused whitespace; the web presentation looks good on screen but does not yet constitute a deliberately designed professional printable business document.
+
+**Current state, for context (see item 14.A above)**: today's "Print Document" tile is a plain `window.print()` call plus a global `@media print { .no-print { display:none } }` rule hiding action tiles/unsigned-signature controls — functional, TEST-verified, but exactly the "screen page printed onto paper" pattern this item argues is insufficient. Item 14.A also already flags "True Download PDF" as a separately-scoped future TODO item; this item supersedes that placeholder with a fuller product requirement — **ProFlow needs a deliberate Professional Print/PDF presentation for quotes**, not merely a browser-print fallback.
+
+**Future design/audit should evaluate**: dedicated print CSS / print layout; controlled page breaks; avoiding awkward splitting of quote sections across pages; efficient pagination; keeping totals/terms/signature areas together where practical; preventing avoidable blank/mostly-empty pages; professional A4 output; HE/RTL and EN/LTR independently; correct business branding and logo behavior (see item 41 below); preserving all quote content and legal/business information; the fact that browser-generated URL/date/title/page headers are browser print artifacts, not application content, and should not be confused with either; investigating what ProFlow itself can control (print CSS, `@page` rules, layout) versus what depends on the visitor's own browser print settings and cannot be controlled by the application; future PDF-generation architecture options (e.g. server-side rendering, a dedicated PDF library) may be evaluated separately, but **no architecture choice is authorized by this documentation entry**.
+
+**The Owner considers professional printed/PDF quotes an important part of the product experience** — not a cosmetic afterthought.
+
+**Relation to the Professional Quote Engine (item 30, especially 30.E)**: complementary, not overlapping. The Quote Engine concerns *what data a quote item carries and how it's priced*; this item concerns *how the resulting document is rendered onto paper/PDF*. A future structured-item quote (30.E) would still need to flow through whatever print/PDF layout this item eventually designs — worth revisiting together at design time, but this item does not depend on 30.E being built first, and 30.E's own requirements are unaffected and unweakened by this entry.
+
+**No implementation, and no design work, is authorized by recording this item.**
+
+## 40. Clients List — Daily-Workflow Density / Readability Redesign (added 2026-09-01, Post-Wave-4 Product Findings Documentation task — Owner-approved future direction, DOCUMENTATION ONLY, NOT IMPLEMENTED, NOT STARTED)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED.**
+
+**Priority context**: the Owner explicitly considers the Clients list an important **daily workflow surface**, not a cosmetic cleanup — distinct in kind from a general visual-polish request.
+
+**Observed real UI problem**: the current Clients/CRM table (`ClientsTab.jsx`, reached from Dashboard's Clients tab — see item 14.B above for the surrounding Dashboard redesign history, which did not itself rebuild this table) is visually crowded. Long client/company names wrap onto 2-3 lines. Too many independent columns compete for horizontal space. The primary identifier — client/company name — does not receive enough visual priority. Action controls and secondary metadata consume significant width. This makes rapid scanning of the customer list unnecessarily difficult.
+
+**Product objective**: make client discovery, identification, opening, and editing fast and clear even with large client lists. Future UX design must evaluate a practical solution, not merely minor CSS widening.
+
+**Design principles to preserve**:
+- Client/company name is the PRIMARY identifier and should receive the highest visual priority.
+- Desktop should aim for stable, compact rows and preferably one-row scanning where practical.
+- Long names should not routinely make rows 2-3 lines tall.
+- Evaluate truncation/ellipsis with an accessible way to reveal the full value (the same `maxWidth`/`overflow:hidden`/`text-overflow:ellipsis` + `title`-attribute pattern already proven for Quote History's client-name/description cells in item 14.B's fifth pass is a plausible existing-code precedent to evaluate, not a mandated solution).
+- Re-evaluate which fields truly need permanent standalone columns.
+- Secondary information such as email, phone, ID/company number, and address may use a more compact hierarchy/grouping/details view where appropriate.
+- Actions should be compact and immediately understandable.
+- Clicking/opening a client may expose the complete record so the list itself does not need to display every database field simultaneously.
+- Search and rapid recognition remain essential.
+- Mobile should NOT be forced to mimic a wide desktop table; a compact client-card/stacked presentation should be evaluated (mirroring the same design direction already proven for Quote History's own mobile card rebuild in item 14.B's eighth pass — 141px→72px per card — as a plausible precedent, not a mandated solution).
+- HE/RTL and EN/LTR must both receive deliberate symmetric treatment.
+- **Do not change the CRM data model merely to solve presentation density** — this is a presentation-layer redesign, not a schema change.
+- Before implementation, the Owner must be shown practical visual alternatives/mockups and approve the chosen direction (mirroring the existing image-mockup-approval discipline already established for item 14.B's Dashboard redesign).
+
+**Future verification should consider**: small client lists; hundreds of clients; very long business/person names; missing phone/email fields; HE and EN; Desktop and Mobile.
+
+**No implementation, and no design work, is authorized by recording this item.**
+
+## 41. Business Document Branding / Safe Logo Integration (added 2026-09-01, Post-Wave-4 Product Findings Documentation task — Owner-approved future direction, DOCUMENTATION ONLY, NOT IMPLEMENTED, NOT STARTED)
+
+**Status: 🔴 OPEN / NOT IMPLEMENTED.**
+
+**Context**: every ProFlow business may upload its own logo, with arbitrary proportions, backgrounds, colors, and visual intensity. **David Aluminum is a concrete real-world example**: its source logo is visually dominant — black background with metallic/silver typography and iconography — while the current quote presentation uses a much smaller, restrained rendition. (Item 14.B's existing header/business-identity rule — logo in a white/neutral container, `object-fit: contain`, aspect ratio preserved, visible regardless of logo color, business name as clean prominent text fallback, ProFlow's own logo never used as that fallback — is the current baseline this item proposes to formalize and extend into a fuller system.)
+
+**Core product principle**: **the business logo is content inside the ProFlow document design system. It must not be allowed to break or take control of the document design.**
+
+**Future design must evaluate a controlled Business Document Branding system.** Logo requirements/concepts to evaluate: a defined Logo Slot / safe area; maximum width and height; preserve aspect ratio; `object-fit: contain` or equivalent behavior; never arbitrarily stretch the logo; never aggressively crop important logo content; consistent padding/breathing room; safe neutral/white/transparent containment where required; robust handling of wide, tall, square, transparent, white, dark, and background-embedded logos; a visually aggressive uploaded logo must not destroy document hierarchy or readability.
+
+**Brand color**: evaluate a controlled Brand Accent Color. A business accent may eventually influence limited elements such as small headings, borders/dividers, selected highlights, restrained CTA/accent elements — it should NOT automatically recolor large portions of the quote or allow arbitrary logo colors to make the document unreadable or visually inconsistent.
+
+**Conceptual design target**: ProFlow maintains the dominant professional document system while allowing enough business branding that the quote clearly belongs to the sending business. A useful conceptual balance is approximately **80-90% controlled ProFlow document system, 10-20% business branding** — a design principle, not a mathematical implementation requirement.
+
+**Future design should also evaluate**: original logo, optional light-background variant, optional dark-background variant — but do NOT implement or mandate this architecture yet.
+
+**Must work correctly in**: HE/RTL; EN/LTR; screen Public Quote; Professional Print/PDF (item 39 above — the two items are directly related: a safe logo slot must hold on paper/PDF output exactly as it does on screen, so they should be evaluated together at design time, though neither blocks the other from being scoped independently).
+
+**Relation to the Professional Quote Engine (item 30, especially 30.E)**: complementary, not overlapping — this item concerns document branding/visual containment, not quote-item data structure or pricing. Does not replace, collapse, or weaken 30.E's requirements.
+
+**No implementation, and no design work, is authorized by recording this item.**
