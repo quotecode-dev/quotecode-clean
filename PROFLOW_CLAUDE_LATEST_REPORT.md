@@ -97,12 +97,10 @@ Build clean, **173/173 tests pass**. David's quote byte-identical throughout (`v
 
 ## CONTINUITY COMMIT
 
-*(recorded after push — see below.)*
+`0983a70a0d90332de0f02a41479a9c6a2a52d225` on `proflow-continuity` (pushed). Matching commit exists locally on `main` (`9d4f143`), **not pushed** (the actual application push, `2cda495`, was pushed separately as the authorized LIVE action).
 
-## PROFLOW-CONTINUITY PUSH
+## PROFLOW-CONTINUITY PUSH: **PASS**
 
-*(recorded after push.)*
+## REMOTE GITHUB READ-BACK: **PASS**
 
-## REMOTE GITHUB READ-BACK
-
-*(recorded after push and verification.)*
+`git fetch` + `git rev-parse origin/proflow-continuity` confirmed `0983a70a0d90332de0f02a41479a9c6a2a52d225` exactly, followed by `git show origin/proflow-continuity:<path>` reads confirming `PROFLOW_PROJECT_CONTEXT.md` §124 and `PROFLOW_ARCHITECTURE.md`'s business-vs-customer principle both present and correct. `origin/main` re-fetched and confirmed at `2cda495abe1823ceef37a22eab516b3f5fc14d1e` — the real customer-concept deployment.
