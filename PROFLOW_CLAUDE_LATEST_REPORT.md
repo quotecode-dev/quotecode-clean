@@ -93,7 +93,7 @@ Unchanged and still valid: `connect-tunnel.ps1` itself prints an explicit rollba
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `6c6c561`.
 
 ---
 
