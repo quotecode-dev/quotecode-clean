@@ -85,7 +85,7 @@ PID `18912`, unrestarted throughout this entire multi-hour engagement, correct c
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+`aa8d6d1` on `proflow-continuity` (pushed: `7b6316b..aa8d6d1`, fast-forward, no conflicts). Fresh remote read-back after push independently confirmed all six files present and consistent on `origin/proflow-continuity` at `aa8d6d1`.
 
 ---
 
