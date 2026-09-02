@@ -4,114 +4,96 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Phase 4 — Controlled ChatGPT ↔ Claude Code Bridge
+## Task: Bridge/Tunnel Persistence
 
-**MODE: Owner-authorized local bridge implementation, local MCP implementation/configuration, integration with Claude Code, local process/runtime management, read-only Fresh Local State tooling, task submission/status/report workflow, safe persistence/restart design, local end-to-end testing, continuation of the already-proven tunnel path, continuity updates. NOT authorized: Production mutation/deployment/LIVE action, application commit/push, destructive git operations, customer-data access, unrestricted shell exposure, unsafe public endpoint, weakened authorization gates.**
+**MODE: Owner-authorized ProFlow local MCP Bridge runtime persistence, OpenAI tunnel-client managed-runtime persistence, local process stop/start/restart where genuinely required to migrate, Windows local persistence configuration, read-only inspection, local end-to-end verification, continuity updates. NOT authorized: ProFlow application changes, TEST/Production changes, customer-data access, application commit/push, deploy, LIVE, unrelated machine configuration, weakened credential handling.**
 
-**This is not a ProFlow product task.** It is the same local dev infrastructure line as §170 (item 56), extended.
+**This is not a ProFlow product task.** Same local dev infrastructure line as §170/§171 (item 56), extended.
 
 ---
 
 ## Verdict
 
-**PHASE 4 IMPLEMENTED AND PROVEN END-TO-END, LOCALLY.** The Owner independently confirmed the Phase 3 no-auth proof through ChatGPT itself before this task began. Building on that confirmed checkpoint, a read-only Claude Code bridge was built as a strict superset of the proven proof server, swapped onto the live tunnel-target port with zero tunnel-client restart, and every task-lifecycle outcome (COMPLETED, NEEDS_OWNER_AUTHORIZATION with a real Owner notification, WAITING_FOR_CHATGPT → continue → COMPLETED) was directly proven through the real MCP `tools/call` interface. A literal ChatGPT-UI click-through of the new tools was not performed by this session (it cannot drive ChatGPT's browser) and is reported as the Owner's own remaining step, not claimed as done.
+**Bridge persistence: DONE and directly proven.** The Node MCP bridge now autostarts at Windows logon via the per-user Startup folder and was proven, through a real stop/relaunch test, to be genuinely independent of any interactive shell. **Tunnel-client persistence: mechanism identified, migration script prepared and validated as far as possible, but NOT executed** — it requires the Owner's own `CONTROL_PLANE_API_KEY`, which this session correctly never has and never worked around. This is now exactly one command for the Owner to run themselves.
 
-## 1. Fresh Local State
+## 1. Bridge Persistence Mechanism
 
-`main` HEAD unchanged (`f3b59d0`); `origin/main` at `26dee96`; `origin/proflow-continuity` at `783d864` (the §170 push). All prior uncommitted Professional Quotes hierarchy work confirmed present and untouched via a fresh `git status --short` (15 modified + 6 untracked files, identical set to §170's snapshot). Zero ProFlow application files touched by this task. Running processes independently re-inspected: `tunnel-client.exe` found as **PID 8836** (a different PID than §170's 35584 — proof the Owner had already restarted it onto the no-auth profile themselves), `node.exe` proof server as **PID 23360** on port 8765; ports 8080 (tunnel-client admin) and 8765 (MCP target) both confirmed listening before any change was made.
+Per-user Windows **Startup folder** (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-MCP-Bridge.vbs`) — a silent, no-secrets launcher that delegates entirely to the existing idempotent `start-bridge.ps1`. A Windows Scheduled Task was attempted first (would have added a 5-minute self-healing repetition trigger) but this session's shell lacks the elevation Task Scheduler registration requires (`Register-ScheduledTask` and `schtasks.exe` both failed with Access Denied — tested directly, not assumed). The Startup folder is the standard, fully-supported, unprivileged fallback and fully satisfies "starts automatically after logon" and "survives closing the launching window."
 
-## 2. Existing Bridge/Tunnel State
+## 2. Tunnel Persistence Mechanism
 
-`tunnel-client`'s own `/api/status` confirmed: `mcp_server_url: "http://127.0.0.1:8765/mcp"`, channel `"main"` `probe_status: "ok"`, tunnel `tunnel_6a981b0737d881919d9e725a6e96943d` ("ProFlow-Claude-Bridge"). This is the no-auth profile from §170, already live. The Owner had independently confirmed a real ChatGPT tool call (`echo("hello from ChatGPT")` → `"hello from ChatGPT"`) against this exact endpoint before this task began — the Phase 3 proof is Owner-confirmed, not merely locally proven.
+`tunnel-client runtimes connect` — the tool's own documented managed-runtime supervision mechanism (its own help text: "For a long-lived local runtime managed by Codex, use this command instead of nohup or disown"). **Prepared, not executed.** A ready-to-run script, `connect-tunnel.ps1`, performs the full migration (stop the old targeted foreground process → `runtimes connect` with the exact existing tunnel/profile/MCP-target → verify → rollback instructions on failure), but requires `CONTROL_PLANE_API_KEY` in the invoking shell — confirmed absent from this session (length-only check). Not executed, per the task's own explicit instruction not to work around this boundary.
 
-## 3. Architecture Implemented
+## 3. Managed Runtime Alias
 
-`C:\Users\sales\proflow-mcp-bridge\mcp-bridge-server.js` — a strict superset of the untouched `mcp-proof-server.js` (kept on disk as a rollback path). Same `serverInfo.name` (`proflow-mcp-proof`), same port (8765), version bumped `0.1.0` → `0.2.0`. Chosen deliberately so activating it requires **no ChatGPT-side reconfiguration and no tunnel-client restart** — proven: after the live swap, `tunnel-client`'s own channel probe stayed `"ok"` with zero restart of the tunnel-client process itself.
+`proflow-bridge` — the alias name `connect-tunnel.ps1` will register once the Owner runs it. **Not yet created** (`tunnel-client runtimes list` confirmed empty; `runtimes status proflow-bridge` independently confirmed the expected "alias not known" failure before migration).
 
-## 4. Exact Tools Exposed
+## 4. Windows Service: NO
 
-`server_info`, `echo`, `uppercase` (unchanged, legacy/rollback-proof tools) plus: `claude_bridge_info` (bridge self-description), `claude_repo_status` (live `git branch`/`log -1`/`status --short`/`diff --stat`), `claude_read_file` (single-file read, hardcoded repo-root allowlist), `claude_search_repo` (`git grep --fixed-strings`, literal-text only), `claude_ask` (bounded-wait Q&A convenience wrapper), `claude_task_start`/`claude_task_status`/`claude_task_report`/`claude_task_continue` (the durable task lifecycle). **No `run_shell`/arbitrary-command tool, and no mutating tool of any kind, is exposed anywhere in this server.**
+Not used, not attempted — `tunnel-client`'s own supported mechanism (`runtimes connect`) is a managed background-runtime, not a Windows Service, and is the tool-recommended path.
 
-## 5. Claude Invocation Mechanism
+## 5. Scheduled Task: NO
 
-The real native binary (`...\@anthropic-ai\claude-code\bin\claude.exe`, found by reading through the `claude.cmd` npm shim) is spawned via `child_process.execFile` with `shell:false` — the argv array is passed directly to Windows `CreateProcess`, so a ChatGPT-supplied question string can never reach a shell interpreter (no shell-metacharacter injection surface). Flags: `-p "<question>" --output-format json --allowedTools Read Grep Glob --strict-mcp-config --safe-mode --permission-mode plan [--resume <session_id>] --append-system-prompt "<marker-protocol instructions>"`. Learned and validated by direct, standalone CLI invocation before being wired into the server: `session_id`, `result`, `is_error`, and `permission_denials` are all present in the CLI's own JSON output and were used exactly as documented.
+Attempted for the Bridge, blocked by lack of elevation in this session (see item 1). Not attempted for tunnel-client (its own `runtimes connect` mechanism is the correct, tool-native path instead).
 
-## 6. Safety Enforcement Mechanism
+## 6. Credential Persistence: NO
 
-**Structural, not prompt-level, for the actual mutation boundary**: `--allowedTools Read Grep Glob` is a hard allowlist enforced by the Claude Code CLI's own process boundary — Read/Grep/Glob are the only tools that can physically execute inside the invocation, regardless of what the prompt asks. `--strict-mcp-config` and `--safe-mode` remove additional attack surface (no external MCP servers, no CLAUDE.md/skills/plugins/hooks/custom-commands/agents). The subprocess environment is rebuilt from a fixed allowlist (`PATH`, `SystemRoot`, `USERPROFILE`, ...) — `CONTROL_PLANE_API_KEY`/`OPENAI_API_KEY`/any Supabase credential is never forwarded even if present in the bridge's own process env. File-access tools use a separate structural gate: `resolveSafePath()` rejects absolute/UNC paths, then requires `path.relative(REPO_ROOT, resolved)` not to start with `..`, and separately blocks `node_modules`, `.git`, `.env*`. **The `NEEDS_OWNER_AUTHORIZATION`/`WAITING_FOR_CHATGPT` classification is a separate, semantic (prompt-level) layer on top of this — it is Claude self-reporting via a system-prompt-requested marker, not itself the safety boundary.** This distinction is deliberate and disclosed, not conflated.
+`CONTROL_PLANE_API_KEY` was not stored, embedded, or persisted anywhere by this task — not in `start-bridge.ps1`, not in `ProFlow-MCP-Bridge.vbs`, not in `connect-tunnel.ps1` (which only *reads* an already-set environment variable and fails closed if it is absent). **A separate, larger decision is explicitly flagged `NEEDS_OWNER_AUTHORIZATION` below** for full unattended reboot-survival, which would require file-based credential persistence — not implemented, not decided unilaterally.
 
-## 7. Task Lifecycle Implementation
+## 7. Dependent on Open PowerShell Windows
 
-Each task is an in-memory + disk-persisted JSON record (`proflow-mcp-bridge\tasks\<task_id>.json`), reloaded on process restart — **directly proven**: the live port-8765 swap reloaded "4 persisted task(s) from disk" from the pre-swap scratch-port test run. States: `QUEUED` → `RUNNING` → one of `COMPLETED` / `FAILED` / `WAITING_FOR_CHATGPT` / `NEEDS_OWNER_AUTHORIZATION`. `claude_task_continue` moves a `WAITING_FOR_CHATGPT` task back to `QUEUED` and resumes the exact same Claude session via `--resume`.
+- **Bridge (`mcp-bridge-server.js`)**: **NO** — directly proven independent (see item 16).
+- **Tunnel-client (`tunnel-client.exe`, current PID 8836)**: **YES, still** — unchanged, still a direct child of an interactive PowerShell window (confirmed via process ancestry this task). Migration to independence is prepared but not yet executed (see item 2).
 
-## 8. WAITING_FOR_CHATGPT Behavior
+## 8. Safe to Close the Existing PowerShell Windows Now: PARTIAL
 
-When Claude's response begins with the exact marker `WAITING_FOR_CHATGPT: `, the task is set to that status and the question is surfaced via `claude_task_status`/`claude_task_report`. **Proven live**: a deliberately unanswerable prompt ("no way to determine the quote number from the repository") produced `waiting_question: "Which quote number should I look at?"`; `claude_task_continue` with an answer correctly resumed the same `claude_session_id` and reached `COMPLETED` with a correct, grounded final answer. **Disclosed limitation**: on a moderately-ambiguous (not maximally-unambiguous) prompt, Claude instead answered directly with an inline clarifying question rather than using the strict marker — the classification is best-effort, not guaranteed-deterministic.
+- The PowerShell window that was launching the **Bridge** (or this session's own shell, if it launched the bridge process) can be closed safely now — the Bridge no longer depends on it.
+- The PowerShell window currently running `tunnel-client run --profile proflow-no-auth-proof` (PID 8836) **should NOT be closed yet** — doing so would kill the tunnel until the Owner runs `connect-tunnel.ps1` (or otherwise restarts it). Close it only **after** running the migration script successfully.
 
-## 9. NEEDS_OWNER_AUTHORIZATION Behavior
+## 9. Survives Windows Logoff
 
-Triggered by the `NEEDS_OWNER_AUTHORIZATION: ` marker. **Proven live**: a prompt asking Claude to "commit and push the current uncommitted changes... right now" correctly returned `authorization_reason: "Git commit and push access (write/execute capability) to run git add, git commit, and git push to origin/main. This invocation only has read-only Read/Grep/Glob tools available — no shell execution or git mutation capability is present regardless of plan-mode status."` — and, separately, a real Windows toast notification (raw WinRT `ToastNotificationManager`, tested standalone first, then proven again through the live pipeline — `bridge.log` shows `owner-notify sent for task ...`) was fired to the Owner. Routine `WAITING_FOR_CHATGPT` questions deliberately do **not** fire this notification, so ordinary technical Q&A never interrupts the Owner.
+- **Bridge**: **NOT PROVEN** (a real logoff/logon cycle was not performed — not safe or practical to attempt from this session). **Structurally configured correctly** — the Startup folder mechanism is Windows' standard per-user logon-autostart path, and the launcher was proven independent of any specific shell process, which is the property that makes logoff-survival plausible; it is reported as configured, not as observed.
+- **Tunnel-client**: **NOT CONFIGURED YET** — migration not executed.
 
-## 10. Wake-Up/Event Investigation
+## 10. Survives Windows Restart
 
-**A. What works today**: request/response MCP tool calls only — ChatGPT (or a future ChatGPT turn) must call `claude_task_status`/`claude_task_report` to learn of a state change; nothing pushes into ChatGPT. **B. What was implemented locally**: durable disk-persisted task state (survives bridge restarts) + a local Windows toast to the **Owner** (not ChatGPT) specifically on `NEEDS_OWNER_AUTHORIZATION` only. **C. What requires ChatGPT/platform support**: no documented API exposes server-initiated push into an idle ChatGPT conversation to third-party MCP tunnel connectors today. **D. What cannot currently be done**: waking a specific idle ChatGPT conversation on its own without the Owner (or an OpenAI-side scheduled-task feature the Owner would have to configure themselves, unverified from this session) revisiting it. No push/event-driven ChatGPT wake-up was invented or claimed.
+- **Bridge**: **STRUCTURALLY CONFIGURED** (Startup-folder items run at every interactive logon, including post-reboot logon) — **NOT PROVEN** (no reboot was performed or authorized this task).
+- **Tunnel-client**: **NOT CONFIGURED** — migration not executed; even after migration, `runtimes connect` alone gives supervised/restart-recoverable *process* persistence while running, not automatic *credentialed* restart after a full reboot, since `CONTROL_PLANE_API_KEY` would still need to be supplied at that next start unless the Owner separately authorizes file-based credential persistence (item 6).
 
-## 11. Persistence/Restart Implementation/Status
+No Windows reboot was performed, attempted, or is authorized by this task.
 
-Audited first: `tunnel-client runtimes connect/status/stop` is the tool's own documented managed-runtime supervision mechanism ("use this command instead of nohup or disown"); `runtimes list` confirmed no alias is currently registered (the live daemon was started as a plain foreground `run` by the Owner). **Deliberately not converted this task** — would require stopping the just-Owner-confirmed-working daemon, contrary to "do not restart a proven checkpoint without evidence requiring it." Documented instead as the recommended path for the Owner's *next* restart, with the exact command written into `start-bridge.ps1`'s own comments. For the credential-free Node bridge process, a new idempotent `start-bridge.ps1` was implemented — checks port 8765 before starting anything, safe to re-run or register at Windows logon, no destructive action on a repeat run. **What remains manual by design**: `CONTROL_PLANE_API_KEY` was never captured, stored, or scripted — unattended tunnel-client auto-start would require the Owner to persist that credential at the OS level themselves, a decision this session correctly leaves to them.
+## 11. Rollback Procedure
 
-## 12. Multi-Chat Behavior
+- **Bridge**: delete `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-MCP-Bridge.vbs` to disable autostart; stop the running process with `Stop-Process` on the PID listening on 8765 if needed. `mcp-proof-server.js` remains untouched on disk as a full functional rollback if the bridge server itself needs reverting.
+- **Tunnel-client** (only relevant once the Owner runs the migration): `connect-tunnel.ps1` prints an explicit rollback on any failure (`tunnel-client runtimes stop proflow-bridge` then `tunnel-client run --profile proflow-no-auth-proof`) — the exact original foreground command, unchanged.
 
-Architecturally, an OpenAI connector is account-level, not conversation-scoped — any ChatGPT conversation with the connector enabled should reach the same local bridge once it is healthy, independent of "Project" membership (Project context and bridge connectivity are separate concerns). **Honestly disclosed**: this session cannot open a second ChatGPT conversation to directly observe this; it is reported as an architectural conclusion, not an independently witnessed test.
+## 12. Exact Tests Performed
 
-## 13. Files/Config Created
+- Fresh state: process list, ports, `/api/status`, `runtimes list`, `admin-profiles list`, process ancestry (`Get-CimInstance Win32_Process`) for both `tunnel-client.exe` and the bridge `node.exe`, Windows Services/Scheduled Tasks search (none pre-existing), current `start-bridge.ps1` content re-read fresh.
+- `Register-ScheduledTask` attempted → Access Denied. `schtasks.exe /Create` attempted → Access Denied (confirmed non-elevated token: Administrators group present "for deny only").
+- Real Startup-folder path independently verified via `$env:APPDATA` after `[Environment]::GetFolderPath('Startup')` returned a sandbox-virtualized path.
+- `ProFlow-MCP-Bridge.vbs` fired manually while the bridge was already running → same PID, no duplicate listener (idempotency proven).
+- Bridge process (PID 31416) deliberately stopped; launcher fired again (simulating logon) → new PID (28892) came up; its process ancestry inspected → intermediate parent already exited, node.exe fully orphaned (terminal-independence proven).
+- Post-relaunch: `initialize` JSON-RPC call succeeded against the new process; `tunnel-client`'s own `/api/status` channel probe self-recovered to `"ok"`; `netstat` confirmed exactly one listener on port 8765; `bridge.log` content re-inspected — safe metadata only.
+- `connect-tunnel.ps1` parsed with `[System.Management.Automation.Language.Parser]::ParseFile` → zero syntax errors.
+- `tunnel-client runtimes status proflow-bridge` (read-only, no credential needed) → confirmed expected "alias not known" failure, matching the script's own idempotency-check assumption.
+- `CONTROL_PLANE_API_KEY`/`OPENAI_API_KEY` re-confirmed absent from this session (length-only check, value never read or printed).
 
-- `C:\Users\sales\proflow-mcp-bridge\mcp-bridge-server.js` (new)
-- `C:\Users\sales\proflow-mcp-bridge\start-bridge.ps1` (new)
-- `C:\Users\sales\proflow-mcp-bridge\tasks\*.json` (new, durable task records — diagnostic test tasks only, no sensitive content)
+## 13. Exact Remaining Owner Action
 
-## 14. Files/Config Modified
-
-- Documentation only, this repo, uncommitted: `PROFLOW_PROJECT_CONTEXT.md` (§171), `PROFLOW_ARCHITECTURE.md` (§20 extended), `PROFLOW_HANDOFF.md` (§18.HO), `PROFLOW_TODO.md` (item 56 extended + item 2 AI Chat nuance), this file.
-- `C:\Users\sales\proflow-mcp-bridge\mcp-proof-server.js` — **left byte-unchanged** (rollback path).
-- Zero ProFlow application source files touched.
-
-## 15. Secrets/Security Assessment
-
-Loopback-only bind, no OAuth metadata of any kind served, fail-closed on unknown methods/oversized bodies (1MB cap), method-name-only logging (never prompt bodies, file contents, tokens, or secrets), strict JSON parsing. File-access hardcoded to one repo-root allowlist with traversal/`.env`/`.git`/`node_modules` blocked — **directly proven** against three real attack attempts (traversal, absolute path, `.env`), all correctly rejected. Only two subprocess types exist, both via `execFile`/`shell:false`, never a shell: the fixed `claude.exe` argv builder and fixed `git` subcommands. Claude Code itself runs with `--allowedTools Read Grep Glob --strict-mcp-config --safe-mode` — no Edit/Write/Bash/deploy tool is reachable from inside that invocation. Subprocess environment rebuilt from a fixed safe-key allowlist — no credential is ever forwarded to the Claude subprocess. No API key, OpenAI credential, Supabase credential, cookie, auth token, customer data, or David Aluminum data was read, logged, or transmitted at any point in this task.
-
-## 16. End-to-End Tests Performed
-
-All against the live MCP `tools/call` interface (first on scratch port 8766, then re-verified on live port 8765 after the swap): `initialize`/`tools/list` (12 tools returned correctly); OAuth discovery routes (still 404); `echo` (legacy regression, byte-identical); `claude_bridge_info`/`claude_repo_status` (real live repo data returned); `claude_read_file` (valid read succeeded; traversal, absolute-path, and `.env` attempts all correctly rejected); `claude_search_repo` (real `git grep` results, 12 matches for a known symbol); `claude_ask` → `claude_task_status` → `claude_task_report` (COMPLETED, correct grounded answer); `claude_task_start` on a mutation request → `NEEDS_OWNER_AUTHORIZATION` + real Owner toast; `claude_task_start` on an unanswerable question → `WAITING_FOR_CHATGPT` → `claude_task_continue` → `COMPLETED` (session correctly resumed). Post-swap: `tunnel-client`'s own channel probe re-confirmed `"ok"` against the new process, zero tunnel-client restart.
-
-## 17. What Is PROVEN
-
-Every item in §16, directly, through the live MCP interface — not merely coded or unit-level. The live process swap onto the tunnel's actual target port, with the tunnel's own health probe confirming continuity. The full task lifecycle including session-resume continuation.
-
-## 18. What Is NOT PROVEN
-
-A literal ChatGPT-UI click-through of the new bridge tools (`claude_bridge_info`, `claude_ask`, etc.) — this session cannot drive ChatGPT's own interface. Multi-conversation behavior (item 12) is an architectural conclusion, not a directly observed test.
-
-## 19. What Is BLOCKED
-
-Nothing on this session's side. The only remaining action is the Owner's own: open ChatGPT and exercise the new tools (e.g. call `claude_bridge_info` or `claude_ask`) to close item 18 above.
-
-## 20. Exact Next Step for ChatGPT/Owner
-
-In the existing ChatGPT conversation connected to the "ProFlow-Claude-Bridge" tunnel, call a new tool — e.g. `claude_bridge_info` (no arguments) or `claude_ask` with a harmless read-only question such as "What is the current ProFlow repository branch and HEAD commit?" — and confirm the response arrives correctly. No credential, restart, or reconfiguration is required; the live tunnel and MCP endpoint are already serving the new bridge.
-
-## 21. HE Impact
-
-None. Zero ProFlow application files touched; this is local infrastructure tooling only.
-
-## 22. EN Impact
-
-None. Same reasoning as item 21.
+1. In the PowerShell window where `CONTROL_PLANE_API_KEY` is already set (the one currently running `tunnel-client run --profile proflow-no-auth-proof`), run:
+   ```
+   powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\connect-tunnel.ps1
+   ```
+   This stops the old foreground process and starts the managed, terminal-independent `runtimes connect` supervision — no new credential storage, no change to the tunnel/profile/MCP target.
+2. Confirm the script's own printed verification (`runtimes status proflow-bridge`, channel `probe_status: ok`) looks correct.
+3. Only then is it safe to close that PowerShell window.
+4. **Separate decision, not required to close the window today**: if the Owner wants tunnel-client to also survive a full Windows reboot/logoff with zero manual restart, decide whether to accept persisting `CONTROL_PLANE_API_KEY` to an NTFS-ACL-restricted file (`file:C:\...` reference) — the only credential-persistence option this tool version supports (no Credential-Manager/DPAPI-backed reference exists). This session did not create that file or make that choice; say the word and it can be built with the exact ACL restricting it to the Owner's own Windows account only.
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
-- **TEST (Supabase) CHANGED?** NO.
+- **TEST CHANGED?** NO.
 - **APPLICATION CODE CHANGED?** NO.
 - **APPLICATION COMMIT?** NO (only the documentation-only continuity commit for this task).
 - **APPLICATION PUSH?** NO (same distinction).
@@ -125,24 +107,25 @@ None. Same reasoning as item 21.
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§171) |
-| `PROFLOW_TODO.md` | UPDATED (item 56 extended, item 2 AI Chat nuance added) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HO) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§172) |
+| `PROFLOW_TODO.md` | UPDATED (item 56 extended) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HP) |
 | `PROFLOW_ARCHITECTURE.md` | UPDATED (§20 extended) |
 | `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `40bc62a`.
+*(filled after push — see below)*
 
 ---
 
-## PHASE 4 CHATGPT ↔ CLAUDE CODE BRIDGE: IMPLEMENTED, PROVEN END-TO-END LOCALLY (ALL TASK-LIFECYCLE STATES)
-## CHATGPT-UI CONFIRMATION OF NEW TOOLS: NOT YET OBSERVED BY THIS SESSION — OWNER'S NEXT STEP
+## BRIDGE PERSISTENCE: DONE, PROVEN INDEPENDENT OF ANY INTERACTIVE SHELL
+## TUNNEL-CLIENT PERSISTENCE: SCRIPT PREPARED — NEEDS_OWNER_AUTHORIZATION (CREDENTIAL REQUIRED TO EXECUTE)
+## REBOOT/LOGOFF SURVIVAL: STRUCTURALLY CONFIGURED FOR BRIDGE, NOT PROVEN; NOT CONFIGURED FOR TUNNEL-CLIENT
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
 ## APPLICATION COMMIT/PUSH: NOT PERFORMED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
-## WAITING FOR OWNER TO EXERCISE THE NEW TOOLS THROUGH CHATGPT ITSELF
+## WAITING FOR OWNER TO RUN connect-tunnel.ps1 (AND OPTIONALLY DECIDE ON CREDENTIAL-FILE PERSISTENCE)
