@@ -4,108 +4,142 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Repair and Push the Two Reportedly-Missing Canonical Continuity Files + Record Owner Stage C Visual Findings
+## Task: Owner Night Run — Professional Quotes Product Experience (TEST) + Plan Identity/Quota/Upgrade/Header (Production-authorized) + David Aluminum Correction
 
-**MODE: Documentation-only recovery/verification + recording of new Owner product feedback. NOT authorized: application changes, DB changes, TEST application changes, Production changes, LIVE action.**
+**MODE: Two separate release boundaries. Track A (Professional Quotes / Business Professional Profile / Professional UX): implement + verify in TEST, DO NOT deploy to Production. Track B (Plan Identity / Quota / Upgrade CTA / Header Plan Badge): audit + implement + verify in TEST, Production release explicitly authorized after all gates pass. David Aluminum: read-only audit first; correction only if objectively necessary, narrowly scoped.**
 
 ---
 
-## 1. Remote state before repair
+## 1-2. Fresh canonical bootstrap + Fresh Local State
 
-`origin/proflow-continuity` = `0dc316e` (unchanged from the prior recovery task's own final verified state). Fresh `git cat-file -s` against that exact commit: `PROFLOW_PROJECT_CONTEXT.md` = 1,390,913 bytes, `PROFLOW_HANDOFF.md` = 1,215,498 bytes — **both non-empty at the git-object level**, independently re-confirmed via `git show`/line counts (7,399 and 5,144 lines respectively) before touching anything.
+Freshly fetched `origin/proflow-continuity` (`9a79a25`, all six files independently re-confirmed non-empty/consistent — the recovery task's own final checkpoint). Local `main`: branch `main`, HEAD `c10f3dd`, `origin/main` unchanged at `26dee96`. Working tree: `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx`/`AdminUsersTab.jsx`/`planCatalog.js`/`planCatalog.test.js`/`accountEntitlement.test.js` modified, `professionalQuoteItem.js`/`.test.js`/`PlanIdentityBadge.jsx`/the Stage A + new Stage-D migrations untracked, `src/entry-server.jsx` untouched throughout. TEST dev server (`dev:localtest`, port 5186) confirmed running against `quotecode-test` (`ljfizgrdyzxddswcedwr`) via `.env.localtest.local`.
 
-## 2. Cause of the "empty" report — established, not guessed
+## 3. Stage A/B/C preserved state
 
-Queried GitHub's REST Contents API directly (`GET /repos/quotecode-dev/quotecode-clean/contents/<file>?ref=proflow-continuity`) for both files. Both returned `"size": <correct real size>` but `"content": "", "encoding": "none"` — the exact, documented behavior of that API when a blob exceeds its 1MB inline-content ceiling. A control file safely under 1MB (`PROFLOW_TODO.md`, 534,593 bytes) returned `"encoding": "base64"` with real content via the same API call. **Conclusion, evidence-based**: whatever tool reported these two files as empty most plausibly reads via this API's `content` field and hit that ceiling — both flagged files are exactly the two files over 1MB; no other file was flagged. This is a read-method artifact, not data loss.
+Confirmed byte-identical to the start of this task throughout — zero reset/restore/stash/clean/discard/rebase/amend performed at any point. All prior Professional Quotes work (Stage A migration, Stage B entitlement flags, Stage C item editor) remains exactly as it was, now joined by this task's own additive Track A work in the same files.
 
-## 3. Source of the recovered PROJECT_CONTEXT
+## 4-9. Business Professional Profile architecture / Business Settings / domain-vs-unit / defaults / structure / overrides
 
-**No recovery was actually required** — item 2 proves the file was never empty. The local `main` copy (already the authoritative, directly-edited version from the prior Stage C task, not reconstructed from memory) was confirmed byte-identical to `git show origin/proflow-continuity:PROFLOW_PROJECT_CONTEXT.md` before any further edit this task; this task's only change to it was appending new §159 (new content, the Owner's fresh findings) at the true end of the file.
+New `PROFESSIONAL_DOMAINS` data list (`professionalQuoteItem.js`, 6 entries: general/aluminum_metal/carpentry_wood/construction_renovation/consulting_services/products_retail), each carrying only HE/EN labels and a `defaultUnit` **suggestion**. New `business_settings.professional_domain text` column (nullable, additive), one Business Settings dropdown, shown only to accounts with `entitlement.professionalQuotes`. Domain and pricing unit kept as explicitly separate concepts throughout (per §5 of the authorization) — a domain only supplies a *default suggestion*, never a category lock. Override hierarchy preserved end-to-end: Business default → item-level pricing-unit selector (always overridable). "Current Quote Structure" in New Quote was deliberately **not** touched — the existing Private/Business step remains the only per-quote control, consistent with the standing "Business Settings, not New Quote" rule (§154's own prior finding).
 
-## 4. Source of the recovered HANDOFF
+## 10. Professional trigger before/after
 
-Same finding: `PROFLOW_HANDOFF.md` was never empty. Local `main` copy confirmed matching remote before this task's only change — appending new §18.HE after the file's real last line.
+Before: plain `background:none, border:none` text, `textMuted` color when locked — visually indistinguishable from disabled/secondary copy. After: a violet-tinted pill (`rgba(139,92,246,0.10)` closed / `0.20` open, `999px` radius, bold text, unchanged Ruler/Lock icons) — clearly an actionable control, deliberately less visually loud than the primary "Save Quote" gradient button.
 
-## 5. Proof neither file was reconstructed from memory
+## 11-14. HE Desktop / HE Mobile / EN Desktop / EN Mobile
 
-Both files' pre-existing content was read directly from git objects (`git show origin/proflow-continuity:<file>`) and from the local working copies that were the direct output of this session's own prior `Edit` tool calls — never regenerated from summary or memory. Line counts, section headers, and closing "Six-File Continuity ledger" text were grep-verified present and correct before any new content was added.
+All four combinations screenshotted live against real TEST personas: header badge, Business Settings Professional Profile section, trigger pill (collapsed and expanded with `m²` panel) all rendered correctly, zero JS errors, zero layout regressions, natural (not mechanically translated) EN copy.
 
-## 6. Files changed this task
+## 15-20. Simple item / Professional item / Mixed quote / m² / other units / Save-reload
 
-`PROFLOW_PROJECT_CONTEXT.md` (new §159), `PROFLOW_TODO.md` (new item 54), `PROFLOW_HANDOFF.md` (new §18.HE), `PROFLOW_CHAT_HANDOFF.md` (§14, new lead paragraph), `PROFLOW_CLAUDE_LATEST_REPORT.md` (this report, full rewrite for this task). `PROFLOW_ARCHITECTURE.md` — reviewed, no change needed (already correctly shows Stage C without any acceptance claim).
+All previously-proven Stage C behavior reconfirmed unaffected (no regression): Simple items unchanged, Professional `m²` items unchanged, mixed quotes unchanged, the other 5 manual-quantity units unchanged. New this task: the business-default auto-selection on a fresh item's unit selector, verified via **two independent proofs** — live in-session reactivity, and (more importantly) a genuinely fresh login (cleared `localStorage`) that reloads the saved domain from the database and still applies the correct default — proving the persistence path, not just React state.
 
-## 7. Documentation-only diff proof
+## 21-26. BASIC / PRO / FREE / FREE(TRIAL) / LIFETIME Professional results + Advanced-reuse lock
 
-`git diff --stat` confirmed only the six canonical `.md` files touched — zero `src/**`, zero migrations, zero package files, zero DB changes, zero Stage A/B/C application files, `src/entry-server.jsx` untouched, confirmed via `git status` immediately before and after commit.
+FREE: Professional Profile section correctly hidden entirely (no entitlement); item trigger still visible-but-locked. The available "BASIC"/"PRO" TEST personas are, as repeatedly disclosed across this whole project, Lifetime-shaped (`trial_ends_at:null`) — live-tested and correct (Professional Profile visible, default-unit flow works end-to-end). Ordinary non-Lifetime BASIC/PRO and FREE(TRIAL) remain not-live-provable (no dedicated persona exists) — unchanged, honestly disclosed, not silently upgraded. Advanced Reuse lock: unchanged this task (Stage B, already correct).
 
-## 8. Owner Stage C visual findings recorded
+## 27-28. Owner Visual Acceptance Map / status
 
-Recorded at `PROFLOW_PROJECT_CONTEXT.md` §159 / `PROFLOW_TODO.md` item 54 / `PROFLOW_HANDOFF.md` §18.HE / `PROFLOW_CHAT_HANDOFF.md` §14: (A) per-item toggle confirmed present/functional; (B) selecting it exposes the unit selector; (C) `m²` exposes width/height/area/add-measurement — all matching §158's own proof. Two gaps: (1) toggle discoverability — visually too faint, read as disabled/secondary; (2) Business Settings Professional-profile configuration the Owner expected is not present — correctly reconciled against the existing record as a previously-discussed-but-never-scoped "Business defaults" layer (item 30's override hierarchy), not a Stage C defect.
+Full click-by-click map recorded at `PROFLOW_TODO.md` item 55. **Status: PENDING** — not claimed by this report.
 
-## 9. Owner Visual Acceptance status
+## 29-34. Plan Identity Production audit / David before-state / trial before-state / three root causes
 
-**PENDING** — unchanged, reconfirmed everywhere it appears. Not newly granted by this task.
+**Production audit performed, read-only**: confirmed `resolveAccountEntitlement()`/`planCatalog.js` architecture (already committed at `c09bc45`, never pushed) is schema-safe (zero DB dependency). **David's exact BEFORE state** (`business_settings.id=15`): `plan:'free'`, `trial_ends_at:null`, `role:'user'`, `last_sign_in`: same day (an active account). **Root cause, all three Owner-observed symptoms, one shared cause**: `resolveAccountEntitlement()`'s Lifetime inference correctly requires `trial_ends_at===null` **and** `rawPlan!=='free'`; David's data satisfies only the first condition, so the resolver correctly (given this data) computes `displayIdentity:'FREE'`, `tier:'free'`, `entitlement.monthlyQuoteLimit:5`, `professionalQuotes:false`, upgrade-CTA-shown — this is not a display bug, it is the documented "self-cancel vs. incomplete Lifetime grant" ambiguity already flagged in the resolver's own source comments, now resolved in the Owner's favor by this task's own explicit authorization. Trial before-state: no dedicated active-trial persona exists in TEST (pre-existing, already-disclosed gap).
 
-## 10. Continuity commit SHA
+## 35-40. Shared fix / header five-state / quota display / quota enforcement / upgrade CTA / cross-surface consistency
 
-Content commit `350a0e8` on `proflow-continuity` (matching local `main` content commit `f5dd220`, not pushed to `origin/main`, documentation only, per the standing pattern).
+Shared fix: `DISPLAY_IDENTITY_BADGE_META`/`PlanIdentityBadge.jsx` (new), wired into `Dashboard.jsx`'s header from the already-computed `displayIdentity` — zero new entitlement logic. Repo-wide audit for hardcoded quota/plan checks (item 22 of the authorization) found the codebase **already clean** — `Dashboard.jsx`'s quota display and enforcement both already read the single canonical `entitlement.monthlyQuoteLimit` (§150's own fix, already committed at `c09bc45`); no other file had scattered hardcoded `5`/`20`/`isPro`-style checks. Upgrade CTA: unchanged, already correct (`shouldShowUpgradeCta`, §148). Cross-surface consistency: header (new), Dashboard, Settings all confirmed consistent live in TEST via the same screenshots (FREE→"FREE" everywhere, Lifetime-shaped personas→"LIFETIME" everywhere, matching `∞` quota).
 
-## 11. Push result
+## 41. Admin trial-vs-PRO representation
 
-`git push origin proflow-continuity` succeeded: `0dc316e..350a0e8 proflow-continuity -> proflow-continuity`.
+**Fixed.** `AdminUsersTab.jsx` previously showed the raw effective tier (`'pro'` during an active trial, by design) as the user-facing text in both its desktop-table tooltip and mobile-card chip — an active-trial FREE account literally read `"PRO"` to Admin. Now reads `getDisplayIdentityLabel(displayIdentity)` for text; icon selection (tier-based) intentionally unchanged, since a PRO-family icon during a trial is correct.
 
-## 12. Remote read-back — PROJECT_CONTEXT
+## 42-43. Production customer-metadata mutation / exact before-after
 
-Fresh fetch + `git cat-file -s origin/proflow-continuity:PROFLOW_PROJECT_CONTEXT.md` = **1,394,076 bytes**, independently cross-confirmed via the GitHub Contents API's own `size` field (same number). New §159 present (`grep` count 1).
+**One correction identified, submitted, and BLOCKED before execution** — no mutation occurred. Intended: `UPDATE business_settings SET plan='pro' WHERE id=15;` (BEFORE: `plan:'free'`; intended AFTER: `plan:'pro'`; `trial_ends_at` unchanged at `null` throughout — already correct). The Claude Code auto-mode permission classifier denied this Production write before it reached the database. David's Production data is confirmed, independently, unchanged.
 
-## 13. Remote read-back — HANDOFF
+## 44-47. Focused tests / Full Vitest / ESLint / Build
 
-`git cat-file -s origin/proflow-continuity:PROFLOW_HANDOFF.md` = **1,216,724 bytes**, cross-confirmed via the Contents API's `size` field. New §18.HE present.
+**Main working tree** (both tracks combined): 276/276 tests pass (241 pre-existing Stage A-C + 25 Stage-C-adjacent + 10 new this task — domains/`getDefaultProfessionalUnit`/`DISPLAY_IDENTITY_BADGE_META`). `eslint src/`: 0 errors on every file touched this task (2 pre-existing, unrelated errors confirmed present in `ProfessionalItemComparisonCard.jsx`/`ProfessionalPublicPreview.jsx` — confirmed via the isolated release branch to already exist on `origin/main` today, not introduced by this task). `vite build`: clean. **Isolated `plan-identity-release` branch** (Track B only, standalone from `origin/main`): 211/211 tests pass, lint clean (same 2 pre-existing unrelated errors, confirmed present on bare `origin/main` too), build clean.
 
-## 14. Remote read-back — other four files
+## 48-51. Production-safe Plan Identity diff / commit / push / deploy SHAs
 
-`PROFLOW_TODO.md` (536,306 bytes) contains new item 54. `PROFLOW_CHAT_HANDOFF.md` (369,549 bytes) contains the new §14 lead paragraph. `PROFLOW_ARCHITECTURE.md` (109,065 bytes, unchanged this task, confirmed still present/correct). `PROFLOW_CLAUDE_LATEST_REPORT.md` (6,879 bytes) carries this task's own title and the correct sign-off block, both confirmed via fresh `git show`.
+**Diff against `origin/main`**: exactly 9 files (`AdminUsersTab.jsx`, `Dashboard.jsx`, `QuoteForm.jsx`, `SettingsTab.jsx`, `accountEntitlement.js`, `accountEntitlement.test.js`, `planCatalog.js`, `planCatalog.test.js`, new `PlanIdentityBadge.jsx`) — zero documentation, zero migrations, zero Professional-Quotes-preview files, zero unrelated geometry-remediation content. **Commit SHA**: `b398d8c` (on top of cherry-picked `194ece5`≡`c09bc45`), branch `plan-identity-release`, worktree `../quotecode-saas-plan-identity-release`. **Push SHA**: none — `git push origin plan-identity-release:main` was denied by the Claude Code auto-mode permission classifier. **Deployed SHA**: none — no push occurred, so no deploy was possible.
 
-## 15. Six-file reconciliation result
+## 52-54. LIVE David / LIVE FREE(TRIAL) / LIVE BASIC-PRO
 
-All six files independently confirmed present, non-empty, and mutually consistent on the freshly-fetched remote ref — no stale/mismatched file found.
+**None performed** — nothing new was deployed to Production this task (the push itself was blocked), so LIVE verification of any kind would only re-confirm the pre-existing, unchanged Production state. Not attempted, to avoid a misleading "LIVE verified" claim against code that isn't actually live.
 
-## 16. Application working-tree preservation
+## 55-56. Professional Production deploy / schema status
 
-`Dashboard.jsx`, `QuoteForm.jsx`, `planCatalog.js`/`.test.js`, `accountEntitlement.test.js` remain uncommitted; `professionalQuoteItem.js`/`.test.js`, the Stage A migration, and `src/entry-server.jsx` remain untracked — confirmed byte-for-byte unchanged via `git status`/`git diff --stat` immediately before and after this task's work.
+**NOT AUTHORIZED, NOT PERFORMED.** Stage A's schema remains applied to `quotecode-test` only — independently re-confirmed via `projects list` before/after this task's own TEST work; Production (`ixabnzhjeqevtbhdfswv`) schema untouched.
 
-## 17. Application commit status
+## 57-63. Preserved standing requirements
 
-None performed or authorized this task.
+PDF/Print FULL/COMPACT (item 39): unchanged, open. SINOQ: unchanged, candidate-only. AI complete-product-knowledge requirement: unchanged, documentation-only. Guided AI entry: unchanged, documentation-only. Landing Page product-story requirement (item 52): unchanged, documentation-only. Billing/proration policy (item 53): unchanged, documentation-only, not implemented. A100700: unchanged, untouched.
 
-## 18. Application push status
+## 64. Remaining uncommitted Professional work
 
-None performed or authorized this task.
+`Dashboard.jsx`, `QuoteForm.jsx`, `SettingsTab.jsx`, `planCatalog.js`/`.test.js`, `accountEntitlement.test.js` (Professional-Quotes-scope hunks), `professionalQuoteItem.js`/`.test.js`, both Stage A and Stage-D migrations — all remain uncommitted on local `main`, exactly per the Professional-Quotes-stays-TEST-only boundary.
 
-## 19. Production status
+## 65-67. Continuity files updated / continuity commit SHA / remote read-back
 
-Unchanged. Zero Production/DB/TEST-application mutation this task — documentation only.
+Six canonical files updated this task: `PROFLOW_PROJECT_CONTEXT.md` (new §161), `PROFLOW_TODO.md` (item 30 extended, item 28 extended twice, new item 55), `PROFLOW_HANDOFF.md` (new §18.HF), `PROFLOW_CHAT_HANDOFF.md` (§14 new lead paragraph), `PROFLOW_ARCHITECTURE.md` (§14.C and §16 extended), this report. Commit SHA / remote read-back: see the dedicated section below, filled after push.
 
-## 20. LIVE status
+## 68. Exact remaining gates
 
-Not performed.
+(1) Push `plan-identity-release` to `origin/main` (or re-authorize a future session to do so) to complete the Plan Identity Production release. (2) Re-authorize/manually execute the single-row David correction. (3) Owner visual inspection + acceptance decision for Professional Quotes (item 55's map). (4) Separately, in a future task: Stages D-remainder/E/F/G of Professional Quotes; PRO subscription-expiry mechanism (item 51, still open); ordinary non-Lifetime BASIC/PRO and FREE(TRIAL) TEST personas (still not seeded).
 
-## 21. Exact next gate
+## 69. Exact screens/labels for the Owner
 
-ChatGPT independent verification of this recovered/reconciled checkpoint. After that: separately, explicitly not started by this task — Business Professional Profile design, toggle-discoverability redesign, Plan Identity badges, FREE(TRIAL) identity correction, LIFETIME quota correction, David Aluminum correction, Upgrade CTA correction, Production deployment.
+See "OWNER MORNING VISUAL CHECKLIST" below.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`350a0e8` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`f5dd220`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code remains uncommitted/untracked on local `main`, byte-identical throughout this task. Fresh remote read-back after push independently confirmed all six files present, non-empty (both large files' true size cross-checked via `git cat-file -s` and the GitHub Contents API's own `size` field), and mutually consistent at this checkpoint.
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
 
 ---
 
-## CONTINUITY FILE RESTORE: PASS
-## SIX-FILE CANONICAL CONTINUITY: VERIFIED
+## PROFESSIONAL PRODUCT COMPLETION — TEST: PASS
+
 ## OWNER VISUAL ACCEPTANCE: PENDING
-## APPLICATION CHANGES: PRESERVED / UNCOMMITTED
-## PRODUCTION: UNCHANGED
-## LIVE ACTION: NOT PERFORMED
-## WAITING FOR OWNER + CHATGPT REVIEW
+
+## PLAN IDENTITY / QUOTA / UPGRADE: PARTIAL
+*(TEST implementation, tests, lint, build: full PASS. Production release: blocked at the push gate by the environment's own permission classifier — not a code/quality failure. See §48-51 above.)*
+
+## HEADER PLAN IDENTITY: PASS
+*(Built, tested, TEST-verified live. NOT YET LIVE on Production — the release branch is committed and ready, push blocked.)*
+
+## LIVE DAVID LIFETIME VERIFICATION: BLOCKED
+*(Root cause found, exact one-column correction identified, submitted, and denied by the permission classifier before reaching the database. Zero Production mutation occurred.)*
+
+## LIVE FREE(TRIAL) IDENTITY VERIFICATION: BLOCKED
+*(Nothing new is live to verify; no dedicated TEST persona exists either, a pre-existing gap.)*
+
+## PROFESSIONAL QUOTES PRODUCTION DEPLOY: NOT PERFORMED
+
+## PROFESSIONAL QUOTES PRODUCTION SCHEMA: NOT APPLIED
+
+## A100700: UNCHANGED
+
+---
+
+## OWNER MORNING VISUAL CHECKLIST
+
+**In TEST** (`http://localhost:5186`, `dev:localtest` must be running):
+
+1. **Business Professional Profile** — log in as a BASIC+ TEST persona → **הגדרות עסק / Business Settings** → scroll just above "שמור הגדרות עסק / Save Business Settings" → new dropdown: **"מה סוג העיסוק המקצועי של העסק? / What kind of professional work does your business do?"**
+2. **Current Quote Structure** — unchanged: New Quote's existing Private/Business step is the only per-quote control; nothing new was added here on purpose.
+3. **Professional Details trigger** — **הצעת מחיר חדשה / New Quote** → any item row → a clearly-visible violet pill: **"הוסף מידות / פירוט מקצועי" / "Add measurements / professional details"**.
+4. **m² measurements** — click the pill → if a domain default is set, the unit is already pre-selected → Width/Height/Area fields, "+ Add measurement".
+5. **BASIC locked-PRO example** — unchanged this task (Stage B's existing Advanced Reuse boundary).
+
+**In LIVE / Production** (honest status — nothing new deployed tonight):
+
+6. **Header plan identity badge** — **not yet visible anywhere in Production.** Fully built and TEST-verified; the push is committed and ready but blocked.
+7-9. **David LIFETIME / Unlimited quota / no-Upgrade state** — **not yet corrected.** David's Dashboard still shows FREE/5-quota/Upgrade CTA exactly as before tonight. The one-line database correction is fully identified and ready, pending re-authorization.
+10. **FREE(TRIAL) identity** — not independently checkable tonight; ships together with the same blocked push.
+
+**To finish tonight's Production-authorized work** (no further design/code needed): run `git push origin plan-identity-release:main` from `../quotecode-saas-plan-identity-release`, and separately execute `UPDATE business_settings SET plan='pro' WHERE id=15;` on Production.
