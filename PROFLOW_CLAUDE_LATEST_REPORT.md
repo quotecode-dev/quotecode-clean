@@ -149,7 +149,7 @@ Application push, deploy, and LIVE action remain unauthorized. The genuine archi
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`8aca466` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`d509275`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Local `main` application-code commit `c09bc45` remains uncommitted-to-remote (evaluated for push this task, declined per §153).
 
 ---
 
