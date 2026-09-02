@@ -132,7 +132,7 @@ The Owner needs to: (1) give final sign-off on item 30's five already-refined de
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`9704411` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`91aadaa`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. No application code exists to commit or push this task.
 
 ---
 
