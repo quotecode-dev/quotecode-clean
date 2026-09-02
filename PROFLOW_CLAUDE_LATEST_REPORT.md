@@ -220,7 +220,7 @@ Every load-bearing functional requirement (mixed items, progressive disclosure, 
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`950a5d3` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`7a49d1f`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code (`Dashboard.jsx`, `QuoteForm.jsx`, `professionalQuoteItem.js`+test, Stage A migration) remains uncommitted on local `main`. Production Supabase project (`ixabnzhjeqevtbhdfswv`) confirmed unchanged throughout — only `quotecode-test` (`ljfizgrdyzxddswcedwr`) was mutated during Stage C verification. Fresh remote read-back after push confirmed all six files present, non-empty, and mutually consistent at the Stage C checkpoint (see the Stage C continuity recovery task for full read-back detail).
 
 ---
 
