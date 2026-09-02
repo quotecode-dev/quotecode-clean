@@ -4,101 +4,82 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Secure Permanent Tunnel Autostart — DPAPI / File-Secret Investigation + Implementation
+## Task: Fix Credential Sanitization + Read-Only Real-Reboot Startup Audit
 
-**MODE: one focused attempt at a secure, permanent, low-maintenance tunnel autostart. Prefer the simplest secure supported solution; do not over-engineer; STOP rather than build a fragile workaround. NOT authorized: ProFlow application changes, TEST/Production changes, customer-data access, application commit/push, deploy, LIVE, Windows reboot, unrelated machine configuration, plaintext credential persistence, exposing any secret, weakening authentication.**
+**MODE: Part A authorized mutation, narrowly scoped to `enroll-tunnel-credential.ps1` only. Part B strictly read-only — no Startup entries, VBS files, services, Scheduled Tasks, registry, Bridge/Tunnel launch configuration, or Windows configuration modified.**
 
 ---
 
-## Verdict
+## Part A — Credential Fix
 
-**Implemented and proven correct via a full dummy-credential round-trip — genuinely no plaintext secret ever touches disk.** `file:<path>` is confirmed supported by the installed tunnel-client itself, but a simpler, strictly better mechanism was used instead: DPAPI-encrypted storage at rest, decrypted only in-memory, handed to the managed runtime purely through normal OS process-environment inheritance (the same `env:CONTROL_PLANE_API_KEY` reference already proven to work, unchanged). One remaining gate: the Owner must run the one-time enrollment script themselves. Reached: `READY_FOR_SECURE_KEY_ENROLLMENT`.
+**Exact root cause addressed**: a real enrollment (before this task) captured a trailing 0x1A (Ctrl+Z/SUB) control character along with the API key. DPAPI round-tripped it faithfully; tunnel-client's own HTTP client correctly refused to send it as an `Authorization` header value, so `runtimes connect` failed every time.
 
-## tunnel-client File-Secret Support: YES
+**File changed**: `C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1` only.
 
-## Exact Supported Mechanism
+**Exact validation performed**: the captured input is extracted briefly in-memory, leading/trailing control characters (code < 0x20, or 0x7F) are trimmed — the exact observed contamination pattern, safe because it only touches the edges. If any control character remains **inside** the value after trimming, the entire enrollment is **rejected, fail-closed** — nothing is stored, since silently altering the interior of a credential is not safe to automate. An empty result after trimming is also rejected (this sits alongside the pre-existing guard for a truly empty `Read-Host` response). The round-trip verification step now compares the re-decrypted value against the *sanitized* value actually stored, and additionally re-checks that no control character remains in the final result before declaring success — a second safety net.
 
-`--control-plane.api-key` (used by `run`, and the same reference format `runtimes connect`'s `--runtime-api-key` writes into the generated profile) documents, verbatim, in the installed binary's own `--help` output: *"Reference to environment variable or file containing the control-plane API key (format env:VARNAME or file:/path/to/secret)."* Cross-corroborated by `--admin-key` ("using env:NAME or file:/path"), `--control-plane.client-cert`/`-key`, and `init --control-plane-api-key-ref` (default `"env:CONTROL_PLANE_API_KEY"`) — a consistent reference convention across the whole tool. No documented read-once-vs-reload cadence exists anywhere in local help text (checked directly, not assumed).
+**Dummy tests: PASS** (all six scenarios, none touching the real file):
+| Scenario | Expected | Result |
+|---|---|---|
+| Clean key | Accepted unchanged | PASS |
+| Trailing 0x1A (reproduces the real bug) | Accepted, trimmed | PASS |
+| Leading+trailing CR/LF | Accepted, trimmed | PASS |
+| Interior control character | Rejected (fail-closed) | PASS |
+| Empty input | Rejected (pre-existing guard) | PASS |
+| All-control-character input | Rejected (empty after trim) | PASS |
 
-**Design choice**: this mechanism was confirmed viable but deliberately **not used** for the final implementation. Its "how long must an ephemeral plaintext file exist before deletion is safe" question — which the task itself flagged as needing fresh proof this session could not fully obtain without the real daemon lifecycle — was avoided entirely by using `env:` (already proven, already the current profile's setting, unchanged) instead of `file:`. A `Start-Process`-spawned child inherits its own independent copy of the parent's environment at spawn time, persisting for its own full process lifetime regardless of the parent — so decrypting in-memory and setting the env var on the launcher process achieves "no plaintext temporary file at all" (the task's explicitly stated preference) with no lifecycle risk to reason about.
+Additionally, a full encrypt → ACL-lock → decrypt → verify round-trip was run end-to-end (disposable test file path, not the real one) for both the clean-key and trailing-0x1A cases — both produced a final stored-and-redecrypted value with **zero control characters** and an exact match to the intended sanitized content.
 
-## DPAPI Solution Viable: YES
+**Real Owner credential touched: NO.** The real `.secrets\control-plane-api-key.dpapi` (still holding the old, contaminated enrollment) was independently confirmed unchanged — same size (1100 bytes), same original timestamp — after all testing completed.
 
-Implemented using PowerShell's built-in `ConvertTo-SecureString`/`ConvertFrom-SecureString` (no explicit key = Windows DPAPI, `CurrentUser` scope — the same primitive Windows Credential Manager itself uses). No third-party tooling, no custom encryption key to manage.
-
-## Architecture Implemented
-
-1. **`enroll-tunnel-credential.ps1`** (new, one-time, interactive, Owner-run only): `Read-Host -AsSecureString` prompts for `CONTROL_PLANE_API_KEY` with masked input (never echoed to screen) → `ConvertFrom-SecureString` (DPAPI CurrentUser) → written to `C:\Users\sales\proflow-mcp-bridge\.secrets\control-plane-api-key.dpapi` → immediately ACL-locked (`icacls /inheritance:r` then `/grant:r "<user>:(R,W)"`) → immediately round-trip-verified in-memory (decrypt and compare) before declaring success; deletes the file again if verification fails.
-2. **`start-tunnel.ps1`** (existing file, extended — not replaced): new `Get-EnrolledCredential` function, tried only if `CONTROL_PLANE_API_KEY` is not already in the environment. Decrypts the enrolled file in-memory, sets the env var on this process only. Fails closed silently (logs only the exception type, never secret-derived content) if the file is absent or fails to decrypt. Everything downstream — the already-fixed console-detached `Start-Process ... runtimes connect` call from the prior task — is unchanged.
-3. **`ProFlow-Tunnel.vbs`** (existing Startup-folder entry) — **unchanged, reused exactly as-is**. No duplicate Startup entry, Scheduled Task, or Service was created.
-
-## Plaintext Secret Persisted Anywhere: NO
-
-Not in the `.dpapi` file (ciphertext only), not in any script source, not in the profile YAML/JSON, not in any command-line argument, not in any log, not in this or any continuity document. During testing, only a fabricated dummy value (`DUMMY-TEST-...`, never the real key) ever touched disk, and all test artifacts were deleted afterward.
-
-## Encrypted Credential Location (no secret value)
-
-`C:\Users\sales\proflow-mcp-bridge\.secrets\control-plane-api-key.dpapi` — **does not currently exist**; the Owner has not yet run the enrollment script. This path is where it will be created.
-
-## Credential ACL/Security
-
-`icacls <file> /inheritance:r` (removes inherited permissions) then `/grant:r "<user>:(R,W)"` (grants read/write to the enrolling Windows account only, replacing all other grants). Directly verified during dummy testing: resulting ACL showed exactly `OFFICE\OFFICE:(R,W)` and nothing else. DPAPI CurrentUser-scope encryption additionally means the ciphertext is undecryptable by any other local account or on any other machine, independent of file permissions.
-
-## Startup Mechanism Used
-
-The existing per-user Startup-folder entry, `ProFlow-MCP-Bridge.vbs`'s sibling `ProFlow-Tunnel.vbs` (already installed in a prior task) → `start-tunnel.ps1` (now extended). Unprivileged, auditable (visible file), reversible (delete the file to disable).
-
-## Duplicate Startup Mechanism Created: NO
-
-## Manual Key Entry After Setup Required: NO
-
-One-time enrollment only. After that, normal Windows logon requires no Owner action (contingent on the enrollment actually being completed — see below).
-
-## PowerShell Dependency: NOT YET PROVEN (for the new credential path specifically)
-
-The underlying console-detachment fix (§176, unchanged by this task) is believed correct by mechanism and consistent with the Bridge's proven pattern, but a true cold-logon test using the *enrolled* DPAPI credential has not occurred — no enrollment exists yet.
-
-## Tunnel Healthy: YES
-
-`runtime_state:"ready"`, `process_running:true`, `healthy:true` — currently running as PID 4616, up ~48 minutes at last check. **This instance was found already running at the start of this task** (very likely started by the Owner independently running the §176-fixed `connect-tunnel.ps1`) and was **left completely untouched** throughout, per explicit instruction not to unnecessarily disturb a working tunnel.
-
-## Bridge Healthy: YES
-
-Unchanged PID 28892 throughout; `initialize`/`tools/list` both correct, all 12 tools present.
-
-## Exactly One Tunnel Instance: YES
-
-`tunnel-client runtimes list` confirms exactly one alias (`proflow-bridge`); `tasklist` confirms exactly one `tunnel-client.exe` process.
-
-## Logon Autostart: STRUCTURALLY CONFIGURED
-
-`ProFlow-Tunnel.vbs` + the extended `start-tunnel.ps1` are installed and were proven, with dummy data, to correctly decrypt-and-inherit a credential to a spawned child process. Not yet proven with the real enrolled credential at a real logon, since no enrollment has occurred.
-
-## Reboot Autostart: STRUCTURALLY CONFIGURED
-
-Same mechanism applies at the first logon after any reboot. **Reboot actually tested: NO.** No reboot was performed or authorized.
-
-## ChatGPT E2E: NOT READY (gate reached instead: `READY_FOR_SECURE_KEY_ENROLLMENT`)
-
-Per the task's own explicit instruction, this session stops here rather than proceeding further, since the Owner must perform the key enrollment personally.
-
-## Exact Remaining Owner Action
-
-Run, once, in any PowerShell window (does **not** need to be the one with `CONTROL_PLANE_API_KEY` already set — this script prompts fresh):
+**Exact Owner re-enrollment command**:
 ```
 powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1
 ```
-It will prompt for `CONTROL_PLANE_API_KEY` with masked (non-echoing) input, encrypt it with DPAPI, verify the round-trip, and confirm success — the key is never displayed, never sent anywhere, never pasted into ChatGPT or Claude.
 
-**After that**, this session can independently continue verification itself (checking the encrypted file exists, its ACL, and that `start-tunnel.ps1` successfully retrieves it — never the secret value) without requiring the Owner to transport any diagnostic. The natural next real-world test is the Owner's *next* Windows logon (or closing all shells and manually running `start-tunnel.ps1` once to simulate it) — at that point local A+B verification (enrollment + autostart simulation, launcher closed + tunnel still healthy) can complete, and only then would `READY_FOR_CHATGPT_E2E` genuinely apply.
+---
+
+## Part B — Real-Reboot Startup Audit (read-only)
+
+**ProFlow-Tunnel.vbs exists: YES** — `C:\Users\sales\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-Tunnel.vbs`.
+**ProFlow-MCP-Bridge.vbs exists: YES** — same folder, `ProFlow-MCP-Bridge.vbs`.
+
+**Actual Startup location (the real finding)**: `[Environment]::GetFolderPath('Startup')` and, critically, a **direct read of `HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup`** (and the mirrored `Shell Folders` key) — the actual registry value Windows Explorer itself consults at logon — both report **`C:\ProgramData\ef202d2f98\`**. This is **not** the conventional path where both VBS files were placed in earlier tasks. This user's Startup folder has been redirected to a non-standard location.
+
+**Evidence each launcher executed after reboot: NO — not "not proven," genuinely NO**, cross-corroborated three independent ways:
+1. The redirected folder (`C:\ProgramData\ef202d2f98\`) genuinely exists on disk and already contains a real, unrelated, pre-existing startup item (`rween.exe`, dated 2023) — this is an actively-used folder, not a stale/broken registry artifact.
+2. `HKCU:\...\Explorer\StartupApproved\StartupFolder` — the registry key Explorer populates only for items it has actually enumerated from its real Startup folder — contains **exactly one entry, `rween.exe`**. Neither ProFlow VBS file appears at all, proving Explorer's Startup processing has never even seen them.
+3. Neither `tunnel-autostart.log` nor `bridge.log` contains any entry near the reboot's own timestamp. Both scripts log unconditionally as their very first action (even the "no credential available" fail-closed path logs something) — a genuine automatic run, even one that failed immediately, would have left a trace. None exists in that window.
+
+**Exact root cause established**: both `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` were placed in the conventional default Startup path in earlier tasks, but this specific user account's Startup folder has been redirected (via the registry keys above) to `C:\ProgramData\ef202d2f98\`. Windows' real logon-time Startup processing was never going to scan the folder the files were actually placed in — entirely independent of the reboot itself, of VBS/wscript functionality (both files are syntactically correct and were separately proven to execute correctly when manually invoked in earlier tasks), of any antivirus interference, and of any path/quoting issue inside the VBS files themselves (re-inspected fresh this task — both correctly quoted, absolute paths, no current-directory dependency).
+
+**Common failure mechanism: YES** — a single misplacement (wrong folder) affecting both launchers identically, fully explaining why both failed the same way at the same time.
+
+**Classification: A — SMALL, CLEAR FIX.**
+
+**Proposed fix** (not implemented, per explicit read-only instruction): copy both `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` into `C:\ProgramData\ef202d2f98\`. No change to VBS content, script logic, DPAPI design, or credential handling is needed. The existing copies in the conventional location can be left in place (harmless — Windows simply never scans them there) or removed once the correct copies are confirmed working.
+
+**Honest caveat**: this exact tool environment has shown filesystem/API virtualization quirks before (documented in §172's `[Environment]::GetFolderPath` finding). While this Part B finding rests on a *direct registry read* rather than that same convenience API — and is independently cross-corroborated three ways above — the Owner is recommended to independently confirm, from their own real interactive session (Win+R → `shell:startup`), that the folder which actually opens matches `C:\ProgramData\ef202d2f98\`, before treating this as fully closed.
+
+**NO Startup mutation performed** — no Startup entries, VBS files, services, Scheduled Tasks, registry, or Windows configuration were modified during Part B. Read-only throughout.
+
+---
+
+## Exact Remaining Owner Actions, in Order
+
+1. Re-run enrollment with the fixed script (Part A) to replace the contaminated credential:
+   ```
+   powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1
+   ```
+2. Independently confirm the real Startup folder via `shell:startup` (Win+R) — should show `C:\ProgramData\ef202d2f98\`.
+3. Authorize copying `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` into that folder (or perform it themselves) before the next reboot test — this is a separate, small, explicit authorization this session did not assume.
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
 - **TEST CHANGED?** NO.
 - **APPLICATION CODE CHANGED?** NO.
-- **APPLICATION COMMIT?** NO.
-- **APPLICATION PUSH?** NO.
+- **CUSTOMER DATA ACCESSED?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -109,30 +90,26 @@ It will prompt for `CONTROL_PLANE_API_KEY` with masked (non-echoing) input, encr
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§177) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§178) |
 | `PROFLOW_TODO.md` | UPDATED (item 56 status line) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HU) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HV) |
 | `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (§20 already covers this mechanism generally) |
 | `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `9918602`.
+*(filled after push — see below)*
 
 ---
 
-## FILE-SECRET SUPPORT: YES (file:/path/to/secret, confirmed from the installed binary's own help text)
-## DESIGN USED INSTEAD: DPAPI + env-var-inheritance — ZERO PLAINTEXT EVER TOUCHES DISK
-## PROVEN VIA FULL DUMMY-CREDENTIAL ROUND-TRIP (encrypt → ACL-lock → decrypt → child-process inheritance)
-## REAL ENROLLMENT: NOT YET PERFORMED
-## CURRENT TUNNEL: HEALTHY, PID 4616, UNTOUCHED BY THIS TASK
-## BRIDGE: HEALTHY, UNTOUCHED
-## EXACTLY ONE TUNNEL INSTANCE: YES
+## CREDENTIAL SANITIZATION: FIXED AND PROVEN (6 DUMMY SCENARIOS + 2 FULL ROUND-TRIPS) — REAL FILE UNTOUCHED
+## STARTUP FAILURE ROOT CAUSE: REGISTRY-CONFIRMED — STARTUP FOLDER REDIRECTED TO C:\ProgramData\ef202d2f98\, BOTH LAUNCHERS IN WRONG FOLDER
+## CLASSIFICATION: A — SMALL, CLEAR FIX (copy 2 VBS files) — NOT YET IMPLEMENTED, AWAITING AUTHORIZATION
+## NO STARTUP/REGISTRY/SERVICE/SCHEDULED-TASK MUTATION PERFORMED
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
-## APPLICATION COMMIT/PUSH: NOT PERFORMED
+## CUSTOMER DATA: NOT ACCESSED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
-## NO SECRET EXPOSED OR PERSISTED
 ## HE/EN: UNAFFECTED
-## READY_FOR_SECURE_KEY_ENROLLMENT
+## OWNER: RE-ENROLL, THEN AUTHORIZE THE VBS-COPY FIX
