@@ -5014,4 +5014,20 @@ Owner explicitly authorized implementing the §149 forensic finding, extending S
 
 **Release boundary**: application code (`accountEntitlement.js`, `accountEntitlement.test.js`, `Dashboard.jsx`, `QuoteForm.jsx` — beyond Stage 1's own 6 files) changed, TEST/local verified, Stage 1's own work preserved and integrated — **all still UNCOMMITTED** per explicit instruction. No DB/schema change. No Production/customer-data mutation. No commit, push, deploy, or LIVE action. David Aluminum, A100700, Professional Quotes untouched. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §150, `PROFLOW_TODO.md` item 50 (resolved)/51 (new blocker).
 
+## §18.GW. LIFETIME Full-PRO Inheritance Correction (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §151 — application-code correction extending §150, TEST/local, application code left UNCOMMITTED, NOT pushed, NOT deployed)
+
+Owner explicitly ruled that §150's own per-field Lifetime quota fix was insufficient: **"LIFETIME means ALL PRO CAPABILITIES, CURRENT AND FUTURE, FOR AN UNLIMITED PERIOD, UNTIL THE OWNER EXPLICITLY REMOVES LIFETIME STATUS."** Explicitly forbade per-capability patchwork (`if (isLifetime) attachments = true` etc.) — required a single inheritance point instead.
+
+**Architecture**: `planCatalog.js`'s `PLAN_CATALOG` entries now nest their four capability fields under `entitlements` (metadata — `id`/`rank`/`badge`/`displayLabel`/etc. — stays flat, unaffected). New `getEntitlementSet(planId)` — `{ ...getPlanDefinition(planId).entitlements }`, a generic spread, not a hand-maintained field list — is the single inheritance point. `accountEntitlement.js` now computes `entitlementPlanId = isLifetime ? 'pro' : tier` and calls `getEntitlementSet(entitlementPlanId)` **once** — the identical call PRO-while-valid resolves through. Exactly one `isLifetime ?` conditional remains in the resolver (confirmed via `grep`) — the base-plan-selection decision, never a per-capability override.
+
+**Future-proofing verified structurally, not merely asserted**: a fifth capability (e.g. `professionalQuotes`) added to `PLAN_CATALOG.pro.entitlements` would flow to LIFETIME automatically — no other file needs to change. The new architectural-invariant test compares LIFETIME's and PRO's whole entitlement objects directly (`toEqual`), not a hand-reproduction of today's four fields, so it stays protective against future drift without needing its own update.
+
+**Verification**: 228/228 tests pass (213 pre-existing + 15 new — `getEntitlementSet` unit tests, the architectural-invariant test, per-capability PRO=LIFETIME equality tests, FREE/BASIC non-inheritance regression tests). `eslint`/`vite build` clean. TEST↔Production Structural Parity re-audited: **PASS**, zero environment-conditional branching in the touched files.
+
+**Regression-clean**: FREE/BASIC confirmed to NOT inherit PRO's set; FREE(TRIAL) unchanged (already inherited PRO-level entitlements during an active trial, pre-existing behavior); quota display/enforcement (§150) unaffected — this task changed only how `entitlement` is assembled inside the resolver, not how consumers read it.
+
+**PRO subscription-expiry blocker (`PROFLOW_TODO.md` item 51) explicitly NOT touched or resolved** — a separate, still-open gap, unrelated to this task's entitlement-inheritance correction.
+
+**Release boundary**: `planCatalog.js`, `accountEntitlement.js`, `planCatalog.test.js`, `accountEntitlement.test.js` further modified — `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx` untouched this task (unnecessary — none duplicate entitlement logic themselves). Same 7 files as §150 overall, still **all UNCOMMITTED**. No DB/schema change. No Production/customer-data mutation. No commit, push, deploy, or LIVE action. David Aluminum, A100700, Professional Quotes untouched — zero customer-specific code. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §151, `PROFLOW_TODO.md` item 50 (updated)/51 (confirmed still open).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

@@ -6679,3 +6679,117 @@ This rule is now permanent and applies to all future ProFlow tasks, alongside §
 Application code: 3 files modified beyond Stage 1's own 6 (`accountEntitlement.js` further modified, `accountEntitlement.test.js` further modified, `Dashboard.jsx` further modified, `QuoteForm.jsx` newly modified) — **all still uncommitted**, integrated safely with Stage 1's own preserved diff (`git diff --stat`: 7 files, 369 insertions/24 deletions total). No DB/schema change. No migration. No customer/account/subscription/trial data mutation. No Production mutation. No Production deployment. No LIVE action. David Aluminum untouched. A100700 untouched. Professional Quotes implementation untouched. No application commit. No application push. No deploy.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §150); `PROFLOW_TODO.md` UPDATED (item 50 marked RESOLVED, new item recording the PRO-expiry blocker); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16 forward-pointer to §150; new Permanent Iron Rule cross-reference); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §151. LIFETIME Full-PRO Inheritance Correction (added 2026-09-02, Owner-authorized — application-code correction extending §150, TEST/local only, application changes left UNCOMMITTED per explicit instruction, NOT pushed, NOT deployed)
+
+### 151.0 Fresh state before work
+
+Local `main` HEAD `4503f6f` (unchanged from end of §150). `origin/main` unchanged at `26dee96`. `git diff --stat` reproduced the exact same 7-file, 369-insertion/24-deletion diff from §150 before this task's own edits began. `origin/proflow-continuity` at `4458dd3`, confirmed via fresh remote fetch.
+
+### 151.1 Owner-defined canonical rule (recorded verbatim)
+
+**"LIFETIME inherits the complete canonical PRO entitlement set, including all current and future PRO capabilities, indefinitely until the Owner explicitly revokes Lifetime status. LIFETIME remains a distinct identity/lifecycle from PRO."**
+
+This explicitly supersedes §150.3's own per-field approach (`entitlement.monthlyQuoteLimit = isLifetime ? Infinity : planDef.monthlyQuoteLimit`) — which fixed quota specifically but left `editDuplicate`/`whatsappDelete`/`attachments` on their tier-derived values, an asymmetry §150.7 explicitly flagged as an open question. This task closes that question with the Owner's own explicit rule: full-set inheritance, not per-field patchwork.
+
+### 151.2 Architecture before → after
+
+**Before (§150)**: `accountEntitlement.js` built the `entitlement` object as four separately-typed fields, one (`monthlyQuoteLimit`) with an `isLifetime` override, three (`editDuplicate`/`whatsappDelete`/`attachments`) reading straight from `getPlanDefinition(tier)` with no Lifetime-awareness at all — a real inconsistency (§150.7).
+
+**After**: `planCatalog.js`'s `PLAN_CATALOG` entries now nest their four capability fields under a dedicated `entitlements` sub-object (metadata — `id`/`rank`/`sellable`/`hidden`/`displayLabel`/`badge` — stays flat, unaffected). A new function, `getEntitlementSet(planId)`, is the **single** inheritance point: `{ ...getPlanDefinition(planId).entitlements }` — a generic object copy, not a hand-maintained field list. `accountEntitlement.js` now computes `const entitlementPlanId = isLifetime ? 'pro' : tier;` and calls `getEntitlementSet(entitlementPlanId)` **once** — the exact same function call PRO-while-valid itself resolves through (`entitlementPlanId === tier === 'pro'` for an ordinary valid PRO account). There is exactly one `isLifetime ?` conditional left in the entire resolver (confirmed via `grep`, 151.7) — the single decision of *which plan to inherit from*, never a per-capability override.
+
+### 151.3 Proof LIFETIME consumes the full canonical PRO entitlement set
+
+Both a real PRO account and a Lifetime account (on either a pro- or basic-underlying raw tier) now call `getEntitlementSet('pro')` — the identical function, identical argument. `accountEntitlement.test.js`'s new "B/I. THE ARCHITECTURAL INVARIANT" test asserts `lifetimeResult.entitlement` deep-equals a real PRO account's own `entitlement` object directly (not a hand-reproduction of the four known fields) — so a fifth capability added to `PLAN_CATALOG.pro.entitlements` tomorrow is automatically covered by this same comparison, with zero test-file change required. `planCatalog.test.js`'s new `getEntitlementSet` suite makes the same point one layer down: `getEntitlementSet('pro')` is asserted `toEqual(PLAN_CATALOG.pro.entitlements)` directly, not against an independently-typed expected literal.
+
+### 151.4 Proof identity remains distinct
+
+`isLifetime`/`displayIdentity==='LIFETIME'` computation is entirely unchanged by this task — still a separate boolean/field from `tier`/`entitlement`, still distinct from `'PRO'` (Stage 1, §148, unmodified). `resolveAccountEntitlement()`'s return shape is unchanged: `{ tier, displayIdentity, isLifetime, entitlement }` remain four independently-meaningful fields — this task only changed how `entitlement` itself is computed, never touching identity/lifecycle computation. Confirmed via test C ("LIFETIME identity remains LIFETIME, not collapsed into PRO") and D ("PRO identity remains PRO where representable").
+
+### 151.5 Current capability comparison: PRO vs LIFETIME
+
+| Capability | PRO (valid) | LIFETIME (any underlying tier) | Equal? |
+|---|---|---|---|
+| `monthlyQuoteLimit` | `Infinity` | `Infinity` | YES |
+| `editDuplicate` | `true` | `true` | YES |
+| `whatsappDelete` | `true` | `true` | YES |
+| `attachments` | `true` | `true` | YES |
+
+All four proven via `resolveAccountEntitlement()` unit tests (H/I2/J/K), each directly comparing the Lifetime result against a real PRO result's own value, not against a hardcoded expected literal.
+
+### 151.6 Future-capability inheritance proof
+
+Verified structurally, not merely asserted: `getEntitlementSet(planId)` (`planCatalog.js`) is `{ ...getPlanDefinition(planId).entitlements }` — a **generic spread**, containing no enumeration of `monthlyQuoteLimit`/`editDuplicate`/`whatsappDelete`/`attachments` by name anywhere in its own implementation. Adding a fifth field (e.g. `professionalQuotes: true`) to `PLAN_CATALOG.pro.entitlements` would flow through this same spread automatically — no edit to `getEntitlementSet`, no edit to `accountEntitlement.js` (which calls `getEntitlementSet(entitlementPlanId)` once, generically), and no edit required to the new architectural-invariant test (151.3), which compares whole objects rather than named fields. The only place a developer must add a new capability is the single canonical definition (`PLAN_CATALOG.pro.entitlements`) — exactly the Owner's own stated requirement ("If tomorrow the canonical PRO entitlement definition gains X... LIFETIME must receive it automatically... a developer must NOT need to remember to add `if Lifetime => featureX` somewhere else").
+
+### 151.7 Static search — remaining Lifetime-specific capability overrides
+
+`grep` for `isLifetime` across `accountEntitlement.js`: **exactly two matches** — line 53 (`trialStatus` computation, pre-existing/unmodified, unrelated to entitlement) and line 91 (`entitlementPlanId = isLifetime ? 'pro' : tier`, the single, deliberate base-plan-selection point this task introduces). **Zero per-capability `if (isLifetime) X = ...` pattern exists anywhere in the codebase** — confirmed via repo-wide search, none found beyond the two lines above.
+
+### 151.8 Professional Quotes future-inheritance assessment
+
+**Not implemented this task, per explicit instruction.** Architecturally verified: once a future `professionalQuotes` capability is added to `PLAN_CATALOG.pro.entitlements` (the proposal already on record at §147.4), it will flow to `entitlement.professionalQuotes` for both real PRO and LIFETIME automatically via the same `getEntitlementSet()` mechanism (151.6) — no separate Lifetime-specific wiring will be needed at that time. This directly closes the exact risk §150.9/§150.17 flagged (Professional Quotes repeating the "correct value computed, never consumed, or requiring a second Lifetime-specific patch" pattern found twice already in this project).
+
+### 151.9 FREE / FREE(TRIAL) / BASIC regression results
+
+- **FREE** (test G): `entitlement` unchanged (`monthlyQuoteLimit:5`, all capabilities `false`) — does not inherit PRO's set (`not.toEqual(getEntitlementSet('pro'))` explicitly asserted).
+- **FREE(TRIAL active)** (test E): `entitlement` equals the full PRO set (`getEntitlementSet('pro')`) — **unchanged behavior**, this was already true before this task (§149/§150, via `tier==='pro'` during an active trial) — while `displayIdentity` stays `'FREE_TRIAL'`, never becoming real PRO or LIFETIME identity.
+- **BASIC** (test F): `entitlement` unchanged (`monthlyQuoteLimit:20`, `editDuplicate:true`, `whatsappDelete:false`, `attachments:false`) — does not inherit PRO's set.
+- **PRO** (test A, D): unchanged — full PRO set while `tier==='pro'`, identity `'PRO'` for the one currently-representable case (`super_admin`).
+
+All results PASS, zero regression to the Owner-approved quota contract (§150.1).
+
+### 151.10 Quota display/enforcement regression result
+
+Unaffected by this task — `Dashboard.jsx`'s `planLimit`/enforcement `limit` still read `entitlement.monthlyQuoteLimit` (§150.5/§150.6), which is still a single, canonical value; this task changed only *how* `entitlement` itself is assembled inside the resolver, not how `Dashboard.jsx`/`QuoteForm.jsx` consume it. `DISPLAY QUOTA === ENFORCEMENT QUOTA === CANONICAL ENTITLEMENT QUOTA` still holds by construction. Confirmed via the full regression suite (151.11) — zero Dashboard.jsx/QuoteForm.jsx changes were required or made this task.
+
+### 151.11 TEST↔Production structural parity result
+
+Re-audited per the Owner's explicit §9 instruction: `grep` for `import.meta.env`/`NODE_ENV`/`window.location.hostname`/separate-resolver-selection patterns in `planCatalog.js`/`accountEntitlement.js`: **zero matches.** The inheritance mechanism (`getEntitlementSet`) is pure, synchronous, environment-independent JavaScript — no TEST-only or Production-only branch, no hostname condition, no separate resolver. Single `vite.config.js`, single build, single `src/` tree, unchanged from §150.13's own PASS finding.
+
+**CURRENT ENTITLEMENT STRUCTURAL PARITY: PASS** (re-confirmed, not merely carried forward).
+
+### 151.12 Tests
+
+15 new tests added: 3 in `planCatalog.test.js` (`getEntitlementSet` — exact match against the catalog's own `entitlements` object, fresh-copy-not-shared-reference, unknown-plan fallback) + 12 in `accountEntitlement.test.js` (items A/B-I/C/D/E/F/G/H/I2/J/K + a `super_admin`-path confirmation). **228/228 tests pass** (213 pre-existing + 15 new, zero weakened/removed assertion). `npx eslint` (5 touched/relevant files): 0 errors, 1 pre-existing unrelated warning. `npx vite build`: clean.
+
+### 151.13 David Aluminum / A100700 / Professional Quotes / DB status
+
+**Zero mutation, zero code reference, zero DB/schema change.** No `if (email===david...)`/similar pattern introduced — the fix is purely structural (`getEntitlementSet`, `isLifetime`-driven base-plan selection), identical for every account. David's own eventual correct result (full PRO entitlement set once his real Lifetime status resolves) will follow mechanically from the architecture, never from any customer-aware condition — exactly the Owner's own stated requirement (§7 of the authorization). Professional Quotes and A100700 untouched, no implementation.
+
+### 151.14 Binary acceptance results
+
+| # | Item | Result |
+|---|---|---|
+| 1 | LIFETIME resolves to the complete canonical PRO entitlement set | PASS (151.3) |
+| 2 | LIFETIME remains a distinct display/account identity | PASS (151.4) |
+| 3 | LIFETIME remains non-expiring until explicit Owner revocation | PASS — no expiry logic added, unchanged |
+| 4 | No per-capability Lifetime patchwork exists | PASS (151.7 — exactly one `isLifetime` decision point) |
+| 5 | `monthlyQuoteLimit` matches PRO | PASS (151.5) |
+| 6 | `editDuplicate` matches PRO | PASS (151.5) |
+| 7 | `whatsappDelete` matches PRO | PASS (151.5) |
+| 8 | `attachments` matches PRO | PASS (151.5) |
+| 9 | Future canonical PRO capabilities will naturally inherit to LIFETIME | PASS (151.6, structurally proven) |
+| 10 | FREE remains correct | PASS (151.9) |
+| 11 | FREE(TRIAL) remains distinct and correct | PASS (151.9) |
+| 12 | BASIC remains correct | PASS (151.9) |
+| 13 | PRO remains correct within currently representable lifecycle state | PASS (151.9) |
+| 14 | Quota display/enforcement still share canonical `monthlyQuoteLimit` | PASS (151.10) |
+| 15 | TEST↔Production structural parity remains PASS | PASS (151.11) |
+| 16 | No customer-specific logic | PASS (151.13) |
+| 17 | David Aluminum untouched | PASS (151.13) |
+| 18 | No DB/schema change | PASS (151.13) |
+| 19 | No TEST data mutation | PASS — zero TEST interaction this task |
+| 20 | No Production/customer-data mutation | PASS — zero Production interaction this task |
+| 21 | Professional Quotes not implemented | PASS (151.8/151.13) |
+| 22 | A100700 untouched | PASS (151.13) |
+| 23 | Full tests/build pass | PASS (151.12, 228/228) |
+
+**All 23 items PASS — no item required marking PARTIAL or FAIL.** (The separate PRO subscription-expiry blocker, §150.8/`PROFLOW_TODO.md` item 51, is explicitly **not** touched or resolved by this task, per §13 of the authorization — it remains open exactly as before.)
+
+### 151.15 Release boundary
+
+Application code: `planCatalog.js`, `accountEntitlement.js` further modified (structural, additive — no consumer outside these two files required a change); `planCatalog.test.js`, `accountEntitlement.test.js` further modified (new tests). `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx` **untouched this task** — confirmed unnecessary, since none of them construct or duplicate entitlement logic themselves (§150 already migrated their consumption onto `entitlement.*`). Still the same 7 files total as §150 (`git diff --stat`: 7 files, 536 insertions/55 deletions) — **all still uncommitted**. No DB/schema change. No migration. No customer/account/subscription/trial data mutation. No Production mutation. No Production deployment. No LIVE action. David Aluminum untouched. A100700 untouched. Professional Quotes implementation untouched. No application commit. No application push. No deploy.
+
+**PRO subscription-expiry blocker (`PROFLOW_TODO.md` item 51) explicitly NOT marked resolved by this task** — it is a separate, still-open architectural gap (no field distinguishes a real paid PRO subscription's own expiry from the trial window), unrelated to and unaffected by this task's entitlement-inheritance correction.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §151); `PROFLOW_TODO.md` UPDATED (item 28 thread extended; item 50 note refined — full-set inheritance now supersedes the per-field description; item 51 confirmed still open, not touched); `PROFLOW_HANDOFF.md` UPDATED (new §18.GW); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16, new paragraph); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).

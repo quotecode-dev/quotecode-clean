@@ -4,186 +4,161 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Entitlement/Quota Centralization + TEST↔Production Structural Parity
+## Task: LIFETIME Full-PRO Inheritance Correction
 
-**MODE: Application-code implementation, TEST/local only, extending Stage 1's own preserved uncommitted work. NOT authorized: DB/schema, migrations, customer/account/subscription/trial data mutation, Production mutation/deploy/LIVE action, David Aluminum customer-data changes, A100700, Professional Quotes implementation, application commit, application push.**
+**MODE: Application-code correction, TEST/local only, extending §150's own preserved uncommitted work. NOT authorized: DB/schema, migrations, customer/account/subscription/trial data mutation, Production mutation/deploy/LIVE action, David Aluminum customer-data changes, A100700, Professional Quotes implementation, application commit, application push.**
 
 ---
 
 ## 1. Fresh Local State before work
 
-`origin/main`=`26dee96` (unchanged). Local `main` HEAD `0ca414f` (unchanged from end of §149). `git diff --stat` reproduced Stage 1's exact 6-file, 221-insertion/10-deletion diff before this task's own edits began. `origin/proflow-continuity`=`4246af1`, confirmed via fresh remote fetch. Standing untracked `src/entry-server.jsx` unchanged.
+`origin/main`=`26dee96` (unchanged). Local `main` HEAD `4503f6f` (unchanged from end of §150). `git diff --stat` reproduced the exact same 7-file, 369-insertion/24-deletion diff from §150 before this task's own edits began. `origin/proflow-continuity`=`4458dd3`, confirmed via fresh remote fetch.
 
-## 2. Existing Stage-1 diff preserved
+## 2. Existing uncommitted application work preserved
 
-Confirmed byte-identical before this task's own edits (item 1). All six Stage-1 files (`SettingsTab.jsx`, `Dashboard.jsx`, `accountEntitlement.js`, `accountEntitlement.test.js`, `planCatalog.js`, `planCatalog.test.js`) carried forward untouched in their Stage-1 portions — this task's edits to `accountEntitlement.js`, `accountEntitlement.test.js`, and `Dashboard.jsx` are additive on top of, not a replacement of, Stage 1's own diff. `SettingsTab.jsx`/`planCatalog.js`/`planCatalog.test.js` received zero further edits this task.
+Confirmed byte-identical before this task's own edits (item 1). Stage 1's own six files plus §150's `QuoteForm.jsx` addition carried forward untouched in their own portions — this task's edits to `accountEntitlement.js`/`planCatalog.js` (and their test files) are additive/structural refinements, not a discard-and-redo.
 
-## 3. Owner product contract recorded
+## 3. Exact Owner LIFETIME rule recorded
 
-| Identity | Monthly quote limit | Lifecycle |
-|---|---|---|
-| FREE | 5 | n/a |
-| FREE (TRIAL, active) | Unlimited (temporary PRO-level entitlement; identity/display stay FREE (TRIAL), never real PRO) | 14-day trial window |
-| BASIC | 20 | n/a |
-| PRO | Unlimited | "Unlimited — until subscription expiry." Not permanent. Billing/renewal explicitly not implemented. |
-| LIFETIME | Unlimited | No subscription expiry. Distinct identity/lifecycle from PRO despite sharing the same capability value. |
-
-Recorded as a canonical Owner decision at `PROFLOW_PROJECT_CONTEXT.md` §150.1.
+**"LIFETIME inherits the complete canonical PRO entitlement set, including all current and future PRO capabilities, indefinitely until the Owner explicitly revokes Lifetime status. LIFETIME remains a distinct identity/lifecycle from PRO."** Recorded verbatim at `PROFLOW_PROJECT_CONTEXT.md` §151.1, explicitly superseding §150.3's own per-field quota-only override.
 
 ## 4. Files inspected
 
-`accountEntitlement.js`, `planCatalog.js`, `planEntitlements.js`, `Dashboard.jsx` (quota display/enforcement/protected-action gate/QuoteForm prop-passing), `QuoteForm.jsx` (attachment gate), `SettingsTab.jsx`, `AdminUsersTab.jsx` (`handleToggleLifetime` — confirmed it mutates only `trial_ends_at`, never `plan`), `PricingModal.jsx` (self-cancel write path), `accountEntitlement.test.js`, `vite.config.js`. Repo-wide `grep` for quota/plan/capability-guessing patterns and for `import.meta.env`/`NODE_ENV`/hostname-conditional business logic (parity audit, scoped to plan/trial/Lifetime/entitlement/quota/quote-creation paths).
+`accountEntitlement.js`, `planCatalog.js`, `accountEntitlement.test.js`, `planCatalog.test.js`, `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx` (confirmed no change needed — none duplicate entitlement logic), `AdminUsersTab.jsx` (confirmed its own `PLAN_CATALOG.pro.badge` usage reads only the untouched metadata layer). Repo-wide `grep` for `isLifetime`, per-capability override patterns, and environment-conditional business logic.
 
-## 5. Files changed
+## 5. Files modified
 
-- `src/utils/accountEntitlement.js` — Lifetime-aware `entitlement.monthlyQuoteLimit`.
-- `src/pages/Dashboard.jsx` — quota display/enforcement/protected-action gate wired to canonical `entitlement`; dead `isBasicOrAbove` removed; `QuoteForm` now receives `canUseAttachments` instead of `userPlan`/`isSuperAdmin`.
-- `src/components/QuoteForm.jsx` — attachment gate wired to `canUseAttachments` instead of a third independent plan-guess.
-- `src/utils/accountEntitlement.test.js` — 13 new tests (six-identity Owner-contract quota matrix, the core Lifetime-on-Basic fix proof, boundary proofs).
+- `src/utils/planCatalog.js` — `PLAN_CATALOG` entries restructured: capability fields (`monthlyQuoteLimit`/`editDuplicate`/`whatsappDelete`/`attachments`) nested under a new `entitlements` sub-object; metadata (`id`/`rank`/`sellable`/`hidden`/`displayLabel`/`badge`) stays flat, unaffected. New `getEntitlementSet(planId)` function — the single inheritance point.
+- `src/utils/accountEntitlement.js` — `entitlement` now computed via one call: `getEntitlementSet(isLifetime ? 'pro' : tier)`, replacing the prior four-field manual construction (one of which had a Lifetime-specific override, three of which did not).
+- `src/utils/planCatalog.test.js` — existing flat-field assertions updated to the new nested path; new `getEntitlementSet` test suite (exact-match, fresh-copy, unknown-plan fallback).
+- `src/utils/accountEntitlement.test.js` — 12 new tests (items A-K per the authorization's own required list, plus a `super_admin` confirmation), including the architectural-invariant test comparing LIFETIME's and PRO's entitlement objects directly.
 
-`SettingsTab.jsx`/`planCatalog.js`/`planCatalog.test.js` — unchanged this task (Stage 1's own diff carried forward as-is).
+`Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx` — **not touched this task**, confirmed unnecessary (§150 already migrated their consumption onto `entitlement.*`; this task only changed how `entitlement` is assembled inside the resolver).
 
-## 6. File-by-File Ledger
+## 6. Exact entitlement inheritance architecture before/after
 
-Full table: `PROFLOW_PROJECT_CONTEXT.md` §150.2.
+**Before**: `entitlement.monthlyQuoteLimit = isLifetime ? Infinity : planDef.monthlyQuoteLimit`; `entitlement.editDuplicate/whatsappDelete/attachments = isSuperAdmin || planDef.X` — one field Lifetime-aware, three not, four separately-typed lines.
 
-## 7. Canonical resolver flow after implementation
+**After**: `const entitlementPlanId = isLifetime ? 'pro' : tier; const entitlement = getEntitlementSet(entitlementPlanId);` — one line, one function call, no per-field logic. `getEntitlementSet(planId) = { ...getPlanDefinition(planId).entitlements }` in `planCatalog.js` — a generic spread of whatever the catalog currently defines.
 
-`business_settings.plan` + `trial_ends_at` + `role` → `computeEffectivePlan()` (unchanged) → `resolveAccountEntitlement()` (fixed) → `{ tier, displayIdentity, isLifetime, entitlement: { monthlyQuoteLimit, editDuplicate, whatsappDelete, attachments } }` → all relevant `Dashboard.jsx`/`QuoteForm.jsx` consumers read `entitlement.*` directly. No independent local re-derivation remains in the audited paths.
+## 7. Proof LIFETIME consumes the full canonical PRO entitlement set
 
-## 8. Quota source after implementation
+`accountEntitlement.test.js` test "B/I. THE ARCHITECTURAL INVARIANT": a real PRO account's `entitlement` and a Lifetime account's `entitlement` (tested on both pro- and basic-underlying raw tiers) are asserted deep-equal directly against each other — not against an independently-typed expected literal. `planCatalog.test.js`'s `getEntitlementSet` suite makes the same point one layer down (`getEntitlementSet('pro')` `toEqual(PLAN_CATALOG.pro.entitlements)`).
 
-Single source: `entitlement.monthlyQuoteLimit` (`resolveAccountEntitlement()`, computed once per render). The two independent hardcoded ternaries proven at §149.1 are removed.
+## 8. Proof identity remains distinct
 
-## 9. Display quota path
+`isLifetime`/`displayIdentity` computation entirely unchanged by this task. Tests C ("LIFETIME identity remains LIFETIME, not collapsed into PRO") and D ("PRO identity remains PRO where representable") confirm the resolver's four-field return shape (`tier`, `displayIdentity`, `isLifetime`, `entitlement`) is unaffected beyond how `entitlement` itself is computed.
 
-`Dashboard.jsx`'s KPI-card `planLimit` now reads `entitlement.monthlyQuoteLimit` directly (formatted `'∞'` for `Infinity`, the number otherwise). Visibility gating (`!isPro`, pre-existing, not flagged as defective by §149) left untouched — a deliberate, disclosed scope decision (`PROFLOW_PROJECT_CONTEXT.md` §150.5).
+## 9. Current capability comparison: PRO vs LIFETIME
 
-## 10. Enforcement quota path
+| Capability | PRO (valid) | LIFETIME (any underlying tier) | Equal? |
+|---|---|---|---|
+| `monthlyQuoteLimit` | `Infinity` | `Infinity` | YES |
+| `editDuplicate` | `true` | `true` | YES |
+| `whatsappDelete` | `true` | `true` | YES |
+| `attachments` | `true` | `true` | YES |
 
-`handleSaveQuote`'s pre-save quota check now reads the same `entitlement.monthlyQuoteLimit` variable — `DISPLAY QUOTA === ENFORCEMENT QUOTA === CANONICAL ENTITLEMENT QUOTA` holds by construction (identical reference), not coincidental duplication.
+## 10. Future-capability inheritance proof
 
-## 11. Capability-consumer corrections
+`getEntitlementSet(planId)` contains zero named enumeration of the four current fields — a generic `{ ...planDef.entitlements }` spread. Adding a fifth field to `PLAN_CATALOG.pro.entitlements` flows through automatically: no edit to `getEntitlementSet`, no edit to `accountEntitlement.js` (calls the function once, generically), no edit to the architectural-invariant test (item 7, compares whole objects). The only place a developer touches is the single canonical definition — exactly the Owner's own stated requirement.
 
-`Dashboard.jsx`'s `handleProtectedAction` (edit/duplicate → `entitlement.editDuplicate`; whatsapp/delete → `entitlement.whatsappDelete`) and `QuoteForm.jsx`'s attachment gate + remaining-MB banner (→ `canUseAttachments` = `entitlement.attachments`) migrated off separately-derived `isPro`/`isBasicOrAbove`/`userPlan === 'pro' || isSuperAdmin` guesses. Confirmed via repo-wide search these were the only two live consumers beyond the resolver itself. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §150.7.
+## 11. FREE/FREE(TRIAL)/BASIC regression results
 
-## 12. PRO expiry/lifecycle behavior
+FREE (test G): unchanged, does not inherit PRO's set (`not.toEqual` explicitly asserted). FREE(TRIAL active) (test E): inherits the full PRO set — **unchanged pre-existing behavior**, `displayIdentity` stays `FREE_TRIAL`. BASIC (test F): unchanged, does not inherit PRO's set. PRO (tests A, D): unchanged. All PASS, zero regression to the Owner-approved quota contract (§150.1).
 
-**Investigated, genuine blocker confirmed, not worked around.** No field or mechanism in the schema represents a real, paid, ongoing PRO subscription's own expiry distinct from the 14-day trial window (`trial_ends_at`) — confirmed via repo-wide search for `stripe`/`billing`/`subscription_end`/`subscription_status`, none found. `plan:'pro'` + `trial_ends_at:null` is therefore structurally indistinguishable from a genuine Lifetime grant today. Per explicit Owner instruction, no workaround was invented — reported as a blocker (`PROFLOW_TODO.md` item 51, new). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §150.8.
+## 12. Quota display/enforcement regression result
 
-## 13. LIFETIME behavior
+Unaffected — `Dashboard.jsx` still reads `entitlement.monthlyQuoteLimit` for both display and enforcement (§150.5/§150.6), unchanged by this task. `DISPLAY QUOTA === ENFORCEMENT QUOTA === CANONICAL ENTITLEMENT QUOTA` still holds by construction. Zero Dashboard.jsx/QuoteForm.jsx edits were required or made.
 
-`isLifetime`/`displayIdentity==='LIFETIME'` remain distinct from PRO (Stage 1, unchanged). **The actual fix this task delivers**: `entitlement.monthlyQuoteLimit` is now `Infinity` whenever `isLifetime===true`, **unconditionally**, regardless of underlying raw tier — closing a real, reachable defect (a Lifetime grant on a Basic-underlying account previously resolved `monthlyQuoteLimit:20`, since Admin's Toggle-Lifetime only ever touches `trial_ends_at`, never `plan`). No customer-specific condition — `isLifetime` computed identically for every account. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §150.3/§150.9.
+## 13. Professional Quotes future-inheritance assessment
 
-## 14. FREE(TRIAL) behavior
+**Not implemented, per explicit instruction.** Architecturally verified: a future `professionalQuotes` capability added to `PLAN_CATALOG.pro.entitlements` (§147.4's own proposal) will flow to `entitlement.professionalQuotes` for both real PRO and LIFETIME automatically via `getEntitlementSet()` — no separate Lifetime-specific wiring will be needed at that time.
 
-Already correct pre-task (`tier:'pro'`/`monthlyQuoteLimit:Infinity` during active trial via the pre-existing, unchanged `computeEffectivePlan()` trial branch; `displayIdentity` stays `'FREE_TRIAL'`, Stage 1). No implementation change required — confirmed via the new test matrix.
+## 14. TEST↔Production structural parity result
 
-## 15. Full six-state test matrix
+Re-audited per §9 of the authorization: `grep` for `import.meta.env`/`NODE_ENV`/`window.location.hostname`/separate-resolver-selection patterns in `planCatalog.js`/`accountEntitlement.js`: zero matches. The inheritance mechanism is pure, synchronous, environment-independent JavaScript.
 
-| Identity | Test input | `displayIdentity` | `monthlyQuoteLimit` | Result |
-|---|---|---|---|---|
-| A. FREE | `plan:free, trial:null` | FREE | 5 | PASS |
-| B. FREE(TRIAL active) | `plan:pro, trial:+10d` | FREE_TRIAL | Infinity | PASS |
-| B (expiring-soon) | `plan:pro, trial:+3d` | FREE_TRIAL | Infinity | PASS |
-| C. FREE(TRIAL expired) | `plan:pro, trial:-5d` | FREE | 5 | PASS |
-| D. BASIC | `plan:basic, trial:-30d` | BASIC | 20 | PASS |
-| E. "PRO valid" | `plan:pro, trial:+10d` (currently indistinguishable from active trial, §12) | FREE_TRIAL | Infinity | PASS, blocker disclosed |
-| F. LIFETIME (pro-underlying) | `plan:pro, trial:null` | LIFETIME | Infinity | PASS |
-| F2. LIFETIME (basic-underlying) — core fix | `plan:basic, trial:null` | LIFETIME | **Infinity** (was 20) | PASS |
+**CURRENT ENTITLEMENT STRUCTURAL PARITY: PASS** (re-confirmed).
 
-## 16. Boundary-test results
+## 15. Focused tests
 
-FREE: usage 4→no block, 5→block. BASIC: usage 19→no block, 20→block. FREE(TRIAL active): usage 20/9999→never blocks. LIFETIME (either underlying tier): usage 20→never blocks. All proven via unit test against `resolveAccountEntitlement()`'s own returned values, mirroring `Dashboard.jsx`'s real `>=` comparison — zero TEST-account mutation.
+15 new: 3 in `planCatalog.test.js` (`getEntitlementSet` exact-match/fresh-copy/fallback), 12 in `accountEntitlement.test.js` (items A/B-I/C/D/E/F/G/H/I2/J/K + `super_admin` confirmation).
 
-## 17. HE/EN results
+## 16. Full regression suite
 
-No business-rule logic in any touched file branches on language. `entitlement.*` values are pure numbers/booleans, computed identically regardless of `isHebrew`. Only pre-existing (untouched) display strings differ by language, both interpolating the identical canonical value.
+**228/228 tests pass** (213 pre-existing + 15 new, zero weakened/removed assertion).
 
-## 18. Local/International results
+## 17. ESLint/build
 
-Plan/quota logic is entirely orthogonal to market (HE/RTL/ILS vs EN/LTR/USD-EUR-GBP) — confirmed zero market-conditional code in any touched file.
+`npx eslint` (5 touched/relevant files): 0 errors, 1 pre-existing unrelated warning (`Dashboard.jsx:364`, predates this task). `npx vite build`: clean.
 
-## 19. TEST↔Production structural parity audit
-
-Scoped `grep` (plan/trial/Lifetime/entitlement/quota/quote-creation paths only) for `import.meta.env`/`NODE_ENV`/`window.location.hostname`/separate-resolver-selection patterns across all five touched-or-relevant files: **zero matches.** Single `vite.config.js`, single build, single `src/` tree.
-
-**CURRENT ENTITLEMENT STRUCTURAL PARITY: PASS.**
-
-## 20. Relevant environment-specific branches found
-
-**None**, within this task's own scope (item 19). Not extended into an unrelated whole-application audit, per explicit instruction.
-
-## 21. Regression-suite results
-
-`npx vitest run`: **213/213 pass** (200 pre-existing + 13 new, zero weakened/removed assertion). `npx eslint` (three touched files): 0 errors, 1 pre-existing unrelated warning. `npx vite build`: clean.
-
-## 22. git diff --stat
+## 18. git diff --stat
 
 ```
-src/components/QuoteForm.jsx         |  15 ++--
-src/components/SettingsTab.jsx       |  37 ++++++--
-src/pages/Dashboard.jsx              |  54 ++++++++++--
-src/utils/accountEntitlement.js      |  29 ++++++-
-src/utils/accountEntitlement.test.js | 162 +++++++++++++++++++++++++++++++++++
-src/utils/planCatalog.js             |  33 +++++++
-src/utils/planCatalog.test.js        |  63 +++++++++++++-
-7 files changed, 369 insertions(+), 24 deletions(-)
+src/components/QuoteForm.jsx         |  15 ++-
+src/components/SettingsTab.jsx       |  37 +++--
+src/pages/Dashboard.jsx              |  54 ++++++--
+src/utils/accountEntitlement.js      |  41 ++++--
+src/utils/accountEntitlement.test.js | 253 +++++++++++++++++++++++++++++++++++
+src/utils/planCatalog.js             |  82 ++++++++++--
+src/utils/planCatalog.test.js        | 109 +++++++++++++--
+7 files changed, 536 insertions(+), 55 deletions(-)
 ```
 
-(`SettingsTab.jsx`/`planCatalog.js`/`planCatalog.test.js` reflect Stage 1's own unmodified diff, carried forward.)
+Same 7 files as §150 — no new file touched.
 
-## 23. DB/schema status
+## 19. DB/schema status
 
-**Zero.** No DB/schema change, no migration, this task or Stage 1.
+**Zero.** No DB/schema change, no migration.
 
-## 24. TEST mutation status
+## 20. TEST mutation status
 
-**Zero.** All verification via unit tests against synthetic resolver inputs; TEST dev server not exercised for mutation this task.
+**Zero.** All verification via unit tests against synthetic resolver inputs.
 
-## 25. Production/customer-data status
+## 21. Production/customer-data status
 
-**Zero mutation.** No Production access performed this task (no new live observation was needed — §149's own David Aluminum read-only finding stands unchanged).
+**Zero mutation.** No Production access performed this task.
 
-## 26. David Aluminum status
+## 22. David Aluminum status
 
-**Untouched.** Zero code reference, zero mutation. The Lifetime-quota fix (§13) is purely rule-based and would affect his account only as a mechanical consequence of his own already-observed Lifetime status, never because he was named in any condition.
+**Untouched.** Zero code reference, zero mutation. The fix is purely structural (`getEntitlementSet`, `isLifetime`-driven base-plan selection), identical for every account.
 
-## 27. Professional Quotes/A100700 status
+## 23. A100700/Professional Quotes status
 
-**Untouched.** No implementation. Recommendation (unchanged from §149.9, reinforced by this task's own capability-consumer audit): Professional Quotes' future `professionalQuotes` capability flag should be wired to its real gate from day one.
+**Untouched.** No implementation.
 
-## 28. Continuity files updated
+## 24. Continuity files updated
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §150 (19 subsections).
-- `PROFLOW_TODO.md` — **UPDATED**: item 50 marked RESOLVED; new item 51 (PRO subscription-expiry blocker); item 28 thread extended.
-- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GV.
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §151 (15 subsections).
+- `PROFLOW_TODO.md` — **UPDATED**: item 50's note refined (full-set inheritance supersedes the per-field description); item 51 confirmed still open, explicitly not touched.
+- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GW.
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED**: §14, new lead paragraph.
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: §16, new paragraph (Entitlement/Quota Centralization + Iron Rule cross-reference).
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: §16, new paragraph.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED**: this file.
 
-## 29. Application commit/push/deploy/LIVE status
+## 25. Exact remaining uncommitted application files
 
-Application code (7 files total, Stage 1's own 6 plus `QuoteForm.jsx` newly touched) changed, TEST/local verified, **all still UNCOMMITTED** per explicit instruction. No commit. No push. No deploy. No LIVE action.
+`src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/utils/accountEntitlement.js`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js` — same 7 files as §150, all still uncommitted. Standing untracked `src/entry-server.jsx` unchanged.
 
-## 30. Remaining blockers/next authorization gate
+## 26. Commit/push/deploy/LIVE status
 
-- PRO subscription-expiry mechanism does not yet exist distinct from the trial window (`PROFLOW_TODO.md` item 51) — requires a future, separately-authorized billing/subscription-lifecycle stage.
-- `editDuplicate`/`whatsappDelete`/`attachments` were not made Lifetime-aware the same way `monthlyQuoteLimit` was — an open question for a future Owner decision (§150.7).
-- Stage 1 + this task's application code (7 files) remains uncommitted, awaiting separate Owner authorization to commit.
+No commit. No push. No deploy. No LIVE action.
+
+## 27. Remaining blockers/next authorization gate
+
+- PRO subscription-expiry mechanism (`PROFLOW_TODO.md` item 51) — explicitly not touched by this task, still requires a future, separately-authorized billing/subscription-lifecycle stage.
+- All 7 application files remain uncommitted, awaiting separate Owner authorization to commit.
 - Stage 2 (DB schema), Stage 3 (Professional Quotes + Owner tier decision), Stage 4 (David migration) all remain separately, explicitly not authorized.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`22efd8d` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`97455a4`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Stage 1's own six application files plus this task's `QuoteForm.jsx` remain uncommitted on local `main`.
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
 
 ---
 
-ENTITLEMENT CENTRALIZATION: PASS
-
-*(All 25 binary items from §150.18 PASS except #7, PARTIAL — PRO's "unlimited until subscription expiry" lifecycle is semantically preserved in the resolver's design but cannot be fully proven end-to-end without a real subscription-expiry field, honestly disclosed as an instructed blocker (§12/§30) rather than invented around. This does not change the overall centralization result: the actual quota/capability centralization work — the task's core deliverable — is complete and fully proven, item 50 resolved.)*
+LIFETIME FULL-PRO INHERITANCE: PASS
 
 TEST↔PRODUCTION STRUCTURAL PARITY: PASS
 
