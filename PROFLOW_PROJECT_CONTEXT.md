@@ -6525,3 +6525,157 @@ If the Owner later authorizes a correction: replace both hardcoded ternaries (`D
 **READ-ONLY throughout.** Zero application file modified this task (Stage 1's own 6 files remain exactly as reported, confirmed 149.0). Zero DB/TEST/Production mutation — the one live observation (149.4) was a real, already-authenticated, GET-only Admin page load with zero click on any mutating control. No commit of application code. No push of application code. No deploy. No LIVE action. David Aluminum: read-only observation only, zero mutation.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §149); `PROFLOW_TODO.md` UPDATED (new item recording the quota-centralization gap, cross-referenced with item 28); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (§16 already forward-points to §148; this audit is a finding, not an architecture change); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed this task. Zero DB/TEST/Production mutation. Stage 1's own six files confirmed undisturbed, still uncommitted.**
+
+## §150. Entitlement/Quota Centralization + TEST↔Production Structural Parity (added 2026-09-02, Owner-authorized — application-code implementation extending Stage 1, TEST/local only, application changes left UNCOMMITTED per explicit instruction, NOT pushed, NOT deployed)
+
+### 150.0 Fresh state before work
+
+Local `main` HEAD `0ca414f` (unchanged from end of §149). `origin/main` unchanged at `26dee96`. Stage 1's six-file diff reproduced byte-identical (221 insertions/10 deletions) before this task's own edits began — confirmed via `git diff --stat`, nothing reset/stashed/discarded. `origin/proflow-continuity` at `4246af1`, confirmed via fresh remote fetch. Standing untracked `src/entry-server.jsx` unchanged.
+
+### 150.1 Owner-defined canonical plan/quota contract (recorded verbatim as an Owner decision)
+
+| Identity | Monthly quote limit | Lifecycle |
+|---|---|---|
+| FREE | 5 | n/a |
+| FREE (TRIAL, active) | Unlimited (temporary PRO-level entitlement; identity stays FREE, display stays FREE (TRIAL) — never becomes real PRO) | 14-day trial window |
+| BASIC | 20 | n/a |
+| PRO | Unlimited | **"Unlimited — until subscription expiry."** Not permanent; when the subscription ceases, entitlements must recompute from the resulting account state. Billing/renewal explicitly NOT implemented in this task. |
+| LIFETIME | Unlimited | No subscription expiry. Distinct identity/lifecycle from PRO even though both currently resolve to the same `Infinity` capability value. |
+
+This is now the canonical, Owner-approved product contract for `entitlement.monthlyQuoteLimit`, superseding the "NOT YET CANONICALLY DEFINED" status recorded at §149.3 for LIFETIME specifically.
+
+### 150.2 File-by-file ledger
+
+| File | HE/EN/BOTH | Responsibility | Change | Regression risk | Verification |
+|---|---|---|---|---|---|
+| `src/utils/accountEntitlement.js` | BOTH (logic only, no strings) | Canonical resolver — computes `tier`/`displayIdentity`/`entitlement` from raw account state | `entitlement.monthlyQuoteLimit` now overridden to `Infinity` whenever `isLifetime===true`, regardless of underlying tier (previously derived purely from `tier`, which stays at the underlying raw tier's own limit for admin-granted Lifetime-on-non-pro accounts — see 150.3) | Low — single new conditional, additive, no existing field's derivation changed | `accountEntitlement.test.js`, 213/213 pass incl. 13 new |
+| `src/pages/Dashboard.jsx` | BOTH | Quota display, quote-creation enforcement, protected-action gate (edit/duplicate/whatsapp/delete), QuoteForm prop-passing | Removed two duplicated hardcoded ternaries (display `planLimit`, enforcement `limit`) — both now read `entitlement.monthlyQuoteLimit`. `handleProtectedAction`'s edit/duplicate and whatsapp/delete gates now read `entitlement.editDuplicate`/`entitlement.whatsappDelete` instead of the separately-derived `isBasicOrAbove`/`isPro` booleans. Removed now-dead `isBasicOrAbove`. `isPro` kept (still consumed by the pre-existing, untouched quota-row visibility gate at the KPI card). `QuoteForm` now receives `canUseAttachments={entitlement.attachments}` instead of `userPlan`/`isSuperAdmin` | Low — every replacement reads from the same underlying `tier`/`effectivePlan` for all pre-existing (non-Lifetime-anomaly) states, so behavior is unchanged for FREE/BASIC/PRO/active-trial; only the previously-unreachable-correctly Lifetime-on-non-pro edge case changes (intentionally, per 150.1) | eslint clean, `vite build` clean, 213/213 unit tests pass |
+| `src/components/QuoteForm.jsx` | BOTH | Attachment upload gate + remaining-MB banner | Replaced third independent plan-guess (`userPlan === 'pro' \|\| isSuperAdmin`) with a single `canUseAttachments` prop sourced from the canonical resolver | Low — `entitlement.attachments` already includes the `isSuperAdmin` case internally; behavior identical for every non-Lifetime-anomaly state | eslint clean, `vite build` clean |
+| `src/utils/accountEntitlement.test.js` | n/a (tests) | Test coverage for the resolver | Added 13 new tests: six-identity Owner-contract quota matrix, the Lifetime-on-Basic-underlying-tier regression proof (the actual defect this task fixes), boundary proofs mirroring Dashboard's own `>=` comparison | n/a | Self-verifying (test run) |
+
+`SettingsTab.jsx`/`planCatalog.js`/`planCatalog.test.js` — **not touched this task**, confirmed via targeted search to have zero quota/capability-gating consumers (Stage 1's own diff on these files is carried forward unchanged).
+
+### 150.3 The actual defect this task's implementation corrects (beyond §149's own finding)
+
+§149 proved the two Dashboard.jsx ternaries never consult `PLAN_CATALOG`/the resolver, and separately proved (149.4/149.5) that under the *then-current* formulas, `isLifetime===true` could never co-occur with a `5`-quota result. That proof remains true and unaffected. **This task's own investigation found a second, narrower, previously-undocumented defect in the resolver itself**: `entitlement.monthlyQuoteLimit` was derived purely from `tier` (`getPlanDefinition(tier).monthlyQuoteLimit`), and `isLifetime` was computed but **not fed back into it at all** — confirmed dead for this purpose, same root pattern as 149.6's broader finding. Since Admin's "Toggle Lifetime" (`handleToggleLifetime`, `Dashboard.jsx`) mutates **only** `trial_ends_at`, never `plan`, it is callable on **any** account regardless of underlying raw tier — including `plan==='basic'`. For that specific, reachable combination (`rawPlan==='basic'`, `trial_ends_at===null`), `computeEffectivePlan()`'s own `basic` branch ignores `trialEndsAt` entirely and returns `tier==='basic'` unconditionally — so before this fix, a Basic-tier account granted Lifetime would resolve `isLifetime:true`, `displayIdentity:'LIFETIME'`, **and `monthlyQuoteLimit:20`** — the same defect class as the original "0/5" alarm, one tier up. **Fixed**: `entitlement.monthlyQuoteLimit = isLifetime ? Infinity : planDef.monthlyQuoteLimit` — a single, uniform, rule-based override (not customer-specific; applies to any account whose `isLifetime` flag is true, computed the same pre-existing way for everyone). Regression-proven via `accountEntitlement.test.js` test "F2. THE CORE FIX" (§150 test suite).
+
+### 150.4 Canonical resolver flow after implementation
+
+`business_settings.plan` + `trial_ends_at` + `role` → `computeEffectivePlan()` (unchanged) → `resolveAccountEntitlement()` (fixed per 150.3) → `{ tier, displayIdentity, isLifetime, entitlement: { monthlyQuoteLimit, editDuplicate, whatsappDelete, attachments } }` → **all** relevant `Dashboard.jsx`/`QuoteForm.jsx` consumers read `entitlement.*` directly. No independent local re-derivation remains anywhere in the audited quota/capability paths (confirmed via repo-wide `grep`, 150.7).
+
+### 150.5 Display quota path / 150.6 Enforcement quota path
+
+Both `Dashboard.jsx`'s quota display (`planLimit`, KPI card) and its quote-creation enforcement gate (`handleSaveQuote`, pre-save check) now read the **same** `entitlement.monthlyQuoteLimit` value, computed once per render at the top of the component (`resolveAccountEntitlement()` call already present from Stage 1). `DISPLAY QUOTA === ENFORCEMENT QUOTA === CANONICAL ENTITLEMENT QUOTA` holds by construction (identical variable reference), not by coincidental duplication as before.
+
+### 150.7 Capability-consumer corrections (§ section 4 of the authorization)
+
+Audited every consumer of the resolver's four canonical entitlement properties app-wide (repo-wide `grep`, scoped to `isPro`/`isBasicOrAbove`/`userPlan ===`/quota-ternary patterns — confirmed only two files had live consumers beyond the resolver itself):
+- `Dashboard.jsx` `handleProtectedAction` (edit/duplicate, whatsapp/delete) → now reads `entitlement.editDuplicate`/`entitlement.whatsappDelete`.
+- `QuoteForm.jsx` attachment gate + remaining-MB banner → now reads `canUseAttachments` (`entitlement.attachments`).
+
+No unrelated feature touched. `SettingsTab.jsx`, `AdminUsersTab.jsx`, `UserDetailsModal.jsx` already consumed the canonical resolver (pre-existing, Stage 1/earlier) — not modified.
+
+**Not fixed, honestly flagged (out of explicit Owner instruction scope)**: `entitlement.editDuplicate`/`whatsappDelete`/`attachments` were **not** made Lifetime-aware the way `monthlyQuoteLimit` was (150.3) — the Owner's explicit contract (150.1) defines only the quota matrix numerically; sections 2/9 of the authorization discuss identity distinctness generally but do not instruct a capability-level Lifetime override. A Lifetime grant on a Basic-underlying account would therefore still resolve `editDuplicate:true` (trivially, Basic already grants this) but `whatsappDelete:false`/`attachments:false` (Pro-only capabilities) — an asymmetry with its now-correct `monthlyQuoteLimit:Infinity`. This is a genuine, narrow, discovered-but-not-invented open question for a future Owner decision, not silently fixed and not silently ignored.
+
+### 150.8 PRO subscription-expiry semantics — investigated, blocker confirmed and reported (not worked around)
+
+Searched the full repo for any real, paid, non-trial subscription mechanism distinct from the 14-day trial field: `grep` for `stripe`/`billing`/`subscription_end`/`subscription_status`/`paid_until` across `src/` returns no matching business-logic file (only unrelated VAT/legal-page/regionConfig matches). The only write path that ever sets `plan:'pro'` is signup (`Dashboard.jsx handleSignUp`, paired with a real 14-day `trial_ends_at`) or Admin's Toggle-Lifetime (`trial_ends_at` only, `plan` untouched). **There is currently no distinct field or mechanism representing "a real, paid, ongoing PRO subscription with its own expiry, independent of the trial window."** Consequently: `plan==='pro'` + `trial_ends_at===null` is **structurally indistinguishable** from a genuine Lifetime grant under the current schema — both produce `isLifetime:true` today, by the same, unchanged 150.3-adjacent formula. **This is the exact dependency the authorization's §8 asked to be reported, not invented around: proving "PRO unlimited quota revokes correctly when the subscription is no longer valid" is not currently possible, because "subscription validity" independent of the trial field does not yet exist in the data model.** No DB/schema change was made to address this (explicitly not authorized); no workaround was invented. **Recorded as a blocker for a future, separately-authorized stage** (billing/subscription-lifecycle implementation) — see `PROFLOW_TODO.md` new item.
+
+### 150.9 LIFETIME semantics — implemented per Owner contract
+
+`isLifetime` remains a distinct, resolver-computed boolean (unchanged derivation: `!isSuperAdmin && hasNullTrial && rawPlan !== 'free'`); `displayIdentity==='LIFETIME'` remains a distinct identity from `'PRO'` (Stage 1, unchanged). What changed this task: `entitlement.monthlyQuoteLimit` is now `Infinity` whenever `isLifetime===true`, **unconditionally**, regardless of the underlying raw tier (150.3) — matching the Owner's explicit "LIFETIME = unlimited... no subscription expiry" contract (150.1) exactly, without introducing any customer-specific condition (`isLifetime` is computed identically for every account, David Aluminum included, never singled out).
+
+### 150.10 FREE(TRIAL) behavior — confirmed correct, unchanged
+
+FREE(TRIAL, active) already resolved to `tier:'pro'`/`monthlyQuoteLimit:Infinity` via the pre-existing `computeEffectivePlan()` trial branch (unchanged by this task) while `displayIdentity` (Stage 1) correctly stays `'FREE_TRIAL'`, never `'PRO'`. No implementation change was required here — 150.1's FREE(TRIAL) row was already satisfied; verified via the new test matrix (150.11).
+
+### 150.11 Full six-state test matrix + boundary results
+
+All six identities proven via `accountEntitlement.test.js` (new `describe` blocks, 150.3-adjacent), using synthetic resolver inputs rather than mutating TEST accounts (persona data for `..._basic`/`..._pro` personas is already known, §149, to be stored in a Lifetime-shaped configuration, making it unsuitable for a clean "PRO valid, non-Lifetime" fixture — unit-level synthetic state gives full, deterministic control instead):
+
+| Identity | Test input | `displayIdentity` | `entitlement.monthlyQuoteLimit` | Result |
+|---|---|---|---|---|
+| A. FREE | `plan:free, trial:null` | FREE | 5 | PASS |
+| B. FREE(TRIAL active) | `plan:pro, trial:+10d` | FREE_TRIAL | Infinity | PASS |
+| B (expiring-soon) | `plan:pro, trial:+3d` | FREE_TRIAL | Infinity | PASS |
+| C. FREE(TRIAL expired) | `plan:pro, trial:-5d` | FREE | 5 | PASS |
+| D. BASIC | `plan:basic, trial:-30d` | BASIC | 20 | PASS |
+| E. "PRO valid" | `plan:pro, trial:+10d` — see 150.8, currently indistinguishable from an active trial under the existing schema | FREE_TRIAL (not a bare "PRO", per 150.8's own honest limitation) | Infinity | PASS (data-shape blocker disclosed, not hidden) |
+| F. LIFETIME (pro-underlying) | `plan:pro, trial:null` | LIFETIME | Infinity | PASS |
+| F2. LIFETIME (basic-underlying) — the core fix | `plan:basic, trial:null` | LIFETIME | **Infinity** (was 20 before this task) | PASS |
+
+**Boundary proofs** (mirroring `Dashboard.jsx`'s own `monthlyQuotesCount >= limit` comparison, per §19 of the authorization): FREE usage 4→no block, 5→block. BASIC usage 19→no block, 20→block. FREE(TRIAL active) usage 20/9999→never blocks. LIFETIME (either underlying tier) usage 20→never blocks. All proven via unit test, zero TEST-account mutation.
+
+### 150.12 HE/EN + Local/International results
+
+No business-rule logic in any touched file branches on `isHebrew`/market — `entitlement.monthlyQuoteLimit`/`editDuplicate`/`whatsappDelete`/`attachments` are pure numbers/booleans computed identically regardless of language or market. Only `Dashboard.jsx`'s pre-existing (untouched) display strings (`` `החודש: ${monthlyQuotesCount} / ${planLimit}` `` vs `` `This month: ${monthlyQuotesCount} / ${planLimit}` ``) differ by language — both interpolate the identical canonical `planLimit` value. Local/International market separation (HE/RTL/ILS vs EN/LTR/USD-EUR-GBP) is entirely orthogonal to plan/quota logic — confirmed zero market-conditional code exists in any touched file.
+
+### 150.13 TEST↔Production Structural Parity — audit result
+
+Scoped `grep` (plan/trial/Lifetime/entitlement/quota/quote-creation paths only, per the authorization's own explicit scope limit) for `import.meta.env`/`NODE_ENV`/`window.location.hostname`/separate-resolver-selection patterns across `accountEntitlement.js`, `planCatalog.js`, `planEntitlements.js`, `Dashboard.jsx`, `QuoteForm.jsx`: **zero matches.** Single `vite.config.js`, single build, single `src/` tree — TEST and Production execute the exact same compiled business-rule code; the only difference is the Supabase project URL/keys consumed via environment variables (a legitimate, explicitly-allowed environment difference per §11 of the authorization, not a business-rule divergence).
+
+**CURRENT ENTITLEMENT STRUCTURAL PARITY: PASS.**
+
+This confirms no material structural divergence exists for this task's own scope. It does not certify the entire application (explicitly out of scope, §13: "Do not turn this into an unrelated whole-application audit").
+
+### 150.14 Regression-suite results
+
+`npx vitest run`: **213/213 tests pass** (200 pre-existing + 13 new, zero pre-existing assertion weakened or removed). `npx eslint src/pages/Dashboard.jsx src/components/QuoteForm.jsx src/utils/accountEntitlement.js`: 0 errors, 1 pre-existing unrelated warning (missing `useEffect` dep at `Dashboard.jsx:364`, present before this task, not touched). `npx vite build`: clean production build, no new warnings.
+
+### 150.15 Item 50 status
+
+**RESOLVED** by this task's implementation (150.2-150.7). Cross-referenced at `PROFLOW_TODO.md`.
+
+### 150.16 TEST↔Production Structural Parity — Permanent Iron Rule (governance addition, not scoped to this task alone)
+
+Per the Owner's explicit instruction (§11-§12 of this task's authorization), the following is now a **permanent** ProFlow architectural/testing rule, applicable to all future work, not only this task:
+
+**TEST exists to predict Production behavior. For any business logic intended to be validated before release — plan hierarchy, account-state resolution, trial semantics, subscription lifecycle, Lifetime interpretation, entitlements, monthly quotas, usage rules, feature gates, quote-creation gates, HE/EN business semantics, Local/International market rules, shared UI behavior, Professional Quote capability architecture (once implemented), and any future release-validation rule engine — TEST and Production MUST execute the same application architecture and the same business logic. Only legitimate environment-specific concerns may differ: data, test personas, credentials/secrets, environment variables, service endpoints, infrastructure configuration, TEST-only safety isolation.**
+
+**Forbidden without explicit Owner-approved justification**: TEST-only or Production-only plan/resolver/quota formulas; hardcoded environment-specific business behavior; any feature whose TEST verification exercises a materially different structural code path than Production will run.
+
+**Parity Release Gate**: a TEST PASS is not valid evidence of Production readiness if TEST exercised a materially different implementation path from Production. Before any future Production release of a tested feature, the same business rule + the same structural code path + only legitimate environment differences must be proven; a material structural divergence is `TEST→PRODUCTION PARITY: FAIL` and a release blocker. The correct response to a divergence is fixing the shared source, never making Production cosmetically resemble TEST.
+
+This rule is now permanent and applies to all future ProFlow tasks, alongside §56 (Global Surface Width Contract), §137 (Global Change Propagation), and §142.2 (Binary Acceptance Governance).
+
+### 150.17 David Aluminum / A100700 / Professional Quotes status
+
+**Zero mutation, zero code reference.** No `if (email===david...)`/`if (businessName===...)`/`if (userId===...)` pattern introduced anywhere — confirmed via review of every diff hunk in 150.2. The fix (150.3) is purely rule-based (`isLifetime`, computed identically for every account) and would apply to David's account only as a mechanical consequence of his own already-observed Lifetime status (§149.4), not because he was named in any condition. A100700 untouched. Professional Quotes untouched — its own future `professionalQuotes` capability flag (§147.4 proposal) should, per this task's own findings (150.3/150.7), be wired to its real gate from day one rather than repeating the "correct value computed, never consumed" pattern found twice in this project now (quota, and this task's own capability-consumer audit).
+
+### 150.18 Binary acceptance results (§24 of the authorization)
+
+| # | Item | Result |
+|---|---|---|
+| 1 | FREE quota = 5 | PASS |
+| 2 | active FREE(TRIAL) quota = unlimited | PASS |
+| 3 | expired FREE trial quota = 5 | PASS |
+| 4 | BASIC quota = 20 | PASS |
+| 5 | valid PRO quota = unlimited | PASS (data-shape blocker honestly disclosed, 150.8) |
+| 6 | LIFETIME quota = unlimited | PASS (now true unconditionally, 150.3/150.9) |
+| 7 | PRO lifecycle remains subscription-bound | **PARTIAL** — semantically preserved in the resolver's own design (no code claims PRO is permanent), but cannot be fully proven end-to-end without a real subscription-expiry field (150.8, honest blocker, not a failure to implement what was authorized) |
+| 8 | LIFETIME lifecycle remains non-expiring | PASS |
+| 9 | FREE(TRIAL) remains distinct from PRO identity | PASS (Stage 1, unchanged, reconfirmed) |
+| 10 | quota display consumes canonical `monthlyQuoteLimit` | PASS |
+| 11 | quota enforcement consumes the SAME canonical `monthlyQuoteLimit` | PASS |
+| 12 | duplicated hardcoded quota formulas removed | PASS |
+| 13 | relevant canonical capabilities actually consumed | PASS (`editDuplicate`/`whatsappDelete`/`attachments` now consumed by their real gates, 150.7) |
+| 14 | no customer-specific exception | PASS |
+| 15 | HE/EN business semantics match | PASS |
+| 16 | Local/International separation preserved | PASS |
+| 17 | entitlement/quota TEST↔Production structural path shared | PASS |
+| 18 | no material environment-specific business-rule divergence | PASS |
+| 19 | no DB/schema change | PASS |
+| 20 | no Production/customer-data mutation | PASS |
+| 21 | David Aluminum untouched | PASS |
+| 22 | A100700 untouched | PASS |
+| 23 | Professional Quotes implementation untouched | PASS |
+| 24 | existing Stage-1 work preserved | PASS (150.0) |
+| 25 | tests PASS | PASS (213/213) |
+
+**One item (#7) is PARTIAL, not PASS** — it reflects a real architectural limitation (no billing/subscription system yet exists) rather than a defect introduced or left unfixed by this task; the authorization itself explicitly forbade inventing a workaround for it (§8: "DO NOT invent a workaround. Report the exact remaining dependency as a blocker/future stage."), so PARTIAL is the honest, instructed outcome, not a shortfall in the work performed.
+
+### 150.19 Release boundary
+
+Application code: 3 files modified beyond Stage 1's own 6 (`accountEntitlement.js` further modified, `accountEntitlement.test.js` further modified, `Dashboard.jsx` further modified, `QuoteForm.jsx` newly modified) — **all still uncommitted**, integrated safely with Stage 1's own preserved diff (`git diff --stat`: 7 files, 369 insertions/24 deletions total). No DB/schema change. No migration. No customer/account/subscription/trial data mutation. No Production mutation. No Production deployment. No LIVE action. David Aluminum untouched. A100700 untouched. Professional Quotes implementation untouched. No application commit. No application push. No deploy.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §150); `PROFLOW_TODO.md` UPDATED (item 50 marked RESOLVED, new item recording the PRO-expiry blocker); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16 forward-pointer to §150; new Permanent Iron Rule cross-reference); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).

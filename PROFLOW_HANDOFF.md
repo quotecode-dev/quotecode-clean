@@ -4996,4 +4996,22 @@ Triggered by the Owner observing David Aluminum's real Dashboard showing "0 / 5"
 
 **Release boundary**: READ-ONLY throughout. Zero application file modified. Zero DB/TEST/Production mutation. Stage 1's own six files confirmed undisturbed, still uncommitted. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §149, `PROFLOW_TODO.md` items 28 (updated)/50 (new).
 
+## §18.GV. Entitlement/Quota Centralization + TEST↔Production Structural Parity (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §150 — application-code implementation extending Stage 1, TEST/local, application code left UNCOMMITTED, NOT pushed, NOT deployed)
+
+Owner explicitly authorized implementing the §149 forensic finding, extending Stage 1's own uncommitted work. Owner also defined the canonical plan/quota contract as an explicit product decision (FREE=5, FREE-TRIAL=unlimited-while-active, BASIC=20, PRO=unlimited-until-subscription-expiry, LIFETIME=unlimited/non-expiring).
+
+**Item 50 fix**: `Dashboard.jsx`'s two hardcoded quota ternaries (display + enforcement) removed — both now read the single canonical `entitlement.monthlyQuoteLimit` (`resolveAccountEntitlement()`). `handleProtectedAction` (edit/duplicate/whatsapp/delete) and `QuoteForm.jsx`'s attachment gate migrated from separately-derived `isPro`/`isBasicOrAbove`/`userPlan` guesses to the same canonical `entitlement.editDuplicate`/`whatsappDelete`/`attachments`.
+
+**A second, narrower defect found and fixed during implementation** (not part of §149's own finding): `entitlement.monthlyQuoteLimit` itself was not Lifetime-aware — since Admin's Toggle-Lifetime only ever touches `trial_ends_at`, never `plan`, a Lifetime grant on a Basic-underlying account resolved `monthlyQuoteLimit:20`, not unlimited — the same defect class as the original "0/5" alarm, one tier up, just not yet reachable/observed. Fixed with a single, uniform, rule-based override (`isLifetime ? Infinity : planDef.monthlyQuoteLimit`) — no customer-specific condition, applies identically to every account.
+
+**PRO subscription-expiry semantics — investigated, genuine blocker confirmed, not worked around**: no field or mechanism exists distinguishing a real, paid, ongoing PRO subscription's own expiry from the 14-day trial window — `plan:'pro'`+`trial_ends_at:null` is currently structurally indistinguishable from Lifetime. Per explicit Owner instruction, this was reported as a blocker (`PROFLOW_TODO.md` item 51), not invented around.
+
+**New permanent governance**: **TEST↔Production Structural Parity Iron Rule** (`PROFLOW_PROJECT_CONTEXT.md` §150.16) — TEST and Production must execute the same business-rule code for release-validated behavior; only legitimate environment differences (data/credentials/env vars/endpoints) may differ. Audited for this task's own scope (plan/trial/Lifetime/entitlement/quota/quote-creation paths): **PASS**, zero environment-conditional business-rule branching found.
+
+**Verification**: 213/213 tests pass (200 pre-existing + 13 new — six-identity Owner-contract quota matrix, the Lifetime-on-Basic regression proof, boundary proofs). `eslint` clean (one pre-existing unrelated warning). `vite build` clean.
+
+**Not extended**: `editDuplicate`/`whatsappDelete`/`attachments` were not made Lifetime-aware the same way (Owner's contract only defined quota numerically) — recorded as an honest open question, not silently fixed, not silently ignored.
+
+**Release boundary**: application code (`accountEntitlement.js`, `accountEntitlement.test.js`, `Dashboard.jsx`, `QuoteForm.jsx` — beyond Stage 1's own 6 files) changed, TEST/local verified, Stage 1's own work preserved and integrated — **all still UNCOMMITTED** per explicit instruction. No DB/schema change. No Production/customer-data mutation. No commit, push, deploy, or LIVE action. David Aluminum, A100700, Professional Quotes untouched. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §150, `PROFLOW_TODO.md` item 50 (resolved)/51 (new blocker).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.
