@@ -158,7 +158,7 @@ TEST app: `http://localhost:5186` (dev:localtest, `quotecode-test`). Suggested c
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+`52e2c66` on `proflow-continuity` (pushed: `1b98739..52e2c66`, fast-forward, no conflicts). Push performed in a dedicated follow-up "COMPLETE CANONICAL CONTINUITY TRANSPORT ONLY" task after the implementation task's own push attempt was denied by the Claude Code auto-mode permission classifier — the Owner reconfirmed the documentation-only `proflow-continuity` transport as permanently authorized, and the prepared commit was independently re-verified (main `HEAD` still `f3b59d0`, `origin/proflow-continuity` still `1b98739`, continuity worktree still clean at `52e2c66`) as accurately representing the completed task before pushing — no application code touched, no TEST/DB/main/Production/LIVE action performed. Fresh remote read-back after push independently confirmed all six files present and consistent on `origin/proflow-continuity` at `52e2c66`.
 
 ---
 
