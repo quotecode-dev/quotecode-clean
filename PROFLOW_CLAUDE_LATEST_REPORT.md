@@ -98,7 +98,7 @@ powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enrol
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `6f38349`.
 
 ---
 
