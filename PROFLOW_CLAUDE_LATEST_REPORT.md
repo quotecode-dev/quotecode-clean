@@ -4,142 +4,106 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Plan Identity / Trial / Lifetime Centralization — Stage 1 Implementation
+## Task: Entitlement / Quota Forensic Audit (before Stage 1 commit)
 
-**Stage 1 application code ONLY, TEST/local. NO DB/schema change, NO customer/account/subscription/trial data mutation, NO Production action, NO application commit/push/deploy (application code left UNCOMMITTED per explicit instruction), NO LIVE action.**
+**MODE: READ-ONLY FORENSIC INVESTIGATION. Zero application/DB/TEST/Production mutation. Stage 1's own six files confirmed undisturbed.**
 
 ---
 
-## 1. Fresh Local State before work
+## 1. Fresh Local State
 
-`origin/main`=`26dee96` (unchanged). Local `main` carries one still-unpushed, unrelated application commit from §146 (`ProfessionalPublicPreview.jsx`) — confirmed untouched throughout. Working tree clean besides the standing untracked `entry-server.jsx` before this task's own edits.
+`origin/main`=`26dee96` (unchanged). Local `main` at `40b30c3`. Working tree clean besides the standing untracked `entry-server.jsx` and Stage 1's own six modified files.
 
-## 2. Files inspected
+## 2. Confirmation Stage-1 changes remain intact and uncommitted
 
-`accountEntitlement.js`, `planCatalog.js`, `planEntitlements.js`, `Dashboard.jsx` (plan-identity section + `<SettingsTab>` render), `SettingsTab.jsx` (full plan-display block), `AdminUsersTab.jsx`/`UserDetailsModal.jsx` (consumption pattern, confirmed not requiring change for Stage 1), both new/existing test files.
+`git diff --stat` reproduces the exact same 6-file, 221-insertion/10-deletion diff reported at the end of §148 — byte-identical before and after this audit. Nothing discarded, reset, stashed, committed, or otherwise disturbed.
 
-## 3. Files modified
+## 3. Exact source of displayed "5"
 
-Exactly 6: `src/utils/accountEntitlement.js`, `src/utils/planCatalog.js`, `src/pages/Dashboard.jsx`, `src/components/SettingsTab.jsx`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.test.js`. No other file touched.
+`src/pages/Dashboard.jsx:1752`: `const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';` — a hardcoded, standalone ternary. **Not** `PLAN_CATALOG`-derived, not resolver-derived, not DB/RPC-derived. Rendered at line 3267 as `${monthlyQuotesCount} / ${planLimit}`.
 
-## 4. Exact canonical resolver architecture after Stage 1
+## 4. Exact source of enforced monthly quota
 
-`computeEffectivePlan()` (unchanged) → `PLAN_CATALOG` (unchanged entitlements, two new exports added) → `resolveAccountEntitlement()` (one new additive field, `displayIdentity`). No new independent interpretation system created. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §148.1.
+`src/pages/Dashboard.jsx:2049-2050`: `const limit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : Infinity; if (monthlyQuotesCount >= limit) { ...blocks the save, real return... }` — an independent, separately-typed duplicate of the same formula, inside the actual quote-creation gate. This is a real, active enforcement mechanism, not a display artifact.
 
-## 5. Exact five display identities and HE/EN labels
+## 5. Display-vs-enforcement comparison
 
-| Identity key | EN | HE |
-|---|---|---|
-| FREE | FREE | FREE |
-| FREE_TRIAL | **FREE (TRIAL)** | FREE (ניסיון) |
-| BASIC | BASIC | BASIC |
-| PRO | PRO | PRO |
-| LIFETIME | LIFETIME | LIFETIME |
+Currently **identical in every case** — but only because the same magic-number formula was copy-pasted twice, not because either reads from the other or from any shared source. `PLAN_CATALOG.monthlyQuoteLimit` (the correct, centralized value, already computed by `resolveAccountEntitlement()`) has **zero consumers anywhere in the app**.
 
-The required literal English string `"FREE (TRIAL)"` is exact and unit-test-locked.
+## 6. LIFETIME canonical product contract
 
-## 6. Dashboard changes
+**NOT YET CANONICALLY DEFINED.** Searched all six continuity files — no Owner decision found specifying Lifetime's intended quota. Current system behavior (Lifetime quota = whatever the underlying raw tier's `PLAN_CATALOG` limit is) is an implementation default, not a proven product rule. `LIFETIME = unlimited` was not assumed anywhere in this audit.
 
-One additive `resolveAccountEntitlement()` call for `isLifetime`/`displayIdentity` only. Pre-existing `effectivePlan`/`isPro`/`isBasicOrAbove`/`isTrialExpired`/`trialDaysLeft` computation (via `computeEffectivePlan()`) left completely untouched — zero regression risk to any existing entitlement gate. Header Upgrade CTA now reads the shared `shouldShowUpgradeCta()` (zero behavior change for Dashboard itself — both expressions already agreed). Three new props (`isLifetime`, `displayIdentity`, `isSuperAdmin`) passed to `SettingsTab`.
+## 7. Full five-identity quota matrix
 
-## 7. Settings / Upgrade CTA changes
+Full table: `PROFLOW_PROJECT_CONTEXT.md` §149.7. Summary — every identity's display and enforced quota currently agree (FREE=5, FREE-TRIAL=unlimited, BASIC=20, PRO=unlimited, LIFETIME=unlimited-or-20-depending-on-underlying-tier) — but each row **FAILs** centralization (149.10).
 
-`{effectivePlan} PLAN` → `{getDisplayIdentityLabel(displayIdentity, isHebrew)} PLAN` (fixes the literal "PRO PLAN"-for-Lifetime gap). "Upgrade / Change Plan" button: was unconditional → now wrapped in `shouldShowUpgradeCta()`. "Cancel Subscription": `bizPlan!=='free'` → `!isLifetime && bizPlan!=='free'`.
+## 8. Every quota/limit implementation location found
 
-## 8. Lifetime behavior
+Full table: `PROFLOW_PROJECT_CONTEXT.md` §149.6. Two hardcoded ternaries (`Dashboard.jsx`); one correctly-centralized-but-unconsumed source (`accountEntitlement.js`/`planCatalog.js`); static marketing copy only in `PricingModal.jsx`/`LandingGlobal.jsx` (no logic).
 
-Displays as `LIFETIME`, never `PRO`, in both touched components. Never receives either Upgrade CTA or the Cancel Subscription control. Entitlement (capability set) unchanged — display/CTA-visibility only. No DB field added — Stage 1 keeps the existing inference exactly as before.
+## 9. Every independent/legacy plan interpretation found
 
-## 9. Trial behavior
+The two quota ternaries (149.4 above). Additionally, broader than quota alone: `resolveAccountEntitlement()`'s entire `entitlement` sub-object (`monthlyQuoteLimit`, `editDuplicate`, `whatsappDelete`, `attachments`) is dead code for enforcement purposes app-wide — real capability gating uses separately-derived `isPro`/`isBasicOrAbove` booleans instead, a second, parallel system that currently agrees with the resolver only because both trace back to the same `computeEffectivePlan()` call.
 
-Zero change to `computeEffectivePlan()` — an active trial still grants full PRO-level entitlement exactly as before. Only display changed: `displayIdentity` now reports `FREE_TRIAL` (renders `"FREE (TRIAL)"`) instead of the account ever appearing as bare `PRO` in the two touched components (neither previously rendered a trial-aware label at all). Zero trial data read-for-mutation or written for any real account.
+## 10. David Aluminum read-only findings
 
-## 10. Extensibility assessment
+Real, live, read-only Admin panel observation (already-authenticated super-admin session, GET-only page load, zero mutating click): David's row currently reads **`"ללא תפוגה (Lifetime)"`**. Mathematically, per the current unmodified formulas, this data shape **cannot** produce a "0/5" result. Leading, evidence-consistent (not fully confirmed) explanation for the Owner's screenshot: stale client-side state on David's own device — the same class of explanation already on record once before in this project (§133). His specific underlying raw tier (`pro` vs `basic`) was not determined — disclosed as not-proven, not guessed.
 
-A future sixth plan needs one new `PLAN_CATALOG` entry plus, only if genuinely needed, one new `DISPLAY_IDENTITY_LABELS` key and one new `shouldShowUpgradeCta` branch — no other component would need to change, since none compute the label/CTA decision themselves anymore.
+## 11. Whether Stage 1 remains safe to commit as currently written
 
-## 11. Full six-persona verification matrix
+**Yes, on its own narrow terms — proven mathematically.** `isLifetime===true` cannot co-occur with `effectivePlan==='free'` under the current, Stage-1-unmodified formulas, so `displayIdentity==='LIFETIME'` alongside a lower-tier quota (the specific failure named in the audit authorization) cannot occur as a Stage 1 consequence. Stage 1 never touched either quota ternary. This is a narrow safety judgment, not a claim that the broader quota architecture is healthy (it is not, item 9 above).
 
-Full table: `PROFLOW_PROJECT_CONTEXT.md` §148.9. Summary — **real TEST UI, both markets**: genuine FREE → `"FREE PLAN"`, both CTAs shown, Cancel Sub hidden (correct). Expired trial → `"FREE PLAN"`, both CTAs shown, Cancel Sub shown (correct). The `..._BASIC`/`..._PRO` personas turned out to already be Lifetime-shaped (`trial_ends_at:null`) under the pre-existing inference — not a Stage 1 defect, a real discovery — which gave **real, live, both-market proof of the single most-critical Owner requirement**: LIFETIME displays correctly and both CTAs plus Cancel Subscription are all hidden. Ordinary non-Lifetime BASIC/PRO and active-trial: **no dedicated real TEST persona exists**; constructing one would require exactly the trial/plan data mutation this task's authorization forbids — not attempted. These three rows rest on exhaustive unit-test coverage alone, honestly disclosed as `NOT LIVE-UI-VERIFIED WITH A DEDICATED PERSONA THIS TASK`.
+## 12. Required correction architecture (plan only — no implementation)
 
-## 12. HE/EN results
+Replace both hardcoded ternaries with a single read of `resolveAccountEntitlement(...).entitlement.monthlyQuoteLimit` — the correct value already exists, is already computed, and is already unit-tested; this is a wiring fix, not a new formula. Same treatment recommended for `editDuplicate`/`whatsappDelete`/`attachments`. **Not implemented, not authorized, not scheduled by this report** — recorded at `PROFLOW_TODO.md` item 50.
 
-Identical pattern confirmed live across both the Local (HE) and INTL (EN) persona sets for every state actually tested — same logic, same results, only surrounding language differs. No separate business logic exists for either language.
+## 13. Effect on upcoming Professional Quotes work
 
-## 13. Regression results
+Directly relevant, not yet a live problem: Professional Quotes' own future `professionalQuotes` capability flag (§147.4 proposal) should be wired to actually consume `PLAN_CATALOG`/the resolver from day one, explicitly avoiding a repeat of the exact "correct value computed but never consumed" pattern this audit found.
 
-200/200 tests pass (178 pre-existing + 22 new). Lint: same 2 pre-existing, unrelated errors already confirmed to predate this task — zero new issues. Build clean. `git diff --stat`: exactly 6 files. Trial expiry/reset behavior, Local/International separation, Dashboard/Public Quote geometry, Mobile work, quote numbering, Item 30.E, Admin security/RLS: none of the underlying files touched or read for editing purposes.
+## 14. Binary acceptance matrix
 
-## 14. File-by-File Ledger
+Full 14-item table: `PROFLOW_PROJECT_CONTEXT.md` §149.10. Several proven FAILs (items 2/3/5/6/14 — entitlement/quota not centralized, enforcement doesn't consume the canonical resolver, not extensible for a future plan) alongside genuine PASSes (items 1/4/7-13). No "not proven" finding was converted to PASS anywhere.
 
-Full table: `PROFLOW_PROJECT_CONTEXT.md` §148.12 (6 rows, each with HE/EN classification, reason for change, dependency, regression risk, verification performed).
+## 15. Files inspected
 
-## 15. DB/schema status
+`Dashboard.jsx` (quota display + enforcement + data-load sections), `accountEntitlement.js`, `planCatalog.js`, `planEntitlements.js`, `PricingModal.jsx`, `LandingGlobal.jsx`, `QuoteForm.jsx`/`QuotesTab.jsx` (consumption check), all six canonical continuity files (search), live Admin panel (read-only observation).
 
-**UNCHANGED.** No migration run. No schema read for editing purposes. Stage 2 (the explicit Lifetime field) not begun, not authorized.
+## 16. Files modified
 
-## 16. TEST mutation status
+**NONE.** Zero application file touched this task — confirmed via `git diff --stat` reproducing the exact same Stage 1 diff before and after.
 
-**ZERO.** Every TEST verification action this task was a real login (pre-existing credentials) followed by read-only page loads and DOM inspection. No write action performed against any TEST account.
+## 17. DB/TEST/Production mutation status
 
-## 17. Production/customer-data status
+**ZERO.** No DB access. No TEST action of any kind. The one Production observation (item 10) was a real, already-authenticated, GET-only Admin page load with zero mutating click.
 
-**UNCHANGED.** `origin/main` unchanged throughout. Zero Production-pointed action of any kind.
+## 18. Commit/push/deploy/LIVE status
 
-## 18. David Aluminum status
+Documentation: committed + pushed to `proflow-continuity` only (see SHA below). Application code: still uncommitted, unchanged from Stage 1's own state (item 2). No push of application code. No deploy. No LIVE action.
 
-**UNTOUCHED.** Zero DB/Production/customer-data action of any kind. Zero customer-specific code written anywhere — confirmed via `git diff` containing no reference to David, any specific email, user id, or business name.
+## 19. Continuity files updated
 
-## 19. Professional Quotes / A100700 status
-
-**UNTOUCHED.** `professionalPreviewAllowlist.js` and both Item 30.E preview routes: not read for editing purposes, not modified. No `professionalQuotes` flag added to `PLAN_CATALOG`. A100700 untouched.
-
-## 20. git diff --stat
-
-```
- src/components/SettingsTab.jsx       | 37 ++++++++++++++++-----
- src/pages/Dashboard.jsx              | 27 +++++++++++++++-
- src/utils/accountEntitlement.js      | 14 ++++++++
- src/utils/accountEntitlement.test.js | 57 ++++++++++++++++++++++++++++++++
- src/utils/planCatalog.js             | 33 +++++++++++++++++++
- src/utils/planCatalog.test.js        | 63 +++++++++++++++++++++++++++++++++++-
- 6 files changed, 221 insertions(+), 10 deletions(-)
-```
-
-## 21. Current local HEAD / origin/main relationship
-
-Local `main` HEAD = `f1025cc` (the same commit as before this task began — **no new commit was created**). `origin/main` = `26dee96`, unchanged. Local `main` is ahead of `origin/main` only by the already-existing, already-disclosed unrelated §146 commit chain — nothing from this task added to history.
-
-## 22. Exact uncommitted application changes remaining
-
-The 6 files listed in item 3/20 remain as **uncommitted working-tree modifications** — visible in `git status` as `M`, not committed, per this task's own explicit instruction (stricter than every prior task this session, which typically created a local-only commit after verification). Awaiting separate Owner authorization to commit.
-
-## 23. Continuity files updated
-
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §148 (14 subsections).
-- `PROFLOW_TODO.md` — **UPDATED**: item 28, Stage 1 status recorded.
-- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GT.
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §149 (11 subsections).
+- `PROFLOW_TODO.md` — **UPDATED**: item 28 cross-referenced; new item 50 (quota-centralization gap).
+- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GU.
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED**: §14, new lead paragraph.
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: §16 forward-pointer refreshed to Stage-1-implemented status.
+- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED**: this file.
-
-All six committed to local `main` and pushed to `proflow-continuity` only — this is a **documentation-only** commit/push (see SHA below); the application code itself (item 22) is separate and was **not** included in it.
-
-## 24. Commit/push/deploy/LIVE status
-
-Documentation: committed + pushed to `proflow-continuity` (see SHA below). Application code: **not committed, not pushed** (left as uncommitted working-tree changes, per explicit instruction). Deploy: none. LIVE action: none.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`806320d` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`b24d86b`) — not pushed to `origin/main` (documentation only). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `806320d` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §148 present in `PROFLOW_PROJECT_CONTEXT.md`, item 28's Stage 1 update present in `PROFLOW_TODO.md`, §18.GT present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, and this file's own `STAGE 1: PASS` sign-off present. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`. The application-code changes themselves remain uncommitted on local `main` (item 22 above) — deliberately not part of any commit or push this task.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
 ---
 
-STAGE 1: PASS
+ENTITLEMENT / QUOTA FORENSIC AUDIT: FAIL
 
-APPLICATION COMMIT: NOT AUTHORIZED
+*(Overall result is FAIL because multiple binary checklist items are proven, not merely unconfirmed, failures — quota/entitlement centralization and future-plan extensibility for quota specifically. This is a pre-existing architectural gap, not caused by Stage 1: Stage 1's own narrow internal consistency is separately, mathematically proven safe — item 11 above — and David Aluminum's observed "0/5" is most plausibly explained by stale client-side state, not a currently-reproducible live defect against his actual stored data — item 10 above.)*
+
+STAGE 1 APPLICATION COMMIT: STILL NOT AUTHORIZED
 APPLICATION PUSH: NOT AUTHORIZED
 DEPLOY: NOT AUTHORIZED
 LIVE ACTION: NOT AUTHORIZED

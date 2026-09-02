@@ -4976,4 +4976,24 @@ Owner authorized Stage 1 only (application code, no schema change) from the §14
 
 **Release boundary**: TEST/local only. **Per this task's own explicit instruction — stricter than every prior task this session — the application-code changes are left UNCOMMITTED, not even a local commit**, pending separate Owner authorization to commit. NOT pushed. NOT deployed. NOT LIVE. **Stage 2 (DB schema), Stage 3 (Professional Quotes entitlement + Owner tier decision), and Stage 4 (David migration) remain separately, explicitly not authorized.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §148, `PROFLOW_TODO.md` item 28 (updated).
 
+## §18.GU. Entitlement / Quota Forensic Audit (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §149 — READ-ONLY, Stage 1 confirmed undisturbed, no application/DB/TEST/Production mutation)
+
+Triggered by the Owner observing David Aluminum's real Dashboard showing "0 / 5" despite his account being intended as LIFETIME — investigated before authorizing Stage 1's commit.
+
+**Fresh Local State**: confirmed Stage 1's uncommitted 6-file diff (§148) is byte-identical before and after this audit — undisturbed.
+
+**Core finding, proven via direct source citation**: the monthly quote quota is computed by **two independent, hardcoded, duplicated ternary expressions** in `Dashboard.jsx` — one for display (`~1752`), one inside the actual quote-save enforcement gate (`~2049-2050`, a real `return` that blocks the sixth quote of the month) — **neither reads `PLAN_CATALOG.monthlyQuoteLimit`**. That correct, centralized value already exists via `resolveAccountEntitlement()`'s own `entitlement.monthlyQuoteLimit` field, already unit-tested, and has **zero consumers anywhere in the app** — the same is true for `editDuplicate`/`whatsappDelete`/`attachments`. This is a pre-existing architectural gap, **not introduced by Stage 1**, which never touched either ternary.
+
+**Mathematical proof, not assumption**: given the current, Stage-1-unmodified `isLifetime` inference (`trial_ends_at===null && rawPlan!=='free'`), and given the quota ternaries key only on `effectivePlan`, `isLifetime===true` **cannot** co-occur with a `5`-quota result — `trial_ends_at===null` structurally forces `effectivePlan` to `'pro'` or `'basic'`, never `'free'`, under `computeEffectivePlan()`'s own existing (untouched) formula. This directly answers the Owner's Section 7 concern: **Stage 1 cannot produce `displayIdentity=LIFETIME` alongside a lower-tier quota** — proven, not merely claimed.
+
+**David Aluminum, read-only**: a real, already-authenticated super-admin session (`shlomisiny22@gmail.com`) was used for a GET-only Admin panel page load (zero click on any mutating control) — David's row currently reads `"ללא תפוגה (Lifetime)"`, confirming his account currently has the Lifetime data shape. Per the proof above, this shape **cannot** mathematically produce a "0/5" quota under current code — the Owner's screenshot is most plausibly explained by stale client-side state on David's own device (the same class of explanation already on record once before, §133), not a currently-reproducible live defect. Not fully confirmed — David's own session was not inspected. His specific underlying raw tier (`pro` vs `basic`) was not determined this task, disclosed as not-proven.
+
+**LIFETIME's own canonical quota**: searched all six continuity files — no explicit Owner decision found. Recorded as `NOT YET CANONICALLY DEFINED`, not invented as "unlimited."
+
+**Binary findings** (14 items, full table `PROFLOW_PROJECT_CONTEXT.md` §149.10): several genuine, proven FAILs (quota/entitlement not centralized, not extensible for a future plan) alongside several genuine PASSes (display=enforcement agreement for every current state; zero David-specific code required; Stage 1 itself introduces no new inconsistency). No "not proven" finding was converted to PASS anywhere.
+
+**Recorded, not implemented**: `PROFLOW_TODO.md` item 50, the quota-centralization gap as its own future correction (a wiring fix — read the already-correct, already-computed value instead of re-deriving it locally) — explicitly relevant to Professional Quotes' own future entitlement wiring, to avoid repeating the same pattern.
+
+**Release boundary**: READ-ONLY throughout. Zero application file modified. Zero DB/TEST/Production mutation. Stage 1's own six files confirmed undisturbed, still uncommitted. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §149, `PROFLOW_TODO.md` items 28 (updated)/50 (new).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

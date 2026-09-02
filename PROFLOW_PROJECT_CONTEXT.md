@@ -6418,3 +6418,110 @@ No other file from §147.5's own *proposed* future ledger was touched — `busin
 **TEST/local implementation and verification only.** Per this task's own explicit instruction — stricter than every prior task this session — **the application-code changes are left UNCOMMITTED** (not even a local commit), pending separate Owner authorization to commit. **NOT pushed. NOT deployed. NOT LIVE.**
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §148); `PROFLOW_TODO.md` UPDATED (item 28, Stage 1 status); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16's forward-pointer refreshed to reflect Stage 1 TEST-implemented status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code changed locally (6 files) but deliberately left UNCOMMITTED per explicit instruction. Zero DB/schema mutation. Zero Production mutation. Zero customer/account/subscription/trial data touched. David Aluminum, Professional Quotes, and A100700 all confirmed untouched.**
+
+## §149. Entitlement / Quota Forensic Audit (added 2026-09-02, READ-ONLY — NO application/DB/TEST/Production mutation, Stage 1 files confirmed undisturbed)
+
+### 149.0 Fresh Local State + Stage 1 integrity confirmed
+
+`origin/main`=`26dee96` (unchanged). Local `main` at `40b30c3`. `git diff --stat` reproduces the **exact same** 6-file, 221-insertion/10-deletion diff reported at the end of §148, before and after this audit — Stage 1's uncommitted application changes were not discarded, reset, stashed, or otherwise disturbed. Zero new application file touched this task.
+
+### 149.1 The core finding — the quota "5" comes from two independent, hardcoded, duplicated formulas that never consult `PLAN_CATALOG`
+
+**`src/pages/Dashboard.jsx:1752`** (display): `const planLimit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : '∞';`
+
+**`src/pages/Dashboard.jsx:2049`** (enforcement, inside the actual quote-save gate): `const limit = effectivePlan.toLowerCase() === 'free' ? 5 : effectivePlan.toLowerCase() === 'basic' ? 20 : Infinity;` — immediately followed by `if (monthlyQuotesCount >= limit) { ...block save... }` (line 2050).
+
+**Neither reads `PLAN_CATALOG.monthlyQuoteLimit`, `resolveAccountEntitlement()`'s `entitlement.monthlyQuoteLimit`, `isLifetime`, or `displayIdentity` in any way.** Both are literal, independently-typed copies of the same three-way ternary, keyed only on `effectivePlan` (itself sourced from `computeEffectivePlan()`, unrelated to Stage 1). **The number `5` is hardcoded twice, not derived from any centralized source.**
+
+**`monthlyQuotesCount`** (`Dashboard.jsx:1747`, the usage side) **is** a single, shared computation — one filter over the already-fetched `quotes` array, consumed identically by both the display (3267) and the enforcement gate (2050). Usage counting is centralized; the **limit** is not.
+
+### 149.2 Display quota vs. enforcement quota
+
+**They are identical in current behavior, but only because the same magic-number formula was copy-pasted twice — not because one reads from the other or from a shared source.** A future edit to `PLAN_CATALOG.free.monthlyQuoteLimit` (e.g. changing FREE from 5 to 3) would silently **not** propagate to either the displayed number or the actual enforcement — both would keep saying/enforcing 5 until someone manually finds and edits both ternaries. This is the exact "scattered changes" failure mode §147/§148's own extensibility goal was meant to prevent, surviving intact for quota specifically.
+
+**A real user, including David Aluminum if his account ever resolved `effectivePlan==='free'`, would genuinely be blocked from creating a sixth quote in a calendar month** — line 2050 is a real, active `return` inside the save handler, not merely a display artifact. **Answer to the Owner's Section A/B question: this is a real enforcement mechanism (closer to B in mechanism), but proven in 149.4 below to be mathematically unreachable for David's *current* stored data shape** (also touches C: it is a legacy, scattered, duplicated formula, not sourced from any single canonical PLAN_CATALOG entry).
+
+### 149.3 LIFETIME quota product contract
+
+Searched all six canonical continuity files and relevant source for an explicit Owner decision defining Lifetime's intended quota. **None found.**
+
+**LIFETIME QUOTA CONTRACT: NOT YET CANONICALLY DEFINED.**
+
+What the current system *actually does* (not by documented decision, but by the mechanical consequence of 149.1's formulas): a Lifetime grant's quota equals whatever `PLAN_CATALOG` limit its underlying raw tier already carries (`Infinity` if `rawPlan==='pro'`; `20` if `rawPlan==='basic'`) — Lifetime never independently sets a quota; it only removes expiration. This is an **implementation default**, not a proven product rule — `LIFETIME = unlimited` was not assumed or asserted anywhere in this audit's own findings. **An Owner decision is required** to canonically confirm whether this default (Lifetime quota = underlying tier's quota) is correct, or whether Lifetime should always mean unlimited regardless of tier.
+
+### 149.4 David Aluminum — read-only findings
+
+Real, live, read-only Admin panel observation (already-authenticated super-admin session, `shlomisiny22@gmail.com`, a GET-only page load — zero click on any mutating control): David Aluminum's row (`davidalumini@gmail.com`) currently displays **`"ללא תפוגה (Lifetime)"`** ("No expiration (Lifetime)") — the Admin UI's own existing, already-deployed `AdminUsersTab.jsx` logic (which already correctly calls `resolveAccountEntitlement()`, §147.1) confirms his account currently has `trial_ends_at IS NULL` and a raw `plan` that is **not** `'free'` (both conditions required for `isLifetime===true` under the existing, unchanged inference formula).
+
+**Mathematical proof, from this evidence and the unchanged formulas (149.1/`planEntitlements.js`)**: `isLifetime===true` requires `trialEndsAt===null` **and** `rawPlan!=='free'`. Given `trialEndsAt===null`, `computeEffectivePlan()` can **never** return `'free'` for this shape — the only two possible outcomes are `effectivePlan==='pro'` (if `rawPlan==='pro'`) or `effectivePlan==='basic'` (if `rawPlan==='basic'`), both of which the 149.1 ternaries resolve to `Infinity`/`20`, **never `5`**.
+
+**Conclusion: David's currently-observed Admin-confirmed Lifetime data shape cannot, under the current (unmodified) code, mathematically produce a "0/5" quota display.** The Owner's screenshot showing "0 / 5" is therefore most plausibly explained by **stale client-side state on David's own device or browser session** (an old page load, a cached React state closure, or a visit that predates whatever Lifetime grant is now reflected) — the same class of explanation already on record once before in this project (§133) for a structurally similar "Owner's device shows something the current server-side state cannot produce" symptom — **not a currently-reproducible live defect against his present stored data.** This could not be fully confirmed (David's own live session was not, and could not safely be, inspected), so it is reported as the leading, evidence-consistent explanation, not a certainty.
+
+**Which specific raw tier (`pro` vs `basic`) underlies David's Lifetime grant was not determined this task** — the Admin row's Lifetime status was confirmed; the specific plan-tier badge was not separately captured in the same read. This does not affect the conclusion above, since neither possible tier produces a `5` quota.
+
+### 149.5 Whether Stage 1 remains safe to commit as currently written
+
+**Yes, on its own narrow terms — proven, not assumed.** Stage 1 (§148) added exactly one new field (`displayIdentity`) and two new pure functions (`getDisplayIdentityLabel`, `shouldShowUpgradeCta`); it did not touch either quota ternary, `monthlyQuotesCount`, or any entitlement-capability check. Per 149.4's own mathematical proof, `isLifetime===true` (and therefore `displayIdentity==='LIFETIME'`) can **never** co-occur with `effectivePlan==='free'` under the current, Stage-1-unmodified `computeEffectivePlan()`/inference formulas — meaning the specific failure mode named in the Owner's own Section 7 ("`displayIdentity=LIFETIME` while `monthlyQuoteLimit`=lower-tier/default") **cannot occur** as a result of Stage 1's own changes. **Stage 1 does not introduce, and is not the cause of, the quota-centralization gap found in 149.1** — that gap predates Stage 1 entirely and was never touched by it.
+
+**However**: this is a narrow technical-safety judgment about Stage 1's own internal consistency, not a claim that the broader quota architecture is healthy — it is not (149.1/149.6). The Owner may reasonably want the quota-centralization gap addressed before or alongside committing Stage 1, given it directly undermines the same "one canonical source, extensible for future plans" goal Stage 1 was partly meant to establish for *identity* — quota simply never reached that same standard.
+
+### 149.6 System-wide quota/limit/legacy-interpretation search
+
+Repo-wide search (not limited to the six Stage-1 files) for every quota/limit/plan-conditional pattern:
+
+| Location | What it does | Sourced from `PLAN_CATALOG`? |
+|---|---|---|
+| `Dashboard.jsx:1747` (`monthlyQuotesCount`) | Counts real quotes this calendar month | n/a (a count, not a limit) |
+| `Dashboard.jsx:1752` (`planLimit`, display) | Hardcoded ternary, `effectivePlan`-keyed | **NO** |
+| `Dashboard.jsx:2049-2050` (`limit`, enforcement) | Hardcoded ternary (duplicate of the above) + the actual save-blocking gate | **NO** |
+| `Dashboard.jsx:3267` | Renders `${monthlyQuotesCount} / ${planLimit}` | consumes the above, not `PLAN_CATALOG` |
+| `src/utils/planCatalog.js` (`PLAN_CATALOG.*.monthlyQuoteLimit`) | The **correct**, centralized limit per tier | itself the source — but see next row |
+| `src/utils/accountEntitlement.js` (`entitlement.monthlyQuoteLimit`, plus `editDuplicate`/`whatsappDelete`/`attachments`) | Correctly computed, returned by `resolveAccountEntitlement()` | YES — but **zero consumers found anywhere in the app** (`grep` for `.entitlement.monthlyQuoteLimit`/`resolved.entitlement` returns nothing outside the resolver itself) |
+| `PricingModal.jsx` / `LandingGlobal.jsx` | Static marketing copy ("Unlimited quotes") | n/a — display text only, not logic |
+
+**A second, broader finding beyond quota specifically**: `resolveAccountEntitlement()`'s entire `entitlement` sub-object (`monthlyQuoteLimit`, `editDuplicate`, `whatsappDelete`, `attachments`) is **currently dead code for enforcement purposes app-wide** — real capability gating (edit/duplicate, WhatsApp/delete, attachments) is done separately, via `isPro`/`isBasicOrAbove` booleans computed once in `Dashboard.jsx` from `computeEffectivePlan()` directly and passed down as props (e.g. to `QuoteForm.jsx`). **Two parallel systems currently exist**: the newer resolver (used only for Admin display and now Stage 1's identity display) and the older boolean-flag system (used for **all** actual capability/quota enforcement). They currently agree in practice because both ultimately trace back to the same `computeEffectivePlan()` call — but they are not the same code path, and nothing structurally guarantees they stay in agreement as the system grows.
+
+### 149.7 Full five-identity quota matrix
+
+| Identity | Intended quota | Current display quota | Current enforced quota | Source | PASS/FAIL |
+|---|---|---|---|---|---|
+| FREE | 5 (per `PLAN_CATALOG.free`) | 5 | 5 (real block on the 6th quote) | Two duplicated hardcoded ternaries | **PASS** (values agree; **FAIL** on centralization, 149.1) |
+| FREE (TRIAL) — base identity FREE, effective PRO | Unlimited during trial (per intended product model) | `∞` | `Infinity` (no block) | Same duplicated ternaries — falls into the "not free, not basic" catch-all | **PASS** (values agree, matches intended PRO-level capability during trial; **FAIL** on centralization — works by omission, not by recognizing "trial" as its own case) |
+| BASIC | 20 | 20 | 20 | Same duplicated ternaries | **PASS** (values agree; **FAIL** on centralization) |
+| PRO | Unlimited | `∞` | `Infinity` | Same duplicated ternaries | **PASS** (values agree; **FAIL** on centralization). Note: an "ordinary non-Lifetime PRO" is currently indistinguishable in the data model from Lifetime-PRO — both are `rawPlan:'pro', trial_ends_at:null` |
+| LIFETIME (current inference) | **NOT CANONICALLY DEFINED** (149.3) | `∞` or `20`, depending on underlying raw tier | Same as display | Same duplicated ternaries — never explicitly considers `isLifetime` at all; safe only because Lifetime and `effectivePlan==='free'` are mutually exclusive | **PASS** (never produces 5, proven 149.4/149.5; **FAIL** on centralization and on having an explicit canonical quota rule) |
+
+### 149.8 Required correction architecture (plan only — no implementation authorized or performed)
+
+If the Owner later authorizes a correction: replace both hardcoded ternaries (`Dashboard.jsx:1752` and `:2049`) with a single read of `resolveAccountEntitlement(...).entitlement.monthlyQuoteLimit` — the value already exists, already correctly centralized, and is already unit-tested; the only work is wiring the two dead call sites to consume it instead of re-deriving it locally. This would also naturally resolve the "extensible for a future sixth plan" gap for quota specifically, and would extend the same fix to `editDuplicate`/`whatsappDelete`/`attachments` if the Owner wants the same correction applied there too (found dead for the identical reason, 149.6). This is a **plan only** — no file was edited, per this task's explicit read-only authorization.
+
+### 149.9 Effect on upcoming Professional Quotes work
+
+**Directly relevant, not yet a live problem**: if Professional Quotes' own future entitlement check (the proposed `PLAN_CATALOG.professionalQuotes` flag, §147.4) is wired the same *correct* way `resolveAccountEntitlement()` already computes `entitlement.monthlyQuoteLimit` — i.e., actually consumed by its real gate, not re-derived locally — it would avoid this exact problem from day one. **The risk is process, not inevitability**: this audit's own finding (149.6) shows the codebase already has a precedent of a *correctly computed* centralized value sitting unused while a *duplicated, hardcoded* local formula does the real enforcement — Professional Quotes' own future implementation should explicitly avoid repeating that exact pattern, a recommendation for whenever Stage 3 is separately authorized, not an implementation performed now.
+
+### 149.10 Binary findings
+
+| # | Finding | Result |
+|---|---|---|
+| 1 | Display identity centralized | **PASS** (Stage 1) |
+| 2 | Effective entitlement centralized | **FAIL** — capability enforcement (`isPro`/`isBasicOrAbove`) is a separate code path from the resolver's own `entitlement` object, which is unconsumed |
+| 3 | Monthly quote quota centralized | **FAIL** — two independent hardcoded ternaries, zero `PLAN_CATALOG` consumption |
+| 4 | Monthly usage centralized | **PASS** — one shared `monthlyQuotesCount` computation |
+| 5 | Quote-creation enforcement consumes canonical entitlement | **FAIL** |
+| 6 | Dashboard quota consumes canonical entitlement | **FAIL** |
+| 7 | FREE quota consistent | **PASS** (display=enforced=5) |
+| 8 | FREE(TRIAL) quota consistent | **PASS** (display=enforced=unlimited), not merged into a literal "PRO" label anywhere in Stage 1's own new display code |
+| 9 | BASIC quota consistent | **PASS** (display=enforced=20) |
+| 10 | PRO quota consistent | **PASS** (display=enforced=unlimited) |
+| 11 | LIFETIME quota consistent | **PASS** (never produces 5, proven mathematically; no canonical quota rule exists to be "consistent" against beyond the current default, 149.3) |
+| 12 | Display quota equals enforcement quota for each state | **PASS** (identical by duplication, 149.1) |
+| 13 | No customer-specific exception required | **PASS** — confirmed zero David-specific code anywhere; any future correction fixes the shared formula, not David |
+| 14 | Architecture is extensible for a future sixth plan | **FAIL** — a new plan's quota would require manually editing two separate hardcoded ternaries in `Dashboard.jsx`, in addition to `PLAN_CATALOG`, exactly the scattered-change pattern the Owner named as unacceptable |
+
+**Not proven was never converted to PASS anywhere in this table** — every FAIL above is a proven fact (direct source citation), not an unresolved unknown; the one genuinely NOT-PROVEN item (David's specific underlying raw tier, 149.4) is disclosed as such and does not appear in this table as a claim.
+
+### 149.11 Release boundary
+
+**READ-ONLY throughout.** Zero application file modified this task (Stage 1's own 6 files remain exactly as reported, confirmed 149.0). Zero DB/TEST/Production mutation — the one live observation (149.4) was a real, already-authenticated, GET-only Admin page load with zero click on any mutating control. No commit of application code. No push of application code. No deploy. No LIVE action. David Aluminum: read-only observation only, zero mutation.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §149); `PROFLOW_TODO.md` UPDATED (new item recording the quota-centralization gap, cross-referenced with item 28); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` REVIEWED — NO CHANGE REQUIRED (§16 already forward-points to §148; this audit is a finding, not an architecture change); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Zero application code changed this task. Zero DB/TEST/Production mutation. Stage 1's own six files confirmed undisturbed, still uncommitted.**
