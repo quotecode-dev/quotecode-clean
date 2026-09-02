@@ -7134,3 +7134,70 @@ All items in this task's own §26 checklist are satisfied: six canonical files f
 Zero application code changed. Zero DB/schema mutation — this entire section is a read-only design/audit, no migration file was created or executed. Zero migration execution. Zero TEST mutation. Zero Production/customer-data mutation. Zero David Aluminum interaction. No A100700 action. No PDF/Print implementation. No SINOQ branding applied. `origin/main` unchanged. No application commit (none exists to commit). No push. No deploy. No LIVE action. Item 51 remains open, untouched, correctly not conflated with this schema.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §155); `PROFLOW_TODO.md` UPDATED (item 30's five decisions marked LOCKED/superseded, cross-referenced to §155); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (new §, Professional Quotes blueprint summary + forward-pointer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §156. Professional Quotes Stage B — Canonical Entitlement Flags + AI Chat Requirements Continuity Update (added 2026-09-02, Owner-authorized application implementation, Stage B ONLY — application changes left UNCOMMITTED per explicit instruction; plus documentation-only AI Chat product-requirements recording, NOT implemented)
+
+### 156.0 Fresh state before work
+
+Local `main` HEAD `45423b8` (unchanged from end of §155, beyond additional documentation-only commits already accounted for). `origin/main` unchanged at `26dee96`. Working tree: only the standing untracked `src/entry-server.jsx`, zero unexpected application changes. `origin/proflow-continuity` at `6e02451`, confirmed via fresh fetch. No blocker.
+
+### 156.1 Stage B implementation — exactly as the §155 blueprint predicted
+
+Fresh-read of `planCatalog.js`/`accountEntitlement.js` confirmed the centralized architecture (§150/§151) already supports this with **zero new logic** — only new data. Added two boolean fields to each `PLAN_CATALOG` tier's `entitlements` object:
+
+```
+free:  professionalQuotes: false, professionalQuoteReuse: false
+basic: professionalQuotes: true,  professionalQuoteReuse: false
+pro:   professionalQuotes: true,  professionalQuoteReuse: true
+```
+
+**`accountEntitlement.js` itself required zero changes** — `getEntitlementSet()`'s existing generic spread (§151) automatically exposes both new fields to every consumer; `resolveAccountEntitlement()`'s existing `entitlementPlanId = isLifetime ? 'pro' : tier` mechanism automatically grants both to LIFETIME (any underlying raw tier) and to an active FREE(TRIAL) (via the pre-existing `tier==='pro'` trial resolution) — confirmed via `git diff --stat`, that file shows **zero diff**. This is the concrete, working proof that the §151 architecture's own "future capability inherits automatically" claim was real, not aspirational — the one pre-existing comment in `accountEntitlement.js` that already used `professionalQuotes` as its own hypothetical example name (written during §151, before this feature existed) now matches the actual implementation exactly.
+
+### 156.2 Exact entitlement matrix implemented
+
+| Capability | FREE | FREE(TRIAL active) | BASIC | PRO | LIFETIME |
+|---|---|---|---|---|---|
+| `professionalQuotes` | false | true (temporary) | true | true | true |
+| `professionalQuoteReuse` | false | true (temporary) | false | true | true |
+
+Matches §155.1.8/§155.1.9/§155.1.10 exactly — BASIC receives Core (not PRO-only, per explicit Owner product policy), Advanced Reuse remains the approved PRO differentiator.
+
+### 156.3 Tests
+
+15 new/updated tests: 3 in `planCatalog.test.js` (direct catalog assertions per tier); 10 new in `accountEntitlement.test.js` (FREE/FREE-TRIAL-active-with-identity-check/FREE-TRIAL-expired-with-identity-check/BASIC/PRO/LIFETIME-pro-underlying/LIFETIME-basic-underlying/LIFETIME-deep-equals-PRO/two regression tests for `monthlyQuoteLimit` and the three pre-existing capability flags); 1 pre-existing test updated (`accountEntitlement.test.js`'s own "A. PRO entitlement object contains the expected full capability set" — a deliberately exhaustive literal-object test, the *only* one that needed a manual edit, exactly the class of test §151's own comments warned would need updating for a new field, unlike the adjacent "architectural invariant" test which required zero change and now automatically covers both new fields). **241/241 tests pass** (226 pre-existing + 15 new). `eslint` on both touched files: 0 issues. `vite build`: clean.
+
+### 156.4 Regression proof
+
+Explicitly re-verified via new tests: `monthlyQuoteLimit` unchanged for every identity (5/20/∞/∞); `editDuplicate`/`whatsappDelete`/`attachments` unchanged for FREE and BASIC. Zero pre-existing test weakened or removed.
+
+### 156.5 File-by-file ledger
+
+| File | Why touched | UI impact | DB impact | HE/EN | Desktop/Mobile |
+|---|---|---|---|---|---|
+| `src/utils/planCatalog.js` | Add 2 boolean fields per tier | NONE | NONE | n/a (data only) | n/a |
+| `src/utils/planCatalog.test.js` | New focused tests | NONE | NONE | n/a | n/a |
+| `src/utils/accountEntitlement.test.js` | New focused tests + one pre-existing literal-object test updated | NONE | NONE | n/a | n/a |
+
+`src/utils/accountEntitlement.js`, `src/pages/Dashboard.jsx`, `src/components/QuoteForm.jsx`/`SettingsTab.jsx` — **not touched**, confirmed unnecessary by design (156.1). **UI impact: NONE, as expected. DB impact: NONE, as expected.**
+
+### 156.6 AI Chat product requirements — recorded, not implemented
+
+Per this task's own §10, recorded as approved product requirements at `PROFLOW_TODO.md` item 2 (the existing, directly-relevant "AI Chat — Local/International/Four Contexts" item, which already carried a near-identical, not-yet-implemented "Guided AI Support Entry" follow-up — reconciled, not duplicated):
+
+1. **Complete-product-knowledge requirement (new)**: AI Chat must eventually explain the full ProFlow interface, plan/entitlement/quota behavior across all five identities, Professional Quotes, locked-capability behavior, and general workflows accurately against the *real current* product — not a static FAQ. The future technical design must consider a maintainable knowledge source (not a large stale hardcoded prompt) — exact mechanism (RAG/tooling/other) explicitly **not decided** by this task.
+2. **Guided entry + quick choices (reconciled with the existing item 2 follow-up)**: a generic/greeting-only opening ("hi"/"שלום") should offer a guided "how can I help?" prompt with quick-choice categories, refining (not replacing) the already-recorded category list — exact final labels still open, per both this task's own instruction and the pre-existing entry's own "may be refined during UX design" language.
+3. **Not a menu tree**: quick choices are accelerators; free-text conversation must always remain available; at most one minimal follow-up before reverting to normal conversation.
+4. **Existing internal classification stays distinct**: `GENERAL`/`CANCELLATION`/`FEATURE_REQUEST`/`HARD_QUESTION` remain a separate, authoritative concept from user-facing guided-entry categories — may map to each other later, never treated as identical now.
+5. **Knowledge-maintainability requirement (new)**: as ProFlow's product evolves, the AI's knowledge must be updatable without manual rediscovery of the whole application — recorded as a requirement, not designed.
+
+**Status recorded: APPROVED PRODUCT REQUIREMENTS, NOT YET IMPLEMENTED.** Zero AI Chat code touched this task.
+
+### 156.7 Preserved, unchanged
+
+All other §155-locked Professional Quotes decisions (additive architecture, mixed item modes, progressive disclosure, approved units, Public Quote collapsed detail, PDF/Print FULL/COMPACT future requirement, Catalog Templates deferred, reuse direction, BASIC Core/PRO Advanced split, Visible-but-Locked UX, HE/EN symmetry, Desktop/Mobile parity, the Business-Settings/New-Quote reconciliation recommendations) — none reopened, none reinterpreted. David Aluminum: zero interaction. A100700: deferred, untouched. Item 51: open, untouched, not conflated. SINOQ: candidate-only, no branding change.
+
+### 156.8 Release boundary
+
+Application code changed (3 files: `planCatalog.js`, `planCatalog.test.js`, `accountEntitlement.test.js`) — **all left UNCOMMITTED** per explicit instruction. No UI implementation. No DB/schema mutation, no migration file created or executed. No TEST mutation. No Production/customer-data mutation. No David Aluminum interaction. No A100700 action. No application commit. No application push. No deploy. No LIVE action.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §156); `PROFLOW_TODO.md` UPDATED (Stage B recorded against item 30/§155; item 2 extended with the new AI Chat requirements, reconciled not duplicated); `PROFLOW_HANDOFF.md` UPDATED (new §18.HB); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage B note; §11 AI Chat forward-pointer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
