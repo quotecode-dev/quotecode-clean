@@ -6793,3 +6793,40 @@ Application code: `planCatalog.js`, `accountEntitlement.js` further modified (st
 **PRO subscription-expiry blocker (`PROFLOW_TODO.md` item 51) explicitly NOT marked resolved by this task** — it is a separate, still-open architectural gap (no field distinguishes a real paid PRO subscription's own expiry from the trial window), unrelated to and unaffected by this task's entitlement-inheritance correction.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §151); `PROFLOW_TODO.md` UPDATED (item 28 thread extended; item 50 note refined — full-set inheritance now supersedes the per-field description; item 51 confirmed still open, not touched); `PROFLOW_HANDOFF.md` UPDATED (new §18.GW); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16, new paragraph); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §152. Commit Verified Stage-1 + Entitlement Centralization Checkpoint (added 2026-09-02, Owner-authorized — ONE local application commit of the already-reviewed §148/§150/§151 work, NOT pushed, NOT deployed)
+
+### 152.0 Fresh state before commit
+
+Local `main` HEAD `fa7648e` (unchanged from end of §151). `origin/main` unchanged at `26dee96`. Working tree showed exactly the 7 expected application files modified/uncommitted, plus the standing untracked `src/entry-server.jsx` — byte-identical to the reviewed §151 checkpoint (`git diff --stat`: 7 files, 536 insertions/55 deletions). `origin/proflow-continuity` at `db86699`, confirmed via fresh remote fetch. No divergence from the reviewed report — commit gate not blocked.
+
+### 152.1 Pre-commit verification
+
+228/228 tests pass. `eslint` on all 5 relevant application files: 0 errors, 1 pre-existing unrelated warning (`Dashboard.jsx:364`, predates this workstream, not touched). `vite build`: clean. Re-confirmed via static search: exactly one `isLifetime ?` decision point remains in `accountEntitlement.js` (the base-plan-selection call, §151.2) — no per-capability patchwork reappeared. Zero `import.meta.env`/`NODE_ENV`/hostname-conditional business logic in the touched files — TEST↔Production Structural Parity re-confirmed PASS. Zero David-Aluminum/customer-specific reference anywhere in the diff (confirmed via `git diff` grep — the only David-related lines found in `Dashboard.jsx` are pre-existing, untouched comments from the already-documented Item 30.E preview allowlist, outside this diff entirely). `Dashboard.jsx` confirmed still reading `entitlement.monthlyQuoteLimit` identically for both display (`planLimit`) and enforcement (`limit`) — the same canonical source, unchanged since §150.
+
+### 152.2 Exact staging
+
+Staged exactly: `src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/utils/accountEntitlement.js`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js` — via explicit `git add <each file>`, never `-A`/`.`. `git diff --cached --stat` confirmed **STAGED FILE SET = EXACTLY THE 7 AUTHORIZED FILES**, 536 insertions/55 deletions, matching the reviewed checkpoint exactly. `src/entry-server.jsx` confirmed excluded (remained untracked throughout, `git ls-files` confirms it was never added).
+
+### 152.3 Commit created
+
+**One local application commit**: `c09bc45` — `feat: centralize plan entitlements and lifetime inheritance`. Contains exactly the 7 authorized files (`git show --stat` confirms), covering the full Stage 1 (§148) + Entitlement/Quota Centralization (§150) + LIFETIME Full-PRO Inheritance (§151) architecture as one coherent, already-reviewed checkpoint. No amend, no squash, no rebase, no push.
+
+### 152.4 Post-commit verification
+
+`git rev-parse HEAD` = `c09bc45e68f2c11ab5eea14d6ebe4fc13a3f2d6`. Working tree after commit: clean except the standing untracked `src/entry-server.jsx` (unchanged, confirmed still untracked). `origin/main` re-fetched, confirmed still `26dee96` — unchanged, no push occurred. **LOCAL COMMIT = YES. PUSH = NO. DEPLOY = NO. LIVE = NO.**
+
+### 152.5 Standing product requirements preserved (not implemented, per explicit instruction)
+
+Reconfirmed still on record, unaffected by this commit-only task:
+
+- **Professional Quotes UX flow** (§147 family): Business Settings selects the business's Professional Quote editing type; New Quote flow remains customer-type (Private/Business) → quote-structure selection → corresponding editor. Professional Quote editing-type selection must **not** move into the New Quote flow.
+- **PDF/Print FULL vs COMPACT output** (deferred, unimplemented): eventual requirement for both a FULL output (current expanded/full item-detail breakdown) and a COMPACT output without it.
+
+Neither requirement was touched, implemented, or scoped by this commit-only task.
+
+### 152.6 Binary confirmation
+
+`APPLICATION LOCAL COMMIT: PASS`. `APPLICATION PUSH: NOT PERFORMED`. `DEPLOY: NOT PERFORMED`. `LIVE ACTION: NOT PERFORMED`. Item 51 (PRO subscription-expiry) remains open, untouched. Professional Quotes remains the next intended product-development area, subject to existing Owner authorization gates — not opened by this task.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §152); `PROFLOW_TODO.md` UPDATED (item 28 checkpoint recorded, items 50/51 status confirmed post-commit); `PROFLOW_HANDOFF.md` UPDATED (new §18.GX); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16, commit-checkpoint note); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).

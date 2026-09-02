@@ -5030,4 +5030,20 @@ Owner explicitly ruled that §150's own per-field Lifetime quota fix was insuffi
 
 **Release boundary**: `planCatalog.js`, `accountEntitlement.js`, `planCatalog.test.js`, `accountEntitlement.test.js` further modified — `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx` untouched this task (unnecessary — none duplicate entitlement logic themselves). Same 7 files as §150 overall, still **all UNCOMMITTED**. No DB/schema change. No Production/customer-data mutation. No commit, push, deploy, or LIVE action. David Aluminum, A100700, Professional Quotes untouched — zero customer-specific code. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §151, `PROFLOW_TODO.md` item 50 (updated)/51 (confirmed still open).
 
+## §18.GX. Commit Verified Stage-1 + Entitlement Centralization Checkpoint (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §152 — ONE local application commit of the already-reviewed §148/§150/§151 work, NOT pushed, NOT deployed)
+
+Owner authorized exactly one local application commit of the already-reviewed Stage 1 + Entitlement/Quota Centralization + LIFETIME Full-PRO Inheritance work — zero new implementation, zero scope expansion.
+
+**Pre-commit**: fresh state confirmed byte-identical to the reviewed §151 checkpoint (same 7 files, same 536/55 diff). Re-verified: 228/228 tests pass, `eslint`/`vite build` clean, TEST↔Production Structural Parity re-confirmed PASS, exactly one `isLifetime` decision point in the resolver (no reintroduced per-capability patchwork), zero David-specific code in the diff (only pre-existing, untouched Item 30.E allowlist comments elsewhere in `Dashboard.jsx`), quota display/enforcement confirmed still sharing the same canonical `entitlement.monthlyQuoteLimit`.
+
+**Staging**: exactly the 7 authorized files staged via explicit `git add <file>` calls, never `-A`/`.` — `git diff --cached --stat` confirmed the staged set matched exactly. `src/entry-server.jsx` confirmed excluded, remained untracked throughout.
+
+**Commit**: `c09bc45` — `feat: centralize plan entitlements and lifetime inheritance`. Contains exactly the 7 files, the complete Stage 1/§150/§151 architecture as one coherent checkpoint. No amend, no squash, no rebase.
+
+**Post-commit**: working tree clean except the standing untracked `src/entry-server.jsx`. `origin/main` re-fetched, confirmed unchanged at `26dee96` — no push occurred.
+
+**Standing product requirements reconfirmed, not touched by this commit-only task**: Professional Quotes editing-type selection stays in Business Settings, never moves into the New Quote flow (customer-type → structure → editor stays as-is); PDF/Print FULL vs COMPACT output remains a deferred, unimplemented requirement. Item 51 (PRO subscription-expiry) remains open, untouched.
+
+**LOCAL COMMIT = YES. PUSH = NO. DEPLOY = NO. LIVE = NO.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §152, `PROFLOW_TODO.md` item 28 (checkpoint recorded)/50 (commit noted)/51 (confirmed still open).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.
