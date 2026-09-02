@@ -5142,3 +5142,11 @@ Owner authorized building and thoroughly verifying the first user-facing Profess
 **266/266 tests pass** (241 pre-existing + 25 new). `eslint`/`vite build` clean. Zero Production mutation. Application code (4 files) left **UNCOMMITTED** per explicit instruction, alongside Stage A's migration and Stage B's own 3 files. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §158, `PROFLOW_TODO.md` item 30 (Stage C)/item 53 (new).
 
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.
+
+## §18.HE. Owner Personal Visual Findings on Professional Quotes Stage C, TEST (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §159 — DOCUMENTATION ONLY, NOT IMPLEMENTED, extends §18.HD)
+
+The Owner personally inspected Stage C in TEST. **Confirmed working as designed**: the "הוסף מידות / פירוט מקצועי" per-item toggle present and functional; selecting it exposes the pricing-unit selector; selecting `m²` exposes width/height/calculated-area/add-measurement.
+
+**Two gaps found, documentation-only, neither fixed this task**: (1) the toggle's current visual weight reads as faint/secondary/disabled-looking, causing the Owner to initially miss it — a discoverability issue, not a functional one; (2) the Owner expected a per-business Professional profile/defaults configuration to already be visible in Business Settings — it is not, since that concept (item 30's own "Business defaults" layer of the override hierarchy) was discussed at design time but never scoped or built; Stage C intentionally implemented only the per-item layer.
+
+**OWNER VISUAL ACCEPTANCE: PENDING** — reconfirmed, unchanged. No code touched. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §159, `PROFLOW_TODO.md` item 54 (new).

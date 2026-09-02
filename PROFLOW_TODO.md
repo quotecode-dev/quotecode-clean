@@ -1850,3 +1850,16 @@ Canonical policy for how ProFlow's recurring-subscription lifecycle must eventua
 - **No dark patterns**: downgrade/cancel flows must be as straightforward to complete as upgrade flows — no artificial friction, no hidden retention traps.
 
 **No billing/subscription code is authorized or implemented by recording this item.** Relates to, but does not alter, item 3 (Real Billing + Invoicing) and item 28 (Plan Identity & Entitlements Architecture).
+
+## 54. Owner Personal Visual Findings on Professional Quotes Stage C, TEST (added 2026-09-02, Continuity File Restore task, `PROFLOW_PROJECT_CONTEXT.md` §159 — DOCUMENTATION ONLY, NOT IMPLEMENTED)
+
+**Status: 🟡 FINDINGS RECORDED, OWNER VISUAL ACCEPTANCE STILL PENDING.**
+
+The Owner personally inspected Stage C in TEST and confirmed the core mechanics work as designed: the "הוסף מידות / פירוט מקצועי" per-item toggle is present and functional; selecting it exposes the pricing-unit selector; selecting `m²` exposes width/height/calculated-area/add-measurement.
+
+**Two gaps found, neither fixed, both documentation-only**:
+
+1. **Discoverability**: the toggle's current visual weight reads as faint/secondary/disabled-looking — the Owner initially missed it. A future pass should give it clearer affordance as an actionable control, without redesigning the underlying progressive-disclosure mechanic that already works.
+2. **Business Settings expectation gap**: the Owner expected a Professional business-profile configuration (per-business defaults for relevant Professional options) to already be visible in Business Settings. It is not — this concept was discussed at the design stage (item 30's own override-hierarchy: Industry preset → **Business defaults** → Catalog/Item defaults → Quote-item → explicit override) but was never scoped or built; Stage C intentionally implemented only the per-item layer. This is a valid future-stage requirement, not a defect in what Stage C was authorized to build.
+
+**OWNER VISUAL ACCEPTANCE: PENDING** — unchanged, reconfirmed. No implementation authorized by recording this item. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §159.

@@ -7397,3 +7397,25 @@ Every other §155/§156/§157-locked decision (additive architecture, mixed item
 Application code changed (4 files: `Dashboard.jsx`, `QuoteForm.jsx`, plus 2 new files `professionalQuoteItem.js`/`.test.js`) — **all left UNCOMMITTED** per explicit instruction, alongside the still-uncommitted Stage A migration and Stage B's own 3 files. No Production DB mutation (only TEST mutated, via genuine disposable/clearly-labeled QA data, per §29's own explicit authorization to save/reload against TEST). No David Aluminum interaction. No A100700 action. No Public Quote implementation. No PDF/Print implementation. No Advanced Reuse implementation. No application commit. No application push. No deploy. No LIVE action.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §158); `PROFLOW_TODO.md` UPDATED (item 30's status advanced to Stage C; new item 53, Billing Product Policy); `PROFLOW_HANDOFF.md` UPDATED (new §18.HD); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage C status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §159. Owner Personal Visual Findings on Stage C, TEST — Discoverability Gap + Business Settings Expectation (added 2026-09-02, Continuity File Restore task — DOCUMENTATION ONLY, NOT IMPLEMENTED)
+
+**Status: 🟡 FINDINGS RECORDED, OWNER VISUAL ACCEPTANCE STILL PENDING — no implementation authorized by recording this.**
+
+The Owner personally inspected Professional Quotes Stage C in TEST (following §158). Confirmed working, matching the built design:
+
+**A.** The "הוסף מידות / פירוט מקצועי" ("Add measurements / professional details") progressive-disclosure toggle is present and functions inside the quote-item row, at item level, exactly as designed.
+
+**B.** Selecting it correctly exposes the Professional pricing-unit selector.
+
+**C.** Selecting `m²` correctly exposes width, height, calculated area, and "add measurement" behavior.
+
+**Two genuine gaps observed, neither yet fixed, both explicitly documentation-only this task**:
+
+1. **Discoverability**: the toggle's current visual treatment reads as faint/secondary — closer to disabled or de-emphasized text than an actionable control. The Owner initially missed it while looking for the feature. This is a visual-weight issue, not a functional one (§158's own functional/DB-verified proof stands unchanged).
+
+2. **Business Settings expectation gap**: the Owner expected the previously-discussed Business Settings / Professional business-profile concept to already surface configuration determining the business's relevant Professional options. The current Business Settings screen the Owner inspected does not visibly contain any such configuration. **This is consistent with, not a contradiction of, the existing record** — a per-business Professional profile/defaults concept was discussed at the design stage (§155/`PROFLOW_TODO.md` item 30's own override-hierarchy language: "Business defaults" as one layer) but was never scoped or built as part of Stage A/B/C — Stage C deliberately implemented only the per-item progressive-disclosure layer. The gap is a real, valid product expectation to address in a future stage, not a defect in what Stage C itself was authorized to build.
+
+**Explicit, standing status, reconfirmed**: **OWNER VISUAL ACCEPTANCE: PENDING** — Stage C's functional/technical PASS (§158) is not, and has never been claimed to be, the same thing as Owner visual/product acceptance. Nothing about these findings is implemented, and no code was touched to record them. Full detail cross-reference: `PROFLOW_TODO.md` item 54.
+
+**Unrelated minor pre-existing observation, noted not fixed**: while independently verifying `PROFLOW_HANDOFF.md`'s remote content this task, one stray leftover line was found immediately after §18.HC's own closing line (a duplicated-looking "Zero application/DB/TEST/Production mutation... §136... item 45" fragment) — confirmed via `git show` against the pre-Stage-C commit to have **already existed before this session's own edits**, not introduced by this or the prior task. Harmless (references real, correct, pre-existing content elsewhere in the file), out of this task's authorized scope, left as-is.
