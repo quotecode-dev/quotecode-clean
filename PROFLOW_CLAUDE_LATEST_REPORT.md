@@ -97,7 +97,7 @@ Confirmed via fresh `git status`: both files remain in the working tree as uncom
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention, once the Owner authorizes the continuity commit/push for this documentation.)*
+`d953569` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`5d8f19e`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code (`Dashboard.jsx`, `SettingsTab.jsx`, plus the pre-existing uncommitted diff) remains uncommitted on local `main`. Fresh remote read-back after push independently confirmed all five updated files present and consistent (`PROFLOW_ARCHITECTURE.md` correctly unchanged, reviewed with no substantive edit needed).
 
 ---
 
