@@ -4,108 +4,145 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: UI Composition Correction — Header Plan Identity + Business Professional Type Placement
+## Task: Complete Plan Identity Visual System + Continue Remaining Professional Quotes TEST Workstream
 
-**MODE: TEST/local implementation of exactly two placement/composition corrections. NOT authorized: application commit (unless separately authorized after this report), application push, Production deploy, Production DB mutation, LIVE action, unrelated cleanup/refactoring, additional product features. TEST PASS is explicitly not commit/push/deploy authorization.**
+**MODE: TEST/local implementation only. NOT authorized: application commit (unless separately authorized after review), application push, merging `plan-identity-release`, push to `main`, Production deploy, Production DB mutation, Production Edge Function deploy, LIVE action, David Aluminum Production correction.**
 
 ---
 
-## 1. Fresh Local State before implementation
+## 1. Fresh Local State before work
 
-Branch `main`, HEAD `102dbc0`, `origin/main` unchanged at `26dee96`. Working tree confirmed identical to the end of the prior Continuity Recovery task: `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx`/`AdminUsersTab.jsx`/`planCatalog.js`/`.test.js`/`accountEntitlement.test.js` modified; `PlanIdentityBadge.jsx`/`entry-server.jsx`/`professionalQuoteItem.js`/`.test.js`/both migration files untracked. Zero drift before starting.
+Branch `main`, HEAD `d0e6744`, `origin/main` unchanged at `26dee96`. `origin/proflow-continuity` fresh-fetched: `90192bf`, matching last session's final checkpoint exactly. Working tree confirmed byte-identical to the end of the prior UI Composition Correction task — zero drift. TEST dev server confirmed running against `quotecode-test`.
 
-## 2. Files changed
+## 2. Six-file bootstrap/ref used
 
-`src/pages/Dashboard.jsx`, `src/components/SettingsTab.jsx`. No other file touched — confirmed via `git status` showing the identical file set before and after (only these two received new edits on top of their pre-existing uncommitted diff).
+`origin/proflow-continuity` = `90192bf`, all six files read fresh (not local copies, not prior conversation context) and cross-checked internally consistent before any work began.
 
-## 3. Exact original header structure
+## 3. Header visual system before/after
 
-`dash-header-bar` (`position:relative; display:flex; justify-content:space-between`) held exactly three flex children: `dash-header-logo-wrap` (business name/logo), `dash-header-actions` (AI Chat, conditional Upgrade CTA, conditional Admin logs button), `dash-header-profile` (SUPER ADMIN badge, `PlanIdentityBadge`, email, Sign Out). `justify-content:space-between` centered the middle group only relative to leftover space between the two outer groups' actual widths — not the bar's true center, and dependent on each group's content width, which differs between HE/EN.
+**Before**: small monochrome `lucide-react` icon (Crown/Gem/etc.) inline with the text label, no distinct visual "identity family."
+**After**: a compact circular gradient medallion (20px header / 18px small variant) per identity, containing a white icon, with a small corner accent-badge circle for FREE_TRIAL (Clock) and LIFETIME (Infinity) — icon shape and color both differ per identity, satisfying "never color alone."
 
-## 4. Exact method used to achieve true geometric centering
+## 4. Exact five-identity visual mapping
 
-Badge removed from `dash-header-profile`'s flex flow. New independent element added as a direct child of `dash-header-bar`: `position:absolute; left:50%; top:50%; transform:translate(-50%,-50%)`. `left` is a physical (not logical) CSS property, so the numeric center point is identical in RTL and LTR. `position:absolute` removes the element from the three existing groups' flex flow entirely — zero interference with their layout or existing media queries.
+FREE = green (`emerald`), Leaf, no accent. FREE_TRIAL = green/teal family, Leaf, **Clock accent**. BASIC = blue (`sky`), Gem ("diamond"). PRO = purple (`violetLight`), Crown, no accent. LIFETIME = purple/premium family, Crown, **Infinity accent** (shares PRO's base icon/color, since Lifetime architecturally inherits the complete PRO entitlement set — distinguished by the accent, never by color alone).
 
-## 5. HE verification
+## 5. Files touched for Plan Identity
 
-Live DOM measurement (fresh login, `TEST HE Basic`): center delta **0px** at 1920/1440/1366/1024/768px (in-header) and **0.008px** (sub-pixel) for the mobile-row fallback at 640/500/390px. Screenshot confirms clean visual center, no overlap, LIFETIME badge with crown icon rendering correctly.
+`src/utils/planCatalog.js` (new `DISPLAY_IDENTITY_VISUAL`/`getDisplayIdentityVisual`, old names preserved as aliases), `src/utils/planCatalog.test.js` (11 new/updated tests), `src/components/PlanIdentityBadge.jsx` (full rewrite — medallion rendering, both `header`/`panel` variants). `AdminUsersTab.jsx` deliberately **not** touched — its own icon table is a separate, already-proven-working presentation surface, out of this task's explicit scope.
 
-## 6. EN verification
+## 6. Proof geometric centering remained correct
 
-Live DOM measurement (fresh login, `TEST EN Basic`, 1440px): center delta **0px**, identical X-position to the HE measurement at the same viewport width — confirmed symmetric between RTL and LTR. Screenshot confirms correct LTR composition.
+Re-measured after the medallion widened the badge (a real risk, since centering was pixel-exact before): `centerDelta` = **0px** at 1920/1440/1366/1024px (in-header, both HE and EN) and **≈0.008px** (sub-pixel) at 768/640/500/390px (the mobile row, both languages) — zero regression from the Owner-accepted placement. Zero overlap with any other header element re-confirmed at every width via corrected rect-intersection math (both axes, actual visible pill).
 
-## 7. Responsive verification
+## 7. HE/EN verification
 
-Measured 1920/1440/1366/1024/768/640/500/390px, both languages. **A real overlap was found** at 768px and 390px specifically (content-length-dependent, not a fixed threshold) between the true-centered badge and the business-name/profile groups. **Resolved with a deliberate responsive composition, not a silent off-center move**: below 768px, the in-header badge is hidden and a second, independent, full-width centered row appears directly below the purple header instead. Re-measured after the fix: **zero overlap at every width tested**, confirmed via corrected rect-intersection math checking both X and Y axes against the actual visible pill element (not a full-width wrapper, which had produced a false positive in an earlier measurement pass, since corrected). No clipping, no broken navigation, no horizontal overflow observed at any tested width.
+FREE (HE, Local persona): green Leaf medallion, no accent — screenshot + DOM confirmed. LIFETIME (HE, Lifetime-shaped persona): purple Crown medallion + white Infinity accent badge — screenshot + DOM confirmed. Both markets' header centering re-verified per item 6.
 
-## 8. Exact original Business Settings structure
+## 8. Desktop/Mobile verification
 
-A `<form onSubmit={handleSaveSettings}>` beginning with a 5-field grid (Business Name, Tax ID, Email, Phone, Currency), then an Address section, then Logo, then Terms, then Warranty, then — previously — the Professional Type selector, then the Save button.
+Centering and overlap re-measured at all 8 previously-established representative widths (1920 through 390px) — see item 6. Visual screenshots taken at 1440px (desktop) confirming clean, compact medallion rendering; mobile fallback row (accepted in the prior task) preserved unchanged, re-confirmed via the same measurement pass.
 
-## 9. Where Professional Business Type was previously located
+## 9. Confirmation the accepted Business Professional Type placement was preserved
 
-Immediately before the Save button, after Terms and Warranty — measured in the prior Reality Check task at `y≈899px` of a 900px viewport, effectively exactly at the fold.
+Not touched this task. Re-confirmed present at the top of Business Settings via the same code path exercised for Stage-E verification (no regression, no re-litigation of an already-accepted placement).
 
-## 10. Where it is now located
+## 10. Professional Quotes starting stage/checkpoint
 
-The very first element inside the form, before the Business Name/Tax ID/Email/Phone/Currency grid — recomposed into a highlighted, violet-tinted bordered box matching the existing Address-section visual pattern, rather than a bare label+select.
+Read fresh from canonical continuity, not reconstructed from the authorizing prompt: Stages A/B/C complete and documented (§156-§158); the Business Professional Profile portion of Stage D already implemented (§161.1). The real 8-stage blueprint table (§155.18) — not this task's own abbreviated description — was used to determine what "remaining" actually means.
 
-## 11. Proof it is immediately visible without scrolling
+## 11-13. Every remaining stage attempted / completed / blocked
 
-Live DOM measurement at 1440×900: field top at **`y≈266px`**, `visibleWithoutScroll: true`, `scrollY: 0` — confirmed in both HE and EN. Screenshot confirms the section renders directly under the "Business Settings" heading, above the purple header's fold line by a wide margin.
+**Attempted and completed**: Stage D closure (calculation/persistence already complete via Stage C; duplication-carries-professional-fields found already implemented, closed by a live test), Stage F (Advanced Reuse — new code, implemented + live-verified), Stage E (Public Quote collapsed detail — new code + one TEST Edge Function redeploy, implemented + live-verified both markets). **Deliberately not pursued, not "blocked" in the safety sense**: Stage G (superseded by the already-live Business Professional Profile — recording this as a decision, not a gap) and Print/PDF (confirmed to fall entirely outside this stage sequence's own canonical scope — belongs to the separate, unauthorized item 39). Nothing was blocked by a genuine safety/Production/security/customer-data risk this task.
 
-## 12. Persistence verification
+## 14-15. Every TEST DB/schema mutation / Every TEST Edge Function mutation
 
-The previously-saved value (`aluminum_metal`, persisted to the real TEST database in a prior task) was confirmed to load correctly into the relocated selector on a fresh page load (`localStorage` cleared, real re-login) — proving the relocation did not disturb `fetchSettings`'s load path or `handleSaveSettings`'s save path in any way.
+**DB/schema**: none — Stages D/E/F required zero schema change (Stage E's new Edge Function fields read already-existing Stage A columns). **Edge Function**: exactly one — `get-public-quote` redeployed to `quotecode-test` (version 2→3) with an extended `quote_items` select and a new `professional` field in the response DTO.
 
-## 13. Professional pricing-default regression verification
+## 16. Proof all TEST mutations targeted `quotecode-test` and not Production
 
-Opened a fresh quote item's Professional trigger after the relocation: the unit selector correctly auto-pre-selected `m2` (the aluminum_metal domain's default), confirming the Business Default → Item Default flow is unaffected by moving the field's visual position.
+Before deploying: independently confirmed via `supabase projects list` that the CLI was linked to TEST (`ljfizgrdyzxddswcedwr`), not Production. After deploying: confirmed via a fresh `functions list --project-ref ljfizgrdyzxddswcedwr` that the new version (3) landed there, and via a **separate** `functions list --project-ref ixabnzhjeqevtbhdfswv` call that Production's own `get-public-quote` remained at its prior version (8) with an unchanged timestamp — proving, not assuming, zero cross-environment leakage. CLI link restored to Production afterward, zero diff on the tracked `linked-project.json`.
 
-## 14. Automated test results
+## 17. Professional Quotes HE/EN verification
 
-**276/276 tests pass** — unchanged from before this task (no test file touched; this task is purely presentational).
+**Stage F**: live-verified (Lifetime-shaped HE persona) — duplicating a professional item correctly copied its unit and both measurement rows. **Stage E**: live-verified **both markets** — HE/Local (existing real quote, `₪` currency, quantity display fixed from `"1"` to `"5.28 מ"ר"`) and a freshly-created genuine EN/International USD quote (`"6.00 m²"`, `$1,200.00`, zero `₪`/VAT anywhere on the page).
 
-## 15. Build/lint results
+## 18. Simple/Professional/Mixed quote regression results
 
-`eslint` on both touched files: 0 errors (the one pre-existing, unrelated `Dashboard.jsx` warning unaffected). `vite build`: clean.
+Simple item's Public Quote row confirmed unaffected (its `professional` field is `null`, taking the unchanged raw-quantity branch). Professional item's quantity/measurement display fixed and verified correct. Duplication (Stage D closure + Stage F) confirmed to preserve professional data exactly. No mixed-quote-specific regression found — the new UI is purely additive per-row.
 
-## 16. File-by-File Ledger
+## 19. Public Quote verification
 
-| File | Why touched | Exact change | HE impact | EN impact | Responsive impact | Regression evidence |
-|---|---|---|---|---|---|---|
-| `src/pages/Dashboard.jsx` | Header centering correction | Badge moved out of `dash-header-profile`; new `position:absolute` centered wrapper added; new mobile-only full-width centered row added; new `@media (max-width:768px)` swap rule | 0px center delta, live-verified | 0px center delta, live-verified, symmetric with HE | Zero overlap at 1920/1440/1366/1024/768/640/500/390px, live-measured (both axes) | `displayIdentity` computation untouched; badge content/logic untouched; header still reads "LIFETIME" correctly; 276/276 tests pass |
-| `src/components/SettingsTab.jsx` | Business Professional Type placement correction | Control moved from end-of-form to start-of-form; recomposed into a highlighted box (same visual pattern as the existing Address section) | Field now visible at `y≈266px` (was `y≈899px`), no scroll needed | Same relocation, same measurement | No responsive-specific change needed (comfortably above the fold at every tested width) | Persisted value (`aluminum_metal`) loads correctly at new location; business-default-unit flow unaffected; exactly 1 DOM occurrence (no duplicate); 276/276 tests pass |
+See items 17-18. Contract Discovery performed first: the existing locked 4-column money-alignment contract, RTL/LTR conventions, and quote-number/geometry rules were all read before any change, and confirmed preserved (new UI lives in a separate table row, never inside the existing item row). A pre-existing, unrelated routing fact was independently rediscovered (not caused by this task): a Local-market quote's `/en/...` URL still renders the Hebrew template, since the quote's own persisted market — not the URL — determines the template.
 
-## 17. Confirmation no DB/schema/Production change occurred
+## 20. Print/PDF verification
 
-Confirmed. Zero migration, zero DB query of any kind, zero Production interaction this task — purely local frontend/CSS/JSX changes verified against the local TEST dev server only.
+Not applicable — confirmed out of this stage sequence's canonical scope (item 39 is separate and unauthorized). No code touched, no verification needed for something not attempted.
 
-## 18. Confirmation no application commit/push/deploy occurred
+## 21. Advanced Reuse verification
 
-Confirmed via fresh `git status`: both files remain in the working tree as uncommitted modifications, exactly as before this task except for the new edits. `origin/main` unchanged at `26dee96`. No commit was created for the application changes.
+See item 17 (Stage F). PRO-path (via a Lifetime-shaped persona) live-verified. BASIC-locked visual path not live-tested (no non-Lifetime BASIC persona exists — pre-existing, already-disclosed gap) — the gating logic is code-identical to the already-proven `professionalQuotes` Visible-but-Locked pattern, not a new untested mechanism.
 
-## 19. Owner Visual Acceptance status
+## 22. Full automated test count/result
 
-**PENDING.** Not claimed by this report. TEST PASS above is evidence for Owner review, not a substitute for it.
+**277/277 tests pass** throughout every checkpoint this task (11 new/updated in `planCatalog.test.js` for the icon system; zero new tests for Stages D/E/F, whose correctness was established via real, live, database/runtime evidence instead, per this task's own explicit instruction not to substitute unit-test evidence for a real LIVE claim).
 
-## 20. Exact TEST URL/state the Owner should inspect
+## 23. Build/lint result
 
-`http://localhost:5186/dashboard` (requires `dev:localtest` running — confirmed running throughout this task). Log in as any BASIC+ TEST persona (e.g. `tahshitishi+proflow-local-basic@gmail.com` / `minhatshay+proflow-int-basic@gmail.com` for EN). **Header**: the plan badge (e.g. "LIFETIME" with a crown icon) should sit visually centered in the purple bar at desktop widths, and as its own centered row directly below the purple bar on a narrow/mobile browser window. **Business Settings**: the "מה סוג העיסוק המקצועי של העסק?" / "What kind of professional work does your business do?" section should be the first thing visible under the "Business Settings" heading, in a highlighted violet box, with no scrolling required.
+`eslint` on every touched file: 0 errors (one pre-existing, unrelated `Dashboard.jsx` warning, unaffected). `vite build`: clean at every checkpoint. The Edge Function's `.ts` file is outside this project's ESLint/Vite scope (Deno runtime) — a pre-existing structural fact, not a gap.
+
+## 24. File-by-File Ledger
+
+| File | Why touched | Behavioral/UI change | HE | EN | Regression evidence |
+|---|---|---|---|---|---|
+| `src/utils/planCatalog.js` | Icon system | New `DISPLAY_IDENTITY_VISUAL` mapping | n/a (data) | n/a | 277/277 tests |
+| `src/utils/planCatalog.test.js` | Icon system | 11 new/updated tests | n/a | n/a | self-verifying |
+| `src/components/PlanIdentityBadge.jsx` | Icon system | Medallion rendering, both variants | Live-verified | Live-verified | Centering re-measured 0px |
+| `src/pages/Dashboard.jsx` | Stage F | New `duplicateItem()` handler, new props passed | Live-verified | code-symmetric | Header badge unaffected |
+| `src/components/QuoteForm.jsx` | Stage F | New "Duplicate item" button, Visible-but-Locked | Live-verified | code-symmetric | Existing trigger unaffected |
+| `supabase/functions/get-public-quote/index.ts` | Stage E | New `professional` field in item DTO | n/a (backend) | n/a | Production version unchanged (proven) |
+| `src/pages/PublicQuote.jsx` | Stage E | Active-quantity display fix + collapsed detail row | Live-verified, real quote | — | Simple item unaffected; money alignment untouched |
+| `src/pages/PublicQuoteEn.jsx` | Stage E | Symmetric with above | — | Live-verified, real quote | Zero ₪/VAT leakage confirmed |
+
+## 25. Exact uncommitted/untracked application state
+
+Modified: `AdminUsersTab.jsx`, `QuoteForm.jsx`, `SettingsTab.jsx`, `Dashboard.jsx`, `PublicQuote.jsx`, `PublicQuoteEn.jsx`, `accountEntitlement.test.js`, `planCatalog.js`, `planCatalog.test.js`, `get-public-quote/index.ts`. Untracked: `PlanIdentityBadge.jsx`, `entry-server.jsx`, `professionalQuoteItem.js`/`.test.js`, both migration files. All confirmed via fresh `git status`.
+
+## 26-27. Confirmation no application commit/push occurred
+
+Confirmed via `git status`/`git log` — no new commit created this task on `main`; `origin/main` unchanged at `26dee96`; `plan-identity-release` not merged, not touched.
+
+## 28. Confirmation Production was untouched
+
+Confirmed: zero DB mutation, zero schema change, zero David interaction. The one Edge Function deployment was independently proven TEST-only both before and after (item 16). Production's `get-public-quote` version/timestamp independently re-confirmed unchanged.
+
+## 29. Updated Owner Visual Acceptance matrix
+
+HEADER GEOMETRIC PLACEMENT: **OWNER ACCEPTED** (prior task, preserved unchanged this task). BUSINESS PROFESSIONAL TYPE TOP PLACEMENT: **OWNER ACCEPTED** (prior task, preserved unchanged this task). FIVE-IDENTITY ICON VISUAL SYSTEM: **PENDING OWNER REVIEW**. PROFESSIONAL QUOTES STAGE D/E/F UI (Duplicate item, Public Quote collapsed detail): **PENDING OWNER REVIEW**.
+
+## 30. Six-file continuity commit/read-back result
+
+See the dedicated section below, filled after push.
+
+## 31. Exact next Owner inspection checklist
+
+See `PROFLOW_TODO.md` item 55's new addendum (items 11-13): the header medallion icon, the "Duplicate item" button on a professional item, and Public Quote's collapsed measurement detail (now showing the real calculated quantity instead of "1").
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`d953569` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`5d8f19e`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code (`Dashboard.jsx`, `SettingsTab.jsx`, plus the pre-existing uncommitted diff) remains uncommitted on local `main`. Fresh remote read-back after push independently confirmed all five updated files present and consistent (`PROFLOW_ARCHITECTURE.md` correctly unchanged, reviewed with no substantive edit needed).
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
 
 ---
 
-## UI COMPOSITION CORRECTION: PASS (TEST/local, both fixes live-measured-verified)
-## OWNER VISUAL ACCEPTANCE: PENDING
-## APPLICATION COMMIT: NOT PERFORMED (not separately authorized)
+## PLAN IDENTITY ICON SYSTEM: COMPLETE (TEST/local, live-verified for FREE/LIFETIME)
+## PROFESSIONAL QUOTES STAGES D/E/F: COMPLETE (TEST/local, live-verified both markets)
+## STAGE G: SUPERSEDED (not pursued as a separate column)
+## PRINT/PDF: OUT OF CANONICAL SCOPE (belongs to separate item 39, not started, not blocked)
+## OWNER VISUAL ACCEPTANCE: PENDING (icon system + Stage D/E/F UI)
+## APPLICATION COMMIT: NOT PERFORMED
 ## APPLICATION PUSH: NOT PERFORMED
-## PRODUCTION DEPLOY: NOT PERFORMED
-## PRODUCTION DB: UNCHANGED
+## PRODUCTION: UNCHANGED (one TEST-only Edge Function redeploy, independently verified)
 ## LIVE ACTION: NOT PERFORMED
 ## WAITING FOR OWNER REVIEW
