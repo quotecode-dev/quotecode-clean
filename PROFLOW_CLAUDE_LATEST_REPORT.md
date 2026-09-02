@@ -73,7 +73,7 @@ Zero application file changed, zero TEST/DB write, zero application commit, zero
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+`08035aa` on `proflow-continuity` (pushed: `1a1957f..08035aa`, fast-forward, no conflicts). Fresh remote read-back after push independently confirmed all six files present and consistent on `origin/proflow-continuity` at `08035aa`.
 
 ---
 
