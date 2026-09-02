@@ -5101,4 +5101,24 @@ Owner authorized Professional Quotes Stage B (entitlement flags only) plus docum
 
 **Preserved, unreopened**: every other §155-locked Professional Quotes decision; David Aluminum (zero interaction); A100700 (deferred); Item 51 (open); SINOQ (candidate-only). **Application code changed (`planCatalog.js`, `planCatalog.test.js`, `accountEntitlement.test.js`) left UNCOMMITTED** per explicit instruction. No commit, push, deploy, or LIVE action. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §156, `PROFLOW_TODO.md` item 30 (Stage B)/item 2 (AI Chat requirements).
 
+## §18.HC. Professional Quotes Stage A — Additive Schema Foundation, TEST ONLY (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §157 — DB mutation applied EXCLUSIVELY to `quotecode-test`, Production proven untouched)
+
+Owner authorized Stage A: create and apply the approved additive migration to TEST only, verify deeply, preserve all existing data/behavior.
+
+**Target safety, proven not assumed**: the local Supabase CLI link was found pointing at Production (`ixabnzhjeqevtbhdfswv`) before this task began — not trusted at face value. `supabase projects list` (read-only) independently confirmed both refs; explicitly relinked to TEST (`ljfizgrdyzxddswcedwr`) and every subsequent command also passed `--project-ref` explicitly. Zero command touched Production. **Link state restored to Production before finishing**, per the standing §17.D rule — both the local cache file and the git-tracked `supabase/.temp/linked-project.json` confirmed back to their original state.
+
+**Migration** (`20260902000000_add_professional_quote_items_stage_a.sql`, left uncommitted): `quote_items` gains 4 additive nullable columns (`pricing_unit`, `calculated_quantity numeric`, `quantity_source`, `specification jsonb` — the existing `quantity integer NOT NULL` column confirmed untouched, per §155.8's own resolution); new `quote_item_measurements` table with a denormalized `quote_id` so the **existing, unmodified** `guard_quote_child_immutability()` trigger attaches verbatim, zero function change. `business_settings.default_item_mode` deliberately **not** added — no consumer exists until Stage G (not authorized).
+
+**Dry-run confirmed exactly one migration proposed** before applying — no unrelated historical migration surfaced. Post-apply, migration history confirmed clean (new migration exactly once, all 12 prior unchanged).
+
+**Full runtime proof on disposable synthetic TEST data** (one fixture quote, clearly labeled `"(disposable)"`, fake out-of-range `quote_number`, owned by a real TEST persona): mixed-item architecture confirmed at the schema level (one Simple item + one Professional item in the same quote); decimal `calculated_quantity` confirmed storable; **RLS proven via real JWT-claim simulation** (`SET LOCAL ROLE authenticated` + `request.jwt.claim.sub`) — owner sees the data, a different real TEST persona sees zero rows, an `anon`-role INSERT attempt correctly fails with `permission denied`; **immutability proven live** — once the fixture quote was marked `approved`, both an UPDATE and a new-row INSERT on `quote_item_measurements` were correctly blocked with the exact existing trigger message.
+
+**Cleanup honestly disclosed, not forced**: the same immutability trigger also blocked this task's own attempt to delete the (now-approved) disposable fixture — even a direct Management-API connection isn't exempt, since the trigger's bypass is JWT-claim-based, not connection-privilege-based. Per this task's own explicit instruction, the residue was **left in place, documented, not force-deleted** — harmless, isolated to one synthetic TEST persona, zero real-customer impact.
+
+**Data-integrity comparison**: zero existing row in `quotes`/`quote_items`/`business_settings`/`clients`/`quote_attachments` changed — pre/post counts reconcile exactly once the disposable fixture is excluded.
+
+**TEST↔Production schema gap explicitly documented, not glossed over**: TEST's schema is now ahead of Production's — this is disclosed as a legitimate, temporary, active-development state, not claimed as a Production PASS. The Production migration remains its own, separate, future, not-yet-authorized gate.
+
+**241/241 Stage B tests re-confirmed unaffected.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §157, `PROFLOW_TODO.md` item 30 (Stage A applied to TEST)/item 52 (new Landing Page requirement).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

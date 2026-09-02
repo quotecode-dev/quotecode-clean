@@ -7201,3 +7201,111 @@ All other §155-locked Professional Quotes decisions (additive architecture, mix
 Application code changed (3 files: `planCatalog.js`, `planCatalog.test.js`, `accountEntitlement.test.js`) — **all left UNCOMMITTED** per explicit instruction. No UI implementation. No DB/schema mutation, no migration file created or executed. No TEST mutation. No Production/customer-data mutation. No David Aluminum interaction. No A100700 action. No application commit. No application push. No deploy. No LIVE action.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §156); `PROFLOW_TODO.md` UPDATED (Stage B recorded against item 30/§155; item 2 extended with the new AI Chat requirements, reconciled not duplicated); `PROFLOW_HANDOFF.md` UPDATED (new §18.HB); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage B note; §11 AI Chat forward-pointer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §157. Professional Quotes Stage A — Additive Schema Foundation, TEST ONLY (added 2026-09-02, Owner-authorized DB mutation — applied EXCLUSIVELY to `quotecode-test` (`ljfizgrdyzxddswcedwr`); Production (`ixabnzhjeqevtbhdfswv`) UNTOUCHED, proven not assumed)
+
+### 157.0 Fresh state before work
+
+Local `main` HEAD `5dd7c92` (unchanged from end of §156). `origin/main` unchanged at `26dee96`. Stage B's 3 uncommitted application files (`planCatalog.js`/`planCatalog.test.js`/`accountEntitlement.test.js`) confirmed byte-identical to the §156 checkpoint before this task's own work began. Standing untracked `src/entry-server.jsx` untouched throughout. `origin/proflow-continuity` at `280a092`, confirmed via fresh fetch.
+
+### 157.1 Target safety — proven, not assumed
+
+**Found the local Supabase CLI link pointed at Production (`ixabnzhjeqevtbhdfswv`) before this task began** — the standing state left over from an earlier task, not this task's own action. Per §17.D's own permanent rule ("the link state is a piece of local, easily-stale configuration, not a safety guarantee by itself"), this was not trusted at face value: `npx supabase projects list` (read-only) independently confirmed the two refs — `ixabnzhjeqevtbhdfswv`=`quotecode` (Production), `ljfizgrdyzxddswcedwr`=`quotecode-test` (TEST) — before any mutating command. Explicitly relinked to TEST (`supabase link --project-ref ljfizgrdyzxddswcedwr`) and every subsequent mutating/query command additionally passed `--project-ref ljfizgrdyzxddswcedwr` explicitly (belt-and-suspenders, per §17.D's own stated preference for explicit targeting over reliance on the ambient link). **Zero command was run against Production this task.**
+
+### 157.2 Approved product architecture — preserved, not reopened
+
+All locked Professional Quotes decisions (§155.1) carried forward unchanged: additive architecture, mixed item modes, progressive disclosure, BASIC-gets-Core/PRO-gets-Advanced-Reuse entitlement split, Catalog Templates deferred, Public Quote collapsed-by-default, PDF/Print FULL/COMPACT future requirement. None reopened by this schema-only task.
+
+### 157.3 Migration created
+
+`supabase/migrations/20260902000000_add_professional_quote_items_stage_a.sql` — the exact §155.9 blueprint, no redesign. Left **uncommitted** in the working tree (untracked), consistent with the same two-gate discipline already applied to Stage B's own application files — this task's authorization covers creating and TEST-applying the migration, not committing it to the repository.
+
+### 157.4 Exact schema changes
+
+**`quote_items`** — 4 additive nullable columns (fresh-verified via `information_schema.columns` before and after): `pricing_unit text`, `calculated_quantity numeric`, `quantity_source text` (`CHECK (quantity_source IS NULL OR quantity_source IN ('manual','calculated'))`), `specification jsonb`. **`quote_items.quantity` confirmed unchanged** — still `integer NOT NULL DEFAULT 1`, exactly as before (§155.8 item 3's own resolution honored).
+
+**`quote_item_measurements`** (new table) — `id uuid PK`, `quote_id uuid NOT NULL REFERENCES quotes(id) ON DELETE CASCADE` (denormalized, per §155.8 item 7), `quote_item_id uuid NOT NULL REFERENCES quote_items(id) ON DELETE CASCADE`, `width numeric`, `height numeric`, `unit text`, `calculated_area numeric`, `label text`, `sort_order integer NOT NULL DEFAULT 0`, `created_at timestamptz NOT NULL DEFAULT now()`. No index beyond the PK — matches the exact existing precedent on both sibling child tables (`quote_items`/`quote_attachments` also carry no index beyond their own PK, fresh-confirmed via `pg_indexes` before writing the migration).
+
+**`business_settings`**: **no change** — the optional `default_item_mode` column from §155.9 was deliberately **not** included, since it has no consumer until Stage G (Business Settings UI, not authorized) exists; adding unused schema now would violate the "smallest safe additive migration" requirement. Documented as a deliberate scope decision in the migration's own header, not an oversight.
+
+### 157.5 RLS / grants / immutability — implemented and independently re-verified after apply
+
+RLS enabled on `quote_item_measurements` (`relrowsecurity=true`, fresh-queried via `pg_class`). One ownership policy, `FOR ALL`, identical shape to `quote_items`' own existing `"Owners can manage quote items"` policy, scoped via the denormalized `quote_id`. Grants: `authenticated` gets `DELETE, INSERT, SELECT, UPDATE`; **zero `anon` grant** (fresh-confirmed via `information_schema.role_table_grants` — no `anon` row appears at all, matching `quote_items` exactly). Immutability: `guard_quote_item_measurements_immutability` trigger attached for `BEFORE INSERT OR DELETE OR UPDATE`, executing the **existing, unmodified** `guard_quote_child_immutability()` function verbatim — zero function change, fresh-confirmed via `information_schema.triggers`.
+
+### 157.6 Migration apply result
+
+`npx supabase db push --project-ref ljfizgrdyzxddswcedwr --dry-run` first confirmed **exactly one** migration would be proposed (`20260902000000_add_professional_quote_items_stage_a.sql`) — no unrelated historical migration surfaced, no `--include-all` needed. Applied via `npx supabase db push --project-ref ljfizgrdyzxddswcedwr --yes`. Post-apply, `npx supabase migration list` confirms the new migration appears **exactly once**, `local`=`remote`, all 12 prior migrations unchanged.
+
+### 157.7 Pre/post data-integrity comparison — PASS
+
+| Table | Before | After (excluding the disposable fixture, 157.8) |
+|---|---|---|
+| `quotes` | 53 | 53 (54 total, 1 disposable, explicitly excluded and reconfirmed via a targeted count query) |
+| `quote_items` | 44 | 44 (46 total, 2 disposable) |
+| `business_settings` | 11 | 11 (unchanged) |
+| `clients` | 34 | 34 (unchanged) |
+| `quote_attachments` | 5 | 5 (unchanged) |
+| `quote_item_measurements` | n/a (didn't exist) | 0 pre-fixture, 2 disposable post-fixture |
+
+Zero existing business value changed anywhere — every existing `quote_items` row's `quantity`/`unit_price`/`total_price` reconfirmed intact, all 4 new columns correctly `NULL` on every pre-existing row (fresh-queried sample).
+
+### 157.8 Targeted runtime DB proof — real TEST personas, fully disposable synthetic data
+
+Created one disposable synthetic quote (id `aaaaaaaa-…-000000000001`, `quote_number 89999901` — deliberately far outside any real range, every description/label explicitly suffixed `"(disposable)"`), owned by the real `TEST HE Basic` persona, containing one Simple item (`quantity:3`, all professional fields `NULL`) and one Professional item (`pricing_unit:'m2'`, `calculated_quantity:2.135`, `quantity_source:'calculated'`, `specification:{"location":"Test Apt 1","material":"aluminum"}`) with 2 `quote_item_measurements` rows (`2.65×1.61=4.2665`, `0.90×0.495=0.4455`).
+
+| Proof | Result |
+|---|---|
+| A. Existing-style Simple quote/item still works, Professional fields absent/NULL | **PASS** (157.7) |
+| B. Professional item stores new metadata | **PASS** — `pricing_unit`/`calculated_quantity`/`quantity_source`/`specification` all correctly persisted |
+| C. Multiple measurement rows attach to one item | **PASS** — 2 rows correctly linked via `quote_item_id` |
+| D. Another item in the same quote remains Simple | **PASS** — the Simple item's 4 new columns are `NULL` |
+| E. Mixed-item architecture proof | **PASS** — one quote, one Simple + one Professional item, confirmed via direct query |
+| F. `calculated_quantity` stores decimals | **PASS** — `2.135` stored and read back exactly |
+| G. Existing integer `quantity` remains intact | **PASS** — `3` and `1` respectively, untouched |
+| H. Owner access succeeds | **PASS** — RLS simulated via `SET LOCAL ROLE authenticated` + `request.jwt.claim.sub`/`.role`, owner sees 2 items + 2 measurement rows |
+| I. Cross-user access fails | **PASS** — a different real TEST persona (`TEST HE Pro`) simulated the same way: 0 items, 0 measurement rows visible |
+| J. Anonymous write fails | **PASS** — `SET LOCAL ROLE anon` + INSERT attempt: `permission denied for table quote_item_measurements` (zero grant, as designed) |
+| K. Immutability blocks professional-row mutation once the quote reaches the protected lifecycle state | **PASS** — quote marked `approved`; both an owner-context `UPDATE` and a new-row `INSERT` on `quote_item_measurements` correctly raised `"Not permitted: quote is approved/paid/signed - items/attachments are frozen"`, the existing, unmodified trigger message, verbatim |
+| L. Delete/cascade behavior matches design | **PASS, with an honest disclosure (157.9)** — cascade FKs verified structurally (157.4); a live DELETE attempt was correctly blocked by the same immutability trigger once the quote was approved, proving the protection extends to deletion exactly as designed |
+
+**No item marked "not proven" was converted to PASS anywhere in this table.**
+
+### 157.9 Disposable TEST data cleanup — honestly disclosed, not forced
+
+Once the fixture quote was marked `approved` (required to prove item K), attempting to `DELETE` its `quote_item_measurements` rows was **correctly blocked** by the same immutability trigger — even a direct Management-API SQL connection is not exempt, since the trigger's own `service_role` bypass is JWT-claim-based (`auth.role()='service_role'`), not connection-privilege-based, and no such claim was set. **Per this task's own explicit instruction ("if cleanup is blocked by an existing protective trigger, document it rather than weakening the protection"), the disposable fixture was left in place, not force-deleted.** This is not a workaround-avoidance failure — it is the trigger correctly doing exactly what it is designed to do, proven by the same action that would have been needed to clean up.
+
+**Residue, for the record**: one quote (`quote_number 89999901`, status `approved`, owner `TEST HE Basic`/`b8ec2f48-…`), 2 `quote_items` rows, 2 `quote_item_measurements` rows, every field clearly labeled `"(disposable)"` — harmless (fake, out-of-range quote number, isolated to one already-synthetic TEST persona, zero Production/real-customer impact, zero effect on any other TEST persona or on Stage B's own entitlement tests). A future task may remove it, if ever needed, via the same legitimate `service_role`-JWT admin-cleanup path the real `admin-delete-user` flow already uses for `quote_items`/`quote_attachments` — not attempted this task, since doing so was outside this task's own narrow schema-verification scope.
+
+### 157.10 Local/International schema neutrality proof
+
+Confirmed via the schema itself: zero HE-only or EN-only column, zero ILS-only or USD-only field, zero market-conditional constraint anywhere in the migration. `pricing_unit`/`specification`/measurement fields are pure data, read identically by both markets — HE/EN unit labels and specification-field labels remain entirely an application-layer concern (§155.7), never duplicated at the schema level.
+
+### 157.11 Automated test / build result
+
+`npx vitest run` re-run after all DB work: **241/241 pass** — Stage B's own suite fully unaffected by this schema-only task, confirming zero accidental application regression. Stage B's 3 uncommitted files confirmed byte-identical before and after (`git diff --stat`).
+
+### 157.12 Local Supabase CLI link state — restored
+
+The link state found pointing at Production at the start of this task (157.1) was, after all TEST work completed, **explicitly restored**: `supabase link --project-ref ixabnzhjeqevtbhdfswv` re-run, `supabase/.temp/project-ref` confirmed back to `ixabnzhjeqevtbhdfswv`, and the git-tracked `supabase/.temp/linked-project.json` confirmed to show **zero diff** against its own committed state — per §17.D's own explicit restoration requirement, satisfied precisely.
+
+### 157.13 TEST↔Production schema gap — explicit, not glossed over
+
+**TEST's schema has now advanced beyond Production's.** `quote_items`' 4 new columns and the new `quote_item_measurements` table exist **only** on `quotecode-test` (`ljfizgrdyzxddswcedwr`) as of this task. Production (`ixabnzhjeqevtbhdfswv`) is **completely unchanged** — confirmed by construction (every command targeted TEST explicitly, 157.1) and consistent with the standing §150.16 Iron Rule's own allowance that *data*/environment differ while business logic doesn't (this is schema, a legitimate TEST-ahead-of-Production state during active development, not a business-logic fork). **This TEST PASS does not imply a Production PASS** — the Production migration remains its own, separate, future, explicitly-not-yet-authorized gate, requiring its own dedicated apply/verify/rollback plan when the Owner chooses to authorize it.
+
+### 157.14 David Aluminum / A100700 status
+
+Zero interaction, zero read, zero write. No canonical workflow permission was invoked for read-only historical evidence this task (unnecessary — this was a schema-only task). A100700: untouched, deferred exactly as before.
+
+### 157.15 Landing Page marketing requirement — newly documented (§19 of this task's authorization)
+
+Not previously recorded in canonical continuity (confirmed via fresh search, zero prior hits). Recorded as a new item at `PROFLOW_TODO.md` item 52: landing pages must eventually translate FEATURE → USER BENEFIT → BUSINESS OUTCOME in concise, high-conversion, benefit-oriented language (not a technical feature list) — covering the real problem ProFlow solves, time/work saved, Professional Quotes, AI assistance, quote creation/sending, customer/business management, plan-relevant benefits — written natively for each market's own audience (HE/EN), not mechanically translated. **Documentation only — no landing-page copy implemented or changed by this task.**
+
+### 157.16 Binary acceptance results
+
+All items in this task's own §21 checklist are satisfied: six files freshly read; Fresh Local State inspected; exact TEST target proven (157.1); Production excluded (157.1/157.13); Stage B preserved (157.0/157.11); additive migration matches §155.9 exactly (157.3/157.4); zero destructive operation; `quote_items.quantity` unchanged; calculated quantity stored separately as numeric; `quote_item_measurements` created correctly; mixed-item schema demonstrated (157.8); existing rows remain valid, zero required backfill (157.7); RLS/security verified (157.5/157.8 H-J); cross-user/anon access blocked (157.8 I/J); immutability verified (157.8 K/L); pre/post integrity PASS (157.7); TEST-only apply, Production untouched (157.1/157.6/157.13); David/A100700 untouched (157.14); zero UI implementation; 241/241 Stage B baseline green (157.11); continuity updated; zero application/migration commit; zero push/deploy/LIVE.
+
+### 157.17 Release boundary
+
+Migration created and applied to TEST only. Migration file left **uncommitted**. Stage B's 3 application files remain **uncommitted**, byte-identical to before. No UI implementation. No Production mutation of any kind. No David Aluminum interaction. No A100700 action. No application commit. No application push. No deploy. No LIVE action. Item 51 remains open, untouched. Professional Quotes Stage C (the first UI-facing candidate) remains separately, explicitly not authorized.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §157); `PROFLOW_TODO.md` UPDATED (item 30's status advanced to reflect Stage A applied to TEST; new item 52, Landing Page requirement); `PROFLOW_HANDOFF.md` UPDATED (new §18.HC); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage A TEST-applied status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
