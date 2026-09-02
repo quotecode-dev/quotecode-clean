@@ -154,7 +154,7 @@ No commit. No push. No deploy. No LIVE action.
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`cf1c1c8` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`91dc6f4`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. All 7 application files remain uncommitted on local `main`.
 
 ---
 
