@@ -4,99 +4,94 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Bridge/Tunnel Persistence
+## Task: Bridge/Tunnel Persistence — Fresh Autonomous Re-Audit (Owner Away)
 
-**MODE: Owner-authorized ProFlow local MCP Bridge runtime persistence, OpenAI tunnel-client managed-runtime persistence, local process stop/start/restart where genuinely required to migrate, Windows local persistence configuration, read-only inspection, local end-to-end verification, continuity updates. NOT authorized: ProFlow application changes, TEST/Production changes, customer-data access, application commit/push, deploy, LIVE, unrelated machine configuration, weakened credential handling.**
+**MODE: Owner-authorized, Owner explicitly away from the computer — proceed autonomously with everything safely possible; STOP and report (never improvise) on any step needing a secret, elevation, or physical interaction. NOT authorized: ProFlow application changes, TEST/Production changes, customer-data access, application commit/push, deploy, LIVE, Windows reboot, insecure credential persistence, unrelated machine configuration, weakened security.**
 
-**This is not a ProFlow product task.** Same local dev infrastructure line as §170/§171 (item 56), extended.
+**This is not a ProFlow product task.** Same local dev infrastructure line as §170/§171/§172 (item 56), extended.
 
 ---
 
 ## Verdict
 
-**Bridge persistence: DONE and directly proven.** The Node MCP bridge now autostarts at Windows logon via the per-user Startup folder and was proven, through a real stop/relaunch test, to be genuinely independent of any interactive shell. **Tunnel-client persistence: mechanism identified, migration script prepared and validated as far as possible, but NOT executed** — it requires the Owner's own `CONTROL_PLANE_API_KEY`, which this session correctly never has and never worked around. This is now exactly one command for the Owner to run themselves.
+**Fresh, independent re-verification reached the identical conclusion as the prior task — nothing has drifted, and nothing new was safely implementable without the Owner present.** The Bridge remains persisted and proven independent. The tunnel-client remains genuinely blocked on the same credential gate; no workaround was attempted, per explicit instruction.
 
 ## 1. Bridge Persistence Mechanism
 
-Per-user Windows **Startup folder** (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-MCP-Bridge.vbs`) — a silent, no-secrets launcher that delegates entirely to the existing idempotent `start-bridge.ps1`. A Windows Scheduled Task was attempted first (would have added a 5-minute self-healing repetition trigger) but this session's shell lacks the elevation Task Scheduler registration requires (`Register-ScheduledTask` and `schtasks.exe` both failed with Access Denied — tested directly, not assumed). The Startup folder is the standard, fully-supported, unprivileged fallback and fully satisfies "starts automatically after logon" and "survives closing the launching window."
+Unchanged from the prior task: per-user Windows **Startup folder** (`ProFlow-MCP-Bridge.vbs`, silent, no secrets, delegates to `start-bridge.ps1`). Freshly re-confirmed present and unmodified on disk this task.
 
 ## 2. Tunnel Persistence Mechanism
 
-`tunnel-client runtimes connect` — the tool's own documented managed-runtime supervision mechanism (its own help text: "For a long-lived local runtime managed by Codex, use this command instead of nohup or disown"). **Prepared, not executed.** A ready-to-run script, `connect-tunnel.ps1`, performs the full migration (stop the old targeted foreground process → `runtimes connect` with the exact existing tunnel/profile/MCP-target → verify → rollback instructions on failure), but requires `CONTROL_PLANE_API_KEY` in the invoking shell — confirmed absent from this session (length-only check). Not executed, per the task's own explicit instruction not to work around this boundary.
+Unchanged: `tunnel-client runtimes connect`, prepared as `connect-tunnel.ps1` (freshly re-confirmed present and unmodified). **Still not executed** — see item 6.
 
 ## 3. Managed Runtime Alias
 
-`proflow-bridge` — the alias name `connect-tunnel.ps1` will register once the Owner runs it. **Not yet created** (`tunnel-client runtimes list` confirmed empty; `runtimes status proflow-bridge` independently confirmed the expected "alias not known" failure before migration).
+`proflow-bridge` — still **not created**. `tunnel-client runtimes list` freshly re-run this task: still empty.
 
 ## 4. Windows Service: NO
 
-Not used, not attempted — `tunnel-client`'s own supported mechanism (`runtimes connect`) is a managed background-runtime, not a Windows Service, and is the tool-recommended path.
+Unchanged. Freshly re-checked: no relevant service found.
 
 ## 5. Scheduled Task: NO
 
-Attempted for the Bridge, blocked by lack of elevation in this session (see item 1). Not attempted for tunnel-client (its own `runtimes connect` mechanism is the correct, tool-native path instead).
+Unchanged — this session's shell is still non-elevated (Administrators group present "for deny only"); the Startup-folder fallback remains the active mechanism.
 
 ## 6. Credential Persistence: NO
 
-`CONTROL_PLANE_API_KEY` was not stored, embedded, or persisted anywhere by this task — not in `start-bridge.ps1`, not in `ProFlow-MCP-Bridge.vbs`, not in `connect-tunnel.ps1` (which only *reads* an already-set environment variable and fails closed if it is absent). **A separate, larger decision is explicitly flagged `NEEDS_OWNER_AUTHORIZATION` below** for full unattended reboot-survival, which would require file-based credential persistence — not implemented, not decided unilaterally.
+`CONTROL_PLANE_API_KEY`/`OPENAI_API_KEY` freshly re-checked this task (length-only): still **absent** from this session. Per this task's explicit instruction ("Do NOT require the Owner to manually... STOP only that blocked step... Do not improvise insecurely"), no workaround was attempted — including a lower-level option this session considered and explicitly rejected: attempting to detach the already-running tunnel-client process (PID 8836) from its console after the fact (e.g., via console-API manipulation) to avoid needing a fresh credentialed restart at all. No supported tool mechanism exists for that, Windows console-close semantics make it inherently fragile, and it risks destabilizing the one currently-working tunnel connection — explicitly out of bounds under "prefer supported mechanisms... do not improvise insecurely" and "do not destroy the working checkpoint."
 
 ## 7. Dependent on Open PowerShell Windows
 
-- **Bridge (`mcp-bridge-server.js`)**: **NO** — directly proven independent (see item 16).
-- **Tunnel-client (`tunnel-client.exe`, current PID 8836)**: **YES, still** — unchanged, still a direct child of an interactive PowerShell window (confirmed via process ancestry this task). Migration to independence is prepared but not yet executed (see item 2).
+- **Bridge**: **NO** — freshly re-confirmed independent by direct process-ancestry inspection (its launching process no longer exists).
+- **Tunnel-client (PID 8836, unchanged)**: **YES, still** — freshly re-confirmed still a direct child of a live, interactive PowerShell window (PID 34080).
 
-## 8. Safe to Close the Existing PowerShell Windows Now: PARTIAL
+## 8. Safe to Close the Existing PowerShell Windows Now
 
-- The PowerShell window that was launching the **Bridge** (or this session's own shell, if it launched the bridge process) can be closed safely now — the Bridge no longer depends on it.
-- The PowerShell window currently running `tunnel-client run --profile proflow-no-auth-proof` (PID 8836) **should NOT be closed yet** — doing so would kill the tunnel until the Owner runs `connect-tunnel.ps1` (or otherwise restarts it). Close it only **after** running the migration script successfully.
+- Bridge's window: **YES**.
+- The window running `tunnel-client run --profile proflow-no-auth-proof`: **NO** — closing it now would kill the tunnel. Close only after the Owner runs `connect-tunnel.ps1`.
 
 ## 9. Survives Windows Logoff
 
-- **Bridge**: **NOT PROVEN** (a real logoff/logon cycle was not performed — not safe or practical to attempt from this session). **Structurally configured correctly** — the Startup folder mechanism is Windows' standard per-user logon-autostart path, and the launcher was proven independent of any specific shell process, which is the property that makes logoff-survival plausible; it is reported as configured, not as observed.
-- **Tunnel-client**: **NOT CONFIGURED YET** — migration not executed.
+- **Bridge**: **NOT PROVEN** (no real logoff/logon cycle performed — still not safe/practical to attempt from this session). Structurally configured (Startup folder is the standard per-user logon-autostart mechanism).
+- **Tunnel-client**: **NOT CONFIGURED**.
 
 ## 10. Survives Windows Restart
 
-- **Bridge**: **STRUCTURALLY CONFIGURED** (Startup-folder items run at every interactive logon, including post-reboot logon) — **NOT PROVEN** (no reboot was performed or authorized this task).
-- **Tunnel-client**: **NOT CONFIGURED** — migration not executed; even after migration, `runtimes connect` alone gives supervised/restart-recoverable *process* persistence while running, not automatic *credentialed* restart after a full reboot, since `CONTROL_PLANE_API_KEY` would still need to be supplied at that next start unless the Owner separately authorizes file-based credential persistence (item 6).
+- **Bridge**: **STRUCTURALLY CONFIGURED**, **NOT PROVEN** (no reboot performed; none authorized).
+- **Tunnel-client**: **NOT CONFIGURED**.
 
-No Windows reboot was performed, attempted, or is authorized by this task.
+No Windows reboot was performed, attempted, or is authorized.
 
 ## 11. Rollback Procedure
 
-- **Bridge**: delete `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-MCP-Bridge.vbs` to disable autostart; stop the running process with `Stop-Process` on the PID listening on 8765 if needed. `mcp-proof-server.js` remains untouched on disk as a full functional rollback if the bridge server itself needs reverting.
-- **Tunnel-client** (only relevant once the Owner runs the migration): `connect-tunnel.ps1` prints an explicit rollback on any failure (`tunnel-client runtimes stop proflow-bridge` then `tunnel-client run --profile proflow-no-auth-proof`) — the exact original foreground command, unchanged.
+Unchanged from §172: delete `ProFlow-MCP-Bridge.vbs` from the Startup folder to disable Bridge autostart (`mcp-proof-server.js` remains the untouched functional rollback for the server itself); `connect-tunnel.ps1` prints its own rollback (`runtimes stop` + the original `run` command) on any failure, once the Owner runs it.
 
-## 12. Exact Tests Performed
+## 12. Exact Tests Performed (this task, fresh — not re-read from the prior report)
 
-- Fresh state: process list, ports, `/api/status`, `runtimes list`, `admin-profiles list`, process ancestry (`Get-CimInstance Win32_Process`) for both `tunnel-client.exe` and the bridge `node.exe`, Windows Services/Scheduled Tasks search (none pre-existing), current `start-bridge.ps1` content re-read fresh.
-- `Register-ScheduledTask` attempted → Access Denied. `schtasks.exe /Create` attempted → Access Denied (confirmed non-elevated token: Administrators group present "for deny only").
-- Real Startup-folder path independently verified via `$env:APPDATA` after `[Environment]::GetFolderPath('Startup')` returned a sandbox-virtualized path.
-- `ProFlow-MCP-Bridge.vbs` fired manually while the bridge was already running → same PID, no duplicate listener (idempotency proven).
-- Bridge process (PID 31416) deliberately stopped; launcher fired again (simulating logon) → new PID (28892) came up; its process ancestry inspected → intermediate parent already exited, node.exe fully orphaned (terminal-independence proven).
-- Post-relaunch: `initialize` JSON-RPC call succeeded against the new process; `tunnel-client`'s own `/api/status` channel probe self-recovered to `"ok"`; `netstat` confirmed exactly one listener on port 8765; `bridge.log` content re-inspected — safe metadata only.
-- `connect-tunnel.ps1` parsed with `[System.Management.Automation.Language.Parser]::ParseFile` → zero syntax errors.
-- `tunnel-client runtimes status proflow-bridge` (read-only, no credential needed) → confirmed expected "alias not known" failure, matching the script's own idempotency-check assumption.
-- `CONTROL_PLANE_API_KEY`/`OPENAI_API_KEY` re-confirmed absent from this session (length-only check, value never read or printed).
+- `tasklist`/`netstat` for both components — PIDs unchanged from the prior task's end state (8836, 28892), confirming no drift.
+- `tunnel-client runtimes list` → still empty. `/api/status` → same `started_at` as before (proves the Owner has not yet migrated), channel probe still `"ok"`.
+- `Get-CimInstance Win32_Process` ancestry for both PIDs, independently re-run: tunnel-client's parent (34080, powershell.exe) still alive; Bridge's original parent (32788) still confirmed gone (independent).
+- Windows Services search (`Get-Service` matching tunnel/proflow/claude) → still none relevant.
+- Startup-folder contents listed → `ProFlow-MCP-Bridge.vbs` present.
+- `proflow-mcp-bridge` directory listed → `connect-tunnel.ps1`, `start-bridge.ps1`, `mcp-proof-server.js` (rollback copy) all present and unmodified.
+- Fresh `initialize` + `tools/list` MCP calls against the live Bridge → protocol correct, all 12 tools (including all Phase 4 tools) present.
+- `CONTROL_PLANE_API_KEY`/`OPENAI_API_KEY` length-only check → both 0, confirmed absent.
 
-## 13. Exact Remaining Owner Action
+## 13. Anything Still Requiring the Owner
 
-1. In the PowerShell window where `CONTROL_PLANE_API_KEY` is already set (the one currently running `tunnel-client run --profile proflow-no-auth-proof`), run:
-   ```
-   powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\connect-tunnel.ps1
-   ```
-   This stops the old foreground process and starts the managed, terminal-independent `runtimes connect` supervision — no new credential storage, no change to the tunnel/profile/MCP target.
-2. Confirm the script's own printed verification (`runtimes status proflow-bridge`, channel `probe_status: ok`) looks correct.
-3. Only then is it safe to close that PowerShell window.
-4. **Separate decision, not required to close the window today**: if the Owner wants tunnel-client to also survive a full Windows reboot/logoff with zero manual restart, decide whether to accept persisting `CONTROL_PLANE_API_KEY` to an NTFS-ACL-restricted file (`file:C:\...` reference) — the only credential-persistence option this tool version supports (no Credential-Manager/DPAPI-backed reference exists). This session did not create that file or make that choice; say the word and it can be built with the exact ACL restricting it to the Owner's own Windows account only.
+Exactly one action, unchanged from §172 — in the PowerShell window where `CONTROL_PLANE_API_KEY` is already set:
+```
+powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\connect-tunnel.ps1
+```
+This is a **genuine credential/interactive-presence boundary**, not an oversight — this session correctly stopped at it rather than working around it, exactly as instructed.
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
 - **TEST CHANGED?** NO.
 - **APPLICATION CODE CHANGED?** NO.
-- **APPLICATION COMMIT?** NO (only the documentation-only continuity commit for this task).
-- **APPLICATION PUSH?** NO (same distinction).
+- **APPLICATION COMMIT?** NO.
+- **APPLICATION PUSH?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -107,25 +102,24 @@ No Windows reboot was performed, attempted, or is authorized by this task.
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§172) |
-| `PROFLOW_TODO.md` | UPDATED (item 56 extended) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HP) |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED (§20 extended) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§173) |
+| `PROFLOW_TODO.md` | UPDATED (item 56 status line) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HQ) |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (§20 already covers this mechanism; nothing new to add) |
 | `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `1e251b0`.
+*(filled after push — see below)*
 
 ---
 
-## BRIDGE PERSISTENCE: DONE, PROVEN INDEPENDENT OF ANY INTERACTIVE SHELL
-## TUNNEL-CLIENT PERSISTENCE: SCRIPT PREPARED — NEEDS_OWNER_AUTHORIZATION (CREDENTIAL REQUIRED TO EXECUTE)
-## REBOOT/LOGOFF SURVIVAL: STRUCTURALLY CONFIGURED FOR BRIDGE, NOT PROVEN; NOT CONFIGURED FOR TUNNEL-CLIENT
+## BRIDGE PERSISTENCE: STILL DONE, RE-CONFIRMED INDEPENDENT (FRESH AUDIT)
+## TUNNEL-CLIENT PERSISTENCE: STILL BLOCKED ON OWNER'S CONTROL_PLANE_API_KEY — NO WORKAROUND ATTEMPTED
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
 ## APPLICATION COMMIT/PUSH: NOT PERFORMED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
-## WAITING FOR OWNER TO RUN connect-tunnel.ps1 (AND OPTIONALLY DECIDE ON CREDENTIAL-FILE PERSISTENCE)
+## WAITING FOR OWNER TO RUN connect-tunnel.ps1
