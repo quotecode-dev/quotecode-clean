@@ -177,7 +177,7 @@ Application code (7 files total, Stage 1's own 6 plus `QuoteForm.jsx` newly touc
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`22efd8d` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`97455a4`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Stage 1's own six application files plus this task's `QuoteForm.jsx` remain uncommitted on local `main`.
 
 ---
 
