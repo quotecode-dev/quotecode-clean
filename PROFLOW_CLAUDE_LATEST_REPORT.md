@@ -95,7 +95,7 @@ Documentation: committed + pushed to `proflow-continuity` only (see SHA below). 
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`4f79b05` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`db54b33`) — not pushed to `origin/main` (documentation only). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `4f79b05` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §149 present in `PROFLOW_PROJECT_CONTEXT.md`, item 50 present in `PROFLOW_TODO.md`, §18.GU present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own `ENTITLEMENT / QUOTA FORENSIC AUDIT: FAIL` sign-off present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`. Stage 1's own six application files remain uncommitted on local `main`, undisturbed by this task.
 
 ---
 
