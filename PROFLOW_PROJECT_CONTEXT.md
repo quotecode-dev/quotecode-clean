@@ -6328,3 +6328,93 @@ Every row requires both a TEST-verified Admin-side check and a TEST-verified use
 **DOCUMENTATION / ARCHITECTURE PLANNING ONLY.** Zero application code read for editing purposes, zero application code changed, zero DB/schema access or mutation, zero TEST mutation, zero Production mutation, zero customer/account/subscription/trial data touched, no migration run, no commit of application code, no push, no deploy, no LIVE action. The application-layer commit present in this task's own working tree (`ProfessionalPublicPreview.jsx`) is entirely unrelated, predates this task, and was explicitly confirmed untouched.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §147); `PROFLOW_TODO.md` UPDATED (item 28 expanded to reference this architecture; item 30 family cross-referenced); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (short forward-pointer in §16, its own existing Trial/Plans/Billing section); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **No application code changed. No DB mutation. No TEST/Production mutation. No customer data touched.**
+
+## §148. Plan Identity / Trial / Lifetime Centralization — Stage 1 Implementation (added 2026-09-02, Owner-authorized STRICTLY to Stage 1 — TEST/local, application code left UNCOMMITTED per explicit instruction, NOT pushed, NOT deployed)
+
+### 148.0 Fresh Local State
+
+`origin/main`=`26dee96` (unchanged). `origin/proflow-continuity` current at task start (`2d180f0`). Local `main` still carries the one still-unpushed, unrelated application commit from §146 (`ProfessionalPublicPreview.jsx`) — confirmed untouched throughout. Working tree clean besides the standing untracked `entry-server.jsx` before this task's own edits began. No unrelated work was modified.
+
+### 148.1 Canonical resolver architecture after Stage 1
+
+**No new independent interpretation system was created.** The existing chain (`computeEffectivePlan()` → `PLAN_CATALOG` → `resolveAccountEntitlement()`) is extended, not replaced:
+
+- **`src/utils/accountEntitlement.js`**: `resolveAccountEntitlement()` now additionally returns **`displayIdentity`** — one of exactly `FREE` / `FREE_TRIAL` / `BASIC` / `PRO` / `LIFETIME`, computed as: `isLifetime → 'LIFETIME'`; else active/expiring-soon trial → `'FREE_TRIAL'`; else `tier.toUpperCase()`. **Deliberately a new field, not a change to the existing `badgeState`** — `badgeState`'s own "PRO (not TRIAL) for Lifetime" behavior is regression-locked by an existing test and was left byte-identical.
+- **`src/utils/planCatalog.js`**: two new exports — `DISPLAY_IDENTITY_LABELS`/`getDisplayIdentityLabel(displayIdentity, isHebrew)` (the single HE/EN label source for all five identities) and `shouldShowUpgradeCta({tier, isLifetime, isSuperAdmin})` (the single Upgrade-CTA visibility rule). Both pure, side-effect-free, metadata/logic only — no new plan added, no entitlement values changed.
+- **Binary requirement satisfied**: both `Dashboard.jsx` and `SettingsTab.jsx` now compute their displayed identity and their Upgrade-CTA visibility by calling these exact same two functions with the same inputs — same account state now provably produces the same resolved identity in both places, since there is only one implementation of each decision left in the codebase.
+
+### 148.2 Dashboard.jsx changes
+
+Added one resolver call (`resolveAccountEntitlement({plan:bizPlan, trialEndsAt, role:bizRole, now})`) purely for the two fields it never computed before (`isLifetime`, `displayIdentity`). **The pre-existing `computeEffectivePlan()` call, and everything derived from it (`effectivePlan`, `isPro`, `isBasicOrAbove`, `isTrialExpired`, `trialDaysLeft`), was left completely untouched** — this was a deliberate choice to guarantee zero behavior change to the already-correct, already-extensively-tested entitlement gating used throughout the rest of the file (money limits, feature gates, `QuoteForm.jsx`'s own consumption via `isPro`/`isBasicOrAbove`). The header's own "Upgrade Plan" CTA now reads `shouldShowUpgradeCta({tier: effectivePlan, isLifetime, isSuperAdmin})` instead of its own inline `!isPro && !isSuperAdmin` — a **zero-behavior-change** substitution for `Dashboard.jsx` itself (both expressions already produced identical results, since Lifetime and active-trial both already resolved `effectivePlan==='pro'`) that now shares one real implementation with `SettingsTab.jsx` instead of two independent ones. `isLifetime`/`displayIdentity`/`isSuperAdmin` are now also passed down to `SettingsTab.jsx` as three new props.
+
+### 148.3 SettingsTab.jsx changes — the two concrete gaps found at §147.1, fixed
+
+1. **Plan label**: `{effectivePlan} PLAN` (would literally render `"PRO PLAN"` for a Lifetime account) → `{getDisplayIdentityLabel(displayIdentity, isHebrew)} PLAN` — now correctly renders `FREE`/`FREE (TRIAL)`/`BASIC`/`PRO`/`LIFETIME` as appropriate.
+2. **Upgrade / Change Plan button**: was **unconditional** (shown to every account, including Lifetime and ordinary PRO) → now wrapped in `shouldShowUpgradeCta({tier: effectivePlan, isLifetime, isSuperAdmin})`, the exact same function `Dashboard.jsx` now also uses.
+3. **Cancel Subscription button**: was `bizPlan !== 'free'` (shown to Lifetime accounts too, for whom "cancel a subscription" is a semantically odd request given no recurring subscription exists) → now `!isLifetime && bizPlan !== 'free'`. All other existing visibility logic for this button preserved exactly.
+
+### 148.4 Lifetime behavior
+
+Lifetime is displayed as **`LIFETIME`**, never `PRO`, wherever this task's two touched components render an identity. Lifetime never receives the Upgrade CTA (either location) or the Cancel Subscription control. Entitlement itself is unchanged — a Lifetime account still resolves the same `tier` (and therefore the same `PLAN_CATALOG` capability set) it always did; only *display* and *CTA visibility* changed. **No DB/schema field was added for Lifetime this task** — Stage 1 uses the existing inference (`trial_ends_at IS NULL && plan!=='free'`) exactly as before, per explicit instruction; Stage 2 remains the (not-authorized) future step that would replace this inference with a durable field.
+
+### 148.5 Trial behavior
+
+An active trial's `tier` still resolves to `'pro'` exactly as before (zero change to `computeEffectivePlan()`, the formula itself was never touched) — a trialing account still receives full PRO-level entitlement throughout the app. The only change is *display*: `displayIdentity` now reports `FREE_TRIAL` during an active or expiring-soon trial (rendering as `FREE (TRIAL)`), rather than the account ever having been presented as a bare `PRO`/`LIFETIME` in the two components this task touched — since neither of them previously rendered a trial-aware label at all (`SettingsTab.jsx`'s old `{effectivePlan} PLAN` would have shown `"PRO PLAN"` during a trial too, an equally-real pre-existing gap fixed by the same change as the Lifetime one). **Zero trial initialization/reset/extension was performed** — no `trial_ends_at` value was written, read-for-mutation, or otherwise touched for any real account this task.
+
+### 148.6 Extensibility assessment
+
+A future sixth plan requires: one new `PLAN_CATALOG` entry (already the established pattern) and, only if it introduces a genuinely new *identity* concept beyond the existing five, one new key in `DISPLAY_IDENTITY_LABELS` plus one new branch in `shouldShowUpgradeCta` if its upgrade-eligibility differs from the existing free/basic pattern. **No component outside these two centralized files would need to change** — `Dashboard.jsx`/`SettingsTab.jsx` (and any future consumer) already read the label/CTA-visibility decision from the shared functions, never compute it themselves. This satisfies the Owner's own extensibility requirement without adding any new plan now.
+
+### 148.7 HE / EN + market separation
+
+No business logic differs between languages — `getDisplayIdentityLabel`/`shouldShowUpgradeCta` take `isHebrew`/market-independent inputs respectively; only the returned *string* differs by language. Verified live, both markets, identical results (148.9). Plan identity remains fully orthogonal to market — no coupling introduced.
+
+### 148.8 Professional Quotes / David Aluminum / A100700 — untouched, confirmed
+
+`professionalPreviewAllowlist.js` and both Item 30.E preview routes: not read for editing purposes, not modified — `git diff --stat` (148.11) confirms zero touch. No `professionalQuotes` flag added to `PLAN_CATALOG`. No customer-specific condition of any kind was written anywhere (`git diff` contains zero references to David, any specific email, user id, or business name) — the Lifetime-CTA fix works through the same shared `shouldShowUpgradeCta()`/`displayIdentity` path for **every** account whose data happens to match the Lifetime shape, exactly as instructed. Zero DB/Production/customer-data action of any kind. A100700 untouched.
+
+### 148.9 Six-persona verification matrix (TEST/local only, zero data mutation)
+
+Two verification layers, per the Binary Acceptance Governance's own evidence-tier discipline (§142.2): **unit-level** (exhaustive, deterministic, all six logical cases, both new test files, 22 new assertions, all passing) and **real end-to-end UI** (real TEST logins, real rendered `SettingsTab`/Dashboard, both markets) for whichever states the existing TEST fixture personas actually represent.
+
+| Persona (real TEST login) | Real stored shape found | `displayIdentity` (unit-verified) | Live UI label | Header CTA | Settings CTA | Cancel Sub | HE | EN |
+|---|---|---|---|---|---|---|---|---|
+| A. FREE | `plan:'free', trial_ends_at:null` | FREE | **"FREE PLAN"** | shown | shown | hidden | ✅ live | ✅ live |
+| B. FREE + active trial | *(no such TEST persona currently seeded — see below)* | FREE_TRIAL | — | — | — | — | unit only | unit only |
+| C. FREE + expired trial | `plan:'pro', trial_ends_at:<past>` | FREE | **"FREE PLAN"** | shown | shown | shown | ✅ live | ✅ live |
+| D. BASIC | *TEST persona turned out Lifetime-shaped, see below* | BASIC | — | — | — | — | unit only | unit only |
+| E. PRO | *TEST persona turned out Lifetime-shaped, see below* | PRO | — | — | — | — | unit only | unit only |
+| F. LIFETIME (current inference) | `plan:'basic'` **and** `plan:'pro'`, both `trial_ends_at:null` | LIFETIME | **"LIFETIME PLAN"** | **hidden** | **hidden** | **hidden** | ✅ live | ✅ live |
+
+**Honest disclosure, not a gap silently hidden**: the TEST fixture personas named `..._BASIC`/`..._PRO` (both markets) turned out, on real inspection, to already be stored with `trial_ends_at:null` — meaning they resolve as **Lifetime**, not ordinary BASIC/PRO, under the *already-existing, unmodified-by-this-task* inference rule. This is not a Stage 1 defect; it is a discovery about how these particular fixtures were seeded, and it fortuitously provided **real, live, both-market proof of exactly the Owner's own most-critical named requirement** (Lifetime must never show the Upgrade CTA) — confirmed true on real rendered UI, not just unit tests. It also means rows D/E (ordinary, non-Lifetime BASIC/PRO) and row B (active trial) have **no dedicated real TEST persona available** — constructing one would require exactly the kind of trial/plan data mutation this task's own authorization forbids, so none was attempted. These three rows rest on the exhaustive, deterministic unit-test coverage alone (148.10) — recorded honestly as `NOT LIVE-UI-VERIFIED WITH A DEDICATED PERSONA THIS TASK`, not silently upgraded to a live PASS.
+
+### 148.10 Unit-level verification (complete, all six logical cases)
+
+22 new assertions across `accountEntitlement.test.js` (10 new `displayIdentity` cases, covering all six personas' underlying logic directly, including the exact `FREE_TRIAL`-during-active-trial and `LIFETIME`-not-`PRO` cases) and `planCatalog.test.js` (12 new cases for `DISPLAY_IDENTITY_LABELS`/`getDisplayIdentityLabel`/`shouldShowUpgradeCta`, including the literal required English string `"FREE (TRIAL)"` and every CTA-visibility branch). **200/200 tests pass** (178 pre-existing + 22 new) — zero regression to any previously-locked behavior, including the pre-existing `badgeState` Lifetime test that this task's design deliberately avoided touching.
+
+### 148.11 Regression results
+
+`git diff --stat`: exactly 6 files (`accountEntitlement.js`, `planCatalog.js`, `Dashboard.jsx`, `SettingsTab.jsx`, and their two test files) — no other file touched. 200/200 tests pass. Lint: the same 2 pre-existing, unrelated errors already confirmed to predate this task (`ProfessionalItemComparisonCard.jsx`, `ProfessionalPublicPreview.jsx`) — zero new lint issues. Build clean (`✓ built in 9.52s`). Trial expiry behavior: unchanged (`computeEffectivePlan()` never touched). Local/International separation: unchanged, verified live identical both markets. HE/EN symmetry: verified live identical. Dashboard/Public Quote geometry, Mobile work, quote numbering, Item 30.E, Admin security/RLS: none of these files were read for editing purposes or touched.
+
+### 148.12 File-by-File Ledger
+
+| FILE | HE/EN | Reason for change | Dependency | Regression risk | Verification |
+|---|---|---|---|---|---|
+| `src/utils/accountEntitlement.js` | shared (logic, not market-specific) | Add `displayIdentity` field | `planEntitlements.js` (untouched), `planCatalog.js` | LOW — purely additive field, `badgeState` deliberately untouched | 10 new unit tests + real UI (148.9) |
+| `src/utils/planCatalog.js` | shared | Add `DISPLAY_IDENTITY_LABELS`/`getDisplayIdentityLabel`/`shouldShowUpgradeCta` | none (pure functions) | LOW — purely additive exports | 12 new unit tests + real UI |
+| `src/pages/Dashboard.jsx` | BOTH | Consume new resolver fields for the header CTA; pass new props to `SettingsTab` | `accountEntitlement.js`, `planCatalog.js` | LOW-MEDIUM — the one behavior-relevant change (header CTA source) is zero-behavior-change by construction (146.2); `effectivePlan`/`isPro`/`isBasicOrAbove` deliberately untouched | 200/200 tests + real UI, both markets |
+| `src/components/SettingsTab.jsx` | BOTH | Fix the two concrete gaps found at §147.1 (label, unconditional CTA) + Lifetime Cancel-Sub wording | `planCatalog.js`, new props from `Dashboard.jsx` | LOW-MEDIUM — this is the file with real visible behavior change (by design) | Real UI, both markets, 4 personas × 2 markets = 8 live checks |
+| `src/utils/accountEntitlement.test.js` | n/a | New regression coverage | — | none (test-only) | Self-verifying (passes) |
+| `src/utils/planCatalog.test.js` | n/a | New regression coverage | — | none (test-only) | Self-verifying (passes) |
+
+No other file from §147.5's own *proposed* future ledger was touched — `business_settings`, the DB trigger, `planEntitlements.js`, `PricingModal.jsx`, `AdminUsersTab.jsx`/`UserDetailsModal.jsx`, and the Item 30.E allowlist were all left exactly as found, consistent with "minimize touched files" and Stage 1's own explicit scope.
+
+### 148.13 DB/schema/TEST/Production/customer-data status
+
+**No DB/schema change. No migration. No customer/account/subscription/trial data mutation of any kind** — every TEST verification this task was a real login (already-existing credentials) followed by read-only page loads and DOM inspection; zero write action performed against any TEST or Production account. `origin/main` unchanged throughout. Zero Production action of any kind. David Aluminum, Professional Quotes, and A100700: all confirmed untouched (148.8).
+
+### 148.14 Release boundary
+
+**TEST/local implementation and verification only.** Per this task's own explicit instruction — stricter than every prior task this session — **the application-code changes are left UNCOMMITTED** (not even a local commit), pending separate Owner authorization to commit. **NOT pushed. NOT deployed. NOT LIVE.**
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §148); `PROFLOW_TODO.md` UPDATED (item 28, Stage 1 status); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16's forward-pointer refreshed to reflect Stage 1 TEST-implemented status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report). **Application code changed locally (6 files) but deliberately left UNCOMMITTED per explicit instruction. Zero DB/schema mutation. Zero Production mutation. Zero customer/account/subscription/trial data touched. David Aluminum, Professional Quotes, and A100700 all confirmed untouched.**

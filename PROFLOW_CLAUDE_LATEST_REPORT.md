@@ -4,106 +4,143 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Plan Identity & Entitlements Architecture — Investigation + Proposal
+## Task: Plan Identity / Trial / Lifetime Centralization — Stage 1 Implementation
 
-**DOCUMENTATION / ARCHITECTURE PLANNING ONLY. No application code edit, no DB/schema change, no migration, no TEST/Production mutation, no customer/account/subscription/trial data touched, no commit/push/deploy of application code, no LIVE action.**
+**Stage 1 application code ONLY, TEST/local. NO DB/schema change, NO customer/account/subscription/trial data mutation, NO Production action, NO application commit/push/deploy (application code left UNCOMMITTED per explicit instruction), NO LIVE action.**
 
 ---
 
-## 1. Continuity / Fresh Local State
+## 1. Fresh Local State before work
 
-`origin/main`=`26dee96` (unchanged throughout). Local `main` carries one still-unpushed, unrelated application commit from the immediately preceding task (`ProfessionalPublicPreview.jsx`, §146) — confirmed via `git diff --stat` before and after this task that it remains exactly as it was, untouched. Working tree clean besides the standing untracked `entry-server.jsx`. No unrelated work was modified.
+`origin/main`=`26dee96` (unchanged). Local `main` carries one still-unpushed, unrelated application commit from §146 (`ProfessionalPublicPreview.jsx`) — confirmed untouched throughout. Working tree clean besides the standing untracked `entry-server.jsx` before this task's own edits.
 
-## 2. Current implementation (read fresh from source this task)
+## 2. Files inspected
 
-- **Plan identity today**: `business_settings.plan` (`free`/`basic`/`pro`) + `business_settings.trial_ends_at` (nullable timestamp) + `role`. No explicit Lifetime field exists.
-- **Trial today**: `computeEffectivePlan()` (`src/utils/planEntitlements.js`) is the single formula — `plan==='pro'` + a real, still-future `trial_ends_at` → `effectivePlan:'pro'` (active trial); the same shape but past → `effectivePlan:'free'` (expired, the already-fixed regression case); `trial_ends_at===null` → `effectivePlan:'pro'` unconditionally (Lifetime-grant or explicit super_admin assignment, never re-evaluated as a trial).
-- **Entitlements today**: `PLAN_CATALOG` (`src/utils/planCatalog.js`) — `free`/`basic`/`pro` only, each carrying `monthlyQuoteLimit`/`editDuplicate`/`whatsappDelete`/`attachments`. TRIAL is explicitly modeled as a **badge-state overlay**, never a catalog entry — already matches the Owner's own required conceptual model.
-- **`resolveAccountEntitlement()`** (`src/utils/accountEntitlement.js`) composes the above into `{tier, rawPlan, isLifetime, trialStatus, badgeState, entitlement}` — `isLifetime` is **inferred** (`trial_ends_at IS NULL && plan!=='free'`), not stored.
-- **Admin**: `AdminUsersTab.jsx`/`UserDetailsModal.jsx` both call `resolveAccountEntitlement()` — the more-complete side of the current gap.
-- **User-facing UI**: `Dashboard.jsx` calls `computeEffectivePlan()` directly (not the higher-level resolver), deriving its own local `isPro`/`isBasicOrAbove` — never computes `isLifetime` or `badgeState`. `SettingsTab.jsx` receives `effectivePlan` as a prop and renders `{effectivePlan} PLAN` literally.
-- **Lifetime today**: an admin-only toggle (`handleToggleLifetime`, in both `AdminUsersTab.jsx` and `Dashboard.jsx`) that only ever writes `trial_ends_at` (`null` = lifetime, `+14d` = restore trial) — never touches `plan`.
-- **Upgrade CTA today**: `Dashboard.jsx:3011` — correctly gated (`!isPro && !isSuperAdmin`), hides for PRO/Lifetime/active-trial alike. `SettingsTab.jsx:308-311` — **unconditional**, shown to every account including Lifetime and ordinary PRO. Two different rules for the same concept, found fresh this task, not previously documented this precisely.
+`accountEntitlement.js`, `planCatalog.js`, `planEntitlements.js`, `Dashboard.jsx` (plan-identity section + `<SettingsTab>` render), `SettingsTab.jsx` (full plan-display block), `AdminUsersTab.jsx`/`UserDetailsModal.jsx` (consumption pattern, confirmed not requiring change for Stage 1), both new/existing test files.
 
-## 3. Gap analysis (FREE / FREE (TRIAL) / BASIC / PRO / LIFETIME, identity vs. entitlement)
+## 3. Files modified
 
-Full table: `PROFLOW_PROJECT_CONTEXT.md` §147.2. Summary: FREE and BASIC are already clean, unambiguous identities. PRO's entitlement is clean but has no user-facing distinction from Lifetime. **FREE (TRIAL)**'s identity/entitlement separation already exists conceptually inside `resolveAccountEntitlement()` — the gap is that `Dashboard.jsx` never reaches that function. **LIFETIME is the core gap** — no stored identity anywhere, inferred from an overloaded field, with one already-source-documented ambiguity (`plan='free'+trial_ends_at=null` cannot currently distinguish self-cancel from a rare Lifetime-onto-FREE grant).
+Exactly 6: `src/utils/accountEntitlement.js`, `src/utils/planCatalog.js`, `src/pages/Dashboard.jsx`, `src/components/SettingsTab.jsx`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.test.js`. No other file touched.
 
-## 4. Professional Quotes impact + David Aluminum / A100700
+## 4. Exact canonical resolver architecture after Stage 1
 
-Professional Quotes (`professionalPreviewAllowlist.js`) has **zero connection** to the plan system today — a pure hardcoded user-id gate. Trial-to-PRO capability inheritance, and its automatic withdrawal on expiry, would require **zero new trial-specific code** if a future `professionalQuotes` flag is added to `PLAN_CATALOG` — the existing `computeEffectivePlan()` mechanism already handles this transparently for every existing capability flag. Preserving historical/already-created quote content against a later entitlement change is flagged as a **new, currently-unaddressed risk surface**, with a recommendation (not a decision) to mirror the existing Quote Currency Freeze principle — snapshot at creation, never re-gate display against current entitlement. David Aluminum remains the intended real target for the finished feature, migrated on once the numbering (`A100700`+) and the architecture are both ready and Owner-approved — **not authorized to begin now, and not touched this task.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.3.
+`computeEffectivePlan()` (unchanged) → `PLAN_CATALOG` (unchanged entitlements, two new exports added) → `resolveAccountEntitlement()` (one new additive field, `displayIdentity`). No new independent interpretation system created. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §148.1.
 
-## 5. Proposed architecture (smallest safe extension — not implemented)
+## 5. Exact five display identities and HE/EN labels
 
-1. Explicit, durable Lifetime schema field, replacing the current inference.
-2. `Dashboard.jsx` migrated to `resolveAccountEntitlement()`.
-3. One centralized HE/EN label-resolution helper for all five identities, replacing ad hoc string interpolation.
-4. Reconcile the two inconsistent Upgrade CTAs onto one shared visibility rule; reconsider "Cancel Subscription" wording for Lifetime.
-5. `professionalQuotes` capability flag added to `PLAN_CATALOG` (tier assignment pending Owner decision), reusing the existing flag pattern.
-6. David Aluminum migrated onto the real feature only after 1-5 ship and are Owner-approved.
+| Identity key | EN | HE |
+|---|---|---|
+| FREE | FREE | FREE |
+| FREE_TRIAL | **FREE (TRIAL)** | FREE (ניסיון) |
+| BASIC | BASIC | BASIC |
+| PRO | PRO | PRO |
+| LIFETIME | LIFETIME | LIFETIME |
 
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.4. None of the above implemented, scheduled, or authorized by this report.
+The required literal English string `"FREE (TRIAL)"` is exact and unit-test-locked.
 
-## 6. File-by-File Ledger (future implementation — not touched this task)
+## 6. Dashboard changes
 
-Full 10-row table at `PROFLOW_PROJECT_CONTEXT.md` §147.5, covering: `business_settings` (DB), `guard_business_settings_plan_trial` (trigger), `planEntitlements.js`, `accountEntitlement.js`, `planCatalog.js`, `Dashboard.jsx`, `SettingsTab.jsx`, `PricingModal.jsx`, `AdminUsersTab.jsx`/`UserDetailsModal.jsx`, `professionalPreviewAllowlist.js` + the two Item 30.E preview routes — each with HE/EN classification, current responsibility, why a change would eventually be needed, regression risk, and TEST/Production implications. No file in this list was modified this task.
+One additive `resolveAccountEntitlement()` call for `isLifetime`/`displayIdentity` only. Pre-existing `effectivePlan`/`isPro`/`isBasicOrAbove`/`isTrialExpired`/`trialDaysLeft` computation (via `computeEffectivePlan()`) left completely untouched — zero regression risk to any existing entitlement gate. Header Upgrade CTA now reads the shared `shouldShowUpgradeCta()` (zero behavior change for Dashboard itself — both expressions already agreed). Three new props (`isLifetime`, `displayIdentity`, `isSuperAdmin`) passed to `SettingsTab`.
 
-## 7. Risks
+## 7. Settings / Upgrade CTA changes
 
-Trial reset/extension regression (zero trial mutation performed this task, consistent with the standing safety-sensitive treatment); existing paid/Lifetime users (any future schema field must backfill from exactly the current, already-correct inference, proven to reclassify zero accounts); the already-disclosed `free`+`null` ambiguity (a rare case requiring manual audit before any future backfill); historical/finalized/signed quotes (new principle recommended, not yet enforced anywhere); HE/EN symmetry (both `Dashboard.jsx`/`SettingsTab.jsx` are shared `BOTH`-classified components — any label helper must supply all five identities in both languages from day one); Local/International separation (plan identity is explicitly orthogonal to market, per the Iron Rule); Production/customer impact (any DB-field step is the highest-risk single step, requiring its own separate, explicit Owner DB-change authorization independent of this task's own read-only one). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.6.
+`{effectivePlan} PLAN` → `{getDisplayIdentityLabel(displayIdentity, isHebrew)} PLAN` (fixes the literal "PRO PLAN"-for-Lifetime gap). "Upgrade / Change Plan" button: was unconditional → now wrapped in `shouldShowUpgradeCta()`. "Cancel Subscription": `bizPlan!=='free'` → `!isLifetime && bizPlan!=='free'`.
 
-## 8. Implementation plan (staged proposal only — not executed)
+## 8. Lifetime behavior
 
-Stage 0 (already done): existing centralization. Stage 1 (lowest risk, no schema change): `Dashboard.jsx` migration + label helper + CTA reconciliation. Stage 2 (highest risk, schema change): explicit Lifetime field, backfilled and TEST-first migrated. Stage 3: `professionalQuotes` flag + real (non-David) entry point. Stage 4: David Aluminum migration. Each stage requires its own separate Owner authorization to begin — none granted by this report. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.7.
+Displays as `LIFETIME`, never `PRO`, in both touched components. Never receives either Upgrade CTA or the Cancel Subscription control. Entitlement (capability set) unchanged — display/CTA-visibility only. No DB field added — Stage 1 keeps the existing inference exactly as before.
 
-## 9. Test plan
+## 9. Trial behavior
 
-Six-persona (FREE / FREE-TRIAL-active / FREE-TRIAL-expired / BASIC / PRO / LIFETIME) × HE/EN × Professional Quotes × Admin display × user-facing display × entitlement checks × Upgrade CTA matrix recorded at `PROFLOW_PROJECT_CONTEXT.md` §147.8 — **not executed**, for whichever stage is eventually authorized.
+Zero change to `computeEffectivePlan()` — an active trial still grants full PRO-level entitlement exactly as before. Only display changed: `displayIdentity` now reports `FREE_TRIAL` (renders `"FREE (TRIAL)"`) instead of the account ever appearing as bare `PRO` in the two touched components (neither previously rendered a trial-aware label at all). Zero trial data read-for-mutation or written for any real account.
 
-## 10. Continuity update — exactly what was written
+## 10. Extensibility assessment
 
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §147 (10 subsections — fresh state, current implementation, gap analysis, Professional Quotes impact, proposed architecture, File-by-File Ledger, risks, staged plan, test matrix, release boundary).
-- `PROFLOW_TODO.md` — **UPDATED**: item 28 expanded from its narrow original scope ("small plan label") into this full architecture record, preserving the original requirement; item 30's own entry given a short cross-reference addendum recording the Professional Quotes ↔ plan-identity relationship.
-- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GS entry.
+A future sixth plan needs one new `PLAN_CATALOG` entry plus, only if genuinely needed, one new `DISPLAY_IDENTITY_LABELS` key and one new `shouldShowUpgradeCta` branch — no other component would need to change, since none compute the label/CTA decision themselves anymore.
+
+## 11. Full six-persona verification matrix
+
+Full table: `PROFLOW_PROJECT_CONTEXT.md` §148.9. Summary — **real TEST UI, both markets**: genuine FREE → `"FREE PLAN"`, both CTAs shown, Cancel Sub hidden (correct). Expired trial → `"FREE PLAN"`, both CTAs shown, Cancel Sub shown (correct). The `..._BASIC`/`..._PRO` personas turned out to already be Lifetime-shaped (`trial_ends_at:null`) under the pre-existing inference — not a Stage 1 defect, a real discovery — which gave **real, live, both-market proof of the single most-critical Owner requirement**: LIFETIME displays correctly and both CTAs plus Cancel Subscription are all hidden. Ordinary non-Lifetime BASIC/PRO and active-trial: **no dedicated real TEST persona exists**; constructing one would require exactly the trial/plan data mutation this task's authorization forbids — not attempted. These three rows rest on exhaustive unit-test coverage alone, honestly disclosed as `NOT LIVE-UI-VERIFIED WITH A DEDICATED PERSONA THIS TASK`.
+
+## 12. HE/EN results
+
+Identical pattern confirmed live across both the Local (HE) and INTL (EN) persona sets for every state actually tested — same logic, same results, only surrounding language differs. No separate business logic exists for either language.
+
+## 13. Regression results
+
+200/200 tests pass (178 pre-existing + 22 new). Lint: same 2 pre-existing, unrelated errors already confirmed to predate this task — zero new issues. Build clean. `git diff --stat`: exactly 6 files. Trial expiry/reset behavior, Local/International separation, Dashboard/Public Quote geometry, Mobile work, quote numbering, Item 30.E, Admin security/RLS: none of the underlying files touched or read for editing purposes.
+
+## 14. File-by-File Ledger
+
+Full table: `PROFLOW_PROJECT_CONTEXT.md` §148.12 (6 rows, each with HE/EN classification, reason for change, dependency, regression risk, verification performed).
+
+## 15. DB/schema status
+
+**UNCHANGED.** No migration run. No schema read for editing purposes. Stage 2 (the explicit Lifetime field) not begun, not authorized.
+
+## 16. TEST mutation status
+
+**ZERO.** Every TEST verification action this task was a real login (pre-existing credentials) followed by read-only page loads and DOM inspection. No write action performed against any TEST account.
+
+## 17. Production/customer-data status
+
+**UNCHANGED.** `origin/main` unchanged throughout. Zero Production-pointed action of any kind.
+
+## 18. David Aluminum status
+
+**UNTOUCHED.** Zero DB/Production/customer-data action of any kind. Zero customer-specific code written anywhere — confirmed via `git diff` containing no reference to David, any specific email, user id, or business name.
+
+## 19. Professional Quotes / A100700 status
+
+**UNTOUCHED.** `professionalPreviewAllowlist.js` and both Item 30.E preview routes: not read for editing purposes, not modified. No `professionalQuotes` flag added to `PLAN_CATALOG`. A100700 untouched.
+
+## 20. git diff --stat
+
+```
+ src/components/SettingsTab.jsx       | 37 ++++++++++++++++-----
+ src/pages/Dashboard.jsx              | 27 +++++++++++++++-
+ src/utils/accountEntitlement.js      | 14 ++++++++
+ src/utils/accountEntitlement.test.js | 57 ++++++++++++++++++++++++++++++++
+ src/utils/planCatalog.js             | 33 +++++++++++++++++++
+ src/utils/planCatalog.test.js        | 63 +++++++++++++++++++++++++++++++++++-
+ 6 files changed, 221 insertions(+), 10 deletions(-)
+```
+
+## 21. Current local HEAD / origin/main relationship
+
+Local `main` HEAD = `f1025cc` (the same commit as before this task began — **no new commit was created**). `origin/main` = `26dee96`, unchanged. Local `main` is ahead of `origin/main` only by the already-existing, already-disclosed unrelated §146 commit chain — nothing from this task added to history.
+
+## 22. Exact uncommitted application changes remaining
+
+The 6 files listed in item 3/20 remain as **uncommitted working-tree modifications** — visible in `git status` as `M`, not committed, per this task's own explicit instruction (stricter than every prior task this session, which typically created a local-only commit after verification). Awaiting separate Owner authorization to commit.
+
+## 23. Continuity files updated
+
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §148 (14 subsections).
+- `PROFLOW_TODO.md` — **UPDATED**: item 28, Stage 1 status recorded.
+- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GT.
 - `PROFLOW_CHAT_HANDOFF.md` — **UPDATED**: §14, new lead paragraph.
-- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: a short forward-pointer added at the end of its existing §16 (Trial/Plans/Billing) section.
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: §16 forward-pointer refreshed to Stage-1-implemented status.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED**: this file.
 
-All six committed to local `main` and pushed to `proflow-continuity` only (see SHA/read-back below) — **not** pushed to `origin/main`, since none of this task's changes are application code.
+All six committed to local `main` and pushed to `proflow-continuity` only — this is a **documentation-only** commit/push (see SHA below); the application code itself (item 22) is separate and was **not** included in it.
 
-## 11. Next authorization required
+## 24. Commit/push/deploy/LIVE status
 
-Any of the following would each require its own **separate, explicit** Owner authorization before Claude may begin:
-- **Stage 1** (`Dashboard.jsx` → canonical resolver, label helper, CTA reconciliation) — application code, no schema change, lowest risk.
-- **Stage 2** (explicit Lifetime schema field + backfill + migration) — DB/schema change, highest risk, requires its own dedicated TEST-first migration authorization per the standing DB-safety rules, fully separate from Stage 1.
-- **Stage 3** (`professionalQuotes` capability flag + real entry point) — requires an Owner decision on exactly which plan tiers receive Professional Quotes, which this report explicitly did not guess.
-- **Stage 4** (David Aluminum migration) — requires Stages 1-3 live and Owner-approved, plus the separate, already-existing quote-numbering (`A100700`+) migration work to be ready for his account.
-
-**None of the above is authorized by this task.** This task's own scope ends at investigation, proposal, and continuity recording.
+Documentation: committed + pushed to `proflow-continuity` (see SHA below). Application code: **not committed, not pushed** (left as uncommitted working-tree changes, per explicit instruction). Deploy: none. LIVE action: none.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`deb9a9b` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`4df800f`) — not pushed to `origin/main` (documentation only, no application code this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `deb9a9b` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §147 present in `PROFLOW_PROJECT_CONTEXT.md`, item 28's expanded content present in `PROFLOW_TODO.md`, §18.GS present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, the forward-pointer present in `PROFLOW_ARCHITECTURE.md`, and this file's own task header present. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
 ---
 
-INVESTIGATION: COMPLETE (read-only)
-GAP ANALYSIS: COMPLETE
-PROPOSED ARCHITECTURE: RECORDED, NOT IMPLEMENTED
-FILE-BY-FILE LEDGER: COMPLETE (future scope, nothing touched)
-RISKS: DOCUMENTED
-IMPLEMENTATION PLAN: STAGED PROPOSAL ONLY, NOT EXECUTED
-TEST PLAN: RECORDED, NOT EXECUTED
-DAVID ALUMINUM: UNTOUCHED — ZERO DB/PRODUCTION/CUSTOMER-DATA ACTION
-APPLICATION CODE: UNCHANGED THIS TASK
-DATABASE: UNCHANGED
-TEST: UNCHANGED
-PRODUCTION: UNCHANGED
-COMMIT: DOCUMENTATION ONLY (application code untouched this task)
-PUSH: proflow-continuity ONLY
-DEPLOY: NONE
-LIVE ACTION: NONE
-NEXT AUTHORIZATION REQUIRED: Stage 1 (app code) / Stage 2 (DB schema) / Stage 3 (Owner tier decision) / Stage 4 (David migration) — each separate
+STAGE 1: PASS
+
+APPLICATION COMMIT: NOT AUTHORIZED
+APPLICATION PUSH: NOT AUTHORIZED
+DEPLOY: NOT AUTHORIZED
+LIVE ACTION: NOT AUTHORIZED
 WAITING FOR OWNER + CHATGPT REVIEW
