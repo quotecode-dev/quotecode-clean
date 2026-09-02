@@ -7505,3 +7505,50 @@ Owner authorized a comprehensive read-only reality audit after personally inspec
 **Outcome**: §161's own claims were independently re-confirmed accurate for everything checked, with two genuine refinements: (a) the Business Professional Profile's exact fold-position is now precisely measured, not just described as "may require scrolling"; (b) live proof of a working FREE(TRIAL) identity (Admin-side) was obtained for the first time this project, closing part of the long-standing "FREE(TRIAL) not runtime-provable" disclosure — though the *header's* own FREE(TRIAL) rendering specifically was still not directly observed this pass (only its Admin-side twin, same resolver/field). No PASS was silently upgraded to a false claim; no code, DB, or documentation was touched during the audit itself.
 
 **Six-File Continuity ledger for this task (recorded via the follow-up Continuity Recovery task)**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §162); `PROFLOW_TODO.md` UPDATED (item 55 addendum); `PROFLOW_HANDOFF.md` UPDATED (new §18.HG); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` reviewed, no substantive change (nothing architecturally changed by a read-only audit); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report for this recovery checkpoint).
+
+## §163. UI Composition Correction — Header Plan Identity Geometric Centering + Business Professional Type Placement (added 2026-09-03, Owner-authorized TEST/local-only composition corrections, application code left UNCOMMITTED per explicit instruction)
+
+**Status: 🟢 IMPLEMENTED + LIVE-MEASURED-VERIFIED IN TEST, BOTH MARKETS, DESKTOP+MOBILE — application code left UNCOMMITTED, per explicit "do not treat TEST PASS as authorization for commit/push/deploy" instruction.**
+
+Two Owner-final product decisions, both explicitly scoped as placement/composition corrections, not logic changes: (1) the header `PlanIdentityBadge` must sit at the **exact geometric center** of the header, not merely centered in whatever flex space happens to remain between the side groups; (2) the Business Professional Type selector (Business Settings) must be the **first** meaningful field, immediately visible without scrolling.
+
+### 163.1 Header centering — architecture and why
+
+**Original structure audited first**: `dash-header-bar` (`position:relative; display:flex; justify-content:space-between`) held exactly three children (`dash-header-logo-wrap`, `dash-header-actions`, `dash-header-profile`) — the badge previously lived inside `dash-header-profile`, meaning `space-between` centered it only relative to leftover space between two *unequal-width* groups, not the bar's true center — and, since the two side groups' widths differ between HE and EN (different email lengths, different button label widths), the badge's apparent position shifted between languages, exactly the defect the Owner rejected.
+
+**Fix**: the badge was removed from `dash-header-profile` entirely and reimplemented as an independent element using `position:absolute; left:50%; top:50%; transform:translate(-50%,-50%)` relative to `dash-header-bar` (already `position:relative`). `left:50%` is a **physical** CSS property — identical numeric center point regardless of `dir`/RTL/LTR — and, being `position:absolute`, the badge is removed from the three existing groups' normal flex flow entirely, touching none of their existing layout or media-query behavior.
+
+**Live-measured proof, not assumed**: `centerDelta` (|header-bar-center − badge-center|) measured **0px** (HE) and **0px** (EN) at 1920/1440/1366/1024px — true geometric center, invariant to language, confirmed by direct DOM measurement, not visual inspection alone.
+
+**Collision found and resolved, not silently avoided**: live measurement at narrower widths found a **real** pixel-level overlap between the absolutely-positioned badge and the business-name/profile groups at 768px and 390px specifically (content-length-dependent, not a fixed breakpoint threshold — confirmed by comparing actual rendered rects, not assumed from viewport width alone). Per the task's own explicit instruction not to silently move the badge off-center, the resolution was a **deliberate, intentional responsive composition, not a fallback of convenience**: below 768px (the project's own already-established mobile-density breakpoint), the in-header absolutely-positioned badge is hidden and a **second, independent, full-width centered row** appears directly below the purple header bar instead — still driven by the exact same `displayIdentity` prop, still exactly centered (measured `centerDelta` ≈0.008px, sub-pixel), now structurally incapable of overlapping anything since it occupies its own dedicated vertical space. Re-measured after the fix: **zero overlap at every tested width** (1920/1440/1366/1024/768/640/500/390px, both languages) — confirmed via corrected rect-intersection math checking both X and Y axes against the *actual visible pill*, not a full-width wrapper.
+
+**Not a duplicate control**: both the in-header and mobile-row badge elements read the same single prop, hold no independent state, and are mutually exclusive via CSS (`display:none`/`flex` swapped at exactly one breakpoint) — never both visible simultaneously, no risk of desync, unlike an editable duplicate-input concern.
+
+### 163.2 Business Settings — Professional Type placement
+
+**Original structure audited first**: the field sat near the very end of the form, after Terms/Warranty, immediately before the Save button — measured in the prior Reality Check task at `y=899px` of a 900px viewport (effectively exactly at the fold).
+
+**Fix**: the exact same control (identical options, identical `value`/`onChange` wiring to `professionalDomain`/`setProfessionalDomain`, identical `canUseProfessionalQuotes` entitlement gate, identical helper copy) was cut from its old location and moved to be the **first** element inside the form, before the Business Name/Tax ID/Email/Phone/Currency grid — recomposed into a highlighted, bordered violet-tinted box (matching the existing "Business Address" section's own visual pattern) rather than a bare label+select, so the relocation reads as an intentional design decision, not a hasty cut-and-paste. **Zero duplication**: confirmed exactly one occurrence of the control in the rendered DOM.
+
+**Live-measured proof**: field top position dropped from `y=899px` to **`y=266px`** at a realistic 1440×900 viewport — `visibleWithoutScroll: true` at `scrollY:0`, in both HE and EN, confirmed by direct DOM measurement.
+
+### 163.3 Regression verification, all live-measured
+
+Persisted value (`aluminum_metal`, saved to the real TEST database in a prior task) **loads correctly at the new location** on a fresh page load — confirmed via direct DOM read of the select's `value`, not assumed. The business-default → new-item-unit auto-selection behavior (Professional trigger click → `m²` pre-selected) **still works correctly** end-to-end from the relocated field. The header badge **still correctly reads `"LIFETIME"`** for the same test persona — the `resolveAccountEntitlement()`/`displayIdentity` resolver was not touched by either change. **276/276 tests pass, `eslint` clean (0 errors, the one pre-existing unrelated warning unaffected), `vite build` clean.**
+
+### 163.4 File-by-File Ledger
+
+| File | Why touched | Exact change | HE impact | EN impact | Responsive impact | Regression evidence |
+|---|---|---|---|---|---|---|
+| `src/pages/Dashboard.jsx` | Header centering correction | Badge moved out of `dash-header-profile`; new `position:absolute` centered wrapper added; new mobile-only full-width centered row added; new `@media (max-width:768px)` rule swaps between them | 0px center delta, live-verified | 0px center delta, live-verified, symmetric with HE | Zero overlap at 1920/1440/1366/1024/768/640/500/390px, live-measured | `displayIdentity` computation untouched; badge content/logic untouched; 276/276 tests pass |
+| `src/components/SettingsTab.jsx` | Business Professional Type placement correction | Control moved from end-of-form to start-of-form; recomposed into a highlighted box (same visual pattern as the existing Address section) | Field now visible at `y=266px` (was `y=899px`), no scroll needed | Same relocation, same measurement, English label unaffected | No responsive-specific change needed (already fits comfortably above the fold at all tested widths) | Persisted value (`aluminum_metal`) loads correctly at new location; save/business-default-unit flow unaffected; exactly 1 occurrence in DOM (no duplicate); 276/276 tests pass |
+
+### 163.5 Preserved, unreopened
+
+All existing account/user controls (email, Sign Out, SUPER ADMIN badge), existing entitlement/quota logic, existing `PlanIdentityBadge` internal logic, existing six-domain Professional Type selection behavior, existing persistence mechanism (same `handleSaveSettings` submit, no new save pathway), existing item-level override behavior, existing HE/EN market separation — all confirmed untouched by direct code reading and live re-verification, not assumed.
+
+### 163.6 Release boundary
+
+Zero DB/schema change. Zero migration. Zero Production mutation. Zero LIVE action. Application code (`Dashboard.jsx`, `SettingsTab.jsx`) changed but left **UNCOMMITTED** per explicit instruction — TEST PASS is not treated as commit/push/deploy authorization. **Owner Visual Acceptance: PENDING** — not claimed by this task.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §163); `PROFLOW_TODO.md` UPDATED (new item cross-reference); `PROFLOW_HANDOFF.md` UPDATED (new §18.HH); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` reviewed, no substantive change (composition/placement correction, no new architecture); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).

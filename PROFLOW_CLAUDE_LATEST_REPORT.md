@@ -4,82 +4,108 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Recover Latest Actual State and Re-Synchronize All Six Continuity Files
+## Task: UI Composition Correction — Header Plan Identity + Business Professional Type Placement
 
-**MODE: Documentation-only continuity recovery. NO application code changes, NO migration changes, NO database mutation, NO TEST data mutation, NO Production mutation, NO deploy, NO LIVE action, NO application push to `main`. Only the six canonical continuity files may be updated, committed, and pushed to `proflow-continuity`.**
+**MODE: TEST/local implementation of exactly two placement/composition corrections. NOT authorized: application commit (unless separately authorized after this report), application push, Production deploy, Production DB mutation, LIVE action, unrelated cleanup/refactoring, additional product features. TEST PASS is explicitly not commit/push/deploy authorization.**
 
 ---
 
-## 1. Canonical continuity SHA BEFORE recovery
+## 1. Fresh Local State before implementation
 
-`origin/proflow-continuity` = `23d0147` (fresh fetch, independently confirmed — not a cached/assumed value). All six files read fresh from this exact ref, not from local copies, prior conversation context, or a previous Final Report.
+Branch `main`, HEAD `102dbc0`, `origin/main` unchanged at `26dee96`. Working tree confirmed identical to the end of the prior Continuity Recovery task: `Dashboard.jsx`/`QuoteForm.jsx`/`SettingsTab.jsx`/`AdminUsersTab.jsx`/`planCatalog.js`/`.test.js`/`accountEntitlement.test.js` modified; `PlanIdentityBadge.jsx`/`entry-server.jsx`/`professionalQuoteItem.js`/`.test.js`/both migration files untracked. Zero drift before starting.
 
-## 2. Fresh local branch + HEAD
+## 2. Files changed
 
-Branch `main`, HEAD `ba6213d`.
+`src/pages/Dashboard.jsx`, `src/components/SettingsTab.jsx`. No other file touched — confirmed via `git status` showing the identical file set before and after (only these two received new edits on top of their pre-existing uncommitted diff).
 
-## 3. `origin/main` SHA
+## 3. Exact original header structure
 
-`26dee96` — unchanged.
+`dash-header-bar` (`position:relative; display:flex; justify-content:space-between`) held exactly three flex children: `dash-header-logo-wrap` (business name/logo), `dash-header-actions` (AI Chat, conditional Upgrade CTA, conditional Admin logs button), `dash-header-profile` (SUPER ADMIN badge, `PlanIdentityBadge`, email, Sign Out). `justify-content:space-between` centered the middle group only relative to leftover space between the two outer groups' actual widths — not the bar's true center, and dependent on each group's content width, which differs between HE/EN.
 
-## 4. `origin/proflow-continuity` SHA before update
+## 4. Exact method used to achieve true geometric centering
 
-`23d0147` (same as item 1).
+Badge removed from `dash-header-profile`'s flex flow. New independent element added as a direct child of `dash-header-bar`: `position:absolute; left:50%; top:50%; transform:translate(-50%,-50%)`. `left` is a physical (not logical) CSS property, so the numeric center point is identical in RTL and LTR. `position:absolute` removes the element from the three existing groups' flex flow entirely — zero interference with their layout or existing media queries.
 
-## 5. Exact latest actual ProFlow task recovered
+## 5. HE verification
 
-**The Reality Check / Owner-Visible State Audit** (a read-only, evidence-gathering audit performed after the "Owner Night Run" task that `PROFLOW_CLAUDE_LATEST_REPORT.md` previously described as latest). This was independently confirmed as later real work via first-hand session continuity plus corroborating filesystem/DOM evidence gathered fresh this task — not assumed, not guessed. The audit's own explicit instruction was "do not update continuity yet," which is exactly why it had not been recorded until now — not an oversight, a deliberate, correctly-followed instruction at the time.
+Live DOM measurement (fresh login, `TEST HE Basic`): center delta **0px** at 1920/1440/1366/1024/768px (in-header) and **0.008px** (sub-pixel) for the mobile-row fallback at 640/500/390px. Screenshot confirms clean visual center, no overlap, LIFETIME badge with crown icon rendering correctly.
 
-## 6-8. What happened / what was completed / what remained incomplete
+## 6. EN verification
 
-The audit independently re-verified every claim in the Night Run's own report against live evidence (direct DOM inspection of the running TEST server, a fresh read-only Production re-query of David's data, and a trace through `origin/main`'s own actually-deployed code) rather than trusting the prior report. **Completed**: all claims re-confirmed accurate; two genuine refinements obtained (precise Business Professional Profile fold-position measurement; first-ever live proof of the FREE(TRIAL) display identity, Admin-side). **Nothing was fixed or implemented during the audit** — it was read-only by explicit design, and remained so.
+Live DOM measurement (fresh login, `TEST EN Basic`, 1440px): center delta **0px**, identical X-position to the HE measurement at the same viewport width — confirmed symmetric between RTL and LTR. Screenshot confirms correct LTR composition.
 
-## 9-10. TEST verified / Production verified
+## 7. Responsive verification
 
-**TEST**: header badge, Business Professional Profile, redesigned trigger, and Admin `displayIdentity` fix all re-confirmed live via direct DOM inspection of a fresh, cleared-localStorage login against the actual running dev-server process (verified via the OS process list to be serving from the correct working tree). **Production**: read-only only — David's row re-queried (unchanged), `origin/main` re-confirmed unchanged, the `plan-identity-release` branch re-confirmed unpushed anywhere.
+Measured 1920/1440/1366/1024/768/640/500/390px, both languages. **A real overlap was found** at 768px and 390px specifically (content-length-dependent, not a fixed threshold) between the true-centered badge and the business-name/profile groups. **Resolved with a deliberate responsive composition, not a silent off-center move**: below 768px, the in-header badge is hidden and a second, independent, full-width centered row appears directly below the purple header instead. Re-measured after the fix: **zero overlap at every width tested**, confirmed via corrected rect-intersection math checking both X and Y axes against the actual visible pill element (not a full-width wrapper, which had produced a false positive in an earlier measurement pass, since corrected). No clipping, no broken navigation, no horizontal overflow observed at any tested width.
 
-## 11-13. Committed / Pushed / Deployed
+## 8. Exact original Business Settings structure
 
-**During the audited task itself**: nothing (read-only by design). **Overall project state, re-confirmed unchanged this task**: application commit `b398d8c` exists only on the local, unpushed `plan-identity-release` branch; nothing pushed to `origin/main`; nothing deployed to Production.
+A `<form onSubmit={handleSaveSettings}>` beginning with a 5-field grid (Business Name, Tax ID, Email, Phone, Currency), then an Address section, then Logo, then Terms, then Warranty, then — previously — the Professional Type selector, then the Save button.
 
-## 14. What remains local/uncommitted/untracked
+## 9. Where Professional Business Type was previously located
 
-Exactly as at the end of the Night Run task, byte-for-byte, confirmed via fresh `git status` this task: `Dashboard.jsx`, `QuoteForm.jsx`, `SettingsTab.jsx`, `AdminUsersTab.jsx`, `planCatalog.js`/`.test.js`, `accountEntitlement.test.js` modified; `PlanIdentityBadge.jsx`, `entry-server.jsx`, `professionalQuoteItem.js`/`.test.js`, both Stage A and Stage-D migration files untracked. Zero drift detected.
+Immediately before the Save button, after Terms and Warranty — measured in the prior Reality Check task at `y≈899px` of a 900px viewport, effectively exactly at the fold.
 
-## 15. Every stale/incorrect continuity statement found
+## 10. Where it is now located
 
-**None.** All six canonical files, freshly read from `origin/proflow-continuity` (`23d0147`), were found internally consistent and accurate for everything they described — §161 correctly recorded as the latest checkpoint *at the time it was written*. The only gap was **incompleteness, not inaccuracy**: the six files did not yet reflect the Reality Check audit, which happened after §161 was recorded and, per its own explicit instruction, deliberately deferred its own documentation.
+The very first element inside the form, before the Business Name/Tax ID/Email/Phone/Currency grid — recomposed into a highlighted, violet-tinted bordered box matching the existing Address-section visual pattern, rather than a bare label+select.
 
-## 16. Exact corrections made
+## 11. Proof it is immediately visible without scrolling
 
-Not corrections in the sense of fixing wrong statements — **additions** recording the newer, real work: `PROFLOW_PROJECT_CONTEXT.md` (new §162, the full Reality Check audit record); `PROFLOW_TODO.md` (addendum to item 55 with the precise fold-measurement and FREE(TRIAL) live-proof findings); `PROFLOW_HANDOFF.md` (new §18.HG); `PROFLOW_CHAT_HANDOFF.md` (§14, new lead paragraph — explicit resume point, what to check next, what must NOT be repeated without fresh authorization); `PROFLOW_ARCHITECTURE.md` (one short confirming addition to the existing David/header-badge section — no invented architecture, since none changed); this report (full rewrite for this recovery checkpoint).
+Live DOM measurement at 1440×900: field top at **`y≈266px`**, `visibleWithoutScroll: true`, `scrollY: 0` — confirmed in both HE and EN. Screenshot confirms the section renders directly under the "Business Settings" heading, above the purple header's fold line by a wide margin.
 
-## 17. Confirmation all six canonical files were reviewed
+## 12. Persistence verification
 
-Confirmed — all six were freshly fetched, read, and cross-checked against each other and against independently-gathered evidence before any edit was made.
+The previously-saved value (`aluminum_metal`, persisted to the real TEST database in a prior task) was confirmed to load correctly into the relocated selector on a fresh page load (`localStorage` cleared, real re-login) — proving the relocation did not disturb `fetchSettings`'s load path or `handleSaveSettings`'s save path in any way.
 
-## 18-19. Continuity commit SHA(s) / final `origin/proflow-continuity` SHA
+## 13. Professional pricing-default regression verification
 
-See the dedicated section below, filled after commit/push.
+Opened a fresh quote item's Professional trigger after the relocation: the unit selector correctly auto-pre-selected `m2` (the aluminum_metal domain's default), confirming the Business Default → Item Default flow is unaffected by moving the field's visual position.
 
-## 20. Confirmation of fresh remote read-back
+## 14. Automated test results
 
-Performed after push — see below.
+**276/276 tests pass** — unchanged from before this task (no test file touched; this task is purely presentational).
 
-## 21. Exact current recommended resume point
+## 15. Build/lint results
 
-Awaiting Owner + ChatGPT review of this reconciled state. Two fully-specified, ready, but explicitly-blocked Production actions remain available for future re-authorization: (a) `git push origin plan-identity-release:main` from `../quotecode-saas-plan-identity-release` (header badge + Admin fix); (b) `UPDATE business_settings SET plan='pro' WHERE id=15;` on Production (David's correction). Neither should be re-attempted without fresh, explicit Owner authorization — both were denied by the Claude Code auto-mode permission classifier, a real-time environment safety gate independent of textual task authorization.
+`eslint` on both touched files: 0 errors (the one pre-existing, unrelated `Dashboard.jsx` warning unaffected). `vite build`: clean.
 
-## 22. Exact actions that still require Owner authorization
+## 16. File-by-File Ledger
 
-The two items in §21 above. Also: a fresh design decision on whether a colorful per-plan icon system (green leaf/blue diamond/purple crown) is actually wanted — no such thing currently exists anywhere in this codebase or its continuity record, confirmed via exhaustive search this task.
+| File | Why touched | Exact change | HE impact | EN impact | Responsive impact | Regression evidence |
+|---|---|---|---|---|---|---|
+| `src/pages/Dashboard.jsx` | Header centering correction | Badge moved out of `dash-header-profile`; new `position:absolute` centered wrapper added; new mobile-only full-width centered row added; new `@media (max-width:768px)` swap rule | 0px center delta, live-verified | 0px center delta, live-verified, symmetric with HE | Zero overlap at 1920/1440/1366/1024/768/640/500/390px, live-measured (both axes) | `displayIdentity` computation untouched; badge content/logic untouched; header still reads "LIFETIME" correctly; 276/276 tests pass |
+| `src/components/SettingsTab.jsx` | Business Professional Type placement correction | Control moved from end-of-form to start-of-form; recomposed into a highlighted box (same visual pattern as the existing Address section) | Field now visible at `y≈266px` (was `y≈899px`), no scroll needed | Same relocation, same measurement | No responsive-specific change needed (comfortably above the fold at every tested width) | Persisted value (`aluminum_metal`) loads correctly at new location; business-default-unit flow unaffected; exactly 1 DOM occurrence (no duplicate); 276/276 tests pass |
+
+## 17. Confirmation no DB/schema/Production change occurred
+
+Confirmed. Zero migration, zero DB query of any kind, zero Production interaction this task — purely local frontend/CSS/JSX changes verified against the local TEST dev server only.
+
+## 18. Confirmation no application commit/push/deploy occurred
+
+Confirmed via fresh `git status`: both files remain in the working tree as uncommitted modifications, exactly as before this task except for the new edits. `origin/main` unchanged at `26dee96`. No commit was created for the application changes.
+
+## 19. Owner Visual Acceptance status
+
+**PENDING.** Not claimed by this report. TEST PASS above is evidence for Owner review, not a substitute for it.
+
+## 20. Exact TEST URL/state the Owner should inspect
+
+`http://localhost:5186/dashboard` (requires `dev:localtest` running — confirmed running throughout this task). Log in as any BASIC+ TEST persona (e.g. `tahshitishi+proflow-local-basic@gmail.com` / `minhatshay+proflow-int-basic@gmail.com` for EN). **Header**: the plan badge (e.g. "LIFETIME" with a crown icon) should sit visually centered in the purple bar at desktop widths, and as its own centered row directly below the purple bar on a narrow/mobile browser window. **Business Settings**: the "מה סוג העיסוק המקצועי של העסק?" / "What kind of professional work does your business do?" section should be the first thing visible under the "Business Settings" heading, in a highlighted violet box, with no scrolling required.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`d488a39` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`0b9e4fb`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code remains uncommitted/untracked on local `main`, byte-for-byte unchanged this task; `plan-identity-release` (`b398d8c`) remains unpushed. Fresh remote read-back after push independently confirmed all six files present and mutually consistent at this recovered checkpoint.
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention, once the Owner authorizes the continuity commit/push for this documentation.)*
 
 ---
 
-## RECOVERY + SIX-FILE CONTINUITY SYNC: PASS
+## UI COMPOSITION CORRECTION: PASS (TEST/local, both fixes live-measured-verified)
+## OWNER VISUAL ACCEPTANCE: PENDING
+## APPLICATION COMMIT: NOT PERFORMED (not separately authorized)
+## APPLICATION PUSH: NOT PERFORMED
+## PRODUCTION DEPLOY: NOT PERFORMED
+## PRODUCTION DB: UNCHANGED
+## LIVE ACTION: NOT PERFORMED
+## WAITING FOR OWNER REVIEW
