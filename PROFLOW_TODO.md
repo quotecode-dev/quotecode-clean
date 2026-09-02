@@ -1912,4 +1912,16 @@ The Owner personally inspected Stage C in TEST and confirmed the core mechanics 
 
 **13. Public Quote — collapsed professional detail** — open any real Public Quote link for a quote containing a professional item → the item row now shows its real calculated quantity (e.g. "5.28 m²") instead of "1", with a small "Show measurements & professional details" link beneath it that expands to a measurement table. Collapsed by default — an ordinary Simple-item quote looks exactly as before.
 
+**UPDATE 2026-09-02 (Plan Identity Final Layout + Professional Quotes End-to-End, `PROFLOW_PROJECT_CONTEXT.md` §166) — items below extend the checklist above; nothing above changed status except where explicitly noted.**
+
+**14. Header plan-identity badge — new vertical layout** — same header location as item 11 above, but now the icon sits **on top** and a small plan-name label sits **directly underneath it** (a compact vertical chip), not beside it — applies to all five identities (FREE/FREE_TRIAL/BASIC/PRO/LIFETIME). Re-measured live: still exactly X/Y-centered in the header (`0px` delta) at every desktop width, both languages; the existing mobile fallback row still engages correctly below 768px with no overlap.
+
+**15. Professional item Quantity field no longer shows a misleading "1"** — New Quote or Edit Quote → a professional item's outer Quantity cell (the one in the classic Description/Quantity/Price/Total row) now shows the real calculated quantity, greyed out with a small "(calc.)" label and an explanatory tooltip, instead of the old raw "1" that never matched what the money column actually used. A Simple item's Quantity field is completely unchanged (still a normal editable number input).
+
+**16. Measurement entry is now in centimeters, not meters** — the Width/Height fields inside a professional item's measurement rows are now labeled "(cm)" and accept centimeter values directly (e.g. `161`, `123.5`) — no more mental cm→m division. Nothing about storage or the m² pricing unit changed; this is purely how the two fields are labeled/read on screen.
+
+**17. Public Quote — compact "X openings • Y m²" summary now shown in the collapsed state** — for any m² professional item with real measurement rows, a small line now appears under the item row before the "Show measurements" link, reading e.g. "8 פתחים • 22.04 מ"ר" / "8 openings • 22.04 m²" — this is the same format as the original David quote #46 example the Owner referenced, now produced from the new structured feature's own real data (not from David's old parsed-notes demo).
+
+**Full live proof this round**: a disposable TEST quote was created **through the UI only** reproducing quote #46 item 01's exact 8-opening geometry (161×265, 161×265, 89×226, 89×226, 100×214, 123.5×214, 99×211.5, 123.5×211.5 cm) — saved, reloaded from the database, duplicated (Advanced Reuse), and viewed on its real Public Quote link, both collapsed and expanded, with the exact "8 openings • 22.04 m²" summary and all 8 rows matching what was entered. A second, independent mixed Simple+Professional quote was created and verified in the EN/International market with zero `₪`/VAT leakage. **Owner Visual/Functional Acceptance: still PENDING** for all of items 14-17. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §166, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
 **Owner Visual Acceptance for all three: PENDING.**
