@@ -103,7 +103,7 @@ Never read, printed, logged, embedded, or written anywhere by this task.
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `29f783c`.
 
 ---
 
