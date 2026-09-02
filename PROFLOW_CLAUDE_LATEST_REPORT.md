@@ -117,7 +117,7 @@ Application push, deploy, and LIVE action all remain separately, explicitly not 
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`8e10f8f` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`3ad5659`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Local `main` application-code commit: `c09bc45` (`feat: centralize plan entitlements and lifetime inheritance`) — created locally this task, not pushed.
 
 ---
 
