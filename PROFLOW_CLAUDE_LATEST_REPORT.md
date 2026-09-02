@@ -133,7 +133,7 @@ Updated this task: `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file), `PROFLOW_PROJE
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+`b94bb32` on `proflow-continuity` (pushed: `f5ddbfa..b94bb32`, fast-forward, no conflicts). Fresh remote read-back after push independently confirmed all six files present and consistent on `origin/proflow-continuity` at `b94bb32`.
 
 ---
 
