@@ -141,7 +141,7 @@ The confirmed, unfixed FREE_TRIAL capsule defect is the most likely candidate if
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+`f3f4590` on `proflow-continuity` (pushed: `6cb2216..f3f4590`, fast-forward, no conflicts). Fresh remote read-back after push independently confirmed all six files present and consistent on `origin/proflow-continuity` at `f3f4590`.
 
 ---
 
