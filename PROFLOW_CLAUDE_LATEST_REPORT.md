@@ -48,27 +48,27 @@ Recorded at `PROFLOW_PROJECT_CONTEXT.md` §159 / `PROFLOW_TODO.md` item 54 / `PR
 
 ## 10. Continuity commit SHA
 
-Content commit: `[to be filled after commit below]`.
+Content commit `350a0e8` on `proflow-continuity` (matching local `main` content commit `f5dd220`, not pushed to `origin/main`, documentation only, per the standing pattern).
 
 ## 11. Push result
 
-`[to be filled after push]`.
+`git push origin proflow-continuity` succeeded: `0dc316e..350a0e8 proflow-continuity -> proflow-continuity`.
 
 ## 12. Remote read-back — PROJECT_CONTEXT
 
-`[to be filled after fresh fetch]`.
+Fresh fetch + `git cat-file -s origin/proflow-continuity:PROFLOW_PROJECT_CONTEXT.md` = **1,394,076 bytes**, independently cross-confirmed via the GitHub Contents API's own `size` field (same number). New §159 present (`grep` count 1).
 
 ## 13. Remote read-back — HANDOFF
 
-`[to be filled after fresh fetch]`.
+`git cat-file -s origin/proflow-continuity:PROFLOW_HANDOFF.md` = **1,216,724 bytes**, cross-confirmed via the Contents API's `size` field. New §18.HE present.
 
 ## 14. Remote read-back — other four files
 
-`[to be filled after fresh fetch]`.
+`PROFLOW_TODO.md` (536,306 bytes) contains new item 54. `PROFLOW_CHAT_HANDOFF.md` (369,549 bytes) contains the new §14 lead paragraph. `PROFLOW_ARCHITECTURE.md` (109,065 bytes, unchanged this task, confirmed still present/correct). `PROFLOW_CLAUDE_LATEST_REPORT.md` (6,879 bytes) carries this task's own title and the correct sign-off block, both confirmed via fresh `git show`.
 
 ## 15. Six-file reconciliation result
 
-`[to be filled after fresh fetch]`.
+All six files independently confirmed present, non-empty, and mutually consistent on the freshly-fetched remote ref — no stale/mismatched file found.
 
 ## 16. Application working-tree preservation
 
@@ -98,7 +98,7 @@ ChatGPT independent verification of this recovered/reconciled checkpoint. After 
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`350a0e8` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`f5dd220`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code remains uncommitted/untracked on local `main`, byte-identical throughout this task. Fresh remote read-back after push independently confirmed all six files present, non-empty (both large files' true size cross-checked via `git cat-file -s` and the GitHub Contents API's own `size` field), and mutually consistent at this checkpoint.
 
 ---
 
