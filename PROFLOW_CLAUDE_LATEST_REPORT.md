@@ -110,7 +110,7 @@ This is a **genuine credential/interactive-presence boundary**, not an oversight
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `b252adf`.
 
 ---
 
