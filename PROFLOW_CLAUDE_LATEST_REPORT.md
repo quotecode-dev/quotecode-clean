@@ -115,7 +115,7 @@ No Windows reboot was performed, attempted, or is authorized by this task.
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `1e251b0`.
 
 ---
 
