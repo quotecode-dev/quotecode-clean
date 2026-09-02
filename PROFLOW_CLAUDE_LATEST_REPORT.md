@@ -117,7 +117,7 @@ It will prompt for `CONTROL_PLANE_API_KEY` with masked (non-echoing) input, encr
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `9918602`.
 
 ---
 
