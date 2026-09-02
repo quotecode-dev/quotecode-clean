@@ -85,7 +85,7 @@ Any of the following would each require its own **separate, explicit** Owner aut
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`deb9a9b` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`4df800f`) — not pushed to `origin/main` (documentation only, no application code this task). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `deb9a9b` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §147 present in `PROFLOW_PROJECT_CONTEXT.md`, item 28's expanded content present in `PROFLOW_TODO.md`, §18.GS present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, the forward-pointer present in `PROFLOW_ARCHITECTURE.md`, and this file's own task header present. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
 
 ---
 
