@@ -78,7 +78,7 @@ The two items in §21 above. Also: a fresh design decision on whether a colorful
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`d488a39` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`0b9e4fb`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code remains uncommitted/untracked on local `main`, byte-for-byte unchanged this task; `plan-identity-release` (`b398d8c`) remains unpushed. Fresh remote read-back after push independently confirmed all six files present and mutually consistent at this recovered checkpoint.
 
 ---
 
