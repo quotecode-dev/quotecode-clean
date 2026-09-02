@@ -188,7 +188,7 @@ Either: (a) commit Stage B's uncommitted application code (separate authorizatio
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`afe6fba` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`c22b3ab`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Stage B's 3 application files remain uncommitted on local `main`.
 
 ---
 
