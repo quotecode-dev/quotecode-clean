@@ -7309,3 +7309,91 @@ All items in this task's own §21 checklist are satisfied: six files freshly rea
 Migration created and applied to TEST only. Migration file left **uncommitted**. Stage B's 3 application files remain **uncommitted**, byte-identical to before. No UI implementation. No Production mutation of any kind. No David Aluminum interaction. No A100700 action. No application commit. No application push. No deploy. No LIVE action. Item 51 remains open, untouched. Professional Quotes Stage C (the first UI-facing candidate) remains separately, explicitly not authorized.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §157); `PROFLOW_TODO.md` UPDATED (item 30's status advanced to reflect Stage A applied to TEST; new item 52, Landing Page requirement); `PROFLOW_HANDOFF.md` UPDATED (new §18.HC); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage A TEST-applied status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §158. Professional Quotes Stage C — First User-Facing Professional Item Editor, TEST ONLY (added 2026-09-02, Owner-authorized application implementation — application changes left UNCOMMITTED per explicit instruction; real, live, database-verified browser proof, HE+EN, Desktop+Mobile)
+
+### 158.0 Fresh state before work
+
+Local `main` HEAD `7fa5e8c` (unchanged from end of §157). `origin/main` unchanged at `26dee96`. Stage A migration file and Stage B's application files confirmed byte-identical to the §157 checkpoint before work began. Standing untracked `src/entry-server.jsx` untouched. `origin/proflow-continuity` at `2cd3f7d`, confirmed via fresh fetch. TEST target independently re-proven: `.env.localtest.local`'s `VITE_SUPABASE_URL` confirmed to embed the TEST ref (`ljfizgrdyzxddswcedwr`), not merely inferred from port 5186.
+
+### 158.1 Architecture-first audit (before writing any code)
+
+Read `QuoteForm.jsx`/`Dashboard.jsx` fresh, in full, before designing anything, and found two real, concrete architectural facts that shaped the implementation:
+
+1. **The financial-vs-non-financial edit-detection system** (`Dashboard.jsx`'s `handleSaveQuote`) compares only raw `quantity`/`unit_price` pairs to decide whether an edit is "financial" (full item resave) or "cosmetic" (description-only `UPDATE`, no other columns touched). Adding professional detail to an existing item without changing its raw `quantity`/`unit_price` would, unmodified, have been silently classified as non-financial and **never persisted at all** — a real, concrete bug this task's own §22 explicitly asked to audit for before implementing. **Fixed at the source**: the same detection now also signs each item's professional fields (`pricing_unit`/`calculated_quantity`/`quantity_source`/`specification`/measurement rows), so any professional-data change is correctly treated as financial.
+2. **Duplication is a client-side state repopulation followed by a fresh INSERT**, not a DB-level copy (confirmed in §155.8/§157 already, re-confirmed here) — professional fields flow through the exact same mapping used for description/quantity/unit_price, requiring no new persistence mechanism.
+
+### 158.2 Files modified/added
+
+`src/utils/professionalQuoteItem.js` (new, pure logic — units, active-quantity resolution, measurement-area math), `src/utils/professionalQuoteItem.test.js` (new, 25 focused tests), `src/pages/Dashboard.jsx`, `src/components/QuoteForm.jsx`. `src/utils/accountEntitlement.js` — **not touched**, confirmed unnecessary (zero new entitlement logic needed; `entitlement.professionalQuotes` already existed from Stage B).
+
+### 158.3 File-by-File Ledger
+
+| File | Why touched | HE | EN | Desktop | Mobile | FREE | FREE(TRIAL) | BASIC | PRO | LIFETIME | Data/schema | Regression risk | Verification |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `professionalQuoteItem.js` (new) | Single source for units/active-quantity/area math | data-driven labels | data-driven labels | n/a | n/a | n/a | n/a | n/a | n/a | n/a | none (pure fn) | none — new, isolated file | 25 unit tests |
+| `professionalQuoteItem.test.js` (new) | Focused tests for the above | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | none | none | self-verifying |
+| `Dashboard.jsx` | Wiring: fetch embed, financial-edit signature fix, item handlers, save/insert, props | logic only, no new copy here | same | n/a (no UI here) | n/a | gated via `entitlement.professionalQuotes`, zero special-case | same mechanism, zero special-case | same | same | same, verified live (158.7) | consumes Stage A schema (already TEST-applied); no schema change this task | MEDIUM (core save/load path) — mitigated by 266/266 tests + real DB-verified E2E proof (158.6/158.7) + zero JS errors live + Simple-item ₪150.00 unchanged across every live run | 266/266 automated + full live browser proof |
+| `QuoteForm.jsx` | New props, generalized upgrade modal, restructured item-row rendering, professional panel UI | implemented, live-verified (158.7) | implemented, live-verified (158.7) | live-verified (158.7) | live-verified, stacked controls confirmed (158.7) | Visible-but-Locked, live-verified (158.7) | not live-tested, architecturally identical gate (158.8) | live-verified via a Lifetime-shaped account (158.8, honestly disclosed) | live-verified via a Lifetime-shaped account (158.8) | live-verified (158.7/158.8) | none directly (delegates to Dashboard.jsx) | MEDIUM-LOW — classic row markup/styling unchanged, new panel is purely additive JSX | 266/266 automated + full live browser proof |
+
+### 158.4 Mixed-item / progressive disclosure / units / measurement UX
+
+Implemented exactly per §2-§9 of the authorization: item-level only (no quote-wide mode, no Business Settings/New Quote structure step reopened); a normal item stays Simple by default; a per-item "+ Add measurements / professional details" toggle (always visible — Visible-but-Locked, never hidden) expands an inline panel; the 6 approved units (§155.1.4) are selectable; only `m²` gets width×height measurement rows (no invented formulas for `unit`/`linear_meter`/`kg`/`hour`/`day` — those get a single manual decimal-quantity field, per §9's own explicit instruction); manual-override toggle preserves the underlying measurement rows so returning to "calculated" recomputes from them, per §8.
+
+### 158.5 Calculation behavior — implemented exactly as approved, zero rule invention
+
+`getActiveQuantity(item)` = `calculated_quantity` when present, else the existing `quantity` (untouched, still `integer`). `calculateQuoteFinancials()` itself (the canonical, already-proven financial function) was **not modified** — a normalized copy of `items` (`withActiveQuantities`) is passed to it instead, at all three call sites (live preview, financial-edit save, new-quote save), so the one shared formula stays untouched while professional items price correctly. Row area = width×height, computed and persisted on save (never recomputed on render). Item quantity = sum of applicable row areas. Display rounds to 2 decimals (`formatNum`, already-proven pattern); stored values keep full precision — confirmed live (158.6: sum computed as `4.712`, displayed as `4.71`, individual rows displayed `4.27`/`0.45` — the classic "round once at the end, not the sum-of-roundings" correctness, proven working exactly right).
+
+### 158.6 Real, live, database-verified end-to-end proof (the core deliverable)
+
+Using the real TEST Supabase project (`ljfizgrdyzxddswcedwr`) and a real TEST persona (`TEST HE Basic`), performed a genuine browser-driven create → save → reload → edit → re-save cycle, independently cross-checked against the database directly (not just UI text):
+
+- **Created** one quote with a Simple item (qty 3 × ₪50 = ₪150.00) and a Professional item (`m²`, two measurement rows `2.65×1.61` and `0.90×0.495`, ₪500/unit).
+- **Live calculation, browser-observed**: calculated quantity `4.71 m²`, line total `₪2,356.00` (`4.712 × 500 = 2356.0`, exact), subtotal `₪2,506.00`, VAT `₪451.08`, total `₪2,957.08` — every figure independently verified correct by hand.
+- **Saved successfully**, zero JS errors.
+- **Database-verified directly** (`quote_items`/`quote_item_measurements`, via `supabase db query` against TEST): `calculated_quantity: 4.712`, `total_price: 2356`, `quantity: 1` (the raw integer column, confirmed untouched), `pricing_unit: 'm2'`, `quantity_source: 'calculated'`, two measurement rows persisted with exact `width`/`height`/`calculated_area` values and correct `sort_order`.
+- **Reloaded via the real Edit flow** (Quote History → Actions → Edit Quote, not a page refresh): the professional panel **auto-expanded** (has data), unit/measurements/calculated-quantity all reproduced exactly, all money figures identical to the save-time values.
+- **Edited an existing measurement** (width `2.65`→`3.00`) and **re-saved**: new calculated quantity `5.2755`, new total `₪2,637.75`, database-confirmed exactly; the old `quote_items`/`quote_item_measurements` rows were cleanly replaced (new ids, **zero orphaned rows** confirmed via a direct count query) — the existing delete+insert financial-edit path combined with the FK `ON DELETE CASCADE` (Stage A) handled this with no new logic.
+- **Simple item unaffected throughout**: `₪150.00` unchanged across create/reload/edit — explicit regression proof, not assumption.
+
+### 158.7 HE/EN + Desktop/Mobile visual verification (real screenshots, TEST)
+
+Four real screenshots captured, one per HE/EN × Desktop/Mobile combination, all showing the same working professional-item flow:
+
+- **HE Desktop** (1440px): full panel, RTL-correct, ProFlow's existing visual language preserved, collapsed item stays compact, expanded panel clearly belongs to its item.
+- **HE Mobile** (390px): measurement rows correctly stack (flex-wrap, no horizontal scroll required for the new panel — the classic item row above it keeps its own pre-existing, unrelated horizontal-scroll behavior, unchanged and out of this task's scope), per §17's explicit requirement.
+- **EN Desktop / EN Mobile**: natural English copy ("Hide measurements / professional details," "Professional pricing unit," "Width (m)"/"Height (m)"/"Area," "Add measurement," "Enter manual quantity," "Calculated quantity"), `$` currency, **zero ₪/VAT leakage** (no VAT line rendered for International, matching existing market-separation behavior) — confirmed not a mechanical translation. Zero JS errors on either market.
+
+### 158.8 Entitlement verification — real, live, with an honest disclosure
+
+**FREE** (`TEST HE Free`, confirmed via fresh DB query to be a genuinely ordinary FREE account — `plan:'free'`, `trial_ends_at:null`, correctly *not* Lifetime per the existing `rawPlan!=='free'` inheritance requirement): the "+ Add measurements" toggle is **visible** (Visible-but-Locked, never hidden), **no popup appears merely from opening New Quote**, and clicking the toggle correctly shows the upgrade modal with benefit-oriented copy ("Available with a paid plan... measure, calculate, and present more accurate professional quotes") — live-screenshotted.
+
+**"BASIC"/"PRO" personas — honest disclosure**: a fresh DB query during this task found `TEST HE Basic`, `TEST HE Pro`, and `TEST EN Basic` are **all** currently stored with `trial_ends_at:null` — the exact Lifetime-inference shape already documented earlier this session (§148/§150). Live-testing against them therefore proved **LIFETIME inheritance of `professionalQuotes`** working correctly (unit picker fully unlocked, zero upgrade modal) — genuinely valuable, real proof — but does **not** constitute live proof of an *ordinary, non-Lifetime* BASIC or PRO account specifically, since no such TEST persona currently exists. This gap is honestly disclosed, not silently converted into a false "BASIC verified" claim — it is covered instead by the exhaustive, deterministic Stage B unit tests (`planCatalog.test.js`/`accountEntitlement.test.js`, already passing) which directly assert `professionalQuotes: true` for the `basic`/`pro` catalog entries independent of any Lifetime shape.
+
+**FREE(TRIAL) / genuinely-non-Lifetime-LIFETIME distinction**: not live-tested (no dedicated active-trial persona exists, the same pre-existing, already-documented gap from §148/§150/§156) — covered by the Stage B unit tests proving `professionalQuotes`/`professionalQuoteReuse` resolve `true` during an active trial with `displayIdentity` correctly staying `FREE_TRIAL`.
+
+### 158.9 Existing-quote safety
+
+Confirmed both by design and by live evidence: every existing quote with no professional data continues to load/save exactly as before (Simple item ₪150.00 proof, 158.6); no professional panel auto-opens for an item that has no professional data (`isProItemExpanded` defaults to collapsed unless `pricing_unit` is already set); no historical quantity reinterpreted (the `quantity` column is never written differently for a Simple item — confirmed via the exact same insert code path as before Stage C). `isQuoteImmutable(quote)` (pre-existing, unmodified) still blocks `handleEditClick` entirely for an approved/paid/signed quote before the form is ever reached — Stage C introduces no new code on that path, so the UI-level "read-only when protected" requirement (§21) is satisfied by inheritance, not by new logic; DB-level enforcement (Stage A's own immutability trigger, §157) remains the authoritative backstop, unweakened.
+
+### 158.10 Error handling / atomicity
+
+Audited before implementing (§22): the existing save flow was already non-transactional-but-fail-fast (`quotes` insert, then `quote_items` insert, then `quote_attachments` insert, each with `if (error) throw error`, no wrapping DB transaction). The new `quote_item_measurements` insert follows the **exact same existing pattern** — a second, separate `if (measurementsError) throw measurementsError` after the `quote_items` insert — consistent with, not a new departure from, the codebase's own established error-handling discipline. No professional data is silently dropped on a failed save (the whole `handleSaveQuote` call throws and stops, matching existing behavior for every other save failure mode).
+
+### 158.11 Automated verification
+
+**266/266 tests pass** (241 pre-existing + 25 new in `professionalQuoteItem.test.js`). `eslint` on all touched/new files: 0 errors (one pre-existing unrelated warning, unaffected). `vite build`: clean. No test relies on Production mutation.
+
+### 158.12 Billing Product Policy — recorded, not implemented (§31 of this task's authorization)
+
+Not previously documented in canonical continuity (confirmed via fresh search). Recorded as a new, comprehensive Owner-approved product policy at `PROFLOW_TODO.md` (new item 53): mid-cycle upgrade charges only the prorated delta for the remaining period, full price at next renewal; downgrade preserves paid entitlements until `period_end`, switches at renewal; cancellation means "cancel renewal," not immediate loss of access, and never deletes quotes/business data; renewal charges full price absent a pending downgrade/cancel; entitlement timing rules (upgrade only after confirmed payment, downgrade/cancel entitlements persist through `period_end`); mandatory price transparency before confirming an upgrade; a canonical payment/subscription source of truth requirement (never grant paid entitlements merely because the frontend claims success); LIFETIME explicitly outside the normal recurring-subscription lifecycle; no dark patterns for downgrade/cancel. **Status: OWNER-APPROVED PRODUCT POLICY, NOT YET IMPLEMENTED — zero billing code touched.**
+
+### 158.13 Preserved, unreopened
+
+Every other §155/§156/§157-locked decision (additive architecture, mixed items, unit set, Public Quote collapsed-by-default future behavior, PDF/Print FULL/COMPACT future requirement, Catalog Templates deferred, Advanced Reuse explicitly NOT implemented this task, Business Settings global-mode explicitly NOT added, New Quote flow's Private/Business step unchanged). David Aluminum: zero interaction. A100700: deferred, untouched. Item 51: open, untouched. SINOQ: candidate-only.
+
+### 158.14 Release boundary
+
+Application code changed (4 files: `Dashboard.jsx`, `QuoteForm.jsx`, plus 2 new files `professionalQuoteItem.js`/`.test.js`) — **all left UNCOMMITTED** per explicit instruction, alongside the still-uncommitted Stage A migration and Stage B's own 3 files. No Production DB mutation (only TEST mutated, via genuine disposable/clearly-labeled QA data, per §29's own explicit authorization to save/reload against TEST). No David Aluminum interaction. No A100700 action. No Public Quote implementation. No PDF/Print implementation. No Advanced Reuse implementation. No application commit. No application push. No deploy. No LIVE action.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §158); `PROFLOW_TODO.md` UPDATED (item 30's status advanced to Stage C; new item 53, Billing Product Policy); `PROFLOW_HANDOFF.md` UPDATED (new §18.HD); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§14.C Stage C status); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
