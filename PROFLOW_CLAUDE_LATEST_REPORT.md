@@ -120,7 +120,7 @@ Unchanged in spirit from prior tasks, now also covering the new launcher: delete
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `cd576dd`.
 
 ---
 
