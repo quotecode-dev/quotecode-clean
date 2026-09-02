@@ -178,7 +178,7 @@ Either: (a) authorize Stage B alone (entitlement flags, zero DB, zero UI) as a g
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`cb77fad` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`19455c0`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. No application code exists to commit or push this task.
 
 ---
 
