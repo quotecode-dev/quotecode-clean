@@ -4,139 +4,106 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Item 30.E Preview Desktop Geometry Remediation + Global Contract Enforcement
+## Task: Plan Identity & Entitlements Architecture — Investigation + Proposal
 
-**TEST/LOCAL implementation only. NO Production mutation, deployment, database change, push to main, or LIVE action.**
+**DOCUMENTATION / ARCHITECTURE PLANNING ONLY. No application code edit, no DB/schema change, no migration, no TEST/Production mutation, no customer/account/subscription/trial data touched, no commit/push/deploy of application code, no LIVE action.**
 
 ---
 
-## 1. Fresh Local State
+## 1. Continuity / Fresh Local State
 
-Branch `main`, HEAD `51ddcff` (pre-task). `origin/main`=`26dee96` (unchanged). `origin/proflow-continuity`=`19b5772`. Working tree clean besides the standing untracked `entry-server.jsx`. The only pre-existing application diff versus `origin/main` was the already-known §141 fix (unrelated, local-only) — confirmed and cleanly isolated before touching anything. TEST (5186) healthy, target `quotecode-test` Supabase.
+`origin/main`=`26dee96` (unchanged throughout). Local `main` carries one still-unpushed, unrelated application commit from the immediately preceding task (`ProfessionalPublicPreview.jsx`, §146) — confirmed via `git diff --stat` before and after this task that it remains exactly as it was, untouched. Working tree clean besides the standing untracked `entry-server.jsx`. No unrelated work was modified.
 
-## 2. Exact proven root cause being corrected
+## 2. Current implementation (read fresh from source this task)
 
-`ProfessionalPublicPreview.jsx` (the Item 30.E comparison preview, `/public-quote/:id/preview`) hardcoded an independent Desktop `maxWidth:'620px'` (~43% viewport utilization at 1440px) instead of consuming the canonical Desktop visual-content contract (`980px`) — proven with real Production evidence in the immediately preceding forensic task (§145).
+- **Plan identity today**: `business_settings.plan` (`free`/`basic`/`pro`) + `business_settings.trial_ends_at` (nullable timestamp) + `role`. No explicit Lifetime field exists.
+- **Trial today**: `computeEffectivePlan()` (`src/utils/planEntitlements.js`) is the single formula — `plan==='pro'` + a real, still-future `trial_ends_at` → `effectivePlan:'pro'` (active trial); the same shape but past → `effectivePlan:'free'` (expired, the already-fixed regression case); `trial_ends_at===null` → `effectivePlan:'pro'` unconditionally (Lifetime-grant or explicit super_admin assignment, never re-evaluated as a trial).
+- **Entitlements today**: `PLAN_CATALOG` (`src/utils/planCatalog.js`) — `free`/`basic`/`pro` only, each carrying `monthlyQuoteLimit`/`editDuplicate`/`whatsappDelete`/`attachments`. TRIAL is explicitly modeled as a **badge-state overlay**, never a catalog entry — already matches the Owner's own required conceptual model.
+- **`resolveAccountEntitlement()`** (`src/utils/accountEntitlement.js`) composes the above into `{tier, rawPlan, isLifetime, trialStatus, badgeState, entitlement}` — `isLifetime` is **inferred** (`trial_ends_at IS NULL && plan!=='free'`), not stored.
+- **Admin**: `AdminUsersTab.jsx`/`UserDetailsModal.jsx` both call `resolveAccountEntitlement()` — the more-complete side of the current gap.
+- **User-facing UI**: `Dashboard.jsx` calls `computeEffectivePlan()` directly (not the higher-level resolver), deriving its own local `isPro`/`isBasicOrAbove` — never computes `isLifetime` or `badgeState`. `SettingsTab.jsx` receives `effectivePlan` as a prop and renders `{effectivePlan} PLAN` literally.
+- **Lifetime today**: an admin-only toggle (`handleToggleLifetime`, in both `AdminUsersTab.jsx` and `Dashboard.jsx`) that only ever writes `trial_ends_at` (`null` = lifetime, `+14d` = restore trial) — never touches `plan`.
+- **Upgrade CTA today**: `Dashboard.jsx:3011` — correctly gated (`!isPro && !isSuperAdmin`), hides for PRO/Lifetime/active-trial alike. `SettingsTab.jsx:308-311` — **unconditional**, shown to every account including Lifetime and ordinary PRO. Two different rules for the same concept, found fresh this task, not previously documented this precisely.
 
-## 3. Exact code change
+## 3. Gap analysis (FREE / FREE (TRIAL) / BASIC / PRO / LIFETIME, identity vs. entitlement)
 
-```diff
-- <div style={{ maxWidth: '620px', margin: '0 auto' }}>
-+ <div style={{ maxWidth: 'var(--pf-dashboard-desktop-content-width)', margin: '0 auto' }}>
-```
-Plus an explanatory comment and a correction to an adjacent, now-stale comment that still named the old `620px` value. One file, +16/-4 lines total.
+Full table: `PROFLOW_PROJECT_CONTEXT.md` §147.2. Summary: FREE and BASIC are already clean, unambiguous identities. PRO's entitlement is clean but has no user-facing distinction from Lifetime. **FREE (TRIAL)**'s identity/entitlement separation already exists conceptually inside `resolveAccountEntitlement()` — the gap is that `Dashboard.jsx` never reaches that function. **LIFETIME is the core gap** — no stored identity anywhere, inferred from an overloaded field, with one already-source-documented ambiguity (`plan='free'+trial_ends_at=null` cannot currently distinguish self-cancel from a rare Lifetime-onto-FREE grant).
 
-## 4. Why systemic, not David-specific
+## 4. Professional Quotes impact + David Aluminum / A100700
 
-No `if (business === David)`, no `if (quote === 46)`, no customer-specific CSS, no new magic number. The fix consumes the identical shared CSS custom property Dashboard and the already-remediated `ProfessionalQuotePreview.jsx` (§141) both use. David's real data was the evidence that exposed the bypass; the fix targets the architecture.
+Professional Quotes (`professionalPreviewAllowlist.js`) has **zero connection** to the plan system today — a pure hardcoded user-id gate. Trial-to-PRO capability inheritance, and its automatic withdrawal on expiry, would require **zero new trial-specific code** if a future `professionalQuotes` flag is added to `PLAN_CATALOG` — the existing `computeEffectivePlan()` mechanism already handles this transparently for every existing capability flag. Preserving historical/already-created quote content against a later entitlement change is flagged as a **new, currently-unaddressed risk surface**, with a recommendation (not a decision) to mirror the existing Quote Currency Freeze principle — snapshot at creation, never re-gate display against current entitlement. David Aluminum remains the intended real target for the finished feature, migrated on once the numbering (`A100700`+) and the architecture are both ready and Owner-approved — **not authorized to begin now, and not touched this task.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.3.
 
-## 5. Before/after Desktop geometry table
+## 5. Proposed architecture (smallest safe extension — not implemented)
 
-| Viewport | Before (known, §145) | After (this task, real evidence) | Width Δ | Center Δ |
-|---|---|---|---|---|
-| 1366 | 620px, ~45% utilization | **980px**, matches reference exactly | **0** | **0** |
-| 1440 | 620px, 43.1% utilization | **980px**, matches reference exactly | **0** | **0** |
-| 1920 | 620px, ~32% utilization | **980px**, matches reference exactly | **0** | **0** |
+1. Explicit, durable Lifetime schema field, replacing the current inference.
+2. `Dashboard.jsx` migrated to `resolveAccountEntitlement()`.
+3. One centralized HE/EN label-resolution helper for all five identities, replacing ad hoc string interpolation.
+4. Reconcile the two inconsistent Upgrade CTAs onto one shared visibility rule; reconsider "Cancel Subscription" wording for Lifetime.
+5. `professionalQuotes` capability flag added to `PLAN_CATALOG` (tier assignment pending Owner decision), reusing the existing flag pattern.
+6. David Aluminum migrated onto the real feature only after 1-5 ship and are Owner-approved.
 
-## 6. Dashboard ↔ Preview parity table
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.4. None of the above implemented, scheduled, or authorized by this report.
 
-| Viewport | REFERENCE (Dashboard) | PREVIEW | Δ | Overflow |
-|---|---|---|---|---|
-| 1366 | 980 / centerX 675.5 | 980 / centerX 675.5 | 0 / 0 | none |
-| 1440 | 980 / centerX 712.5 | 980 / centerX 712.5 | 0 / 0 | none |
-| 1920 | 980 / centerX 952.5 | 980 / centerX 952.5 | 0 / 0 | none |
+## 6. File-by-File Ledger (future implementation — not touched this task)
 
-Measured via real, unmodified `PublicQuoteHeader`/`CustomerQuoteItemRow` components mounted in the fixed wrapper with representative stress content (a `₪125,000` boundary value, long descriptions, real measurement pairs) — the real route itself remains unreachable on TEST (no `get-public-quote` Edge Function; the route's own `isDavidQuote` gate additionally requires David's real business name).
+Full 10-row table at `PROFLOW_PROJECT_CONTEXT.md` §147.5, covering: `business_settings` (DB), `guard_business_settings_plan_trial` (trigger), `planEntitlements.js`, `accountEntitlement.js`, `planCatalog.js`, `Dashboard.jsx`, `SettingsTab.jsx`, `PricingModal.jsx`, `AdminUsersTab.jsx`/`UserDetailsModal.jsx`, `professionalPreviewAllowlist.js` + the two Item 30.E preview routes — each with HE/EN classification, current responsibility, why a change would eventually be needed, regression risk, and TEST/Production implications. No file in this list was modified this task.
 
-## 7. Screenshots
+## 7. Risks
 
-Six comparable screenshots captured this task at 1366/1440/1920px (`evidence_item30e_dashboard_<width>.png`, `evidence_item30e_preview_<width>.png`, session scratchpad, not committed) — each pair shows the same left/right white-content-card boundary positions, visually confirming the geometry table above. One disclosed artifact: the preview screenshots show `₪0.00` per line item due to a field-naming mismatch in this task's own synthetic mock data (a test-harness quirk, not a real defect — geometry is unaffected). TEST (`http://localhost:5186/`) remains live for direct Owner inspection.
+Trial reset/extension regression (zero trial mutation performed this task, consistent with the standing safety-sensitive treatment); existing paid/Lifetime users (any future schema field must backfill from exactly the current, already-correct inference, proven to reclassify zero accounts); the already-disclosed `free`+`null` ambiguity (a rare case requiring manual audit before any future backfill); historical/finalized/signed quotes (new principle recommended, not yet enforced anywhere); HE/EN symmetry (both `Dashboard.jsx`/`SettingsTab.jsx` are shared `BOTH`-classified components — any label helper must supply all five identities in both languages from day one); Local/International separation (plan identity is explicitly orthogonal to market, per the Iron Rule); Production/customer impact (any DB-field step is the highest-risk single step, requiring its own separate, explicit Owner DB-change authorization independent of this task's own read-only one). Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.6.
 
-## 8. Mobile regression
+## 8. Implementation plan (staged proposal only — not executed)
 
-`pagePadding` (the Owner-Approved/LOCKED `5px` Mobile control, §138) confirmed byte-unchanged via `git diff`. Structurally cannot bind below 980px regardless — same mathematically-guaranteed-safe argument already accepted for the sibling fix. A synthetic-harness re-measurement at 360/390/412px showed `leftVisibleMargin=5` (matching exactly) but an unexpected `rightVisibleMargin=20` — traced to a `scrollbar-gutter:stable`-driven artifact specific to the minimal, isolated test rig (the same mechanism already responsible for Dashboard's own off-center `centerX` readings all session), not a real regression — disclosed transparently, not hidden.
+Stage 0 (already done): existing centralization. Stage 1 (lowest risk, no schema change): `Dashboard.jsx` migration + label helper + CTA reconciliation. Stage 2 (highest risk, schema change): explicit Lifetime field, backfilled and TEST-first migrated. Stage 3: `professionalQuotes` flag + real (non-David) entry point. Stage 4: David Aluminum migration. Each stage requires its own separate Owner authorization to begin — none granted by this report. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §147.7.
 
-## 9. Normal Public Quote regression/protection
+## 9. Test plan
 
-`git diff --stat -- src/pages/PublicQuote.jsx src/pages/PublicQuoteEn.jsx src/components/PublicQuoteHeader.jsx` — empty. Not read for editing purposes, not modified.
+Six-persona (FREE / FREE-TRIAL-active / FREE-TRIAL-expired / BASIC / PRO / LIFETIME) × HE/EN × Professional Quotes × Admin display × user-facing display × entitlement checks × Upgrade CTA matrix recorded at `PROFLOW_PROJECT_CONTEXT.md` §147.8 — **not executed**, for whichever stage is eventually authorized.
 
-## 10. HE result
+## 10. Continuity update — exactly what was written
 
-Applicable, runtime-verified this task via real, unmodified downstream components — PASS at all three required viewports.
+- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED**: new §147 (10 subsections — fresh state, current implementation, gap analysis, Professional Quotes impact, proposed architecture, File-by-File Ledger, risks, staged plan, test matrix, release boundary).
+- `PROFLOW_TODO.md` — **UPDATED**: item 28 expanded from its narrow original scope ("small plan label") into this full architecture record, preserving the original requirement; item 30's own entry given a short cross-reference addendum recording the Professional Quotes ↔ plan-identity relationship.
+- `PROFLOW_HANDOFF.md` — **UPDATED**: new §18.GS entry.
+- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED**: §14, new lead paragraph.
+- `PROFLOW_ARCHITECTURE.md` — **UPDATED**: a short forward-pointer added at the end of its existing §16 (Trial/Plans/Billing) section.
+- `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED**: this file.
 
-## 11. EN applicability result
+All six committed to local `main` and pushed to `proflow-continuity` only (see SHA/read-back below) — **not** pushed to `origin/main`, since none of this task's changes are application code.
 
-**NOT APPLICABLE** — `AppGlobal.jsx` carries no route for `/public-quote/:id/preview` at all (re-confirmed fresh). No EN route was manufactured.
+## 11. Next authorization required
 
-## 12. System-wide bypass sweep
+Any of the following would each require its own **separate, explicit** Owner authorization before Claude may begin:
+- **Stage 1** (`Dashboard.jsx` → canonical resolver, label helper, CTA reconciliation) — application code, no schema change, lowest risk.
+- **Stage 2** (explicit Lifetime schema field + backfill + migration) — DB/schema change, highest risk, requires its own dedicated TEST-first migration authorization per the standing DB-safety rules, fully separate from Stage 1.
+- **Stage 3** (`professionalQuotes` capability flag + real entry point) — requires an Owner decision on exactly which plan tiers receive Professional Quotes, which this report explicitly did not guess.
+- **Stage 4** (David Aluminum migration) — requires Stages 1-3 live and Owner-approved, plus the separate, already-existing quote-numbering (`A100700`+) migration work to be ready for his account.
 
-Repeated the repo-wide `max-width`/`maxWidth` sweep. No new material unjustified bypass found. Classifications: canonical token (Dashboard/all 7 tabs/Public Quote content box/both preview surfaces); authorized exception (Public Quote's `1062px` document shell, §10.AH/AI; Item 30.E's Mobile `pagePadding`, §138); inert/dead (the `1100px` inline literal in the LOCKED `PublicQuote.jsx`/`PublicQuoteEn.jsx`, not touched); not applicable (modals, Terms/Privacy/Contact/PublicTools/AI Logs/Landing/Auth/Admin — outside §56's own governed-surface list).
+**None of the above is authorized by this task.** This task's own scope ends at investigation, proposal, and continuity recording.
 
-## 13. Governance finding
-
-Proven cause (Section 15's own diagnostic options): **(C)** — the distinction between qualitative design approval and numeric geometry approval was not previously stated explicitly enough to prevent an informal "Owner-approved" treatment of a hardcoded bypass. New permanent clarification added at its proper source: `PROFLOW_PROJECT_CONTEXT.md` §142.2.G — qualitative concept approval never, by itself, authorizes or locks a specific numeric geometry exception. No new redundant width-specific rule created.
-
-## 14. TODO items reviewed and exact status changes
-
-Item 30.E: AFFECTED, cross-referenced (product-architecture question itself unchanged). Item 30.F: AFFECTED, cross-referenced. Item 45: NOT AFFECTED. Item 46: NOT AFFECTED. **Item 47: AFFECTED, updated** — the one remaining known Desktop bypass is now remediated in TEST/local. Item 48: NOT AFFECTED. **Item 49: NOT AFFECTED, explicitly NOT marked complete** — no tooling implemented, per explicit instruction.
-
-## 15. File-by-File Ledger
-
-| FILE | WHY CHANGED | CONTRACT TRIGGER | HE | EN | DESKTOP | MOBILE | TEST EVIDENCE | REGRESSION | LOCKED? |
-|---|---|---|---|---|---|---|---|---|---|
-| `src/pages/ProfessionalPublicPreview.jsx` | Remove independent hardcoded Desktop `620px`, consume canonical token | §56/§137 Desktop Width Contract | PASS (only locale, real-component verified) | NOT APPLICABLE (no route) | PASS, 0px delta at 1366/1440/1920 | UNCHANGED (structural + `git diff` proof) | Real-component mount, 3 viewports, zero overflow | None found | NO |
-
-No other application file changed.
-
-## 16. Six-file reconciliation
-
-- `PROFLOW_PROJECT_CONTEXT.md` — **UPDATED** (new §146, 14 subsections; §142.2.G added)
-- `PROFLOW_TODO.md` — **UPDATED** (item 47)
-- `PROFLOW_HANDOFF.md` — **UPDATED** (new §18.GR)
-- `PROFLOW_CHAT_HANDOFF.md` — **UPDATED** (§14, new lead paragraph)
-- `PROFLOW_ARCHITECTURE.md` — **REVIEWED — NO CHANGE REQUIRED**
-- `PROFLOW_CLAUDE_LATEST_REPORT.md` — **UPDATED** (this file)
-
-## 17. Application local/uncommitted state
-
-One file changed (`ProfessionalPublicPreview.jsx`), committed to local `main` only — **not pushed to `origin/main`**.
-
-## 18. Production status
-
-**UNCHANGED.** `origin/main` re-confirmed at `26dee96` throughout. Zero Production-pointed action of any kind this task.
-
-## 19. Owner visual acceptance
-
-**PENDING.** Not claimed by Claude at any point. TEST remains live for direct Owner inspection.
-
-## 20. Overall result
-
-**COMPLETE** (for the TEST/local remediation and its own verification scope).
-
-**Binary completion gate (24 conditions) — full table at `PROFLOW_PROJECT_CONTEXT.md` §146.12.** All 24 conditions TRUE: bypass removed, canonical architecture consumed, 0px width/center delta at all three required viewports, Item 30.E internal presentation preserved, expand/collapse preserved, Mobile B+ unchanged, normal Public Quote unchanged, Dashboard unchanged, bypass sweep complete with nothing undisclosed remaining, HE PASS, EN applicability resolved (NOT APPLICABLE), regression matrix PASS, governance reconciled, TODO reconciled, File-by-File Ledger complete, six-file continuity reconciled and remote-read verified, zero application commit/push/deploy to Production, Owner visual acceptance explicitly PENDING. This "COMPLETE" verdict applies strictly to the TEST/local remediation task itself — it does **not** extend to Production release, which remains a separate, not-yet-authorized gate.
+---
 
 ## Continuity commit SHA + remote read-back
 
-`eedb212` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`0682e71`) — not pushed to `origin/main`. **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `eedb212` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §146 + §142.2.G present in `PROFLOW_PROJECT_CONTEXT.md`, the update present in `PROFLOW_TODO.md`, §18.GR present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, this file's own task header present, and `PROFLOW_ARCHITECTURE.md` confirmed genuinely unchanged (`git diff`, empty). `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`.
+*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
 
 ---
 
-FRESH LOCAL STATE: ESTABLISHED
-ROOT CAUSE REMEDIATED: `ProfessionalPublicPreview.jsx` independent hardcoded 620px → canonical token
-DESKTOP WIDTH PASS: 1366/1440/1920 — 0px delta
-CENTER-AXIS PASS: 1366/1440/1920 — 0px delta
-ITEM 30.E PRODUCT PRESENTATION: PRESERVED
-MOBILE B+ LOCK: PRESERVED
-NORMAL PUBLIC QUOTE: UNTOUCHED
-DASHBOARD: UNTOUCHED
-BYPASS SWEEP: COMPLETE — no undisclosed bypass remains
-HE: PASS
-EN: NOT APPLICABLE (no route exists)
-GOVERNANCE: RECONCILED (§142.2.G added)
-TODO RECONCILIATION: COMPLETE
-SIX-FILE CONTINUITY: RECONCILED, REMOTE READ-BACK PASS
-APPLICATION COMMIT: LOCAL ONLY, NOT PUSHED
+INVESTIGATION: COMPLETE (read-only)
+GAP ANALYSIS: COMPLETE
+PROPOSED ARCHITECTURE: RECORDED, NOT IMPLEMENTED
+FILE-BY-FILE LEDGER: COMPLETE (future scope, nothing touched)
+RISKS: DOCUMENTED
+IMPLEMENTATION PLAN: STAGED PROPOSAL ONLY, NOT EXECUTED
+TEST PLAN: RECORDED, NOT EXECUTED
+DAVID ALUMINUM: UNTOUCHED — ZERO DB/PRODUCTION/CUSTOMER-DATA ACTION
+APPLICATION CODE: UNCHANGED THIS TASK
+DATABASE: UNCHANGED
+TEST: UNCHANGED
 PRODUCTION: UNCHANGED
-OWNER VISUAL ACCEPTANCE: PENDING
-OVERALL RESULT: COMPLETE (TEST/local scope)
+COMMIT: DOCUMENTATION ONLY (application code untouched this task)
+PUSH: proflow-continuity ONLY
+DEPLOY: NONE
+LIVE ACTION: NONE
+NEXT AUTHORIZATION REQUIRED: Stage 1 (app code) / Stage 2 (DB schema) / Stage 3 (Owner tier decision) / Stage 4 (David migration) — each separate
 WAITING FOR OWNER + CHATGPT REVIEW
