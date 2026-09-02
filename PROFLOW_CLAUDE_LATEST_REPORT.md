@@ -114,7 +114,7 @@ Exactly one item: swapping the live tunnel daemon to the no-OAuth profile requir
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `de211b4`.
 
 ---
 
