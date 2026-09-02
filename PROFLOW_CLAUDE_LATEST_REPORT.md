@@ -4,126 +4,167 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Commit Verified Stage-1 + Entitlement Centralization Checkpoint
+## Task: Push Verified Checkpoint + TEST Verification Only
 
-**MODE: ONE local application commit of already-reviewed work only. Zero new implementation, zero scope expansion. NOT authorized: application push, deploy, LIVE action, DB/schema changes, TEST/Production mutation.**
+**MODE: Push evaluated and declined per fail-closed safety gate; TEST verification performed via the existing local TEST environment instead. NOT authorized: new implementation, Professional Quotes, A100700, Item 51 work, DB/schema changes, Production deployment/mutation, customer-data mutation, LIVE action.**
 
 ---
 
-## 1. Fresh Local State before commit
+## 1. Fresh Local State before push
 
-`origin/main`=`26dee96` (unchanged). Local `main` HEAD `fa7648e` (unchanged from end of §151). Working tree showed exactly the 7 expected application files modified/uncommitted plus the standing untracked `src/entry-server.jsx` — byte-identical to the reviewed §151 checkpoint (`git diff --stat`: 7 files, 536 insertions/55 deletions). `origin/proflow-continuity`=`db86699`, confirmed via fresh remote fetch. **No divergence — commit gate not blocked.**
+`origin/main`=`26dee96` (unchanged). Local `main` HEAD `373938f` (unchanged from end of §152). Working tree: only the standing untracked `src/entry-server.jsx`. `origin/proflow-continuity`=`8503b66`, confirmed via fresh fetch.
 
-## 2. Pre-commit verification results
+## 2. Remote state before push
 
-- **Tests**: 228/228 pass.
-- **Build**: `vite build` clean.
-- **Lint**: `eslint` on all 5 relevant application files — 0 errors, 1 pre-existing unrelated warning (`Dashboard.jsx:364`, predates this workstream, untouched).
-- **TEST↔Production Structural Parity**: re-confirmed PASS — zero `import.meta.env`/`NODE_ENV`/hostname-conditional business logic in the touched files.
-- **LIFETIME Full-PRO Inheritance**: re-confirmed PASS — exactly one `isLifetime ?` decision point remains in `accountEntitlement.js` (the base-plan-selection call), no reintroduced per-capability patchwork.
-- **Quota centralization**: re-confirmed — `Dashboard.jsx` still reads `entitlement.monthlyQuoteLimit` identically for both display and enforcement.
-- **Customer-specific code**: zero found in the diff — `git diff` scan confirms the only David-related lines anywhere in `Dashboard.jsx` are pre-existing, untouched comments (Item 30.E preview allowlist), entirely outside this diff.
+`origin/main`=`26dee96` (confirmed unchanged throughout this task — never touched).
 
-## 3. Exact staged files
+## 3. Exact commit(s) being evaluated for push
 
-`src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/utils/accountEntitlement.js`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js` — staged via explicit individual `git add <file>` calls, never `-A`/`.`. `git diff --cached --stat` confirmed **STAGED FILE SET = EXACTLY THE 7 AUTHORIZED FILES**.
+`c09bc45` (`feat: centralize plan entitlements and lifetime inheritance`) — confirmed to exist, be an ancestor of local `HEAD`, and be followed only by two documentation-only commits (`git log c09bc45..HEAD --name-only -- . ':!PROFLOW_*.md'` returns empty) — no unreviewed application commit would ride along.
 
-## 4. src/entry-server.jsx exclusion confirmed
+## 4. Exact files represented by authorized checkpoint
 
-Remained untracked throughout (`git status --short` before and after staging shows `?? src/entry-server.jsx`); `git ls-files --error-unmatch` confirms it was never added to the index.
+`src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/utils/accountEntitlement.js`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js` — confirmed via `git show --stat --format="" c09bc45`.
 
-## 5. Local application commit SHA
+## 5. Push destination
 
-`c09bc456e68f2c11ab5eea14d6ebe4fc13a3f2d6`
+`origin/main` — the only push target this authorization's own wording implies. **Investigated and found to be the real Production Vercel project** (`vercel.json` redirects `quotecode.vercel.app` → `https://www.quotecodepro.com`), not a TEST target.
 
-## 6. Commit subject
+## 6. Push result
 
-`feat: centralize plan entitlements and lifetime inheritance`
+**NOT PERFORMED.** This repository has exactly two remote refs (`origin/main`, `origin/proflow-continuity`) — no separate TEST-hosting target exists. §17.D (pre-existing canonical rule) explicitly states the TEST Supabase project has **no GitHub repository connected** — TEST has only ever been the local `dev:localtest` dev server, never a git-push target. Every prior push to `origin/main` in this project's own continuity (§107/§130/§132/§135 and others) is documented as a real Production deploy. Pushing `c09bc45` would therefore deploy directly to real Production/LIVE customer traffic — the exact outcome this task's own §9 absolutely forbids. Per the task's own explicit fail-closed instruction: **CHECKPOINT PUSH GATE: BLOCKED.** No push, no rebase, no force, nothing autonomous attempted.
 
-## 7. Exact files in commit
+## 7. Remote SHA after push
 
-`src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/utils/accountEntitlement.js`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js` — confirmed via `git show --stat --format=""`.
+Unchanged — `origin/main`=`26dee96` (no push occurred).
 
-## 8. Commit diff/stat
+## 8. TEST deployment mechanism/result
 
-```
-src/components/QuoteForm.jsx         |  15 ++-
-src/components/SettingsTab.jsx       |  37 +++--
-src/pages/Dashboard.jsx              |  54 ++++++--
-src/utils/accountEntitlement.js      |  41 ++++--
-src/utils/accountEntitlement.test.js | 253 +++++++++++++++++++++++++++++++++++
-src/utils/planCatalog.js             |  82 ++++++++++--
-src/utils/planCatalog.test.js        | 109 +++++++++++++--
-7 files changed, 536 insertions(+), 55 deletions(-)
-```
+**No separate TEST deployment mechanism exists in this repository.** TEST is the local `dev:localtest` Vite dev server (port 5186), already running, already healthy (`curl` → `200`), pointed at the real, separate TEST Supabase project. Since the local working tree already contains `c09bc45` (ancestor of local `HEAD`), this server was already serving exactly this checkpoint — no deployment action was needed or performed.
 
-## 9. Post-commit working tree
+## 9. Exact deployed TEST SHA if provable
 
-Clean except the standing untracked `src/entry-server.jsx` (unchanged, still untracked).
+The local `dev:localtest` server serves the current local working tree directly (Vite dev server, no build/deploy step) — provably `c09bc45`'s own content, since the working tree is clean at a `HEAD` that has `c09bc45` as an ancestor with zero subsequent application-file changes.
 
-## 10. origin/main state
+## 10. TEST runtime verification matrix
 
-Re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a` — no push occurred.
+Real login (real form) against all 8 existing plan-persona TEST accounts (FREE/BASIC/PRO/EXPIRED, both Local-HE and Intl-EN markets):
 
-## 11. Tests/build/lint results
+| Persona | Plan label | Quota shown | Header CTA | Settings CTA | Cancel Sub |
+|---|---|---|---|---|---|
+| LOCAL_FREE | FREE PLAN | 0/5 | visible | visible | hidden |
+| LOCAL_BASIC (Lifetime) | **LIFETIME PLAN** | **0/∞** | hidden | hidden | hidden |
+| LOCAL_PRO (Lifetime) | LIFETIME PLAN | (hidden, pre-existing rule) | hidden | hidden | hidden |
+| LOCAL_EXPIRED | FREE PLAN | 0/5 | visible | visible | visible* |
+| INTL_FREE | FREE PLAN | 0/5 | visible | visible | hidden |
+| INTL_BASIC (Lifetime) | **LIFETIME PLAN** | **0/∞** | hidden | hidden | hidden |
+| INTL_PRO (Lifetime) | LIFETIME PLAN | (hidden, pre-existing rule) | hidden | hidden | hidden |
+| INTL_EXPIRED | FREE PLAN | 0/5 | visible | visible | visible* |
 
-228/228 tests pass (pre-commit and re-confirmed post-commit via the same working tree). Build clean. Lint clean (one pre-existing unrelated warning).
+*(EXPIRED personas show Cancel Subscription because their raw `plan` is still `'pro'` — real, pre-existing, unrelated-to-this-diff behavior.)
 
-## 12. LIFETIME inheritance status
+Zero JS errors, zero login failures, across all 8 personas.
 
-PASS — re-confirmed pre-commit, architecture unchanged by the commit itself (a commit does not alter code).
+## 11. FREE result
 
-## 13. Quota centralization status
+**PASS** — live, `FREE PLAN`, `0/5`, both markets.
 
-PASS — re-confirmed pre-commit.
+## 12. FREE(TRIAL) result
 
-## 14. TEST↔Production structural parity status
+**NOT RUNTIME-PROVEN** — no dedicated active-trial TEST persona currently seeded (pre-existing, already-disclosed gap, §148/§150). Proven deterministically via unit tests (`accountEntitlement.test.js`, `displayIdentity==='FREE_TRIAL'`/temporary-PRO-entitlement assertions), all passing.
 
-PASS — re-confirmed pre-commit.
+## 13. BASIC result
 
-## 15. DB/schema status
+**PARTIAL** — only a Lifetime-shaped BASIC persona exists live (correctly resolves to LIFETIME, not ordinary BASIC). Ordinary non-Lifetime BASIC is unit-test-proven only.
 
-**Zero.** No DB/schema change, no migration, this task.
+## 14. PRO result
 
-## 16. TEST/Production/customer-data mutation status
+**PARTIAL** — same caveat; only Lifetime-shaped PRO personas exist live, consistent with the already-disclosed §150.8 fact that no distinct non-Lifetime "paid PRO" data shape currently exists in the schema at all.
 
-**Zero.** No TEST interaction, no Production access, no customer-data mutation.
+## 15. LIFETIME result
 
-## 17. Professional Quotes/A100700/Item-51 status
+**PASS — the strongest result of this task.** Live, real, database-backed proof, both markets: `LOCAL_BASIC`/`INTL_BASIC` (the known Lifetime-on-Basic-underlying-tier personas) now show `"LIFETIME PLAN"` with quota `0/∞` — before §151's fix, this exact shape would have shown `0/20`.
 
-**Untouched.** Professional Quotes UX requirement reconfirmed on record (Business Settings selects editing type; New Quote flow stays customer-type → structure → editor, editing-type selection does not move into it). PDF/Print FULL vs COMPACT output remains deferred, unimplemented. A100700 untouched. Item 51 (PRO subscription-expiry) remains open, explicitly not touched by this commit-only task.
+## 16. Quota display/enforcement result
 
-## 18. Continuity update status and continuity commit SHA
+**PASS** — confirmed via static source re-check (both `Dashboard.jsx` sites still read the identical `entitlement.monthlyQuoteLimit`) plus live display observed correct.
 
-All six continuity files updated: `PROFLOW_PROJECT_CONTEXT.md` (new §152), `PROFLOW_TODO.md` (item 28 checkpoint recorded, item 50 note updated with commit SHA, item 51 confirmed still open post-commit), `PROFLOW_HANDOFF.md` (new §18.GX), `PROFLOW_CHAT_HANDOFF.md` (§14 new lead paragraph), `PROFLOW_ARCHITECTURE.md` (§16 new paragraph), this file. Continuity commit SHA recorded below.
+## 17. Relevant functional regression results
 
-## 19. PUSH status
+**PASS** — light smoke check on `LOCAL_FREE` and `LOCAL_BASIC` (Lifetime): New Quote form renders correctly, Attachments section/button render without error for both (exercising the `canUseAttachments` prop path changed this workstream), zero JS errors. No file picker opened, no quote saved.
 
-**NOT performed.** `origin/main` unchanged.
+## 18. Automated tests
 
-## 20. DEPLOY status
+228/228 pass (re-run fresh at current `HEAD`).
+
+## 19. Build/lint
+
+`vite build`: clean. `eslint` (5 relevant files): 0 errors, 1 pre-existing unrelated warning.
+
+## 20. TEST↔Production structural parity
+
+**PASS** — re-confirmed via static search, zero environment-conditional business logic in the touched files.
+
+## 21. DB/schema status
+
+**Zero.** No DB/schema change.
+
+## 22. TEST data mutations performed, if any, with exact authorized scope
+
+**Zero.** Only read-only DOM observation and a form-render smoke check; no file picker interaction, no quote save, no persistent state change of any kind.
+
+## 23. Production/customer-data status
+
+**Zero mutation.** No Production access performed this task.
+
+## 24. David Aluminum status
+
+**Zero interaction of any kind.**
+
+## 25. Professional Quotes/A100700/Item-51 status
+
+**Untouched.** Item 51 (PRO subscription-expiry) remains open. Professional Quotes remains the next intended area, not opened by this task.
+
+## 26. Remaining local/untracked state
+
+Local `main` HEAD unchanged at `373938f` (plus this task's own continuity commits, below). Standing untracked `src/entry-server.jsx` unchanged.
+
+## 27. Continuity update + continuity SHA
+
+All six continuity files updated: `PROFLOW_PROJECT_CONTEXT.md` (new §153), `PROFLOW_TODO.md` (item 28 thread extended), `PROFLOW_HANDOFF.md` (new §18.GY), `PROFLOW_CHAT_HANDOFF.md` (§14 new lead paragraph), `PROFLOW_ARCHITECTURE.md` (§16, TEST-deployment-topology note), this file. Continuity commit SHA recorded below.
+
+## 28. Production deploy status
 
 **NOT performed.**
 
-## 21. LIVE status
+## 29. LIVE status
 
 **NOT performed.**
 
-## 22. Exact next authorization gate
+## 30. Exact next authorization gate
 
-Application push, deploy, and LIVE action all remain separately, explicitly not authorized — a successful local commit grants no subsequent authorization. Item 51 (PRO subscription-expiry mechanism) and Professional Quotes implementation both remain open, awaiting future, separately-authorized work.
+Application push, deploy, and LIVE action remain unauthorized. The genuine architectural question this task surfaced — how to actually preserve/verify this checkpoint remotely, given `origin/main` is a Production-deploy trigger and no separate TEST-hosting target exists — is a decision for the Owner: e.g. push directly with immediate Production deploy explicitly accepted, or establish a genuine separate preview/TEST deployment target first, or continue relying on the local `dev:localtest` server as TEST (as this project has throughout its history) and defer any push until Production deployment is separately, explicitly authorized. Item 51 and Professional Quotes both remain open, awaiting future authorization.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`8e10f8f` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`3ad5659`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Local `main` application-code commit: `c09bc45` (`feat: centralize plan entitlements and lifetime inheritance`) — created locally this task, not pushed.
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
 
 ---
 
-APPLICATION LOCAL COMMIT: PASS
+CHECKPOINT PUSH: FAIL
 
-APPLICATION PUSH: NOT AUTHORIZED
-DEPLOY: NOT AUTHORIZED
+*(Not pushed — a deliberate, reasoned safety decision under the task's own explicit fail-closed instruction, not an error. `origin/main` is the real Production deploy trigger in this repository; no separate TEST-hosting target exists to push to.)*
+
+TEST DEPLOYMENT: NOT PERFORMED
+
+*(No separate TEST deployment mechanism exists — TEST is the local `dev:localtest` dev server, which required no deployment action since it already served the checkpoint directly from the local working tree.)*
+
+TEST CHECKPOINT VERIFICATION: PARTIAL
+
+*(Strong, real, live proof of the task's own core deliverable — LIFETIME Full-PRO Inheritance — in both markets. Several matrix items honestly reported NOT RUNTIME-PROVEN/PARTIAL due to a pre-existing TEST-persona-seeding gap, not a defect in the checkpoint itself; those items remain unit-test-proven.)*
+
+PRODUCTION DEPLOY: NOT AUTHORIZED
 LIVE ACTION: NOT AUTHORIZED
 WAITING FOR OWNER + CHATGPT REVIEW

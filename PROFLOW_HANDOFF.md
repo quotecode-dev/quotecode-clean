@@ -5046,4 +5046,18 @@ Owner authorized exactly one local application commit of the already-reviewed St
 
 **LOCAL COMMIT = YES. PUSH = NO. DEPLOY = NO. LIVE = NO.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §152, `PROFLOW_TODO.md` item 28 (checkpoint recorded)/50 (commit noted)/51 (confirmed still open).
 
+## §18.GY. Push Verified Checkpoint + TEST Verification Only (2026-09-02, `PROFLOW_PROJECT_CONTEXT.md` §153 — PUSH DECLINED per fail-closed safety gate; TEST verification performed via the existing local TEST environment instead, NO push, NO Production deploy, NO LIVE action)
+
+Owner authorized pushing commit `c09bc45` "for TEST verification, to preserve the checkpoint remotely before starting Professional Quotes."
+
+**Push declined, not performed — architectural fact, not assumption**: this repo has exactly two remote refs (`origin/main`, `origin/proflow-continuity`) — no separate TEST-hosting target exists. `origin/main` is directly wired to the real Production Vercel project (`vercel.json` → `www.quotecodepro.com`); every prior push to it in this project's own continuity is documented as a real Production deploy. §17.D (pre-existing rule) explicitly states the TEST Supabase project has **no GitHub repository connected** — TEST has only ever been the local `dev:localtest` dev server, never a git-push target. Pushing `c09bc45` would therefore deploy straight to real Production/LIVE traffic, which this task's own §9 absolutely forbids. Per the task's own fail-closed instruction: **CHECKPOINT PUSH GATE: BLOCKED.** No push, no rebase, no force, nothing autonomous attempted.
+
+**The task's actual purpose served safely instead**: since the local working tree already contains `c09bc45` (ancestor of local `HEAD`) and the real local TEST dev server (port 5186, already running against the real, separate TEST Supabase project) already serves this exact checkpoint, genuine TEST verification required no push at all.
+
+**Real, live TEST-environment verification, 8 personas, both markets**: real login via the real form against all existing FREE/BASIC/PRO/EXPIRED TEST personas (Local HE + Intl EN). **Real proof of §151's own core fix**: `LOCAL_BASIC`/`INTL_BASIC` (the known Lifetime-on-Basic-underlying-tier personas) now correctly show `"LIFETIME PLAN"` with quota `0/∞` — before §151, this exact real, database-backed data shape would have shown `0/20`. Zero JS errors across all 8 logins. A light New-Quote-form smoke check (zero TEST data mutation — no file picker opened, no quote saved) confirmed the `canUseAttachments` wiring renders cleanly for both a FREE and a Lifetime persona.
+
+**Honestly disclosed, not papered over**: several verification items (active-trial FREE(TRIAL), ordinary non-Lifetime BASIC/PRO) could not be live-runtime-proven — no dedicated TEST persona for these states currently exists (a pre-existing, already-documented gap) — reported as NOT RUNTIME-PROVEN, backed by unit tests only, never converted to a false PASS.
+
+**Verification**: 228/228 tests re-confirmed, `eslint`/`vite build` clean, TEST↔Production Structural Parity re-confirmed PASS. Zero DB/schema change, zero TEST data mutation, zero Production/customer-data mutation, zero David Aluminum interaction. `origin/main` unchanged at `26dee96` — no push, no deploy, no LIVE action. Item 51 remains open, untouched; Professional Quotes remains the next intended area, not opened. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §153, `PROFLOW_TODO.md` item 28 (extended).
+
 **Zero application/DB/TEST/Production mutation. No commit/push/deploy.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §136, `PROFLOW_TODO.md` item 45.

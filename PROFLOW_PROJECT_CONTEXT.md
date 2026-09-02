@@ -6830,3 +6830,85 @@ Neither requirement was touched, implemented, or scoped by this commit-only task
 `APPLICATION LOCAL COMMIT: PASS`. `APPLICATION PUSH: NOT PERFORMED`. `DEPLOY: NOT PERFORMED`. `LIVE ACTION: NOT PERFORMED`. Item 51 (PRO subscription-expiry) remains open, untouched. Professional Quotes remains the next intended product-development area, subject to existing Owner authorization gates — not opened by this task.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §152); `PROFLOW_TODO.md` UPDATED (item 28 checkpoint recorded, items 50/51 status confirmed post-commit); `PROFLOW_HANDOFF.md` UPDATED (new §18.GX); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16, commit-checkpoint note); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §153. Push Verified Checkpoint + TEST Verification Only (added 2026-09-02, Owner-authorized push request — PUSH DECLINED per fail-closed safety gate; TEST verification performed instead via the existing local TEST environment, NO push, NO Production deploy, NO LIVE action)
+
+### 153.0 Fresh state before acting
+
+Local `main` HEAD `373938f` (unchanged from end of §152). `origin/main` unchanged at `26dee96`. Working tree: only the standing untracked `src/entry-server.jsx`, zero unexpected changes. `origin/proflow-continuity` at `8503b66`, confirmed via fresh fetch. Commit `c09bc45` confirmed to exist, be an ancestor of local `HEAD`, contain exactly the 7 reviewed files (`git show --stat`), with zero application-file commits after it (`git log c09bc45..HEAD --name-only -- . ':!PROFLOW_*.md'` returns empty) — no unreviewed application change would ride along in any push of local `main`.
+
+### 153.1 CHECKPOINT PUSH GATE — why the push was not performed
+
+This task's own authorization framed pushing `c09bc45` to `origin/main` as the mechanism to "verify in TEST." **Investigated before touching git**, per §17.D (`PROFLOW_PROJECT_CONTEXT.md`, pre-existing permanent rule) and this repo's own live configuration:
+
+- `git remote -v` / `git branch -r`: exactly two remote refs exist — `origin/main` and `origin/proflow-continuity`. **No third remote, no preview-deploy branch, no separate TEST-hosting target exists anywhere in this repository.**
+- `vercel.json` redirects `quotecode.vercel.app` → `https://www.quotecodepro.com` — the real, canonical, LIVE Production domain — confirming the Vercel project connected to this repo serves real customer traffic.
+- §17.D itself states the TEST Supabase project (`quotecode-test`) has **"no GitHub repository connected, intended only for migration/runtime validation"** — TEST has never been a git-push-triggered deployment target in this project's own architecture; it is reached exclusively via the local `npm run dev:localtest` dev server (port 5186), pointed at that separate Supabase project through `.env.localtest.local`.
+- Every prior push to `origin/main` in this project's own continuity history (§107, §130, §132, §135, and others) is documented as triggering a real Vercel Production build serving `quotecodepro.com` — never a TEST deployment.
+
+**Conclusion, not an assumption**: pushing `c09bc45` to `origin/main` would not verify anything in TEST — it would deploy this checkpoint directly to real Production and LIVE customer traffic, which this exact task's own §9 forbids absolutely ("NO Production deployment... NO LIVE action... A TEST PASS grants NO Production authorization"). This is precisely the scenario the task's own §4 instructs to fail closed on: **"If there is any uncertainty that the push/deployment could affect Production or LIVE customer traffic: STOP."** Here there was no uncertainty at all — it is a confirmed architectural fact, stronger than the stated trigger condition.
+
+**CHECKPOINT PUSH GATE: BLOCKED. TEST DEPLOYMENT SAFETY: BLOCKED.** No push was performed. No rebase/amend/force-push/history-rewrite was attempted or considered — the correct response to this conflict is declining the unsafe action, not repairing it unilaterally.
+
+### 153.2 Serving the task's actual purpose safely — local TEST environment verification
+
+The task's own stated purpose (§ PURPOSE) was: *"verify it in TEST before starting Professional Quotes."* Since the local working tree already contains `c09bc45` fully applied (it is the current local `HEAD`'s ancestor, already merged into every subsequent commit), and the real local TEST dev server (`dev:localtest`, port 5186, already running, confirmed healthy via `curl` returning `200`) already serves exactly this checkpoint against the real, separate TEST Supabase project — **no push was required to achieve genuine TEST verification.** This is the same "TEST" this entire project has used throughout its history.
+
+### 153.3 Pre-verification regression re-check
+
+228/228 tests pass (re-run fresh at current `HEAD`). `eslint` on the 5 relevant files: 0 errors, 1 pre-existing unrelated warning. `vite build`: clean. Zero `import.meta.env`/`NODE_ENV`/hostname-conditional business logic in the touched files (TEST↔Production Structural Parity re-confirmed PASS). Exactly one `isLifetime ?` decision point remains in `accountEntitlement.js` (LIFETIME inheritance architecture intact).
+
+### 153.4 Real TEST-environment runtime verification (live browser, real TEST Supabase project, 8 personas, both markets)
+
+Real login (the real form, not a bare API call) against all 8 existing plan-persona TEST accounts (`PROFLOW_TEST_LOCAL_{FREE,BASIC,PRO,EXPIRED}` / `PROFLOW_TEST_INTL_{FREE,BASIC,PRO,EXPIRED}`), reading real DOM state — Dashboard header CTA, quota display line, Business Settings plan label, Settings Upgrade CTA, Cancel Subscription visibility:
+
+| Persona | Plan label | Quota shown | Header Upgrade CTA | Settings Upgrade CTA | Cancel Subscription |
+|---|---|---|---|---|---|
+| LOCAL_FREE | FREE PLAN | 0/5 | visible | visible | hidden |
+| LOCAL_BASIC (Lifetime-shaped) | **LIFETIME PLAN** | **0/∞** | hidden | hidden | hidden |
+| LOCAL_PRO (Lifetime-shaped) | LIFETIME PLAN | (row hidden, pre-existing `!isPro` visibility rule) | hidden | hidden | hidden |
+| LOCAL_EXPIRED | FREE PLAN | 0/5 | visible | visible | visible (raw plan still `pro`, real, pre-existing, unrelated behavior) |
+| INTL_FREE | FREE PLAN | 0/5 | visible | visible | hidden |
+| INTL_BASIC (Lifetime-shaped) | **LIFETIME PLAN** | **0/∞** | hidden | hidden | hidden |
+| INTL_PRO (Lifetime-shaped) | LIFETIME PLAN | (row hidden) | hidden | hidden | hidden |
+| INTL_EXPIRED | FREE PLAN | 0/5 | visible | visible | visible |
+
+**This is real, live proof of §151's own core fix, in both markets**: `LOCAL_BASIC`/`INTL_BASIC` are the exact Lifetime-on-Basic-underlying-tier data shape (`plan:'basic'`, `trial_ends_at:null`) already known (§148/§150) to be genuinely stored this way — **before** §151's fix, this shape would have displayed `"LIFETIME PLAN"` alongside quota `0/20` (the tier-derived Basic limit, since `entitlement.monthlyQuoteLimit` was not yet Lifetime-aware for a non-pro underlying tier). **Live-observed now: `0/∞`, matching the fix exactly** — not a synthetic unit-test input, a real TEST-database-backed account. Zero JS errors, zero login failures, across all 8 personas.
+
+### 153.5 Functional smoke check (no TEST data mutation)
+
+For `LOCAL_FREE` and `LOCAL_BASIC` (Lifetime): clicked the real "New Quote" button, confirmed the `QuoteForm` renders correctly (`Client Name` field present), the Attachments section and its Attach-File button render without error for both — exercising the exact `canUseAttachments` prop path changed in `QuoteForm.jsx`/`Dashboard.jsx`. **Zero JS errors in either case.** The native file-picker button was not clicked (would spawn an OS dialog blocking automation) and no quote was saved — **zero TEST data mutation performed**, consistent with the task's own instruction to prefer "not runtime-proven" over any data mutation.
+
+### 153.6 TEST checkpoint verification matrix (§5 of the authorization, items A-Q)
+
+| Item | Result |
+|---|---|
+| A. Application loads normally | **PASS** — live, 8/8 personas |
+| B. Auth/session behavior not regressed | **PASS** — live, 8/8 logins succeeded |
+| C. FREE identity resolves correctly | **PASS** — live (`FREE PLAN`, `0/5`) |
+| D. FREE(TRIAL) remains distinctly FREE(TRIAL), not PRO | **NOT RUNTIME-PROVEN** — no dedicated active-trial TEST persona currently seeded (a pre-existing, already-disclosed gap, §148/§150); proven deterministically via unit tests (`accountEntitlement.test.js`, `displayIdentity==='FREE_TRIAL'` assertions) |
+| E. Active FREE(TRIAL) receives temporary PRO-level entitlements | **NOT RUNTIME-PROVEN** (same reason as D); unit-test-proven |
+| F. BASIC resolves correctly | **PARTIAL** — only a Lifetime-shaped BASIC persona exists live (correctly resolves to LIFETIME, not ordinary BASIC); ordinary non-Lifetime BASIC is unit-test-proven, not live-persona-proven |
+| G. PRO resolves correctly within representable lifecycle | **PARTIAL** — same caveat as F; only Lifetime-shaped PRO personas exist live, consistent with the already-disclosed §150.8 architectural fact that no distinct non-Lifetime "paid PRO" data shape currently exists at all |
+| H. LIFETIME remains a distinct LIFETIME identity | **PASS** — live, both markets, unambiguous (`LIFETIME PLAN`, distinct from `FREE PLAN`) |
+| I. LIFETIME receives the complete canonical PRO entitlement set | **PASS** — live, real proof, both markets (153.4) |
+| J. FREE monthly quote limit = 5 | **PASS** — live (`0/5`) |
+| K. BASIC monthly quote limit = 20 | **NOT RUNTIME-PROVEN** live (no ordinary-BASIC persona); unit-test-proven |
+| L. Active FREE(TRIAL) monthly quote entitlement = unlimited | **NOT RUNTIME-PROVEN** live; unit-test-proven |
+| M. PRO = unlimited within representable state | **PARTIAL** — Lifetime-shaped PRO personas show behavior consistent with unlimited (quota row hidden per the pre-existing `!isPro` visibility rule, Upgrade CTA correctly hidden); ordinary non-Lifetime PRO not separately live-provable |
+| N. LIFETIME = unlimited | **PASS** — live, real proof (`0/∞`) |
+| O. Dashboard quota display/enforcement consistency | **PASS** — confirmed via static source re-check (both read the identical `entitlement.monthlyQuoteLimit`) + live display observed correct |
+| P. No obvious regression (quote creation/Settings/Dashboard/plan presentation) | **PASS** — live smoke check, zero JS errors, 153.5 |
+| Q. TEST runtime shares the same business-rule architecture as Production (no TEST-only workaround) | **PASS** — confirmed via static search (zero environment-conditional branching, 153.3) |
+
+**No item marked "not proven" was converted to PASS.** The items marked NOT RUNTIME-PROVEN/PARTIAL reflect a genuine, pre-existing TEST-persona-seeding gap (no active-trial or ordinary-non-Lifetime-PRO/BASIC persona currently exists), already on record before this task and not something this task's own scope authorized fixing (constructing new personas would itself be a form of TEST data creation beyond "verify the existing checkpoint").
+
+### 153.7 Standing product requirements — reconfirmed, untouched
+
+Professional Quotes UX flow (Business Settings selects editing type; New Quote stays customer-type → structure → editor) and the deferred PDF/Print FULL-vs-COMPACT requirement both remain exactly as documented — neither touched, implemented, or scoped by this task.
+
+### 153.8 Release boundary
+
+No application code changed this task (verification only). No DB/schema change. No TEST data mutation (153.5). No Production/customer-data mutation. No David Aluminum interaction of any kind. `origin/main` unchanged at `26dee96` — **no push occurred**. No Production deploy. No LIVE action. Item 51 (PRO subscription-expiry) remains open, untouched. Professional Quotes remains the next intended area, not opened by this task.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §153); `PROFLOW_TODO.md` UPDATED (item 28 thread extended with the push-gate finding and live LIFETIME-fix proof); `PROFLOW_HANDOFF.md` UPDATED (new §18.GY); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (§16, TEST-deployment-topology note); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
