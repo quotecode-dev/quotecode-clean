@@ -4,143 +4,190 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Professional Quotes — Business Settings Selector + Current-Quote Structure Flow, First Implementation Pass
+## Task: Professional Quotes — Final Owner Product Decisions + Technical Implementation Blueprint
 
-**MODE: Implementation authorized by the Owner's memo, but BLOCKED before any code was written — the memo's own stated premise (that the required option lists were "already approved" in canonical continuity) did not survive a fresh, complete audit, and this task's own §0 explicitly forbids reconstructing Professional Quotes from the prompt alone.**
+**MODE: Product-decision recording + READ-ONLY technical/schema audit + implementation blueprint design. NOT authorized: DB/schema mutation, migration execution, application implementation, TEST/Production/customer-data mutation, commit/push/deploy/LIVE action.**
 
 ---
 
 ## 1. Fresh Local State
 
-Local `main` HEAD `7b0d93d` (unchanged from end of §153). `origin/main` unchanged at `26dee96`. Working tree: only the standing untracked `src/entry-server.jsx`, zero unexpected changes. `origin/proflow-continuity`=`213472a`, confirmed via fresh fetch.
+Local `main` HEAD `91aaf29` (unchanged from end of §154). `origin/main` unchanged at `26dee96`. Working tree: only the standing untracked `src/entry-server.jsx`. `origin/proflow-continuity`=`2bfa84e`, confirmed via fresh fetch.
 
-## 2. Canonical Professional Quotes requirements found before implementation
+## 2. Canonical state before reconciliation
 
-Read the complete Item 30 family (`PROFLOW_TODO.md` §§30-30.F, ~520 lines) and §147 (`PROFLOW_PROJECT_CONTEXT.md`) fresh, from source. Found:
+§154's blocker stood: item 30 explicitly `🔴 OPEN/NOT DESIGNED`; §147.3 recorded plan-access as UNKNOWN; a real structural conflict existed between the (blocked) prior task's assumed "per quote/business" item-mode shape and the existing design record's own "per item" recommendation.
 
-- Item 30 itself is still headed **"🔴 OPEN / NOT IMPLEMENTED / NOT DESIGNED / NOT STARTED. Design + audit required BEFORE any implementation."** Every subsection (30.A-30.F) individually repeats "No implementation, and no design work, is authorized by recording this item."
-- §147.3: *"Which identities should have Professional Quotes? Not decided by any existing document... UNKNOWN / NEEDS OWNER DECISION, not guessed."*
-- The only real, live Professional-Quotes-adjacent code (30.F) is a **David-only, allowlist-gated, read-only preview** with presentation concepts (baseline/A/B/B+/C) — its own concept choice (B vs B+) is explicitly still pending Owner decision (§124/§125).
-- **A genuinely more-developed design record does exist** (item 30, post-§121/§122, "DECISIONS REFINED FOR FINAL OWNER APPROVAL"): a compared, recommended architecture (Option 1 — additive `quote_items`/`quote_item_measurements`), a concrete initial unit list, explicit calculation/immutability semantics, and **five decisions still awaiting final Owner sign-off** — none currently approved.
-- **Critically, one of those five unapproved decisions directly contradicts this task's own assumed shape**: whether Simple/Measured is a **per-item** toggle or a **per-quote/business** setting — the existing record recommends **per-item** (matching David's real quote, which mixes simply-priced items with dimensioned items in one quote), explicitly *against* "per quote/business... forces artificial quote-splitting." This task's own authorization assumed the "per quote/business" shape (a Business Settings selector + a New-Quote structure step) — precisely the option the existing design record recommends against.
+## 3. Exact Owner decisions now recorded as FINAL
 
-## 3. Existing architecture/dependency map
+Recorded verbatim at `PROFLOW_PROJECT_CONTEXT.md` §155.1 (11 numbered decisions): additive architecture (Option 1); per-item mixed modes (resolves §154's conflict in favor of the existing recommendation); simplicity-first/progressive-disclosure permanent principle; initial units (unit/m²/linear meter/kg/hour/day, data-driven not schema-enum); Public Quote detail collapsed-by-default; PDF/Print FULL/COMPACT preserved, unimplemented; Catalog Templates deferred, "duplicate professional item" V1 reuse; plan access (FREE=no, FREE-TRIAL/BASIC/PRO/LIFETIME=yes to Core); BASIC differentiation (Core, not PRO-only); first PRO differentiator (`professionalQuoteReuse`, Advanced); permanent Visible-but-Locked UX pattern.
 
-`business_settings` (fresh-read from `supabase/migrations/20260830000000_capture_base_schema_tables.sql`): no column resembling an "editing type"/"quote structure" preference. `quotes`/`quote_items`: no `quote_type`/`quote_structure`/`structure_type`/`professional_type` column anywhere (repo-wide search, zero matches). `SettingsTab.jsx`, `QuoteForm.jsx`, `Dashboard.jsx`: no dormant/incomplete Professional Quotes UI found beyond the already-known David-only allowlisted preview routes. Plan/entitlement gating: fully centralized (§150/§151/§152), ready to receive a future `professionalQuotes` capability flag the same way `editDuplicate`/`whatsappDelete`/`attachments` are handled today — this part of the architecture is genuinely ready and was not the blocker.
+## 4. Item 30 status after reconciliation
 
-## 4. Exact Professional editing types/options found in canonical TODO
+Updated from `🔴 OPEN / NOT DESIGNED / NOT STARTED` to `🟢 PRODUCT DECISIONS LOCKED, TECHNICAL BLUEPRINT COMPLETE — IMPLEMENTATION NOT YET AUTHORIZED`. All five of the item's own "DECISIONS REFINED FOR FINAL OWNER APPROVAL" are now marked approved, superseding their "awaiting final approval" language.
 
-**None exist as a concrete, selectable, Owner-approved list.** The closest real artifacts are: (a) the David-only preview's five presentation concepts (baseline/A/B/B+/C), whose own Owner choice remains pending; (b) item 30.E's "item behavior classes A (Simple)/B (Dimensional)/C (Professional/calculated)," explicitly described as *"to be designed conceptually... not necessarily all implemented in a first version"* — not a finalized selectable list. Neither is a Business-Settings-level "editing type" or New-Quote-level "structure" selector as this task's own authorization describes.
+## 5. Recommended V1 user experience, plain language
 
-## 5. Files modified
+`PROFLOW_PROJECT_CONTEXT.md` §155.3 — Simple items work exactly as today; any item can optionally gain professional detail via an unobtrusive "+ Add measurements" expansion; the commercial price line works identically regardless of quantity source; Public Quote shows a clean line with an optional "Show details" reveal; BASIC gets all of this today; PRO additionally gets one-click professional-item reuse.
 
-**None.** Zero application code written or changed.
+## 6. Recommended Business Settings behavior
 
-## 6. File-by-File Ledger
+§155.4 — a single, optional, always-overridable default ("new items default to Simple / ask me each time") plus a read-only Professional-Quotes-availability line. Never a restriction. Genuinely optional for V1 (Stage G, may be dropped entirely).
 
-Not applicable — no file was touched.
+## 7. Recommended New Quote behavior
 
-## 7. Business Settings implementation
+§155.5 — the standalone "structure selector" step is recommended **retired**. New Quote keeps Private/Business, then goes straight to the item editor; per-item progressive disclosure is the only "structure" decision that needs to exist, and it falls out naturally from which items carry professional data.
 
-**Not implemented.** Would have required inventing the "editing type" options this task's own §0/§2 explicitly forbid inventing.
+## 8. Mixed-item UX
 
-## 8. Persistence mechanism and whether DB/schema change was required
+§155.6 — Add Item → Simple by default → optional per-item "+ Add measurements/professional details" → unit picker → optional dimensions (auto-computed, hand-editable) → optional specification text → small visual indicator once collapsed back.
 
-Not reached — the product-content decision (item 4 above) blocks this before the persistence question is even reachable. Independently, zero existing persistence mechanism was found for either concept, so a DB/schema change would be required regardless once content is decided (subject to this project's own standing DB-authorization gate).
+## 9. Initial unit model
 
-## 9-14. HE/EN/Desktop/Mobile/New Quote flow/structure selector results
+§155.7 — `unit`/`m²`/`linear meter`/`kg`/`hour`/`day`, HE/EN label pairs, a plain data array (mirroring `PLAN_CATALOG`'s own pattern) — deliberately not a Postgres enum, so a future unit never requires a schema migration.
 
-**Not applicable — nothing was implemented to verify.**
+## 10. Calculation-semantics assessment
 
-## 15. Proof business setting ≠ current-quote structure
+§155.8 — full 8-item table against the existing item-30 proposal. **All 8: APPROVE-AS-DESIGNED.** One concrete technical clarification (not a rule change): `quote_items.quantity` is confirmed `integer NOT NULL`; the proposed decimal `calculated_quantity` gets its own new `numeric` column rather than retyping the existing, populated, immutability-guarded column. A second clarification: the new measurement table needs its own denormalized `quote_id` so the existing `guard_quote_child_immutability()` trigger reuses with zero rewrite. Zero "OWNER DECISION STILL REQUIRED" items.
 
-**Not applicable this task** — but the research itself surfaced that the existing, more-developed (unapproved) design record proposes a structurally *different* distinction than "business setting vs. quote-level structure": a **per-item** toggle inside the quote editor, which is neither a business-level setting nor a whole-quote-level structure selection.
+## 11. Exact proposed schema
 
-## 16. Existing/historical quote protection result
+§155.9 — full column-by-column tables for `quote_items` (4 new nullable columns), the new `quote_item_measurements` table (9 columns, denormalized `quote_id`, cascading FKs), and one optional `business_settings.default_item_mode` column. Every field's type/nullability/default/FK/constraint/RLS/immutability/migration/HE-EN/TEST/Production-risk implication is documented. **No migration file created or executed.**
 
-Not implemented; the principle itself (already well-established via Quote Currency Freeze and `guard_quote_child_immutability()`, per §147.3 and item 30's own design record) remains correctly recorded and untouched.
+## 12. Existing/historical quote safety analysis
 
-## 17-20. Entitlement integration / PRO / LIFETIME inheritance / FREE(TRIAL) results
+§155.10 — every new column/table is nullable/additive, zero backfill, zero existing-row behavior change. No reinterpretation of historical quantities. `default_item_mode` only affects the Add-Item panel's default for *new* items.
 
-**Not applicable** — no entitlement gate was added since no feature exists yet to gate. The centralized architecture (§150/§151) that would receive a future `professionalQuotes` flag was confirmed ready and unmodified.
+## 13. RLS/immutability analysis
 
-## 21. TEST↔Production structural parity result
+§155.11 — `quote_items`/`quote_item_measurements` both carry zero `anon` grant (confirmed fresh); public reads go through the `get-public-quote` Edge Function (service-role, confirmed via source read), which will need its own nested-select/DTO update in a later stage — a well-understood, additive touch point, not a design gap. Immutability: exact existing trigger reused verbatim.
 
-Unaffected — no code changed.
+## 14. Entitlement matrix
 
-## 22. Runtime TEST evidence
+§155.12 — `professionalQuotes` (Core): FREE=NO, FREE-TRIAL=YES(temp), BASIC=YES, PRO=YES, LIFETIME=YES. `professionalQuoteReuse` (Advanced): FREE=NO, FREE-TRIAL=YES(temp), BASIC=NO, PRO=YES, LIFETIME=YES. Both implemented via the already-completed, zero-new-code `getEntitlementSet()` mechanism (§150/§151) — FREE(TRIAL)/LIFETIME inherit automatically by construction.
 
-None gathered — no code changed, nothing to verify at runtime.
+## 15. BASIC experience
 
-## 23-25. Focused tests / Full Vitest / ESLint/build
+§155.13 — full Core (create, measure, calculate, save/send), zero upgrade friction; reuse affordance Visible-but-Locked.
 
-Not run — no code changed. (The 228/228 baseline from §152/§153 remains the last-verified state.)
+## 16. PRO experience
 
-## 26. DB/schema status
+Everything BASIC has, plus one-click professional-item reuse, fully unlocked.
 
-**Zero.** No migration, no schema change.
+## 17. FREE experience
 
-## 27. TEST mutation status
+No Professional Quotes access; exact locked/absent presentation left to implementation time, not decided this task.
 
-**Zero.**
+## 18. FREE(TRIAL) experience
 
-## 28. Production/customer-data status
+Full Core + Advanced, temporary, automatic via the existing trial mechanism — identity stays `FREE_TRIAL`, never a false PRO claim.
 
-**Zero mutation. No access.**
+## 19. LIFETIME experience
 
-## 29. David Aluminum status
+Identical to PRO, identity stays `LIFETIME`, non-expiring, zero special-case code — same automatic-inheritance mechanism proven twice already this session.
 
-**Zero interaction of any kind.**
+## 20. Visible-but-Locked UX
 
-## 30. A100700 status
+§155.14 — documented component-level pattern: always-discoverable locked affordance with a plan-badge chip; click-triggered (never page-load) benefit-first explanation panel; "Upgrade" / "Not now" actions; HE/EN natural copy, not literal translation.
 
-**Untouched, deferred exactly as before.**
+## 21. Professional reuse V1 recommendation
 
-## 31. PDF/Print FULL/COMPACT preservation status
+"Duplicate professional item" — reuses the exact existing quote-duplication code path (`handleDuplicateQuote`, confirmed via fresh source read to be a client-side state-repopulation + fresh INSERT, not a DB-level copy) — no new Catalog schema needed for V1.
 
-**Preserved, unimplemented, exactly as documented.**
+## 22. Future Templates compatibility
 
-## 32. SINOQ documentation status
+§155.1.7/§155.9 — the `specification jsonb` bag and unit-as-data design are explicitly chosen to allow a future Catalog Template layer to be added without a schema rewrite.
 
-**Preserved as a candidate parent/business-brand name only — not applied to any branding.**
+## 23. Public Quote behavior
 
-## 33. Item 51 status
+§155.15 — professional detail collapsed by default under each item that carries it, matching the already-proven 30.F Concept B UX language. Recommend one shared, presentation-agnostic professional-detail data shape for future reuse across surfaces.
 
-**Remains open, untouched.**
+## 24. PDF/Print future compatibility
 
-## 34. Exact remaining application diff/uncommitted files
+§155.15/§155.1.6 — preserved as a stated future requirement (FULL/COMPACT), not implemented; this blueprint's own data shape is designed not to make that requirement harder.
 
-**None.** Working tree unchanged from the start of this task (only the standing untracked `src/entry-server.jsx`).
+## 25. HE/EN design
 
-## 35. Continuity update + SHA
+Designed together throughout — units, specification labels, Visible-but-Locked copy, all explicitly requiring HE/EN pairs from day one, no market-specific schema.
 
-All six continuity files updated: `PROFLOW_PROJECT_CONTEXT.md` (new §154), `PROFLOW_TODO.md` (item 30 family cross-referenced with this finding), `PROFLOW_HANDOFF.md` (new §18.GZ), `PROFLOW_CHAT_HANDOFF.md` (§14 new lead paragraph), `PROFLOW_ARCHITECTURE.md` (reviewed, no change required — this is a product-decision-gap finding, not an architecture change), this file. Continuity commit SHA recorded below.
+## 26. Desktop/Mobile design
 
-## 36-38. Commit / Push / Deploy/LIVE status
+§155.6/§19 of the authorization — progressive disclosure keeps the mobile experience identical in spirit to the already-refined mobile concept (30.E); no separate mobile-only design needed, the same per-item expansion pattern works at both widths.
 
-**None performed.** No application code existed to commit.
+## 27. TEST↔Production structural-parity implications
 
-## 39. Remaining Professional Quotes work after this first pass
+§155.16 — zero environment-conditional design anywhere in this blueprint; consistent with the permanent Iron Rule (§150.16).
 
-Everything — this task performed research and a blocker report only. The next step is a design-reconciliation conversation with the Owner (see item 40).
+## 28. David Aluminum status
 
-## 40. Exact next Owner authorization/visual-acceptance gate
+§155.17 — zero mutation, zero special-case code proposed. His real quote #46 used only as already-documented, already-approved read-only product evidence, per this task's own explicit §21 permission.
 
-The Owner needs to: (1) give final sign-off on item 30's five already-refined decisions (architecture, item mode, initial units, Public Quote display, Catalog Templates); (2) explicitly resolve the structural conflict this task surfaced — per-item toggle (the existing recommendation) vs. per-quote/business selector (this task's own assumed shape) vs. a reconciliation of both; (3) decide which plan tiers/identities receive Professional Quotes (§147.3); (4) then authorize the persistence/schema work, which is already reasonably well-specified (Option 1) and could proceed relatively quickly once (1)-(3) are settled.
+## 29. A100700 status
+
+Remains deferred, untouched, unscheduled.
+
+## 30. Item 51 status
+
+Remains open, untouched, not conflated with this schema — `professionalQuotes`/`professionalQuoteReuse` key off the exact same, already-documented, still-open PRO-subscription-expiry dependency (§150.8) every other PRO capability already has, not a new dependency.
+
+## 31. SINOQ status
+
+Preserved as a candidate parent/business-brand name only, no branding applied.
+
+## 32. Exact phased implementation blueprint
+
+§155.18 — full table, 8 stages (B/A/C/D/E/F/G, H retired), each with dependencies/DB requirement/HE-EN/Desktop-Mobile/TEST verification/authorization-gate columns. Stage B (entitlement flags, zero DB) recommended as the safest first authorization.
+
+## 33. DB/schema authorization required for next stage
+
+Stage A (the additive migration) requires its own separate DB-change authorization per the project's standing §36 gate — not granted by this task.
+
+## 34. Exact application authorization required for next stage
+
+Any of Stages B-G individually requires its own separate application-implementation authorization — not granted by this task. Stage B specifically requires no DB authorization at all and could be authorized independently.
+
+## 35. Continuity files updated
+
+`PROFLOW_PROJECT_CONTEXT.md` (new §155, 20 subsections), `PROFLOW_TODO.md` (item 30's five decisions marked locked, status header updated, "still awaiting" line superseded), `PROFLOW_HANDOFF.md` (new §18.HA), `PROFLOW_CHAT_HANDOFF.md` (§14 new lead paragraph), `PROFLOW_ARCHITECTURE.md` (§14.C status updated + blueprint summary), this file.
+
+## 36. Continuity commit SHA/read-back
+
+Recorded below, post-push.
+
+## 37. Application files modified
+
+**NONE.**
+
+## 38. DB/schema mutation
+
+**NONE.** No migration file created or executed.
+
+## 39. TEST/Production/customer-data mutation
+
+**NONE.**
+
+## 40. Commit/push/deploy/LIVE status
+
+No application commit (none exists). No push of application code. No deploy. No LIVE action.
+
+## 41. Exact recommended next Owner authorization
+
+Either: (a) authorize Stage B alone (entitlement flags, zero DB, zero UI) as a genuinely independent, lowest-risk first step; or (b) authorize the Stage A additive migration (TEST-applied) so Stages C-F can follow in sequence; or (c) request further design detail on any specific blueprint item before authorizing implementation. This task does not recommend one over the others beyond noting Stage B's uniquely low risk.
 
 ---
 
 ## Continuity commit SHA + remote read-back
 
-`9704411` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`91aadaa`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. No application code exists to commit or push this task.
+*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
 
 ---
 
-PROFESSIONAL QUOTES FIRST PASS: FAIL
+PROFESSIONAL QUOTES PRODUCT DECISIONS: LOCKED
 
-*(Not a defect in execution — a deliberate stop before inventing product content this task's own instructions explicitly forbade inventing. The research itself is a real, useful deliverable: it found not just a missing option list, but a genuine structural conflict between this task's own assumed UX shape and an existing, more-developed, not-yet-approved design recommendation that points the opposite way.)*
+PROFESSIONAL QUOTES TECHNICAL BLUEPRINT: PASS
 
-APPLICATION COMMIT: NOT AUTHORIZED
+DB/SCHEMA MUTATION: NOT AUTHORIZED
+APPLICATION IMPLEMENTATION: NOT AUTHORIZED
 APPLICATION PUSH: NOT AUTHORIZED
 PRODUCTION DEPLOY: NOT AUTHORIZED
 LIVE ACTION: NOT AUTHORIZED

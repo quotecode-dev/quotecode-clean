@@ -6965,3 +6965,172 @@ None of this was decided by this task, and this section does not decide it — i
 Zero application code changed. Zero DB/schema change. Zero migration. Zero TEST mutation. Zero Production/customer-data mutation. Zero David Aluminum interaction. No A100700 action. No PDF/Print implementation. No SINOQ branding applied. `origin/main` unchanged. No commit of application code (none was written). No push. No deploy. No LIVE action. Item 51 remains open, untouched.
 
 **Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §154); `PROFLOW_TODO.md` UPDATED (item 30 family cross-referenced with this finding); `PROFLOW_HANDOFF.md` UPDATED (new §18.GZ); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` — REVIEWED, no change required (this is a product-decision gap finding, not an architecture change); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
+
+## §155. Professional Quotes — Final Owner Product Decisions + Technical Implementation Blueprint (added 2026-09-02, Owner-authorized product-decision recording + READ-ONLY technical/schema audit + blueprint design — NO application/DB/TEST/Production mutation)
+
+### 155.0 Fresh state before work
+
+Local `main` HEAD `91aaf29` (unchanged from end of §154). `origin/main` unchanged at `26dee96`. Working tree: only the standing untracked `src/entry-server.jsx`. `origin/proflow-continuity` at `2bfa84e`, confirmed via fresh fetch.
+
+### 155.1 FINAL Owner decisions — recorded as LOCKED, superseding the prior "awaiting approval" status
+
+The following are now **Owner-approved, final product decisions** for Professional Quotes. §154's blocker is resolved by these — the structural conflict §154 identified (this task's own prior authorization assuming a "per quote/business" item-mode selector, against item 30's own existing recommendation of a **per-item** toggle) is now settled explicitly **in favor of per-item**, confirming the pre-existing design record was correct and the earlier task's own framing was not.
+
+1. **Additive architecture — LOCKED.** Professional Quotes extends the existing `quotes`/`quote_items` model. No parallel quote system. Existing Simple quotes and all historical quotes require zero conversion. Item 30's previously-recommended **Option 1 is APPROVED** as the V1 architecture.
+2. **Mixed item modes — LOCKED.** One quote may freely mix simple/manual items and measured/professional items. Item mode is **per-item**, never a per-quote or per-business restriction — this directly resolves, in the Owner's own words, the exact conflict §154 flagged.
+3. **Simplicity-first UX principle — LOCKED, permanent.** "Powerful under the hood, simple for the business owner." No technical vocabulary (Mode A/B, "calculation class") exposed to users. Progressive disclosure: Add Item → simple by default → optional "Add measurements / professional details" reveals professional controls only when the business chooses to use them.
+4. **Initial unit set — LOCKED.** `unit`, `m²`, `linear meter`, `kg`, `hour`, `day` — natural HE/EN equivalents required. `m³`/`liter`/others are **deferred, not rejected**. The unit representation itself must not require a schema migration for every future unit addition (data-driven unit list, not a hardcoded enum requiring `ALTER TYPE` per addition).
+5. **Public Quote professional detail — LOCKED.** Visible to the customer, **collapsed by default**, expandable ("Show details"/"Show measurements"). Matches the already-established "more professional, not more technical" principle (30.E). HE/EN symmetry required.
+6. **PDF/Print FULL/COMPACT — preserved, unimplemented, LOCKED as a future requirement.** FULL includes the expanded professional breakdown; COMPACT omits it while preserving item/quantity/pricing/totals. PDF and Print must eventually share one output-mode concept. **Not implemented this task or any task until separately authorized.**
+7. **Catalog Templates — LOCKED as deferred.** No Professional Catalog Template schema in V1. Initial reuse mechanism: a simple **"duplicate professional item"** interaction (reusing the existing quote-duplication code path, see 155.5.8) — not a new Catalog schema. Architecture must remain compatible with adding real Templates later without a rewrite.
+8. **Plan access — LOCKED.** Professional Quotes **Core**: FREE=NO, FREE(TRIAL, active)=YES (temporary PRO-level, identity stays FREE(TRIAL)), BASIC=YES, PRO=YES, LIFETIME=YES (via existing full-PRO inheritance, §151 — no special-casing).
+9. **BASIC differentiation — LOCKED.** The Owner explicitly rejected Professional-Quotes-as-PRO-only. BASIC (a paying customer) receives full Professional Quotes **Core** — create, add measurements, calculate, save/send — with **no upgrade requirement merely to create a professional quote.**
+10. **First PRO differentiator — LOCKED, direction only.** Advanced **reuse** (duplicate/reuse a professional item's configuration) is PRO-only in V1. Two independently-governable capabilities: `professionalQuotes` (Core, BASIC+) and `professionalQuoteReuse` (Advanced, PRO+) — not one flag, not a hardcoded `plan==='pro'` check anywhere.
+11. **Visible-but-Locked UX — LOCKED, permanent pattern for future plan-gated capabilities.** Never fully hide a relevant unavailable capability, never a dead grey button, never an unsolicited page-entry upgrade popup. A locked capability stays visible/discoverable (e.g. "🔒 Duplicate professional item · PRO"); an explanation with the *benefit* (not just the restriction) appears only when the user intentionally tries to use it, with "Upgrade to PRO" / "Not now" actions. No nagging, no repeated unsolicited interruption.
+
+### 155.2 Item 30 status after reconciliation
+
+`PROFLOW_TODO.md` item 30's own "five decisions" (post-§121/§122, "DECISIONS REFINED FOR FINAL OWNER APPROVAL") are now **superseded/locked** as follows: (1) Architecture — Option 1, **APPROVED** (matches 155.1.1). (2) Item mode — **per item, APPROVED** (matches 155.1.2 exactly — the design record's own recommendation was correct). (3) Initial units — **APPROVED as originally refined** (unit/m²/linear meter/kg/hour/day, matches 155.1.4). (4) Public Quote display — **APPROVED** (shown, collapsed by default, matches 155.1.5). (5) Catalog Templates — **APPROVED as deferred**, with the "duplicate professional item" interim mechanism now explicitly the V1 reuse path (matches 155.1.7/155.1.10). Item 30 is updated from "🔴 OPEN / NOT DESIGNED" to **"🟢 PRODUCT DECISIONS LOCKED — technical blueprint complete — implementation NOT yet authorized"** (§155.16).
+
+### 155.3 Recommended V1 user experience, plain language
+
+A business owner adds an item exactly as today (description, quantity, price) — nothing changes for a Simple item. If the item needs professional detail, an unobtrusive "+ Add measurements / professional details" link expands a small panel: pick a unit (unit/m²/linear meter/kg/hour/day), optionally enter dimensions (which the system uses to compute quantity automatically, editable by hand at any time), optionally add a short specification note. The commercial price line (quantity × unit price = total) works identically whether the quantity came from typing or from a calculation. On the customer's Public Quote, that item shows its clean commercial line as always, with a small "Show details" link revealing the measurements — never dumped into view by default. A BASIC customer does all of this today, on their existing plan, at no extra cost. A PRO customer additionally gets a one-click way to reuse a professional item's whole configuration on a future quote instead of re-entering it.
+
+### 155.4 Recommended Business Settings behavior (§13 audit — recommendation only, not implemented)
+
+Mixed items mean Business Settings must **never** force "this business only uses Simple/only uses Measured." The recommended minimal control that still gives the Owner real, visible configuration without contradicting mixed-item behavior: **a single, optional, always-overridable default** — "When I add a new item, default to: Simple / Ask me each time" (a `business_settings.default_item_mode` preference, nullable, purely a UX convenience pre-selecting the Add-Item panel's starting state — never a lock, never affects existing items, always changeable per item). Paired with a lightweight, read-only "Professional Quotes: available on your plan" (or upgrade prompt, per the Visible-but-Locked pattern) informational line, satisfying the Owner's original "I want to see it in Business Settings" request without inventing a restrictive selector. This default is genuinely optional for V1 (see 155.13, Stage G) — Professional Quotes works correctly with zero Business Settings change at all.
+
+### 155.5 Recommended New Quote behavior (§14 audit — recommendation only, not implemented)
+
+Given mixed items are now approved, "current quote structure" **cannot** mean "all items in this quote must be X." Auditing the actual existing UI and the 30.E design record: the closest real, existing "structure" concept is the David-preview's own **presentation-style** concepts (baseline/A/B/B+/C) — a customer-facing *display* choice, entirely orthogonal to which items on a quote carry professional data. **Recommendation: retire the standalone "New Quote → structure selector" step entirely.** New Quote keeps exactly its existing first decision (Private/Business customer type) and then goes straight to the item editor, where each item's own "+ Add measurements" progressive disclosure (155.3) is the only "structure" decision that actually needs to exist per-quote — it falls out naturally from which items have professional data, with no separate selector required. If a genuine quote-level *presentation-style* choice (e.g. a future B-vs-B+-equivalent) ever becomes real, it belongs as a Business-Settings-level default with a possible per-quote override — never a gate on which items may carry professional data.
+
+### 155.6 Mixed-item UX (§2/§3 formalized)
+
+`Add Item` (unchanged) → item saved as Simple by default → optional `+ Add measurements / professional details` (visible on every item row, not just some) → expands: unit picker (6 initial units) → optional dimension inputs (auto-computes quantity, remains hand-editable) → optional short specification text → collapse back to the normal item row, now showing a small visual indicator (e.g. a small icon/badge) that this item carries professional detail. No quote-level or business-level gate on this per-item choice.
+
+### 155.7 Initial unit model (§4 formalized)
+
+Units are **data, not code** — a small, centrally-defined list (mirroring `PLAN_CATALOG`'s own pattern: one source of truth, HE/EN label pairs, no scattered hardcoding), e.g. `PROFESSIONAL_UNITS = [{ id:'unit', he:'יחידה', en:'unit' }, { id:'m2', he:'מ"ר', en:'m²' }, { id:'linear_meter', he:'מטר רץ', en:'linear meter' }, { id:'kg', he:'ק"ג', en:'kg' }, { id:'hour', he:'שעה', en:'hour' }, { id:'day', he:'יום', en:'day' }]`. A future unit (`m³`, `liter`) is a new array entry, never a schema/enum change — the `quote_items.pricing_unit` column (155.9) is a plain `text` field, not a Postgres enum, specifically so this never requires a migration.
+
+### 155.8 Calculation-semantics audit (§15) — against the existing item 30 proposal
+
+| # | Existing proposed rule | Assessment |
+|---|---|---|
+| 1 | `width × height` row calculation | **APPROVE-AS-DESIGNED** |
+| 2 | Calculated values persisted on save, never recomputed on render | **APPROVE-AS-DESIGNED** — matches the project's existing snapshot-integrity discipline (Currency Freeze, Quote Number, Warranty) |
+| 3 | Item-level `calculated_quantity` | **TECHNICAL CONCERN, resolved below** — `quote_items.quantity` is confirmed (fresh schema read) to be `integer NOT NULL DEFAULT 1`. A calculated area/weight (e.g. `4.2665 m²`) is inherently decimal and cannot be stored there without an `ALTER COLUMN TYPE` touching an existing, populated, immutability-guarded column — higher risk than a new column. **Resolution**: add a new, separate `calculated_quantity numeric` column (155.9) rather than retyping `quantity`; the existing `quantity` column stays exactly as-is for true Simple items, untouched, zero risk. |
+| 4 | `quantity_source` manual override flag | **APPROVE-AS-DESIGNED**, contingent on #3's resolution — `quantity_source` becomes a provenance flag on the *new* `calculated_quantity` column (which houses both system-computed and manually-corrected values), not a second location for the number itself. |
+| 5 | Line total = active quantity × unit price | **APPROVE-AS-DESIGNED** — "active quantity" = `calculated_quantity` when present, else the existing `quantity`. `total_price` is already `numeric` (no type concern). |
+| 6 | Display rounds to 2 decimals, storage keeps full precision | **APPROVE-AS-DESIGNED** — matches the existing canonical `formatMoney`/`.pf-money` display-only-rounding pattern already proven project-wide |
+| 7 | Measurement-row immutability on approve/paid/signed, reusing `guard_quote_child_immutability()` | **APPROVE-AS-DESIGNED, with one concrete schema requirement** — fresh-read confirms this shared trigger function is keyed on the row's own `quote_id` column (not a join through `quote_item_id`). The new measurement table must therefore carry its own denormalized `quote_id uuid REFERENCES quotes(id)` (155.9) so the *existing, unmodified* function/trigger pattern attaches with zero new logic, exactly as already planned — omitting this would force either a risky rewrite of a Production-critical shared function or a duplicated new one. |
+| 8 | Duplication copies source item's professional rows as they existed at duplication time | **APPROVE-AS-DESIGNED, confirmed technically consistent** — fresh-read of `handleDuplicateQuote` (`Dashboard.jsx:1942`) confirms duplication is a **client-side state repopulation followed by a fresh INSERT**, not a DB-level copy — professional/measurement fields flow through the same `items.map()` transform already used for description/quantity/unit_price, then persist as genuinely new rows on save. No new DB copy mechanism needed; matches the existing Terms/Warranty duplication pattern exactly. |
+
+**Zero "OWNER DECISION STILL REQUIRED" items** — the Owner's approved semantics are technically sound; only two needed a concrete, low-risk implementation clarification (additive new columns instead of retyping an existing one), never a rule change.
+
+### 155.9 Proposed V1 schema (READ-ONLY design — NO migration executed)
+
+**`quote_items` — new additive columns, all nullable, zero backfill, zero behavior change for existing rows:**
+
+| Column | Type | Nullable | Default | Purpose |
+|---|---|---|---|---|
+| `pricing_unit` | `text` | YES | `NULL` | One of the 6 unit ids (155.7) or `NULL` for a plain Simple item. Plain `text`, not an enum — avoids a future migration per new unit. |
+| `calculated_quantity` | `numeric` | YES | `NULL` | The professional-mode active quantity (system-computed from dimensions, or manually corrected) — decimal-capable, unlike the existing `quantity`. `NULL` for Simple items; existing `quantity` column untouched and still authoritative when this is `NULL`. |
+| `quantity_source` | `text` | YES | `NULL` | `'manual'` \| `'calculated'` \| `NULL`. Provenance flag for the UI badge only, not the value's location. `CHECK (quantity_source IS NULL OR quantity_source IN ('manual','calculated'))`. |
+| `specification` | `jsonb` | YES | `NULL` | Free-form professional specification bag (location/apartment/floor/room/material/etc, per 30.E's field taxonomy) — a generic bag avoids a rigid column-per-field explosion and needs no migration for a new specification field. |
+
+**New table `quote_item_measurements`** (the repeating-dimension-row case, e.g. multiple width×height pairs under one commercial item):
+
+| Column | Type | Nullable | Default | Purpose / constraint |
+|---|---|---|---|---|
+| `id` | `uuid` | NO | `gen_random_uuid()` | PK |
+| `quote_id` | `uuid` | NO | — | **Denormalized**, `REFERENCES quotes(id) ON DELETE CASCADE` — required so `guard_quote_child_immutability()` attaches with zero function changes (155.8, item 7) |
+| `quote_item_id` | `uuid` | NO | — | The real parent, `REFERENCES quote_items(id) ON DELETE CASCADE` |
+| `width` | `numeric` | YES | `NULL` | Entered value, snapshotted exactly as typed |
+| `height` | `numeric` | YES | `NULL` | Entered value, snapshotted exactly as typed |
+| `unit` | `text` | YES | `NULL` | The entered dimension unit (mm/cm/m/in/ft) — never silently rewritten (existing "36in must not become 91.44cm" snapshot rule) |
+| `calculated_area` | `numeric` | YES | `NULL` | `width × height`, computed and persisted on save (155.8, item 2) |
+| `label` | `text` | YES | `NULL` | Optional free-text row identifier (e.g. "Apartment 33") |
+| `sort_order` | `integer` | NO | `0` | Preserves entry order for display |
+| `created_at` | `timestamptz` | NO | `now()` | Standard |
+
+**RLS**: one policy, identical pattern to the existing `"Owners can manage quote items"` policy — `FOR ALL TO public USING (EXISTS (SELECT 1 FROM quotes WHERE quotes.id = quote_item_measurements.quote_id AND quotes.user_id = auth.uid()))`, same `WITH CHECK`. **No `anon` grant** (matches `quote_items` exactly — public reads go through the Edge Function, not direct RLS, see 155.11).
+
+**Immutability trigger**: `CREATE TRIGGER guard_quote_item_measurements_immutability BEFORE INSERT OR DELETE OR UPDATE ON quote_item_measurements FOR EACH ROW EXECUTE FUNCTION guard_quote_child_immutability();` — **zero new function**, reuses the existing, unmodified, Production-proven trigger verbatim (confirmed reusable, 155.8 item 7).
+
+**`business_settings` — one optional additive column** (only needed if Stage G, 155.13, is authorized):
+
+| Column | Type | Nullable | Default | Purpose |
+|---|---|---|---|---|
+| `default_item_mode` | `text` | YES | `NULL` | `'simple'` \| `NULL` — pure UX default for the Add-Item panel's starting state (155.4), never restrictive, always per-item-overridable |
+
+**Delete behavior**: both new/touched tables cascade correctly through existing `ON DELETE CASCADE` FKs (`quote_items`→`quotes`, `quote_item_measurements`→both `quotes` and `quote_items`) — deleting a quote or a quote item correctly removes its professional data, matching existing `quote_attachments` behavior.
+
+**Migration/backfill implications**: **zero backfill required anywhere** — every new column is nullable with no default requiring computation, every existing row is valid as-is (`pricing_unit`/`calculated_quantity`/`quantity_source`/`specification` all `NULL`, meaning "Simple item, unchanged"). The new table starts empty. This is the textbook additive-migration shape already proven safe throughout this project's Recovery program (Warranty fields, §104).
+
+**HE/EN implications**: zero market-specific columns — the schema is language-neutral (matches 155.7's own "units are data, not code" principle); only the unit-label lookup and specification-field labels are presentation-layer, HE/EN pairs, same pattern as `PLAN_CATALOG.displayLabel`.
+
+**TEST implications**: additive migration, TEST-applied first per the project's standing §36 rule, before any Production consideration.
+
+**Production risk**: LOW for the additive columns/new table themselves (nullable, no existing-row impact, no lock beyond a brief metadata-only `ALTER TABLE ADD COLUMN`) — the same risk class already proven safe for Warranty (§103/§104). The **one thing this blueprint explicitly does NOT propose**: retyping the existing `quote_items.quantity` column — deliberately avoided (155.8, item 3) specifically to keep Production risk low.
+
+### 155.10 Historical quote safety analysis (§17)
+
+Every new column/table is nullable/additive with no default requiring backfill — an existing quote with no Professional data reads and behaves **byte-identically** to today, forever, unless a business explicitly adds professional detail to a *new* item. No mandatory backfill. No reinterpretation of historical quantities (the existing `quantity` column is never touched by this design). No recalculation of old quotes from new business defaults (`default_item_mode`, 155.4, only affects the Add-Item panel's *default selection* for new items being created, never re-evaluates existing ones). Approved/signed/paid quote child data — including the new `quote_item_measurements` table — is protected by the exact existing, unmodified `guard_quote_child_immutability()` trigger (155.9), no extension or reinterpretation of that model needed.
+
+### 155.11 RLS/immutability analysis (extends 155.9/155.10)
+
+`quote_items` and (by design) `quote_item_measurements` both carry **zero `anon` grant** — this project's Public Quote reads do not use table-level RLS for anonymous customers at all; they go through the `get-public-quote` Edge Function (fresh-read confirmed: `supabase/functions/get-public-quote/index.ts`, a service-role-privileged function that explicitly nests `quote_items ( description, quantity, unit_price, total_price )` into its own query and reshapes the response into a DTO). **A real, concrete follow-up requirement for a future implementation stage** (not this task's own scope): that Edge Function's query and DTO-shaping code will need a new nested select for `quote_item_measurements` plus the new `quote_items` columns, mirrored exactly the way `quote_items` itself is already handled there — this is a well-understood, additive, low-risk touch point, not a design gap.
+
+### 155.12 Entitlement matrix (§8/§9/§12, formalized against the existing centralized architecture)
+
+| Capability | FREE | FREE(TRIAL active) | BASIC | PRO | LIFETIME |
+|---|---|---|---|---|---|
+| `professionalQuotes` (Core) | NO | YES (temporary) | YES | YES | YES |
+| `professionalQuoteReuse` (Advanced) | NO | YES (temporary) | NO | YES | YES |
+
+Implemented via the **already-completed, zero-new-code-required** centralized mechanism (§150/§151): add both booleans to `PLAN_CATALOG.{free,basic,pro}.entitlements`; `getEntitlementSet()`'s existing generic spread (§151) automatically exposes them via `resolveAccountEntitlement().entitlement.professionalQuotes`/`.professionalQuoteReuse` for every identity — **FREE(TRIAL) inherits automatically** (already resolves `tier:'pro'` during an active trial, exactly like `editDuplicate`/`whatsappDelete`/`attachments` today), and **LIFETIME inherits automatically** through the exact `isLifetime ? 'pro' : tier` mechanism already proven this session (§151) — **zero new `if (isLifetime)` code anywhere**, satisfying §8's own explicit "do not special-case LIFETIME" instruction by construction, not by discipline.
+
+### 155.13 BASIC / PRO / FREE / FREE(TRIAL) / LIFETIME experience
+
+**FREE**: no Professional Quotes access at all — the "+ Add measurements" affordance itself is Visible-but-Locked (155.1.11) if shown at all, or simply absent (exact presentation to be decided at implementation time, not this task). **BASIC**: full Core — create, measure, calculate, save/send, zero upgrade friction; the "duplicate professional item" reuse affordance is Visible-but-Locked, explaining the PRO benefit only on intentional click. **PRO**: everything BASIC has, plus one-click professional-item reuse, no lock anywhere. **FREE(TRIAL, active)**: full Core + Advanced (temporary, automatic, via existing trial mechanism) — display identity stays `FREE_TRIAL`, never a false "PRO" claim. **LIFETIME**: identical experience to PRO, identity stays `LIFETIME`, non-expiring, via automatic full-PRO inheritance — zero special-case code.
+
+### 155.14 Visible-but-Locked UX (§11, documented pattern — not implemented)
+
+Component-level guidance for a future implementation: a reusable "locked capability" affordance — icon + label + a small plan-badge chip (e.g. "🔒 Reuse professional item · PRO"), always rendered when the capability is *relevant* to the current context (never on unrelated pages), never disabled-grey-and-silent. On intentional click by a non-entitled user: a small, dismissible panel — headline ("Available with PRO"), one benefit sentence in the user's own language (e.g. EN: *"Reuse professional items — including their measurements and settings — to create repeat quotes faster."* / HE: a natural Hebrew equivalent, not a literal translation), two actions ("Upgrade to PRO" / "Not now"). Never triggered automatically on page load; never repeated unsolicited.
+
+### 155.15 Public Quote behavior + PDF/Print future compatibility (§20)
+
+Public Quote (155.5's own recommendation): professional detail collapsed by default under each item that carries it, "Show details"/"Show measurements" expands in place — same UX language already proven in the 30.F David-preview's own Concept B (§124). **Shared-computation principle for future reuse**: the actual width×height/area/specification *data* read for this collapsed/expanded display should be the same normalized shape a future PDF FULL/COMPACT and Print FULL/COMPACT would consume — recommend a single, future, presentation-agnostic "professional detail" data shape (already close to what 155.9's schema already produces) rather than separate calculation logic per output surface. **Not implemented this task** — a design compatibility note only, satisfying §6/§20's explicit "must not make that future requirement difficult" instruction.
+
+### 155.16 TEST↔Production structural parity implications
+
+None of this design introduces any environment-conditional branching risk — every proposed column/table/entitlement flag is pure schema/data, read identically regardless of `TEST`/Production, consistent with the permanent Iron Rule (§150.16). A future implementation must apply the additive migration to TEST first (per standing §36), and the application code (entitlement flags, `QuoteForm.jsx` UI, Edge Function update) is, by this design's own nature, environment-independent — no separate implementation path is proposed or needed for either environment.
+
+### 155.17 David Aluminum / A100700 / SINOQ / Item 51 status
+
+**David Aluminum**: zero mutation, zero special-case code proposed anywhere in this blueprint — his real quote #46 was used only as already-documented, already-approved, read-only product evidence (per 30.E), exactly as this task's own §21 permits. The architecture is designed to correctly support that class of real professional quote generically, not because it is David's. **A100700**: remains deferred, untouched, unscheduled by this task — still requires its own separate Production/customer-data authorization once Professional Quotes is actually implemented and live. **SINOQ | סינוק**: preserved as a candidate parent/business-brand name only ("ProFlow by SINOQ" / "ProFlow מבית סינוק") — no application branding touched. **Item 51** (PRO subscription-expiry): remains open, untouched, explicitly not mixed into this schema — the `professionalQuoteReuse`/`professionalQuotes` entitlement flags key off the existing `tier`/`isLifetime` mechanism exactly as every other PRO capability already does, with the exact same, already-documented, still-open dependency on a future real subscription-expiry field (§150.8) — not a new or different dependency introduced by this blueprint.
+
+### 155.18 Phased implementation blueprint (proposal only — NOT authorized, NOT executed)
+
+| Stage | Content | Depends on | DB? | HE/EN | Desktop/Mobile | TEST verification | Owner authorization needed |
+|---|---|---|---|---|---|---|---|
+| **B** (lowest risk, no DB, recommended first) | `PLAN_CATALOG.{basic,pro}.entitlements.professionalQuotes`/`.professionalQuoteReuse` added; zero other code change (LIFETIME/FREE-TRIAL inherit automatically, §155.12) | none | NO | n/a (booleans) | n/a | Unit tests only, mirrors §151's own pattern exactly | Application-code implementation authorization |
+| **A** (schema foundation) | Additive migration: `quote_items` 4 new columns + `quote_item_measurements` table + trigger + RLS policy (155.9) | none | YES — additive only | n/a | n/a | TEST-applied first, per standing §36 | DB/schema-change authorization (separate gate, §36) |
+| **C** (Professional item editing) | `QuoteForm.jsx`: per-item "+ Add measurements/professional details" progressive disclosure, unit picker, dimension inputs, specification fields, gated by `entitlement.professionalQuotes` | A, B | NO (app only) | Both, same pass | Both, mobile-first per §19 | Real TEST personas (FREE/BASIC/PRO/LIFETIME), both markets | Application-code implementation authorization |
+| **D** (calculation/persistence) | Save-handler wiring: `calculated_quantity`/`quantity_source` computation on save, active-quantity line-total logic, `handleDuplicateQuote` extended to carry professional fields through its existing `items.map()` transform (155.8, item 8) | C | NO (app only) | Both | Both | Focused financial-correctness tests (per item 30.C's own required test-case list) + full regression | Application-code implementation authorization |
+| **E** (Public Quote collapsed detail) | `get-public-quote` Edge Function: new nested select + DTO shaping (155.11); `PublicQuote.jsx`/`PublicQuoteEn.jsx`: collapsed/expandable detail UI | A, D | NO (app/Edge Function only, no schema) | Both, symmetric | Both | Real TEST quote with professional data, both markets | Application-code implementation authorization (Edge Function redeploy is its own, separate gate) |
+| **F** (PRO advanced reuse) | "Duplicate professional item" affordance (extends existing duplication code, 155.1.7/155.8 item 8), gated by `entitlement.professionalQuoteReuse`, Visible-but-Locked UX for BASIC (155.14) | B, C/D | NO | Both | Both | Real BASIC vs PRO TEST personas | Application-code implementation authorization |
+| **G** (Business Settings default UX — optional, may be dropped from V1) | `business_settings.default_item_mode` column + a small Settings section (155.4) | A | YES — one optional nullable column | Both | Both | Real TEST personas | DB (if pursued) + application authorization |
+| ~~**H** (New Quote structure/presentation UX)~~ | **Not recommended for V1** — retired per 155.5's own reconciliation; superseded by Stage C's per-item progressive disclosure | — | — | — | — | — | — |
+
+**Recommended actual first-authorized-stage, if/when the Owner proceeds**: **B**, since it has zero DB dependency, zero new UI, and is provably safe by the exact same architecture and test pattern already proven twice this session (§150/§151) — it could be authorized and completed independently of any DB decision.
+
+### 155.19 Binary acceptance results
+
+All items in this task's own §26 checklist are satisfied: six canonical files freshly read; prior Item 30 decisions reconciled (155.2); all Owner decisions recorded (155.1); no resolved decision left falsely pending; Option 1 audited and confirmed (155.1.1/155.2); exact V1 schema produced (155.9); existing quotes protected (155.10); calculation semantics audited item-by-item, zero unresolved Owner-decision gaps (155.8); entitlement matrix designed on the existing centralized architecture (155.12); BASIC receives Core (155.1.9/155.13); PRO/BASIC reuse differentiation designed (155.1.10/155.12); FREE(TRIAL)/LIFETIME behavior preserved via existing zero-special-case mechanisms (155.12); Visible-but-Locked UX documented (155.14); Business Settings conflict reconciled with a concrete, optional recommendation (155.4); New Quote conflict reconciled with a concrete recommendation to retire the standalone selector (155.5); HE/EN and Desktop/Mobile designed together throughout; Public Quote collapsed-detail design produced (155.15); PDF/Print compatibility preserved as a stated future requirement, not implemented (155.15); Catalog Templates remain deferred (155.1.7); zero David/A100700/DB/application/TEST/Production mutation; implementation stages ready for separate Owner authorization (155.18).
+
+### 155.20 Release boundary
+
+Zero application code changed. Zero DB/schema mutation — this entire section is a read-only design/audit, no migration file was created or executed. Zero migration execution. Zero TEST mutation. Zero Production/customer-data mutation. Zero David Aluminum interaction. No A100700 action. No PDF/Print implementation. No SINOQ branding applied. `origin/main` unchanged. No application commit (none exists to commit). No push. No deploy. No LIVE action. Item 51 remains open, untouched, correctly not conflated with this schema.
+
+**Six-File Continuity ledger for this task**: `PROFLOW_PROJECT_CONTEXT.md` UPDATED (this §155); `PROFLOW_TODO.md` UPDATED (item 30's five decisions marked LOCKED/superseded, cross-referenced to §155); `PROFLOW_HANDOFF.md` UPDATED (new entry); `PROFLOW_CHAT_HANDOFF.md` UPDATED (§14, new lead paragraph); `PROFLOW_ARCHITECTURE.md` UPDATED (new §, Professional Quotes blueprint summary + forward-pointer); `PROFLOW_CLAUDE_LATEST_REPORT.md` UPDATED (full report).
