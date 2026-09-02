@@ -133,7 +133,7 @@ Documentation: committed + pushed to `proflow-continuity` (see SHA below). Appli
 
 ## Continuity commit SHA + remote read-back
 
-*Filled in by the SHA-follow-up commit, per this project's standing two-commit convention.*
+`806320d` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`b24d86b`) — not pushed to `origin/main` (documentation only). **REMOTE READ-BACK: PASS** — `git fetch` + `git rev-parse origin/proflow-continuity` confirmed `806320d` exactly; direct `git show origin/proflow-continuity:<file>` reads confirmed §148 present in `PROFLOW_PROJECT_CONTEXT.md`, item 28's Stage 1 update present in `PROFLOW_TODO.md`, §18.GT present in `PROFLOW_HANDOFF.md`, the new lead paragraph present in `PROFLOW_CHAT_HANDOFF.md`, and this file's own `STAGE 1: PASS` sign-off present. `origin/main` re-fetched and confirmed unchanged at `26dee96fc511d71715fe8675426920daff06719a`. The application-code changes themselves remain uncommitted on local `main` (item 22 above) — deliberately not part of any commit or push this task.
 
 ---
 
