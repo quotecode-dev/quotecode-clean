@@ -133,7 +133,7 @@ None. Same reasoning as item 21.
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `40bc62a`.
 
 ---
 
