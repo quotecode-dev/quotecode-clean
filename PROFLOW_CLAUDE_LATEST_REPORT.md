@@ -132,7 +132,7 @@ See `PROFLOW_TODO.md` item 55's new addendum (items 11-13): the header medallion
 
 ## Continuity commit SHA + remote read-back
 
-*(To be filled by the SHA-follow-up commit per the standing two-commit convention.)*
+`944699d` on `proflow-continuity` (pushed; content commit). Matching content commit exists locally on `main` (`102a86d`) — not pushed to `origin/main` (documentation only). `origin/main` unchanged at `26dee96`. Application code remains uncommitted/untracked on local `main`. Fresh remote read-back after push independently confirmed all six files present and consistent.
 
 ---
 
