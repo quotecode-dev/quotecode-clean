@@ -84,7 +84,7 @@ The old/current conversation remains the control point until a **new** conversat
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `f337b31`.
 
 ---
 
