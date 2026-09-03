@@ -100,11 +100,11 @@ All six canonical files reviewed; four updated with the hardened rule/evidentiar
 
 ## Q. Continuity Commit SHA(s)
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `f5297d5` (`811515d..f5297d5`).
 
 ## R. Remote Read-Back Verification
 
-*(filled after push — see below)*
+PASS — see the ledger footer below.
 
 ## S. Final Classification
 
