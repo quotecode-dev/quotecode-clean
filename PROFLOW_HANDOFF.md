@@ -5390,3 +5390,15 @@ After a real reboot and §177 enrollment, neither the tunnel nor the Bridge was 
 **Classification: A — SMALL, CLEAR FIX.** Proposed, not implemented: copy both VBS launchers into `C:\ProgramData\ef202d2f98\`. No Startup entries, VBS files, services, Scheduled Tasks, registry, or Windows configuration were modified during this investigation.
 
 **Owner's remaining actions**: (1) re-run `enroll-tunnel-credential.ps1` for a clean credential; (2) authorize copying the launchers to the correct folder before the next reboot test. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §178, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## §18.HW. Verified Startup-Folder Fix Executed — Both VBS Launchers Copied to the Correct Registry-Defined Folder, Byte-Verified; Credential Likely Already Re-Enrolled (2026-09-03, `PROFLOW_PROJECT_CONTEXT.md` §179 — local infrastructure/tooling task, ZERO ProFlow application code touched, HE/EN unaffected)
+
+The Owner independently confirmed via `shell:startup` that the real Startup folder is `C:\ProgramData\ef202d2f98\`, matching §178's registry finding, and authorized exactly the narrow fix identified — nothing more.
+
+**Executed exactly as scoped**: content-preserving `Copy-Item` of both VBS launchers into the correct folder; `rween.exe` never touched; old source copies deliberately left in place.
+
+**Directly verified, not assumed**: SHA-256 hashes captured before and after the copy for both VBS files and for `rween.exe` — all matched **exactly**. `rween.exe`'s size and `LastWriteTime` (2023-05-02) independently reconfirmed unchanged. Destination folder listing captured before (2 items) and after (4 items, no unexpected files) the copy. Source folder reconfirmed to still hold both originals.
+
+**DPAPI credential status — timestamps only, value never accessed**: the enrollment file's `LastWriteTime` changed from the original `02:23` to `03:03`, *after* the sanitization fix (`02:50`) was already in place — strong evidence the Owner has already re-enrolled with the fixed script. Not yet corroborated by an actual successful connection (`tunnel-autostart.log`'s last entry is still the pre-fix failure — no fresh attempt has run since, since re-enrollment alone doesn't trigger one). Neither tunnel-client nor the Bridge is currently running — expected, and correctly not started proactively, per this task's explicit "STOP after verification and report" scope.
+
+**Release boundary**: zero Registry/service/Scheduled Task/Windows-configuration mutation beyond the two authorized file copies; zero Bridge/Tunnel code change; zero ProFlow application files touched. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §179, `PROFLOW_CLAUDE_LATEST_REPORT.md`.

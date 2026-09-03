@@ -4,75 +4,56 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Fix Credential Sanitization + Read-Only Real-Reboot Startup Audit
+## Task: Execute Verified Startup-Folder Fix Only
 
-**MODE: Part A authorized mutation, narrowly scoped to `enroll-tunnel-credential.ps1` only. Part B strictly read-only — no Startup entries, VBS files, services, Scheduled Tasks, registry, Bridge/Tunnel launch configuration, or Windows configuration modified.**
-
----
-
-## Part A — Credential Fix
-
-**Exact root cause addressed**: a real enrollment (before this task) captured a trailing 0x1A (Ctrl+Z/SUB) control character along with the API key. DPAPI round-tripped it faithfully; tunnel-client's own HTTP client correctly refused to send it as an `Authorization` header value, so `runtimes connect` failed every time.
-
-**File changed**: `C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1` only.
-
-**Exact validation performed**: the captured input is extracted briefly in-memory, leading/trailing control characters (code < 0x20, or 0x7F) are trimmed — the exact observed contamination pattern, safe because it only touches the edges. If any control character remains **inside** the value after trimming, the entire enrollment is **rejected, fail-closed** — nothing is stored, since silently altering the interior of a credential is not safe to automate. An empty result after trimming is also rejected (this sits alongside the pre-existing guard for a truly empty `Read-Host` response). The round-trip verification step now compares the re-decrypted value against the *sanitized* value actually stored, and additionally re-checks that no control character remains in the final result before declaring success — a second safety net.
-
-**Dummy tests: PASS** (all six scenarios, none touching the real file):
-| Scenario | Expected | Result |
-|---|---|---|
-| Clean key | Accepted unchanged | PASS |
-| Trailing 0x1A (reproduces the real bug) | Accepted, trimmed | PASS |
-| Leading+trailing CR/LF | Accepted, trimmed | PASS |
-| Interior control character | Rejected (fail-closed) | PASS |
-| Empty input | Rejected (pre-existing guard) | PASS |
-| All-control-character input | Rejected (empty after trim) | PASS |
-
-Additionally, a full encrypt → ACL-lock → decrypt → verify round-trip was run end-to-end (disposable test file path, not the real one) for both the clean-key and trailing-0x1A cases — both produced a final stored-and-redecrypted value with **zero control characters** and an exact match to the intended sanitized content.
-
-**Real Owner credential touched: NO.** The real `.secrets\control-plane-api-key.dpapi` (still holding the old, contaminated enrollment) was independently confirmed unchanged — same size (1100 bytes), same original timestamp — after all testing completed.
-
-**Exact Owner re-enrollment command**:
-```
-powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1
-```
+**MODE: Owner-authorized, exact, narrow mutation only — copy two named VBS files to the Owner-confirmed real Startup folder. Nothing else authorized.**
 
 ---
 
-## Part B — Real-Reboot Startup Audit (read-only)
+## Verdict
 
-**ProFlow-Tunnel.vbs exists: YES** — `C:\Users\sales\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\ProFlow-Tunnel.vbs`.
-**ProFlow-MCP-Bridge.vbs exists: YES** — same folder, `ProFlow-MCP-Bridge.vbs`.
+**Executed exactly as scoped, and fully verified.** Both VBS launchers now exist, byte-identical to their originals, in the correct registry-defined Startup folder. `rween.exe` was never touched. Nothing else was modified. Timestamp evidence (credential value never accessed) strongly suggests the Owner has already re-enrolled with the fixed script.
 
-**Actual Startup location (the real finding)**: `[Environment]::GetFolderPath('Startup')` and, critically, a **direct read of `HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup`** (and the mirrored `Shell Folders` key) — the actual registry value Windows Explorer itself consults at logon — both report **`C:\ProgramData\ef202d2f98\`**. This is **not** the conventional path where both VBS files were placed in earlier tasks. This user's Startup folder has been redirected to a non-standard location.
+## Copy Operation
 
-**Evidence each launcher executed after reboot: NO — not "not proven," genuinely NO**, cross-corroborated three independent ways:
-1. The redirected folder (`C:\ProgramData\ef202d2f98\`) genuinely exists on disk and already contains a real, unrelated, pre-existing startup item (`rween.exe`, dated 2023) — this is an actively-used folder, not a stale/broken registry artifact.
-2. `HKCU:\...\Explorer\StartupApproved\StartupFolder` — the registry key Explorer populates only for items it has actually enumerated from its real Startup folder — contains **exactly one entry, `rween.exe`**. Neither ProFlow VBS file appears at all, proving Explorer's Startup processing has never even seen them.
-3. Neither `tunnel-autostart.log` nor `bridge.log` contains any entry near the reboot's own timestamp. Both scripts log unconditionally as their very first action (even the "no credential available" fail-closed path logs something) — a genuine automatic run, even one that failed immediately, would have left a trace. None exists in that window.
+`Copy-Item` (content-preserving, no modification) of:
+- `ProFlow-Tunnel.vbs`
+- `ProFlow-MCP-Bridge.vbs`
 
-**Exact root cause established**: both `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` were placed in the conventional default Startup path in earlier tasks, but this specific user account's Startup folder has been redirected (via the registry keys above) to `C:\ProgramData\ef202d2f98\`. Windows' real logon-time Startup processing was never going to scan the folder the files were actually placed in — entirely independent of the reboot itself, of VBS/wscript functionality (both files are syntactically correct and were separately proven to execute correctly when manually invoked in earlier tasks), of any antivirus interference, and of any path/quoting issue inside the VBS files themselves (re-inspected fresh this task — both correctly quoted, absolute paths, no current-directory dependency).
+from `C:\Users\sales\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\` to `C:\ProgramData\ef202d2f98\`.
 
-**Common failure mechanism: YES** — a single misplacement (wrong folder) affecting both launchers identically, fully explaining why both failed the same way at the same time.
+## Verification
 
-**Classification: A — SMALL, CLEAR FIX.**
+**Both destination files exist: YES.**
 
-**Proposed fix** (not implemented, per explicit read-only instruction): copy both `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` into `C:\ProgramData\ef202d2f98\`. No change to VBS content, script logic, DPAPI design, or credential handling is needed. The existing copies in the conventional location can be left in place (harmless — Windows simply never scans them there) or removed once the correct copies are confirmed working.
+**Source and destination hashes match (SHA-256, computed independently before and after):**
+| File | Hash |
+|---|---|
+| `ProFlow-Tunnel.vbs` (source, pre-copy) | `3D7F2215427A491B4527BF5A7B5C313C9BFE5E5DB7775743DBE0A48987D4D82D` |
+| `ProFlow-Tunnel.vbs` (destination, post-copy) | `3D7F2215427A491B4527BF5A7B5C313C9BFE5E5DB7775743DBE0A48987D4D82D` — **match** |
+| `ProFlow-MCP-Bridge.vbs` (source, pre-copy) | `CF6E5D108A4D9F9F4EF2172B141BDD5F3DA7B3BF1FEC09A9843E5F2FB17101B0` |
+| `ProFlow-MCP-Bridge.vbs` (destination, post-copy) | `CF6E5D108A4D9F9F4EF2172B141BDD5F3DA7B3BF1FEC09A9843E5F2FB17101B0` — **match** |
 
-**Honest caveat**: this exact tool environment has shown filesystem/API virtualization quirks before (documented in §172's `[Environment]::GetFolderPath` finding). While this Part B finding rests on a *direct registry read* rather than that same convenience API — and is independently cross-corroborated three ways above — the Owner is recommended to independently confirm, from their own real interactive session (Win+R → `shell:startup`), that the folder which actually opens matches `C:\ProgramData\ef202d2f98\`, before treating this as fully closed.
+**`rween.exe` remains untouched: YES.** SHA-256 hash captured before the copy (`7B178AA78120530724F481B6AA7E6268FC49BB8AB49575E22C29A862310163D7`) and re-verified identical afterward. Size (3,927,138 bytes) and `LastWriteTime` (2023-05-02 18:26:24) also independently reconfirmed unchanged. It was never opened, executed, renamed, or otherwise interacted with.
 
-**NO Startup mutation performed** — no Startup entries, VBS files, services, Scheduled Tasks, registry, or Windows configuration were modified during Part B. Read-only throughout.
+**Destination folder contains the expected items: YES.**
+- Before: `desktop.ini`, `rween.exe` (2 items).
+- After: `desktop.ini`, `rween.exe`, `ProFlow-Tunnel.vbs`, `ProFlow-MCP-Bridge.vbs` (4 items) — exactly the pre-existing two plus the two newly-copied launchers. No unexpected files were created.
 
----
+**Source (conventional-location) copies**: independently reconfirmed still present and unchanged — nothing was deleted, per instruction.
 
-## Exact Remaining Owner Actions, in Order
+## DPAPI Credential Re-Enrollment Status
 
-1. Re-run enrollment with the fixed script (Part A) to replace the contaminated credential:
-   ```
-   powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enroll-tunnel-credential.ps1
-   ```
-2. Independently confirm the real Startup folder via `shell:startup` (Win+R) — should show `C:\ProgramData\ef202d2f98\`.
-3. Authorize copying `ProFlow-Tunnel.vbs` and `ProFlow-MCP-Bridge.vbs` into that folder (or perform it themselves) before the next reboot test — this is a separate, small, explicit authorization this session did not assume.
+Checked **via timestamps only** — the credential value was never accessed, displayed, decrypted, or modified for this check, per explicit instruction.
+
+- `enroll-tunnel-credential.ps1` (the fixed, sanitizing script from the prior task): last modified `2026-09-03 02:50`.
+- `.secrets\control-plane-api-key.dpapi`: `LastWriteTime` is now `2026-09-03 03:03` — **changed** from its original enrollment timestamp of `02:23`.
+
+Since the file was rewritten *after* the sanitization fix was already in place, this is strong (though not certainty-grade, since content was correctly never inspected) evidence that **the Owner has already independently re-enrolled using the fixed script**. This is **not yet corroborated by an actual successful connection** — `tunnel-autostart.log`'s most recent entry is still the original pre-fix failure at `02:39:51`; no fresh `runtimes connect` attempt has been logged since the re-enrollment, because re-enrollment alone does not trigger one (that only happens when `start-tunnel.ps1` actually runs, which it has not since). Neither `tunnel-client.exe` nor the Bridge `node.exe` is currently running — expected, and this session correctly did not start either proactively, per this task's explicit "STOP after verification and report" scope.
+
+## What Remains
+
+The real test — a genuine Windows logon triggering both launchers automatically from their new, correct location — has not yet been observed. That requires either the Owner's next real logon, or an explicit separate authorization to simulate/test it now.
 
 ## Explicit Safety Report
 
@@ -90,26 +71,27 @@ powershell -ExecutionPolicy Bypass -File C:\Users\sales\proflow-mcp-bridge\enrol
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§178) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§179) |
 | `PROFLOW_TODO.md` | UPDATED (item 56 status line) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HV) |
-| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (§20 already covers this mechanism generally) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HW) |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED |
 | `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `6f38349`.
+*(filled after push — see below)*
 
 ---
 
-## CREDENTIAL SANITIZATION: FIXED AND PROVEN (6 DUMMY SCENARIOS + 2 FULL ROUND-TRIPS) — REAL FILE UNTOUCHED
-## STARTUP FAILURE ROOT CAUSE: REGISTRY-CONFIRMED — STARTUP FOLDER REDIRECTED TO C:\ProgramData\ef202d2f98\, BOTH LAUNCHERS IN WRONG FOLDER
-## CLASSIFICATION: A — SMALL, CLEAR FIX (copy 2 VBS files) — NOT YET IMPLEMENTED, AWAITING AUTHORIZATION
-## NO STARTUP/REGISTRY/SERVICE/SCHEDULED-TASK MUTATION PERFORMED
+## STARTUP-FOLDER FIX: EXECUTED EXACTLY AS SCOPED, HASH-VERIFIED
+## rween.exe: CONFIRMED UNTOUCHED (HASH/SIZE/TIMESTAMP MATCH)
+## DESTINATION FOLDER: EXPECTED 4 ITEMS, NO SURPRISES
+## SOURCE COPIES: LEFT IN PLACE, UNCHANGED
+## DPAPI CREDENTIAL: LIKELY ALREADY RE-ENROLLED (TIMESTAMP EVIDENCE ONLY, VALUE NEVER ACCESSED)
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
 ## CUSTOMER DATA: NOT ACCESSED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
-## OWNER: RE-ENROLL, THEN AUTHORIZE THE VBS-COPY FIX
+## NEXT REAL TEST: A GENUINE LOGON, NOT YET OBSERVED
