@@ -187,6 +187,8 @@ Tablet Landscape/Portrait not independently re-verified this round (item 14). Re
 | `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.F, the expandable-row detail pattern recorded for future maintainers |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
 
+**Continuity commit**: pushed to `origin/proflow-continuity` as `e752b22` (`00b3ef4..e752b22`), fresh-fetched and read-back verified (`git log` + content-grep for §190/§18.IH both confirmed present on the remote).
+
 ## 43. Recommended Next Step
 
 Owner visual inspection of TEST — specifically the Quote History redesign (the single largest structural change this round, never rendered by anyone), the sidebar branding reversal, and the mobile AI Chat/bottom-nav compaction. No further coding should proceed on the authenticated-app visual system until that inspection happens; per the task's own explicit stop condition, the next phase (Public Quote) should not begin until the Owner and ChatGPT have reviewed this checkpoint.
