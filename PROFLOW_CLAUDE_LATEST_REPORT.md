@@ -59,7 +59,7 @@ Same reasoning as the prior large-file-limitation task: a rule meant to govern *
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `f501036`.
 
 ---
 
