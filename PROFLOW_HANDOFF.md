@@ -5541,3 +5541,23 @@ Owner inspected §184's actual TEST result and judged it insufficient: sidebar w
 **Out of scope, unchanged**: Public Quote, Admin, Agent Teams, Claude configuration, Bridge/Tunnel.
 
 **Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel/Windows/Claude-config change, no Agent Teams. Application source changed in TEST/local scope only (`Dashboard.jsx`, `QuotesTab.jsx`, `QuoteForm.jsx`, `index.css`). No commit, no push, no deploy. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §186, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## §18.IE. ProFlow V2 — URGENT WIDTH-CORRECTION PASS — §186's `min(1600px, 92vw)` REJECTED by real screenshots — one real defect found+fixed — STRUCTURALLY IMPLEMENTED, VISUAL UNVERIFIED (2026-09-03, `PROFLOW_PROJECT_CONTEXT.md` §187 — corrects §186, TEST/local-only)
+
+**Trigger**: for the first time, the Owner attached actual TEST screenshots (not prose feedback). Confirmed: sidebar genuinely light + left for Hebrew (§186's core fix visually proven correct). But the workspace stretched nearly the full browser width with large empty gaps — §186's `min(1600px, 92vw)` explicitly REJECTED AND SUPERSEDED by this direct evidence. §186's sidebar/plan-card corrections stand; only its width number was wrong.
+
+**New canonical rule**: Desktop authenticated V2 TOTAL shell (sidebar + workspace TOGETHER) ≈ 960–980px, centered — a fundamentally different measurement than §186's "content alone" instruction. Public Quote's own ~980px is a size *reference* only, remains untouched, its own token never aliased to the new one (re-verified isolated this round).
+
+**Implemented**: `index.css` — `--pf-dashboard-desktop-content-width` (content-only, rejected `min(1600px,92vw)`) replaced by `--pf-dashboard-shell-total-width: min(980px, 96vw)` (shell-total semantics). `Dashboard.jsx` — new outer wrapper now bounds sidebar+content together, centered; the inner content wrapper's own former max-width removed (outer governs total now). Mobile bottom nav (untouched by every prior round, an explicitly Owner-flagged gap) visually reconciled — active buttons now get the sidebar's light-purple-tint pill treatment, "New Quote" gets the primary gradient — zero handler/label changes, confirmed by QA. Two unrelated demo-preview pages (`ProfessionalPublicPreview.jsx`/`ProfessionalQuotePreview.jsx`) updated to the new variable name so they don't silently break.
+
+**Corrected review standard, per explicit Owner instruction**: no specialist may classify visual acceptance from source alone this round. UI's conclusion is phrased exactly as required: **"STRUCTURALLY IMPLEMENTED — LIKELY DEFECT FOUND."**
+
+**Specialist findings**: HE/EN both confirmed the new wrapper's RTL/LTR handling and centering are structurally sound (direct reasoning, not assumption), and both independently found the same real defect UI quantified: doing the arithmetic (980 − 232px sidebar − 32px + 36px padding = ~680px actual budget), `QuotesTab.jsx`'s table `minWidth:'700px'` exceeded it by 20px — a real, arithmetically-proven regression (graceful via its own `overflowX:auto`, but contradicting the file's own "fits without overflow" intent), not a stylistic opinion. QA confirmed the wrapper's tags balance correctly with zero side effects on any descendant logic, the Trial Notice's positioning contract remains untouched, the mobile-nav restyle is handler-identical, and 304/304 tests pass.
+
+**Fixed this round**: the table `minWidth` reduced 700px→640px (floor only, no column/content/data change) — closes the specific defect with real headroom. Re-verified after: lint clean, 304/304 tests, build succeeds.
+
+**Browser QA**: re-checked, still unavailable (same broken interpreter path), not repaired, not falsely claimed.
+
+**Final status, Owner's own corrected phrasing**: **STRUCTURALLY IMPLEMENTED — VISUAL UNVERIFIED.** Not "new-generation," no A/B claim — only the Owner's own inspection of this round's actual result can close this checkpoint.
+
+**Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel/Windows/Claude-config change, no Agent Teams. Application source changed in TEST/local scope only (`Dashboard.jsx`, `index.css`, `QuotesTab.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalQuotePreview.jsx`). No commit, no push, no deploy. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §187, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
