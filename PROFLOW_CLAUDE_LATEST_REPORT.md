@@ -142,7 +142,7 @@ In order: (1) real browser-based visual QA against Image 1, across HE/EN × Desk
 
 ## 31. Continuity Commit SHA / Remote Read-Back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `676f74b` (`fa335cf..676f74b`). Remote read-back: PASS — see the ledger footer below.
 
 ---
 
