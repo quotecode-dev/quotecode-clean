@@ -28,11 +28,11 @@ The Owner performed a real Windows restart, took no manual TEST-server startup a
 
 ## 4. Continuity Commit SHA
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `d9c3fb2`.
 
-## 5. Remote Read-Back: PASS/FAIL
+## 5. Remote Read-Back: PASS
 
-*(performed after push — see below)*
+Confirmed via fresh `git fetch` + `git log --oneline -3` + `git ls-tree -l origin/proflow-continuity` (all six files present, non-trivial blob sizes for the two >1MB files) + direct `git show origin/proflow-continuity:<file> | grep -c` for the new §181.1/§182/§18.HY.1/§18.HZ headings — see full detail in the read-back log referenced at the end of this file.
 
 ---
 
@@ -139,7 +139,7 @@ Not A (the core Owner pain point — a new/different conversation, or a forgotte
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit: `d9c3fb2` (pushed `196eb53..d9c3fb2` to `origin/proflow-continuity`). Remote read-back: PASS — all six files confirmed present via `git ls-tree -l origin/proflow-continuity`, new section headings confirmed present via direct content grep on `origin/proflow-continuity`.
 
 ---
 
