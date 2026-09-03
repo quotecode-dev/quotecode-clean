@@ -4,113 +4,123 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Implement TEST Server Autostart Only
+## Task: Close TEST Autostart Reboot Checkpoint + Audit Direct Claude Report Retrieval
 
-**MODE: implement exactly the previously-audited TEST-server (port 5186) logon autostart mechanism, and nothing else. No reboot performed.**
+**MODE: two distinct scopes. Part A: documentation-only continuity update. Part B: read-only investigation, NO Bridge/tunnel implementation or mutation authorized.**
 
 ---
 
-## Verdict
+# PART A — TEST Autostart Reboot Checkpoint
 
-**Implemented, and locally verified via two real launcher invocations — not merely coded.** TEST becomes healthy automatically when the new launcher runs, targets `quotecode-test` (directly proven, not inferred), stays fully isolated from port 5184/Production, and leaves the Bridge/Tunnel infrastructure and every pre-existing Startup item byte-for-byte unaffected. **Genuine reboot pass is PENDING** — the Owner must perform the actual restart.
+## 1. Genuine Reboot Acceptance Recorded: YES
 
-## 1. `start-test-server.ps1` created: YES
+The Owner performed a real Windows restart, took no manual TEST-server startup action, and the TEST site at `192.168.1.189:5186` came up automatically and was successfully opened — the primary, Owner-observed acceptance signal.
 
-## 2. TEST Startup launcher created: YES
+**Fresh local corroboration, distinguished from that Owner evidence, not substituted for it**: `(Get-CimInstance Win32_OperatingSystem).LastBootUpTime` showed a genuine boot at `15:49:59`; the Bridge and the TEST npm/vite process tree were both found to have started automatically ~2 minutes later (`15:51:45`/`15:51:48-49`); a fresh `test-autostart.log` entry this session did not itself trigger recorded the same start-and-become-healthy sequence. A light current-state check (not a full repeat of the already-proven pre-reboot route matrix, per instruction) reconfirmed TEST responding `200`, exactly one 5186 listener, port 5184 still not listening, and Bridge/tunnel-client unaffected.
 
-## 3. Exact Paths
+## 2. TEST Autostart Final Status
 
-- `C:\Users\sales\proflow-test-server\start-test-server.ps1`
-- `C:\ProgramData\ef202d2f98\ProFlow-TestServer.vbs`
-- Logs: `C:\Users\sales\proflow-test-server\test-autostart.log`, `test-server-stdout.log`, `test-server-stderr.log` (all new, dedicated — never reuse or modify any Bridge/Tunnel log)
+**CLOSED.** The previously-recorded "GENUINE REBOOT PASS: PENDING" status is now resolved — reboot/logon autostart for the TEST server is proven, on the same evidentiary footing as the Bridge/Tunnel's own reboot proof.
 
-## 4. Actual Startup Destination Confirmed
+## 3. Continuity Files Changed
 
-`C:\ProgramData\ef202d2f98\` — the real, registry-confirmed Startup folder (`HKCU:\...\Explorer\User Shell Folders\Startup`), not the conventional default path. This is the same folder already confirmed correct for the Bridge/Tunnel launchers in §178/§179.
+`PROFLOW_PROJECT_CONTEXT.md` (§181.1 appended), `PROFLOW_HANDOFF.md` (§18.HY.1 appended), `PROFLOW_TODO.md` (Part E addendum), this file.
 
-## 5. Port 5186-Only Isolation: PASS
+## 4. Continuity Commit SHA
 
-Verified by direct inspection: the only port the script ever targets is `5186` (hardcoded), reached exclusively via `npm run dev:localtest`. No other port appears anywhere in the executable logic.
+*(filled after push — see below)*
 
-## 6. Port 5184 Untouched: YES
+## 5. Remote Read-Back: PASS/FAIL
 
-Confirmed by grep of the new script/launcher (the only two mentions of "5184" are in comments and an explicit safety guard that would abort if `dev:localtest` ever referenced it — never a target). Confirmed live: `netstat` showed port 5184 not listening before, during, and after every test in this task.
+*(performed after push — see below)*
 
-## 7. Production Fallback Impossible by Design: YES
+---
 
-Evidence: (a) the script's own fail-closed precondition check verifies `dev:localtest`'s actual content still contains `--mode`, `localtest`, `--port`, `5186`, `--strictPort` before ever starting anything, and aborts (starting nothing) if it has drifted; (b) the script never invokes plain `npm run dev` under any code path; (c) the pre-existing, unmodified `src/shared/supabase.js` fail-closed guard (throws before creating a Supabase client if `--mode localtest` doesn't resolve to the exact known TEST project ref) remains fully intact and unchanged; (d) **directly proven live**: the served app's own `import.meta.env` was fetched and inspected — `VITE_PROFLOW_ENV:"TEST"`, `VITE_SUPABASE_URL` resolving to the exact TEST project ref, not Production's.
+# PART B — Direct Claude Report Retrieval Audit (READ-ONLY)
 
-## 8. TEST Local Health Check: PASS
+## 6. Current Bridge Report-Retrieval Architecture
 
-`http://127.0.0.1:5186/` → `200`, confirmed via direct `curl` after the launcher's own health check also independently confirmed it (log: `"TEST server healthy at http://127.0.0.1:5186/ after 3s"`).
+Every Bridge-originated task (`claude_ask`/`claude_task_start`) is written to `C:\Users\sales\proflow-mcp-bridge\tasks\<task_id>.json` and held in an in-memory `Map`. `loadTasksFromDisk()` unconditionally reloads every persisted task file on Bridge startup, before the HTTP server begins listening. There is **no per-conversation binding anywhere in the code** — any caller reaching the Bridge, from any ChatGPT conversation, can retrieve any task's status/report given its `task_id`.
 
-## 9. LAN Health Check: PASS
+## 7. PATH A Current Capability (ChatGPT → Bridge → Claude)
 
-`http://192.168.1.189:5186/` → `200`, confirmed via direct `curl`. Vite's own startup banner independently printed the identical `Network: http://192.168.1.189:5186/` line, confirming `--host` bound correctly to all interfaces.
+**Retrieval of a known `task_id` works fully and reliably today**, from any conversation. `claude_task_status`/`claude_task_report` both require `task_id` as a mandatory parameter. **The gap is discovery**: nothing in the current 12-tool catalog (`server_info`, `echo`, `uppercase`, `claude_bridge_info`, `claude_repo_status`, `claude_read_file`, `claude_search_repo`, `claude_ask`, `claude_task_start`, `claude_task_status`, `claude_task_report`, `claude_task_continue` — the complete, freshly-read list) can find "the latest task" or "list recent tasks" without already knowing a specific ID. `claude_bridge_info` exposes a bare `active_task_count` — an existing but insufficient hint (a number, not which tasks or their content).
 
-## 10. `/he` Route: PASS
+## 8. PATH B Current Capability (Owner runs Claude Code manually, outside the Bridge)
 
-`http://127.0.0.1:5186/he` → `200`.
+**Zero relationship to the Bridge's task store.** A manual Claude Code session (like the one performing this audit) never calls `createTask()`/`saveTask()` — nothing about it is ever written to `proflow-mcp-bridge\tasks\`. Its session data lives entirely under Claude Code's own separate session storage, outside the Bridge's hardcoded `REPO_ROOT` filesystem allowlist; the Bridge has no code path that ever reads it. Today, PATH B results reach ChatGPT **only** via an explicit GitHub `proflow-continuity` push or Owner manual transport.
 
-## 11. `/en` Route: PASS
+## 9. Why Prior `claude_task_report` Retrieval Worked
 
-`http://127.0.0.1:5186/en` → `200`.
+Simple parameter continuity within one unbroken ChatGPT conversation: a `claude_task_start`/`claude_ask` call returns `task_id` in its own tool-call response, which that conversation's own context retains and later re-supplies to `claude_task_status`/`claude_task_report`. It was never a discovery capability — it worked only because the conversation never lost track of the identifier it was already handed.
 
-## 12. Idempotency / Duplicate Prevention: PASS
+## 10. Whether Completed Tasks Persist: YES — Directly Proven, Not Just Read in Code
 
-The launcher was fired twice, live. First run: nothing running → started the server → became healthy. Second run: correctly detected already-healthy via real HTTP check → logged `"Already healthy... nothing to do"` → started nothing. `tasklist`/`netstat` before and after the second run showed **identical PIDs** — zero duplicate process created.
+9 real task files currently exist, spanning `2026-09-02 18:39` through `2026-09-03 14:45` — the latter **predates** today's genuine reboot (`15:49:59`) and was independently confirmed still present and intact afterward. This empirically proves task records survive both a Bridge restart and a full Windows reboot.
 
-## 13. TEST Log Path
+## 11. Whether New ChatGPT Conversations Can Retrieve Old Tasks
 
-`C:\Users\sales\proflow-test-server\test-autostart.log` (method-level outcomes only — never environment values, never secrets). Separate `test-server-stdout.log`/`test-server-stderr.log` capture Vite's own console output (also free of secrets — Vite's startup banner contains only URLs and version info).
+**Yes, technically** — since there is no per-conversation binding, any conversation that is given (or already knows) a `task_id` can retrieve it via `claude_task_report`, regardless of which conversation originally created it. What a *new* conversation cannot do today is **discover** that task_id on its own.
 
-## 14. Bridge/Tunnel Untouched: YES
+## 12. Whether Task Discovery Without a Known `task_id` Exists Today: NO
 
-Independently reconfirmed before and after all testing: `tunnel-client.exe` (same PID `16492`) and the Bridge `node.exe` (same PID `16332`) both still running, `runtimes status` still `runtime_state:"ready"`/`healthy:true`, Bridge still answering `tools/list` with `200`. Neither the Bridge/Tunnel scripts, logs, nor Startup files were opened for writing at any point in this task.
+Confirmed by reading every tool definition and every code path — no listing/discovery mechanism exists.
 
-## 15. `rween.exe` Untouched: YES
+## 13. Whether Manual Claude Sessions Can Be Safely Discovered
 
-SHA-256 hash captured before this task and reconfirmed identical after all testing (`7B178AA7...163D7`). Size and the fact that it was never opened, executed, or referenced by the new script confirm this independently.
+**YES, but only via a specific, scope-preserving convention — not by granting the Bridge broad access to Claude Code's own session storage.** Giving the Bridge a new capability to read Claude Code's general session/transcript files would risk exposing unrelated projects, unrelated sessions, and content never intended for this channel, with no reliable way to identify which session is "the relevant ProFlow one." The safe alternative: a manual session may *voluntarily* write its own completion record into the *same* `proflow-mcp-bridge\tasks\` directory, using the *same* JSON schema the Bridge already uses — zero new filesystem scope (same directory, same allowlist, same reload mechanism); only what a session deliberately writes there ever becomes visible. This is a **workflow discipline, not a structural guarantee**. The complementary guidance: prefer launching ProFlow Claude work through the Bridge when it's available and adequate (automatically discoverable, zero extra discipline needed); reserve manual sessions for work genuinely needing capability beyond the Bridge's read-only scope, using the marker convention as the safety net for those cases.
 
-## 16. Genuine Reboot Status
+**A real, live example of the exact gap, found fresh during this audit — not hypothetical**: task `task_4293b74bccad14fd` (created `2026-09-03T11:44:32Z`, ~4 hours before this audit) shows ChatGPT asking a Bridge-invoked Claude to read the six canonical files "specifically from GitHub ref `proflow-continuity`." Claude correctly self-reported `NEEDS_OWNER_AUTHORIZATION`, explaining a Bridge-invoked session can only read the local filesystem as currently checked out — no shell, no network, no git fetch — and cannot itself fetch or verify a named GitHub ref. Noted as a separate, adjacent finding: Bridge-invoked Claude can read local file content (which in practice is kept in sync with what's pushed to `proflow-continuity`) but cannot independently verify a remote ref matches it.
 
-**PENDING OWNER TEST.** Everything above was proven by manually invoking the real launcher twice — not by an actual Windows restart, which was not authorized or performed in this task.
+## 14. GitHub-Independent Retrieval Possible Today: PARTIAL
 
-## 17. Exact Owner Reboot Acceptance Steps
+For PATH A with a known `task_id`: **YES**, fully GitHub-independent already. For PATH A discovery-without-ID, and for PATH B entirely: **NO** — GitHub continuity (or Owner transport) remains the only path today.
 
-1. Restart Windows normally.
-2. Log in. Perform **no** manual TEST startup action.
-3. Wait roughly 15–20 seconds after logon (the launcher's own health-check loop needs a few seconds to confirm Vite is ready).
-4. Verify `http://192.168.1.189:5186/` loads.
-5. Verify `http://192.168.1.189:5186/he` loads.
-6. Verify `http://192.168.1.189:5186/en` loads.
-7. Confirm TEST, not Production — the easiest check is the same one used in this task: open browser DevTools console and inspect `import.meta.env.VITE_SUPABASE_URL`, or simply trust the fail-closed guard (if it had resolved to Production, the app would have refused to start with a visible error, not silently loaded).
-8. Confirm exactly one Vite TEST process exists (`tasklist` should show exactly one `node.exe` bound to port 5186, distinct from the Bridge's own `node.exe`).
-9. Confirm ProFlow Claude Bridge/Tunnel still work and remain unaffected (e.g. a `claude_bridge_info` call through ChatGPT, or `tunnel-client runtimes status proflow-bridge`).
-10. If any step fails, check `C:\Users\sales\proflow-test-server\test-autostart.log` and the accompanying stdout/stderr logs for the exact failure reason before reporting back.
+## 15. Exact Missing Capability
 
-## 18. Files Changed
+A read-only task/report **discovery** mechanism — nothing else. Retrieval-by-ID is already complete and correct.
 
-- `C:\Users\sales\proflow-test-server\start-test-server.ps1` (new)
-- `C:\ProgramData\ef202d2f98\ProFlow-TestServer.vbs` (new)
-- Documentation only, this repo: `PROFLOW_PROJECT_CONTEXT.md` (§181), `PROFLOW_HANDOFF.md` (§18.HY), `PROFLOW_TODO.md` (Part E addendum), this file.
-- **No application repository source file was created, modified, or committed.** The two new scripts are local infrastructure files outside the tracked repository's own commit scope, consistent with the Bridge/Tunnel scripts' own precedent.
+## 16. Recommended Permanent Solution
 
-## 19. Continuity Commit SHA
+Add one new read-only MCP tool, `claude_task_list` — no required arguments, returns a bounded, most-recent-first summary (`task_id`, `status`, a short excerpt of `question`, `created_at`, `updated_at`) drawn from the *same* already-existing `tasks` Map/directory. A caller then uses the existing `claude_task_report` on the specific task it selects. Zero new filesystem scope, zero change to the Claude-invocation security model, zero change to how Claude itself is invoked.
 
-Content commit pushed to `origin/proflow-continuity`: `10c36f3`.
+## 17. Complexity: SMALL
 
-## 20. Remote Continuity Read-Back
+## 18. Security Implications
 
-Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real sizes) + direct content grep for the new §181 heading on `origin/proflow-continuity`.
+Read-only over already-loaded/already-allowlisted data. No new mutation capability. No change to the existing structural gates (`--allowedTools Read,Grep,Glob`, `--strict-mcp-config`, `--safe-mode`, `--permission-mode plan`). No new external exposure — still `127.0.0.1`-only, same tunnel, same no-OAuth model. Fail-closed: an unreadable/empty tasks directory returns an empty list, never an ambiguous error. Auditable via the existing `log()` mechanism. Consistent with, not a departure from, the existing single-Owner/no-per-conversation-isolation design already present in every other tool — this proposal does not weaken anything already in place.
+
+## 19. Proposed Deterministic Retrieval Order
+
+1. A `task_id` already known from the current conversation's own context → `claude_task_report` directly.
+2. No known ID → the new `claude_task_list` (once built), matched against what the Owner is actually asking about via its `question` excerpt — **never silently return the newest task merely because it is newest**; if genuinely ambiguous, ask the Owner one narrow clarifying question.
+3. The canonical GitHub `proflow-continuity` six-file set — the pre-existing, independent, durable fallback, unaffected by any of the above.
+4. Owner manual transport **only** as the last resort, when no authorized technical path resolves it — and even then, a narrow clarifying question, not routine full copy/paste.
+
+## 20. Exact Canonical Rule Recommended (proposed only — NOT recorded as implemented behavior)
+
+*"Claude report retrieval must not depend on a `proflow-continuity` push. ChatGPT must exhaust the retrieval order above — known task_id, Bridge-side task discovery (once built), canonical GitHub continuity — before ever asking the Owner to manually transport a report. The Owner is not data transport."* This is **not** added to any canonical file as a binding operating rule yet, since the discovery capability it depends on does not exist — recording it as current behavior now would misdescribe unbuilt capability as already-working.
+
+## 21. Exact Implementation Scope Requiring Separate Owner Authorization
+
+Adding `claude_task_list` requires editing `mcp-bridge-server.js` (one new tool definition + one new `callTool` case reading the already-loaded `tasks` Map) and **restarting the currently-healthy Bridge process** to load the change, then re-verifying the live MCP contract afterward. Small and well-understood, but explicitly requires its own separate authorization before any code edit or Bridge restart, consistent with the standing "do not touch the working Bridge/Tunnel" caution carried through every prior infrastructure task.
+
+## Classification: **B — SMALL BRIDGE ENHANCEMENT NEEDED**
+
+Not A (the core Owner pain point — a new/different conversation, or a forgotten ID — genuinely cannot be resolved today). Not C (the fix is one small, well-scoped new tool over already-existing, already-loaded data). Not D (manual Claude sessions *can* be safely supported, via the scope-preserving marker convention).
+
+**Nothing was implemented, edited, or restarted by Part B. This is an audit only.**
+
+---
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
 - **TEST DB CHANGED?** NO.
-- **APPLICATION FEATURE CODE CHANGED?** NO.
-- **BRIDGE/TUNNEL CHANGED?** NO.
-- **DOCKER CHANGED?** NO.
+- **APPLICATION CODE CHANGED?** NO.
+- **BRIDGE/TUNNEL CODE CHANGED?** NO.
+- **BRIDGE/TUNNEL RESTARTED?** NO.
+- **WINDOWS/STARTUP CHANGED?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -121,11 +131,11 @@ Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real 
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§181) |
-| `PROFLOW_TODO.md` | UPDATED (Part E addendum) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HY) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§181.1 reboot closure, §182 Part B audit) |
+| `PROFLOW_TODO.md` | UPDATED (Part E addendum, §182 backlog note) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HY.1 reboot closure, §18.HZ Part B audit) |
 | `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED |
-| `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
+| `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (the proposed rule is explicitly not yet binding — nothing to record here until the discovery tool exists) |
 
 ## Continuity commit SHA + remote read-back
 
@@ -133,16 +143,14 @@ Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real 
 
 ---
 
-## TEST SERVER AUTOSTART: IMPLEMENTED, PROVEN VIA TWO LIVE LAUNCHER RUNS (NOT A REAL REBOOT)
-## TARGETS quotecode-test — DIRECTLY PROVEN VIA import.meta.env, NOT INFERRED
-## PORT 5184 / PRODUCTION: UNTOUCHED, UNREACHABLE BY THIS MECHANISM'S DESIGN
-## IDEMPOTENCY: PROVEN (SECOND RUN, ZERO DUPLICATE PROCESS)
-## BRIDGE/TUNNEL/rween.exe/EXISTING STARTUP ITEMS: HASH-VERIFIED UNTOUCHED
-## GENUINE REBOOT PASS: PENDING OWNER TEST
+## PART A: TEST AUTOSTART GENUINE REBOOT PASS — CLOSED, OWNER-CONFIRMED + LOCALLY CORROBORATED
+## PART B: REPORT-RETRIEVAL GAP IS DISCOVERY, NOT RETRIEVAL — RETRIEVAL-BY-ID ALREADY WORKS FROM ANY CONVERSATION
+## PART B RECOMMENDATION: ONE NEW READ-ONLY TOOL (claude_task_list) — SMALL, NOT YET AUTHORIZED, NOT IMPLEMENTED
+## MANUAL-CLAUDE DISCOVERABILITY: YES VIA SCOPE-PRESERVING CONVENTION, NOT BROAD SESSION ACCESS
 ## PRODUCTION: UNCHANGED
 ## TEST DB: UNCHANGED
-## APPLICATION FEATURE CODE: UNCHANGED
-## BRIDGE/TUNNEL: UNCHANGED
-## DOCKER: UNCHANGED
+## APPLICATION CODE: UNCHANGED
+## BRIDGE/TUNNEL CODE: UNCHANGED, NOT RESTARTED
+## WINDOWS/STARTUP: UNCHANGED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
