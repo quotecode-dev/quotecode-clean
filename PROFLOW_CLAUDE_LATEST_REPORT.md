@@ -79,7 +79,7 @@ The real test — a genuine Windows logon triggering both launchers automaticall
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `5bf5037`.
 
 ---
 
