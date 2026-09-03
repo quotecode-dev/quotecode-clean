@@ -4,37 +4,35 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Document Large Canonical File Read Limitation for Future ChatGPT Sessions
+## Task: Permanent Hebrew / RTL Owner-Communication Rule
 
-**MODE: documentation/continuity only. No application code, Bridge, tunnel-client, Startup, Windows, DPAPI, TEST, Production, database, deployment, or LIVE state was touched.**
+**MODE: documentation/continuity only. No application code, Bridge, tunnel-client, Startup, Windows, credentials, TEST, Production, database, deployment, or LIVE state was touched.**
 
 ---
 
 ## Verdict
 
-**Rule documented, placed so it is encountered before a bootstrap can falsely fail.** The primary, guaranteed-to-be-read copy lives in `PROFLOW_CHAT_HANDOFF.md` §0 — a small file, unaffected by the size problem itself, and already read early (step 2) in the mandated bootstrap order. Short pointers to that rule were also added at the very top of both affected large files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`), so whichever of the two *does* read successfully still carries the warning forward for the other.
+**Rule recorded, placed for guaranteed early encounter.** The authoritative full rule lives in `PROFLOW_CHAT_HANDOFF.md` §0.1 — a small, reliably-read file, immediately following the existing large-file-limitation rule at §0, both encountered early in the mandatory bootstrap. A concise cross-reference was added to `PROFLOW_PROJECT_CONTEXT.md`'s own top banner (the very first thing a new session reads), matching the pattern already established for the large-file rule.
 
 ## Placement Reasoning
 
-The failure mode is specifically: a connector read of one of the two large files returns empty `content`. A warning placed *only inside* those same two files would not help in that exact scenario — the session would never see it. `PROFLOW_CHAT_HANDOFF.md` is part of the same six-file set, is well under any practical size limit, and is already read as step 2 of the existing mandatory bootstrap order (`PROFLOW_PROJECT_CONTEXT.md`'s own "Required Reading Order") — making it the reliable, guaranteed-to-land home for the rule. Short pointers were additionally placed at the very top of both large files as defense-in-depth, in case a partial/ranged read of just the beginning succeeds even when a full-content read does not.
+Same reasoning as the prior large-file-limitation task: a rule meant to govern *communication itself* must be visible before much communication has happened, and must not depend on a large, potentially-truncated file. `PROFLOW_CHAT_HANDOFF.md` is read as step 2 of the existing mandatory reading order and is well under any practical size limit, so it is the reliable authoritative home. A one-line pointer was added to `PROFLOW_PROJECT_CONTEXT.md` (read as step 1) so the rule is flagged even before `PROFLOW_CHAT_HANDOFF.md` is reached. No duplication was added to `PROFLOW_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, or `PROFLOW_TODO.md` — this rule isn't tied to file size the way the prior one was, and the two-location coverage already guarantees early encounter without unnecessary repetition.
 
-## Rule Content (summary — full text in `PROFLOW_CHAT_HANDOFF.md` §0)
+## Rule Content (summary — full text in `PROFLOW_CHAT_HANDOFF.md` §0.1)
 
-1. Names both files explicitly (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`) as known large files exceeding some connectors' practical content-return limit.
-2. States plainly that empty `content` with valid metadata/SHA is a tool limitation, never evidence of an empty/corrupt/missing file or broken continuity.
-3. Preserves the six-file fresh-read-and-reconcile requirement unchanged — this rule does not relax it.
-4. Requires trying a reasonable read-only alternative (ranged/partial read, raw/blob read, GitHub API blob endpoint, targeted search + section retrieval, or any other available read-only mechanism) before concluding anything.
-5. States metadata/SHA/existence alone is not a successful read — actual content must come back through some working method.
-6. Explicitly forbids asking the Owner to paste either file merely because one connector method hit its size limit.
-7. Explicitly forbids substituting chat memory, history, a Claude report summary, or another of the six files for the actual fresh read.
-8. Only after genuinely exhausting available read-only alternatives may a session fail closed with exactly `CONTINUITY BOOTSTRAP INCOMPLETE`.
+1. Owner-facing communication is in Hebrew by default, unless the Owner explicitly requests another language.
+2. Hebrew prose must always read naturally in RTL — never visually reversed, scrambled, or broken.
+3. Avoid excessive inline mixing of Hebrew with English technical text inside one sentence.
+4. Technical LTR material (commands, paths, filenames, branch names, commit SHAs, identifiers, function names, exact error strings, code) goes in inline-code formatting or its own line/block whenever that improves RTL/BiDi stability.
+5. Prefer rewriting the surrounding Hebrew sentence naturally over leaving Hebrew/English interleaved in a way that may render incorrectly.
+6. Governs Owner-facing ChatGPT communication only — Claude/coding-agent prompts, source code, and exact technical literals stay in English when technically preferable.
+7. Permanent — survives every future chat transition and the mandatory six-file bootstrap.
 
 ## Files Changed
 
-- `PROFLOW_CHAT_HANDOFF.md` — new §0, placed before the existing §1, containing the full rule.
-- `PROFLOW_PROJECT_CONTEXT.md` — short pointer added to the existing top "NEW CHAT / SESSION" banner.
-- `PROFLOW_HANDOFF.md` — short pointer added to the existing top "CURRENT RESUME STATE" banner.
-- `PROFLOW_TODO.md`, `PROFLOW_ARCHITECTURE.md` — reviewed; the rule does not belong in either (not part of the size-affected files or the bootstrap-read-order chain in the same way) — no change made.
+- `PROFLOW_CHAT_HANDOFF.md` — new §0.1, placed immediately after the existing §0 (large-file rule), before §1.
+- `PROFLOW_PROJECT_CONTEXT.md` — one-line cross-reference added to the existing top "NEW CHAT / SESSION" banner.
+- `PROFLOW_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_TODO.md` — reviewed; no change (avoiding unnecessary duplication, per instruction — early-encounter coverage is already guaranteed by the two locations above).
 
 ## Explicit Safety Report
 
@@ -42,6 +40,7 @@ The failure mode is specifically: a connector read of one of the two large files
 - **TEST CHANGED?** NO.
 - **APPLICATION CODE CHANGED?** NO.
 - **BRIDGE/TUNNEL CHANGED?** NO.
+- **WINDOWS/STARTUP/DPAPI CHANGED?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -52,27 +51,25 @@ The failure mode is specifically: a connector read of one of the two large files
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (top-banner pointer added) |
-| `PROFLOW_TODO.md` | REVIEWED — NO CHANGE REQUIRED (rule doesn't belong here) |
-| `PROFLOW_HANDOFF.md` | UPDATED (top-banner pointer added) |
-| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (rule doesn't belong here) |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §0 — the primary, reliable home for this rule) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (top-banner cross-reference added) |
+| `PROFLOW_TODO.md` | REVIEWED — NO CHANGE REQUIRED |
+| `PROFLOW_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §0.1 — the authoritative rule) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `a1280f6`.
+*(filled after push — see below)*
 
 ---
 
-## LARGE-FILE READ LIMITATION: DOCUMENTED, PLACED IN THE RELIABLY-READ FILE (PROFLOW_CHAT_HANDOFF.md §0)
-## FILES NAMED EXPLICITLY: YES (PROFLOW_PROJECT_CONTEXT.md, PROFLOW_HANDOFF.md)
-## FALSE-FAILURE / EMPTY-CONTENT WARNING: RECORDED
-## ALTERNATIVE READ-PATH REQUIREMENT: RECORDED
-## OWNER-NOT-DATA-TRANSPORT RULE: RECORDED
-## SIX-FILE BOOTSTRAP REQUIREMENT: PRESERVED, NOT RELAXED
+## PERMANENT HEBREW-DEFAULT RULE: RECORDED
+## RTL/BiDi READABILITY RULE: RECORDED
+## TECHNICAL LTR ISOLATION RULE: RECORDED
+## FUTURE-BOOTSTRAP INHERITANCE: GUARANTEED (PROFLOW_CHAT_HANDOFF.md §0.1, read early; cross-referenced from PROFLOW_PROJECT_CONTEXT.md's own top banner)
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
 ## BRIDGE/TUNNEL: UNCHANGED
+## WINDOWS/STARTUP/DPAPI: UNCHANGED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
-## HE/EN: UNAFFECTED

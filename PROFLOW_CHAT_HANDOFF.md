@@ -33,6 +33,18 @@ During the mandatory six-file bootstrap, all six files must still be **freshly r
 4. **Never substitute** chat memory, prior chat history, a Claude report summary, or another one of the six files for the actual fresh read of these two files.
 5. Only after reasonable available read-only alternatives have genuinely been exhausted may a session fail closed and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (per `PROFLOW_PROJECT_CONTEXT.md` §0.C) — not before.
 
+## 0.1 ⚠️ Hebrew / RTL Owner-Communication Rule (permanent, added 2026-09-03)
+
+**Owner-facing ProFlow communication is in Hebrew by default, unless the Owner explicitly requests another language.** The Owner has repeatedly hit visually broken/reversed Hebrew from careless Hebrew↔English BiDi mixing — this rule exists to stop that permanently, in every future ProFlow ChatGPT session.
+
+1. Hebrew prose must always read naturally in RTL — never visually reversed, scrambled, or broken.
+2. Avoid excessive inline mixing of Hebrew with English technical text inside one sentence.
+3. Technical LTR material — commands, paths, filenames, branch names, commit SHAs, identifiers, function names, exact error strings, code — goes in inline-code formatting or its own line/code block whenever that improves RTL/BiDi stability, rather than sitting bare inside a Hebrew sentence.
+4. Prefer rewriting the surrounding Hebrew sentence naturally over leaving Hebrew and English interleaved in a way that may render incorrectly.
+5. Hebrew headings, status summaries, instructions, and Owner-facing reports must stay naturally readable — this is not optional polish.
+6. This governs **Owner-facing ChatGPT communication only.** Claude/coding-agent prompts, source code, commands, and exact technical literals are not translated and may stay in English when technically preferable.
+7. **Permanent rule** — survives every future ChatGPT chat transition and the mandatory six-file bootstrap; does not need re-requesting by the Owner.
+
 ## 1. Roles and decision authority
 
 **Owner**: final authority for product, visual acceptance, LIVE, migrations,

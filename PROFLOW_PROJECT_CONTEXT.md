@@ -6,6 +6,8 @@
 
 **⚠️ THIS FILE AND `PROFLOW_HANDOFF.md` ARE LARGE (>1 MB each)** — some GitHub connector/API reads return valid metadata but empty `content` for files this size. That is a tool limitation, never evidence either file is empty/corrupt/missing. Full handling rule: `PROFLOW_CHAT_HANDOFF.md` §0 — try a read-only alternative (ranged/blob/raw read, targeted section retrieval) before concluding anything; never ask the Owner to paste either file; only fail closed with `CONTINUITY BOOTSTRAP INCOMPLETE` after genuinely exhausting available read-only methods.
 
+**⚠️ OWNER-FACING COMMUNICATION IS IN HEBREW BY DEFAULT, NATURALLY RTL, NEVER VISUALLY BROKEN FROM BiDi MIXING** — permanent rule, full text: `PROFLOW_CHAT_HANDOFF.md` §0.1.
+
 **THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
 
 **THEN READ `PROFLOW_ARCHITECTURE.md`.**
