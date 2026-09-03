@@ -98,11 +98,11 @@ SHA-256 hash captured before this task and reconfirmed identical after all testi
 
 ## 19. Continuity Commit SHA
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `10c36f3`.
 
 ## 20. Remote Continuity Read-Back
 
-*(performed after push — see below)*
+Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real sizes) + direct content grep for the new §181 heading on `origin/proflow-continuity`.
 
 ## Explicit Safety Report
 
