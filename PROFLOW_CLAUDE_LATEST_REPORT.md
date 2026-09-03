@@ -111,7 +111,7 @@ Confirmed by QA: no `OWNER CORRECTION`-tagged edit touches AI Chat, sidebar bran
 
 ## 22. Continuity Commit and Push Result
 
-Pending as of this writing — to be performed immediately after this report is finalized, following the standing two-commit convention (content commit, then SHA-follow-up commit), with fresh fetch + read-back verification after each push.
+Content commit pushed to `origin/proflow-continuity`: `3eab85e` (`6a6f66c..3eab85e`), fresh-fetched and read-back verified (`git log` + content-grep for §191/§18.II/the superseded-flag all confirmed present on the remote).
 
 ## 23. Application Commit
 
