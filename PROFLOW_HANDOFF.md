@@ -5494,3 +5494,23 @@ Owner-authorized implementation of the Owner-approved V2 visual direction (two m
 **Owner visual acceptance: PENDING**, and gated on the item above being resolved first.
 
 **Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel change. Application source changed in TEST/local scope only (`neonTheme.js`, `Dashboard.jsx`, `QuoteForm.jsx`), additive on top of the pre-existing uncommitted diff. No commit, no push, no deploy. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §184, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## §18.IC. ProFlow V2 — PHASE 1 VISUAL COMPLETION / CORRECTION PASS — Four Read-Only Subagents + Lead-as-Sole-Writer — IMPLEMENTED, OWNER VISUAL ACCEPTANCE STILL PENDING (2026-09-03, `PROFLOW_PROJECT_CONTEXT.md` §185 — corrects §184, TEST/local-only)
+
+Owner inspected §184's actual TEST result and judged it insufficient: sidebar was a good start, but Dashboard body/Create Quote still read as old ProFlow. §184 was correctly never marked done; this section doesn't close that gap either — only the Owner's own TEST inspection can.
+
+**Multi-agent model, as mandated**: four `Explore`-type subagents (structurally read-only, no Edit/Write tools at all) dispatched in parallel — HE, EN, UI/Responsive, QA/Regression/Preservation — each briefed with a detailed prose description of Image 1 (subagents can't see conversation-attached images). All returned findings only; Claude Lead made every edit, avoiding the multi-writer collision risk the immediately-prior capability audit flagged.
+
+**Key finding**: `src/components/QuotesTab.jsx` (the quote-history table, rendered inside Dashboard's `'main'` tab) had **zero diff** — §184 never touched it. All four specialists independently named it the single biggest reason the Dashboard still looked old. It became this pass's main target.
+
+**Implemented**: `QuotesTab.jsx` — hard borders → shadow/radius tokens; 12 instances of a bespoke non-token `#E9D5FF` header-border color → a lighter neutral (mechanics/physical-side/radius logic untouched); per-row purple-gradient "Actions" button (desktop+mobile) and the near-black Export button → neutral ghost buttons; **a real HE-specialist-confirmed residual RTL bug fixed** (`flexDirection: isHebrew ? 'row-reverse' : 'row'` on the search/filter row — the exact "row-reverse is itself the bug" class already fixed once one container up, left behind here). `Dashboard.jsx` — `dash-upper-section`'s border/shadow updated with its `position`/padding/radius/transition left **byte-identical** (QA-specialist-flagged: this is the Trial Notice's sole positioning contract); KPI cards get shadow/radius; a real, data-free greeting banner added; dead CSS from §184's shell migration removed (one still-live selector preserved). `QuoteForm.jsx` — Client/Quote Details cards now side-by-side via the same auto-fit grid pattern already used elsewhere in the file; all four section-cards get a small uppercase header label + shadow/radius.
+
+**Deliberately not implemented** (no business action exists to attach it to): topbar search/notification bell/donut chart/recent-activity feed, step-progress wizard, "Save Draft" button — all recorded as explicit known gaps, not silently dropped.
+
+**Reconciliation** (full detail in `PROFLOW_CLAUDE_LATEST_REPORT.md`): HE's row-reverse bug — fixed; sidebar-side ambiguity — left as the existing proven mirroring pattern, flagged OPEN for Owner decision; EN's other ~17 row-reverse instances — explicitly not blind-fixed (EN itself called them unconfirmed without live rendering); every RTL/LTR mechanism, every KPI/entitlement/hot-quote/sort/filter/export/lock/VAT/currency mechanism QA named as a landmine — confirmed preserved (304/304 tests unchanged, only style values touched).
+
+**Browser QA**: re-checked, not repaired. A Python interpreter exists on the machine (`C:\Python314\python.exe`) but `browser-harness`'s own configured `uv`-managed interpreter path is missing — fixing that would be exactly the "reconfigure browser infrastructure" step this task forbade without separate authorization. Real-browser visual QA remains NOT PERFORMED. Structural verification only: lint clean, 304/304 tests, build succeeds.
+
+**Owner visual acceptance: still PENDING.**
+
+**Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel/Windows/Claude-config change, no Agent Teams enabled. Application source changed in TEST/local scope only. No commit, no push, no deploy. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §185, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
