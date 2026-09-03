@@ -4,7 +4,7 @@
 
 **PERMANENT SIX-FILE CONTINUITY RULE (see §0.B below for the full rule): this project maintains exactly SIX canonical continuity documents, always read together from the `proflow-continuity` ref, never from `main`, a stale upload, or chat memory.** Earlier wording throughout this project's documentation (in this file and others) has referred to "four" or "five" documents at various points in its history, as the set genuinely grew from three to six over time. §0.B is the current, authoritative statement — treat any "four"/"five" phrasing found elsewhere (including deeper in this very file) as superseded by §0.B, not as a live inconsistency to re-litigate.
 
-**⚠️ THIS FILE AND `PROFLOW_HANDOFF.md` ARE LARGE (>1 MB each)** — some GitHub connector/API reads return valid metadata but empty `content` for files this size. That is a tool limitation, never evidence either file is empty/corrupt/missing. Full handling rule: `PROFLOW_CHAT_HANDOFF.md` §0 — try a read-only alternative (ranged/blob/raw read, targeted section retrieval) before concluding anything; never ask the Owner to paste either file; only fail closed with `CONTINUITY BOOTSTRAP INCOMPLETE` after genuinely exhausting available read-only methods.
+**⚠️ THIS FILE AND `PROFLOW_HANDOFF.md` ARE LARGE (>1 MB each)** — the GitHub Contents API returns valid metadata (including the exact blob `sha`) but an empty `content` field for any file over ~1 MB. **This is proven, documented API behavior, never evidence either file is empty/corrupt/missing.** GOVERNING RULE: *an empty/missing content field from an initial GitHub file fetch is NOT a failed read when a blob SHA or another read-only retrieval path remains available — before declaring `CONTINUITY BOOTSTRAP INCOMPLETE`, resolve and read the underlying blob and exhaust reasonable authorized read-only GitHub paths.* Use the Git Blobs API (`GET /repos/quotecode-dev/quotecode-clean/git/blobs/{sha}`) or the raw content URL (`https://raw.githubusercontent.com/quotecode-dev/quotecode-clean/proflow-continuity/{path}`) — both proven this session to recover the complete file, byte-for-byte verified. Never ask the Owner to paste either file. Full algorithm + proof: `PROFLOW_CHAT_HANDOFF.md` §0 and §188 below.
 
 **⚠️ OWNER-FACING COMMUNICATION IS IN HEBREW BY DEFAULT, NATURALLY RTL, NEVER VISUALLY BROKEN FROM BiDi MIXING** — permanent rule, full text: `PROFLOW_CHAT_HANDOFF.md` §0.1.
 
@@ -139,7 +139,7 @@ This is recognized identically to the pre-existing Magic Phrase Continuity Contr
 
 1. **Read all six canonical files** — `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` (§0.A) — **directly from `ref = proflow-continuity`** on GitHub (`quotecode-dev/quotecode-clean`).
 2. **Never silently substitute** `main`, the default branch, a stale uploaded copy, previous chat history, or memory for that read.
-3. **If any of the six cannot be read from `proflow-continuity`**, STOP immediately and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (§0.C) — no guessing, no partial resume.
+3. **If any of the six cannot be read from `proflow-continuity`**, STOP immediately and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (§0.C) — no guessing, no partial resume. **"Cannot be read" means every reasonable read-only path was attempted and none returned content — not that the first attempt returned an empty `content` field.** `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` are known to exceed the GitHub Contents API's ~1 MB inline-content limit, which returns empty `content` alongside a valid, usable blob `sha` — that is proven, expected API behavior for a file this size, not evidence of a failed read. Before reporting `CONTINUITY BOOTSTRAP INCOMPLETE` for either file, resolve and read the underlying Git blob (`git/blobs/{sha}`) or the raw content URL — see `PROFLOW_CHAT_HANDOFF.md` §0 and §188 below for the exact endpoints and proof.
 4. **Perform an INDEPENDENT SIX-FILE RECONCILIATION.** This is critical: a prior session's own "PASS" verdict or its own Six-File Continuity Ledger is *evidence*, never *proof by itself* — the bootstrapping session must read and cross-check the six files' actual current content, not merely trust a prior session's self-report. See §0.E for the standing rule this derives from.
 5. **Treat `PROFLOW_CLAUDE_LATEST_REPORT.md` as a report transport / review bridge** (§17.C) — the newest completed task's report, useful evidence, never the sole Source of Truth for current state.
 6. **Detect and report** stale documents, conflicting current-state claims, missing updates, or inconsistent checkpoints found across the six files, before proceeding.
@@ -8182,3 +8182,99 @@ Public Quote (`PublicQuote.jsx`/`PublicQuoteEn.jsx`), Admin, Production, Product
 (1) The Owner directly inspects the actual TEST result of this round's fix (ideally via fresh real screenshots again, since that is what produced the most precise, actionable feedback this whole V2 effort has had) and gives an explicit accept/reject verdict — on the width specifically, and on the overall visual direction now that width is corrected. (2) If accepted: candidates for next phase are Public Quote redesign (Image 2, already recorded in §184), Admin redesign, or further polish on the items §186 already left open (sidebar-identity ellipsis nuance, QuotesTab toolbar-row density, QuoteForm sub-panel tier consistency). (3) If rejected again: capture the Owner's specific reasoning with the same precision this section captured §186's rejection, ideally again via real screenshots, which have proven far more actionable than prose description alone.
 
 **Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel/Windows-configuration/Claude-configuration change. No Agent Teams enabled. Application source changed in TEST/local scope only (`src/pages/Dashboard.jsx`, `src/index.css`, `src/components/QuotesTab.jsx`, `src/pages/ProfessionalPublicPreview.jsx`, `src/pages/ProfessionalQuotePreview.jsx`). No commit, no push, no deploy. Full detail: `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## §188. Continuity Bootstrap Hardening — Permanent Six-File Read Reliability — Root Cause Proven, Fallback Chain Empirically Verified, Governing Rule Hardened at Every First-Read Location — CONTINUITY HARDENING: VERIFIED (2026-09-03, Owner-authorized, read-only investigation + documentation-only implementation)
+
+### 188.0 — Why this task exists
+
+Prior ChatGPT sessions had, at least once, encountered a GitHub file read for one of the two large canonical files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`) that returned no content on the first attempt, and had successfully recovered via a blob-based fallback — but the exact mechanism, exact root cause, and exact proof that the fallback is reliable had never been directly, empirically established and permanently documented at the strongest possible location. This task closes that gap: root cause proven (not assumed), fallback mechanism proven byte-for-byte correct (not merely "reported to have worked once"), and the governing rule hardened at every location a future session reads first.
+
+### 188.1 — Root cause, empirically proven this session (not assumed from the prior 2026-09-03 note)
+
+Live-tested directly against `https://api.github.com` (the repository `quotecode-dev/quotecode-clean` is public, so this required no authentication token — confirmed via a plain `GET /repos/quotecode-dev/quotecode-clean` returning HTTP 200). Fresh blob SHAs/sizes obtained first via `git ls-tree -l origin/proflow-continuity`:
+
+| File | Size (bytes) | Blob SHA |
+|---|---|---|
+| `PROFLOW_ARCHITECTURE.md` | 123,631 | `00e3b57a…` |
+| `PROFLOW_CHAT_HANDOFF.md` | 393,502 | `c6734f42…` |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | 10,755 | `ba1a5a11…` |
+| `PROFLOW_HANDOFF.md` | 1,317,864 | `1f1b8975…` |
+| `PROFLOW_PROJECT_CONTEXT.md` | 1,623,398 | `4c3d0e7d…` |
+| `PROFLOW_TODO.md` | 580,804 | `0320f338…` |
+
+For each, called `GET /repos/quotecode-dev/quotecode-clean/contents/{path}?ref=proflow-continuity` fresh:
+
+- The four files **under** 1,048,576 bytes (1 MB) — `CLAUDE_LATEST_REPORT`, `ARCHITECTURE`, `CHAT_HANDOFF`, `TODO` — **all returned HTTP 200 with full base64 `content` and `"encoding": "base64"`.**
+- The two files **over** 1 MB — `PROJECT_CONTEXT` (1,623,398 B), `HANDOFF` (1,317,864 B) — **both returned HTTP 200 with complete, correct metadata (`sha`, `size`, `git_url`, `download_url`) but `"content": ""` and `"encoding": "none"`.**
+
+This is the GitHub REST Contents API's own documented behavior: it omits inline base64 content above a ~1 MB threshold, by design, while still returning a fully successful response. **This is not a connector bug, not truncation-in-transit, not encoding corruption, not an MCP/Bridge issue, and not evidence the file is missing** — it is a deterministic function of file size alone, reproduced exactly at the documented threshold for exactly the two files already known to exceed it.
+
+### 188.2 — Fallback mechanism, empirically proven correct (not merely assumed to work because it worked once before)
+
+**Path A — Git Blobs API.** `GET /repos/quotecode-dev/quotecode-clean/git/blobs/{sha}` (using the exact `sha` already returned by the Contents API call, even on its empty-content response) was called for both large files. Both returned HTTP 200 with full base64 `content`, `"encoding": "base64"`, and a `size` matching the original metadata exactly. The base64 was decoded and its SHA-256 checksum compared against the exact local git blob object (`git cat-file -p {sha}`, which is guaranteed byte-identical to GitHub's copy of the same content-addressed object) — **both files matched exactly**:
+- `PROFLOW_PROJECT_CONTEXT.md`: recovered SHA-256 `4c40e2f096f9486fbb5408ea0a09bda1eda03783348cf2335272aafd564bc3ef` = local blob SHA-256, **exact match**.
+- `PROFLOW_HANDOFF.md`: recovered SHA-256 `972bb2c7149f57510232c14febcce51dec04ca5d44f8335f68757631c7dc17ee` = local blob SHA-256, **exact match**.
+
+Recovered content was also spot-read (head/tail) and confirmed to be genuine, coherent, complete markdown — not garbage, not partial.
+
+**Path B — raw content URL** (`https://raw.githubusercontent.com/quotecode-dev/quotecode-clean/proflow-continuity/{path}`), tested as a secondary/alternate fallback for `PROFLOW_PROJECT_CONTEXT.md`: returned all 1,623,398 bytes with a matching `Content-Length` header, and its SHA-256 also matched the local blob exactly. Confirmed genuinely useful as an equally valid alternate path, particularly for a session whose available tool is a generic web-fetch capability rather than a dedicated GitHub-blob-aware tool. Caveat recorded: this URL is branch-name-pinned, not commit-SHA-pinned, so a byte-length cross-check against the already-known `size` is the recommended safeguard against the narrow theoretical race of a concurrent push.
+
+**Conclusion: both fallback paths are proven deterministic and correct**, not merely "reported to have worked once before."
+
+### 188.3 — Exact fallback algorithm (now the permanent governing rule)
+
+See `PROFLOW_CHAT_HANDOFF.md` §0 for the full text, cross-referenced from this file's own top banner and from §0.D item B.3 below (the actual bootstrap contract's STOP condition). Summary:
+
+1. Attempt the normal file read at `ref=proflow-continuity`.
+2. Complete content → use it.
+3. Empty/missing content **but** a `sha`/blob identifier is present and the response was not an error → **this is proof the file exists and is reachable, not a failed read** → proceed to the Git Blobs API using that exact `sha`.
+4. If the Blobs API isn't available to the session's specific tool, use the raw content URL.
+5. Cross-check recovered byte length against the already-known `size`.
+6. Only after genuinely attempting 1, 3, and 4 with no working method → report `CONTINUITY BOOTSTRAP INCOMPLETE` for that specific file.
+
+**This must never**: silently switch to `main`; use a stale local copy; use chat memory as canonical state; substitute an old Claude report for a fresh read; or claim `VERIFIED` without all six files freshly read this way.
+
+### 188.4 — Where the rule now lives (hardened at every first-read location, not just one)
+
+1. `PROFLOW_PROJECT_CONTEXT.md` top banner (line 7, the very first content-bearing line of the file any session reads) — now states the governing sentence verbatim and the exact two fallback endpoints.
+2. `PROFLOW_PROJECT_CONTEXT.md` §0.D item B.3 — the actual bootstrap-contract STOP condition triggered by the Owner's own trigger phrase ("המשך פרויקט ProFlow") — now explicitly defines "cannot be read" as "every reasonable read-only path was attempted," not "the first attempt returned empty," with the same endpoints inline.
+3. `PROFLOW_CHAT_HANDOFF.md` §0 — the full algorithm, proof, exact endpoints, and residual-limitation analysis (this section's own source of truth).
+4. This section (§188) — the permanent evidentiary record: exact test methodology, exact results, exact checksums, so a future session (or a future audit) never has to re-derive this from scratch or take it on faith.
+
+No existing six-file/bootstrap/governance rule was weakened, relaxed, or made contradictory — every change above is additive precision on top of the rule that already existed since the prior 2026-09-03 note; nothing was removed.
+
+### 188.5 — Six-File Read Test Evidence (clean simulation, starting from only: repository + exact ref + six filenames)
+
+| File | Normal read | Blob SHA available? | Fallback needed? | Fallback result | Complete content confirmed? | Exact ref confirmed? | PASS/FAIL |
+|---|---|---|---|---|---|---|---|
+| `PROFLOW_ARCHITECTURE.md` | Full content, HTTP 200 | Yes | No | N/A | Yes (123,631 B) | Yes (`?ref=proflow-continuity`) | **PASS** |
+| `PROFLOW_CHAT_HANDOFF.md` | Full content, HTTP 200 | Yes | No | N/A | Yes (393,502 B) | Yes | **PASS** |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | Full content, HTTP 200 | Yes | No | N/A | Yes (10,755 B), spot-verified readable markdown | Yes | **PASS** |
+| `PROFLOW_HANDOFF.md` | HTTP 200, `content:""`, `encoding:"none"` | Yes (`1f1b8975…`) | **Yes** | Git Blobs API → full base64, SHA-256-verified byte-for-byte match to local blob | Yes (1,317,864 B) | Yes | **PASS (via fallback)** |
+| `PROFLOW_PROJECT_CONTEXT.md` | HTTP 200, `content:""`, `encoding:"none"` | Yes (`4c3d0e7d…`) | **Yes** | Git Blobs API → full base64, SHA-256-verified byte-for-byte match to local blob; raw-URL path also independently verified matching | Yes (1,623,398 B) | Yes | **PASS (via fallback)** |
+| `PROFLOW_TODO.md` | Full content, HTTP 200 | Yes | No | N/A | Yes (580,804 B) | Yes | **PASS** |
+
+**6/6 PASS.**
+
+### 188.6 — What was changed
+
+Documentation only, on `proflow-continuity`. No application code, no Production, no TEST DB, no schema, no migration, no Edge Function, no deploy, no LIVE action. **No Bridge/Tunnel restart, repair, reconfiguration, or reinstallation was performed or was found to be necessary** — nothing in this investigation implicated the local Bridge/tunnel in any way; the entire failure mode and fix live in how a GitHub-reading session (ChatGPT-side) interprets a standard, documented GitHub API response, which is unrelated to ProFlow's own local Bridge infrastructure. Per the task's own explicit Bridge-safety instruction, no Bridge action was taken and none was warranted by any evidence found.
+
+### 188.7 — New-chat failure analysis: what ProFlow can and cannot guarantee
+
+**A. Hardened permanently in ProFlow infrastructure/documentation (this task):** the exact root cause is now proven and documented, not guessed. The exact fallback algorithm, with literal, copy-pasteable API endpoints, is documented at three first-read locations plus this evidentiary record. The governing sentence is stated verbatim, quotably, at each location, specifically so a session's own reasoning has an unambiguous rule to anchor on rather than a vague "try something else." The bootstrap contract's own STOP condition (§0.D.B.3) now explicitly defines what "cannot be read" requires before it can be invoked.
+
+**B. NOT controllable from the ProFlow repository/Bridge side — genuine, honestly-reported residual risk:**
+- Whether a *given* ChatGPT session's specific connector/tool/Custom-GPT-Action configuration actually exposes a Git-Blobs-capable call or a generic raw-URL-fetch capability at all. If a session's only available GitHub-reading tool is narrowly bound to the Contents API with no fallback action defined in its own tool schema, no amount of repository-side documentation can conjure a capability that was never wired into that session's own tools.
+- Whether that session's own model reasoning, in the moment, correctly follows this documented instruction rather than prematurely concluding failure — repository markdown is read as context/instruction for an LLM, not executed as enforced code; it cannot mechanically force correct behavior the way a real fallback-implementing program could.
+- Genuinely unrelated failure classes: GitHub outage, connector auth/session expiry, rate-limiting, a completely different tool bug — none of which this task can prove will never occur.
+
+**C. Mitigations applied to make B as reliable as practically achievable:** the rule is stated at the very first line of the very first file any session reads (maximum chance of being seen before any premature failure judgment); the exact literal endpoints are given so even a tool-agnostic generic web-fetch can execute the fallback without needing a GitHub-specific plugin; the governing sentence is phrased as an unambiguous, quotable rule rather than a soft suggestion; the rule is cross-linked from three separate locations so redundancy compensates for any one being skimmed past.
+
+**No claim is made that this failure mode can never recur.** The claim made is narrower and honestly bounded: the failure mode is now correctly understood, the fallback is proven to work when attempted, and the instruction to attempt it is now stated as forcefully and as early as this documentation system can state anything — category B above remains a genuine, ProFlow-uncontrollable residual risk, not eliminated by this task, only mitigated as far as is technically possible from the repository side.
+
+### 188.8 — Classification
+
+**CONTINUITY HARDENING: VERIFIED** — the clean six-file simulation (§188.5) passed 6/6, the root cause is empirically proven (not assumed), the fallback mechanism is empirically proven correct via byte-for-byte SHA-256 verification (not assumed to work because it worked once before), and the governing rule is now hardened at every location a future session reads first, without weakening or duplicating any existing rule.
+
+**Release boundary**: zero Production/TEST-DB/schema/migration/business-logic/Bridge/Tunnel/Windows-configuration/Claude-configuration change. No application code touched. No Bridge/Tunnel restart or reconfiguration performed or required. Documentation-only, `proflow-continuity` only. Full detail: `PROFLOW_CLAUDE_LATEST_REPORT.md`.

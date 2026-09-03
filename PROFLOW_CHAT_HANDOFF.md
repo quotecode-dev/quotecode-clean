@@ -20,18 +20,30 @@ current accepted visual/product state, the current known blockers, what must
 never be assumed, and the exact current resume point — without duplicating
 the huge technical histories already stored in `PROFLOW_HANDOFF.md`.
 
-## 0. ⚠️ Large-File Read Limitation — PROFLOW_PROJECT_CONTEXT.md / PROFLOW_HANDOFF.md (permanent, added 2026-09-03)
+## 0. ⚠️ Large-File Read Limitation — PROFLOW_PROJECT_CONTEXT.md / PROFLOW_HANDOFF.md (permanent, added 2026-09-03, ROOT-CAUSE-PROVEN + FALLBACK-CHAIN-HARDENED 2026-09-03 — Continuity Bootstrap Hardening task, `PROFLOW_PROJECT_CONTEXT.md` §188)
 
-**`PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` are known large files (each well over 1 MB) that exceed the practical content-return limit of some GitHub connector/API file reads.** Some connector methods return valid metadata (path, SHA) for these two files but an **empty `content` field**. This is a **tool/response-size limitation only.**
+**GOVERNING RULE, verbatim — anchor every read-failure judgment on this exact sentence:**
 
-**An empty `content` response for either file, even with valid metadata/SHA, must NEVER be treated as evidence that the file is empty, corrupt, missing, or that continuity is broken.** Both files are large specifically because they hold this project's real accumulated history — that is expected, not a fault.
+> **An empty/missing content field from an initial GitHub file fetch is NOT a failed read when a blob SHA or another read-only retrieval path remains available. Before declaring `CONTINUITY BOOTSTRAP INCOMPLETE`, resolve and read the underlying blob and exhaust reasonable authorized read-only GitHub paths.**
 
-During the mandatory six-file bootstrap, all six files must still be **freshly read and reconciled** — this requirement is not relaxed by the limitation above. If a standard content read cannot return either large file:
-1. Try a reasonable **read-only alternative** before concluding anything: a ranged/partial read, a raw/blob content read, the GitHub API's blob endpoint, a targeted search + section retrieval, or any other available read-only GitHub mechanism that can actually reach the file's content.
-2. **Metadata/SHA/existence alone is not a successful read.** The actual content must come back through some working method for the bootstrap to count as complete for that file.
-3. **Never ask the Owner to copy/paste either file** merely because one connector method hit its own size limit — that is a tooling problem to route around, not information the Owner needs to manually transport.
-4. **Never substitute** chat memory, prior chat history, a Claude report summary, or another one of the six files for the actual fresh read of these two files.
-5. Only after reasonable available read-only alternatives have genuinely been exhausted may a session fail closed and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (per `PROFLOW_PROJECT_CONTEXT.md` §0.C) — not before.
+**Proven root cause (empirically re-verified 2026-09-03, not assumed from the original 2026-09-03 note this section replaces):** GitHub's REST **Contents API** (`GET /repos/{owner}/{repo}/contents/{path}?ref=...`) has a hard ~1 MB (1,048,576-byte) limit on the inline base64 `content` field it returns. Below that size, the API returns full content. At or above it, the API still returns **HTTP 200** with complete, correct metadata (`sha`, `size`, `git_url`, `download_url`) but `"content": ""` and `"encoding": "none"` — a **successful, non-error response that simply omits the content field by design**, not a failure, timeout, corruption, truncation, or connector bug. Both `PROFLOW_PROJECT_CONTEXT.md` (1,623,398 bytes) and `PROFLOW_HANDOFF.md` (1,317,864 bytes) exceed this threshold; all four other canonical files (largest: `PROFLOW_TODO.md` at 580,804 bytes) are under it and always return full content via the plain Contents API.
+
+**Proven fallback (live-tested against the real repo this same session, not assumed):**
+1. **Git Blobs API** — `GET /repos/quotecode-dev/quotecode-clean/git/blobs/{sha}` (the exact `sha` the Contents API call already returned in its metadata, even on the empty-content response). Returns the complete file as base64, no size restriction observed up to at least 1.6 MB. **Verified this session**: decoded content for both large files matched their local git-blob content byte-for-byte via SHA256 (`PROFLOW_PROJECT_CONTEXT.md`: `4c40e2f0…3bc11`; `PROFLOW_HANDOFF.md`: `972bb2c7…dc17ee` — both exact matches).
+2. **Raw content URL** (equally valid alternate/secondary fallback, useful when a session's tool only exposes generic web-fetch, not a GitHub-specific blob call) — `https://raw.githubusercontent.com/quotecode-dev/quotecode-clean/proflow-continuity/{path}`. **Verified this session**: for `PROFLOW_PROJECT_CONTEXT.md`, returned all 1,623,398 bytes, SHA256-identical to the git blob. Caveat: this URL is branch-name-pinned, not commit-SHA-pinned — after fetching, compare the byte length against the `size` field already obtained from the Contents API metadata call to confirm no ref drift occurred between the two calls (in practice a narrow, low-probability race, not a reason to skip this path).
+3. Either fallback, once fetched, must have its byte length cross-checked against the `size` already known from step 0 (the original metadata-only response) — a cheap, no-extra-call corruption/truncation check.
+
+**Exact required behavior before declaring failure, for ANY of the six files, not only the two large ones (a currently-small file could cross 1 MB in the future, or hit an unrelated transient issue):**
+1. Attempt the normal Contents API / connector file-read at the exact `proflow-continuity` ref.
+2. If it returns complete content: use it, done.
+3. If it returns empty/missing content but the response includes a `sha` (or any blob identifier) and a non-error status: **the file is proven to exist and be reachable — this is explicitly not a failed read.** Proceed to the Git Blobs API using that exact `sha`.
+4. If the Blobs API is unavailable to the session's specific tool, try the raw content URL pattern above via any available fetch capability (dedicated GitHub tool or generic web-fetch).
+5. Verify recovered content's byte length against the known `size`.
+6. **Only after genuinely attempting steps 1, 3, and 4 with no working method** may a session report `CONTINUITY BOOTSTRAP INCOMPLETE` for that file (per `PROFLOW_PROJECT_CONTEXT.md` §0.C) — never after step 1 alone, and never merely because one specific tool call returned an empty field.
+
+**What this rule forbids, unconditionally:** treating empty `content` + a valid `sha` as file-missing/corrupt; asking the Owner to copy/paste either large file because one read path hit its own size limit; substituting chat memory, a prior report, or another one of the six files for the actual fresh read; declaring `CONTINUITY BOOTSTRAP INCOMPLETE` without having attempted the blob/raw fallback first.
+
+**Residual limitation this rule cannot control (see `PROFLOW_PROJECT_CONTEXT.md` §188.7 for the full A/B/C analysis) — reported honestly, not hidden:** whether a *given* ChatGPT session's specific connector/tool configuration actually exposes a blob-fetch or raw-fetch capability at all, and whether that session's own reasoning correctly follows this documented instruction, are governed by ChatGPT's own tool/session infrastructure — not something any file in this repository can mechanically enforce. This section maximizes the chance of correct behavior (exact endpoints, exact governing sentence, proven evidence) but cannot itself guarantee it.
 
 ## 0.1 ⚠️ Hebrew / RTL Owner-Communication Rule (permanent, added 2026-09-03)
 

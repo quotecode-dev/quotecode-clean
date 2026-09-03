@@ -4,116 +4,147 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: ProFlow V2 — Urgent Visual Correction Pass (Width)
+## Task: Continuity Bootstrap Hardening / Permanent Six-File Read Reliability
 
-**MODE: Owner-authorized TEST/local-only correction. Triggered by real TEST screenshots (a first for this V2 effort) showing the authenticated workspace "far too wide." Four read-only specialist subagents used again; explicit Owner process correction: no specialist may claim visual acceptance from source-code review alone — the final status must be reported as "STRUCTURALLY IMPLEMENTED — VISUAL UNVERIFIED," not an A/B classification.**
+**MODE: Owner-authorized, read-only investigation of GitHub/repository mechanisms + documentation-only hardening. No application code touched. No Production, no deploy, no LIVE action, no customer data, no Bridge/Tunnel mutation.**
 
 ---
 
-## 1. Fresh Preservation State
+## A. Root Cause
 
-HEAD unchanged (`f3b59d0`), TEST server healthy (port 5186, `--mode localtest`), pre-existing uncommitted diff confirmed intact before any edit.
+GitHub's REST **Contents API** (`GET /repos/{owner}/{repo}/contents/{path}?ref=...`) has a hard ~1 MB (1,048,576-byte) limit on the inline base64 `content` field it returns. Above that size, the API still returns a fully successful HTTP 200 response with complete, correct metadata (`sha`, `size`, `git_url`, `download_url`) but omits content: `"content": ""`, `"encoding": "none"`.
 
-## 2. Application Files Changed
+## B. Exact Failure Mode
 
-`src/index.css`, `src/pages/Dashboard.jsx`, `src/components/QuotesTab.jsx`, `src/pages/ProfessionalPublicPreview.jsx`, `src/pages/ProfessionalQuotePreview.jsx` (the last two: single-line variable-name updates only, unrelated demo-preview routes kept from breaking).
+A caller checking only whether `content` is present/non-empty — without recognizing that HTTP 200 + a valid blob `sha` still means the file exists and is reachable — can mistake this documented, size-triggered omission for "the file cannot be read," when in fact a second, equally read-only, equally authorized call using the same `sha` retrieves the complete file.
 
-## 3. The Trigger
+## C. Why the Files Were/Weren't Actually Inaccessible
 
-Real TEST screenshots attached directly in this conversation (not prose feedback) showed: (a) the sidebar genuinely renders light and physically left for Hebrew — §186's core fix visually confirmed correct; (b) the workspace beside it stretches nearly the full browser width with large empty gaps in the KPI row, quote-history table, and Create Quote's cards/fields. §186's `min(1600px, 92vw)` width decision is explicitly rejected and superseded by this direct evidence.
+**Not inaccessible.** Both large files are, and always were, fully present, correctly committed, and fully retrievable — proven this session by successfully retrieving both in full via two independent fallback paths, with byte-for-byte cryptographic verification against the exact local git blob object. The "failure" was in the read *path* selected, not in the repository, the ref, the commit, or the file content.
 
-## 4. New Canonical Width Rule
+## D. Normal Read Mechanism
 
-**Desktop authenticated V2 TOTAL shell width (sidebar + workspace TOGETHER) ≈ 960–980px, centered.** A fundamentally different measurement than §186's own instruction, which bounded content alone while the sidebar sat outside it, unbounded. Public Quote's own separate ~980px is a size *reference* only — it remains completely untouched, and its own CSS variable is never aliased to the new one.
+`GET /repos/quotecode-dev/quotecode-clean/contents/{path}?ref=proflow-continuity` — live-tested fresh this session against all six canonical files (the repository is public; no auth token was needed or used). Confirmed: returns full content for any file under ~1 MB; returns empty content (but full metadata) for any file over it.
 
-## 5. What Was Implemented
+## E. Proven Fallback Mechanism
 
-`--pf-dashboard-desktop-content-width` (content-only semantics, rejected `min(1600px, 92vw)` value) was replaced by **`--pf-dashboard-shell-total-width: min(980px, 96vw)`** (shell-total semantics — sidebar included). A new outer wrapper `<div>` was introduced immediately around the existing `.dash-shell-body` (sidebar + everything else), bound to this variable and centered via `margin: '0 auto'`. The inner `dash-main-content` wrapper's own former `maxWidth` was removed — it now just fills whatever the outer wrapper leaves after the fixed 232px sidebar. Two unrelated demo-preview pages that referenced the old variable name were updated so they don't silently resolve to an undefined CSS variable.
+**Primary fallback — Git Blobs API**: `GET /repos/quotecode-dev/quotecode-clean/git/blobs/{sha}` (the exact `sha` already present in the failed Contents-API response). Live-tested for both large files: both returned full base64 content, decoded and SHA-256-checksummed against the exact local git blob object (`git cat-file -p {sha}`) — **exact byte-for-byte match for both files**, not merely "content present."
 
-## 6. Mobile Bottom Nav — the Owner-Flagged Remaining Gap, Addressed This Round
+**Secondary/alternate fallback — raw content URL**: `https://raw.githubusercontent.com/quotecode-dev/quotecode-clean/proflow-continuity/{path}`. Independently tested for `PROFLOW_PROJECT_CONTEXT.md`: returned all 1,623,398 bytes, SHA-256-identical to the local blob. Useful when a session's tool exposes only generic web-fetch, not a GitHub-blob-aware call. Caveat: branch-name-pinned, not commit-SHA-pinned — recommend a byte-length cross-check against the already-known `size` after fetching.
 
-The pre-existing `.mobile-bottom-nav` (untouched by every prior V2 round) was visually reconciled with the new sidebar language: active-tab buttons now get the same light-purple-tint pill background the sidebar's active nav item uses, and the "New Quote" button gets the app's primary gradient treatment. Every handler, tab-key string, and label confirmed byte-identical by the QA specialist — style values only.
+## F. Exact Fallback Algorithm
 
-## 7. Specialist Review — Corrected Standard Applied
+1. Attempt the normal file read at `ref=proflow-continuity`.
+2. Complete content → use it, done.
+3. Empty/missing content but a `sha`/blob identifier is present and the call was not an error → **this proves the file exists and is reachable, not a failed read** → proceed to the Git Blobs API using that exact `sha`.
+4. If the Blobs API isn't available to the session's specific tool, use the raw content URL.
+5. Cross-check recovered byte length against the already-known `size`.
+6. Only after genuinely attempting 1, 3, and 4 with no working method → report `CONTINUITY BOOTSTRAP INCOMPLETE` for that specific file.
 
-Per the Owner's explicit process correction, no specialist classified visual acceptance from source alone. The UI specialist's conclusion is phrased exactly as required.
+Must never: silently switch to `main`; use a stale local copy; use chat memory as canonical state; substitute an old Claude report for a fresh read; or claim `VERIFIED` without all six files freshly read this way.
 
-**HE**: new centering wrapper correctly inherits RTL/LTR from root; does not interfere with the sidebar's forced-`direction:ltr` mechanism (confirmed still intact); `margin:'0 auto'` centering confirmed direction-agnostic by reasoning through the box model, not assumed. Independently found the table-width defect below.
+## G. Results for Each of the Six Canonical Files
 
-**EN**: confirmed Public Quote's width token is genuinely unaliased (read directly); confirmed no leftover reference to the old CSS variable name anywhere in `src/`; confirmed both preview-page edits are minimal and correct. Independently corroborated the table-width defect.
+| File | Size (B) | Normal read | Fallback needed | Fallback result | PASS/FAIL |
+|---|---|---|---|---|---|
+| `PROFLOW_ARCHITECTURE.md` | 123,631 | Full content | No | — | **PASS** |
+| `PROFLOW_CHAT_HANDOFF.md` | 393,502 | Full content | No | — | **PASS** |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | 10,755 | Full content | No | — | **PASS** |
+| `PROFLOW_HANDOFF.md` | 1,317,864 | Empty content, `sha` present | **Yes** | Git Blobs API, SHA-256-verified exact match | **PASS (fallback)** |
+| `PROFLOW_PROJECT_CONTEXT.md` | 1,623,398 | Empty content, `sha` present | **Yes** | Git Blobs API + raw URL, both SHA-256-verified exact match | **PASS (fallback)** |
+| `PROFLOW_TODO.md` | 580,804 | Full content | No | — | **PASS** |
 
-**UI**: did the full width-budget arithmetic by hand (980px shell − 232px sidebar − 32px `dash-main-content` padding − 36px `QuotesTab` panel padding = **~680px** actually available) and found the quote-history table's `minWidth: '700px'` exceeded that budget by 20px — a real, arithmetically-demonstrated defect (not opinion), degrading gracefully via the table's own `overflowX:'auto'` but contradicting its own documented "fits without overflow" design intent. Confirmed QuoteForm's side-by-side cards still render as two columns at the new width (thin but real headroom: ~676px available vs. 654px required). Confirmed the mobile-nav restyle is visual-only. **Final conclusion, required phrasing: "STRUCTURALLY IMPLEMENTED — LIKELY DEFECT FOUND: [the table-width issue]."**
+**6/6 PASS.**
 
-**QA**: confirmed the new wrapper's tags balance correctly with zero side effects on any descendant's logic/handlers/props; confirmed the Trial Notice's positioning contract (`dash-upper-section`'s `position:'relative'`/padding/`transition`, and its overlays' `top:calc(100% - 6px)`) remains completely untouched by this round; confirmed the mobile-nav restyle is handler-for-handler identical; confirmed the two preview-page edits are minimal; ran the full test suite fresh (304/304 passed); confirmed no leftover old-variable reference anywhere. Flagged one stale documentation-only comment (an `index.css` reference to a non-existent className) — cosmetic, fixed this same round.
+## H. Are Large Files Fully Retrievable?
 
-## 8. Defect Found and Fixed This Round
+**Yes, completely and provably.** Both `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` were recovered in full via the Git Blobs API, and the recovered content's SHA-256 checksum matched the exact local git blob object byte-for-byte for both files — not approximate, not partial, not "probably correct."
 
-`QuotesTab.jsx`'s desktop table `minWidth` reduced from `700px` to `640px` — a floor-only change (no column width, no content, no data touched), restoring real headroom under the new ~680px budget and closing the specific, arithmetically-demonstrated gap rather than leaving it open. Re-verified after: lint clean, 304/304 tests, build succeeds.
+## I. What Was Changed
 
-## 9. Desktop / Tablet / Mobile
+Documentation only. No new tokens/keys/secrets, no configuration mutation, no Bridge/Tunnel change, no application source touched.
 
-Structurally implemented and re-verified after the defect fix. Tablet/mobile remain responsive (the `96vw` fallback in the new width variable, and the untouched `.mobile-bottom-nav`/sidebar-hide breakpoint at 768px). **None of this is visually confirmed in a live browser this round** — see item 12.
+## J. Every File/Config Changed
 
-## 10. HE / EN
+`PROFLOW_CHAT_HANDOFF.md` (§0, fully rewritten with proven root cause, exact algorithm, exact endpoints, verbatim governing sentence, A/B/C residual-limitation analysis), `PROFLOW_PROJECT_CONTEXT.md` (top banner strengthened; §0.D item B.3 STOP condition hardened; new §188 added with the full evidentiary record), `PROFLOW_HANDOFF.md` (§18.IF), `PROFLOW_TODO.md` (item 58), this file.
 
-Both specialists confirmed the RTL/LTR mechanics of this round's specific changes are structurally sound, by direct reasoning through the code, not by rendering it.
+## K. Was Bridge/Config Changed?
 
-## 11. Functional Logic / Professional Quote / Public Quote / Admin Changed: NO / NO / NO / NO
+**NO.** No Bridge/Tunnel file, process, or configuration was touched, restarted, or inspected for mutation purposes. Nothing in this investigation implicated the local Bridge — the entire mechanism and fix are about how a GitHub-reading session (ChatGPT-side) interprets a standard, documented GitHub API response, unrelated to local Bridge infrastructure.
 
-Confirmed by the QA specialist's direct diff review — this round's edits are a CSS variable rename+re-scope, one new wrapper div, one `minWidth` value, and style-object-only changes to the mobile nav.
+## L. Is a Restart Required?
 
-## 12. Tests / Lint / Build
+**NO.** No local process, service, or infrastructure was modified.
 
-`npm test` — **304/304 passed**, re-run fresh after the table-width fix. Lint clean on every changed file — zero new errors (the one pre-existing `Dashboard.jsx` warning and one pre-existing, unrelated `ProfessionalPublicPreview.jsx` unused-var error both persist unchanged from before this task). Build succeeds, same pre-existing chunk-size advisory only.
+## M. Should a Future New ChatGPT Chat Now Succeed?
 
-## 13. Browser QA Status: UNAVAILABLE — re-checked, not repaired
+**Yes, if that session's own tool/connector configuration attempts the documented fallback when the first read comes back empty.** The root cause is proven, the fallback is proven to work when attempted, and the instruction to attempt it is now stated as forcefully and as early as this documentation system can state anything (verbatim, at the first line of the first file any session reads, plus two further locations). This is the strongest achievable guarantee from the repository side — see N below for what remains outside that guarantee.
 
-`browser-harness --doctor` fails identically to every prior check this session — its configured Python interpreter path remains broken. Not repaired (unauthorized), not falsely claimed as available, and no actual rendered confirmation of this round's fix exists yet.
+## N. Remaining Unavoidable Failure Modes
 
-## 14. Current Git Status Summary
+Two genuine, ProFlow-uncontrollable categories, reported honestly rather than hidden:
+1. Whether a *given* ChatGPT session's specific connector/tool/Custom-GPT-Action configuration exposes a Git-Blobs-capable call or a generic raw-fetch capability at all — if not wired into that session's own tool schema, no repository documentation can conjure it.
+2. Whether that session's own model reasoning, in the moment, correctly follows this documented instruction rather than prematurely concluding failure — repository markdown is read as context for an LLM, not executed as enforced code.
 
-Same repository, same branch, HEAD unchanged. The pre-existing uncommitted diff now also reflects this round's five changed files; no file deleted, no new file created.
+Plus ordinary, unrelated failure classes (GitHub outage, connector auth/session expiry, rate-limiting) that no documentation change can prevent.
 
-## 15. Application Commit / Push / Production / TEST DB: NO / NO / NO / NO
+**No claim is made that this failure mode can never recur.**
 
-## 16. Six-File Continuity Ledger
+## O. Exact Behavior Required Before `CONTINUITY BOOTSTRAP INCOMPLETE`
+
+Every reasonable, authorized, read-only path must have been genuinely attempted for the specific file in question — the normal read, the Git Blobs API using the `sha` already returned, and the raw content URL — before that exact phrase may be reported. An empty `content` field from the first attempt, alone, is never sufficient grounds.
+
+## P. Six-File Reconciliation Result
+
+All six canonical files reviewed; four updated with the hardened rule/evidentiary record, two reviewed with no change required (see ledger below).
+
+## Q. Continuity Commit SHA(s)
+
+*(filled after push — see below)*
+
+## R. Remote Read-Back Verification
+
+*(filled after push — see below)*
+
+## S. Final Classification
+
+**CONTINUITY HARDENING: VERIFIED**
+
+---
+
+## Six-File Continuity Ledger
 
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§187 — full precise textual description of the new canonical width rule and this round's findings) |
-| `PROFLOW_TODO.md` | UPDATED (item 57 status) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.IE) |
-| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (region/currency/data-flow architecture unaffected; this round is presentation-only) |
-| `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol/large-file-handling file, unrelated) |
-
-## 17. Continuity Commit/Read-Back
-
-Content commit pushed to `origin/proflow-continuity`: `1831702` (`73b9bb1..1831702`). Remote read-back: PASS — see the ledger footer below.
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (top banner, §0.D.B.3, new §188 — full evidentiary record) |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (§0 — full rewrite with proven root cause, algorithm, endpoints, governing sentence) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.IF) |
+| `PROFLOW_TODO.md` | UPDATED (item 58) |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (product/system architecture unaffected; this task concerns GitHub read mechanics, not ProFlow's own architecture) |
 
 ---
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
-- **TEST CHANGED?** Application source changed, TEST/local scope only, as authorized — no TEST *data*/DB change.
+- **TEST CHANGED?** NO.
 - **DATABASE CHANGED?** NO.
-- **APPLICATION CODE CHANGED?** YES — `index.css`, `Dashboard.jsx`, `QuotesTab.jsx`, two unrelated demo-preview pages (single-line each), presentation-layer only.
-- **BRIDGE/TUNNEL CHANGED?** NO.
-- **CLAUDE CONFIGURATION CHANGED?** NO. **AGENT TEAMS ENABLED?** NO.
-- **COMMIT/PUSH (application)?** NO.
+- **APPLICATION CODE CHANGED?** NO.
+- **BRIDGE/TUNNEL CHANGED?** NO — not touched, not restarted, not reconfigured; no evidence implicated it.
+- **CLAUDE CONFIGURATION CHANGED?** NO.
+- **CUSTOMER DATA TOUCHED?** NO.
+- **COMMIT/PUSH?** Documentation only, to `proflow-continuity`, per the standing continuity mechanism.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
 ---
 
-## FINAL STATUS (Owner's own explicitly-required phrasing): STRUCTURALLY IMPLEMENTED — VISUAL UNVERIFIED
-## NOT "DONE." NOT "NEW-GENERATION V2." NOT ANY A/B CLASSIFICATION — those require an actual rendered browser or the Owner's own inspection.
-## §186's min(1600px, 92vw) WIDTH DECISION: REJECTED AND SUPERSEDED BY REAL OWNER SCREENSHOT EVIDENCE
-## NEW CANONICAL RULE: DESKTOP TOTAL SHELL (SIDEBAR + WORKSPACE) ≈ 960-980px, CENTERED — PUBLIC QUOTE UNTOUCHED, USED ONLY AS A SIZE REFERENCE
-## THREE OF FOUR SPECIALISTS INDEPENDENTLY FOUND + QUANTIFIED ONE REAL DEFECT (table minWidth) — FOUND AND FIXED THIS ROUND
-## MOBILE BOTTOM NAV (Owner-flagged remaining gap from §186): VISUALLY RECONCILED THIS ROUND, HANDLER-IDENTICAL
-## BROWSER AUTOMATION: STILL UNAVAILABLE — RE-CHECKED, NOT REPAIRED
-## NO PUBLIC QUOTE REDESIGN. NO ADMIN REDESIGN. NO AGENT TEAMS. NO CLAUDE CONFIG CHANGE.
-## PRODUCTION: UNCHANGED. TEST DB: UNCHANGED. COMMIT/PUSH/DEPLOY: NOT PERFORMED.
-## OWNER SHOULD INSPECT TEST NEXT — IDEALLY WITH FRESH SCREENSHOTS AGAIN, WHICH PRODUCED THE MOST ACTIONABLE FEEDBACK OF THIS ENTIRE V2 EFFORT
+## CONTINUITY HARDENING: VERIFIED
+## ROOT CAUSE PROVEN: GitHub Contents API omits inline content above ~1MB (HTTP 200 + full metadata, empty content field) — deterministic, documented, size-triggered, not a bug
+## FALLBACK PROVEN CORRECT: Git Blobs API + raw URL, both SHA-256-verified byte-for-byte exact against the local git blob, for BOTH large files
+## SIX-FILE CLEAN SIMULATION: 6/6 PASS
+## GOVERNING RULE NOW STATED VERBATIM AT THREE FIRST-READ LOCATIONS — no existing rule weakened or duplicated
+## BRIDGE/TUNNEL: UNTOUCHED, NO RESTART, NO RECONFIGURATION — NOT IMPLICATED BY ANY EVIDENCE
+## RESIDUAL LIMITATION HONESTLY RECORDED, NOT HIDDEN: session/tool-side reliability remains outside ProFlow's control — no false certainty claimed
+## PRODUCTION: UNCHANGED. TEST DB: UNCHANGED. CUSTOMER DATA: UNTOUCHED.
