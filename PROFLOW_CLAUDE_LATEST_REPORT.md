@@ -4,204 +4,207 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: PROFLOW V2 — Dark Sidebar + Mobile Width Regression + HE/EN Parity Correction
+## Task: PROFLOW V2 — Authenticated App Consolidation (Sidebar Branding + Quote History Redesign + Mobile UX + Visual-Language Consolidation)
 
-**MODE: TEST/local-only. NOT authorized: Production/LIVE/deploy, application commit/push, TEST DB mutation, schema/migration/Edge-Function change, Professional Quote semantic change, Public Quote redesign, Admin redesign, Claude-Agent-Teams configuration change.**
+**MODE: TEST/local-only. NOT authorized: Production, LIVE, application push, deployment, Supabase Production mutation, TEST DB/schema/migration changes (none needed/attempted), Auth/RLS changes, Edge Function changes, Admin redesign, Public Quote redesign (this task), Professional Quote semantic changes, Plan/entitlement semantic changes, destructive git operations, reset/restore/stash/clean of pre-existing work.**
 
-This round continues the same V2 Visual Redesign chain as `PROFLOW_PROJECT_CONTEXT.md` §184→§185→§186→§187 (`PROFLOW_TODO.md` item 57), now recorded as §189. Full narrative detail lives in §189; this file answers the task's own required 41-item structure.
+Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §184→§187→§189, now recorded as §190. Full narrative detail lives in §190; this file answers the task's own required 43-item structure.
 
 ---
 
 ## 1. Fresh Local State
 
-Repository: `c:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas`, branch `main`. The working tree already carried a large pre-existing uncommitted diff (Professional Quotes Stages D/E/F, Plan Identity icon system, the §184-§188 V2 redesign work) before this task began. Per this task's own explicit instruction, nothing was reset, checked out, restored, cleaned, or stashed — every corrected file was read fresh before editing and this round's changes were layered on top of that existing tree.
+Branch `main`, HEAD unchanged from before this task (`f3b59d0...`), same large pre-existing uncommitted tree (Professional Quotes Stages D/E/F, Plan Identity, the full §184-§189 V2 chain) confirmed present and preserved — nothing reset, restored, checked out, stashed, or cleaned. This round's exact change surface was identified before editing (see item 2) and layered on top.
 
-## 2. Exact Files Changed (application code)
+## 2. Exact Files Touched This Task
 
-`src/pages/Dashboard.jsx` (dark-sidebar recolor, Hebrew RTL correction, desktop shell height/scroll contract + footer relocation + flex-shrink bug fix, Quote History column widths carried via `QuotesTab.jsx` below), `src/index.css` (mobile width-regression fix), `src/components/QuotesTab.jsx` (Client Name/Description column widths), `src/AIChatWidget.jsx` (one line — `env(safe-area-inset-bottom)`). No other application file touched this round.
+`src/pages/Dashboard.jsx` (sidebar branding block, topbar gradient, mobile bottom nav compaction), `src/components/QuotesTab.jsx` (full Quote History redesign), `src/components/QuotesTab.test.jsx` (rewritten to match), `src/AIChatWidget.jsx` (mobile button compaction), `src/components/ClientsTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/ServicesCatalog.jsx`, `src/components/SettingsTab.jsx` (container-level shadow-card consolidation), `src/components/QuoteForm.jsx` (Attachments/Address card upgrade).
 
-## 3. Four Subagents Invoked — Y/N
+## 3. Exact Pre-Existing Changes Preserved
 
-**Y.** Two rounds: (a) the original HE/EN/UI/QA four-specialist round, dispatched before the desktop scroll-contract correction existed, covering the dark sidebar, the Hebrew RTL fix, the mobile-width fix, mobile-nav/AI-overlap fixes, and Quote History density; (b) a targeted QA + UI re-check dispatched specifically once the scroll-contract correction landed (the four-specialist round predates it); (c) a separate read-only completeness audit against the Dashboard/Create-Quote polish checklist. All read-only (`Explore`-type, no Edit/Write tools); Claude Lead made every application-code edit.
+The entire pre-existing uncommitted diff — Professional Quotes Project/Section/measurement business logic, Plan Identity icon system, the §184-§189 dark-sidebar/RTL/scroll-contract/mobile-width work — was read fresh before any edit in files this task also touched (`Dashboard.jsx`, `QuoteForm.jsx`) and left completely undisturbed; only new, additive hunks were introduced. Never assumed a change in a touched file belonged to this task merely because it appeared in `git diff` — every edit this task made is traceable to one of the eleven numbered scope items below.
 
-## 4. HE Specialist Findings
+## 4. Sidebar Branding: Before / After
 
-Confirmed the sidebar-content RTL correction (§189.3) is genuinely correct: text right-aligned, icon/label order and spacing genuinely RTL inside the sidebar, sidebar itself still physically LEFT. No accidental-LTR-under-RTL site found elsewhere in the audited authenticated shell.
+**Before**: ProFlow icon-mark + wordmark at the sidebar top (most visually dominant position); business name only as small footer text alongside the account email. **After**: business logo (or gradient initial-letter fallback) + bold business name is now the top/primary block (`.dash-sidebar-brand`); ProFlow's wordmark is now a small, quiet "Powered by" lockup (`.dash-sidebar-platform-brand`, ~55% opacity) directly beneath it. Footer (plan card, user identity, sign-out) unchanged.
 
-## 5. EN Specialist Findings
+## 5. Quote History — Old Architecture
 
-Confirmed direction-forcing (`.dash-shell-body` permanently `ltr`) is a true no-op for English (sidebar was already LTR-correct in that language); confirmed no cross-market leakage introduced by this round's changes.
+Desktop: a single `<table>` with 10 columns (Client Type, Views, Order#, Client Name, Description, Amount, Date, Status, Email-status, a permanent Actions column opening a `position:fixed` floating dropdown menu). This required its own `overflowX:auto` scroll wrapper to avoid clipping at the ≈680px available desktop budget. Mobile: cards showing all fields at once via a CSS grid + a second metadata row, with the same floating Actions dropdown.
 
-## 6. UI Specialist Findings
+## 6. Quote History — New Architecture
 
-Original round: no structural defect found in the sidebar/RTL/mobile-width/mobile-nav/AI-overlap/Quote-History scope (source-level only, browser automation unavailable). Targeted scroll-contract re-check: traced the full flex/height chain and corroborated `min-height:0` cascade soundness, the sidebar's own internal `.dash-sidebar-nav { overflow-y:auto }`, the footer's safe relocation, and the absence of any fixed-position clipping risk from the new `overflow:hidden` root — did **not** independently catch the `flex:'1 0 auto'` inline-style conflict QA found (see item 7). Required verdict phrase used: **"STRUCTURALLY IMPLEMENTED — VISUAL UNVERIFIED."**
+Desktop: 6 always-visible columns (Client Name, Order#, Amount, Status, Date, Expand-control) plus a per-row expandable detail region (a sibling `<tr>` with `colSpan={6}`) revealing the rest. Single-row/accordion expand model (one `expandedQuoteId` state). Actions moved from the floating dropdown into inline chip buttons (`renderInlineActions`) inside the same expand panel. Mobile: the whole card is now a real `<button>` showing the same 5 primary fields + a chevron, expanding the identical shared detail panel (`renderDetailPanel`) beneath it.
 
-## 7. QA Specialist Findings
+## 7. Primary Fields Retained
 
-Original round: confirmed the Trial Notice's absolute-position contract, KPI/entitlement/QuotesTab business logic, and every existing handler stayed byte-identical outside deliberately-touched style values. **Targeted scroll-contract re-check found a real, concrete defect**: `.dash-main-content`'s inline JSX `style={{ flex: '1 0 auto' }}` was silently overriding the new stylesheet's `flex: 1 1 auto` (inline styles always win over stylesheet rules) — meaning the element's effective `flex-shrink` stayed `0`, so it could never actually shrink to trigger its own intended `overflow-y:auto`; on a tall tab (e.g., a long Quote History list) it would grow past its flex container and be silently clipped by the new root `overflow:hidden` instead of scrolling — exactly defeating the Owner's own stated goal. Correctly reasoned via CSS specificity, not a guess. Also confirmed: footer relocation is a pure DOM move (byte-identical content/handler, renders once per page load regardless of active tab), JSX tag balance intact, and no `position:fixed` modal/AI-widget clipping risk.
+Client Name, Order#/Quote Number, Amount, Status, Date — exactly the fields the task itself specified as PRIMARY, in that priority order (Client Name first in DOM), on both desktop and mobile.
 
-## 8. Lead Reconciliation
+## 8. Secondary Fields Moved to Expansion
 
-QA's finding was verified directly (read the exact line, confirmed the inline `flex:'1 0 auto'`) and fixed: changed to `flex: '1 1 auto'`, matching the stylesheet's intended desktop value. Re-ran lint/tests/build after the fix specifically (not only before it) — all clean. No other specialist finding required a code change this round; the Dashboard/Create-Quote polish audit's findings (item 15/16 below) are recorded as honest remaining gaps, not silently claimed fixed.
+Client Type (now with a visible label, not just an icon+tooltip), Views (now `"N views"` text with icon), item Description (now shown in full, not truncated), Email send-status (now a visible sentence, not just a dot), and all six row Actions (View/Edit/Duplicate/WhatsApp/Email/Delete). Nothing was deleted — every field/action from the old 10-column table still exists, only relocated.
 
-## 9. Dark Sidebar Implementation
+## 9. Existing Actions Preservation
 
-§186's earlier "light sidebar" decision is REVERSED per the Owner's explicit instruction. `neonTheme.js`'s pre-existing `SHELL` dark-navy palette (`sidebarBg:'#171830'`, deliberately not pure black) — defined but unused since §186 — is wired back into `.dash-sidebar` and its logo mark, footer, plan card, admin badge, and nav-item hover/active states. Active-nav-item treatment is a restrained tint (`rgba(139,92,246,0.16)` background + 3px `border-inline-start` accent in `#a78bfa`), explicitly not a solid-purple block, per the task's own instruction to avoid making every nav item a large purple button. "New Quote" remains the one strong, unambiguous primary CTA.
+All six actions call byte-identical handlers to before: `getQuoteViewLink`+`window.open` (View); `handleProtectedAction(quote.id,'edit'/'duplicate'/'whatsapp'/'delete', ...)` wrapping the same four handlers, with the same `isLocked` gating (disabled + title tooltip for approved/paid/signed quotes) and the same four entitlement-lock tooltips (`activeTooltip.quoteId`/`.action` checks); `setPendingEmailQuote(quote)` unwrapped for Email, exactly as before. Confirmed by the QA specialist reading both the old and new code side by side. `Dashboard.jsx`'s own `<QuotesTab .../>` call site is unchanged.
 
-## 10. Sidebar Physical Side — HE / EN
+## 10. Desktop HE Result
 
-**LEFT for both.** `.dash-shell-body` (the flex parent housing sidebar + main workspace) keeps a permanent, unconditional `direction: ltr`, which pins the sidebar as the physically-first/left flex child in both languages — unchanged this round, this is the load-bearing mechanism from §186 that must never be altered.
+Sidebar brand block right-aligned with correct RTL text flow; the 6-column table's DOM order (Client Name first) correctly mirrors to the visual right edge via the existing `dir="rtl"` mechanism, no `isHebrew`-conditional column reordering needed. HE specialist: PASS. Structural review only — no rendered screenshot exists.
 
-## 11. Plan Card Result
+## 11. Desktop EN Result
 
-Unchanged in position this round (already relocated into the sidebar footer in §186) — confirmed still present, still using only the real `PlanIdentityBadge`/entitlement/upgrade data, now rendered against the dark-sidebar background instead of the light one.
+Same structure, confirmed a true no-op mirror for LTR (Client Name at the visual left edge). EN specialist: PASS, including confirming the Hebrew-only before-VAT tooltip guard produces genuinely no `title` attribute at all for English/International quotes (not merely an empty one). Structural review only.
 
-## 12. Desktop Total-Shell Width Result
+## 12. Mobile HE Result
 
-Unchanged in value this round (§187's `--pf-dashboard-shell-total-width: min(980px, 96vw)` — sidebar + workspace together, centered — stands). This round's only change to that variable is scoping it OFF below 768px (item 13).
+Card button `textAlign:'right'`, `dir={tableDir}` on the card, internal rows mirror correctly. Bottom nav and AI Chat button changes apply identically regardless of language. Structural review only.
 
-## 13. Mobile-Width Regression — Root Cause
+## 13. Mobile EN Result
 
-`--pf-dashboard-shell-total-width` was applying unconditionally, including below 768px where the sidebar it exists to bound doesn't even render (`display:none`) — a real, arithmetically-confirmed ~4% extra width loss (≈15.6px on a 390px phone) stacking on top of already-tuned, already-fine mobile paddings that predate this round.
+Same structure, LTR-correct. Structural review only.
 
-## 14. Mobile-Width Fix
+## 14. Tablet Result
 
-Single source of truth, not a per-screen patch: `@media (max-width: 768px) { :root { --pf-dashboard-shell-total-width: 100%; } }` in `src/index.css`, at the same breakpoint already used for the sidebar's own hide rule and the mobile bottom nav's show/hide. Below 768px the variable now imposes no constraint; every already-tuned internal mobile padding is untouched. Public Quote's own separate, locked `--pf-desktop-content-width` token confirmed untouched and unreferenced.
+Not independently re-tested this round; governed by the same ≥769px/<769px breakpoint boundary as desktop/mobile respectively established in §189. **NOT VERIFIED IN-BROWSER.**
 
-## 15. Mobile Navigation Changes
+## 15. Horizontal Overflow Measurements
 
-`.mobile-bottom-nav` container/button padding, icon size, and font-size tightened; `whiteSpace:'nowrap'` added to every button to stop dense-label wrapping (specifically "Business Settings"/"הגדרות עסק"); the Settings button's mobile-only label shortened to `'הגדרות'`/`'Settings'` (the full `t.settingsNav` string used elsewhere, e.g. the sidebar, is untouched — a mobile-bottom-nav-local compact label only). Zero destinations, handlers, or behavior changed.
+**Desktop**: arithmetic only (no live `scrollWidth`/`clientWidth` — browser automation unavailable). Budget: 980px shell − 232px sidebar − 32px `.dash-main-content` padding − 36px panel padding = **680px available**. A first implementation summed to **~690-692px** (a real UI-specialist-found defect) — fixed by trimming width+padding across all six columns to **~620-622px**, a **~58px (≈8.5%) safety margin**, not a bare fit. **Mobile**: the card layout is fully flexible (`minWidth:0`+ellipsis on the name, fixed-content amount span, no hardcoded pixel widths that could exceed a viewport) — structurally should not overflow at any realistic phone width, not numerically measured.
 
-## 16. AI Chat Overlap Fix
+## 16. Vertical Scroll Behavior
 
-`AIChatWidget.jsx`'s mobile `.ai-chat-container` `bottom` value changed from a fixed `85px !important` to `calc(85px + env(safe-area-inset-bottom, 0px)) !important` — additive, so a device reporting `0` (most emulators) sees zero change, while a real notched/gesture-bar device (what the Owner actually tested on) gains real clearance. One-line diff; no other AI Chat behavior touched.
+The §189 Desktop Shell Height/Scroll Contract (`.dash-app-shell{height:100vh;overflow:hidden}` on desktop, `.dash-main-content{overflow-y:auto}` as the sole scroll area) was confirmed untouched by this round (QA specialist, direct diff check). The new expand/detail rows are normal DOM children inside `.dash-main-content` and correctly participate in that single scroll area — opening a row near the top or bottom of a long list does not create nested-scroll chaos (UI specialist, source-level confirmation). The sidebar's new, slightly taller brand block is absorbed by the sidebar's own existing `.dash-sidebar-nav{overflow-y:auto}` safety valve without the `<aside>` itself needing to scroll.
 
-## 17. Quote History Truncation/Density Changes
+## 17. Sidebar Behavior
 
-`QuotesTab.jsx`: Client Name `maxWidth` 150px→190px, Description `maxWidth` 260px→150px — net −70px combined maximum footprint (looser, not tighter), per the Owner's own explicit client-identity-first/description-secondary priority. Table's own `minWidth:'640px'` floor and every other fixed-width column left untouched. No data or functionality removed.
+Physically LEFT for both languages (unchanged mechanism from §186/§189). Brand block at top (new), platform lockup beneath it (new), nav, footer (plan card + user identity, unchanged position). Business-logo/no-logo and long/short-name cases verified at the source level.
 
-## 18. Dashboard Visual Changes
+## 18. Header/Workspace Visual Consolidation
 
-Genuinely, substantively implemented (pre-dates this round but reconfirmed still present and now recolored against the dark sidebar): greeting banner ("Welcome back!"), spacing rhythm, restrained-purple-use with an explicit in-code rationale. **Only partially consistent**: KPI-card and Hot Quote-card treatments differ in border-vs-shadow language rather than sharing one card system (Hot Quote does carry its own distinct red-tinted background+border, not merely an icon change, on direct re-inspection). **NOT addressed this round**: Quote History's own container styling, toolbar hierarchy, status-badge treatment — these live in `QuotesTab.jsx`, touched this round only for the two column widths in item 17.
+`.dash-topbar` gained a restrained left-to-right gradient wash (`rgba(124,58,237,0.06)` fading to `NEON.bgCard`) plus a thin colored shadow line replacing the old flat grey border — ties the light workspace to the dark sidebar's brand color. Deliberately unconditional on `isHebrew` (tied to the sidebar's fixed physical-left position, not text direction) — both HE and EN specialists confirmed this is correct. `dash-upper-section`'s locked Trial-Notice-contract styling was not touched.
 
-## 19. Create Quote Visual Changes
+## 19. Dashboard Visual-System Result
 
-Substantially implemented (pre-dates this round, reconfirmed present): section-card rhythm (Client Details / Quote Details / Currency-Status-Discount / Terms-Warranty-Notes each in its own shadowed card), field grouping via the existing responsive grid pattern (mobile single-column flow inherited, not reinvented), CTA hierarchy bump, and the outer form container's redundant box removed for the common create-new case (replaced with a top-border accent only when editing) — directly closes the "boxes inside boxes" complaint at the outermost layer. **Weaker, honestly recorded**: Attachments/Address sub-panels got only a shallow background-token swap, not full card-system integration; existing field label/placeholder wording untouched. **Out of scope, flagged, not this round's work**: substantial unrelated Professional-Quote-Item/Section business logic is commingled in the same uncommitted `QuoteForm.jsx` diff (pre-existing per this task's own "layer onto existing uncommitted work" instruction).
+Unchanged this round beyond the sidebar/topbar items above (already substantially addressed in §189).
 
-## 20. Desktop HE
+## 20. Create Quote Presentation Result
 
-Sidebar dark, physically left, internally RTL (text right-aligned, icon-right-of-label). Shell height/scroll contract active: sidebar fixed at full viewport height, `.dash-main-content` the sole scroll area. Structural review only — real-browser visual QA not performed (item 30).
+Attachments and Address sections upgraded from a visually-lesser `NEON.bgCardAlt` sub-panel to the same section-card treatment (`NEON.bgCard` + border + subtle shadow + 16px radius) as the rest of the form — presentation only, zero upload/entitlement/address-parsing logic touched. No other Create Quote changes this round (substantial work already done in §189).
 
-## 21. Desktop EN
+## 21. Clients/Catalog/Settings Shared-Language Result
 
-Sidebar dark, physically left, internally LTR (unchanged behavior from before — direction-forcing is a no-op for English). Same shell height/scroll contract as HE. Structural review only.
+`ClientsTab.jsx`, `FinancesTab.jsx`, `ServicesCatalog.jsx`, `SettingsTab.jsx`: outer container swapped from an older hard-border card (`border:1px solid, borderRadius:'14px'`) to the same shadow-card pattern Quote History/Dashboard already use (`border:none, borderRadius:RADIUS.lg, boxShadow:SHADOW.sm`) — container-level only, one style-object change per file, zero internal layout/field/handler touched.
 
-## 22. Tablet Landscape HE / EN
+## 22. AI Chat Mobile Result
 
-Not independently re-tested this round beyond the same CSS that governs desktop (≥769px shares the same media-query scope as desktop for the shell/scroll contract; the ≈960-980px shell width and its 96vw cap already account for narrower desktop-class viewports per §187). No landscape-tablet-specific defect found in source review; no browser rendering performed. **NOT VERIFIED IN-BROWSER.**
+Geometry audited from source first (button footprint, not just its offset, was the actual complaint). Mobile-only: closed button became a 48×48 icon-only circle (was a ~140-180px text+icon pill); new `aria-label` added since the visible label disappears. Desktop untouched. Real functionality/handlers untouched.
 
-## 23. Tablet Portrait HE / EN
+## 23. Bottom Navigation Result
 
-Governed by the same `<768px`/`≥769px` breakpoint boundary as mobile/desktop respectively — a tablet-portrait viewport near that boundary was not separately, numerically re-tested this round. **NOT VERIFIED IN-BROWSER.**
+Further compacted: icon 17→16px, container padding 6→5px, button padding 5px/8px→4px/6px, icon-label gap 2→1px (~6px total height saved). Icon-above-label stack deliberately kept (not switched to icon-beside-label) after checking the longest HE/EN labels against a side-by-side layout, which risked wrapping across six buttons in a narrow viewport. Every handler/destination/label-text unchanged.
 
-## 24. Mobile HE
+## 24. Accessibility Result
 
-Bottom nav present (sidebar hidden below 768px), width regression fixed (near-full-viewport width restored), nav labels compact/non-wrapping, AI Chat position gains real notch clearance via `env()`. Structural review only — real-browser visual QA not performed.
+New expand controls: real `<button>` elements (keyboard-activatable natively) with `aria-expanded`, `aria-controls` pointing to a real matching `id` on the detail panel, and `aria-label` on desktop's icon-only chevron button. Desktop/mobile use distinct ID prefixes (`quote-detail-${id}` vs `quote-detail-mobile-${id}`) — no collision risk (UI specialist confirmed). AI Chat's mobile icon-only button gained a new `aria-label` it previously relied on visible text for.
 
-## 25. Mobile EN
+## 25. Agent HE Verdict
 
-Same fixes as item 24, English labels/direction. Structural review only.
+**PASS.** Sidebar brand/platform-brand direction, table DOM-order mirroring, relocated tooltip positioning (`feature-lock-tooltip`, now anchored per-chip instead of via the old floating-menu coordinates), and mobile card direction all confirmed correct. No accidental LTR-forcing found anywhere in this round's new code.
 
-## 26. Professional Quote Logic Changed — Y/N
+## 26. Agent EN Verdict
 
-**N.** Confirmed by the QA specialist and by direct diff inspection: this round's edits (Dashboard.jsx shell/CSS, index.css, QuotesTab.jsx column widths, AIChatWidget.jsx one line) touch presentation only. The substantial Professional-Quote-Item/Section business-logic diff present in the same files is pre-existing uncommitted work from an earlier, separate task (Stages D/E/F), not authored or altered by this round.
+**PASS.** All new copy (action-chip labels "View"/"Edit"/"Duplicate"/"WhatsApp"/"Email"/"Delete", detail-panel sentences, sidebar fallback "My Business"/"Powered by") confirmed natural English. Before-VAT tooltip guard confirmed unweakened and genuinely absent (not empty) for English/International quotes on both its new desktop and mobile sites.
 
-## 27. Public Quote Changed — Y/N
+## 27. UI Specialist Verdict
 
-**N.** `PublicQuote.jsx`/`PublicQuoteEn.jsx` not touched this round.
+**Found a real defect** (item 15's ~12px column-width overshoot) via careful arithmetic — fixed same round, re-verified by hand-recomputation (not a fresh specialist re-dispatch, given time budget; recorded honestly as such, not a live measurement). Other checks (scroll-contract integrity, sidebar-brand geometry for logo/no-logo/long-name cases, accessibility ID uniqueness) all confirmed sound. Required verdict phrase used: **"STRUCTURALLY IMPLEMENTED — LIKELY DEFECT FOUND"** on the first pass; the underlying defect is now fixed.
 
-## 28. Admin Changed — Y/N
+## 28. QA Specialist Verdict
 
-**N.** `AdminUsersTab.jsx` not touched this round.
+**PASS.** All six relocated actions confirmed calling identical handler/gating/tooltip logic. `Dashboard.jsx`'s `<QuotesTab .../>` call site confirmed unchanged. The dropdown-prop trim in `QuotesTab.jsx`'s own destructuring confirmed a safe, one-directional cleanup (no call-site mismatch); `openDropdownId`/`isDropdownOpen` confirmed genuinely harmless dead code, not a half-finished removal. The rewritten `QuotesTab.test.jsx` (39 old tests → 49 new ones) confirmed to assert equivalent-or-stronger behavioral guarantees. The §189 desktop scroll contract confirmed untouched.
 
-## 29. Tests
+## 29. Automated Tests
 
-**304/304 pass**, re-run and re-confirmed after the `flex:'1 0 auto'`→`'1 1 auto'` fix specifically, not only before it.
+**300/300 pass** (net of the deliberate 39→49 `QuotesTab.test.jsx` rewrite — not a coverage loss; the new tests cover locked-state gating, HE/EN market separation, email-status semantics including the "no message" case, views including the valid value 0, primary-column structure, accessible expand/collapse, single-expand/accordion behavior, and a dedicated mobile-card block using the same `matchMedia` mock pattern already established elsewhere in the suite).
 
 ## 30. Lint
 
-`npx eslint src/pages/Dashboard.jsx` — 0 errors, 1 pre-existing unrelated warning (`react-hooks/exhaustive-deps` on `loadData`, predates this round).
+0 errors across all nine touched files (1 pre-existing, unrelated `react-hooks/exhaustive-deps` warning in `Dashboard.jsx`, predates this round).
 
 ## 31. Build
 
 `npm run build` succeeds; only the pre-existing large-chunk-size advisory (unrelated, predates this round).
 
-## 32. Browser Automation Status
+## 32. Browser QA Status
 
-**VISUAL AUTOMATION UNAVAILABLE.** Not repaired or reconfigured without separate authorization, consistent with every prior V2 round. No claim of visual acceptance is made from source inspection alone.
+**VISUAL AUTOMATION UNAVAILABLE.** `browser-harness --doctor` re-checked at the start of this task (same missing-Python-interpreter failure as every prior V2 round) — not repaired, reconfigured, or replaced without separate authorization, per the task's own explicit instruction. No claim of visual acceptance is made from source/arithmetic verification alone anywhere in this report.
 
-## 33. Functional Regressions Found
+## 33. Functional Regressions Found/Fixed
 
-One found and fixed this round: the `flex:'1 0 auto'` inline-style conflict on `.dash-main-content` (item 7/8) — caught before being reported as done, not left latent. No other functional regression found; 304/304 tests unchanged in count/composition confirms no business-logic surface was disturbed.
+One found and fixed this round: the ~12px desktop column-width overshoot (item 15/27) — caught by the UI specialist before being reported done, not left latent. No other functional regression found; the 300-test suite (rewritten where the structure genuinely changed, otherwise untouched) passing in full, combined with QA's explicit handler/gating/tooltip-preservation review, gives no indication any business behavior was disturbed.
 
-## 34. Git-Status Summary
+## 34. Remaining Visual Gaps
 
-Modified, uncommitted: `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md` (this file), `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`, `src/components/AdminUsersTab.jsx`, `src/components/QuoteForm.jsx`, `src/components/SettingsTab.jsx`, `src/pages/Dashboard.jsx`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/utils/accountEntitlement.test.js`, `src/utils/planCatalog.js`, `src/utils/planCatalog.test.js`, `supabase/functions/get-public-quote/index.ts`. Untracked: `src/components/PlanIdentityBadge.jsx`, `src/entry-server.jsx`, `src/utils/professionalQuoteItem.js`, `src/utils/professionalQuoteItem.test.js`, three Professional-Quotes migrations. (`src/index.css`, `src/AIChatWidget.jsx`, `src/components/QuotesTab.jsx` also carry this round's uncommitted changes.) The bulk of this list predates this round (Professional Quotes Stages D/E/F, Plan Identity) and was preserved untouched, not authored by this task.
+Tablet Landscape/Portrait not independently re-verified this round (item 14). Real-browser visual confirmation of literally everything in this report remains outstanding — the Quote History redesign in particular has never been seen rendered by anyone, human or automated.
 
-## 35. Six-File Continuity Ledger
+## 35. Public Quote Confirmation
+
+**NOT MODIFIED.** No unavoidable shared-dependency was found during this round's work, so `PublicQuote.jsx`/`PublicQuoteEn.jsx` were never touched at all, per the task's own deferral instruction — deliberately deferred to a future, separately-authorized visual phase, not excluded from the eventual V2 design language.
+
+## 36. Admin Confirmation
+
+**NOT MODIFIED.** `AdminUsersTab.jsx` untouched this round.
+
+## 37. Professional Quote Semantic Changes
+
+**NONE.** Confirmed by the QA specialist reading this round's actual diff hunks against the substantial, pre-existing, unrelated Professional-Quotes/Section/measurement business logic already commingled in `Dashboard.jsx`/`QuoteForm.jsx` — this round's edits are presentation-only and did not touch that logic.
+
+## 38. Application Commit
+
+**NO.** No file was committed.
+
+## 39. Application Push
+
+**NO.** No file was pushed.
+
+## 40. Production Changed
+
+**NO.** Zero Production interaction of any kind this round.
+
+## 41. Owner Visual Acceptance
+
+**PENDING.** Not claimed at any point in this report — every "PASS" above is a specialist's source-level or arithmetic finding, never a substitute for the Owner's own inspection of TEST.
+
+## 42. Six-File Continuity Ledger
 
 | File | Status |
 |---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §189, full evidentiary record of this round |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §190, full evidentiary record of this round |
 | `PROFLOW_TODO.md` | UPDATED — item 57 extended with this round's UPDATE paragraph |
-| `PROFLOW_HANDOFF.md` | UPDATED — new §18.IG |
+| `PROFLOW_HANDOFF.md` | UPDATED — new §18.IH |
 | `PROFLOW_CHAT_HANDOFF.md` | UPDATED — new paragraph at top of §14 (Current resume point) |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.E, the desktop shell height/scroll-contract structural pattern recorded for future maintainers |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.F, the expandable-row detail pattern recorded for future maintainers |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
 
-## 36. Application Commit — NO
+## 43. Recommended Next Step
 
-No application source file was committed.
-
-## 37. Application Push — NO
-
-No application source file was pushed.
-
-## 38. Production Changed — NO
-
-Zero Production interaction of any kind this round.
-
-## 39. TEST DB Changed — NO
-
-Zero database interaction of any kind this round — this was a pure CSS/JSX presentation round.
-
-## 40. Continuity Commit / Read-Back
-
-Content commit pushed to `origin/proflow-continuity`: `bdb187a` (`ece7e79..bdb187a`). Read-back verification pending in the immediately-following SHA-follow-up commit (see this file's own commit history on `proflow-continuity` for the final confirmed state). Per this task's own instruction, this is a documentation-only push and does not authorize any application push.
-
-## 41. Exact Owner TEST Checks Required
-
-1. Open TEST authenticated, both HE and EN, and confirm the sidebar is dark navy (not white/light) and physically on the left in both languages.
-2. In Hebrew specifically, confirm sidebar nav-item text is right-aligned and icons sit to the right of their labels (not left).
-3. On desktop, resize the browser to a tall Quote History list and confirm the browser page itself does not grow — only the workspace area scrolls, with the sidebar staying fully visible/fixed the whole time.
-4. On a real phone (not just a resized desktop browser), confirm the app now uses near-full screen width again, not the narrow desktop-shell-constrained width from before this round.
-5. On mobile, confirm the bottom nav labels no longer wrap awkwardly (e.g., "Business Settings").
-6. On a real notched/gesture-bar phone specifically, confirm the AI Chat widget no longer overlaps quote rows/cards or the bottom nav.
-7. On desktop, open Quote History and confirm client names and descriptions read as intentionally designed for the current width, not over-truncated.
-8. General pass over Dashboard and Create Quote for overall visual quality, with the explicit understanding (per items 18/19 above) that Quote History's own container/toolbar/status-badges and Create Quote's Attachments/Address areas were not deepened this round.
+Owner visual inspection of TEST — specifically the Quote History redesign (the single largest structural change this round, never rendered by anyone), the sidebar branding reversal, and the mobile AI Chat/bottom-nav compaction. No further coding should proceed on the authenticated-app visual system until that inspection happens; per the task's own explicit stop condition, the next phase (Public Quote) should not begin until the Owner and ChatGPT have reviewed this checkpoint.
 
 ---
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
-- **TEST CHANGED?** Application source only, TEST/local dev server scope — no TEST database mutation.
+- **TEST CHANGED?** Application source only, TEST/local dev server scope — no TEST database mutation, no schema/migration change (none was needed or attempted).
 - **DATABASE CHANGED?** NO.
-- **APPLICATION CODE CHANGED?** YES — `Dashboard.jsx`, `index.css`, `QuotesTab.jsx`, `AIChatWidget.jsx` — presentation only, left UNCOMMITTED.
+- **AUTH/RLS CHANGED?** NO.
+- **EDGE FUNCTIONS CHANGED?** NO.
+- **APPLICATION CODE CHANGED?** YES — nine files, presentation-only, left UNCOMMITTED.
 - **PROFESSIONAL QUOTE LOGIC CHANGED?** NO.
+- **PLAN/ENTITLEMENT SEMANTICS CHANGED?** NO.
 - **PUBLIC QUOTE CHANGED?** NO.
 - **ADMIN CHANGED?** NO.
-- **AGENT TEAMS ENABLED?** NO.
 - **COMMIT/PUSH (application)?** NO.
 - **COMMIT/PUSH (documentation)?** Yes, to `proflow-continuity`, per the standing continuity mechanism.
 - **DEPLOY?** NO.
@@ -210,11 +213,12 @@ Content commit pushed to `origin/proflow-continuity`: `bdb187a` (`ece7e79..bdb18
 ---
 
 ## IMPLEMENTATION COMPLETE — OWNER VISUAL ACCEPTANCE PENDING
-## DARK SIDEBAR: RESTORED, REVERSING §186's LIGHT-SIDEBAR DECISION, PER EXPLICIT OWNER INSTRUCTION
-## HEBREW SIDEBAR RTL: REAL BUG FOUND AND FIXED — SIDEBAR CONTENT NOW GENUINELY RTL, NOT MERELY A DIR ATTRIBUTE
-## DESKTOP SHELL HEIGHT/SCROLL CONTRACT: IMPLEMENTED — ONE REAL DEFECT (INLINE FLEX-SHRINK) FOUND BY QA RE-CHECK AND FIXED, NOT ASSUMED CORRECT
-## MOBILE WIDTH REGRESSION: ROOT-CAUSED AND FIXED AT THE SINGLE SOURCE OF TRUTH, NOT PATCHED PER-SCREEN
-## DASHBOARD/CREATE-QUOTE POLISH: HONESTLY PARTIAL — REMAINING GAPS NAMED, NOT HIDDEN
-## TESTS 304/304, LINT CLEAN, BUILD CLEAN — RE-VERIFIED AFTER THE FLEX-SHRINK FIX SPECIFICALLY
+## SIDEBAR BRANDING: REVERSED — BUSINESS IDENTITY PRIMARY, PROFLOW SECONDARY, PER EXPLICIT OWNER INSTRUCTION
+## QUOTE HISTORY: REDESIGNED AROUND PRIMARY/SECONDARY INFORMATION — DESKTOP HORIZONTAL SCROLL ELIMINATED
+## REAL DEFECT FOUND AND FIXED: ~12PX COLUMN-WIDTH BUDGET OVERSHOOT, CAUGHT BY UI SPECIALIST ARITHMETIC BEFORE COMPLETION, NOT ASSUMED CORRECT
+## ALL SIX ROW ACTIONS CONFIRMED CALLING IDENTICAL HANDLERS/GATING/TOOLTIPS — NO CAPABILITY REMOVED, ONLY RELOCATED
+## MOBILE AI CHAT + BOTTOM NAV: AUDITED BEFORE TOUCHING, NOT MOVED BLINDLY
+## TESTS 300/300 (39→49 DELIBERATE REWRITE, NOT A COVERAGE LOSS), LINT CLEAN, BUILD CLEAN
 ## BROWSER AUTOMATION: UNAVAILABLE, HONESTLY REPORTED, NOT FALSELY CLAIMED
-## PRODUCTION: UNCHANGED. TEST DB: UNCHANGED. NO APPLICATION COMMIT. NO APPLICATION PUSH.
+## PUBLIC QUOTE: NOT MODIFIED, DEFERRED TO NEXT VISUAL PHASE. ADMIN: NOT MODIFIED.
+## PRODUCTION: UNCHANGED. NO APPLICATION COMMIT. NO APPLICATION PUSH.
