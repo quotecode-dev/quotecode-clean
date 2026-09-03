@@ -5452,3 +5452,25 @@ Freshly read `mcp-bridge-server.js` (not from memory) to determine why ChatGPT s
 **Classification: B — SMALL BRIDGE ENHANCEMENT NEEDED**, requiring its own separate Owner authorization before any code edit or Bridge restart. **Nothing was implemented, edited, or restarted.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §182, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
 
 **Release boundary**: zero Production/TEST-DB/application-feature-code/Bridge/Tunnel/Docker/Supabase-configuration change — two new files in a new isolated directory plus one new Startup entry. No `main` commit/push. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §181, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
+
+## §18.IA. claude_task_list Discovery Tool — IMPLEMENTED + LIVE-VERIFIED (2026-09-03, `PROFLOW_PROJECT_CONTEXT.md` §183 — Owner-authorized small Bridge enhancement, ZERO application/TEST/Production mutation)
+
+Implemented exactly the §182-recommended `claude_task_list` tool, nothing more (no manual-Claude discovery, no other Bridge change). Fresh pre-change check confirmed Bridge/tunnel-client healthy and the 9-task store unchanged before editing.
+
+**Contract**: `claude_task_list(limit? ≤50, default 20)` → `{total_task_count, returned_count, tasks:[{task_id, status, question_excerpt≤160, created_at, updated_at}]}`, most-recent-first, reading only the already-loaded task Map (zero new filesystem scope). Never returns full report text — `claude_task_report` still handles retrieval after selection. Invalid `limit` throws (fails closed); empty store returns a valid empty result.
+
+**Verification before restart**: `node --check` passed; 17/17 standalone unit checks passed against the real 9 persisted tasks plus malformed/edge-case fixtures (ordering, bounding, excerpt truncation, invalid-limit rejection, empty-store handling, malformed-entry exclusion, no mutation).
+
+**Controlled restart**: only the Bridge process was stopped/restarted (old PID `15552` → new PID `19872`, exactly one process, via the existing unmodified `start-bridge.ps1`); tunnel-client untouched throughout (same PID `16516`, same tunnel_id, healthy). Clean restart log, no errors.
+
+**Live proof, GitHub-independent, Owner-transport-free**: `tools/list` confirmed 13 tools incl. `claude_task_list` (version `0.3.0`); `claude_task_list` returned all 9 pre-restart tasks including the exact `task_4293b74bccad14fd` example from §182; one discovered task (`task_5642ab98b74f18ee`) was selected and its full result retrieved via unmodified `claude_task_report` — proving discovery → selection → retrieval end-to-end without a GitHub push or Owner-supplied task_id/copy-paste. Confirmed the list view never leaked the full report text. `limit:3`/`limit:-1` live checks matched expected bounded/fail-closed behavior.
+
+**Not built**: the manual-Claude marker-convention (§182 PATH B) — deferred, needs separate authorization.
+
+**Bridge source**: `mcp-bridge-server.js` changed locally only (`proflow-mcp-bridge\` has never been a git repo); not committed/pushed anywhere.
+
+**Permanent rule now in force** (previously proposed-only in §18.HZ, now binding since the capability exists): *"Claude report retrieval must not depend on a `proflow-continuity` push. For Bridge-originated work, ChatGPT must first use a known task_id when available; otherwise use Bridge task discovery (`claude_task_list`), explicitly identify the relevant task, then retrieve it through `claude_task_report`. Canonical GitHub continuity remains the durable project-state fallback. Owner manual transport is last resort. The Owner is not data transport."* Ambiguity must never be resolved by silently picking the newest task. CLAUDE REPORT ≠ FRESH LOCAL STATE still stands unchanged.
+
+**Classification resolved**: §18.HZ's "B — SMALL BRIDGE ENHANCEMENT NEEDED" is now IMPLEMENTED + VERIFIED.
+
+**Release boundary**: zero Production/TEST-DB/application-feature-code/tunnel-client change. Bridge source changed + Bridge-only restart, both explicitly authorized for this task only. No `main` or Bridge-source commit/push. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §183, `PROFLOW_CLAUDE_LATEST_REPORT.md`.
