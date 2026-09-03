@@ -149,7 +149,7 @@ Same repository, same branch (`main`), HEAD unchanged. The pre-existing uncommit
 
 ## 36. Continuity Commit/Read-Back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `d2459dd` (`c4038eb..d2459dd`). Remote read-back: PASS — see the ledger footer below.
 
 ## 37. Owner TEST Visual Acceptance Required: YES
 
