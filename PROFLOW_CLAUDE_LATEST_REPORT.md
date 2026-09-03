@@ -68,11 +68,11 @@ Fresh `git fetch origin proflow-continuity` performed before any edit; confirmed
 
 ## 14. Continuity Commit SHA
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `b98c848`.
 
 ## 15. Remote Read-Back: PASS
 
-*(performed after push — see below)*
+Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real sizes) + direct content grep for the new §0.2 heading and the `PROFLOW_PROJECT_CONTEXT.md` cross-reference on `origin/proflow-continuity`.
 
 ## 16. Recommended Router Cross-Reference
 
