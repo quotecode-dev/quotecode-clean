@@ -1619,3 +1619,32 @@ above is the correct normal Owner action for any new ProFlow chat.
 
 Separately, "קלודי סיים - תקרא את הדוח האחרון" remains a distinct, narrower
 trigger for retrieving Claude's newest task report specifically — see §15.A.
+
+## 16. Controlled Bridge Chat-Transition Gate (added 2026-09-03, `PROFLOW_PROJECT_CONTEXT.md` §180 — binding Owner requirement, not a suggestion)
+
+The ChatGPT ↔ Claude Code local MCP Bridge (`PROFLOW_PROJECT_CONTEXT.md`
+§170–§180) is now proven end-to-end after a genuine Windows reboot — but only
+in a **new** ChatGPT conversation. The Owner's existing, long-running main
+ProFlow conversation cannot see the connector at all, for reasons entirely
+on ChatGPT/OpenAI's own side (confirmed: nothing local — no Bridge config,
+no tunnel config, no per-conversation mechanism of any kind — explains or
+controls this; see §180 for the full investigation).
+
+**Binding requirement**: the Owner's current/old ProFlow conversation remains
+the sole control point for project work until a **new** conversation
+independently passes ALL FIVE of the following, in order:
+
+1. A successful six-file Continuity Bootstrap (§15 above) — read fresh from
+   `ref = proflow-continuity`, independently reconciled, not assumed.
+2. Arrival at the correct current ProFlow checkpoint (as of this writing,
+   `PROFLOW_PROJECT_CONTEXT.md` §180 is the latest).
+3. ProFlow Claude Bridge V2 confirmed available in that new conversation.
+4. A successful `echo` tool call through the Bridge.
+5. A successful `claude_bridge_info` tool call through the Bridge.
+
+**No project implementation work should begin or resume in the new
+conversation until all five checks pass.** This is a deliberate, Owner-set
+safety gate against silently losing continuity or duplicating/diverging work
+across two conversations during the transition — not a technical limitation
+of the Bridge itself. Once the gate passes, the new conversation becomes the
+active one and the old conversation's role as control point ends.

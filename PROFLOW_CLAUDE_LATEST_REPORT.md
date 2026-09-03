@@ -4,63 +4,68 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Execute Verified Startup-Folder Fix Only
+## Task: Final Bridge Continuity Checkpoint Before ChatGPT Chat Migration
 
-**MODE: Owner-authorized, exact, narrow mutation only — copy two named VBS files to the Owner-confirmed real Startup folder. Nothing else authorized.**
+**MODE: documentation/continuity update only. No Bridge, tunnel-client, Startup, DPAPI credential, Windows configuration, application code, TEST, Production, database, deployment, or LIVE state was touched.**
 
 ---
 
 ## Verdict
 
-**Executed exactly as scoped, and fully verified.** Both VBS launchers now exist, byte-identical to their originals, in the correct registry-defined Startup folder. `rween.exe` was never touched. Nothing else was modified. Timestamp evidence (credential value never accessed) strongly suggests the Owner has already re-enrolled with the fixed script.
+**The full persistence effort (§170–§179) is now closed by a genuine, real-world reboot pass.** The Owner restarted Windows, touched nothing manually, and the entire stack — tunnel-client, Bridge, and a working ChatGPT connector in a new conversation — came up on its own. This is documented as the real milestone it is. A separate, ChatGPT-side connector-availability gap (old conversation vs. new) was investigated, found to be entirely outside local control, and a controlled chat-transition gate has been recorded to govern the migration safely.
 
-## Copy Operation
+## 1. Genuine Windows Reboot/Logon E2E Test
 
-`Copy-Item` (content-preserving, no modification) of:
-- `ProFlow-Tunnel.vbs`
-- `ProFlow-MCP-Bridge.vbs`
+**PASS.** The Owner performed a real Windows restart, did not manually start PowerShell, Bridge, tunnel-client, or any ProFlow script, and the Startup mechanism brought the infrastructure up automatically.
 
-from `C:\Users\sales\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\` to `C:\ProgramData\ef202d2f98\`.
+## 2. Startup Persistence
 
-## Verification
+**VERIFIED by genuine reboot** — the first time this could be said as PROVEN rather than STRUCTURALLY CONFIGURED anywhere in this task chain.
 
-**Both destination files exist: YES.**
+## 3. Fix Chain That Made This Possible
 
-**Source and destination hashes match (SHA-256, computed independently before and after):**
-| File | Hash |
-|---|---|
-| `ProFlow-Tunnel.vbs` (source, pre-copy) | `3D7F2215427A491B4527BF5A7B5C313C9BFE5E5DB7775743DBE0A48987D4D82D` |
-| `ProFlow-Tunnel.vbs` (destination, post-copy) | `3D7F2215427A491B4527BF5A7B5C313C9BFE5E5DB7775743DBE0A48987D4D82D` — **match** |
-| `ProFlow-MCP-Bridge.vbs` (source, pre-copy) | `CF6E5D108A4D9F9F4EF2172B141BDD5F3DA7B3BF1FEC09A9843E5F2FB17101B0` |
-| `ProFlow-MCP-Bridge.vbs` (destination, post-copy) | `CF6E5D108A4D9F9F4EF2172B141BDD5F3DA7B3BF1FEC09A9843E5F2FB17101B0` — **match** |
+§176 (console-detachment fix for the managed tunnel) + §177 (DPAPI-encrypted credential enrollment) + §178 (credential-sanitization fix, plus the real root cause of both launchers never firing — a registry-redirected Startup folder) + §179 (the exact, hash-verified VBS-copy fix) — all converging in this one real pass.
 
-**`rween.exe` remains untouched: YES.** SHA-256 hash captured before the copy (`7B178AA78120530724F481B6AA7E6268FC49BB8AB49575E22C29A862310163D7`) and re-verified identical afterward. Size (3,927,138 bytes) and `LastWriteTime` (2023-05-02 18:26:24) also independently reconfirmed unchanged. It was never opened, executed, renamed, or otherwise interacted with.
+## 4. New ChatGPT Conversation Echo Test
 
-**Destination folder contains the expected items: YES.**
-- Before: `desktop.ini`, `rween.exe` (2 items).
-- After: `desktop.ini`, `rween.exe`, `ProFlow-Tunnel.vbs`, `ProFlow-MCP-Bridge.vbs` (4 items) — exactly the pre-existing two plus the two newly-copied launchers. No unexpected files were created.
+**PASS.** `echo("hello-after-real-restart")` executed through ProFlow Claude Bridge V2 in a brand-new ChatGPT conversation, returned exactly `hello-after-real-restart`.
 
-**Source (conventional-location) copies**: independently reconfirmed still present and unchanged — nothing was deleted, per instruction.
+## 5. Fresh Local Health Investigation
 
-## DPAPI Credential Re-Enrollment Status
+Recorded: tunnel-client running (single instance), Bridge running (single instance), `runtime_state:"ready"`, `healthy:true`, Bridge responded correctly to a live call. Nothing locally broken.
 
-Checked **via timestamps only** — the credential value was never accessed, displayed, decrypted, or modified for this check, per explicit instruction.
+## 6. Existing Old ChatGPT Conversation
 
-- `enroll-tunnel-credential.ps1` (the fixed, sanitizing script from the prior task): last modified `2026-09-03 02:50`.
-- `.secrets\control-plane-api-key.dpapi`: `LastWriteTime` is now `2026-09-03 03:03` — **changed** from its original enrollment timestamp of `02:23`.
+Confirmed unable to access the connector — reports it unavailable, despite the identical connector being proven available in any new conversation.
 
-Since the file was rewritten *after* the sanitization fix was already in place, this is strong (though not certainty-grade, since content was correctly never inspected) evidence that **the Owner has already independently re-enrolled using the fixed script**. This is **not yet corroborated by an actual successful connection** — `tunnel-autostart.log`'s most recent entry is still the original pre-fix failure at `02:39:51`; no fresh `runtimes connect` attempt has been logged since the re-enrollment, because re-enrollment alone does not trigger one (that only happens when `start-tunnel.ps1` actually runs, which it has not since). Neither `tunnel-client.exe` nor the Bridge `node.exe` is currently running — expected, and this session correctly did not start either proactively, per this task's explicit "STOP after verification and report" scope.
+## 7. No Local Mechanism Explains the Difference
 
-## What Remains
+Directly inspected, not assumed: the Bridge server's source has no concept of a ChatGPT conversation at all — no per-conversation allowlist, binding, or gating anywhere; `tools/list` is served identically to any connection reaching it. This is entirely ChatGPT/OpenAI-side behavior, outside anything local. Reported honestly as **UNKNOWN** whether the old conversation could dynamically acquire the connector — not guessed at.
 
-The real test — a genuine Windows logon triggering both launchers automatically from their new, correct location — has not yet been observed. That requires either the Owner's next real logon, or an explicit separate authorization to simulate/test it now.
+## 8. Decision: Do Not Touch the Working Bridge/Tunnel
+
+Explicitly recorded: no change will be made to the now-proven-working infrastructure merely to try to repair the old conversation's connector access.
+
+## 9. Recommended Transition
+
+Move primary ProFlow work to a new ChatGPT conversation, where the connector is already proven end-to-end.
+
+## 10. Controlled Chat-Transition Gate — Recorded, Binding
+
+The old/current conversation remains the control point until a **new** conversation independently proves, in order: (a) successful six-file Continuity Bootstrap; (b) arrival at the correct current checkpoint; (c) ProFlow Claude Bridge V2 availability; (d) successful `echo`; (e) successful `claude_bridge_info`. No implementation work resumes in the new conversation until all five pass. Recorded in `PROFLOW_CHAT_HANDOFF.md` §16 (a new section — the correct home for ChatGPT↔Claude coordination protocol, distinct from the purely-technical infra sections in `PROFLOW_PROJECT_CONTEXT.md`/`PROFLOW_ARCHITECTURE.md`).
+
+## Continuity-Compliance Audit
+
+**Question**: why was the immediately preceding investigation (why does the new chat have the connector but the old one doesn't) not reflected in remote continuity before this checkpoint?
+
+**Answer: (A) — the continuity update was never performed.** Cause established, not an oversight of the standing six-file rule: that specific diagnostic task's own instructions explicitly scoped it as read-only and brief ("Do not spend significant time on this... If the answer cannot be established... STOP") and did **not** include continuity-file update authorization — unlike every other task in this chain, which explicitly authorized and requested documentation updates as part of its own scope. This checkpoint (§180) now folds that investigation's findings in, closing the gap. Recorded going forward: a bounded read-only diagnostic's findings should still be captured at the next continuity-authorized checkpoint, even without its own documentation mandate.
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
 - **TEST CHANGED?** NO.
 - **APPLICATION CODE CHANGED?** NO.
-- **CUSTOMER DATA ACCESSED?** NO.
+- **BRIDGE/TUNNEL CHANGED?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -71,27 +76,25 @@ The real test — a genuine Windows logon triggering both launchers automaticall
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§179) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§180) — file size 1,537,610+ bytes (>1MB, per the task's own note; verified via local `wc -c`/`git`, not a remote display API) |
 | `PROFLOW_TODO.md` | UPDATED (item 56 status line) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HW) |
-| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED |
-| `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HX) — file size 1,284,166+ bytes (>1MB, same verification method) |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED (§20 extended with the proven-reboot summary) |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §16 — the controlled chat-transition gate) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `5bf5037`.
+*(filled after push — see below)*
 
 ---
 
-## STARTUP-FOLDER FIX: EXECUTED EXACTLY AS SCOPED, HASH-VERIFIED
-## rween.exe: CONFIRMED UNTOUCHED (HASH/SIZE/TIMESTAMP MATCH)
-## DESTINATION FOLDER: EXPECTED 4 ITEMS, NO SURPRISES
-## SOURCE COPIES: LEFT IN PLACE, UNCHANGED
-## DPAPI CREDENTIAL: LIKELY ALREADY RE-ENROLLED (TIMESTAMP EVIDENCE ONLY, VALUE NEVER ACCESSED)
+## GENUINE POST-REBOOT E2E: PASS — FULL STACK AUTOSTARTED, NEW-CHAT ECHO CONFIRMED
+## OLD-CONVERSATION CONNECTOR GAP: CHATGPT-SIDE, NOT LOCAL — BRIDGE/TUNNEL WILL NOT BE TOUCHED FOR THIS
+## CONTROLLED CHAT-TRANSITION GATE: RECORDED, BINDING (PROFLOW_CHAT_HANDOFF.md §16)
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
-## CUSTOMER DATA: NOT ACCESSED
+## BRIDGE/TUNNEL: UNCHANGED (DOCUMENTATION-ONLY TASK)
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
-## NEXT REAL TEST: A GENUINE LOGON, NOT YET OBSERVED
+## NEXT STEP: OWNER-DRIVEN CHAT TRANSITION, GATED BY THE FIVE CHECKS ABOVE
