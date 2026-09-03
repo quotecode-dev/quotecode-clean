@@ -96,11 +96,11 @@ Left local-only, exactly as instructed — commit authorization was not inferred
 
 ## 22. Continuity Commit SHA
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `13da5a5`.
 
-## 23. Remote Continuity Read-Back: PASS/FAIL
+## 23. Remote Continuity Read-Back: PASS
 
-*(performed after push — see below)*
+Confirmed via fresh `git fetch` + `git log --oneline -3` + `git ls-tree -l origin/proflow-continuity` (all six files present, non-trivial blob sizes) + direct `git show origin/proflow-continuity:<file> | grep -c` for the new §183/§18.IA headings and the addendum text.
 
 ## 24. Remaining Limitations/Open Items
 
@@ -138,7 +138,7 @@ Left local-only, exactly as instructed — commit authorization was not inferred
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit: `13da5a5` (pushed `2d4bbc8..13da5a5` to `origin/proflow-continuity`). Remote read-back: PASS.
 
 ---
 
