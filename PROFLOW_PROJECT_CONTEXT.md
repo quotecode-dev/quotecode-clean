@@ -8,6 +8,8 @@
 
 **⚠️ OWNER-FACING COMMUNICATION IS IN HEBREW BY DEFAULT, NATURALLY RTL, NEVER VISUALLY BROKEN FROM BiDi MIXING** — permanent rule, full text: `PROFLOW_CHAT_HANDOFF.md` §0.1.
 
+**⚠️ FOLLOW THE CANONICAL CHATGPT WORKING STANDARD** — evidence before conclusion, root cause before repair, recommend don't just enumerate, Owner is decision authority not technical transport, complete the current action, and more — permanent rule, full text: `PROFLOW_CHAT_HANDOFF.md` §0.2. This governs *how* every session reasons and acts on the state below, not merely what the state is.
+
 **THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
 
 **THEN READ `PROFLOW_ARCHITECTURE.md`.**
