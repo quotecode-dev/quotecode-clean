@@ -161,7 +161,7 @@ Same repository, same branch (`main`), HEAD unchanged. `git status --short` now 
 
 ## 34. Continuity Commit/Read-Back Status
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `b639cac` (`9a720e6..b639cac`). Remote read-back: PASS — see the ledger footer below.
 
 ## 35. Final Checkpoint
 
