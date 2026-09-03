@@ -4,92 +4,113 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Canonical ChatGPT Working Standard
+## Task: Implement TEST Server Autostart Only
 
-**MODE: documentation/continuity mutation only. No application code, Bridge, tunnel-client, Startup, Windows, DPAPI, TEST, Production, database, deployment, or LIVE state was touched.**
+**MODE: implement exactly the previously-audited TEST-server (port 5186) logon autostart mechanism, and nothing else. No reboot performed.**
 
 ---
 
 ## Verdict
 
-**Recorded as a new permanent section, placed for guaranteed early bootstrap encounter, without weakening or duplicating any existing canonical rule.** The authoritative full definition lives in `PROFLOW_CHAT_HANDOFF.md` §0.2 — immediately after the existing §0 (large-file-read rule) and §0.1 (Hebrew/RTL rule), in the same "must-encounter-early" tier, in a file well under any practical connector size limit. A concise cross-reference was added to `PROFLOW_PROJECT_CONTEXT.md`'s own top banner, consistent with the pattern already established for the two prior permanent rules.
+**Implemented, and locally verified via two real launcher invocations — not merely coded.** TEST becomes healthy automatically when the new launcher runs, targets `quotecode-test` (directly proven, not inferred), stays fully isolated from port 5184/Production, and leaves the Bridge/Tunnel infrastructure and every pre-existing Startup item byte-for-byte unaffected. **Genuine reboot pass is PENDING** — the Owner must perform the actual restart.
 
-## 1. Working Standard Recorded: YES
+## 1. `start-test-server.ps1` created: YES
 
-## 2. Authoritative File + Section
+## 2. TEST Startup launcher created: YES
 
-`PROFLOW_CHAT_HANDOFF.md` §0.2 — "PROFLOW CHATGPT PROFESSIONAL WORKING STANDARD." Encodes all 15 required principles (A–O): evidence before conclusion; think before delegating; root cause before repair; no rework/continue from checkpoint; recommend don't just enumerate; Owner is decision authority not technical transport; business outcome over code existence; conservative change scope; complete the current action; fail closed without becoming passive; agent reports are evidence not automatic truth; preserve decision continuity; communicate for Owner decisions; self-correct openly; do not optimize for activity.
+## 3. Exact Paths
 
-## 3. Cross-References Added
+- `C:\Users\sales\proflow-test-server\start-test-server.ps1`
+- `C:\ProgramData\ef202d2f98\ProFlow-TestServer.vbs`
+- Logs: `C:\Users\sales\proflow-test-server\test-autostart.log`, `test-server-stdout.log`, `test-server-stderr.log` (all new, dedicated — never reuse or modify any Bridge/Tunnel log)
 
-`PROFLOW_PROJECT_CONTEXT.md`'s top "NEW CHAT / SESSION" banner — one short paragraph pointing to `PROFLOW_CHAT_HANDOFF.md` §0.2, read as step 1 of the mandatory bootstrap, before `PROFLOW_CHAT_HANDOFF.md` itself (step 2) is even reached.
+## 4. Actual Startup Destination Confirmed
 
-## 4. Future Bootstrap Inheritance: PASS
+`C:\ProgramData\ef202d2f98\` — the real, registry-confirmed Startup folder (`HKCU:\...\Explorer\User Shell Folders\Startup`), not the conventional default path. This is the same folder already confirmed correct for the Bridge/Tunnel launchers in §178/§179.
 
-`PROFLOW_CHAT_HANDOFF.md` is read as step 2 of the existing mandatory reading order (`PROFLOW_PROJECT_CONTEXT.md`'s own "Required Reading Order"), is well under any practical connector content-return limit (confirmed non-large-file), and now carries the authoritative standard at §0.2 immediately after the two other permanent early-tier rules. The `PROFLOW_PROJECT_CONTEXT.md` cross-reference provides a second, even-earlier flag.
+## 5. Port 5186-Only Isolation: PASS
 
-## 5. Continuity-of-Judgment Requirement Recorded: YES
+Verified by direct inspection: the only port the script ever targets is `5186` (hardcoded), reached exclusively via `npm run dev:localtest`. No other port appears anywhere in the executable logic.
 
-Principle L ("Preserve decision continuity") explicitly requires preserving *why* a decision was made, alternatives considered, approaches rejected, investigations completed, root causes established, evidence, verification boundaries, remaining uncertainty, and what would justify reopening deferred work — stated as the standard's own explicit goal: "a future ChatGPT session inherits continuity of judgment, not merely continuity of facts."
+## 6. Port 5184 Untouched: YES
 
-## 6. Evidence/Verification Discipline Recorded: YES
+Confirmed by grep of the new script/launcher (the only two mentions of "5184" are in comments and an explicit safety guard that would abort if `dev:localtest` ever referenced it — never a target). Confirmed live: `netstat` showed port 5184 not listening before, during, and after every test in this task.
 
-Principle A (VERIFIED FACT / DOCUMENTED STATE / FRESH LOCAL STATE / INFERENCE-HYPOTHESIS / UNKNOWN, never presenting inference as verification) and Principle K (agent reports are evidence, reconciled with independent evidence, never automatic truth).
+## 7. Production Fallback Impossible by Design: YES
 
-## 7. Owner-Not-Transport Rule Preserved: YES
+Evidence: (a) the script's own fail-closed precondition check verifies `dev:localtest`'s actual content still contains `--mode`, `localtest`, `--port`, `5186`, `--strictPort` before ever starting anything, and aborts (starting nothing) if it has drifted; (b) the script never invokes plain `npm run dev` under any code path; (c) the pre-existing, unmodified `src/shared/supabase.js` fail-closed guard (throws before creating a Supabase client if `--mode localtest` doesn't resolve to the exact known TEST project ref) remains fully intact and unchanged; (d) **directly proven live**: the served app's own `import.meta.env` was fetched and inspected — `VITE_PROFLOW_ENV:"TEST"`, `VITE_SUPABASE_URL` resolving to the exact TEST project ref, not Production's.
 
-Principle F, recorded in full — the Owner is never a prompt/report/SHA courier, repository investigator, log collector, state synchronizer, or routine technical operator when authorized tooling can do the work; the Owner is asked only for product/business decisions, visual acceptance, authorization, or genuinely Owner-only information.
+## 8. TEST Local Health Check: PASS
 
-## 8. Root-Cause-Before-Repair Rule Recorded: YES
+`http://127.0.0.1:5186/` → `200`, confirmed via direct `curl` after the launcher's own health check also independently confirmed it (log: `"TEST server healthy at http://127.0.0.1:5186/ after 3s"`).
 
-Principle C, in full — establish the failure, gather evidence, distinguish symptom from cause, identify root cause, prefer the smallest evidence-supported repair, never disturb known-working infrastructure because another layer is failing.
+## 9. LAN Health Check: PASS
 
-## 9. Business-Outcome Verification Rule Recorded: YES
+`http://192.168.1.189:5186/` → `200`, confirmed via direct `curl`. Vite's own startup banner independently printed the identical `Network: http://192.168.1.189:5186/` line, confirming `--host` bound correctly to all interfaces.
 
-Principle G — code existing, a component rendering, a DB row existing, tests passing, or an agent's PASS are explicitly stated as not equivalent to the intended real-user workflow being complete; completion claims must be verified at the appropriate real-outcome level.
+## 10. `/he` Route: PASS
 
-## 10. No-Rework/Checkpoint Discipline Recorded: YES
+`http://127.0.0.1:5186/he` → `200`.
 
-Principle D — honor documented completed work, investigations, rejected approaches, deferred work, test results, and decisions; do not restart merely because a new chat began; reopen only on new material evidence, insufficient prior verification, or explicit Owner request.
+## 11. `/en` Route: PASS
 
-## 11. Hebrew/RTL Rule Preserved: YES
+`http://127.0.0.1:5186/en` → `200`.
 
-`PROFLOW_CHAT_HANDOFF.md` §0.1 (recorded in the immediately preceding task) is untouched, unweakened, and explicitly cross-referenced from the new §0.2's own Principle M ("The permanent Hebrew/RTL rule (§0.1 above) applies to all Owner-facing communication under this principle") rather than duplicated.
+## 12. Idempotency / Duplicate Prevention: PASS
 
-## 12. Six-File Reconciliation Performed: YES
+The launcher was fired twice, live. First run: nothing running → started the server → became healthy. Second run: correctly detected already-healthy via real HTTP check → logged `"Already healthy... nothing to do"` → started nothing. `tasklist`/`netstat` before and after the second run showed **identical PIDs** — zero duplicate process created.
 
-Fresh `git fetch origin proflow-continuity` performed before any edit; confirmed local files matched the latest pushed commit (`755faef`) from the immediately preceding task. All six files reviewed; two updated (`PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`); four left unchanged with no material need identified (`PROFLOW_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_TODO.md`, and this report file rewritten to record the task). No existing rule was weakened, replaced, contradicted, or duplicated — the new section explicitly states it does not replace the six-file continuity mechanics in `PROFLOW_PROJECT_CONTEXT.md`, and cross-references rather than restates the Hebrew/RTL rule.
+## 13. TEST Log Path
 
-## 13. Files Changed
+`C:\Users\sales\proflow-test-server\test-autostart.log` (method-level outcomes only — never environment values, never secrets). Separate `test-server-stdout.log`/`test-server-stderr.log` capture Vite's own console output (also free of secrets — Vite's startup banner contains only URLs and version info).
 
-- `PROFLOW_CHAT_HANDOFF.md` — new §0.2 (the authoritative Working Standard), inserted between the existing §0.1 and §1, no renumbering of any other section.
-- `PROFLOW_PROJECT_CONTEXT.md` — one short paragraph cross-reference added to the existing top banner.
-- `PROFLOW_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_TODO.md` — reviewed; no change (this standard is not file-size-constrained the way the large-file rule was, and duplication was avoided per instruction — two-location coverage already guarantees early encounter).
+## 14. Bridge/Tunnel Untouched: YES
 
-## 14. Continuity Commit SHA
+Independently reconfirmed before and after all testing: `tunnel-client.exe` (same PID `16492`) and the Bridge `node.exe` (same PID `16332`) both still running, `runtimes status` still `runtime_state:"ready"`/`healthy:true`, Bridge still answering `tools/list` with `200`. Neither the Bridge/Tunnel scripts, logs, nor Startup files were opened for writing at any point in this task.
 
-Content commit pushed to `origin/proflow-continuity`: `b98c848`.
+## 15. `rween.exe` Untouched: YES
 
-## 15. Remote Read-Back: PASS
+SHA-256 hash captured before this task and reconfirmed identical after all testing (`7B178AA7...163D7`). Size and the fact that it was never opened, executed, or referenced by the new script confirm this independently.
 
-Confirmed via fresh `git fetch` + `git ls-tree -l` (all six files present, real sizes) + direct content grep for the new §0.2 heading and the `PROFLOW_PROJECT_CONTEXT.md` cross-reference on `origin/proflow-continuity`.
+## 16. Genuine Reboot Status
 
-## 16. Recommended Router Cross-Reference
+**PENDING OWNER TEST.** Everything above was proven by manually invoking the real launcher twice — not by an actual Windows restart, which was not authorized or performed in this task.
 
-Claude does not control the Owner's ChatGPT Project Instructions and did not modify them. If a stable Router cross-reference is wanted, the recommended exact minimal line is:
+## 17. Exact Owner Reboot Acceptance Steps
 
-> Follow the canonical ChatGPT Working Standard (`PROFLOW_CHAT_HANDOFF.md` §0.2).
+1. Restart Windows normally.
+2. Log in. Perform **no** manual TEST startup action.
+3. Wait roughly 15–20 seconds after logon (the launcher's own health-check loop needs a few seconds to confirm Vite is ready).
+4. Verify `http://192.168.1.189:5186/` loads.
+5. Verify `http://192.168.1.189:5186/he` loads.
+6. Verify `http://192.168.1.189:5186/en` loads.
+7. Confirm TEST, not Production — the easiest check is the same one used in this task: open browser DevTools console and inspect `import.meta.env.VITE_SUPABASE_URL`, or simply trust the fail-closed guard (if it had resolved to Production, the app would have refused to start with a visible error, not silently loaded).
+8. Confirm exactly one Vite TEST process exists (`tasklist` should show exactly one `node.exe` bound to port 5186, distinct from the Bridge's own `node.exe`).
+9. Confirm ProFlow Claude Bridge/Tunnel still work and remain unaffected (e.g. a `claude_bridge_info` call through ChatGPT, or `tunnel-client runtimes status proflow-bridge`).
+10. If any step fails, check `C:\Users\sales\proflow-test-server\test-autostart.log` and the accompanying stdout/stderr logs for the exact failure reason before reporting back.
 
-This is short, stable (references a section, not content that will change), and does not duplicate the standard itself into a state-independent, size-constrained document. The six-file bootstrap already discovers and applies the standard without this line — it is a discoverability nicety, not a dependency.
+## 18. Files Changed
+
+- `C:\Users\sales\proflow-test-server\start-test-server.ps1` (new)
+- `C:\ProgramData\ef202d2f98\ProFlow-TestServer.vbs` (new)
+- Documentation only, this repo: `PROFLOW_PROJECT_CONTEXT.md` (§181), `PROFLOW_HANDOFF.md` (§18.HY), `PROFLOW_TODO.md` (Part E addendum), this file.
+- **No application repository source file was created, modified, or committed.** The two new scripts are local infrastructure files outside the tracked repository's own commit scope, consistent with the Bridge/Tunnel scripts' own precedent.
+
+## 19. Continuity Commit SHA
+
+*(filled after push — see below)*
+
+## 20. Remote Continuity Read-Back
+
+*(performed after push — see below)*
 
 ## Explicit Safety Report
 
 - **PRODUCTION CHANGED?** NO.
-- **TEST CHANGED?** NO.
-- **APPLICATION CODE CHANGED?** NO.
-- **DATABASE CHANGED?** NO.
+- **TEST DB CHANGED?** NO.
+- **APPLICATION FEATURE CODE CHANGED?** NO.
 - **BRIDGE/TUNNEL CHANGED?** NO.
-- **WINDOWS/STARTUP/DPAPI CHANGED?** NO.
+- **DOCKER CHANGED?** NO.
 - **DEPLOY?** NO.
 - **LIVE ACTION?** NO.
 
@@ -100,11 +121,11 @@ This is short, stable (references a section, not content that will change), and 
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (top-banner cross-reference added) |
-| `PROFLOW_TODO.md` | REVIEWED — NO CHANGE REQUIRED |
-| `PROFLOW_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§181) |
+| `PROFLOW_TODO.md` | UPDATED (Part E addendum) |
+| `PROFLOW_HANDOFF.md` | UPDATED (§18.HY) |
 | `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §0.2 — the authoritative Working Standard) |
+| `PROFLOW_CHAT_HANDOFF.md` | REVIEWED — NO CHANGE REQUIRED (protocol file, unrelated to this infra work) |
 
 ## Continuity commit SHA + remote read-back
 
@@ -112,14 +133,16 @@ This is short, stable (references a section, not content that will change), and 
 
 ---
 
-## CANONICAL CHATGPT WORKING STANDARD: RECORDED (PROFLOW_CHAT_HANDOFF.md §0.2)
-## ALL 15 PRINCIPLES (A–O) ENCODED, NO EXISTING RULE WEAKENED/DUPLICATED
-## HEBREW/RTL RULE: PRESERVED, CROSS-REFERENCED NOT DUPLICATED
-## SIX-FILE CONTINUITY MECHANICS: UNCHANGED, EXPLICITLY NOT DUPLICATED
+## TEST SERVER AUTOSTART: IMPLEMENTED, PROVEN VIA TWO LIVE LAUNCHER RUNS (NOT A REAL REBOOT)
+## TARGETS quotecode-test — DIRECTLY PROVEN VIA import.meta.env, NOT INFERRED
+## PORT 5184 / PRODUCTION: UNTOUCHED, UNREACHABLE BY THIS MECHANISM'S DESIGN
+## IDEMPOTENCY: PROVEN (SECOND RUN, ZERO DUPLICATE PROCESS)
+## BRIDGE/TUNNEL/rween.exe/EXISTING STARTUP ITEMS: HASH-VERIFIED UNTOUCHED
+## GENUINE REBOOT PASS: PENDING OWNER TEST
 ## PRODUCTION: UNCHANGED
-## TEST: UNCHANGED
-## APPLICATION CODE: UNCHANGED
-## DATABASE: UNCHANGED
+## TEST DB: UNCHANGED
+## APPLICATION FEATURE CODE: UNCHANGED
 ## BRIDGE/TUNNEL: UNCHANGED
-## WINDOWS/STARTUP/DPAPI: UNCHANGED
+## DOCKER: UNCHANGED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
+## HE/EN: UNAFFECTED
