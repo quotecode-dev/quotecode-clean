@@ -60,7 +60,7 @@ The failure mode is specifically: a connector read of one of the two large files
 
 ## Continuity commit SHA + remote read-back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `a1280f6`.
 
 ---
 
