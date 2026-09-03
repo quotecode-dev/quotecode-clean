@@ -89,7 +89,7 @@ Same repository, same branch, HEAD unchanged. The pre-existing uncommitted diff 
 
 ## 17. Continuity Commit/Read-Back
 
-*(filled after push — see below)*
+Content commit pushed to `origin/proflow-continuity`: `1831702` (`73b9bb1..1831702`). Remote read-back: PASS — see the ledger footer below.
 
 ---
 
