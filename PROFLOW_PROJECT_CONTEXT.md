@@ -4,6 +4,8 @@
 
 **PERMANENT SIX-FILE CONTINUITY RULE (see §0.B below for the full rule): this project maintains exactly SIX canonical continuity documents, always read together from the `proflow-continuity` ref, never from `main`, a stale upload, or chat memory.** Earlier wording throughout this project's documentation (in this file and others) has referred to "four" or "five" documents at various points in its history, as the set genuinely grew from three to six over time. §0.B is the current, authoritative statement — treat any "four"/"five" phrasing found elsewhere (including deeper in this very file) as superseded by §0.B, not as a live inconsistency to re-litigate.
 
+**⚠️ THIS FILE AND `PROFLOW_HANDOFF.md` ARE LARGE (>1 MB each)** — some GitHub connector/API reads return valid metadata but empty `content` for files this size. That is a tool limitation, never evidence either file is empty/corrupt/missing. Full handling rule: `PROFLOW_CHAT_HANDOFF.md` §0 — try a read-only alternative (ranged/blob/raw read, targeted section retrieval) before concluding anything; never ask the Owner to paste either file; only fail closed with `CONTINUITY BOOTSTRAP INCOMPLETE` after genuinely exhausting available read-only methods.
+
 **THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
 
 **THEN READ `PROFLOW_ARCHITECTURE.md`.**

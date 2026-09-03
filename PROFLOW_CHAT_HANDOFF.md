@@ -20,6 +20,19 @@ current accepted visual/product state, the current known blockers, what must
 never be assumed, and the exact current resume point — without duplicating
 the huge technical histories already stored in `PROFLOW_HANDOFF.md`.
 
+## 0. ⚠️ Large-File Read Limitation — PROFLOW_PROJECT_CONTEXT.md / PROFLOW_HANDOFF.md (permanent, added 2026-09-03)
+
+**`PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` are known large files (each well over 1 MB) that exceed the practical content-return limit of some GitHub connector/API file reads.** Some connector methods return valid metadata (path, SHA) for these two files but an **empty `content` field**. This is a **tool/response-size limitation only.**
+
+**An empty `content` response for either file, even with valid metadata/SHA, must NEVER be treated as evidence that the file is empty, corrupt, missing, or that continuity is broken.** Both files are large specifically because they hold this project's real accumulated history — that is expected, not a fault.
+
+During the mandatory six-file bootstrap, all six files must still be **freshly read and reconciled** — this requirement is not relaxed by the limitation above. If a standard content read cannot return either large file:
+1. Try a reasonable **read-only alternative** before concluding anything: a ranged/partial read, a raw/blob content read, the GitHub API's blob endpoint, a targeted search + section retrieval, or any other available read-only GitHub mechanism that can actually reach the file's content.
+2. **Metadata/SHA/existence alone is not a successful read.** The actual content must come back through some working method for the bootstrap to count as complete for that file.
+3. **Never ask the Owner to copy/paste either file** merely because one connector method hit its own size limit — that is a tooling problem to route around, not information the Owner needs to manually transport.
+4. **Never substitute** chat memory, prior chat history, a Claude report summary, or another one of the six files for the actual fresh read of these two files.
+5. Only after reasonable available read-only alternatives have genuinely been exhausted may a session fail closed and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (per `PROFLOW_PROJECT_CONTEXT.md` §0.C) — not before.
+
 ## 1. Roles and decision authority
 
 **Owner**: final authority for product, visual acceptance, LIVE, migrations,

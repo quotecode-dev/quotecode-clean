@@ -4,61 +4,37 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Final Bridge Continuity Checkpoint Before ChatGPT Chat Migration
+## Task: Document Large Canonical File Read Limitation for Future ChatGPT Sessions
 
-**MODE: documentation/continuity update only. No Bridge, tunnel-client, Startup, DPAPI credential, Windows configuration, application code, TEST, Production, database, deployment, or LIVE state was touched.**
+**MODE: documentation/continuity only. No application code, Bridge, tunnel-client, Startup, Windows, DPAPI, TEST, Production, database, deployment, or LIVE state was touched.**
 
 ---
 
 ## Verdict
 
-**The full persistence effort (§170–§179) is now closed by a genuine, real-world reboot pass.** The Owner restarted Windows, touched nothing manually, and the entire stack — tunnel-client, Bridge, and a working ChatGPT connector in a new conversation — came up on its own. This is documented as the real milestone it is. A separate, ChatGPT-side connector-availability gap (old conversation vs. new) was investigated, found to be entirely outside local control, and a controlled chat-transition gate has been recorded to govern the migration safely.
+**Rule documented, placed so it is encountered before a bootstrap can falsely fail.** The primary, guaranteed-to-be-read copy lives in `PROFLOW_CHAT_HANDOFF.md` §0 — a small file, unaffected by the size problem itself, and already read early (step 2) in the mandated bootstrap order. Short pointers to that rule were also added at the very top of both affected large files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`), so whichever of the two *does* read successfully still carries the warning forward for the other.
 
-## 1. Genuine Windows Reboot/Logon E2E Test
+## Placement Reasoning
 
-**PASS.** The Owner performed a real Windows restart, did not manually start PowerShell, Bridge, tunnel-client, or any ProFlow script, and the Startup mechanism brought the infrastructure up automatically.
+The failure mode is specifically: a connector read of one of the two large files returns empty `content`. A warning placed *only inside* those same two files would not help in that exact scenario — the session would never see it. `PROFLOW_CHAT_HANDOFF.md` is part of the same six-file set, is well under any practical size limit, and is already read as step 2 of the existing mandatory bootstrap order (`PROFLOW_PROJECT_CONTEXT.md`'s own "Required Reading Order") — making it the reliable, guaranteed-to-land home for the rule. Short pointers were additionally placed at the very top of both large files as defense-in-depth, in case a partial/ranged read of just the beginning succeeds even when a full-content read does not.
 
-## 2. Startup Persistence
+## Rule Content (summary — full text in `PROFLOW_CHAT_HANDOFF.md` §0)
 
-**VERIFIED by genuine reboot** — the first time this could be said as PROVEN rather than STRUCTURALLY CONFIGURED anywhere in this task chain.
+1. Names both files explicitly (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`) as known large files exceeding some connectors' practical content-return limit.
+2. States plainly that empty `content` with valid metadata/SHA is a tool limitation, never evidence of an empty/corrupt/missing file or broken continuity.
+3. Preserves the six-file fresh-read-and-reconcile requirement unchanged — this rule does not relax it.
+4. Requires trying a reasonable read-only alternative (ranged/partial read, raw/blob read, GitHub API blob endpoint, targeted search + section retrieval, or any other available read-only mechanism) before concluding anything.
+5. States metadata/SHA/existence alone is not a successful read — actual content must come back through some working method.
+6. Explicitly forbids asking the Owner to paste either file merely because one connector method hit its size limit.
+7. Explicitly forbids substituting chat memory, history, a Claude report summary, or another of the six files for the actual fresh read.
+8. Only after genuinely exhausting available read-only alternatives may a session fail closed with exactly `CONTINUITY BOOTSTRAP INCOMPLETE`.
 
-## 3. Fix Chain That Made This Possible
+## Files Changed
 
-§176 (console-detachment fix for the managed tunnel) + §177 (DPAPI-encrypted credential enrollment) + §178 (credential-sanitization fix, plus the real root cause of both launchers never firing — a registry-redirected Startup folder) + §179 (the exact, hash-verified VBS-copy fix) — all converging in this one real pass.
-
-## 4. New ChatGPT Conversation Echo Test
-
-**PASS.** `echo("hello-after-real-restart")` executed through ProFlow Claude Bridge V2 in a brand-new ChatGPT conversation, returned exactly `hello-after-real-restart`.
-
-## 5. Fresh Local Health Investigation
-
-Recorded: tunnel-client running (single instance), Bridge running (single instance), `runtime_state:"ready"`, `healthy:true`, Bridge responded correctly to a live call. Nothing locally broken.
-
-## 6. Existing Old ChatGPT Conversation
-
-Confirmed unable to access the connector — reports it unavailable, despite the identical connector being proven available in any new conversation.
-
-## 7. No Local Mechanism Explains the Difference
-
-Directly inspected, not assumed: the Bridge server's source has no concept of a ChatGPT conversation at all — no per-conversation allowlist, binding, or gating anywhere; `tools/list` is served identically to any connection reaching it. This is entirely ChatGPT/OpenAI-side behavior, outside anything local. Reported honestly as **UNKNOWN** whether the old conversation could dynamically acquire the connector — not guessed at.
-
-## 8. Decision: Do Not Touch the Working Bridge/Tunnel
-
-Explicitly recorded: no change will be made to the now-proven-working infrastructure merely to try to repair the old conversation's connector access.
-
-## 9. Recommended Transition
-
-Move primary ProFlow work to a new ChatGPT conversation, where the connector is already proven end-to-end.
-
-## 10. Controlled Chat-Transition Gate — Recorded, Binding
-
-The old/current conversation remains the control point until a **new** conversation independently proves, in order: (a) successful six-file Continuity Bootstrap; (b) arrival at the correct current checkpoint; (c) ProFlow Claude Bridge V2 availability; (d) successful `echo`; (e) successful `claude_bridge_info`. No implementation work resumes in the new conversation until all five pass. Recorded in `PROFLOW_CHAT_HANDOFF.md` §16 (a new section — the correct home for ChatGPT↔Claude coordination protocol, distinct from the purely-technical infra sections in `PROFLOW_PROJECT_CONTEXT.md`/`PROFLOW_ARCHITECTURE.md`).
-
-## Continuity-Compliance Audit
-
-**Question**: why was the immediately preceding investigation (why does the new chat have the connector but the old one doesn't) not reflected in remote continuity before this checkpoint?
-
-**Answer: (A) — the continuity update was never performed.** Cause established, not an oversight of the standing six-file rule: that specific diagnostic task's own instructions explicitly scoped it as read-only and brief ("Do not spend significant time on this... If the answer cannot be established... STOP") and did **not** include continuity-file update authorization — unlike every other task in this chain, which explicitly authorized and requested documentation updates as part of its own scope. This checkpoint (§180) now folds that investigation's findings in, closing the gap. Recorded going forward: a bounded read-only diagnostic's findings should still be captured at the next continuity-authorized checkpoint, even without its own documentation mandate.
+- `PROFLOW_CHAT_HANDOFF.md` — new §0, placed before the existing §1, containing the full rule.
+- `PROFLOW_PROJECT_CONTEXT.md` — short pointer added to the existing top "NEW CHAT / SESSION" banner.
+- `PROFLOW_HANDOFF.md` — short pointer added to the existing top "CURRENT RESUME STATE" banner.
+- `PROFLOW_TODO.md`, `PROFLOW_ARCHITECTURE.md` — reviewed; the rule does not belong in either (not part of the size-affected files or the bootstrap-read-order chain in the same way) — no change made.
 
 ## Explicit Safety Report
 
@@ -76,25 +52,27 @@ The old/current conversation remains the control point until a **new** conversat
 | File | Status |
 |---|---|
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (§180) — file size 1,537,610+ bytes (>1MB, per the task's own note; verified via local `wc -c`/`git`, not a remote display API) |
-| `PROFLOW_TODO.md` | UPDATED (item 56 status line) |
-| `PROFLOW_HANDOFF.md` | UPDATED (§18.HX) — file size 1,284,166+ bytes (>1MB, same verification method) |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED (§20 extended with the proven-reboot summary) |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §16 — the controlled chat-transition gate) |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED (top-banner pointer added) |
+| `PROFLOW_TODO.md` | REVIEWED — NO CHANGE REQUIRED (rule doesn't belong here) |
+| `PROFLOW_HANDOFF.md` | UPDATED (top-banner pointer added) |
+| `PROFLOW_ARCHITECTURE.md` | REVIEWED — NO CHANGE REQUIRED (rule doesn't belong here) |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED (new §0 — the primary, reliable home for this rule) |
 
 ## Continuity commit SHA + remote read-back
 
-Content commit pushed to `origin/proflow-continuity`: `f337b31`.
+*(filled after push — see below)*
 
 ---
 
-## GENUINE POST-REBOOT E2E: PASS — FULL STACK AUTOSTARTED, NEW-CHAT ECHO CONFIRMED
-## OLD-CONVERSATION CONNECTOR GAP: CHATGPT-SIDE, NOT LOCAL — BRIDGE/TUNNEL WILL NOT BE TOUCHED FOR THIS
-## CONTROLLED CHAT-TRANSITION GATE: RECORDED, BINDING (PROFLOW_CHAT_HANDOFF.md §16)
+## LARGE-FILE READ LIMITATION: DOCUMENTED, PLACED IN THE RELIABLY-READ FILE (PROFLOW_CHAT_HANDOFF.md §0)
+## FILES NAMED EXPLICITLY: YES (PROFLOW_PROJECT_CONTEXT.md, PROFLOW_HANDOFF.md)
+## FALSE-FAILURE / EMPTY-CONTENT WARNING: RECORDED
+## ALTERNATIVE READ-PATH REQUIREMENT: RECORDED
+## OWNER-NOT-DATA-TRANSPORT RULE: RECORDED
+## SIX-FILE BOOTSTRAP REQUIREMENT: PRESERVED, NOT RELAXED
 ## PRODUCTION: UNCHANGED
 ## TEST: UNCHANGED
 ## APPLICATION CODE: UNCHANGED
-## BRIDGE/TUNNEL: UNCHANGED (DOCUMENTATION-ONLY TASK)
+## BRIDGE/TUNNEL: UNCHANGED
 ## DEPLOY / LIVE ACTION: NOT PERFORMED
 ## HE/EN: UNAFFECTED
-## NEXT STEP: OWNER-DRIVEN CHAT TRANSITION, GATED BY THE FIVE CHECKS ABOVE
