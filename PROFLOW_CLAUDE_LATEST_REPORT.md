@@ -130,7 +130,7 @@ Confirmed untouched: quote calculation/VAT logic (`utils/regionConfig.js`, `util
 
 ## 23. Continuity Commit/Push Result
 
-*(Filled in by the follow-up commit after this file's own content commit is pushed and verified — see the standard two-commit convention: content push, verify via fresh `git fetch`+`git log`+content-grep, then a second commit recording the exact verified SHA here.)*
+Content commit `37a45da` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git rev-parse` (local `HEAD` == `origin/proflow-continuity` HEAD, both `37a45da`) + content-grep (§196 present in `PROFLOW_PROJECT_CONTEXT.md`). This paragraph is itself the required SHA-follow-up commit.
 
 ## 24. Application Commit
 
