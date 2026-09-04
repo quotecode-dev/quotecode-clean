@@ -4,132 +4,149 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: PROFLOW V2 — RTL/LTR Sidebar Position + Quote-Row Expand Control (Correction, not a new design round)
+## Task: PROFLOW V2 — Desktop Header Removal, Sidebar Brand Hierarchy, and AI Chat Relocation
 
-**MODE: TEST/local-only. Corrects a mistake in the canonical rule set. NOT authorized: application commit, application push, deployment, Production change, LIVE action, database change, destructive git operation, any scope expansion.**
+**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action.**
 
-⚠️ **This task corrects a canonical rule that was introduced by mistake in an earlier round** ("sidebar always physically LEFT in both languages," established `PROFLOW_PROJECT_CONTEXT.md` §186, relied on through §187/§189/§190). That rule is now explicitly wrong and superseded — see §191 for the full corrected rule and its implementation. Earlier sections are preserved as accurate history, not deleted.
+Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §191, now recorded as §192. Full narrative detail lives in §192; this file answers the task's own required 31-item structure.
 
 ---
 
 ## 1. Fresh Branch, HEAD, and Working-Tree State
 
-Branch `main`, HEAD unchanged from every prior task this session (`f3b59d0...`). Same large pre-existing uncommitted working tree confirmed present and preserved (Professional Quotes Stages D/E/F, Plan Identity, the full §184-§190 V2 chain) — nothing reset, restored, checked out, stashed, or cleaned.
+Branch `main`, HEAD unchanged from every prior task this session (`f3b59d0...`). Same large pre-existing uncommitted working tree confirmed present and preserved — nothing reset, restored, checked out, stashed, or cleaned.
 
 ## 2. Exact Files Changed
 
-`src/pages/Dashboard.jsx` (`.dash-shell-body` direction, `.dash-sidebar` border property, `.dash-topbar` gradient direction), `src/components/QuotesTab.jsx` (desktop expand-control column reorder + corner-radius swap, mobile chevron reorder), `src/components/QuotesTab.test.jsx` (2 updated index assertions, 2 new chevron-position tests).
+`src/pages/Dashboard.jsx` only — sidebar brand block CSS, platform-brand relocation, new sidebar utility zone, topbar desktop-hide rule, AI Chat mount extraction, status toast extraction + re-centering fix, greeting text/styling, one new `Bot` icon import.
 
-## 3. Exact Canonical Statements Corrected
+## 3. Exact Topbar Elements Removed or Relocated
 
-(a) `PROFLOW_HANDOFF.md` §18.ID's own rule-declaring bullet: *"Sidebar (core correction): must be physically LEFT on desktop in BOTH Hebrew and English."* (b) Every subsequent restatement of that rule as current fact in `PROFLOW_TODO.md` item 57, `PROFLOW_CHAT_HANDOFF.md` §14's (now-superseded) top paragraph, and this file's own prior version — all now superseded by the corrected rule recorded fresh in `PROFLOW_PROJECT_CONTEXT.md` §191.
+**Removed from visible desktop rendering** (still present in JSX, `display:none` on desktop only, unchanged on mobile): the topbar container itself and its business-identity display. **Relocated out of the topbar entirely** (extracted to a new standalone mount, since both are `position:fixed` and would otherwise be taken down by the topbar's desktop `display:none`): `<AIChatWidget>` and the `statusMsg` toast. **Left in place, unchanged**: the Admin "AI Support Logs" button (preserved for its original mobile audience; a separate desktop-only copy added to the sidebar).
 
-## 4. How Historical Descriptions Were Preserved and Marked Superseded
+## 4. Business Identity Before / After
 
-No historical section (§186/§187/§189/§190 in `PROFLOW_PROJECT_CONTEXT.md`, §18.ID/IE/IG/IH in `PROFLOW_HANDOFF.md`, or any prior resume-point paragraph in `PROFLOW_CHAT_HANDOFF.md`) was deleted, rewritten, or had its text altered. Exactly one block-quote annotation (`> ⚠️ SUPERSEDED, 2026-09-04...`) was inserted directly beneath §18.ID's own rule bullet in `PROFLOW_HANDOFF.md`, explicitly stating the rule was a mistake and pointing to §191 — the surrounding narrative (what was decided, why, and what the Owner said at the time) is untouched. A new, clearly-dated, clearly-titled §191/§18.II/item-57-update/§14-top-paragraph carries the correction going forward; older sections remain readable exactly as before for anyone reconstructing the project's history.
+**Before**: `.dash-sidebar-brand-mark` 38×38px, `.dash-sidebar-brand-name` 0.98rem, single-line ellipsis truncation, no separator. **After**: mark 52×52px, name 1.1rem, up to 2 lines via `-webkit-line-clamp:2`, `border-bottom` separator, deliberately modest increase per the Owner's "balanced" constraint. Logo/no-logo fallback and RTL/LTR content direction unchanged.
 
-## 5. Exact Sidebar Implementation Before / After
+## 5. ProFlow Branding Before / After
 
-**Before**: `.dash-shell-body { direction: ltr; }` — permanently hardcoded, regardless of language. `.dash-sidebar { border-right: 1px solid ${SHELL.sidebarBorder}; }` — hardcoded physical side. `.dash-topbar { background: linear-gradient(to right, ...); }` — hardcoded direction, explicitly documented as intentionally unconditional on language.
+**Before**: `.dash-sidebar-platform-brand` directly beneath the business-brand block (top of sidebar), start-aligned, `margin-bottom` spacing. **After**: last child of `.dash-sidebar-footer` (bottom of sidebar, after user/plan identity), centered, `border-top` separator. Same `ProFlowLogo(size=13)` component/props, same "Powered by"/"מופעל על ידי" label, same internal-LTR exception on the logotype only — not removed, only relocated.
 
-**After**: `.dash-shell-body { direction: ${isHebrew ? 'rtl' : 'ltr'}; }`. `.dash-sidebar { border-inline-end: 1px solid ${SHELL.sidebarBorder}; }` (logical property). `.dash-topbar { background: linear-gradient(${isHebrew ? 'to left' : 'to right'}, ...); }`. `.dash-sidebar`'s own internal `direction` (already `${isHebrew ? 'rtl' : 'ltr'}`) is unchanged.
+## 6. Desktop AI Chat Launcher Before / After
 
-## 6. Exact Desktop Chevron Implementation Before / After
+**Before**: `<AIChatWidget>` mounted inside `.dash-topbar-actions`, rendering its own floating trigger button visible on both desktop and mobile. **After**: mounted standalone (`.dash-ai-chat-mount`) near the app's other modals; its floating trigger is hidden on desktop only (`@media(min-width:769px){ .dash-ai-chat-mount .ai-support-btn{display:none!important} }`); a new sidebar action ("AI Chat" button in `.dash-sidebar-utility`) opens the same widget via the existing `open-proflow-ai-chat` event.
 
-**Before** (`QuotesTab.jsx`): expand-control `<th>`/`<td>` was the 6th/last column, after Date; it carried the outer-end corner-radius/border treatment, and Client Name (1st column) carried the outer-start treatment.
+## 7. Confirmation the Existing Chat Mechanism Was Reused
 
-**After**: expand-control `<th>`/`<td>` is now the 1st column; it carries the outer-start corner-radius/border treatment (swapped from Client Name). Date is now the last column and carries the outer-end treatment (swapped from the expand control). Client Name, Order#, Amount, Status, Date remain in the same relative order, just shifted one position later. No width, padding, sort handler, or the before-VAT tooltip guard changed.
+Confirmed by QA via repo-wide grep: exactly the same `open-proflow-ai-chat` `CustomEvent` name is used by the new sidebar button's dispatch, `Contact.jsx`'s pre-existing dispatch, and `AIChatWidget.jsx`'s pre-existing `useEffect` listener — no second/parallel chat implementation was created.
 
-## 7. Exact Mobile Chevron Implementation Before / After
+## 8. Mobile AI Chat Result
 
-**Before**: `<button style={{display:'block', ...}}>` containing two stacked content rows; `<ChevronDown>` was the last element, inside the second row beside the status badge.
+Unaffected. The desktop-only suppression rule applies only at `≥769px`; mobile's existing compact 48×48 floating launcher (established in an earlier round) renders exactly as before. No seventh bottom-nav item was added; the six existing mobile bottom-nav items are unchanged.
 
-**After**: `<button style={{display:'flex', alignItems:'flex-start', gap:'8px', ...}}>` with `<ChevronDown flexShrink:0>` as the first child, followed by a `<div style={{flex:'1 1 auto', minWidth:0}}>` wrapping the unchanged two-row content (status badge no longer shares a flex group with the chevron — it now sits alone at the end of the second row). A new `aria-label` was added to the button, matching desktop's existing pattern.
+## 9. Super Admin Action Result
 
-## 8. Hebrew Desktop Result
+Two copies now exist: the original inside `.dash-topbar-actions` (preserved for mobile, where the topbar remains visible) and a new one inside `.dash-sidebar-utility` (desktop-only, since the sidebar is hidden on mobile). Both share byte-identical `onClick`/permission-gate logic. QA confirmed these are strictly mutually exclusive by breakpoint — the topbar's `≥769px` hide and the sidebar's pre-existing `≤768px` hide are exact complements, so exactly one is ever visible at any single viewport width.
 
-Sidebar renders physically RIGHT (verified via direct flexbox/`direction` reasoning by the HE specialist: a flex row's first DOM child sits at the container's inline-start, which is the physical right edge under `direction:rtl`). Expand chevron is the first table column, landing at the row's physical right edge. HE specialist verdict: **PASS**. Structural/reasoning-level verification only — no rendered screenshot exists.
+## 10. Status-Toast Result
 
-## 9. English Desktop Result
+Re-anchored from `position:absolute` (topbar-relative) to a standalone `position:fixed` overlay. **A real defect was found and fixed**: the first implementation centered on the raw viewport, ignoring the sidebar's 232px footprint — could overlap it by up to ~57px at desktop widths 769-884px. Fixed with a desktop-only, language-conditioned offset (`calc(50% ± 116px)`, sign depending on `isHebrew`) that centers the toast on the workspace region instead. `role="status"`, `aria-live="polite"`, success/error styling, animation, and dismissal lifecycle all unchanged; all ~18 `setStatusMsg` call sites confirmed untouched.
 
-Sidebar stays physically LEFT (confirmed a genuine no-op — every changed CSS value evaluates identically to its old hardcoded value when `isHebrew=false`). Expand chevron is now the first column, landing at the row's physical left edge (a real, correct, visible change from before). EN specialist verdict: **PASS**. Structural verification only.
+## 11. Hebrew Desktop Result
 
-## 10. Hebrew Mobile Result
+HE specialist: **PASS**. Sidebar physically right (unchanged from §191), enlarged brand block genuinely RTL, relocated platform-brand not forced to LTR, new utility buttons' icon/label order mirrors correctly, corrected Hebrew greeting text verified character-for-character ("שלום, ברוך שובך!"), toast centering confirmed direction-agnostic. Structural review only.
 
-Sidebar is hidden on mobile (`display:none` below 768px, unaffected by this correction either way). Chevron is the first child of the card's button, landing at the card's physical right edge under `dir="rtl"`. Structural verification only.
+## 12. English Desktop Result
 
-## 11. English Mobile Result
+EN specialist: **PASS**. Sidebar physically left (unchanged), English greeting text confirmed byte-identical to before, new sidebar-utility labels read naturally, AI-chat scoping selector confirmed to leave every other page's own `<AIChatWidget>` mount untouched. Structural review only.
 
-Same structure; chevron lands at the card's physical left edge under `dir="ltr"`. Structural verification only.
+## 13. Hebrew Mobile Result
 
-## 12. Scroll and Overflow Verification
+Topbar remains fully visible/unchanged on mobile (business identity, Admin button preserved there); sidebar (containing the enhanced brand block) stays hidden below 768px, unaffected either way. Structural review only.
 
-**Desktop shell height/scroll contract** (`.dash-app-shell{height:100vh;overflow:hidden}`, `min-height:0` cascade, `.dash-main-content{overflow-y:auto}` as sole scroll area, established §189): confirmed untouched by this round's diff, and confirmed by the UI specialist's explicit reasoning that `direction` (a bidi/inline-axis property) cannot interact with flex main-axis sizing/height/overflow (governed by the unchanged `flex-direction:row` and unchanged height/overflow rules). **Horizontal overflow**: column widths were recomputed independently by the UI specialist directly from the current code — expand 36px + Client Name minWidth 200px + Order# 68px + Amount 86px + Status 78px + Date 100px = 568px core + ~52px combined cell padding ≈ **620px**, unchanged from before this correction and still comfortably under the ~680px available desktop budget (only DOM order changed, not any width/padding value). Arithmetic verification only — no live `scrollWidth`/`clientWidth` measurement was possible (browser automation unavailable).
+## 14. English Mobile Result
 
-## 13. Accessibility Verification
+Same as above, mirrored. Structural review only.
 
-Real `<button>` elements throughout (keyboard-activatable natively) — unchanged. `aria-expanded`/`aria-controls`/detail-panel `id` wiring confirmed unchanged, only element position moved. A new `aria-label` was added to the mobile card button (it previously had none; desktop's equivalent button already had one) — a minor, directly-related accessibility improvement, not a regression or scope addition.
+## 15. Long-Name / Logo / No-Logo Results
 
-## 14. Focused Tests
+Long business names now wrap up to 2 lines via `-webkit-line-clamp:2` (was hard single-line ellipsis) — a safer degradation, still bounded, never breaking the sidebar layout. Logo-present (`bizLogoUrl`, `object-fit:cover`) and no-logo (gradient initial-letter fallback) cases both confirmed unchanged in logic, only the mark's size grew. Structural review only.
 
-`npx vitest run src/components/QuotesTab.test.jsx` — **53/53 pass** (49 pre-existing + 2 index-assertion updates that genuinely needed to shift with the real DOM reorder + 2 new tests specifically verifying the corrected chevron position, desktop and mobile/both languages).
+## 16. Scrolling and Overflow Results
 
-## 15. Full Test-Suite Result
+Desktop shell height/scroll contract confirmed intact by the UI specialist: a `display:none` topbar contributes nothing to flex-basis math, so `.dash-main-content` (the sole remaining flex child of `.dash-shell-main`) correctly absorbs the freed height with no gap or miscalculation. `position:fixed` overlays (AI Chat mount, status toast) confirmed genuinely unaffected by `.dash-app-shell`'s `overflow:hidden` — no ancestor establishes a new containing block via `transform`/`filter`/etc. (confirmed by direct grep of `Dashboard.jsx` and `index.css`). Sidebar's existing `.dash-sidebar-nav{overflow-y:auto}` safety valve confirmed to still adequately absorb the taller brand block + new utility zone on a short viewport without truncating the footer.
 
-**304/304 pass.**
+## 17. Accessibility Results
 
-## 16. Lint Result
+New sidebar buttons are real `<button>` elements (keyboard-activatable natively), reusing the same `.dash-sidebar-btn` classes and icon/label DOM order as every other sidebar nav item. Status toast's `role="status"`/`aria-live="polite"` preserved unchanged. No aria attribute was removed from any existing element.
 
-0 errors across all three touched files (1 pre-existing, unrelated `react-hooks/exhaustive-deps` warning in `Dashboard.jsx`, predates this task).
+## 18. Focused Tests
 
-## 17. Build Result
+**None added.** No dedicated unit-test file for `Dashboard.jsx` exists anywhere in this project's history (a ~4700-line component with heavy `supabase`/session data-fetching dependencies, no existing test harness/mocking infrastructure for it) — verification for this component has consistently relied on the four-specialist read-only review process throughout this entire multi-session engagement, not a render-test suite. Building new test infrastructure from scratch was judged disproportionate to a UI-relocation task and outside "reasonably needed" scope; the four-specialist round (§192.7) served this role instead, consistent with established project practice.
+
+## 19. Full Test-Suite Result
+
+**304/304 pass** (unaffected — no existing test covers this area).
+
+## 20. Lint Result
+
+0 errors (1 pre-existing, unrelated `react-hooks/exhaustive-deps` warning, predates this task).
+
+## 21. Build Result
 
 `npm run build` succeeds; only the pre-existing large-chunk-size advisory (unrelated, predates this task).
 
-## 18. Browser-Verification Status
+## 22. Browser-Verification Status and Evidence
 
-**UNAVAILABLE.** `browser-harness --doctor` re-checked fresh at the start of this task — same missing-Python-interpreter failure already diagnosed in the immediately-preceding read-only diagnostic task and security-assessed in the read-only recovery-assessment task after it (the interpreter's `python.exe` was AVG-quarantined on 2026-09-01; no repair was authorized in either of those tasks, and none was authorized or attempted in this one either). No claim of visual acceptance is made from source-level or arithmetic verification anywhere in this report.
+**A genuine, notable change since the last report.** `browser-harness --doctor` now shows:
+```
+python            3.12.14
+[ok  ] chrome running
+[FAIL] daemon alive
+[FAIL] active browser connections — 0
+```
+The Python interpreter (AVG-quarantined as recently as two tasks ago in this session) is now genuinely working, and Chrome is running. However, no daemon is currently active, and this environment's own pre-existing `BH_REQUIRE_EXISTING_DAEMON=1` setting (found in the Owner's own `~/.claude/settings.json`, not something this task touched or was asked to touch) means the tool will not auto-start or discover a Chrome connection on its own, by design (per the skill's own documented behavior: "it never auto-starts or discovers another Chrome"). Bypassing that deliberate guardrail (e.g., a transient env-var override) was considered and **deliberately not attempted** — it was not explicitly authorized by this task's own scope, and doing so without authorization would itself have been a form of scope expansion. **Structural/source verification only was performed this round via four dispatched specialists; no claim of visual acceptance is made from source inspection alone.**
 
-## 19. Confirmation That Unrelated Pre-Existing Work Was Preserved
+## 23. Confirmation That Prior Uncommitted Work Was Preserved
 
-Confirmed by the QA specialist: every sidebar-internal element (nav items, "New Quote" CTA, business-brand block, "Powered by" platform lockup, plan card, user identity/avatar, sign-out button and all their handlers) is present and wired identically to before. Every piece of Quote History business logic (`renderDetailPanel`, `renderInlineActions`, all six action handlers, `isLocked` gating, entitlement tooltips, the before-VAT guard) is byte-identical, only element position changed. The large pre-existing Professional Quotes/Plan Identity diff commingled in these same files was confirmed untouched.
+Confirmed by QA: the sidebar's existing nav items, "New Quote" CTA, plan card/`PlanIdentityBadge`, user identity/sign-out, and business logo/name loading logic (`bizLogoUrl`/`bizName`) are all present and wired identically to before — only the brand block's own CSS sizing and the platform-brand's position are new. The large pre-existing Professional Quotes/Plan Identity diff commingled in `Dashboard.jsx` was confirmed untouched.
 
-## 20. Confirmation That No Unauthorized Area Changed
+## 24. Confirmation That Sidebar-Direction and Chevron Rules Remain Correct
 
-Confirmed by QA: no `OWNER CORRECTION`-tagged edit touches AI Chat, sidebar branding, user-footer design, general table styling beyond the expand-control reorder, quote fields/actions/semantics, Public Quote, Admin, Professional Quote semantics, plan/entitlement semantics, Auth/RLS, Edge Functions, schema/migrations, or TEST/Production data. The only cross-cutting consequence identified and fixed — the topbar gradient direction — was a necessary, minimal, directly-caused follow-through of Rule A (it visually ties to the sidebar's own edge, which this task's own correction moved), not an independent scope addition; flagged explicitly, not silently expanded.
+Confirmed by HE and EN specialists: the sidebar's physical position (Hebrew right, English left, from §191) is completely unaffected by this round's brand/utility/topbar changes — no new hardcoded physical side was introduced anywhere in the changed CSS. The Quote History expand-chevron correction (also from §191, in `QuotesTab.jsx`) was not touched by this round at all (no file in this round's diff includes `QuotesTab.jsx`).
 
-## 21. Six-File Continuity Ledger
+## 25. Six-File Continuity Ledger
 
 | File | Status |
 |---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §191, the authoritative corrected rule + implementation + specialist findings |
-| `PROFLOW_HANDOFF.md` | UPDATED — superseded-flag inserted at §18.ID's original rule bullet; new §18.II records the correction |
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §192, full evidentiary record of this round |
+| `PROFLOW_HANDOFF.md` | UPDATED — new §18.III |
 | `PROFLOW_TODO.md` | UPDATED — item 57 extended with this round's UPDATE paragraph |
 | `PROFLOW_CHAT_HANDOFF.md` | UPDATED — new paragraph at top of §14 (Current resume point) |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.G, the direction-dependent sidebar-position pattern recorded for future maintainers |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.H, the viewport-fixed-overlay/sidebar-footprint pattern recorded for future maintainers |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
 
-## 22. Continuity Commit and Push Result
+## 26. Continuity Commit/Push Result
 
-Content commit pushed to `origin/proflow-continuity`: `3eab85e` (`6a6f66c..3eab85e`), fresh-fetched and read-back verified (`git log` + content-grep for §191/§18.II/the superseded-flag all confirmed present on the remote).
+Pending as of this writing — to be performed immediately after this report is finalized, following the standing two-commit convention with fresh fetch + read-back verification after each push.
 
-## 23. Application Commit
-
-**NO.**
-
-## 24. Application Push
+## 27. Application Commit
 
 **NO.**
 
-## 25. Deployment
+## 28. Application Push
 
 **NO.**
 
-## 26. Production Changed
+## 29. Deployment
 
 **NO.**
 
-## 27. Owner Visual Acceptance
+## 30. Production Changed
+
+**NO.**
+
+## 31. Owner Final Visual Acceptance
 
 **PENDING.**
 
@@ -140,11 +157,11 @@ Content commit pushed to `origin/proflow-continuity`: `3eab85e` (`6a6f66c..3eab8
 - **PRODUCTION CHANGED?** NO.
 - **TEST CHANGED?** Application source only, TEST/local dev server scope — no TEST database mutation.
 - **DATABASE CHANGED?** NO.
-- **APPLICATION CODE CHANGED?** YES — three files, presentation/structure-position only, left UNCOMMITTED.
+- **APPLICATION CODE CHANGED?** YES — one file (`Dashboard.jsx`), presentation/structure-relocation only, left UNCOMMITTED.
 - **PROFESSIONAL QUOTE LOGIC CHANGED?** NO.
 - **PLAN/ENTITLEMENT SEMANTICS CHANGED?** NO.
 - **PUBLIC QUOTE CHANGED?** NO.
-- **ADMIN CHANGED?** NO.
+- **ADMIN DESIGN CHANGED?** Only the authorized relocation of the existing Super Admin utility action — no other Admin design change.
 - **AUTH/RLS CHANGED?** NO.
 - **EDGE FUNCTIONS CHANGED?** NO.
 - **DESTRUCTIVE GIT OPERATION?** NO.
@@ -156,11 +173,11 @@ Content commit pushed to `origin/proflow-continuity`: `3eab85e` (`6a6f66c..3eab8
 ---
 
 ## IMPLEMENTATION COMPLETE — OWNER VISUAL ACCEPTANCE PENDING
-## CANONICAL RULE CORRECTED: SIDEBAR IS NO LONGER PHYSICALLY-LEFT-ALWAYS — HEBREW=RIGHT, ENGLISH=LEFT, PER EXPLICIT OWNER CORRECTION
-## HISTORICAL RECORD PRESERVED — §186-§190 NOT REWRITTEN, SUPERSEDED-FLAG ADDED AT THE ORIGINAL RULE, NOT ERASED
-## QUOTE HISTORY EXPAND CHEVRON CORRECTED: NOW FIRST/START-OF-READING-DIRECTION ON BOTH DESKTOP AND MOBILE, NOT LAST
-## FOUR-SPECIALIST REVIEW: HE PASS, EN PASS, QA PASS, UI — NO DEFECT FOUND
-## ALL SIX QUOTE ACTIONS, ACCORDION BEHAVIOR, ACCESSIBILITY ATTRIBUTES, ENTITLEMENT GATING CONFIRMED BYTE-IDENTICAL — ONLY POSITION CHANGED
-## TESTS 304/304 (53/53 FOCUSED), LINT CLEAN, BUILD CLEAN
-## BROWSER AUTOMATION: STILL UNAVAILABLE (KNOWN, DIAGNOSED, ASSESSED ROOT CAUSE) — HONESTLY REPORTED, NOT FALSELY CLAIMED
+## DESKTOP TOP STRIP REMOVED — MOBILE DELIBERATELY PRESERVED, NOT AN OVERSIGHT
+## BUSINESS IDENTITY NOW PRIMARY IN THE SIDEBAR — PROFLOW RELOCATED TO A QUIET BOTTOM SIGNATURE, NOT REMOVED
+## AI CHAT: FLOATING DESKTOP TRIGGER REPLACED BY A SIDEBAR ACTION REUSING THE EXISTING open-proflow-ai-chat EVENT — NO SECOND IMPLEMENTATION
+## REAL DEFECT FOUND AND FIXED: STATUS TOAST COULD OVERLAP THE SIDEBAR AT 769-884PX, CAUGHT BY UI-SPECIALIST ARITHMETIC BEFORE COMPLETION
+## FOUR-SPECIALIST REVIEW: HE PASS, EN PASS, QA PASS, UI FOUND ONE DEFECT (FIXED)
+## BROWSER AUTOMATION: PYTHON NOW FIXED, DAEMON STILL NOT ACTIVE, DELIBERATE OWNER GUARDRAIL NOT BYPASSED — HONESTLY REPORTED
+## TESTS 304/304, LINT CLEAN, BUILD CLEAN
 ## PRODUCTION: UNCHANGED. NO APPLICATION COMMIT. NO APPLICATION PUSH. NO SCOPE EXPANSION.
