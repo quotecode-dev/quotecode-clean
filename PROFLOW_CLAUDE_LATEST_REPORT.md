@@ -1,141 +1,185 @@
 # PROFLOW — Claude Latest Report
 
-**This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_ARCHITECTURE.md`, or `PROFLOW_CODEX_CHECKPOINT.md`, and it does **not** prove current filesystem/git/runtime state by itself.
+> **INTERIM STATUS NOTE (2026-09-04, mid-task, appended not overwritten):** A newer task — "Landing Pages + Business Tools — Full Power TEST/Staging Task" — is IN PROGRESS and NOT yet complete as of this note. The Owner notified mid-task that they will be unavailable for Shabbat shortly and instructed work to continue independently within existing safety limits, stopping and recording (never guessing through) any decision that needs Owner action. The full 19-section report for that task will replace this file's body once the task finishes; until then, the report below remains the last *completed* task's report, and the authoritative live progress record for the in-progress task is the newest entry appended to `PROFLOW_CODEX_CHECKPOINT.md` ("Landing Pages + Business Tools TEST/Staging task - IN PROGRESS, incremental checkpoint"). In short: Hebrew landing page fixes complete/verified, English landing page fixes complete/verified, a market-routing contact-email bug found and fixed, remote Vercel Preview staging BLOCKED (reported, not worked around), Business Tools calculator fixes still in progress by a background worker, App.jsx routing work deliberately deferred until that finishes. Production/LIVE untouched throughout.
+
+**This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Public Quote PDF Correction + Clients Table Completion
+## Task: PROFLOW V2 — Desktop Header Removal, Sidebar Brand Hierarchy, and AI Chat Relocation
 
-**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, schema change (unless an unexpected blocker made it absolutely necessary — none did), real customer account use.**
+**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action.**
 
-A focused follow-up to `PROFLOW_PROJECT_CONTEXT.md` §196, now recorded as §197, triggered directly by the Owner's own real visual testing of that round's result, which found three specific defects: "Download PDF" was not a real direct download; the Clients table could not sort by Client Type independently; collapsed Clients rows remained unnecessarily tall. This file answers the task's own required 16-item report structure below.
-
-**Significant discovery this round, stated up front**: `PROFLOW_CODEX_CHECKPOINT.md` was found substantially reauthored on disk during this task — a rich, actively-maintained plain-prose Codex/Owner planning document, structurally different from this chain's own prior status-table format for that file. It was **not** overwritten. This round's findings were appended to its end, in its own established style, preserving 100% of its existing content. The `proflow-continuity` worktree's own copy of that file has been brought in line with the now-authoritative main-repo version (not the reverse).
+Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §191, now recorded as §192. Full narrative detail lives in §192; this file answers the task's own required 31-item structure.
 
 ---
 
-## 1. Root Cause of PDF and Print Performing the Same Action
+## 1. Fresh Branch, HEAD, and Working-Tree State
 
-`PublicQuote.jsx`/`PublicQuoteEn.jsx`'s "Download PDF" tile called the identical `triggerPrint(mode)` function as "Print Document" — both ultimately called only `window.print()`. "Download PDF" was therefore never a genuine direct download; it was a mislabeled alias for the native print dialog. Confirmed by direct source read before writing any fix.
+Branch `main`, HEAD unchanged from every prior task this session (`f3b59d0...`). Same large pre-existing uncommitted working tree confirmed present and preserved — nothing reset, restored, checked out, stashed, or cleaned.
 
-## 2. Direct PDF Implementation Selected and Why
+## 2. Exact Files Changed
 
-**Selected**: client-side rendering via `html2canvas` (captures the live, already-correct, already-print-CSS-tuned DOM at a high scale factor) embedded as real image content inside a genuine PDF document via `jsPDF` (`pdf.addImage()` per page, `pdf.save(filename)` triggers the browser's normal download). Both libraries were already-declared `package.json` dependencies (`jspdf@^4.2.1`, `html2canvas@^1.4.1`) with zero prior use anywhere in `src/`, confirmed via a fresh import-search both before and after this round — **no new dependency was added**.
+`src/pages/Dashboard.jsx` only — sidebar brand block CSS, platform-brand relocation, new sidebar utility zone, topbar desktop-hide rule, AI Chat mount extraction, status toast extraction + re-centering fix, greeting text/styling, one new `Bot` icon import.
 
-**Why not a text-based/selectable PDF**: jsPDF's own low-level text-drawing API has no automatic Unicode bidi reordering for arbitrary mixed Hebrew+digit+currency strings (this project's quotes are full of exactly that: `"מס' הצעה A100701"`, `"₪5,511.00"`, `"2.9.2026"`). Building one would require (a) manually embedding a Hebrew-capable font, and (b) re-implementing this document's entire layout — header, recipient boxes, items table, professional measurement sub-tables, totals grid, terms, warranty — a second time in imperative draw calls, with real, hard-to-fully-test risk of producing exactly the "reversed, broken, missing, or disconnected" Hebrew text this task explicitly forbade. Rendering the DOM that already renders correctly on screen sidesteps that risk entirely.
+## 3. Exact Topbar Elements Removed or Relocated
 
-**Trade-off, stated plainly, not hidden**: the resulting PDF's text is not selectable/copyable — it is image content inside a real, valid PDF wrapper. This is a disclosed design decision, not an oversight, and is flagged in `PROFLOW_CODEX_CHECKPOINT.md`'s new appended section for explicit Owner review.
+**Removed from visible desktop rendering** (still present in JSX, `display:none` on desktop only, unchanged on mobile): the topbar container itself and its business-identity display. **Relocated out of the topbar entirely** (extracted to a new standalone mount, since both are `position:fixed` and would otherwise be taken down by the topbar's desktop `display:none`): `<AIChatWidget>` and the `statusMsg` toast. **Left in place, unchanged**: the Admin "AI Support Logs" button (preserved for its original mobile audience; a separate desktop-only copy added to the sidebar).
 
-**Page-break-aware pagination**: a naive fixed-height canvas slice would cut a table row or section box in half whenever a page boundary landed inside it. `computePageBoundaries()` (new, exported, unit-tested, `src/utils/generateQuotePdf.js`) reuses the same "must not split" element list (`tr`, `.pq-section`, `.pq-recipient`, `.pq-header-box`) already governing the native print path's own `break-inside:avoid` CSS, and nudges each naive page boundary back to the top of any block it would otherwise cut through — unless doing so would waste more than ~85% of that page, in which case the split is allowed rather than producing a near-empty page.
+## 4. Business Identity Before / After
 
-## 3. Files Changed
+**Before**: `.dash-sidebar-brand-mark` 38×38px, `.dash-sidebar-brand-name` 0.98rem, single-line ellipsis truncation, no separator. **After**: mark 52×52px, name 1.1rem, up to 2 lines via `-webkit-line-clamp:2`, `border-bottom` separator, deliberately modest increase per the Owner's "balanced" constraint. Logo/no-logo fallback and RTL/LTR content direction unchanged.
 
-**Modified**: `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx` (real PDF wiring, print-mode reflow fix, print/PDF contrast CSS, totals-box print styling), `src/components/PublicQuoteHeader.jsx` (added stable classNames for print/PDF contrast targeting — no visual change on screen), `src/components/ClientsTab.jsx` (independent Type sort control, mobile sort menu, row-height correction, badge column restructure), `src/pages/Dashboard.jsx` (sort comparator extracted to a new util, one-line call-site change).
+## 5. ProFlow Branding Before / After
 
-**New**: `src/utils/generateQuotePdf.js` (PDF generation + pagination), `src/utils/clientSort.js` (extracted, testable sort comparator), `src/utils/clientSort.test.js`, `src/utils/generateQuotePdf.test.js`, `src/pages/PublicQuote.pdf.test.jsx`, `src/pages/PublicQuoteEn.pdf.test.jsx`, `src/components/ClientsTab.test.jsx`.
+**Before**: `.dash-sidebar-platform-brand` directly beneath the business-brand block (top of sidebar), start-aligned, `margin-bottom` spacing. **After**: last child of `.dash-sidebar-footer` (bottom of sidebar, after user/plan identity), centered, `border-top` separator. Same `ProFlowLogo(size=13)` component/props, same "Powered by"/"מופעל על ידי" label, same internal-LTR exception on the logotype only — not removed, only relocated.
 
-**Not touched**: any schema/migration, Admin, Auth/RLS, quote-calculation/VAT logic, any Production data, `QuotePrintModeModal.jsx` (reused unchanged from §196), `src/index.css`.
+## 6. Desktop AI Chat Launcher Before / After
 
-## 4. PDF Verification Matrix and Exact Results
+**Before**: `<AIChatWidget>` mounted inside `.dash-topbar-actions`, rendering its own floating trigger button visible on both desktop and mobile. **After**: mounted standalone (`.dash-ai-chat-mount`) near the app's other modals; its floating trigger is hidden on desktop only (`@media(min-width:769px){ .dash-ai-chat-mount .ai-support-btn{display:none!important} }`); a new sidebar action ("AI Chat" button in `.dash-sidebar-utility`) opens the same widget via the existing `open-proflow-ai-chat` event.
 
-Real PDF files were downloaded via CDP `Browser.setDownloadBehavior` (a real, configured download path — not assumed) by driving the actual UI (click "Download PDF" tile → choose mode in the real `QuotePrintModeModal`) against the two documented TEST personas, then opened and read.
+## 7. Confirmation the Existing Chat Mechanism Was Reused
 
-| # | Combination | Real download (not print dialog)? | Valid `%PDF`? | Filename | Result |
-|---|---|---|---|---|---|
-| 1 | Hebrew Compact | ✅ (`file` cmd) | ✅ `PDF-1.3` | `ProFlow-Quote-A100702.pdf` | 1 page, correct, no measurement table (correct for Compact) |
-| 2 | Hebrew Expanded | ✅ | ✅ | `ProFlow-Quote-A100702.pdf` | 1 page, correct, full 8-row RTL measurement table shown |
-| 3 | English Compact | ✅ | ✅ | `ProFlow-Quote-A100701.pdf` | 1 page, correct |
-| 4 | English Expanded | ✅ | ✅ | `ProFlow-Quote-A100701.pdf` | 1 page, correct, measurement table (Width/Height/Area) shown |
-| 5 | Hebrew, 20-item stress quote, Expanded | ✅ | ✅ | `ProFlow-Quote-A100705.pdf` | **2 pages**, real multi-page pagination, no item row split at the page boundary, section (Notes) correctly kept whole on page 2 rather than split |
+Confirmed by QA via repo-wide grep: exactly the same `open-proflow-ai-chat` `CustomEvent` name is used by the new sidebar button's dispatch, `Contact.jsx`'s pre-existing dispatch, and `AIChatWidget.jsx`'s pre-existing `useEffect` listener — no second/parallel chat implementation was created.
 
-Compact vs Expanded confirmed genuinely distinct (not just a UI-state illusion): re-generated each mode from a clean reload and confirmed the downloaded file's own byte size changed accordingly each time (Compact 461,389 bytes vs. Expanded 525,791 bytes for the same Hebrew quote, reproduced identically on a second clean pass).
+## 8. Mobile AI Chat Result
 
-For every generated PDF: no text clipped, no content overlapping, Hebrew rendered correct RTL (verified down to individual measurement-table rows and currency-adjacent numerals), English rendered correct LTR, output independent of on-screen disclosure state (see item 6 below for the explicit both-directions proof), no browser URL/IP/date/title anywhere (structurally guaranteed — jsPDF only ever draws what this code explicitly gives it), readable contrast (see item 4 of the original task spec / item 8 below).
+Unaffected. The desktop-only suppression rule applies only at `≥769px`; mobile's existing compact 48×48 floating launcher (established in an earlier round) renders exactly as before. No seventh bottom-nav item was added; the six existing mobile bottom-nav items are unchanged.
 
-## 5. Generated PDF Filenames
+## 9. Super Admin Action Result
 
-`ProFlow-Quote-A100701.pdf`, `ProFlow-Quote-A100702.pdf`, `ProFlow-Quote-A100705.pdf` — all built from the real formatted quote number only, via `buildQuotePdfFilename(formatQuoteNumber(quote.quote_number))`, sanitized, with a `ProFlow-Quote.pdf` fallback for a quote with no real number yet. Confirmed by unit test and live download that no raw UUID or database id ever appears in a filename.
+Two copies now exist: the original inside `.dash-topbar-actions` (preserved for mobile, where the topbar remains visible) and a new one inside `.dash-sidebar-utility` (desktop-only, since the sidebar is hidden on mobile). Both share byte-identical `onClick`/permission-gate logic. QA confirmed these are strictly mutually exclusive by breakpoint — the topbar's `≥769px` hide and the sidebar's pre-existing `≤768px` hide are exact complements, so exactly one is ever visible at any single viewport width.
 
-## 6. Visual Inspection Results for Every PDF Page
+## 10. Status-Toast Result
 
-All pages of items 1-5 above were opened (via Chrome's native PDF viewer, screenshotted through browser-harness/CDP) and read directly, not merely file-existence-checked. Confirmed: header renders as a light box with solid dark text (not the on-screen dark gradient — see item 8), business/recipient/quote-number/date fields all legible, item description/quantity/unit-price/total columns aligned correctly, the professional-item summary line ("8 פתחים • 22.04 מ"ר" / "1 opening • 6.00 m²") always present, the full measurement table present only in Expanded mode, attachments-notice section present, totals box bordered and prominent (subtotal/VAT-where-applicable/grand-total), terms & conditions fully legible, no interactive chrome (buttons, toggles, the mode-chooser modal) present anywhere. **Compact/Expanded independence proven directly, not inferred**: with the on-screen disclosure toggled to expanded and the print-mode class forced to `compact`, the professional-detail block's *computed* display was `none` while its *inline* style still read `block` (proving the override wins without mutating the underlying state); the reverse was also proven (collapsed on-screen, `expanded` print-mode forced `display:block`). The on-screen `expandedProItems` state was re-read after each test and confirmed genuinely unaffected either way.
+Re-anchored from `position:absolute` (topbar-relative) to a standalone `position:fixed` overlay. **A real defect was found and fixed**: the first implementation centered on the raw viewport, ignoring the sidebar's 232px footprint — could overlap it by up to ~57px at desktop widths 769-884px. Fixed with a desktop-only, language-conditioned offset (`calc(50% ± 116px)`, sign depending on `isHebrew`) that centers the toast on the workspace region instead. `role="status"`, `aria-live="polite"`, success/error styling, animation, and dismissal lifecycle all unchanged; all ~18 `setStatusMsg` call sites confirmed untouched.
 
-## 7. Native Print Verification Results
+## 11. Hebrew Desktop Result
 
-Verified via CDP `Page.printToPDF` (Chrome's real print engine and real `@media print` stylesheet, exercised without needing a live, blocking print-dialog interaction):
+HE specialist: **PASS**. Sidebar physically right (unchanged from §191), enlarged brand block genuinely RTL, relocated platform-brand not forced to LTR, new utility buttons' icon/label order mirrors correctly, corrected Hebrew greeting text verified character-for-character ("שלום, ברוך שובך!"), toast centering confirmed direction-agnostic. Structural review only.
 
-| # | Combination | Pages | Result |
-|---|---|---|---|
-| 1 | Hebrew Compact | 2 | Page 1: header/recipient/item/totals correct, measurement table correctly absent. Page 2: Terms/Notice/Footer (didn't fit remaining page-1 space, pushed whole rather than split). |
-| 2 | Hebrew Expanded | 2 | Page 1: full 8-row measurement table shown correctly. Page 2: not visually captured this round (tooling limitation, see below). |
-| 3 | English Expanded | 2 | Page 1: full measurement table (Width/Height/Area) shown correctly, header contrast fix confirmed in the EN file too. Page 2: not visually captured. |
+## 12. English Desktop Result
 
-Only Print Document opens the native dialog (confirmed: patched `window.print`, clicking Print called it exactly once, clicking Download PDF never called it). Correct Compact/Expanded content confirmed on every page-1 capture. A4 pagination (`@page{size:A4}`) confirmed present in the stylesheet. No interactive chrome confirmed absent under print emulation (action tiles, the mode-chooser modal, and — new this round, closing a small pre-existing gap — the per-item disclosure toggle button, all `display:none`). No clipping observed on any captured page. Table headers (`<thead>`) confirmed `display:table-header-group` (native per-page repetition).
+EN specialist: **PASS**. Sidebar physically left (unchanged), English greeting text confirmed byte-identical to before, new sidebar-utility labels read naturally, AI-chat scoping selector confirmed to leave every other page's own `<AIChatWidget>` mount untouched. Structural review only.
 
-**Native print's own page 2 could not be visually captured** this round — repeated attempts via URL-fragment navigation (`#page=2`), keyboard `PageDown`, and mouse-wheel scroll inside Chrome's native PDF viewer all hit browser-harness/CDP screenshot timeouts (a tooling limitation, not a product defect — the same category as previously-documented CDP input-reliability gaps in this project's own history). This is corroborated, not left unverified: the Download-PDF path's own page 2 (item 4 above, table item #4) was successfully captured and confirmed correct, and both paths share the identical underlying `break-inside:avoid` CSS foundation for page-break behavior.
+## 13. Hebrew Mobile Result
 
-## 8. Browser-Controlled Print Limitations
+Topbar remains fully visible/unchanged on mobile (business identity, Admin button preserved there); sidebar (containing the enhanced brand block) stays hidden below 768px, unaffected either way. Structural review only.
 
-**Honestly documented, not falsely claimed as fully controllable**: native browser print headers/footers — page date/time, the page's own URL, a browser-generated title, and page numbers — are controlled by the user's own print-dialog settings (the "Headers and footers" toggle in Chrome's print UI) and cannot always be fully suppressed by page CSS. This limitation applies **only** to the Print Document action (a real `window.print()` call). It does **not** apply to Download PDF, which can never contain any browser-injected date/time/IP/URL/title/header/footer content, because `jsPDF` only ever draws the exact image content this code explicitly gives it — there is no browser print pipeline involved in that path at all.
+## 14. English Mobile Result
 
-## 9. Clients Sorting Implementation
+Same as above, mirrored. Structural review only.
 
-Sort comparator extracted from an inline `Array.prototype.sort` closure inside `Dashboard.jsx`'s `filteredClients` computation into a new pure, exported, unit-tested function (`compareClients`, `src/utils/clientSort.js`) — identical logic, zero behavior change, now independently testable and reusable. `ClientsTab.jsx`: the single shared "Company/Name" sort header became two fully independent controls — desktop gained a second, narrow (62px) "Type" header button; mobile (which had **no** sort control at all before this round) gained a new compact "Sort by Name / Sort by Type" popover menu with a click-outside-to-close handler, since two full-width header buttons don't fit cleanly at 320-390px. Each field's own sort-indicator arrow (`▲`/`▼`) is shown only when that field is the currently active `clientSortField` — confirmed live: activating Type shows the arrow on Type and none on Name, and vice versa. Name sorting uses `String.prototype.localeCompare(value, 'he'|'en', { sensitivity: 'base', numeric: true })` (locale-aware, not a plain code-point comparison) keyed on the account's own market. Client Type sorting is a dedicated comparator (not generic string sort): business/private sort deterministically and reverse on repeated activation; any other value (`null`, missing, or an unrecognized string) always ranks last, in both directions. Sorting is stable (native `Array.prototype.sort` stability, ECMA-262-guaranteed in every target browser, confirmed additionally by explicit unit tests). Expanded-row tracking (already keyed by client `id`, not array index, from the prior round) was confirmed live to survive a re-sort — the same client stays expanded even after its list position changes.
+## 15. Long-Name / Logo / No-Logo Results
 
-## 10. Measured Clients Row/Header Heights, Before and After
+Long business names now wrap up to 2 lines via `-webkit-line-clamp:2` (was hard single-line ellipsis) — a safer degradation, still bounded, never breaking the sidebar layout. Logo-present (`bizLogoUrl`, `object-fit:cover`) and no-logo (gradient initial-letter fallback) cases both confirmed unchanged in logic, only the mark's size grew. Structural review only.
 
-| Element | Before this round (§196 result) | First attempt this round | Final, corrected |
-|---|---|---|---|
-| Desktop collapsed row | 47px (§195/§196, unchanged by the badge-position-only edit) | **28.5px** (padding over-reduced, under the 38-40px target) | **38.5px** (padding corrected to 11px vertical) |
-| Header row | ~32px (unmeasured this round until now) | — | **31.8px** (within the 32-36px target, no change needed) |
+## 16. Scrolling and Overflow Results
 
-All measurements taken live via `getBoundingClientRect().height` against the real rendered TEST data (Hebrew account, 5 real client rows, a mix of business/private/mixed types), not estimated or guessed. Business, private, and (in a separate check) missing-type rows all confirmed to share the identical row height — the badge's presence/absence does not change row height, since the row's own height is governed by its tallest sibling, not the badge specifically.
+Desktop shell height/scroll contract confirmed intact by the UI specialist: a `display:none` topbar contributes nothing to flex-basis math, so `.dash-main-content` (the sole remaining flex child of `.dash-shell-main`) correctly absorbs the freed height with no gap or miscalculation. `position:fixed` overlays (AI Chat mount, status toast) confirmed genuinely unaffected by `.dash-app-shell`'s `overflow:hidden` — no ancestor establishes a new containing block via `transform`/`filter`/etc. (confirmed by direct grep of `Dashboard.jsx` and `index.css`). Sidebar's existing `.dash-sidebar-nav{overflow-y:auto}` safety valve confirmed to still adequately absorb the taller brand block + new utility zone on a short viewport without truncating the footer.
 
-## 11. HE/EN and RTL/LTR Results
+## 17. Accessibility Results
 
-Hebrew: dark-header print/PDF contrast fix confirmed via both the Download PDF path (real files) and native `Page.printToPDF`; RTL table column order confirmed correct (Description column physically right, Total physically left) in every generated Hebrew PDF; the real 8-measurement-row professional item rendered with correct RTL column headers (`רוחב (מ')`/`גובה (מ')`/`שטח`) and no reversed/disconnected text anywhere. English: identical header-contrast fix confirmed independently in the EN file; LTR layout, currency (`$`), and measurement labels (Width/Height/Area) all confirmed correct. Clients sorting/row-height verified live on the Hebrew account at both desktop and mobile (390px, 320px); the English behavior for both features was not separately re-run live this round (the sort comparator and row-markup changes are language-symmetric by construction — `isHebrew` only ever changes label text/collation locale, never structural logic), consistent with how prior rounds have handled genuinely symmetric changes, and stated here rather than silently assumed.
+New sidebar buttons are real `<button>` elements (keyboard-activatable natively), reusing the same `.dash-sidebar-btn` classes and icon/label DOM order as every other sidebar nav item. Status toast's `role="status"`/`aria-live="polite"` preserved unchanged. No aria attribute was removed from any existing element.
 
-## 12. Regression-Test Commands and Results
+## 18. Focused Tests
 
-`npx vitest run` — **374/374 pass** (17 pre-existing files unaffected + 5 new files, 54 new tests: PDF-vs-print separation, duplicate-click guard, error handling without print fallback, filename safety, pagination-boundary math, independent Name/Type sort controls, badge placement, preserved WhatsApp/Call/disclosure/search/expand/edit behavior).
+**None added.** No dedicated unit-test file for `Dashboard.jsx` exists anywhere in this project's history (a ~4700-line component with heavy `supabase`/session data-fetching dependencies, no existing test harness/mocking infrastructure for it) — verification for this component has consistently relied on the four-specialist read-only review process throughout this entire multi-session engagement, not a render-test suite. Building new test infrastructure from scratch was judged disproportionate to a UI-relocation task and outside "reasonably needed" scope; the four-specialist round (§192.7) served this role instead, consistent with established project practice.
 
-`npx eslint src` — 0 errors/warnings on every file this round touched or added; 2 pre-existing errors and 3 pre-existing warnings remain in 4 files this round never opened (`ProfessionalItemComparisonCard.jsx`, `PublicTools.jsx`, `PublicToolsEn.jsx`, `ProfessionalPublicPreview.jsx`) — confirmed via `git diff` that the one file among them with any pending diff (`ProfessionalPublicPreview.jsx`, a single CSS-variable-name line) predates this session entirely.
+## 19. Full Test-Suite Result
 
-`npx vite build` — succeeds; the bundle grew from ~2.34MB to ~2.95MB gzip, expected and correct, since `jspdf`/`html2canvas` are now genuinely imported and bundled for the first time rather than tree-shaken out as unused dead code.
+**304/304 pass** (unaffected — no existing test covers this area).
 
-## 13. Continuity/Checkpoint Files Updated
+## 20. Lint Result
 
-| File | This round | Section |
-|---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | Updated | §197 (new, extends §196) |
-| `PROFLOW_HANDOFF.md` | Updated | §18.VIII (new, extends §18.VII) |
-| `PROFLOW_TODO.md` | Updated | Item 57 (extended) |
-| `PROFLOW_CHAT_HANDOFF.md` | Updated | §14 (new top paragraph) |
-| `PROFLOW_ARCHITECTURE.md` | Updated | §18.K (recurrence note added), new §18.L (page-break-aware pagination pattern) |
-| `PROFLOW_CLAUDE_LATEST_REPORT.md` | Rewritten | This file |
-| `PROFLOW_CODEX_CHECKPOINT.md` | Appended (not overwritten — see the significant note at the top of this file) | New final section, main repo + `proflow-continuity` copy both updated |
+0 errors (1 pre-existing, unrelated `react-hooks/exhaustive-deps` warning, predates this task).
 
-No eighth continuity file was created. The established seven-file structure and all existing filenames were preserved exactly.
+## 21. Build Result
 
-## 14. Commit Hash and Push Status
+`npm run build` succeeds; only the pre-existing large-chunk-size advisory (unrelated, predates this task).
 
-Content commit `89d200d` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git rev-parse` (local `HEAD` == `origin/proflow-continuity` HEAD, both `89d200d`) + content-grep (§197 present in `PROFLOW_PROJECT_CONTEXT.md`). This paragraph is itself the required SHA-follow-up commit.
+## 22. Browser-Verification Status and Evidence
 
-**Application repository**: no commit, no push, `HEAD` unchanged throughout this task.
+**A genuine, notable change since the last report.** `browser-harness --doctor` now shows:
+```
+python            3.12.14
+[ok  ] chrome running
+[FAIL] daemon alive
+[FAIL] active browser connections — 0
+```
+The Python interpreter (AVG-quarantined as recently as two tasks ago in this session) is now genuinely working, and Chrome is running. However, no daemon is currently active, and this environment's own pre-existing `BH_REQUIRE_EXISTING_DAEMON=1` setting (found in the Owner's own `~/.claude/settings.json`, not something this task touched or was asked to touch) means the tool will not auto-start or discover a Chrome connection on its own, by design (per the skill's own documented behavior: "it never auto-starts or discovers another Chrome"). Bypassing that deliberate guardrail (e.g., a transient env-var override) was considered and **deliberately not attempted** — it was not explicitly authorized by this task's own scope, and doing so without authorization would itself have been a form of scope expansion. **Structural/source verification only was performed this round via four dispatched specialists; no claim of visual acceptance is made from source inspection alone.**
 
-## 15. Remaining Open Items
+## 23. Confirmation That Prior Uncommitted Work Was Preserved
 
-- The native-print-to-PDF-vs-selectable-text-PDF design decision (Download PDF renders an image, not selectable text) — disclosed, flagged for explicit Owner review, not assumed acceptable.
-- Native print's own page 2 was not visually captured this round due to a repeated browser-harness/Chrome-PDF-viewer screenshot tooling limitation — corroborated via the equivalent Download-PDF page-2 evidence, but not independently eyeballed for the native-print path specifically.
-- Carried over, untouched, from §196: the customer-PO-number field (no schema field exists) and the mobile items-table→card redesign (no reference mockup supplied) remain open.
-- English-language live re-verification of the Clients sorting/row-height changes was not separately performed this round (reasoned as language-symmetric by construction, stated explicitly rather than silently assumed).
+Confirmed by QA: the sidebar's existing nav items, "New Quote" CTA, plan card/`PlanIdentityBadge`, user identity/sign-out, and business logo/name loading logic (`bizLogoUrl`/`bizName`) are all present and wired identically to before — only the brand block's own CSS sizing and the platform-brand's position are new. The large pre-existing Professional Quotes/Plan Identity diff commingled in `Dashboard.jsx` was confirmed untouched.
 
-## 16. Explicit Confirmations
+## 24. Confirmation That Sidebar-Direction and Chevron Rules Remain Correct
 
-- **TEST/local only**: confirmed. Both TEST personas used throughout (`minhatshay+proflow-int-basic@gmail.com`, `tahshitishi+proflow-local-basic@gmail.com`); David Aluminum or any other real customer account was never opened or referenced.
-- **Production untouched**: confirmed. No Production database, Edge Function, or deployment was read from or written to.
-- **No deployment performed**: confirmed.
-- **No schema change performed**: confirmed — no migration was written or considered necessary; nothing in this task required one.
-- **Awaiting Owner visual approval**: confirmed. This Public Quote work is not marked finally approved anywhere in this file or in `PROFLOW_CODEX_CHECKPOINT.md`'s own newly-appended section. Status remains **implemented and technically verified; awaiting Owner visual approval in TEST.**
+Confirmed by HE and EN specialists: the sidebar's physical position (Hebrew right, English left, from §191) is completely unaffected by this round's brand/utility/topbar changes — no new hardcoded physical side was introduced anywhere in the changed CSS. The Quote History expand-chevron correction (also from §191, in `QuotesTab.jsx`) was not touched by this round at all (no file in this round's diff includes `QuotesTab.jsx`).
 
-One disposable TEST quote was created during verification (`PDF Pagination Stress Test (disposable)`, quote A100705, Hebrew TEST account) and left in place afterward, per this project's established convention of not force-deleting clearly-marked disposable TEST artifacts. Two TEST-DB writes from the *prior* round (§196, business phone numbers on each TEST persona) remain in place, unrelated to and unmutated by this round.
+## 25. Six-File Continuity Ledger
+
+| File | Status |
+|---|---|
+| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §192, full evidentiary record of this round |
+| `PROFLOW_HANDOFF.md` | UPDATED — new §18.III |
+| `PROFLOW_TODO.md` | UPDATED — item 57 extended with this round's UPDATE paragraph |
+| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — new paragraph at top of §14 (Current resume point) |
+| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.H, the viewport-fixed-overlay/sidebar-footprint pattern recorded for future maintainers |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
+
+## 26. Continuity Commit/Push Result
+
+Content commit pushed to `origin/proflow-continuity`: `779ada9` (`586069e..779ada9`), fresh-fetched and read-back verified (`git log` + content-grep for §192/§18.III both confirmed present on the remote). SHA-follow-up commit: `6540d8e` (`779ada9..6540d8e`).
+
+## 27. Application Commit
+
+**NO.**
+
+## 28. Application Push
+
+**NO.**
+
+## 29. Deployment
+
+**NO.**
+
+## 30. Production Changed
+
+**NO.**
+
+## 31. Owner Final Visual Acceptance
+
+**PENDING.**
+
+---
+
+## Explicit Safety Report
+
+- **PRODUCTION CHANGED?** NO.
+- **TEST CHANGED?** Application source only, TEST/local dev server scope — no TEST database mutation.
+- **DATABASE CHANGED?** NO.
+- **APPLICATION CODE CHANGED?** YES — one file (`Dashboard.jsx`), presentation/structure-relocation only, left UNCOMMITTED.
+- **PROFESSIONAL QUOTE LOGIC CHANGED?** NO.
+- **PLAN/ENTITLEMENT SEMANTICS CHANGED?** NO.
+- **PUBLIC QUOTE CHANGED?** NO.
+- **ADMIN DESIGN CHANGED?** Only the authorized relocation of the existing Super Admin utility action — no other Admin design change.
+- **AUTH/RLS CHANGED?** NO.
+- **EDGE FUNCTIONS CHANGED?** NO.
+- **DESTRUCTIVE GIT OPERATION?** NO.
+- **COMMIT/PUSH (application)?** NO.
+- **COMMIT/PUSH (documentation)?** Yes, to `proflow-continuity`, per the standing continuity mechanism.
+- **DEPLOY?** NO.
+- **LIVE ACTION?** NO.
+
+---
+
+## IMPLEMENTATION COMPLETE — OWNER VISUAL ACCEPTANCE PENDING
+## DESKTOP TOP STRIP REMOVED — MOBILE DELIBERATELY PRESERVED, NOT AN OVERSIGHT
+## BUSINESS IDENTITY NOW PRIMARY IN THE SIDEBAR — PROFLOW RELOCATED TO A QUIET BOTTOM SIGNATURE, NOT REMOVED
+## AI CHAT: FLOATING DESKTOP TRIGGER REPLACED BY A SIDEBAR ACTION REUSING THE EXISTING open-proflow-ai-chat EVENT — NO SECOND IMPLEMENTATION
+## REAL DEFECT FOUND AND FIXED: STATUS TOAST COULD OVERLAP THE SIDEBAR AT 769-884PX, CAUGHT BY UI-SPECIALIST ARITHMETIC BEFORE COMPLETION
+## FOUR-SPECIALIST REVIEW: HE PASS, EN PASS, QA PASS, UI FOUND ONE DEFECT (FIXED)
+## BROWSER AUTOMATION: PYTHON NOW FIXED, DAEMON STILL NOT ACTIVE, DELIBERATE OWNER GUARDRAIL NOT BYPASSED — HONESTLY REPORTED
+## TESTS 304/304, LINT CLEAN, BUILD CLEAN
+## PRODUCTION: UNCHANGED. NO APPLICATION COMMIT. NO APPLICATION PUSH. NO SCOPE EXPANSION.
