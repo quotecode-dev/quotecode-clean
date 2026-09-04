@@ -4,162 +4,150 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: PROFLOW V2 — Consolidated Open UI Corrections + Seventh Continuity File
+## Task: Public Quote Redesign + Focused Clients Correction
 
-**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database/authentication/credential change.**
+**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, schema/backend change, quote-calculation/VAT/locked-quote-state/auth/customer-ownership change, real customer account use.**
 
-Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §194, now recorded as §195. Full narrative detail lives in §195; this file answers the task's own required report structure.
+The first task in this chain to bring Public Quote into scope — `PROFLOW_CODEX_CHECKPOINT.md`'s own A6 item ("Public/customer-facing Quote redesign remains outside this task") is `SUPERSEDED` by this round. Extends `PROFLOW_PROJECT_CONTEXT.md` §195, now recorded as §196. Full narrative detail lives in §196 and `PROFLOW_CODEX_CHECKPOINT.md` §L; this file answers the task's own required report structure.
+
+**No reference mockup/image was supplied with this task** — implemented from the task's own detailed text spec, flagged explicitly rather than guessed against a non-existent reference image (the same honesty precedent used in this project's prior "no reference image supplied" episodes).
 
 ---
 
 ## 1. Fresh Branch, HEAD, Working-Tree State, and Diff Baseline
 
-Branch `main`, `HEAD = f3b59d0`, `origin/main = 26dee96` (local ahead by prior, separately-tracked commits — no push occurred). 39 modified/untracked paths at the start of this round, all preserved throughout — no `reset`/`restore`/`checkout`/`stash`/`clean` was run.
+Branch `main`, `HEAD = f3b59d0` (unchanged from the start of this round — no commit made). 39 modified/untracked paths present at the start, all preserved throughout; no `reset`/`restore`/`checkout`/`stash`/`clean` was run. `origin/proflow-continuity` re-fetched and confirmed at `ccec9d0` before any continuity edit began.
 
-## 2. Whether the Previous Latest Report Was Stale, and How State Was Reconciled
+## 2. Pre-Work Performed Before Any Edit
 
-Confirmed stale exactly as the task's own warning predicted: the on-disk `PROFLOW_CLAUDE_LATEST_REPORT.md` in the main repository (before this task began) still described §193 (the round *before* §194), even though the working tree already contained §194's full implementation (Clients accordion, header grid rebuild, AI icon changes, logo canvas, mobile nav consolidation). Reconciled by treating the `proflow-continuity` worktree (not the main repo's own tracked copies of the six files, which are separately known-stale relative to it) as the authoritative source, confirmed fresh via `git fetch` + `git log` before any edit, and by directly inspecting the actual current source (`Dashboard.jsx`, `ClientsTab.jsx`, etc.) rather than trusting any document's own claim of what was implemented.
+All seven continuity files re-read from the continuity worktree, including `PROFLOW_CODEX_CHECKPOINT.md` as the authority on Public-Quote-relevant Owner-approved decisions (found: none existed yet, since A6 explicitly kept it out of scope until this task). `git status`/`git diff --stat` inspected fresh. The actual current source was read directly (not inferred from any document's claim): `PublicQuote.jsx` (915 lines) and `PublicQuoteEn.jsx` (~680 lines) in full, `PublicQuoteHeader.jsx` and its test file, `professionalQuoteItem.js` (the smart-item/measurement data model), the `get-public-quote` Edge Function's own `select()` shape, `ClientsTab.jsx`'s current post-§195 state, and the existing `sendWhatsApp` phone-normalization pattern in `Dashboard.jsx`. Confirmed `jspdf`/`html2canvas` are declared `package.json` dependencies with zero imports anywhere in `src/`, before deciding the print/PDF implementation approach. A local dev server was already running on port 5186; `browser-harness --doctor` confirmed a healthy existing daemon, reused without restart.
 
-## 3. Seventh-File Creation/Update Result and Exact Path
+## 3. Section A/B — Public Quote Desktop + Mobile Redesign, What Changed
 
-Created at `c:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas\PROFLOW_CODEX_CHECKPOINT.md` (repository root) and synced to this continuity worktree at the same relative path. No pre-existing copy was found, so this was a creation, not a reconciliation-of-a-duplicate.
+**Header** (`PublicQuoteHeader.jsx`, shared by both language pages, both desktop and mobile branches): purple-gradient hero (`LIGHT.gradient`) replaced with a dark elegant gradient (`linear-gradient(135deg, #14111f 0%, #1e1930 55%, #241c38 100%)`); the previously-opaque white quote-metadata card became a translucent glass panel (`rgba(255,255,255,0.07)` bg / `rgba(255,255,255,0.14)` border) on the dark ground; Hebrew quote-number label corrected `מספר הצעה`→`מס׳ הצעה` (exact required wording — `תאריך:`/`בתוקף עד:` were already exact and untouched); the header's own Call CTA recolored from violet to blue to align with the new bottom-action-bar color language (item 6 below).
 
-## 4. Exact Initial Checkpoint Payload Recorded
+**Recipient section** (both language pages): one fixed-wording respectful intro sentence added directly under the recipient name (HE: `שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:`; EN: `Hello, please find the price quote prepared for you below:`) — display-only, never saved, never affects any calculation.
 
-The full A-K decision set from the task's own "Initial Owner-Approved Checkpoint Payload" section was recorded verbatim as individual table rows (one row per numbered decision), each initially marked `OPEN` (or `IMPLEMENTED / SOURCE-VERIFIED` for the few items already code-complete from §194 but not yet re-verified live), per the task's own explicit instruction not to pre-claim any stronger status before evidence existed.
+**Smart-item disclosure control** (both language pages): relabeled from `הצג/הסתר מידות ופירוט מקצועי`/"Show/Hide measurements & professional details" to the exact required `הצג מפרט`/`הסתר מפרט`/"Show specifications"/"Hide specifications". The `Ruler` icon + text pairing (never a bare chevron) was already correct and untouched.
 
-## 5. Exact Routing Changes in Each of the Six Existing Continuity Files
+**Customer PO-number field**: **not implemented.** No such column exists anywhere in the data model (`quotes` table, `get-public-quote` Edge Function response, or any UI) — confirmed by direct grep before writing any code. Adding one is a schema change, explicitly outside this task's own unilateral authority per its instruction to stop and report rather than mutate schema. Flagged in `PROFLOW_CODEX_CHECKPOINT.md` §L3 for the Owner to either point at an existing field this data already lives under, or explicitly authorize a schema addition in a future task.
 
-`PROFLOW_PROJECT_CONTEXT.md`: new banner note + a new "THEN READ `PROFLOW_CODEX_CHECKPOINT.md`" line in the bootstrap read-order. `PROFLOW_CHAT_HANDOFF.md`: added to its own six-file list description with a note it's read last. `PROFLOW_ARCHITECTURE.md`: added as item 7 in its six-file list, added to its own reading-order line. `PROFLOW_HANDOFF.md`: added to its own top "Read order" line. `PROFLOW_TODO.md`: added to its own six-file bullet list. `PROFLOW_CLAUDE_LATEST_REPORT.md`: this file's own top banner now names it alongside the other five. No existing content in any of the six was rewritten beyond these additions.
+**Mobile items table**: left structurally as-is (existing horizontal-scroll wrapper, already-tuned font sizes). A ground-up table→card rebuild was deliberately not attempted — no reference mockup was supplied for this specific piece, and the table is extensively owner-tuned across many prior rounds (its own in-file comment history documents money-alignment, RTL, and width-consistency fixes accumulated over several separate corrections). Flagged in `PROFLOW_CODEX_CHECKPOINT.md` §L13 for explicit Owner direction before attempting.
 
-## 6. Seven-File Continuity Ledger and Per-Item Checkpoint Statuses
+## 4. Section C — Print/PDF Implementation, What Changed and Why
+
+New shared component `src/components/QuotePrintModeModal.jsx` (used identically by both language pages): a Compact/Expanded chooser modal, opened by either the "Download PDF" or "Print" bottom-action tile.
+
+**"Download PDF" made functional for the first time** — closes the item repeatedly noted across this project's own history as deferred ("PDF/Print FULL vs COMPACT output remains a deferred, unimplemented requirement"). **Design decision, explicitly flagged for Owner review rather than silently chosen**: implemented via the browser's own native print-to-PDF (`window.print()`, the identical call "Print" makes) rather than a client-side `jsPDF`/`html2canvas` export. Both libraries remain declared-but-unused dependencies (re-confirmed zero imports after this round too). Native print-to-PDF was chosen because it reliably guarantees correct RTL Hebrew text, real selectable text, and accurate A4 pagination for a financial document — properties an image-based export cannot reliably guarantee — and because it is genuinely functional output, honoring this project's own repeated "never fake PDF functionality; never make a PDF button that looks functional while secretly just opening print" rule (triggering the browser's real print-to-PDF capability is not a disguised redirect to a *different* action than the one labeled).
+
+**Compact/Expanded decoupled from on-screen disclosure state**: the professional-item detail block changed from conditionally-rendered (`{isExpanded && (...)}`) to always-present in the DOM with an inline `display: isExpanded ? 'block' : 'none'` (screen state, unchanged) plus a `pq-pro-detail` class overridden by a new print-only `!important` rule keyed on a `data-print-mode` attribute set on the page root. **Verified via real CDP print-media emulation** (`Emulation.setEmulatedMedia(media="print")`), both directions, against a live TEST quote with real measurement data: forcing `compact` computed `display:none` even with the on-screen toggle set to expanded; forcing `expanded` computed `display:block` even with the on-screen toggle collapsed; the on-screen `expandedProItems` state itself was re-read afterward in both cases and confirmed unaffected.
+
+**A4/pagination/no-interactive-chrome/header-repetition/split-avoidance**, confirmed via stylesheet + computed-style inspection under print emulation: `@page { size: A4; margin: 12mm 10mm; }` present; bottom action-tile group and the per-item disclosure toggle button (newly print-hidden this round — a small, real, pre-existing gap, fixed) both `display:none` under print; `<thead>` confirmed `display:table-header-group` (native per-printed-page repetition for the items table's own column headers); `tr`/`.pq-section`/`.pq-recipient`/`.pq-action-tile` all given `break-inside:avoid`/`page-break-inside:avoid`.
+
+**Genuine gap, stated plainly**: no actual multi-page PDF/print document was generated and visually reviewed this round. CDP automation can drive the print-media state and the pre-print modal, but not a real print-dialog "Save as PDF" file-save interaction — the underlying CSS mechanism is thoroughly verified, an actual rendered multi-page output has not been eyeballed.
+
+## 5. Section D — Focused Clients Correction, What Changed
+
+`ClientsTab.jsx`: the existing type indicator (`עסקי`/`Business`, `פרטי`/`Private` — the same `ClientTypeTextBadge` from §195.3's Owner-corrected form, explicitly not a new badge) moved from rendering after the client name to rendering before it, in both the desktop closed row and the mobile card row — a pure DOM child-order swap, no CSS/padding/sizing touched. The already-approved 44-48px closed-row height (§195's own 47px measurement) and light-lavender expanded-row state (§195's `:focus-visible`/`.cli-row-expanded` fix) were confirmed untouched — live-measured **46.6px** this round. Mobile's existing two-line contact/quote-count/last-activity row (§195's own G3 completion) already satisfied this task's §D requirement and needed no change.
+
+## 6. Bottom Action Bar: 4 Tiles, Colors, WhatsApp
+
+Expanded from 3 tiles to 4 in both language files: PDF (purple gradient, `LIGHT.gradient`), Print (neutral grey, `#475569`/`#cbd5e1`), Call (blue, `LIGHT.sky` `#0284c7`), WhatsApp (green, `LIGHT.emerald` `#059669`) — confirmed via `getComputedStyle` on the real rendered tiles, both languages, exact RGB matches. New WhatsApp action: a `wa.me` link built from the business's own phone number, using the identical normalization pattern as the existing `sendWhatsApp` in `Dashboard.jsx` (not a third independent formula) — Local file assumes a leading-0 number and prepends `+972`; International file assumes the stored number is already in full international format (consistent with `formatDisplayPhone` there doing no reformatting). Pre-filled with a short message naming the quote's own display number. Hidden under the same condition as Call (no valid business phone → both absent).
+
+## 7. Real Defects/Artifacts Found and Fixed During This Round
+
+**(1) Print trigger unreliable in a backgrounded tab (a testing-methodology finding, not a shipped product bug caught pre-fix)**: the initial implementation deferred `window.print()` via a double-nested `requestAnimationFrame`, which never fired when tested against a backgrounded (non-foreground) browser-harness automation tab — a genuine Chrome `rAF`-throttling behavior for hidden tabs. Very likely never encountered by an actual user (whose tab is foregrounded at the moment of the click) but fixed regardless to `setTimeout(fn, 50)`, confirmed reliable in the same backgrounded-tab test, for strictly higher real-world safety margin. **(2) The per-item disclosure toggle button was not previously covered by any print-hiding rule** — a small, real, pre-existing gap (interactive chrome that would have printed), fixed this round alongside the new print CSS. **(3) Test-methodology artifact, not a product bug**: the first attempt to set a TEST business phone number injected a value directly into the raw input's DOM, bypassing whatever dial-code/local-part composition the real Business Settings field performs on genuine user input, producing a malformed doubled-prefix stored value (`+1+15551234567`). Re-entering just the local digits through the same field the normal way produced a clean value and correct `tel:`/`wa.me` hrefs — confirming the underlying phone-normalization code in `PublicQuote.jsx`/`PublicQuoteEn.jsx` was correct throughout; the anomaly was purely an artifact of the shortcut test-data-injection method.
+
+## 8. Full Test-Suite Result
+
+**320/320 pass**, 17 test files (unchanged count — `PublicQuoteHeader.test.jsx` had 2 literal-string assertions updated to match the new exact quote-number label wording, an intentional behavior change per the task's own spec, not a new test file or a regression).
+
+## 9. Lint Result
+
+`npx eslint` across every changed/new file — **0 errors**.
+
+## 10. Build Result
+
+`npm run build` — succeeds, only the pre-existing large-chunk-size advisory (unrelated, predates this round).
+
+## 11. Live Browser Verification — Method and Evidence
+
+`browser-harness --doctor` healthy throughout (existing daemon reused). Both documented TEST personas used: `minhatshay+proflow-int-basic@gmail.com` (EN/International, LIFETIME) and `tahshitishi+proflow-local-basic@gmail.com` (HE/Local, LIFETIME). Real quote IDs located via each account's own Quote History accordion (`aria-controls` attribute, not guessed/hardcoded) — EN: `Stage E EN QA (disposable)` A100701 (a real 6.00m² professional item); HE: `PROFLOW A46 Proof disposable TEST only` A100702 (a real 8-measurement-row professional item, 22.04m²) — chosen specifically because both carry genuine professional/measurement data for exercising the disclosure and print-mode mechanics.
+
+Screenshot capture repeatedly timed out/failed this session (a tooling issue, not investigated further given DOM/computed-style inspection served every verification need at least as precisely); all verification below was performed via direct DOM text reads, `getComputedStyle`/`getBoundingClientRect()` measurements, and CDP print-media emulation instead — arguably stronger evidence for the specific claims being verified (exact colors, exact hrefs, exact computed `display` values) than a screenshot would have provided on its own.
+
+## 12. Hebrew Desktop Result
+
+**LIVE PASS.** Dark header gradient confirmed via `getComputedStyle` (`linear-gradient(135deg, rgb(20,17,31) 0%, rgb(30,25,48) 55%, rgb(36,28,56) 100%)`), `dir="rtl"` confirmed. `מס׳ הצעה` label, respectful intro sentence, `הצג מפרט` disclosure label, and the `8 פתחים • 22.04 מ"ר` measurement summary all confirmed via direct DOM text read against the real A100702 quote. 4-tile bottom bar confirmed present with correct per-tile colors (`getComputedStyle`).
+
+## 13. English Desktop Result
+
+**LIVE PASS.** Mirror of item 12 — identical dark-header gradient confirmed, `dir="ltr"`. "Quote #", the English intro sentence, "Show specifications", and the `1 opening • 6.00 m²` summary confirmed via direct DOM text read against the real A100701 quote. 4-tile bottom bar confirmed (initially only 2 tiles — PDF/Print — since the EN TEST business had no phone number configured; a TEST-only phone number was added via the app's own normal Business Settings save flow specifically to complete this verification, see item 16).
+
+## 14. Mobile Results (390px / 360px / 320px), Both Languages
+
+**LIVE PASS at all three widths, Hebrew account** (the English account's mobile viewport was not independently re-checked this round beyond the desktop-confirmed shared responsive CSS, given the structural — not language-specific — nature of the mobile changes): zero horizontal overflow at 390/360/320px (`document.body.scrollWidth === window.innerWidth` confirmed at each width); all 4 action tiles measured well above the 44×44px minimum touch-target requirement at every width (390px: 82.5-86.5px wide × 78px tall; 360px: min 75px wide × 78px tall; 320px: min 65px wide × 87.6px tall). Mobile header confirmed retaining the dark theme and the near-top Call CTA (`חייג/י אליי`) in the compact info panel.
+
+## 15. Compact/Expanded Print-Mode Verification (Section C Core Mechanism)
+
+Verified via real CDP `Emulation.setEmulatedMedia(media="print")` against the live HE A100702 quote, both directions: (1) on-screen collapsed + `data-print-mode="compact"` → print-computed `display:none` (baseline). (2) On-screen **expanded** (via a real click on the toggle) + `data-print-mode` still `compact` → print-computed `display:none` **while the inline style itself read `display:block`** — proving the print override wins without the on-screen state changing. (3) Chose "Expanded" via the real modal UI (not a direct attribute set) → `data-print-mode` confirmed `expanded` via DOM read; on-screen (no print emulation) confirmed still `display:none` (on-screen state untouched by the modal choice). (4) Re-entered print emulation with mode `expanded` and on-screen still collapsed → print-computed `display:block`. All four checks passed exactly as designed. Also confirmed: bottom action-tile group `display:none` under print; `<thead>` `display:table-header-group`; a `CSSRule.PAGE_RULE` present in the stylesheet (the `@page` rule).
+
+## 16. Call/WhatsApp Verification Method and Result
+
+Neither TEST business had a phone number configured (a pre-existing gap). A real TEST-only phone number was added to each business via the app's own normal Business Settings save flow (not a direct DB write): `+15551234567` (EN, entered as local digits `5551234567` after correcting the injection-artifact described in item 7.3) and `0501234567` (HE, local format). Both non-production, reversible, touch only the two already-documented TEST personas. Confirmed exact resulting hrefs: EN — `tel:+15551234567`, `https://wa.me/15551234567?text=Hi%2C%20I%20have%20a%20question%20about%20quote%20number%20A100701.`; HE — `tel:0501234567`, `https://wa.me/972501234567?text=...` (decoded: `שלום, יש לי שאלה לגבי הצעת המחיר מספר A100702.`) — both correctly normalized, both languages.
+
+## 17. Clients Badge Reorder Verification
+
+**LIVE PASS, Hebrew account, desktop + 390px mobile.** Row text confirmed reading `פרטי`/`עסקי` immediately followed by the client name (e.g. `פרטיPROFLOW A46 Proof disposable TEST only...`), both viewports, both business and private client types present in the TEST data. Desktop row height re-measured at 46.6px (within the approved 44-48px band, confirming the padding/sizing change from §195 was untouched by this round's DOM-order-only edit). English behavior confirmed via source review (the identical shared `ClientTypeTextBadge` component and identical JSX structure; `isHebrew` only ever changes the badge's own label text, never its position) rather than a separately re-run English browser session — the change is a pure, symmetric DOM-order swap with no language-conditional logic anywhere near it.
+
+## 18. Accessibility Notes
+
+The disclosure toggle buttons retain their existing `aria-expanded` attribute (newly added this round, was previously absent) alongside the icon+text pairing. No new interactive controls were added to the on-screen experience beyond the print-mode modal (a real `role="dialog"` `aria-modal="true"` `aria-label` element) and the WhatsApp/expanded-PDF tiles (real `<a>`/`<button>` elements, not `<div onClick>`). Keyboard-specific verification of the new modal was not separately exercised this round (mouse/programmatic-click verification only) — a minor, honestly-noted gap.
+
+## 19. Confirmation Unrelated Pre-Existing Work Was Preserved
+
+Confirmed: no `git reset`/`restore`/`checkout`/`stash`/`clean` was run. The pre-existing 39 modified/untracked paths from the start of this round remain exactly as they were; only the files listed in item 20 changed beyond that baseline.
+
+## 20. Exact Application Files Changed
+
+`src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx`, `src/components/PublicQuoteHeader.jsx`, `src/components/PublicQuoteHeader.test.jsx`, `src/components/ClientsTab.jsx` — modified. `src/components/QuotePrintModeModal.jsx` — new file. No other application file touched.
+
+## 21. Confirmation of Explicit Out-of-Scope Boundaries
+
+Confirmed untouched: quote calculation/VAT logic (`utils/regionConfig.js`, `utils/money.js` — read, not edited), locked/approved-quote state and its immutability trigger, authentication, customer-ownership semantics (`get-public-quote`'s own RLS/query logic — read, not edited), Admin design/behavior, any schema/migration, any Production data. No real customer account was used at any point — only the two long-documented TEST personas (David Aluminum, the real protected customer account named in this task's own instructions, was never opened or referenced).
+
+## 22. Seven-File Continuity Ledger
 
 | File | This round | Section |
 |---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | Updated | §195 (new, extends §194) |
-| `PROFLOW_HANDOFF.md` | Updated | §18.VI (new, extends §18.V) |
+| `PROFLOW_PROJECT_CONTEXT.md` | Updated | §196 (new, extends §195) |
+| `PROFLOW_HANDOFF.md` | Updated | §18.VII (new, extends §18.VI) |
 | `PROFLOW_TODO.md` | Updated | Item 57 (extended) |
 | `PROFLOW_CHAT_HANDOFF.md` | Updated | §14 (new top paragraph) |
-| `PROFLOW_ARCHITECTURE.md` | Updated | Routing note only (no new durable pattern this round) |
+| `PROFLOW_ARCHITECTURE.md` | Updated | §18.K (new durable pattern: print-mode CSS decoupling + `setTimeout`-vs-`rAF` print-trigger reliability) |
 | `PROFLOW_CLAUDE_LATEST_REPORT.md` | Rewritten | This file |
-| `PROFLOW_CODEX_CHECKPOINT.md` | Created, then fully updated | Nearly every A-K item reached `BROWSER-VERIFIED`; full per-item ledger lives in the file itself (not duplicated here) |
+| `PROFLOW_CODEX_CHECKPOINT.md` | Updated | New §L (16 items, L1-L16); A6 changed `OPEN`→`SUPERSEDED` |
 
-## 7. Exact Application Files Changed
+## 23. Continuity Commit/Push Result
 
-`src/pages/Dashboard.jsx`, `src/components/ClientsTab.jsx`, `src/components/EditClientModal.jsx`, `src/components/ServicesCatalog.jsx`, `src/components/FinancesTab.jsx`. No other application file touched this round (Quote History/`QuotesTab.jsx` was re-verified live only, not edited).
+*(Filled in by the follow-up commit after this file's own content commit is pushed and verified — see the standard two-commit convention: content push, verify via fresh `git fetch`+`git log`+content-grep, then a second commit recording the exact verified SHA here.)*
 
-## 8. Blank-Top-Strip Root Cause and Resolution
-
-Root cause: `.dash-upper-section` (the Dashboard header's own wrapper `<div>`) was rendered unconditionally on every tab; only its *content* was gated to `activeTab==='main'`. On Clients/Finances/Catalog/Settings this left an empty ~28px padded/bordered/shadowed white box with zero content. Fixed by wrapping the entire `<div>` (not just its content) in the same condition its content already used — a single shared-source fix, not a per-page patch. Live-confirmed absent on both Clients and Finances, both languages.
-
-## 9. Desktop Dashboard Header Physical Layout, Hebrew and English
-
-Hebrew: greeting flush right (x=1180, the row's own right edge), explicit-label stats (`סה״כ הצעות: 6` / `סך הכנסות: ₪0.00`) at the row's mathematically true center (measured center-delta 0px), plan badge (`LIFETIME`) flush left (x=494, the row's own left edge). English: mirror — greeting left, stats true-center (delta 0px), badge right. Both re-verified via `getBoundingClientRect()` this round; unchanged from §194's own grid-based implementation, no regression found.
-
-## 10. Mobile Dashboard Top Composition, Hebrew and English
-
-Both languages confirmed as one unified 3-row card at 390×844: row 1 greeting + short-format plan badge (`LIFETIME`, no fabricated days text) both vertically centered at the identical pixel (87px); row 2 explicit-label stats beginning at y=122, clearly its own row; row 3 (Hot Quote) not triggered by either TEST account used (neither has a quote with `view_count≥3`) — confirmed present in source, not independently live-triggered this round.
-
-## 11. AI Labels, Icon Source, Placement, and Floating-Launcher Confirmation
-
-Sidebar: `AI Chat`/`צ׳אט AI` below Catalog, composite `MessageCircle`(outline bubble)+small `Sparkles`(corner accent) icon — confirmed visually in screenshots, not a robot/terminal/retro glyph. New mobile topbar action: identical label/icon, ~36px tall, a normal-flow child of the already mobile-visible topbar (never an overlay). Floating launcher (`.ai-support-btn`) confirmed `display:none` at every viewport tested (desktop and 390×844 mobile, both languages) — live DOM check, not inferred from CSS source alone. Both entry points confirmed to open the real, identical `AIChatWidget` popup via the same `open-proflow-ai-chat` event.
-
-## 12. Logo Before/After Dimensions, Padding, Border/Background Behavior, Embedded-Whitespace Handling
-
-Before: fixed `width:100%; height:92px` canvas, `object-fit:contain` image centered inside — correct for aspect-ratio preservation, but left large visible white margins around any logo whose own aspect ratio didn't match the fixed box (the Owner's "small logo inside a large solid-white card" finding). After: canvas changed to `max-width:100%; max-height:92px; margin:0 auto` (shrink-wrap, no fixed dimensions), padding reduced 7px→5px, border changed white→`rgba(0,0,0,0.10)` (visible against the white padding fill itself, not redundant with it). Verified live via four synthetic canvas-generated test images injected into the real sidebar DOM: a 60×60 square rendered a 72×72 canvas (tightly hugging the image, not a large fixed box); a 400×60 wide lockup rendered at 179px within a ~191px available column (uses nearly all available width); a 120×300 tall image and an 800×800 oversized square both correctly bounded to the 82px max-height with no distortion. No TEST account available to this or any prior round has an actual uploaded logo file, so real-upload verification remains an open gap, honestly recorded as such (see `PROFLOW_CODEX_CHECKPOINT.md` §E7) rather than claimed complete. The non-destructive whitespace-trim mechanism (`src/utils/logoTrim.js`) was not touched by this round's CSS change and remains fully covered by its own 5 tests.
-
-## 13. Clients Before/After, Closed-Row Fields, Fallback Behavior, Expanded Panel, Mobile, Accessibility
-
-**Before** (start of this round, i.e. §194's own result): header "ניהול ספר לקוחות (CRM)"/"Clients Management", no create action, closed row had a circular type-icon medallion, phone-only contact column (no email fallback), no last-activity column. **After**: header `לקוחות`/`Clients` + full-sentence count + new primary `לקוח חדש`/`New Client` button (a genuinely new capability — `EditClientModal` gained an `isNew` mode, `handleCreateClient` performs a real `INSERT`, completing Read/Update/Delete into a full CRUD set for the first time). Closed row: chevron (reading-start), name (dominant), compact text-only type badge (`עסקי`/`Business`, `פרטי`/`Private` — **no icon or avatar of any kind**, after a live Owner correction reverted an initial-letter avatar that had been tried mid-round and found to inflate row height and reduce scan density), contact (phone, else email, never an empty reserved column), quote count, last-activity date. Live-measured closed-row height: **47px** (within the requested 44-48px). Expanded-row visual state: light-lavender background (`rgba(139,92,246,0.06)`) + thin inline-start border for the "open" state, `outline:none` + a real `:focus-visible`-only rule for keyboard focus — confirmed live via click that no outline persists and the correct lavender background shows; a genuine keyboard-Tab-reaching-a-row verification could not be completed live this round due to an intermittent CDP input-delivery issue (not a product defect), honestly recorded as open. Mobile: same field set in a full-tap card layout, confirmed live both languages, no overflow.
-
-## 14. Catalog Before/After, Separation of Search/Create/Manage, Empty State, Actions
-
-**Before**: search input and the permanent name/price creation fields shared one toolbar row at all times. **After**: header `קטלוג שירותים ומוצרים`/`Services & Products Catalog`; toolbar is search (full-width) + one purple `הוסף פריט`/`Add Item` button; clicking it opens a deliberate drawer (name + price — the only two real fields in the data model, no invented description field) with Save/Cancel together on one row (confirmed live, not stranded). Existing-item table unchanged in structure (Edit neutral/tinted-purple, Delete red). New intentional empty state (icon + dashed border + message) replaces the old bare table row. A real pre-existing bug (Delete tooltip resolving through the quote-specific `t.delete` string) found and fixed.
-
-## 15. Finances Before/After, Zero-Data Chart State, Expense-Creation Flow, Export Hierarchy, Mobile
-
-**Before**: header "הוצאות והכנסות ודוחות עסק"/"Finances & Reports"; permanent expense-creation fields always visible in the list toolbar; CSV export was the only toolbar action, styled prominently; chart always rendered its axes even with zero data. **After**: header `פיננסים`/`Finances` + supporting sentence + period selector aligned in the header row; new purple `הוסף הוצאה`/`Add Expense` opens a deliberate drawer (description/category/amount/recurring/Save/Cancel together); CSV export demoted to a neutral secondary action beside it; chart shows a compact intentional empty state when the period's income+expenses are both zero (confirmed live for a zero-data TEST account). **A real, previously-undiscovered bug found and fixed**: the chart's `<Bar dataKey>` switched to Hebrew string keys when `isHebrew`, but the underlying `chartData` object (built in `Dashboard.jsx`) has always used fixed English keys only — meaning the bars would render empty for Hebrew users regardless of real data, unrelated to this round's own empty-state work. Fixed by keeping `dataKey` fixed and moving translation to Recharts' own `name` prop. Not independently re-verified against a real non-zero Hebrew dataset (no such TEST account available) — recorded as source-verified for that specific sub-case, not browser-verified.
-
-## 16. Quote History Label/Action Verification
-
-`מס׳ הצעה`/`Quote #` confirmed live via direct DOM text read, one line, both languages. Action-hierarchy chips confirmed via `getComputedStyle` on the real rendered elements: View purple, Edit/Duplicate/WhatsApp/Email identical neutral grey, Delete red — unchanged from §194, no regression.
-
-## 17. Shared Design Primitives Used
-
-The shadow-card container pattern, the purple-primary/neutral/red-destructive action-color rule, the "icon + short title (+ count/subtitle)" header shape, the "wide search + one purple primary action" toolbar shape, and the dashed-border/icon/message empty-state treatment are now consistently applied across Clients, Catalog, and Finances (Quote History already had the action-color rule from §194; Business Settings was audited and found already compliant, not restructured).
-
-## 18. Hebrew Desktop Browser Result
-
-**LIVE PASS.** Header centering (delta 0px), Clients (header/New Client/row height 47px/text-badge/chevron offset 10px from row edge), Catalog (header, empty state), Finances (header, Add Expense), AI label/icon, blank strip confirmed absent on Finances/Catalog. Full-page screenshots captured for Clients and Catalog.
-
-## 19. English Desktop Browser Result
-
-**LIVE PASS.** Mirror of item 18 — header centering (delta 0px), Clients (New Client button, row height 47px, contact fallback, last-activity column), Catalog (Add Item drawer Save/Cancel same row), Finances (header, Add Expense purple vs. Export neutral, zero-data empty state), AI label/icon, action-hierarchy chips. Full-page screenshot captured for Clients.
-
-## 20. Hebrew Mobile Browser Result
-
-**LIVE PASS** (390×844). Unified header card (centers at 87px), 4 client cards confirmed with correct fields, 5-item bottom nav (`הצעות מחיר, לקוחות, פיננסים, עוד, חדש`), topbar AI button (`צ׳אט AI`), floating launcher `display:none`, zero overflow. Full-page screenshot captured.
-
-## 21. English Mobile Browser Result
-
-**LIVE PASS** (390×844). Mirror of item 20 — header centers at 87px, 2 client cards confirmed, 5-item nav (`Quotes, Clients, Finances, More, New`), topbar `AI Chat` button, floating launcher `display:none`, zero overflow. Full-page screenshot captured.
-
-## 22. Scroll, Safe-Area, Overflow, Overlap, and Long-Content Results
-
-Zero horizontal overflow measured on every surface checked, both languages, both viewports. No overlap between the new topbar AI button and any content (normal document flow, not an overlay). Mobile safe-area padding unchanged from prior rounds. Long-business-name handling not independently re-tested this round (no long-name TEST account used) — unchanged CSS (`overflow:hidden/ellipsis`) from §194, recorded as source-verified only for that specific sub-case.
-
-## 23. Accessibility/Keyboard Results
-
-New AI topbar button: focusable, visible 3px purple focus-visible outline (confirmed). Clients row buttons: `aria-expanded`/`aria-controls`, stable panel IDs, real `<button>` elements, `outline:none`+`:focus-visible` fix confirmed correct by construction and confirmed active elsewhere in the same session (search input, topbar AI button) via real Tab key-presses; a Tab sequence specifically reaching a client row could not be completed live this round (CDP input-delivery reliability issue, not a product defect) — honestly recorded as an open verification gap in `PROFLOW_CODEX_CHECKPOINT.md` §G8. Mobile "More"/"Filters" popovers: `role="menu"`/`aria-haspopup`/`aria-expanded` unchanged from §194.
-
-## 24. Focused Tests
-
-None added this round (no new test-worthy pure-logic units were introduced; all changes were UI-structural/visual, following the task's own "do not build a disproportionate testing architecture solely for CSS" instruction). Existing 320 tests (including §194's `logoTrim.test.js` and `PlanIdentityBadge.test.jsx` `singleLine` tests) re-run and confirmed still passing after every change.
-
-## 25. Full Test-Suite Result
-
-**320/320 pass**, 17 test files (unchanged count from §194).
-
-## 26. Lint Result
-
-`npx eslint` across every changed file — **0 errors**, 1 pre-existing unrelated warning (`react-hooks/exhaustive-deps` on `loadData`, predates this round).
-
-## 27. Build Result
-
-`npm run build` — succeeds, only the pre-existing large-chunk-size advisory.
-
-## 28. Exact Browser-Verification Evidence and Honest Blockers
-
-`browser-harness --doctor` healthy throughout (existing daemon reused, no restart, no duplicate). Evidence: 5 full-page screenshots (English/Hebrew desktop Clients, Hebrew Catalog, Hebrew/English mobile) plus extensive live `getBoundingClientRect()`/`getComputedStyle()`/direct-DOM-text measurements across every corrected surface, both languages, both viewports. Two honest blockers recorded, not glossed over: (1) no TEST account available has an actual uploaded logo file, so logo-canvas verification relied on synthetic canvas-generated test images injected into the real DOM rather than a genuine uploaded logo; (2) an intermittent CDP keyboard-input-delivery issue prevented completing a live Tab-key sequence specifically onto a Clients row, though the underlying `:focus-visible` CSS mechanism was independently confirmed working elsewhere in the same session via real keyboard events.
-
-## 29. Confirmation Unrelated Pre-Existing Work Was Preserved
-
-Confirmed: no `git reset`/`restore`/`checkout`/`stash`/`clean` was run. The pre-existing 39 modified/untracked paths from the start of this round remain exactly as they were; only the 5 files listed in item 7 changed beyond that baseline, plus the new `PROFLOW_CODEX_CHECKPOINT.md`.
-
-## 30. Confirmation Public Quote and All Unauthorized Areas Were Untouched
-
-Confirmed: this round's diff touches only `Dashboard.jsx`, `ClientsTab.jsx`, `EditClientModal.jsx`, `ServicesCatalog.jsx`, `FinancesTab.jsx`, plus the new checkpoint file. `PublicQuote.jsx`, `PublicQuoteEn.jsx`, Professional Quote files, Admin design/behavior, plan/entitlement calculation logic, Auth/RLS, Edge Functions, and all schema/migrations remain completely untouched.
-
-## 31. Continuity Commit/Push Result
-
-Content commit `08d81dd` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git log` (local `HEAD` == `origin/proflow-continuity` HEAD, both `08d81dd`) + content-grep (§195 present in `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CODEX_CHECKPOINT.md` present on disk). This paragraph is itself the required SHA-follow-up commit.
-
-## 32. Application Commit
+## 24. Application Commit
 
 **NO.**
 
-## 33. Application Push
+## 25. Application Push
 
 **NO.**
 
-## 34. Deployment
+## 26. Deployment
 
 **NO.**
 
-## 35. Production Changed
+## 27. Production/Schema/Backend Changed
 
-**NO.** Zero Production/TEST-DB/schema/migration/business-logic/Edge-Function change. Multiple real TEST-account logins/logouts were performed against the disposable `quotecode-test` Supabase project only.
+**NO application/schema/Production change.** Two TEST-DB mutations performed (a business phone number set on each of the two documented TEST personas' `business_settings` row, via the app's own normal Business Settings save flow — not a direct database write), both non-production, both reversible, both made solely to enable this round's own Call/WhatsApp-tile verification. No real customer account was ever touched.
 
-## 36. Owner Visual Acceptance
+## 28. Owner Visual Acceptance
 
-**PENDING.** All four required live-browser surfaces (English/Hebrew × desktop/mobile) are genuinely live-verified this round, including a live mid-task Owner correction that was applied and re-verified within the same round. Final classification: **IMPLEMENTED — LIVE REAL-BROWSER VERIFIED — OWNER VISUAL ACCEPTANCE PENDING.**
+**PENDING.** Every claim above is either `BROWSER-VERIFIED` (via live DOM/computed-style/CDP-print-emulation evidence) or explicitly flagged as an open gap (customer-PO field, native-print-vs-client-export design decision, mobile item-table redesign, no actual multi-page PDF file generated and reviewed). Final classification: **IMPLEMENTED — LIVE REAL-BROWSER VERIFIED — OWNER VISUAL ACCEPTANCE PENDING.** Per this task's own explicit instruction: stopping here, awaiting Owner visual acceptance, not continuing into Admin redesign or unrelated work.
