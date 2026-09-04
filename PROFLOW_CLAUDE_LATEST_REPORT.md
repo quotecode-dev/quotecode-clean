@@ -4,173 +4,169 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: PROFLOW V2 — Final Dashboard/Sidebar Polish: Business Logo, AI Entry, Plan Badge, and Personalized Greeting
+## Task: PROFLOW V2 — Browser-Harness Recovery, Authenticated UI Coherence, Clients Accordion, Compact Dashboard, and Mobile Redesign
 
 **MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action.**
 
-Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §192, now recorded as §193. Full narrative detail lives in §193; this file answers the task's own required 39-item structure.
+Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §193, now recorded as §194. Full narrative detail lives in §194; this file answers the task's own required final-report structure.
 
 ---
 
-## 1. Fresh Branch/HEAD/Dirty-Tree State
+## 1. Fresh Branch, HEAD, and Working-Tree State
 
-Main repo: branch `main`, `HEAD = f3b59d0`, `origin/main = 26dee96` (local ahead of origin by prior, separately-tracked commits unrelated to this task — no push occurred). 34 modified/untracked paths in the working tree at task start, all preserved throughout — no `reset`/`restore`/`checkout`/`stash`/`clean` was run. Continuity worktree (`quotecode-saas-continuity`): branch `proflow-continuity`, confirmed via fresh `git fetch` to be exactly in sync with `origin/proflow-continuity` at `6540d8e` before this task's own documentation edits began.
+Branch `main`, `HEAD = f3b59d0`, `origin/main = 26dee96` (local ahead by prior, separately-tracked commits unrelated to this task — no push occurred). 38 modified/untracked paths in the working tree, all preserved throughout this round — no `reset`/`restore`/`checkout`/`stash`/`clean` was run at any point.
 
-## 2. Exact Files Changed
+## 2. Browser-Harness Preflight Result Before the Batch
 
-`src/pages/Dashboard.jsx` (sidebar brand/logo block, AI nav button, plan-card removal, greeting block, footer identity, associated CSS), `src/components/PlanIdentityBadge.jsx` (new `variant="compact"`), new `src/components/PlanIdentityBadge.test.jsx` (6 tests). No other application file touched this round — all other modified/untracked paths in the working tree predate this task (see item 1).
+`browser-harness --doctor` run fresh at the start of this task, before creating the Batch: `[ok] chrome running`, `[ok] daemon alive`, `[ok] active browser connections — 1`. The daemon had evidently stayed alive since the immediately-preceding round. The Owner was informed of this and explicitly chose to skip the wait-for-manual-run step, so verification proceeded directly.
 
-## 3. Logo Implementation Before/After
+## 3. Desktop Batch — Path, Content Summary, Safety Confirmation
 
-**Before**: `.dash-sidebar-brand` always showed a mark+name pair; the logo `<img>` used `width:100%;height:100%;object-fit:cover`, which would crop any non-square logo to fill a fixed box. **After**: valid-logo and no-logo states are now strictly either/or (never both); the logo renders inside a new bounded `.dash-sidebar-brand-logo-canvas` (white/light background, restrained padding, rounded corners, subtle border+shadow, fixed 76px height) using `object-fit:contain` with `max-width/max-height:100%;width/height:auto` — bounds any aspect ratio without cropping.
+Created at `C:\Users\sales\Desktop\Start-ProFlow-Browser-Harness.bat` (real Desktop path resolved via `[Environment]::GetFolderPath('Desktop')`, not assumed). Content: a `where browser-harness` check, then `ensure_daemon()` (the harness's own idempotent, self-healing daemon/Chrome-connection starter) piped via a scratch temp file to stdin and deleted immediately after, then `browser-harness --doctor` for a final status line, then a `pause` so the window stays open either way. Confirmed: no elevation/`runas`, no installs or downloads, no registry/firewall/AVG/proxy/permanent-environment changes, no credentials/passwords/tokens of any kind, safe to re-run any number of times.
 
-## 4. Valid-Logo Behavior
+## 4. Browser-Harness Result After the Owner Manually Runs the Batch
 
-Confirmed via source: a truthy `bizLogoUrl` with no recorded load failure renders the canvas + `<img>` alone, `alt` set to the real business name (or a market-correct fallback string), `key={bizLogoUrl}` forcing a fresh mount/load attempt on URL change. No `bizName` text renders alongside it.
+**Not applicable this round** — per item 2, the Owner explicitly authorized skipping the manual-run wait since the connection was already healthy. The Batch itself was never executed by Claude (consistent with the task's own rule) and remains available for the Owner to test or use in any future session where the daemon is genuinely down.
 
-## 5. No-Logo/Load-Failure Behavior
+## 5. Exact Repository Files Changed
 
-An empty/missing `bizLogoUrl`, or a genuine `onError` firing (tracked via new `sidebarLogoFailed` state, reset every time `bizLogoUrl` itself changes), falls back to the pre-existing initial-letter mark + real business name — never a broken-image icon, empty box, or a permanently-stuck failure state across a later successful URL.
+`src/pages/Dashboard.jsx`, `src/components/ClientsTab.jsx` (full rewrite), `src/components/QuotesTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/PlanIdentityBadge.jsx`, `src/components/PlanIdentityBadge.test.jsx`, `src/pages/Dashboard.hotquote.test.js` (rewritten). New files: `src/utils/logoTrim.js`, `src/utils/logoTrim.test.js`. One file outside the repository, not git-tracked: `Start-ProFlow-Browser-Harness.bat` on the Owner's own Desktop. `ServicesCatalog.jsx`/`SettingsTab.jsx` were audited for design-system consistency and found already compliant — not modified.
 
-## 6. Logo Test-Matrix Results
+## 6. Which Requested Items Were Already Present vs. Newly Implemented
 
-No-logo: **live-verified**, both languages (`TEST EN Basic`/`TEST HE Basic`, neither has a `bizLogoUrl` — both correctly showed the initial-mark+name fallback in real screenshots). Valid logo (black/white/colored-transparent, logo-with-own-background, square/wide/tall), failed logo URL, and long-business-name-in-fallback-mode: **verified at the source/CSS level only** — no TEST account with an actual uploaded logo was available among the accessible TEST personas this round, and fabricating one was out of this task's explicit scope (no storage/upload action was authorized). The `object-fit:contain` + bounded-canvas approach is architecturally correct for all aspect ratios by construction (confirmed by CSS box-model reasoning: an image can be at most the canvas's own bounds on either axis while its own aspect ratio is preserved), but this is reported honestly as structural, not a live pixel-level PASS across every logo shape.
+Already present/correct (verified, not re-implemented): the shadow-card container pattern across Business Settings/Clients/Finances/Catalog; `ServicesCatalog.jsx`'s own action-color hierarchy (already purple/red/green-success, no rainbow); the sidebar/Quote-History RTL-right/LTR-left physical-position rules from §191 (untouched, re-confirmed live). Newly implemented this round: the Clients accordion redesign; the Dashboard header's two structural rebuilds; Quote History's label and action-color correction plus mobile Filters consolidation; the logo whitespace-trim mechanism; the AI nav icon/label changes and floating-launcher removal; the 5-item mobile navigation with a "More" popover; the Desktop Batch.
 
-## 7. AI Position Before/After
+## 7. Shared Design-System Primitives Introduced or Reused
 
-**Before** (§192): a separate "AI Chat" button lived in `.dash-sidebar-utility`, between the nav and the footer, alongside the Super Admin utility button. **After**: the AI action moved into `<nav className="dash-sidebar-nav">` itself, directly after the mapped nav items (i.e., immediately below Catalog) — live-confirmed 3px gap, matching the nav's own item-to-item spacing exactly, in both languages.
+Reused (unchanged, confirmed consistent): `NEON.bgCard`/`border:none`/`boxShadow:SHADOW.sm`/`RADIUS.lg` card container; `RADIUS.sm` action-chip radius; the `isMobileView` lazy-`matchMedia` hook pattern (now shared verbatim between `QuotesTab.jsx` and the new `ClientsTab.jsx`); the single-expand accordion state pattern; the "single DOM order, mirrored by `dir`" convention (used again for the Clients chevron, and for the new desktop header grid). Newly introduced this round: the purple-primary/neutral-grey/red-only action-color rule (now applied in both `QuotesTab.jsx` and `ClientsTab.jsx`); the symmetric `1fr auto 1fr` CSS Grid true-centering pattern (new `PROFLOW_ARCHITECTURE.md` §18.J); the `PlanIdentityBadge` `singleLine` compact-mobile format.
 
-## 8. Exact Modern Icon Selected and Why
+## 8. Business Settings Before/After
 
-`Sparkles` from the already-imported `lucide-react` set (no new icon library added) — a clean, minimal, sharp vector glyph consistent with the sidebar's existing icon stroke width/scale, matching the task's "sparkle/AI symbol" preferred direction and explicitly avoiding a chat-bubble-with-sparkle combination that would have required a custom composite icon.
+Audited for consistency with the design system; found already compliant (shadow-card, purple primary actions, red-only for the legitimately destructive "Cancel Subscription" action). **No changes made.**
 
-## 9. Confirmation Old Robot Icon Gone
+## 9. Clients Desktop and Mobile Before/After
 
-Confirmed: the `Bot` import was removed from `Dashboard.jsx`'s `lucide-react` import line entirely (grepped, zero remaining references); the AI button renders only `<Sparkles>`.
+**Before**: an 8-column data-grid table (name/tax-ID/email/phone/address/type/notes/actions), 4 columns CSS-hidden below 640px, no accordion, no aggregate quote information shown. **After**: a compact accordion adopting Quote History's own established pattern — desktop closed row shows name (dominant)/phone(if present)/type-badge/quote-count/chevron; mobile closed row is a full-tap card with the same primary fields. Missing optional fields render nothing (no `-` placeholder consuming a column).
 
-## 10. Confirmation Existing AI Chat Mechanism Reused
+## 10. Clients Accordion Behavior and Accessibility
 
-Confirmed both at the source level (the new button dispatches the exact same `window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'))` call already established in §192, still consumed by `AIChatWidget.jsx`'s own listener, no second implementation) and live: clicking the button in both English and Hebrew opened the real `.ai-chat-popup` with real, market-correct assistant greeting text.
+Single-expand state (`expandedClientId`), same model as Quote History. Chevron leads in DOM order so it lands at each language's true inline-start (right for Hebrew, left for English) via inherited `direction` — no `isHebrew`-conditional code. `aria-expanded`/`aria-controls` on every trigger, stable panel `id`s (`client-detail-{id}`/`client-detail-mobile-{id}`), real `<button>` elements throughout (keyboard-activatable natively, no synthetic `div`+`onClick`).
 
-## 11. Mobile AI Result
+## 11. Finances Before/After
 
-Live-verified on a 390×844 Hebrew-mobile emulation: the existing compact 48×48 floating `.ai-support-btn` launcher is present, correctly sized, unaffected by this round's desktop-only changes; the bottom navigation still shows exactly 6 items (AI was not added as a 7th); no collision with the badge/greeting row above it.
+One targeted color-discipline fix: the Net Profit KPI card's positive-state color changed from `NEON.sky` (an off-palette informational blue) to the same green (`#22c55e`) Total Revenue already uses for its own positive state. Negative state (red) unchanged. No other change.
 
-## 12. Plan-Card Removal
+## 12. Catalog Before/After
 
-Confirmed: `.dash-sidebar-plan-card` JSX block and its associated `.dash-sidebar-plan-card`/`.dash-sidebar-plan-upgrade` CSS were fully removed from `Dashboard.jsx`. Live-verified absent in both English and Hebrew desktop screenshots — the sidebar footer now contains only the AI Support Logs button (Super Admin only, absent for these ordinary TEST personas) and the user-identity/sign-out row.
+Audited; `ServicesCatalog.jsx` found already compliant with the design system's action-hierarchy rule (purple Edit, red Delete, green Save as a legitimate success-action use of green). **No changes made.**
 
-## 13. Compact Header Plan-Badge Implementation
+## 13. Dashboard Header and Hot Quote Before/After
 
-`PlanIdentityBadge.jsx` gained a new `variant="compact"` branch, still deriving only from `getDisplayIdentityLabel`/`getDisplayIdentityVisual` (no independent identity logic), rendering a horizontal pill (medallion + label + optional days-remaining line + optional upgrade Crown) sized ~36-44px tall. Placed in `Dashboard.jsx`'s greeting row, on the side opposite the greeting text via the established "single DOM order, direction-follows-`dir`" convention (a `flex` row with `justify-content:space-between`, no `isHebrew`-conditioned left/right branching in the layout itself).
+**Before**: a separate greeting `<div>` above a bordered `.dash-upper-section` containing a 3-large-KPI-card grid (Hot Quote as a 2-line card with `minHeight:52px`+`WebkitLineClamp:2`, Total Quotes, Total Revenue), plus a separate duplicate trial-days ticker below. **After**: one compact strip living inside `.dash-upper-section` (preserving the Trial Notice's percentage-based anchor contract untouched), rebuilt across five rounds following live Owner corrections into its final form — see §194.3-§194.5 in `PROFLOW_PROJECT_CONTEXT.md` for the full blow-by-blow. Final desktop shape: a true `grid-template-columns:'1fr auto 1fr'` row (greeting at true inline-start, explicit-label stats at the true row-center, plan badge at true inline-end), vertically centered (0px delta measured both languages). Final mobile shape: a unified 3-row card (greeting+short-format badge together / explicit-label stats / conditional Hot Quote). Hot Quote is now a single-line alert (~28-44px) with a real expand toggle and a genuine "View quote" link, geometrically stable by construction (single-line truncation has zero height variance, replacing the old 2-line clamp mechanism). The duplicate trial-days ticker was removed (the badge already shows the same information); the urgent expiring/expired slidebar was left untouched.
 
-## 14. Confirmation Plan/Entitlement Semantics Unchanged
+## 14. Quote History Label and Action Hierarchy
 
-Confirmed: no new entitlement/plan-resolution logic was written. The badge consumes the pre-existing `displayIdentity`, `trialDaysLeft`, and `showUpgradeCta`/`setShowPricingModal` values already computed by `Dashboard.jsx`'s own `computeEffectivePlan()` — none of that logic was touched. `daysLeft` is only ever passed when `displayIdentity === 'FREE_TRIAL'`.
+Label: `# Order`/`מספר הזמנה` → `Quote #`/`מס׳ הצעה` (exact geresh character U+05F3 verified by direct codepoint inspection), fits on one line at supported widths (column width 68px→72px, `whiteSpace:nowrap` added). Action hierarchy: View is now the sole purple/primary chip; Edit, Duplicate, WhatsApp, and Email are now all the same neutral grey (previously each had its own decorative color — amber/sky/emerald/sky); Delete remains red, unchanged. All handlers, entitlement gating, tooltips, accessibility attributes, and the single-row accordion behavior are unchanged — confirmed live via `getComputedStyle` on the real rendered chips.
 
-## 15. Hebrew Greeting Result
+## 15. Business-Logo Handling, Including Embedded-Whitespace Findings
 
-Required: `ברוך שובך` / `הנה תמונת המצב של [bizName]`. **Live-confirmed, character-for-character**, on `TEST HE Basic`: `h1` = `"ברוך שובך"`, subtitle = `"הנה תמונת המצב של TEST HE Basic"`.
+Sidebar stage enlarged (76px→92px height, 10px→7px padding, more visible border). **Whitespace finding, answered honestly**: no TEST account available to this task has an uploaded logo with baked-in transparent padding, so the question of "CSS padding vs. baked-in file whitespace" could not be settled by direct inspection this round. Rather than guess, a conservative, non-destructive, fail-open automatic trim was implemented (`src/utils/logoTrim.js`): it reads the real uploaded image via an offscreen canvas and crops only genuinely-transparent (`alpha===0`) border pixels for the sidebar's own display — never "white" pixels, so an intentional white-background logo is never miscropped. Any failure (CORS, unsupported format, nothing to trim) falls back silently to the exact prior raw-image behavior. The original file/DB value is never read-modified or re-uploaded. 5 focused tests cover the pure trim-bounds function directly.
 
-## 16. English Greeting Result
+## 16. AI Label/Icon/Position in Hebrew and English
 
-Required: `Welcome back` / `Here's what's happening at [Business Name]`. **Live-confirmed, character-for-character**, on `TEST EN Basic`: `h1` = `"Welcome back"`, subtitle = `"Here's what's happening at TEST EN Basic"`.
+Sidebar: "AI Chat"/"צ׳אט AI", positioned directly below Catalog (unchanged position from the prior round), icon is a composite outline `MessageCircle` bubble with a small `Sparkles` corner accent — explicitly not a robot/terminal/monitor/DOS glyph. Mobile topbar (new this round): the same label, same composite icon, ~36px tall, a normal-flow child of the already mobile-visible topbar (never an overlay). Both dispatch the identical `open-proflow-ai-chat` event into the same single `AIChatWidget` — no second chat implementation anywhere.
 
-## 17. User/Footer Result
+## 17. Mobile Navigation Decision and Rationale
 
-`.dash-sidebar-user` no longer shows `bizName` a second time (already shown by the logo/brand block); both the avatar-initial and the identity line now derive from `session.user.email` only (confirmed live: footer shows the real signed-in email in both language sessions); the previously-duplicated second email line was removed.
+6 destinations reduced to 5 per the task's own explicit limit and its own suggested consolidation: Settings and Catalog (the two lower-frequency, already-quieter destinations in the existing information architecture) merged into one new "More" popover (`role="menu"`, closes on selection or outside-click). Quotes, Clients, Finances remain direct destinations; New Quote remains the prominent, unmoved primary action. The floating mobile AI launcher was removed entirely (it was reported obscuring Quote History cards) and replaced by the stable topbar AI action described in item 16 — AI access is not inside the "More" popover, per the Owner's own later, more specific instruction.
 
-## 18. ProFlow Attribution Readability
+## 18. Hebrew Desktop Result
 
-`.dash-sidebar-platform-brand` opacity raised `0.55 → 0.72`. Confirmed live via `getComputedStyle` in both language sessions (`opacity: "0.72"`). Still visibly the quietest element in the sidebar in both screenshots, still the final element at the bottom, not competing with the logo/nav.
+**LIVE PASS.** `dir=rtl`, sidebar physically right (unchanged from §191). Header row: greeting flush right, explicit-label stats (`סה״כ הצעות: 6` / `סך הכנסות: ₪0.00`) at the row's mathematically true center (0px delta from row-center), plan badge (`LIFETIME`) flush left — the exact requested mirrored composition. Vertical alignment: greeting and badge centers both measured at 53px. AI sidebar button: `צ׳אט AI` label, correct composite icon. Full-page screenshot captured and reviewed.
 
-## 19. Hebrew Desktop Browser Result
+## 19. English Desktop Result
 
-**LIVE PASS.** `dir=rtl`/`lang=he`; sidebar physically right (x:1211-1443 of a 1920px viewport, the mirror of English's left position); zero horizontal overflow (`scrollWidth` = `clientWidth` = 1905); AI button text `AI`, `title`/`aria-label` = `פתיחת צ׳אט AI`, 3px below Catalog; no plan card; correct no-logo fallback; correct greeting text (item 15); badge on the left (x:479-592) showing `LIFETIME`, opposite the right-side greeting (x:604-1195); real AI-chat open/close cycle confirmed (popup opened with real Hebrew content, closed, floating trigger re-rendered but resolved to `display:none`); `.dash-topbar` `display:none`; full-page screenshot captured and reviewed (`he_desktop_full.png`) — Quote History's §191 chevron position confirmed still correct in the same screenshot, untouched by this round.
+**LIVE PASS.** `dir=ltr`, sidebar physically left. Header row: greeting flush left, stats at true center (0px delta), badge (`LIFETIME`) flush right — mirror of Hebrew. Same 53px vertical-center measurement on both greeting and badge. AI sidebar button: `AI Chat` label, correct icon. Full-page screenshot captured and reviewed.
 
-## 20. English Desktop Browser Result
+## 20. Hebrew Mobile Result
 
-**LIVE PASS.** `dir=ltr`/`lang=en`; sidebar physically left (x:463-695); AI button/label correct; no plan card; correct no-logo fallback; correct greeting text (item 16); badge on the right, `LIFETIME`; real AI-chat open/close cycle confirmed identically to Hebrew; `.dash-topbar` `display:none`; full-page screenshot captured and reviewed (`en_desktop_full.png`).
+**LIVE PASS** (390×844 emulated). Unified 3-row header card: row 1 greeting (`ברוך שובך`) + short-format badge (`LIFETIME`, no fabricated days text) both centered at 87px; row 2 explicit-label stats beginning at 122px (clearly on its own row); Quote History with a full-width search row and a separate "סינון"/Filters button opening a sheet containing both status and sort controls. Bottom nav: exactly 5 items (`הצעות מחיר, לקוחות, פיננסים, עוד, חדש`). "More" popover confirmed containing `הגדרות`/`קטלוג`. Topbar AI button (`צ׳אט AI`) present; floating AI trigger confirmed `display:none`. Zero horizontal overflow. A serendipitous full-page screenshot independently corroborates this entire surface.
 
-## 21. Hebrew Mobile Browser Result
+## 21. English Mobile Result
 
-**LIVE PASS** (390×844 emulated). No horizontal overflow; 6 bottom-nav items (unchanged); 48×48 floating AI trigger present and correctly sized; badge (x:6-120) and greeting (x:132-384) sit side-by-side on the same row without collision, 12px clear gap, correct direction-aware order (badge left, greeting right, matching desktop's rule).
+**LIVE PASS** (390×844 emulated). Identical structure to item 20, mirrored: greeting+badge centered at 87px, stats at 122px, `["Quotes","Clients","Finances","More","New"]` bottom nav, topbar `AI Chat` button present and keyboard-focusable (visible 3px purple outline confirmed), floating trigger `display:none`, zero overflow. Full-page screenshot captured (via a viewport-switch timing race that fortuitously caught the mobile view) independently confirms the unified header card, explicit stats labels, Filters button, and 5-item bottom nav in one image.
 
-## 22. English Mobile Browser Result
+## 22. Scroll, Safe-Area, and Overflow Verification
 
-**NOT independently live-verified this round.** After completing the Hebrew mobile checks, restoring the English TEST session to continue English-mobile checks hit a genuinely inconsistent Bash-tool permission-classifier block on repeated login submissions (roughly half of otherwise-identical login attempts were blocked, half succeeded, across multiple accounts this round — not specific to one credential). Given English desktop, Hebrew desktop, and Hebrew mobile were all already live-verified and all share the exact same responsive CSS/media queries and component code (only text content and `dir` differ), further retries were not pursued past restoring a stable session. Reported honestly as **inferred from source-level equivalence, not an independent live PASS** — per this task's own explicit instruction not to call source review a visual PASS.
+No horizontal overflow measured on any of the four verified surfaces (`document.documentElement.scrollWidth === window.innerWidth` confirmed in every check). Mobile bottom-nav `env(safe-area-inset-bottom)` padding is unchanged from prior rounds. The Trial Notice's percentage-based absolute-position anchor (`top: calc(100% - 6px)` relative to `.dash-upper-section`) was deliberately preserved untouched throughout the header restructuring — confirmed by construction (the anchor point's own CSS was never edited, only its container's internal content).
 
-## 23. Short-Height/Narrow-Width/Overflow/Scroll Results
+## 23. Accessibility Verification
 
-Zero horizontal overflow confirmed live at 1920px (both languages) and 390px (Hebrew). Narrow-desktop (e.g. 769-884px) and short-viewport sidebar-footer-stability were not separately live-emulated this round (the sidebar's own pre-existing `overflow-y:auto` nav scroll safety valve, established in prior rounds and untouched by this one, is the mechanism that would absorb a taller-than-viewport sidebar — this round did not materially change the sidebar's total height, since the plan-card removal and the logo-canvas addition roughly offset each other).
+New AI topbar button: focusable, `tabIndex=0`, visible 3px purple focus-visible outline (live-confirmed). Clients accordion: real `<button>` triggers, `aria-expanded`/`aria-controls`, stable panel IDs. Mobile "More" popover: `role="menu"`/`role="menuitem"`, `aria-haspopup`/`aria-expanded` on the trigger. Mobile Filters sheet: same `aria-haspopup`/`aria-expanded` pattern. Hot Quote alert: `role="button"`, `tabIndex=0`, `onKeyDown` handles Enter/Space, `aria-expanded`.
 
-## 24. Accessibility/Keyboard Result
+## 24. Focused Tests
 
-The new AI button is a real `<button>`, confirmed focusable (`document.activeElement === aiBtn` after `.focus()`), `tabIndex=0`, with a visible focus-visible outline (`3px solid rgb(216,180,254)`, confirmed via `getComputedStyle`). The compact badge's upgrade wrapper (when present) is likewise a real `<button>`, inheriting the same focus/keyboard-activation behavior as any other button in this codebase — not separately re-verified live this round beyond the AI button, since it uses no new interaction pattern.
+New `src/utils/logoTrim.test.js` (5 tests: real transparent border on all sides, asymmetric padding, a fully-opaque logo never trimmed, a fully-transparent image safely falling back to untrimmed bounds, malformed input handled without throwing). New tests in `PlanIdentityBadge.test.jsx` (4 tests for the `singleLine` format). `Dashboard.hotquote.test.js` rewritten (3 tests) to assert the new single-line geometric-stability mechanism, since the old 2-line clamp mechanism it previously tested no longer exists by design (an intentional, reasoned redesign, not an accidental regression).
 
-## 25. Focused Tests
+## 25. Full Test-Suite Result
 
-New file `PlanIdentityBadge.test.jsx` (6 tests): canonical FREE label HE/EN, canonical FREE_TRIAL combined label, real `daysLeft` rendering (plural/singular/Hebrew), no fabricated days-line when `daysLeft` is `null`/`0`, no days-line for LIFETIME even if `daysLeft` were passed (caller-contract regression guard), Crown upgrade-indicator only when `upgradeAvailable` is true. All 6 passed on first run.
+**320/320 pass**, 17 test files.
 
-## 26. Full Test-Suite Result
+## 26. Lint Result
 
-**310/310 pass**, 16 test files — re-run fresh this session, after all logo/AI/badge/greeting/footer edits: `Test Files 16 passed (16)`, `Tests 310 passed (310)`.
+`npx eslint` across every changed file — **0 errors**, 1 pre-existing unrelated warning (`react-hooks/exhaustive-deps` on `loadData` in `Dashboard.jsx`, predates this round).
 
-## 27. Lint Result
+## 27. Build Result
 
-`npx eslint src/pages/Dashboard.jsx src/components/PlanIdentityBadge.jsx src/components/PlanIdentityBadge.test.jsx` — **0 errors, 1 pre-existing unrelated warning** (`react-hooks/exhaustive-deps` on `loadData`, predates this round, unrelated to the sidebar/greeting/badge scope touched here).
+`npm run build` — succeeds, only the pre-existing large-chunk-size advisory (unrelated, predates this round).
 
-## 28. Build Result
+## 28. Browser-Verification Status Per Language and Viewport
 
-`npm run build` — **succeeds** (`✓ built in 9.81s`), only the pre-existing large-chunk-size advisory (unrelated, predates this round).
+Hebrew desktop: LIVE PASS. English desktop: LIVE PASS. Hebrew mobile: LIVE PASS. English mobile: LIVE PASS. All four required surfaces genuinely live-verified this round with real screenshots and precise `getBoundingClientRect()`/`getComputedStyle()` measurements — not source review alone.
 
-## 29. Browser Harness Health + Real-Browser Evidence
+## 29. Confirmation That Unrelated Pre-Existing Work Was Preserved
 
-`browser-harness --doctor` reported `[ok] chrome running`, `[ok] daemon alive`, `[ok] active browser connections — 1` for this round's entire duration — the first round in this V2 chain with that property (every prior round reported either a broken Python interpreter or, once fixed, no active daemon). Real evidence gathered: two full-page PNG screenshots (`en_desktop_full`, `he_desktop_full`), extensive direct `getBoundingClientRect()`/`getComputedStyle()` DOM measurements in both languages, two genuine account logins/logouts against the disposable `quotecode-test` Supabase project, and a real AI-chat open/close interaction cycle in both languages. One genuine tooling anomaly encountered and worked around: `click_at_xy`/`fill_input` (real CDP input delivery) were unreliable for submitting the login form despite `--doctor` reporting healthy — worked around using direct DOM `.click()`/native-value-setter + event dispatch instead, after discovering the real root cause was an anti-bot decoy password field (`name="fake_pass_login"`) sitting before the real one (`name="user_password_field"`) in DOM order, which `querySelector('input[type="password"]')` had been silently matching first.
+Confirmed: no `git reset`/`restore`/`checkout`/`stash`/`clean` was run at any point. The pre-existing 34 modified/untracked paths from the start of this round remain exactly as they were; only the files listed in item 5 changed beyond that baseline.
 
-## 30. Confirmation Existing Uncommitted Work Preserved
+## 30. Confirmation That Public Quote and All Unauthorized Areas Were Untouched
 
-Confirmed: no `git reset`/`restore`/`checkout`/`stash`/`clean` was run at any point. The 34 pre-existing modified/untracked paths from item 1 remain exactly as they were; only this round's own 3 files (`Dashboard.jsx` further edited, `PlanIdentityBadge.jsx` further edited, new `PlanIdentityBadge.test.jsx`) changed beyond that baseline.
+Confirmed: this round's diff touches only the files listed in item 5. `PublicQuote.jsx`, `PublicQuoteEn.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalQuotePreview.jsx`, Admin design/behavior, plan/entitlement calculation logic, Auth/RLS, Edge Functions, and all schema/migrations remain completely untouched.
 
-## 31. Confirmation Sidebar-Direction/Chevron Rules Remain Correct
-
-Confirmed live in both language screenshots: Hebrew sidebar physically right, English physically left (§191, unaffected by this round). Quote History's expand-chevron position (§191, in `QuotesTab.jsx`, a file not touched by this round) confirmed visible and correctly positioned (RTL-start/right) in the `he_desktop_full` screenshot's own quote-list rows.
-
-## 32. Confirmation Public/Professional Quote Files Untouched
-
-Confirmed: this round's diff touches only `Dashboard.jsx`, `PlanIdentityBadge.jsx`, and the new `PlanIdentityBadge.test.jsx`. `PublicQuote.jsx`, `PublicQuoteEn.jsx`, `ProfessionalPublicPreview.jsx`, `ProfessionalQuotePreview.jsx`, and every other Public/Professional-Quote-related file remain exactly as they were before this task (their pre-existing modified state, if any, predates this round — see item 1).
-
-## 33. Six-File Continuity Ledger
+## 31. Six-File Continuity Ledger
 
 | File | This round | Section |
 |---|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | Updated | §193 (new, extends §192) |
-| `PROFLOW_HANDOFF.md` | Updated | §18.IV (new, extends §18.III) |
+| `PROFLOW_PROJECT_CONTEXT.md` | Updated | §194 (new, extends §193) |
+| `PROFLOW_HANDOFF.md` | Updated | §18.V (new, extends §18.IV) |
 | `PROFLOW_TODO.md` | Updated | Item 57 (extended with a new UPDATE paragraph) |
 | `PROFLOW_CHAT_HANDOFF.md` | Updated | §14 (new top paragraph) |
-| `PROFLOW_ARCHITECTURE.md` | Updated | §18.I (new durable pattern: authenticated-app language is account-bound) |
-| `PROFLOW_CLAUDE_LATEST_REPORT.md` | Rewritten | This file, full 39-item structure |
+| `PROFLOW_ARCHITECTURE.md` | Updated | §18.J (new durable pattern: symmetric-column CSS Grid for true centering) |
+| `PROFLOW_CLAUDE_LATEST_REPORT.md` | Rewritten | This file |
 
-## 34. Continuity Commit/Push Result
+## 32. Continuity Commit/Push Result
 
-Content commit `88b06ab` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git log` (local `HEAD` == `origin/proflow-continuity` HEAD, both `88b06ab`) + content-grep (§193 present in `PROFLOW_PROJECT_CONTEXT.md`). This paragraph is itself the required SHA-follow-up commit.
+Pending — to be performed immediately following this report, using the established two-commit convention (content commit, then a SHA-follow-up commit), each verified via fresh `git fetch` + `git log` + content-grep against `origin/proflow-continuity` after every push.
 
-## 35. Application Commit
+## 33. Application Commit
 
-**NO.** Not authorized this round.
+**NO.**
 
-## 36. Application Push
+## 34. Application Push
 
-**NO.** Not authorized this round.
+**NO.**
 
-## 37. Deployment
+## 35. Deployment
 
-**NO.** Not authorized this round.
+**NO.**
 
-## 38. Production/LIVE Action
+## 36. Production Changed
 
-**NO.** Zero Production/TEST-DB/schema/migration/business-logic/Edge-Function change. Two real TEST-account logins/logouts were performed against the disposable `quotecode-test` Supabase project only (never Production, never a real customer, never David Aluminum) — ordinary auth-session churn, no account data mutated.
+**NO.** Zero Production/TEST-DB/schema/migration/business-logic/Edge-Function change. Multiple real TEST-account logins/logouts were performed against the disposable `quotecode-test` Supabase project only (never Production, never a real customer) — ordinary auth-session churn, no account data mutated.
 
-## 39. Owner Final Visual Acceptance
+## 37. Desktop Batch Executed by Claude
 
-**PENDING.** Three of four required live-browser surfaces (English desktop, Hebrew desktop, Hebrew mobile) are genuinely live-verified with real screenshots and DOM measurements — the strongest real-browser evidence base of any round in this V2 chain. English mobile is inferred from source-level equivalence only (item 22). Final classification: **IMPLEMENTED — LIVE REAL-BROWSER VERIFIED (3 of 4 required surfaces) — OWNER VISUAL ACCEPTANCE PENDING.**
+**NO.** Owner execution only, per the task's own explicit rule. The Owner authorized skipping the manual-run wait since the connection was already independently confirmed healthy (see items 2 and 4).
+
+## 38. Owner Visual Acceptance
+
+**PENDING.** All four required live-browser surfaces (English desktop, Hebrew desktop, English mobile, Hebrew mobile) are genuinely live-verified this round with real screenshots and pixel-precise measurements — the strongest and most complete real-browser evidence base of any round in this V2 chain, and the first to cover all four surfaces in one round. Final classification: **IMPLEMENTED — LIVE REAL-BROWSER VERIFIED (all 4 required surfaces) — OWNER VISUAL ACCEPTANCE PENDING.**
