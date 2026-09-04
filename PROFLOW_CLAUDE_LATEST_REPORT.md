@@ -128,7 +128,7 @@ Confirmed by HE and EN specialists: the sidebar's physical position (Hebrew righ
 
 ## 26. Continuity Commit/Push Result
 
-Pending as of this writing — to be performed immediately after this report is finalized, following the standing two-commit convention with fresh fetch + read-back verification after each push.
+Content commit pushed to `origin/proflow-continuity`: `779ada9` (`586069e..779ada9`), fresh-fetched and read-back verified (`git log` + content-grep for §192/§18.III both confirmed present on the remote).
 
 ## 27. Application Commit
 
