@@ -142,7 +142,7 @@ Confirmed: this round's diff touches only `Dashboard.jsx`, `ClientsTab.jsx`, `Ed
 
 ## 31. Continuity Commit/Push Result
 
-Pending — to be performed immediately following this report, using the established two-commit convention (content commit, then a SHA-follow-up commit), each verified via fresh `git fetch` + `git log` + content-grep against `origin/proflow-continuity` after every push.
+Content commit `08d81dd` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git log` (local `HEAD` == `origin/proflow-continuity` HEAD, both `08d81dd`) + content-grep (§195 present in `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CODEX_CHECKPOINT.md` present on disk). This paragraph is itself the required SHA-follow-up commit.
 
 ## 32. Application Commit
 
