@@ -119,7 +119,7 @@ No eighth continuity file was created. The established seven-file structure and 
 
 ## 14. Commit Hash and Push Status
 
-Continuity commit pending as of this file's own write — see item 23-equivalent in the standard two-commit convention: this content will be committed and pushed to `proflow-continuity`, verified via fresh `git fetch`+`git log`+content-grep, then a second commit will record the exact verified SHA back into this same section. (Filled in immediately after, per the established process — see the git log on `proflow-continuity` for the two commits this task produced.)
+Content commit `89d200d` pushed to `proflow-continuity` and verified via fresh `git fetch` + `git rev-parse` (local `HEAD` == `origin/proflow-continuity` HEAD, both `89d200d`) + content-grep (§197 present in `PROFLOW_PROJECT_CONTEXT.md`). This paragraph is itself the required SHA-follow-up commit.
 
 **Application repository**: no commit, no push, `HEAD` unchanged throughout this task.
 
