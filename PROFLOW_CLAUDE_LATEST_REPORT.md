@@ -1,185 +1,144 @@
 # PROFLOW — Claude Latest Report
 
-> **INTERIM STATUS NOTE (2026-09-04, mid-task, appended not overwritten):** A newer task — "Landing Pages + Business Tools — Full Power TEST/Staging Task" — is IN PROGRESS and NOT yet complete as of this note. The Owner notified mid-task that they will be unavailable for Shabbat shortly and instructed work to continue independently within existing safety limits, stopping and recording (never guessing through) any decision that needs Owner action. The full 19-section report for that task will replace this file's body once the task finishes; until then, the report below remains the last *completed* task's report, and the authoritative live progress record for the in-progress task is the newest entry appended to `PROFLOW_CODEX_CHECKPOINT.md` ("Landing Pages + Business Tools TEST/Staging task - IN PROGRESS, incremental checkpoint"). In short: Hebrew landing page fixes complete/verified, English landing page fixes complete/verified, a market-routing contact-email bug found and fixed, remote Vercel Preview staging BLOCKED (reported, not worked around), Business Tools calculator fixes still in progress by a background worker, App.jsx routing work deliberately deferred until that finishes. Production/LIVE untouched throughout.
-
 **This file is a REPORT TRANSPORT / REVIEW BRIDGE only.** It is synchronized to the `proflow-continuity` branch, a documentation-only orphan branch verified safe to push (no Vercel deployment consequence). It does **not** replace `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_PROJECT_CONTEXT.md`, or `PROFLOW_ARCHITECTURE.md`, and it does **not** prove current filesystem/git/runtime state by itself.
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: PROFLOW V2 — Desktop Header Removal, Sidebar Brand Hierarchy, and AI Chat Relocation
+## Task: Unified Final Task — Landing/Tools/Billing Readiness + Owner-Approved Desktop/Mobile Workspace Corrections
 
-**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action.**
-
-Continues the same V2 chain as `PROFLOW_PROJECT_CONTEXT.md` §191, now recorded as §192. Full narrative detail lives in §192; this file answers the task's own required 31-item structure.
+**MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action, payment/real-email trigger.** Two distinct workstreams, kept separate throughout per the task's own instruction. Full narrative detail across all incremental checkpoints lives in `PROFLOW_CODEX_CHECKPOINT.md` (its final entry, "Unified Final Task - GENUINE CLOSURE"); this file answers the task's own required report structure.
 
 ---
 
-## 1. Fresh Branch, HEAD, and Working-Tree State
-
-Branch `main`, HEAD unchanged from every prior task this session (`f3b59d0...`). Same large pre-existing uncommitted working tree confirmed present and preserved — nothing reset, restored, checked out, stashed, or cleaned.
-
-## 2. Exact Files Changed
-
-`src/pages/Dashboard.jsx` only — sidebar brand block CSS, platform-brand relocation, new sidebar utility zone, topbar desktop-hide rule, AI Chat mount extraction, status toast extraction + re-centering fix, greeting text/styling, one new `Bot` icon import.
-
-## 3. Exact Topbar Elements Removed or Relocated
-
-**Removed from visible desktop rendering** (still present in JSX, `display:none` on desktop only, unchanged on mobile): the topbar container itself and its business-identity display. **Relocated out of the topbar entirely** (extracted to a new standalone mount, since both are `position:fixed` and would otherwise be taken down by the topbar's desktop `display:none`): `<AIChatWidget>` and the `statusMsg` toast. **Left in place, unchanged**: the Admin "AI Support Logs" button (preserved for its original mobile audience; a separate desktop-only copy added to the sidebar).
-
-## 4. Business Identity Before / After
-
-**Before**: `.dash-sidebar-brand-mark` 38×38px, `.dash-sidebar-brand-name` 0.98rem, single-line ellipsis truncation, no separator. **After**: mark 52×52px, name 1.1rem, up to 2 lines via `-webkit-line-clamp:2`, `border-bottom` separator, deliberately modest increase per the Owner's "balanced" constraint. Logo/no-logo fallback and RTL/LTR content direction unchanged.
-
-## 5. ProFlow Branding Before / After
-
-**Before**: `.dash-sidebar-platform-brand` directly beneath the business-brand block (top of sidebar), start-aligned, `margin-bottom` spacing. **After**: last child of `.dash-sidebar-footer` (bottom of sidebar, after user/plan identity), centered, `border-top` separator. Same `ProFlowLogo(size=13)` component/props, same "Powered by"/"מופעל על ידי" label, same internal-LTR exception on the logotype only — not removed, only relocated.
-
-## 6. Desktop AI Chat Launcher Before / After
-
-**Before**: `<AIChatWidget>` mounted inside `.dash-topbar-actions`, rendering its own floating trigger button visible on both desktop and mobile. **After**: mounted standalone (`.dash-ai-chat-mount`) near the app's other modals; its floating trigger is hidden on desktop only (`@media(min-width:769px){ .dash-ai-chat-mount .ai-support-btn{display:none!important} }`); a new sidebar action ("AI Chat" button in `.dash-sidebar-utility`) opens the same widget via the existing `open-proflow-ai-chat` event.
-
-## 7. Confirmation the Existing Chat Mechanism Was Reused
-
-Confirmed by QA via repo-wide grep: exactly the same `open-proflow-ai-chat` `CustomEvent` name is used by the new sidebar button's dispatch, `Contact.jsx`'s pre-existing dispatch, and `AIChatWidget.jsx`'s pre-existing `useEffect` listener — no second/parallel chat implementation was created.
-
-## 8. Mobile AI Chat Result
-
-Unaffected. The desktop-only suppression rule applies only at `≥769px`; mobile's existing compact 48×48 floating launcher (established in an earlier round) renders exactly as before. No seventh bottom-nav item was added; the six existing mobile bottom-nav items are unchanged.
-
-## 9. Super Admin Action Result
-
-Two copies now exist: the original inside `.dash-topbar-actions` (preserved for mobile, where the topbar remains visible) and a new one inside `.dash-sidebar-utility` (desktop-only, since the sidebar is hidden on mobile). Both share byte-identical `onClick`/permission-gate logic. QA confirmed these are strictly mutually exclusive by breakpoint — the topbar's `≥769px` hide and the sidebar's pre-existing `≤768px` hide are exact complements, so exactly one is ever visible at any single viewport width.
-
-## 10. Status-Toast Result
-
-Re-anchored from `position:absolute` (topbar-relative) to a standalone `position:fixed` overlay. **A real defect was found and fixed**: the first implementation centered on the raw viewport, ignoring the sidebar's 232px footprint — could overlap it by up to ~57px at desktop widths 769-884px. Fixed with a desktop-only, language-conditioned offset (`calc(50% ± 116px)`, sign depending on `isHebrew`) that centers the toast on the workspace region instead. `role="status"`, `aria-live="polite"`, success/error styling, animation, and dismissal lifecycle all unchanged; all ~18 `setStatusMsg` call sites confirmed untouched.
-
-## 11. Hebrew Desktop Result
-
-HE specialist: **PASS**. Sidebar physically right (unchanged from §191), enlarged brand block genuinely RTL, relocated platform-brand not forced to LTR, new utility buttons' icon/label order mirrors correctly, corrected Hebrew greeting text verified character-for-character ("שלום, ברוך שובך!"), toast centering confirmed direction-agnostic. Structural review only.
-
-## 12. English Desktop Result
-
-EN specialist: **PASS**. Sidebar physically left (unchanged), English greeting text confirmed byte-identical to before, new sidebar-utility labels read naturally, AI-chat scoping selector confirmed to leave every other page's own `<AIChatWidget>` mount untouched. Structural review only.
-
-## 13. Hebrew Mobile Result
-
-Topbar remains fully visible/unchanged on mobile (business identity, Admin button preserved there); sidebar (containing the enhanced brand block) stays hidden below 768px, unaffected either way. Structural review only.
-
-## 14. English Mobile Result
-
-Same as above, mirrored. Structural review only.
-
-## 15. Long-Name / Logo / No-Logo Results
-
-Long business names now wrap up to 2 lines via `-webkit-line-clamp:2` (was hard single-line ellipsis) — a safer degradation, still bounded, never breaking the sidebar layout. Logo-present (`bizLogoUrl`, `object-fit:cover`) and no-logo (gradient initial-letter fallback) cases both confirmed unchanged in logic, only the mark's size grew. Structural review only.
-
-## 16. Scrolling and Overflow Results
-
-Desktop shell height/scroll contract confirmed intact by the UI specialist: a `display:none` topbar contributes nothing to flex-basis math, so `.dash-main-content` (the sole remaining flex child of `.dash-shell-main`) correctly absorbs the freed height with no gap or miscalculation. `position:fixed` overlays (AI Chat mount, status toast) confirmed genuinely unaffected by `.dash-app-shell`'s `overflow:hidden` — no ancestor establishes a new containing block via `transform`/`filter`/etc. (confirmed by direct grep of `Dashboard.jsx` and `index.css`). Sidebar's existing `.dash-sidebar-nav{overflow-y:auto}` safety valve confirmed to still adequately absorb the taller brand block + new utility zone on a short viewport without truncating the footer.
-
-## 17. Accessibility Results
-
-New sidebar buttons are real `<button>` elements (keyboard-activatable natively), reusing the same `.dash-sidebar-btn` classes and icon/label DOM order as every other sidebar nav item. Status toast's `role="status"`/`aria-live="polite"` preserved unchanged. No aria attribute was removed from any existing element.
-
-## 18. Focused Tests
-
-**None added.** No dedicated unit-test file for `Dashboard.jsx` exists anywhere in this project's history (a ~4700-line component with heavy `supabase`/session data-fetching dependencies, no existing test harness/mocking infrastructure for it) — verification for this component has consistently relied on the four-specialist read-only review process throughout this entire multi-session engagement, not a render-test suite. Building new test infrastructure from scratch was judged disproportionate to a UI-relocation task and outside "reasonably needed" scope; the four-specialist round (§192.7) served this role instead, consistent with established project practice.
-
-## 19. Full Test-Suite Result
-
-**304/304 pass** (unaffected — no existing test covers this area).
-
-## 20. Lint Result
-
-0 errors (1 pre-existing, unrelated `react-hooks/exhaustive-deps` warning, predates this task).
-
-## 21. Build Result
-
-`npm run build` succeeds; only the pre-existing large-chunk-size advisory (unrelated, predates this task).
-
-## 22. Browser-Verification Status and Evidence
-
-**A genuine, notable change since the last report.** `browser-harness --doctor` now shows:
-```
-python            3.12.14
-[ok  ] chrome running
-[FAIL] daemon alive
-[FAIL] active browser connections — 0
-```
-The Python interpreter (AVG-quarantined as recently as two tasks ago in this session) is now genuinely working, and Chrome is running. However, no daemon is currently active, and this environment's own pre-existing `BH_REQUIRE_EXISTING_DAEMON=1` setting (found in the Owner's own `~/.claude/settings.json`, not something this task touched or was asked to touch) means the tool will not auto-start or discover a Chrome connection on its own, by design (per the skill's own documented behavior: "it never auto-starts or discovers another Chrome"). Bypassing that deliberate guardrail (e.g., a transient env-var override) was considered and **deliberately not attempted** — it was not explicitly authorized by this task's own scope, and doing so without authorization would itself have been a form of scope expansion. **Structural/source verification only was performed this round via four dispatched specialists; no claim of visual acceptance is made from source inspection alone.**
-
-## 23. Confirmation That Prior Uncommitted Work Was Preserved
-
-Confirmed by QA: the sidebar's existing nav items, "New Quote" CTA, plan card/`PlanIdentityBadge`, user identity/sign-out, and business logo/name loading logic (`bizLogoUrl`/`bizName`) are all present and wired identically to before — only the brand block's own CSS sizing and the platform-brand's position are new. The large pre-existing Professional Quotes/Plan Identity diff commingled in `Dashboard.jsx` was confirmed untouched.
-
-## 24. Confirmation That Sidebar-Direction and Chevron Rules Remain Correct
-
-Confirmed by HE and EN specialists: the sidebar's physical position (Hebrew right, English left, from §191) is completely unaffected by this round's brand/utility/topbar changes — no new hardcoded physical side was introduced anywhere in the changed CSS. The Quote History expand-chevron correction (also from §191, in `QuotesTab.jsx`) was not touched by this round at all (no file in this round's diff includes `QuotesTab.jsx`).
-
-## 25. Six-File Continuity Ledger
-
-| File | Status |
-|---|---|
-| `PROFLOW_PROJECT_CONTEXT.md` | UPDATED — new §192, full evidentiary record of this round |
-| `PROFLOW_HANDOFF.md` | UPDATED — new §18.III |
-| `PROFLOW_TODO.md` | UPDATED — item 57 extended with this round's UPDATE paragraph |
-| `PROFLOW_CHAT_HANDOFF.md` | UPDATED — new paragraph at top of §14 (Current resume point) |
-| `PROFLOW_ARCHITECTURE.md` | UPDATED — new §18.H, the viewport-fixed-overlay/sidebar-footprint pattern recorded for future maintainers |
-| `PROFLOW_CLAUDE_LATEST_REPORT.md` | UPDATED (this file, full rewrite) |
-
-## 26. Continuity Commit/Push Result
-
-Content commit pushed to `origin/proflow-continuity`: `779ada9` (`586069e..779ada9`), fresh-fetched and read-back verified (`git log` + content-grep for §192/§18.III both confirmed present on the remote). SHA-follow-up commit: `6540d8e` (`779ada9..6540d8e`).
-
-## 27. Application Commit
-
-**NO.**
-
-## 28. Application Push
-
-**NO.**
-
-## 29. Deployment
-
-**NO.**
-
-## 30. Production Changed
-
-**NO.**
-
-## 31. Owner Final Visual Acceptance
-
-**PENDING.**
+## PRODUCTION/LIVE TOUCHED? NO
+## DEPLOYMENT PERFORMED? NO
+## APPLICATION COMMIT/PUSH PERFORMED? NO
+## DATABASE/SCHEMA CHANGED? NO
+## PAYMENT OR REAL EMAIL TRIGGERED? NO
+## OWNER FINAL VISUAL ACCEPTANCE: PENDING
 
 ---
 
-## Explicit Safety Report
+## PART I — Landing Pages, Business Tools, AI Chat, Billing Readiness
 
-- **PRODUCTION CHANGED?** NO.
-- **TEST CHANGED?** Application source only, TEST/local dev server scope — no TEST database mutation.
-- **DATABASE CHANGED?** NO.
-- **APPLICATION CODE CHANGED?** YES — one file (`Dashboard.jsx`), presentation/structure-relocation only, left UNCOMMITTED.
-- **PROFESSIONAL QUOTE LOGIC CHANGED?** NO.
-- **PLAN/ENTITLEMENT SEMANTICS CHANGED?** NO.
-- **PUBLIC QUOTE CHANGED?** NO.
-- **ADMIN DESIGN CHANGED?** Only the authorized relocation of the existing Super Admin utility action — no other Admin design change.
-- **AUTH/RLS CHANGED?** NO.
-- **EDGE FUNCTIONS CHANGED?** NO.
-- **DESTRUCTIVE GIT OPERATION?** NO.
-- **COMMIT/PUSH (application)?** NO.
-- **COMMIT/PUSH (documentation)?** Yes, to `proflow-continuity`, per the standing continuity mechanism.
-- **DEPLOY?** NO.
-- **LIVE ACTION?** NO.
+### A. AI Chat on Business Tools
+
+Added the existing `AIChatWidget` (same component, same chat mechanism — no second implementation) to `PublicTools.jsx` (Hebrew hub + 4 calculator routes) and `PublicToolsEn.jsx` (English hub + 4 calculator routes), lazy-loaded via `React.lazy`/`Suspense` so the widget's JS bundle (including the Supabase client) doesn't load on initial page view of these SEO-acquisition pages. Correct market/language wired: `isHebrew={true}`/`isDashboard={false}` on Hebrew, `isHebrew={false}` on English — reuses the exact existing support@/info@ language-routing logic already built into `AIChatWidget.jsx` itself.
+
+**Route context**: the existing architecture's only safe, already-supported context signal is `isDashboard` (public vs. authenticated) plus `isHebrew` (market). There is no existing per-route/per-calculator context-injection mechanism in `AIChatWidget.jsx` or the `chat-ai` Edge Function, and per this task's own explicit instruction not to invent a second prompt system, none was added.
+
+**Verified**: exactly one widget instance on every tested route (hub + 4 tabs × 2 languages = 10 combinations), no duplicates. A real mobile collision was found and fixed: the widget's shared bottom offset (tuned for the authenticated Dashboard's bottom nav, absent on these public pages) overlapped the tallest calculator tabs' input fields at 390px width in the page's natural resting position. Fixed with a per-active-tab CSS class since one static offset could not clear the tallest tabs (crypto/metals) without colliding with the shortest (units). Live-verified zero overlap across all 10 combinations, zero horizontal overflow. 2 new focused tests lock in "renders exactly once."
+
+### B. Monthly/Annual Pricing — Honest and Billing-Ready
+
+New `src/utils/pricingCatalog.js`: one canonical source for every displayed price (Israel ILS; International USD/GBP/EUR), both cycles, pure helper functions (`getAnnualTotal`, `getSavingsPercent`, `getVatBreakdown`, `getStripePriceId` — matching the pre-existing unused Stripe-price-id naming convention already present in both pages, `getPlanPricingDisplay` as the single entry point). **No price was invented** — every value preserved exactly as already displayed before this task, verified by 13 new unit tests including a VAT-breakdown round-trip check. Both landing pages rewired to call this catalog instead of separate hardcoded arithmetic (the Hebrew page previously had zero computed arithmetic at all — literal strings per cycle; the English page had a locally-computed, non-shared table). `accountEntitlement.js`/`planCatalog.js` (real entitlement/trial/LIFETIME logic) were not touched, read, or imported by this new module — kept fully separate as required.
+
+**Current figures** (all pre-existing, re-verified consistent, not new):
+| Market | Plan | Monthly | Annual (monthly-equiv) | Annual total | Savings |
+|---|---|---|---|---|---|
+| Israel (₪, incl. 18% VAT) | Basic | ₪49 | ₪39 | ₪468 | ~20% |
+| Israel | Pro | ₪99 | ₪79 | ₪948 | ~20% |
+| USD | Basic | $15 | $12 | $144 | 20% |
+| USD | Pro | $29 | $23 | $276 | ~21% |
+| GBP | Basic | £12 | £10 | £120 | ~17% |
+| GBP | Pro | £24 | £19 | £228 | ~21% |
+| EUR | Basic | €14 | €11 | €132 | ~21% |
+| EUR | Pro | €27 | €22 | €264 | ~19% |
+
+Savings percentages are **not** uniformly exactly 20% — they range ~17–21% depending on currency, due to rounding to whole currency units at the source (pre-existing, not introduced by this task). Reported honestly rather than claimed as a precise 20% everywhere.
+
+**Subscription intent — what it does and does not do**: each plan/cycle button now carries `intendedPlan`/`intendedCycle` as plain URL query params through the existing signup navigation (e.g. `/dashboard?signup=true&lang=en&intendedPlan=pro&intendedCycle=annual`, live-verified). It is **only** a URL-carried hint. It does **not** set a real plan, does **not** touch entitlement, trial, or LIFETIME logic, is **not** stored in localStorage/sessionStorage/Supabase by the landing pages, and is **not** read anywhere in the authenticated app today — proven by grep and locked in by a new structural regression test (`subscriptionIntent.test.js`) that fails loudly if a future change starts consuming these params without deliberate review.
+
+### C. Post-Trial Payment Wording
+
+The existing wording already contained no unverified claims (no "we'll charge automatically," no "our team will contact you") — this was an enhancement, not a correction of a false claim. Both landing pages' trial-honesty sentence extended with the task's own pre-approved bounded phrasing: *"Selecting a plan or billing cycle here does not charge you at signup — it's only a preference we'll take into account later; completing actual payment is a separate, later step."* (Hebrew equivalent added identically.) This did not need escalation to OWNER DECISION REQUIRED since it states only facts true today without inventing a mechanism.
+
+Minor, non-blocking observation: the English-only FAQ *"What happens after the 14-day trial if I do not subscribe?"* was re-verified true against `accountEntitlement.js` (automatic FREE-tier fallback, no separate downgrade code path) and left unchanged; it has no Hebrew equivalent — a content-parity gap, not a truthfulness defect, not fixed this round.
+
+**Professional marketing-copy items** (`PROFLOW_TODO.md` #44 professional/trade capability messaging, #52 feature-to-benefit translation): confirmed still open, confirmed genuinely out of this task's scope (new Owner-approved positioning work, not a bug). Not touched, not invented around. Named here as a separate future workstream, per instruction, with no implication that leaving them open means this task failed.
 
 ---
 
-## IMPLEMENTATION COMPLETE — OWNER VISUAL ACCEPTANCE PENDING
-## DESKTOP TOP STRIP REMOVED — MOBILE DELIBERATELY PRESERVED, NOT AN OVERSIGHT
-## BUSINESS IDENTITY NOW PRIMARY IN THE SIDEBAR — PROFLOW RELOCATED TO A QUIET BOTTOM SIGNATURE, NOT REMOVED
-## AI CHAT: FLOATING DESKTOP TRIGGER REPLACED BY A SIDEBAR ACTION REUSING THE EXISTING open-proflow-ai-chat EVENT — NO SECOND IMPLEMENTATION
-## REAL DEFECT FOUND AND FIXED: STATUS TOAST COULD OVERLAP THE SIDEBAR AT 769-884PX, CAUGHT BY UI-SPECIALIST ARITHMETIC BEFORE COMPLETION
-## FOUR-SPECIALIST REVIEW: HE PASS, EN PASS, QA PASS, UI FOUND ONE DEFECT (FIXED)
-## BROWSER AUTOMATION: PYTHON NOW FIXED, DAEMON STILL NOT ACTIVE, DELIBERATE OWNER GUARDRAIL NOT BYPASSED — HONESTLY REPORTED
-## TESTS 304/304, LINT CLEAN, BUILD CLEAN
-## PRODUCTION: UNCHANGED. NO APPLICATION COMMIT. NO APPLICATION PUSH. NO SCOPE EXPANSION.
+## PART II — Owner-Approved Desktop/Mobile Workspace Corrections
+
+### D. Desktop Workspace Width
+
+**Root cause**: `.dash-shell-outer`'s inline `maxWidth` read a shared CSS variable (`--pf-dashboard-shell-total-width`, `min(980px, 96vw)` on desktop) that capped the **entire shell** — sidebar plus content together — starving content to ~748px while the sidebar's own fixed 232px was untouched by the constraint. **Fix**: lifted that cap on desktop only (`@media (min-width: 769px)`), gave content its own new `.dash-content-container` class (max-width 1240px, 28px padding, `margin: 0 auto`), gated entirely inside the existing desktop media query so mobile is untouched.
+
+**Sidebar confirmed unchanged** — measured live at exactly 232px wide, correct physical side (right, Hebrew/RTL), at every tested width. **Content measured**: 1920px → 1240px (capped, centered); 1440px → 1161px; 1280px → 1001px; 900px → 621px. Zero horizontal overflow at any tested width; content genuinely wider and fluid, not just capped once.
+
+### E. Quote History Row Density
+
+**Before**: 35.75px (first pass, under the 38–40px target — measured live by the coordinator, not assumed from CSS). **Root cause**: the desktop expand-chevron button's fixed 26px box (plus cell padding) was the tallest cell, not body text. **Fix**: 20px button with a padding+negative-margin technique preserving a real ~32px tap target without adding to the row's layout-flow height, plus deterministic explicit line-height; a further coordinator-applied adjustment (5 body-cell paddings 9px→11px) after the first live measurement. **After**: measured live at **exactly 39.4375px**, consistent across 5 sampled rows — solidly in the 38–40px target band. Expand/collapse interaction re-verified working; mobile confirmed unaffected (separate literals, not shared). Existing `QuotesTab.test.jsx` (53/53) still passes.
+
+### F. Finances Hierarchy, Localization, Data-Scope
+
+Most of this section's requirements were already satisfied by a prior Owner-approved round (period selector already aligned beside the heading, 4 KPI cards already consistent, expense-add already a drawer) — verified, not redone.
+
+**Real bug found and fixed**: `Dashboard.jsx`'s chart month labels were hardcoded English (`'Jan'..'Dec'`) regardless of language, so the Hebrew Finances page showed raw English abbreviations like "Oct". Fixed at the source — bilingual `monthNames`, gated on the existing `isHebrew` variable (itself derived from `isHebrewEnv(bizCountry, session)`, the correct authoritative source for an authenticated account's language).
+
+**Chart-vs-KPI "contradiction" investigated, not guessed at**: proven via source review to be a genuine scope difference, not a data bug — `chartData` is always a fixed full-year view independent of the period selector; the KPI cards (`adminTotalRevenue` etc.) do respect it. Not a defect to fix in calculation logic. Fixed the actual gap instead: added a small caption under the KPI cards ("Figures for: {period}" / Hebrew equivalent) that reuses the exact existing period-dropdown label strings, making the scope difference unmistakable without touching any calculation.
+
+Chart height (260px) and the expense empty state were reviewed and found already reasonable/compact — not changed arbitrarily. Content scales fluidly into the wider Part-D workspace without any internal cap.
+
+### G. Mobile Sign Out
+
+Reuses the **exact existing** `handleSignOut`/`SignOutModal`/`setShowSignOutModal` mechanism — no second logout path. Added inside the existing mobile "More" menu: a user-email identity row plus a `התנתקות`/`Sign out` button, restrained red destructive styling, existing focus-visible pattern reused. No 7th bottom-nav item added.
+
+**Verified end-to-end live**, not cosmetically: More menu shows the correct account email; Sign Out opens the existing confirmation modal ("האם ברצונך להתנתק מהמערכת?"); confirming actually signs out (login form reappears); a hard page reload (cache-ignored) confirms the session is genuinely cleared server-side, not just a UI flag.
+
+### H. Mobile Quote Page Horizontal Overflow
+
+**Root cause, proven by live DOM measurement, not assumed**: the pre-existing `overflowX:'auto'` item-row wrappers were checked and found properly self-contained (not the bug). The actual defect: the Client/Quote Details card-pair grid used `minmax(320px, 1fr)`, forcing a hard 320px column even when only 308px was available at a 320px viewport (after Dashboard.jsx's own mobile content padding) — measured directly: `gridTemplateColumns` computed to `"320px"`, `clientWidth=308`, `scrollWidth=320`, a real 12px overflow that a pre-existing, unrelated `overflow-x:hidden` guard elsewhere was silently clipping rather than fixing (exactly the "guard doing the real fix's job" anti-pattern this task said to eliminate).
+
+**Fix**: `minmax(min(320px, 100%), 1fr)` — identical behavior above ~660px (two 320px+ columns), sizes to actually-available space below that instead of overflowing.
+
+**Verified at all 5 required widths in Hebrew** (320/360/375/390/430px), with an empty form, a populated form with an expanded professional/measurement panel, and a real 20-item quote: zero unintended overflowing elements, `document.documentElement.scrollWidth === clientWidth` at every width, fixed bottom nav confirmed pinned. The coordinator independently re-confirmed zero overflow at 320px on the live Hebrew form.
+
+**Honest gap**: English/LTR could not be independently live-verified, by either the worker or the coordinator — `Dashboard.jsx` derives language from the account's database country field, not the URL, so testing true English requires an International TEST persona; both the worker and the coordinator (separately) hit login difficulty reaching one (assessed as a transient environment/session issue, not a product defect — see the checkpoint's final entry for detail). The fix itself is CSS Grid track-width math, which does not depend on text direction (RTL/LTR changes content flow and alignment, not how a browser computes a track's minimum against available space) — assessed correct by direct code review, but full-language live confirmation remains open for a future session.
+
+---
+
+## Capability/Entitlement Matrix (grounded in code)
+
+Only **6 real gated capabilities** exist anywhere in the product (confirmed by exhaustive grep of every `entitlement.*` reference in `Dashboard.jsx`):
+
+| Capability | Free | Basic | Pro |
+|---|---|---|---|
+| Monthly quote limit | 5 | 20 | Unlimited |
+| Edit/duplicate saved quotes | ❌ | ✅ | ✅ |
+| WhatsApp send + quote delete (bundled) | ❌ | ❌ | ✅ |
+| Attachments (30MB total / 3MB per file) | ❌ | ❌ | ✅ |
+| Professional (smart) quotes | ❌ | ✅ | ✅ |
+| Professional quote-item reuse | ❌ | ❌ | ✅ |
+
+**Everything else is available on every tier including FREE**: Clients (private/business), Finances/income-expense tracking, Catalog, CSV export, AI Chat, Print, PDF (Compact/Expanded), digital signature/approval, Call actions. No real billing backend exists (`billing-checkout-stub` self-documents as a scaffold) — every signup gets the same 14-day PRO trial regardless of displayed plan; end-of-trial reverts automatically to FREE (verified in `accountEntitlement.js`'s `computeEffectivePlan`, no separate downgrade code path). No `billing_cycle`/annual concept exists anywhere in the backend — annual pricing is display-only, consistent with the no-billing-backend finding.
+
+---
+
+## Testing, Lint, Build, Secret Scan
+
+- `npx vitest run`: **407/407 passing**, 27 test files (up from 390 at the start of this continuation — 17 new tests: AI-chat presence ×2, keyboard-tab-navigation ×1, pricing-catalog arithmetic ×13, subscription-intent invariant ×2 — some overlap with prior rounds' counts, see checkpoint for exact breakdown).
+- `npx eslint` across every file touched this continuation: **0 errors**, 3 pre-existing unrelated warnings only.
+- `npx vite build`: succeeds (same pre-existing chunk-size advisory, unrelated to this task).
+- Full-diff secret scan across every touched file: clean.
+- `git status`/`HEAD`: unchanged (`main`, `f3b59d0`) before and after — 68 modified/new files (65 at task start + 3 new: `pricingCatalog.js`, `pricingCatalog.test.js`, `subscriptionIntent.test.js`).
+- Browser tab count: reconfirmed at exactly 1 multiple times through this task, including after a mid-task 56-tab resource event in an earlier task that was cleaned up and has not recurred.
+
+---
+
+## Files Changed This Continuation
+
+`src/components/PublicTools.jsx`, `src/components/PublicToolsEn.jsx`, `src/pages/LandingLocal.jsx`, `src/pages/LandingGlobal.jsx` (Part I) · `src/utils/pricingCatalog.js` (new), `src/utils/pricingCatalog.test.js` (new), `src/pages/subscriptionIntent.test.js` (new), `src/components/PublicToolsRouting.test.jsx` (extended) (Part I tests) · `src/pages/Dashboard.jsx`, `src/components/QuotesTab.jsx`, `src/components/FinancesTab.jsx`, `src/components/QuoteForm.jsx` (Part II).
+
+---
+
+## Owner-Action Blockers and Future Workstreams (separated from completed work)
+
+1. **Remote Vercel Preview deployment** — BLOCKED, unchanged since the first checkpoint of this task chain. Preview-environment isolation from Production is not verifiable from the filesystem/CLI without risking an actual deploy.
+2. **Payment-provider/business-rule workstream** — genuinely not started, correctly not guessed at: provider selection and supported countries/currencies, Israel-vs-International acquiring flow, VAT/tax treatment and invoice/receipt compliance, checkout/renewal/proration/failed-payment/grace-period/cancellation/refund/upgrade-downgrade rules, webhook security/idempotency, authoritative plan/cycle persistence, TEST/sandbox credentials fully isolated from Production, whether annual is charged upfront. `pricingCatalog.js` is ready to be the presentation layer once these are decided.
+3. **Two pre-existing marketing-copy TODO items** (#44, #52) — real, out of this task's scope, need genuinely new Owner-approved positioning.
+4. **English/LTR live verification of the H fix** — assessed correct by code review and direction-agnostic CSS math, not independently live-confirmed this round due to a TEST-account login issue encountered late in this task.
+5. **Content-parity gap** — one English-only FAQ item, cosmetic.
+
+**Stop after this report. Await Owner visual review before any Production rollout, merge, canonical-domain change, billing change, schema change, or customer-facing deployment.**
