@@ -1,180 +1,627 @@
-# PROFLOW — Codex Checkpoint (Seventh Continuity File)
+ProFlow Codex Checkpoint
 
-**Purpose (read this first).** This file supplements — it never silently replaces — the six canonical continuity files (`PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`). Its job is to preserve, in one place, explicit Owner-approved design/product decisions that are **still open, pending implementation, or pending Owner visual acceptance** — the kind of detail that is easy to lose across long ChatGPT/Codex ↔ Claude Code chat boundaries. A future ChatGPT/Codex session using the ProFlow Claude Bridge V2 should be able to read this file and resume without reconstructing hours of prior discussion.
+Updated: 2026-09-04
 
-If a fact here conflicts with one of the six canonical files on *current implemented state*, the canonical files win (per the project's own long-standing precedence rule — see `PROFLOW_PROJECT_CONTEXT.md` §0.B/§17). This file's own authority is over **intent and status tracking**, not over implemented-state-of-truth.
+Purpose
 
-**Status vocabulary (used for every item below) — do not use any other status word:**
+This is a portable continuity checkpoint for resuming the ProFlow product-design discussion in another ChatGPT/Codex chat if the current conversation is interrupted.
 
-- `OPEN` — decided/approved, not yet implemented.
-- `IMPLEMENTED / SOURCE-VERIFIED` — code changed, confirmed correct by reading the source/running tests, not yet confirmed in a real rendered browser.
-- `BROWSER-VERIFIED` — confirmed via a real browser-harness session against the actual running TEST app (never claimed from source review, tests, or agent review alone).
-- `OWNER-ACCEPTED` — the Owner has personally reviewed the rendered result and accepted it. **Only the Owner may set this status.** Claude/Codex must never self-assign it.
-- `SUPERSEDED` — an approved decision that a later, more specific Owner decision has replaced. The original text is preserved (struck through or annotated), never deleted, so the history of what changed and why remains legible.
-- `BLOCKED` — cannot proceed without something outside this task's authorized scope (Owner decision, credential, infrastructure fix, etc.); the blocker is stated explicitly.
+Working method
 
-**Never stored here or in any continuity file**: credentials, passwords, `.env` values, tokens, customer data, or screenshot-embedded secrets.
+The Owner makes product decisions.
 
----
+Codex independently reviews screenshots and the LIVE/public application, consolidates decisions, and writes bounded prompts for Claude Code.
 
-## Read/Resume Order
+Claude Code implements changes locally/TEST, verifies them, and reports back.
 
-This file is read as part of the standard six-file bootstrap sequence, inserted last (it is the newest/most volatile of the seven): `PROFLOW_PROJECT_CONTEXT.md` → `PROFLOW_CHAT_HANDOFF.md` → `PROFLOW_ARCHITECTURE.md` → `PROFLOW_HANDOFF.md` → `PROFLOW_TODO.md` → `PROFLOW_CLAUDE_LATEST_REPORT.md` → **this file** → locate the current checkpoint/priority → resume.
+ProFlow Claude Bridge V2 is read-only from Codex's side and is used for repository inspection, status checks, and read-only Claude tasks. It is not a live screen stream of Claude's VS Code session.
 
----
+Never infer Claude's current interactive state from the Bridge alone. Permission dialogs in Claude's UI may only be visible to the Owner.
 
-## A. Direction and Shell Invariants
+Protect the existing dirty working tree. No destructive Git operations.
 
-| # | Decision | Status |
-|---|---|---|
-| A1 | Hebrew authenticated shell: sidebar physically **right**. | `OWNER-ACCEPTED` (long-standing; re-confirmed live again this round, both desktop and mobile) |
-| A2 | English authenticated shell: sidebar physically **left**. | `OWNER-ACCEPTED` (re-confirmed live again this round) |
-| A3 | Quote/client expand chevron: physically right in Hebrew, physically left in English. | `OWNER-ACCEPTED` (re-confirmed live this round for Clients: 10px offset from the row's own start edge, identical in both languages) |
-| A4 | Internal content follows the active language direction. | `OWNER-ACCEPTED` |
-| A5 | ProFlow platform signature remains a quiet footer element. | `OWNER-ACCEPTED` |
-| A6 | Public/customer-facing Quote redesign remains **outside** this task. | `SUPERSEDED` — the task "Public Quote Redesign + Focused Clients Correction" (2026-09-04) explicitly brought Public Quote into scope; see Section L below for the full item-by-item record. |
+Do not change Production or LIVE without separate explicit Owner authorization.
 
-## B. Desktop Compact Dashboard Header
+Current canonical direction rules
 
-| # | Decision | Status |
-|---|---|---|
-| B1 | Hebrew physical layout: RIGHT=greeting/identity, TRUE CENTER=labeled metrics, LEFT=plan badge. | `BROWSER-VERIFIED` — rebuilt from flex to CSS Grid (`1fr auto 1fr`); live-measured centerDelta=0px, greeting flush right (x=1180), badge flush left (x=494) |
-| B2 | English physical layout: LEFT=greeting/identity, TRUE CENTER=labeled metrics, RIGHT=plan badge. | `BROWSER-VERIFIED` — mirror of B1, live-measured centerDelta=0px |
-| B3 | Stable three-region layout (symmetrical outer columns, CSS Grid `1fr auto 1fr`) — metrics centered on the whole workspace, not the leftover flex space. | `BROWSER-VERIFIED` — `.dash-header-row` now `display:grid`, confirmed both languages (see `PROFLOW_ARCHITECTURE.md` §18.J) |
-| B4 | Exact labels — Hebrew: `סה״כ הצעות` / `סך הכנסות`; English: `Total Quotes` / `Total Revenue`. | `BROWSER-VERIFIED` — live DOM text matched exactly, both languages |
-| B5 | Labels stay explicit, one line where supported. | `BROWSER-VERIFIED` |
-| B6 | Plan badge vertically centered against the complete greeting block. | `BROWSER-VERIFIED` — greeting/badge vertical centers measured identical (53px both languages) |
-| B7 | Compact height and long-business-name handling preserved. | `IMPLEMENTED / SOURCE-VERIFIED` — h1 retains `overflow:hidden/ellipsis`; not re-tested with a real long-name TEST account this round |
+Hebrew/RTL authenticated application: sidebar physically on the right.
 
-## C. Mobile Dashboard Top Composition
+English/LTR authenticated application: sidebar physically on the left.
 
-| # | Decision | Status |
-|---|---|---|
-| C1 | One compact summary composition, not fragmented. | `BROWSER-VERIFIED` — both languages, 390×844 |
-| C2 | Row 1: greeting/identity + compact plan badge on opposite sides. | `BROWSER-VERIFIED` — centers measured identical (87px both languages) |
-| C3 | Row 2: explicitly labeled Total Quotes / Total Revenue. | `BROWSER-VERIFIED` — begins at y=122, clearly its own row |
-| C4 | Optional row 3: one slim Hot Quote alert, only when relevant. | `IMPLEMENTED / SOURCE-VERIFIED` — no TEST account available to this round had a genuine hot quote (view_count≥3) to trigger it live |
-| C5 | Shorter mobile plan treatment ("FREE · 10 days" / "חינם · 10 ימים"). | `BROWSER-VERIFIED` — `PlanIdentityBadge` `singleLine` format confirmed live (shown as "LIFETIME" for the LIFETIME TEST personas used, which correctly has no days-remaining fragment) |
-| C6 | Duplicate trial messaging and excessive gaps removed. | `IMPLEMENTED / SOURCE-VERIFIED` (§194's own removal) |
+Quote History expand chevron: physically right in Hebrew and physically left in English.
 
-## D. AI Chat Presentation
+Internal content follows the language direction.
 
-| # | Decision | Status |
-|---|---|---|
-| D1 | Desktop label `צ׳אט AI`/`AI Chat`, below Catalog. | `BROWSER-VERIFIED` both languages |
-| D2 | Mobile floating launcher removed. | `BROWSER-VERIFIED` — `.ai-support-btn` confirmed `display:none` at every viewport, both languages |
-| D3 | Mobile stable compact action, non-overlapping. | `BROWSER-VERIFIED` — new `.dash-topbar-ai-btn` in the mobile topbar, ~36px, normal document flow |
-| D4 | Mobile action shows text, not icon-only. | `BROWSER-VERIFIED` — "AI Chat"/"צ׳אט AI" confirmed live |
-| D5 | Modern outline speech-bubble + one small sparkle, never robot/retro imagery. | `BROWSER-VERIFIED` — composite `MessageCircle`+small `Sparkles` icon, visually confirmed in screenshots, both sidebar and topbar |
-| D6 | Icon matches nav icon family stroke/size/states. | `BROWSER-VERIFIED` — focus-visible outline confirmed (3px purple) |
-| D7 | Hebrew icon right of label, English left. | `BROWSER-VERIFIED` — unchanged DOM-order convention, confirmed via screenshots both languages |
-| D8 | Reuses `open-proflow-ai-chat`, no second implementation. | `BROWSER-VERIFIED` — real popup opened live from both the sidebar and topbar buttons |
+Already agreed shell and dashboard direction
 
-## E. Business Logo Correction
+The business logo receives the prominent branding position in the sidebar. Do not repeat the business name beside it merely for decoration; the business owner already knows the business name.
 
-| # | Decision | Status |
-|---|---|---|
-| E1 | Remove the large solid-white card around a small logo. | `BROWSER-VERIFIED` — canvas changed from fixed `width:100%;height:92px` to shrink-wrap (`max-width/max-height` + `margin:0 auto`); verified live via 4 synthetic test images (60×60, 400×60, 120×300, 800×800 canvas-generated PNGs) injected into the real sidebar DOM — canvas box tightly hugs each rendered image in all 4 cases (e.g. the 60×60 case rendered a 72×72 canvas around a 60×60 image, not a large fixed box) |
-| E2 | Logo uses nearly all available width. | `BROWSER-VERIFIED` — the wide-lockup synthetic case (400×60) rendered at 179px wide within a ~191px available column |
-| E3 | Thin border reads as a border, not a panel. | `IMPLEMENTED / SOURCE-VERIFIED` — border changed white→`rgba(0,0,0,0.10)` so it's visible against the white padding fill itself; not independently re-screenshotted after the change (the synthetic-image test verified geometry, not this specific color perception) |
-| E4 | ~4-6px padding. | `IMPLEMENTED / SOURCE-VERIFIED` — set to 5px |
-| E5 | `object-fit:contain`, never stretched/cropped. | `BROWSER-VERIFIED` (confirmed via the same synthetic-image test — no distortion in any of the 4 aspect ratios) |
-| E6 | Non-destructive whitespace trim mechanism preserved. | `IMPLEMENTED / SOURCE-VERIFIED` — `logoTrim.js` untouched by this round's CSS change, 5 tests still passing |
-| E7 | Verify rendered dimensions for logo-present/embedded-whitespace/no-logo states. | `BLOCKED` (partial) — no-logo state fully `BROWSER-VERIFIED` (both languages, real TEST accounts); logo-present/embedded-whitespace dimensions verified only via synthetic canvas-generated test images injected live, since no TEST account available to any round so far has an actual uploaded logo file — real-upload verification remains blocked on that credential/fixture gap, not on the implementation |
+Greeting: ברוך שובך / Welcome back, combined with the business name naturally.
 
-## F. Blank Top Strip (New Finding, Diagnosed and Fixed This Round)
+The plan badge belongs in the light dashboard/header area rather than as a large card in the sidebar.
 
-| # | Decision | Status |
-|---|---|---|
-| F1 | Empty rounded white strip above non-Dashboard tabs. | `BROWSER-VERIFIED` root cause found: `.dash-upper-section` (the Dashboard header's own wrapper) was rendered unconditionally on every tab; only its *content* was gated to `activeTab==='main'`, leaving an empty padded/bordered/shadowed box on Clients/Finances/Catalog/Settings |
-| F2 | Fix at the shared source. | `BROWSER-VERIFIED` — the entire wrapper `<div>` (not just its content) is now gated on the same condition; confirmed live absent on Finances/Clients (both languages, after correcting an initial timing-artifact false-positive in the verification method itself) |
+AI chat belongs in navigation immediately below Catalog on desktop and must never float over content.
 
-## G. Clients Follow-Up
+Updated AI navigation label: Hebrew צ׳אט AI; English AI Chat.
 
-| # | Decision | Status |
-|---|---|---|
-| G1 | Page header `לקוחות`/`Clients` + count + one primary `לקוח חדש`/`New Client` action. | `BROWSER-VERIFIED` — a genuinely new capability: `EditClientModal` extended with an `isNew` mode, a new `handleCreateClient` INSERT handler added (completing the pre-existing Read/Update/Delete into a full CRUD set) — confirmed live, both languages |
-| G2 | Wide search below/within the toolbar. | `BROWSER-VERIFIED` — search moved to its own full-width row below the header |
-| G3 | Closed row: chevron at reading-start; name dominant; compact type tag; contact fallback (phone else email, never an empty reserved column); contextual quote count; last activity date. | `BROWSER-VERIFIED` — all fields confirmed live in both languages; "Last activity" column added to the closed row (previously only in the expanded panel) |
-| G4 | Remove the repeated purple person icon unless a genuinely useful avatar/initial. | `SUPERSEDED` — an initial-letter avatar was tried mid-round, then the Owner explicitly corrected it: it "significantly increased every closed row's height and reduced scan density." The avatar was removed entirely (not replaced with any icon/avatar) per the Owner's explicit "the client name is already sufficient identification" — client type is now a compact **text-only** badge (עסקי/פרטי, Business/Private), no icon or avatar of any kind. `BROWSER-VERIFIED` in this final form. |
-| G5 | No legacy grid of empty cells/hyphens. | `BROWSER-VERIFIED` |
-| G6 | Expanded panel: full details, one primary/neutral/red-only hierarchy, single-open accordion, accessibility, no horizontal scroll, mobile cards. | `BROWSER-VERIFIED` both languages/viewports |
-| G7 | *(New, Owner mid-task correction)* Closed row height ~44-48px on desktop. | `BROWSER-VERIFIED` — measured 47px live after the avatar removal |
-| G8 | *(New, Owner mid-task correction)* Expanded-row visual state: light-lavender background + thin border, not a thick black outline; real `:focus-visible`-only keyboard indication. | `BROWSER-VERIFIED` (partial) — the reported "thick black outline" was traced to the browser's own default focus ring (never previously suppressed); fixed via `outline:none` + a real `:focus-visible` rule + a separate `.cli-row-expanded` class for the lavender state. Click-triggered expansion confirmed live showing the correct lavender background with **no** outline. The `:focus-visible` keyboard-only rule is confirmed correct by construction (standard CSS, already proven working elsewhere in this exact session on the topbar AI button) and confirmed active on the search input via real Tab key-presses; a Tab sequence specifically reaching a client row itself could not be completed live this round (an intermittent CDP keyboard-input delivery issue, not a product defect) — genuine keyboard-focus-visible verification specifically on a client row remains open for a future session with a healthier input pipeline. |
+AI icon: a modern outline speech bubble with a small sparkle, matching the navigation icon family. No retro robot, terminal, or DOS-like icon.
 
-## H. Catalog Follow-Up
+Next design round — approved scope
 
-| # | Decision | Status |
-|---|---|---|
-| H1 | Clean header `קטלוג שירותים ומוצרים`/`Services & Products Catalog`. | `BROWSER-VERIFIED` both languages |
-| H2 | Default toolbar: wide search + one purple `הוסף פריט`/`Add Item` action. | `BROWSER-VERIFIED` |
-| H3 | Add Item opens a deliberate row/drawer (name, fixed price — no `description` field exists in the real data model, not invented, only these two real fields — Save/Cancel together). | `BROWSER-VERIFIED` — Save/Cancel confirmed on the same row live |
-| H4 | Existing-item table below; Edit neutral, Delete red. | `IMPLEMENTED / SOURCE-VERIFIED` (unchanged from the prior round's already-compliant table) |
-| H5 | Intentional empty state; short list not stretched. | `BROWSER-VERIFIED` — confirmed live for the empty-catalog TEST account, both languages, with dashed border + icon + message |
-| H6 | Preserve data/validation/handlers/quote-form integration. | `IMPLEMENTED / SOURCE-VERIFIED` — `handleAddService`/`handleSaveEditedService`/`handleDeleteService` all called unchanged, only the visual wrapper changed |
+Shared design language
 
-## I. Finances Follow-Up
+Create one coherent visual system for Business Settings, Clients, Finances, and Catalog:
 
-| # | Decision | Status |
-|---|---|---|
-| I1 | Header `פיננסים`/`Finances` + supporting text + period selector aligned with header. | `BROWSER-VERIFIED` both languages |
-| I2 | Four consistent metric cards, semantic color only. | `IMPLEMENTED / SOURCE-VERIFIED` (structure was already shared before this round; Net Profit's color already fixed in §194) |
-| I3 | Real chart when data exists; compact empty state otherwise. | `BROWSER-VERIFIED` — confirmed live for a zero-data TEST account (empty state shown, not an empty axes chart); **a real, previously-undiscovered bug was also found and fixed while investigating this item**: the chart's `<Bar dataKey>` switched to Hebrew string keys that never existed on the underlying data object (which only ever used fixed `Income`/`Expenses` keys) — meaning the bar chart likely rendered empty for Hebrew users even when real data existed, independent of this task's own empty-state work. Fixed by keeping `dataKey` fixed and moving the translation to the `name` prop. Not independently re-verified against a real non-zero Hebrew dataset this round (no such TEST account available) — the fix is source-verified and the mechanism (Recharts' documented `dataKey`/`name` split) is standard. |
-| I4 | One purple primary `הוסף הוצאה`/`Add Expense`; CSV export neutral secondary. | `BROWSER-VERIFIED` — confirmed live, both languages, purple gradient vs. neutral grey background |
-| I5 | Add Expense opens a deliberate row/drawer (description, category, amount, recurring, Save, Cancel). | `IMPLEMENTED / SOURCE-VERIFIED` — same structural pattern as the live-verified Catalog drawer (H3), not independently re-opened live this round |
-| I6 | Red communicates expense/deletion; primary creation stays purple. | `BROWSER-VERIFIED` |
-| I7 | Expense list with deliberate populated/empty states. | `IMPLEMENTED / SOURCE-VERIFIED` |
+consistent page heading, supporting copy, action toolbar, content surface, spacing, radii, borders, shadows, fields, buttons, icons, tables, empty/loading/error states;
 
-## J. Quote History Verification/Refinement
+purple reserved for the primary action and brand emphasis;
 
-| # | Decision | Status |
-|---|---|---|
-| J1 | Hebrew `מס׳ הצעה`, English `Quote #`, one line. | `BROWSER-VERIFIED` — confirmed live via direct DOM text read, both languages |
-| J2 | Identifiers/semantics preserved. | `BROWSER-VERIFIED` |
-| J3 | Expanded actions: one primary purple (View), ordinary neutral, deletion red-only. | `BROWSER-VERIFIED` — confirmed via `getComputedStyle` on the real rendered chips (View: purple; Edit/Duplicate/WhatsApp/Email: identical neutral grey; Delete: red) |
-| J4 | All handlers/tooltips/entitlement/accessibility/accordion preserved. | `IMPLEMENTED / SOURCE-VERIFIED` (unchanged from §194) |
+green/red and other colors used only semantically;
 
-## K. Shared Design-Language Check
+desktop and mobile must feel like the same product.
 
-| # | Decision | Status |
-|---|---|---|
-| K1 | Consistent heading hierarchy, toolbars, spacing, control heights, radii, icon family, empty/loading/error states, action hierarchy across Business Settings/Clients/Finances/Catalog/Quote History. | `BROWSER-VERIFIED` (substantially) — Clients/Catalog/Finances headers all now follow the same "icon + short title" pattern; all three now use the same "wide search + one purple primary action" toolbar shape; empty states across Catalog/Finances/Clients now share the same dashed-border/icon/message treatment; action-color hierarchy (purple-primary/neutral/red-destructive) now consistent across Quote History/Clients/Catalog/Finances. Business Settings was audited and found already compliant (not restructured, since it wasn't found inconsistent). |
+Clients tab redesign
 
-## L. Public Quote Redesign + Focused Clients Correction (2026-09-04)
+Use the same compact accordion/list interaction language as Quote History.
 
-No reference image/mockup was supplied with this task (same honesty precedent as the earlier "Global Surface Audit" width episodes — flagged explicitly, not guessed past silently). Implementation below follows the task's own detailed text spec exactly; visual composition choices *not* pinned down by the spec (exact dark-header gradient values, glass-panel opacity, etc.) are this session's own reasoned design choices, pending Owner visual acceptance like everything else in this file.
+Closed row shows the important information only: client/company name, phone, client type, quote count, and recent activity.
 
-| # | Decision | Status |
-|---|---|---|
-| L1 | Desktop dark elegant header, replacing the purple-gradient hero, shared by `PublicQuote.jsx`/`PublicQuoteEn.jsx` via `PublicQuoteHeader.jsx`. | `BROWSER-VERIFIED` — both languages; header `backgroundImage` confirmed live as `linear-gradient(135deg, rgb(20,17,31) 0%, rgb(30,25,48) 55%, rgb(36,28,56) 100%)`, quote-metadata panel changed from an opaque white card to a translucent "glass" panel on the dark ground. |
-| L2 | Exact Hebrew metadata labels `מס׳ הצעה`/`תאריך`/`בתוקף עד`. | `BROWSER-VERIFIED` — `מס׳ הצעה` (was `מספר הצעה`) confirmed live via DOM text, both desktop and mobile header branches; `תאריך:`/`בתוקף עד:` were already exact and untouched. `PublicQuoteHeader.test.jsx` updated to match the new label (intentional behavior change, not a regression). |
-| L3 | Customer PO-number field, "if present." | `BLOCKED` — no such column/field exists anywhere in the quote data model (`quotes` table, `get-public-quote` Edge Function response, or any UI). Adding one is a schema change, which this task explicitly required stopping to report rather than making unilaterally — not implemented. If the Owner already has this data under a different existing field name, please point to it and it can be wired in without a schema change. |
-| L4 | Wide-weighted recipient section with a respectful intro sentence. | `BROWSER-VERIFIED` — one fixed-wording line added under the recipient name in both languages (HE: `שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:`; EN: `Hello, please find the price quote prepared for you below:`), confirmed live; display-only, never saved, never affects any calculation. |
-| L5 | Smart-item disclosure control labeled exactly `הצג מפרט`/`הסתר מפרט` (HE) / "Show/Hide specifications" (EN), icon + text together, never a bare chevron. | `BROWSER-VERIFIED` — old wording (`הצג/הסתר מידות ופירוט מקצועי` / "Show/Hide measurements & professional details") replaced; confirmed live via DOM text, both languages. Ruler icon retained alongside the text. |
-| L6 | Attachments/payment terms/subtotal/VAT/grand-total/terms/warranty sections. | `IMPLEMENTED / SOURCE-VERIFIED` — untouched by this round (already existed and already matched the spec); not independently re-verified live this round beyond what L1-L5/L9-L11 checks already exercised on the same page. |
-| L7 | Bottom action area: Approve-and-Sign primary, Download PDF/Print/Call/WhatsApp secondary. | `BROWSER-VERIFIED` — Approve & Sign unchanged (still the sole primary action in the signature panel). Bottom row expanded from 3 tiles (PDF-disabled/Call/Print) to 4 functional tiles, confirmed live both languages: PDF (purple gradient, now functional — see L9), Print (neutral grey, `#475569`/`#cbd5e1`), Call (blue, `LIGHT.sky` `#0284c7`), WhatsApp (green, `LIGHT.emerald` `#059669`) — colors confirmed via `getComputedStyle`. |
-| L8 | Mobile: two-column compact header, mirrored per locale, Call-us action near top, ~44×44px minimum touch targets. | `BROWSER-VERIFIED` — header composition unchanged structurally from the prior round (already compact/2-column, already DOM-order-mirrored), only restyled dark; Call CTA confirmed present near the top of the mobile header in both languages. Action tiles measured live at 390/360/320px: minimum tile size 65×78px (320px viewport) — well above the 44×44px floor; zero horizontal overflow at any of the three widths. |
-| L9 | WhatsApp action, distinct from Call, correct semantic color. | `BROWSER-VERIFIED` — new `wa.me` link built from the business phone (same normalization pattern as the existing `sendWhatsApp` in `Dashboard.jsx`, not a third independent formula), pre-filled with a short message naming the quote number. Confirmed live in both languages with a real TEST phone number added to each TEST business for this purpose (`+15551234567` EN, `0501234567` HE) — hrefs confirmed exactly correct (`tel:+15551234567` / `https://wa.me/15551234567?...`; `tel:0501234567` / `https://wa.me/972501234567?...`). Hidden entirely (both Call and WhatsApp) when no business phone exists, same as the pre-existing Call-only condition. |
-| L10 | Compact-vs-Expanded output-mode choice at print/PDF-generation time, never mutating the saved quote or on-screen disclosure state. | `BROWSER-VERIFIED` — new shared `QuotePrintModeModal.jsx` (used by both language files) opens on either the "Download PDF" or "Print" tile; choosing a mode sets a local `data-print-mode` attribute and calls `window.print()`. Verified live via CDP print-media emulation: with the mode set to `compact`, the professional-item detail block computes `display:none` in print **even when expanded on screen**; with the mode set to `expanded`, it computes `display:block` in print **even when collapsed on screen** — confirmed both directions, proving the print-mode choice is fully decoupled from `expandedProItems` (the on-screen state itself was read back afterward and confirmed unchanged in both cases). |
-| L11 | "Download PDF" implemented as real, functional output (item 8, long-deferred per `PROFLOW_HANDOFF.md`'s repeated "PDF/Print FULL vs COMPACT output remains a deferred, unimplemented requirement" note). | `BROWSER-VERIFIED` (mechanism) / **Owner-review flag**: implemented via the browser's native print-to-PDF (the same `window.print()` call as "Print", routed through the same Compact/Expanded chooser) rather than a client-side `jsPDF`/`html2canvas` export. Both libraries are already declared `package.json` dependencies but were unused before and remain unused now — a deliberate choice: native print-to-PDF guarantees correct RTL Hebrew text, real selectable text, and accurate A4 pagination, which an image-based export cannot reliably guarantee for a financial document, and it satisfies the standing "never fake PDF functionality" rule (§ this file's own G-section precedent) because it is genuine, functional output, not a disabled placeholder. `window.print()` firing was confirmed programmatically (patched `window.print`, confirmed called after choosing a mode) but no actual PDF file was generated/opened/visually inspected this round (that step requires a real print dialog interaction outside what CDP automation can drive) — flagged for the Owner to confirm this design direction is acceptable, or to request a true in-app download-only flow instead. |
-| L12 | A4-first pagination, no interactive chrome ever printed, intelligent header repetition, avoided awkward page splits. | `BROWSER-VERIFIED` (via print-media emulation + computed-style/stylesheet inspection, not an actual multi-page printed/PDF document reviewed visually): `@page { size: A4; margin: 12mm 10mm; }` confirmed present in the stylesheet; `.pq-action-tiles` (all 4 bottom tiles) and the per-item `.pq-pro-detail-toggle` button confirmed `display:none` under print emulation (the toggle was previously **not** print-hidden — a real, if minor, pre-existing gap fixed this round); `<thead>` confirmed `display:table-header-group` (native per-page repetition for the items table); `tr`/`.pq-section`/`.pq-recipient`/`.pq-action-tile` all given `break-inside:avoid`/`page-break-inside:avoid`. A true multi-page A4 document was not produced and visually reviewed for split quality this round — the CSS mechanism is verified, an actual long multi-page print/PDF has not been eyeballed. |
-| L13 | Mobile: compact per-item units. | `OPEN` (deliberate scope decision, not forgotten) — the items table itself (money-alignment-critical, extensively owner-tuned across many prior rounds per its own in-file history) was **not** restructured into a card-based mobile layout. The task's own framing ("an implementation task, not another redesign round — preserve the approved information architecture") and the absence of a reference mockup for this specific piece made a ground-up table→card rebuild a higher-risk call than this round's authorization comfortably covers. The existing responsive table (horizontal-scroll wrapper, already-tuned font sizes) was left as-is. Flagged for explicit Owner direction before attempting. |
-| L14 (Focused Clients Correction, §D) | Move the *existing* type indicator to sit directly between the chevron and the client name as one group (not a new badge). | `BROWSER-VERIFIED` — `ClientTypeTextBadge` moved from after the name to before it, in both the desktop row and the mobile card row; confirmed live (both viewports, Hebrew account: row text reads `פרטי`/`עסקי` immediately followed by the client name). English behavior confirmed via source (identical component, `isHebrew` only changes the badge's own label text, never structural order) rather than a separately re-run English browser session this round. |
-| L15 | Mobile: contact method, contextual quote count, last-activity date via a deliberate two-line row, without requiring expansion. | `IMPLEMENTED / SOURCE-VERIFIED` — this was already fully built in the prior round (§G3/`PROFLOW_CODEX_CHECKPOINT.md` G3) and untouched by this task beyond the L14 badge-position change; not re-screenshotted this round since nothing about its own layout changed. |
-| L16 | Preserve the already-approved 44-48px row height and light-lavender expanded-state styling with a real `:focus-visible`-only indicator. | `BROWSER-VERIFIED` — untouched by this round's edit (only DOM child order changed, no CSS/padding change); live-measured desktop row height 46.6px, still inside the approved 44-48px band. |
+Remaining details and actions appear in the expanded panel.
 
-**Explicitly out of scope this round, confirmed untouched**: quote calculations/VAT logic, locked/approved-quote state, authentication, customer-ownership semantics, Admin redesign — none of these files were opened or modified.
+Only one client row is expanded at a time.
 
-**No real PDF file was downloaded and opened for visual review** (L11/L12) — this is the one meaningful verification gap in this section, flagged explicitly rather than claimed. Everything else in this section reached `BROWSER-VERIFIED` via a real running TEST session (both TEST personas, both languages, three mobile widths, real print-media CDP emulation) — see `PROFLOW_CLAUDE_LATEST_REPORT.md` for the full method-by-method detail.
+Chevron is physically right in Hebrew and left in English.
 
----
+Do not render columns full of hyphens for missing data.
 
-## Chat-Recovery Notes for a Future Codex/ChatGPT Session
+Expanded details can include email, company/personal ID, address, notes, quote summary, total value, and last activity when available.
 
-- This checkpoint file was created and then fully closed out by the task titled **"Consolidated Open UI Corrections + Seventh Continuity File"**, authorized 2026-09-04, extending the V2 chain at `PROFLOW_PROJECT_CONTEXT.md` §195 (itself extending §194→§193→…→§184).
-- Nearly every item above reached `BROWSER-VERIFIED` in this same round, including a live mid-task Owner correction to the Clients closed-row design (G4/G7/G8 — the avatar tried mid-round was explicitly reverted per Owner feedback, replaced with a text-only type badge and a corrected focus/expanded visual state).
-- Two genuine, previously-undiscovered bugs were found and fixed while implementing this round's corrections, unrelated to the corrections themselves: (1) the Dashboard header wrapper rendering an empty visible box on every non-Dashboard tab (§F), and (2) the Finances bar chart's Hebrew `dataKey` never matching the actual data object's fixed English keys (§I3) — both are documented in detail in `PROFLOW_PROJECT_CONTEXT.md` §195.
-- Remaining genuinely open items: A6 (Public Quote redesign, deliberately out of scope), B7/C4/E3/E7-partial/I3-Hebrew-live/I5/G8-keyboard-specific (all noted above as `IMPLEMENTED / SOURCE-VERIFIED` or partially `BROWSER-VERIFIED` pending either a real-data TEST fixture that doesn't currently exist, or a browser-harness keyboard-input reliability issue unrelated to the product code).
-- If this file and a canonical file disagree about implemented state, trust the canonical file and the live repository/browser state.
-- Do not re-litigate anything marked `OWNER-ACCEPTED` without a new, explicit Owner instruction.
-- **Section L** (Public Quote Redesign + Focused Clients Correction, 2026-09-04) brought Public Quote into scope for the first time in this checkpoint's history (A6 formerly `OPEN`/out-of-scope, now `SUPERSEDED`). Genuine open items from that round: L3 (customer PO field — no schema field exists, not implemented, flagged rather than guessed), L11 (Download PDF implemented via native browser print-to-PDF rather than a client-side `jsPDF`/`html2canvas` export — a deliberate, reasoned choice flagged for explicit Owner sign-off on the direction), L13 (mobile item-table→card redesign deliberately not attempted without a reference mockup). No real PDF file was generated and visually reviewed this round — the print/PDF mechanism itself was thoroughly verified via CDP print-media emulation instead.
+Actions: create quote, view/details, edit, delete. One clear primary action; ordinary actions neutral; deletion alone red and visually separated.
+
+Preserve data, handlers, permissions, accessibility, keyboard support, and mobile behavior.
+
+Dashboard top-area compression
+
+Replace the current tall multi-level header/summary composition with one compact summary strip.
+
+Desktop target: about 80–90px for greeting/business identity, compact quote/revenue metrics, and a small plan badge.
+
+Remove oversized nested statistic cards and unnecessary circular icons.
+
+Remove the long redundant sentence below the greeting.
+
+Hot Quote becomes a slim, one-line, expandable alert (about 44px), shown only when relevant.
+
+The Quote History working area should begin substantially higher on the viewport.
+
+Mobile target: no more than two compact summary rows before the optional Hot Quote alert.
+
+Remove duplicate trial-remaining messaging when the plan badge already communicates it.
+
+Quote History refinements
+
+Hebrew column label: מס׳ הצעה.
+
+English column label: Quote #.
+
+Header labels stay on one line.
+
+Do not change the identifiers, data, or business semantics.
+
+Simplify expanded-row actions: one primary purple action, ordinary neutral actions, delete only red.
+
+Business-logo presentation
+
+Enlarge the logo to use nearly all available logo-stage width.
+
+Reduce stage padding to roughly 6–8px.
+
+Add a subtle 1px white border, restrained corner radius, and light shadow.
+
+Use object-fit: contain, preserve aspect ratio, and enforce a consistent maximum height.
+
+Never stretch, distort, or crop meaningful logo content.
+
+If excess whitespace is baked into the uploaded bitmap, CSS padding changes alone are insufficient. Prefer a safe automatic whitespace-trimming strategy or a user-controlled zoom/position flow; do not destructively alter the original upload.
+
+Dedicated mobile redesign
+
+Current mobile presentation is not visually accepted.
+
+Do not merely shrink desktop layouts.
+
+Create a shared mobile shell and component language for all authenticated tabs.
+
+Compact app/header area; combine greeting and plan status without duplication.
+
+Hot Quote is a compact expandable alert.
+
+Search receives a full row; status/sort move behind one compact Filters control or sheet.
+
+Quote and client rows become compact, readable cards/accordions.
+
+AI must be in a stable location and never cover content.
+
+Bottom navigation should contain no more than five primary destinations. The exact information architecture must be proposed/validated before hiding important destinations.
+
+Verify Hebrew RTL and English LTR separately.
+
+Explicitly outside the next prompt
+
+Public/customer-facing quote redesign. This requires its own design/mockup and implementation round.
+
+Production/LIVE changes or deployment.
+
+Database schema, RLS, authentication architecture, plan/entitlement semantics, pricing, currency, VAT, market separation, quote semantics, or customer data.
+
+Test-account repair or password rotation. Credential hygiene is a separate maintenance task.
+
+Credential/verification incident
+
+Multiple documented TEST identities caused ambiguity.
+
+One candidate had a stale password; another was an English-market TEST account and could not honestly prove Hebrew-market behavior.
+
+Never print or expose passwords in commands, reports, screenshots, or chat.
+
+Future maintenance should document exactly which non-production identity serves Hebrew/Local TEST and English TEST, and mark stale identities invalid.
+
+Do not mix this credential cleanup into the UI-design prompt.
+
+Prompting preference
+
+Complex Claude prompts must begin with EFFORT LEVEL: MAXIMUM AVAILABLE.
+
+This requests the highest reasoning and verification effort supported by Claude's environment; it is not a promise of faster execution.
+
+Small isolated text/CSS fixes do not automatically require maximum effort, but the next multi-surface redesign does.
+
+Browser-harness recovery decision
+
+The latest completed Claude report confirmed Python and Chrome are available, but the browser-harness daemon and active connection were absent while BH_REQUIRE_EXISTING_DAEMON=1 prevented silent auto-start.
+
+The Owner authorized Claude to create one safe, non-elevated Batch file on the actual Windows Desktop to start the already-installed browser-harness daemon/Chrome connection explicitly.
+
+The Batch must preserve the guardrail, contain no credentials, require no Administrator privileges, change no AVG/firewall/registry/browser policy, install nothing, and avoid killing unrelated processes.
+
+Claude must not run the Batch. The Owner runs it manually; Claude then reruns diagnostics and performs real browser QA only if the connection is healthy.
+
+If security weakening or installation is required, Claude must stop and report rather than improvise.
+
+Post-implementation visual review — Catalog follow-up
+
+The Owner and Codex do not visually accept the current Catalog composition yet.
+
+Remove the unexplained empty rounded strip at the top when it has no real function.
+
+Separate three distinct workflows: search, add a new catalog item, and manage the existing list.
+
+Default Catalog toolbar: one wide search field plus one clear primary Add Item action.
+
+Add Item should reveal a deliberate row, drawer, or modal containing item/service name, fixed price, and Save; do not leave the Add button alone on a second line beneath unrelated fields.
+
+Existing-item actions should use consistent icon buttons or a three-dot menu. Edit remains neutral; Delete alone is red and must not dominate every row.
+
+Provide an intentional empty state when no catalog items exist; a short populated list does not need artificial vertical stretching.
+
+The AI navigation icon still requires visual confirmation as a modern speech bubble with a small sparkle; reject any bomb/planet/retro-computer appearance.
+
+Post-implementation visual review — Clients follow-up (Owner approved)
+
+The accordion mechanism exists, but the closed client row is not yet visually or informationally accepted.
+
+Replace the verbose heading ניהול ספר לקוחות (CRM) with לקוחות; show the count separately as supporting text such as 22 לקוחות במערכת. Use the natural English equivalents.
+
+Remove the unexplained empty rounded strip at the top when it has no real function.
+
+Add one clear primary לקוח חדש / New Client action in the page header.
+
+Closed row must show the information a business owner needs to scan: client/company name, business/private type tag, an available contact method, contextual quote count such as 4 הצעות, and last activity/last-quote date when available.
+
+For contact fallback, show phone when present; otherwise email. If neither exists, do not reserve a large empty column.
+
+Do not render columns full of blanks or hyphens merely to preserve the legacy table grid.
+
+Remove the repeated purple person icon unless it is replaced by a genuinely useful avatar or identifying initial.
+
+Keep the expanded panel for full client details and actions.
+
+Preserve single-row accordion behavior, accessibility, and the canonical chevron direction: physically right in Hebrew and left in English.
+
+Verify desktop and mobile in real browsers; the presence of an accordion alone is not acceptance.
+
+Latest Clients mobile review — OPEN reminder after Public Quote design
+
+The Owner asked to return to this issue after the current Public Quote design round.
+
+Latest mobile screenshot shows the closed client list reduced almost entirely to client name plus Business/Private badge.
+
+This still fails the approved scan-information requirement: mobile must expose a compact available contact method, contextual quote count, and last activity/last-quote date without requiring every client row to be expanded.
+
+Preserve compact density and avoid restoring oversized avatars, decorative person icons, empty columns, or rows full of hyphens.
+
+Design the mobile row as a deliberate two-line composition when necessary rather than deleting business-critical information merely to fit one line.
+
+Fix the primary-row visual order: the compact Business/Private badge must sit directly between the accordion chevron and the client name, so chevron + type + name read as one balanced identification group rather than leaving the badge detached on the opposite side.
+
+Mirror this composition by locale while keeping the chevron on the canonical physical outer edge: in Hebrew/RTL, physical order from the right edge is chevron, type badge, client name; in English/LTR, physical order from the left edge is chevron, type badge, client name.
+
+Keep consistent spacing and vertical centering among the chevron, badge, and name; do not use margins or empty flex space that make the row appear asymmetric.
+
+Re-review the search/header composition and expanded-row behavior in the same mobile pass.
+
+Status: OPEN. Remind the Owner and include this correction when returning to the Clients tab after the Public Quote mockups are closed.
+
+Post-implementation visual review — Finances follow-up (Owner approved)
+
+The current Finances screen is improved but not visually accepted yet.
+
+Replace the verbose page title with פיננסים / Finances; supporting text should communicate income, expenses, and profitability.
+
+Remove the unexplained empty rounded strip at the top when it has no real function.
+
+Keep the period/report selector compact and aligned with the page header.
+
+Preserve four consistent summary metrics: total quotes, income, expenses, and net profit. Use one shared card structure and semantic color only.
+
+When the selected period has no data, do not render a large empty chart with axes. Show a compact intentional empty state such as אין עדיין נתונים לתקופה שנבחרה / No data for the selected period yet.
+
+Separate expense creation, CSV export, and expense-list management.
+
+Page/list header: one purple primary הוסף הוצאה / Add Expense action; CSV export is a neutral secondary action and must not dominate.
+
+Add Expense opens a deliberate row, drawer, or modal containing description, category, amount, recurring-monthly choice, Save, and Cancel. Do not squeeze the entire form into the list toolbar or strand its submit button on another line.
+
+Use purple for the Add Expense action. Red remains semantic for expense values or deletion, not for the primary creation button.
+
+Keep the expense table/list below the creation and export controls with a deliberate empty state.
+
+Verify Hebrew/English desktop and mobile layouts in a real browser, including zero-data and populated-data states.
+
+Post-implementation visual review — Logo correction (existing requirement not met)
+
+Defer this correction to the consolidated follow-up prompt; do not reopen the completed Claude task only for this issue.
+
+The current implementation incorrectly renders a small logo inside a large solid-white card. This does not satisfy the already-approved logo-stage requirement.
+
+Remove the large solid-white background card.
+
+Enlarge the actual logo image to use nearly all available sidebar-brand width.
+
+Use only a thin 1px white border around the image or a tightly fitted frame, with approximately 4–6px padding.
+
+Preserve aspect ratio with object-fit: contain; never stretch or crop meaningful artwork.
+
+The border must visually read as a border, not as a large white background.
+
+Distinguish component padding from whitespace baked into the asset. If whitespace is embedded, use the safe logo-trimming mechanism already introduced rather than enlarging the surrounding white container.
+
+Verify actual rendered image dimensions and whitespace visually in Hebrew and English.
+
+Latest Bridge observation after Claude reported completion
+
+Fresh repository state shows substantial new uncommitted work in ClientsTab.jsx, QuotesTab.jsx, and Dashboard.jsx, plus new src/utils/logoTrim.js and related tests, consistent with the redesign task having run.
+
+At the time of this checkpoint update, PROFLOW_CLAUDE_LATEST_REPORT.md exposed through the Bridge still contained the prior Desktop Header/Sidebar/AI report rather than the newly completed redesign report.
+
+Therefore do not treat that stale report as proof of the latest task. Re-read the report and fresh repository state before drafting the next Claude task.
+
+Resume procedure
+
+Activate ProFlow Claude Bridge V2.
+
+Read the six canonical ProFlow continuity files.
+
+Inspect fresh branch, HEAD, dirty working tree, and diffs.
+
+Determine what Claude's previous task actually completed before reissuing work.
+
+Use the accompanying PROFLOW_NEXT_CLAUDE_PROMPT.md only after removing already-completed items or converting them into verification requirements.
+
+Do not rely on memory alone; canonical repository state wins.
+
+Seventh continuity file — Owner authorization
+
+The Owner explicitly authorizes adding this file to the ProFlow repository as PROFLOW_CODEX_CHECKPOINT.md.
+
+Its role is to preserve Owner-approved decisions, open visual-review findings, pending Claude prompts, and chat-recovery instructions that may not yet describe implemented application state.
+
+It supplements the existing six canonical files; it does not silently replace or override implemented-state facts in them.
+
+All six existing continuity files must include a concise routing reference to the seventh file and explain its role.
+
+At the start of a task, Claude must reconcile the seventh file with fresh Git/filesystem/runtime state and the other six files.
+
+During and after a task, each checkpoint item must be labeled accurately: OPEN, IMPLEMENTED/SOURCE-VERIFIED, BROWSER-VERIFIED, OWNER-ACCEPTED, SUPERSEDED, or BLOCKED.
+
+Never mark an item OWNER-ACCEPTED without explicit Owner approval. Never mark BROWSER-VERIFIED from source review alone.
+
+Do not store credentials, .env values, passwords, tokens, customer data, or screenshot-embedded secrets in the seventh file.
+
+The next Claude task is authorized to populate the repository copy from the current approved contents of this checkpoint and to update the six-file continuity routing accordingly.
+
+Public Quote redesign — approved product requirements (OPEN)
+
+The Public Quote is the next dedicated design round before the Admin redesign because it is the customer-facing, trust- and conversion-critical surface.
+
+No implementation is authorized before the Owner sees and explicitly approves visual examples/mockups.
+
+Design and verify three coordinated presentation modes using the same quote data:
+
+Interactive desktop/mobile web view.
+
+Compact Print/PDF view.
+
+Expanded professional Print/PDF view.
+
+Professional/smart quote items may contain additional measurements, openings, materials, technical specifications, and other structured details behind a per-item dropdown in the web view.
+
+On screen, retain a clear per-item dropdown/accordion so the main quote remains scannable.
+
+When Print Document or Download PDF is selected, prompt the business user to choose Compact or Expanded output and provide a preview before generation.
+
+Compact output includes the essential commercial fields only: item name/short description, quantity, unit price, and line total.
+
+Expanded output renders every item's professional details as static, fully visible text below that item. Do not print dropdown arrows, Show details controls, or other interactive chrome.
+
+The selected output mode affects only the generated/printed document and must not mutate the quote or its saved item state.
+
+Apply the chosen mode consistently to all items in a document. Keep each item with its details together across A4 page breaks whenever possible and repeat table headers intelligently on multi-page documents.
+
+Print/PDF is a first-class design, not a browser screenshot: A4 layout, strong contrast, grayscale readability, economical backgrounds, clear totals/VAT/terms/warranty/date/quote number, no gradients/shadows/action buttons, and no broken item/summary sections across pages.
+
+Interactive bottom actions must be deliberately redesigned: primary approve/sign action, PDF download, print, call, and WhatsApp when available. Mobile actions must stay accessible without obscuring content; interactive actions disappear from Print/PDF.
+
+Preserve strict market separation: Hebrew/Local is RTL and ILS/Israeli VAT; International is LTR and uses its supported non-ILS currencies. Do not mix locales or currencies.
+
+Competitor examples are references for document clarity and hierarchy only. Do not copy their layout, styling, or brand expression; create an original ProFlow design language.
+
+Status: OWNER-ACCEPTED as a design/product direction; implementation remains OPEN pending mockup review and explicit Owner approval.
+
+Public Quote desktop header and recipient — OWNER-ACCEPTED
+
+The first desktop mockup direction is approved as the visual foundation.
+
+Use an elegant dark header rather than the legacy oversized purple gradient header.
+
+Give the business logo a clean, proportional stage without excessive surrounding whitespace.
+
+The header must explicitly and legibly show the business name, business activity, registration/company/dealer number, address, phone, email, and website when available.
+
+Quote metadata must use visible labels rather than unexplained values: Quote No., issue date, and valid-until date, with natural Hebrew equivalents such as מס׳ הצעה, תאריך, and בתוקף עד.
+
+If a separate customer purchase-order/reference number exists, expose it as an optional distinct field such as מס׳ הזמנת לקוח; do not confuse it with the ProFlow quote number.
+
+Give the recipient greater visual respect and prominence immediately below the header: a wider highlighted recipient area, large client/company name, named contact when available, and a short respectful introduction.
+
+Keep project/contact context secondary to the recipient rather than giving both identical visual weight.
+
+Maintain strong white-on-dark contrast for every header label and value in actual rendering, Print/PDF, Hebrew, and English.
+
+Status: OWNER-ACCEPTED for the desktop design direction. Implementation remains OPEN until the complete Desktop, Mobile, and Print/PDF mockup set is reviewed and the Owner explicitly authorizes implementation.
+
+Complete Public Quote desktop mockup — OWNER-ACCEPTED
+
+The Owner explicitly approved and closed the complete Desktop Public Quote design shown in the conversation mockup.
+
+Preserve the approved full-page composition: elegant dark business/quote header; prominent recipient and contact/project context; respectful introductory line; smart item table; numbered items; per-item Professional details disclosure; structured detail grid; attachment/plan area; payment terms; subtotal/VAT/grand total; separate terms and warranty; approval readiness message; and bottom action bar.
+
+Screen item details use a structured field grid for easy comparison on wide displays, not a loose vertical text dump.
+
+The disclosure control must be visibly labeled, not represented only by an unexplained chevron.
+
+Owner-approved disclosure wording is action-oriented and universal: הצג מפרט when closed and הסתר מפרט when open; use natural equivalents such as Show specifications / Hide specifications in English. Do not use the vague/marketing label פירוט מקצועי for the control.
+
+Maintain flexible grid sizing so no content, detail control, attachment area, or left-side column is clipped at intermediate desktop widths.
+
+Bottom actions remain: approve/sign as primary, PDF, print, call, and WhatsApp when available. They must not obscure quote content.
+
+The Desktop structure and hierarchy are now locked. Mobile and Print/PDF must be derived from the same information architecture rather than redesigned independently.
+
+Do not alter this accepted Desktop structure during implementation without presenting a new visual reason and obtaining explicit Owner approval.
+
+Status: OWNER-ACCEPTED for Desktop mockup. Mobile and compact/expanded Print/PDF mockups remain OPEN; no implementation is authorized yet.
+
+Public Quote mobile mockup and implementation authorization — OWNER-ACCEPTED
+
+The Owner accepted the complete Mobile direction in principle, subject to real-browser reality testing and later adjustment if the implementation does not pass visual/functional review.
+
+Mobile header: dark identity area; full business details; smaller quote number/date/validity in a compact side column rather than three separate cards; visible top Call us action positioned in that side column.
+
+Mobile item cards: item/name and total first, compact quantity/unit and unit-price line, then the approved Show specifications / Hide specifications disclosure; structured details use two columns where possible and one at very narrow widths.
+
+Mobile bottom actions: dominant Approve/Sign plus visually present, distinct PDF, Print, Call, and WhatsApp actions. Call and WhatsApp must remain separate; Call also appears near the top.
+
+PDF uses purple emphasis, Print neutral/dark, Call blue, and WhatsApp green without competing with the primary approval action.
+
+Owner authorized implementation of the approved Desktop/Mobile/Public Quote requirements together with compact/expanded Print/PDF behavior, plus the narrowly scoped pending Clients-list corrections.
+
+Reality-test clause: approval is of the design direction; if real implementation/browser/print evidence does not pass, revise after Owner review rather than treating the mockup as proof.
+
+Status: OWNER-ACCEPTED design and AUTHORIZED FOR IMPLEMENTATION. Real source/browser/print implementation remains OPEN.
+
+Prepared Claude task — Public Quote + focused Clients correction
+
+A consolidated Claude implementation prompt was prepared as PROFLOW_PUBLIC_QUOTE_AND_CLIENTS_CLAUDE_PROMPT.md.
+
+It requires maximum available effort, all seven continuity files including this checkpoint, fresh repository/runtime reconciliation, strict HE/EN and currency separation, no production/customer mutation, no commit/push/deploy/DB migration, real browser and A4 Print/PDF verification, continuity updates, and a fresh completion report.
+
+The Clients scope is limited to the existing type-indicator placement, restored mobile scan information, compact density, and active/focus styling; it does not authorize another broad Clients redesign.
+
+Landing pages and Business Tools audit — MAPPED / OPEN
+
+Scope and working decision
+
+The Owner authorized parallel mapping of the Hebrew/Local and English/International public landing experiences rather than finishing one locale before inspecting the other.
+
+Mapping covers /he, /en, /he/tools, and /en/tools as separate market surfaces.
+
+The work remains audit/planning only. No landing-page or tools implementation, Production/LIVE mutation, deployment, or Claude implementation prompt is authorized by this checkpoint entry.
+
+Hebrew and English must be developed in parallel but not as blind translations. Preserve Hebrew/RTL/ILS/Israeli-VAT needs separately from English/LTR/international-currency and international-market needs.
+
+Confirmed landing-page copy corrections
+
+Remove Invoicing from the English headline because ProFlow does not issue invoices.
+
+Remove the unsubstantiated Over 500 businesses / מעל 500 עסקים social-proof claim from both locales.
+
+Review and remove or replace גבייה in the Hebrew headline unless a real collection/payment capability is verified.
+
+Replace unsupported or absolute claims with factual descriptions of capabilities that are verified in the product.
+
+Do not present sample dashboard counts/revenue as real customer traction. If retained, label them unmistakably as illustrative product data and ensure the visual reflects the current product.
+
+Avoid absolute copy such as ready in one minute, perfect solution, and without limits when actual limits or exceptions exist.
+
+Landing-page capability/content gaps
+
+The current pages foreground only quotes, signatures/approvals, and income/expense tracking.
+
+Before rewriting, verify and then represent the real availability and plan entitlement of smart/professional quote specifications, compact/expanded PDF, Print, digital approval/signature, WhatsApp, Call, private/business client management, catalog, income/expenses, attachments/drawings, CSV/export, AI chat, and desktop/mobile use.
+
+Publish only capabilities proven in current source/runtime; distinguish implemented, partial, plan-limited, and unavailable behavior.
+
+Registration journey mismatch
+
+Browser mapping confirmed that the Free, Basic, and Pro pricing CTAs in both locales all navigate to the same 14-day PRO trial signup route.
+
+No selected-plan identifier is present in the observed signup URL.
+
+Therefore Select Basic Plan, Select PRO Plan, and their Hebrew equivalents currently imply a plan selection that does not occur.
+
+Start for Free also leads to the PRO trial rather than directly creating a Free-tier account.
+
+Future copy/flow must either state honestly that every new account begins with the PRO trial, or implement and preserve a real selected-plan flow. This is an OPEN product decision; do not infer one.
+
+Pricing and entitlement items requiring verification
+
+Current public prices observed during the audit:
+
+Israel monthly: Free ₪0, Basic ₪49, Pro ₪99.
+
+Israel annual: Free ₪0, Basic ₪39/month (₪468/year), Pro ₪79/month (₪948/year).
+
+International monthly: Free $0, Basic $15, Pro $29.
+
+International annual: Free $0, Basic $12/month ($144/year), Pro $23/month ($276/year).
+
+Verify these values against the authoritative subscription/billing implementation before approving copy.
+
+Verify what counts toward monthly quote limits, Free client-management limits, plan access to catalog/signatures/PDF/CSV/AI/WhatsApp/finances, attachment types and size semantics, annual-billing persistence, and actual end-of-trial behavior.
+
+The Hebrew Pro card mentions direct WhatsApp while the English Pro card does not; determine whether this is intentional market separation or an inaccurate entitlement mismatch.
+
+FAQ and trust claims requiring evidence
+
+Do not retain claims of full encryption, automatic backups, highest security level, enterprise-grade, or data being always safe without concrete technical evidence and appropriately bounded wording.
+
+Verify unrestricted PRO-trial access, automatic downgrade to Free, full responsive support, CSV/accounting-software compatibility, and international tax behavior before publishing these FAQ answers.
+
+Security, privacy, backup, tax, and billing statements must be factual and non-absolute.
+
+Landing-page visual/usability findings
+
+Both public landing pages are very long (roughly 3,400px at the audited desktop viewport), with substantial dead space and repeated trial-promotion messaging above the fold.
+
+The demo video is only about 400×152px, has no poster image, and was observed with readyState: 0; the Hebrew audit rendered a blank dark video area.
+
+Replace or repair the media presentation and ensure a useful poster/fallback state.
+
+The illustrative dashboard may no longer represent the redesigned product and should be updated or clearly framed as an illustration.
+
+Improve low-contrast gray text, navigation to features/pricing/FAQ/tools, language switching, CTA distribution, and AI-chat placement so it never obscures content.
+
+Public landing pages and Business Tools each require their own visual/usability improvement; improving only the footer link is insufficient.
+
+Business Tools information architecture and SEO
+
+Both /he/tools and /en/tools expose Currency, Units/Distance, Precious Metals, and Crypto calculators as client-side tabs on one URL per locale.
+
+Tab changes do not create a distinct URL. This prevents direct linking and limits separate search indexing, metadata, headings, explanatory content, and authority for each calculator.
+
+Evaluate a real tools hub plus separately indexable, locale-specific pages for each calculator. This is a recommended architecture to evaluate, not yet an Owner-approved implementation.
+
+Both tools pages currently lack site navigation, footer, clear home return, and visible language switching, making them feel detached from ProFlow.
+
+Give each calculator useful market-specific explanation, examples, FAQs, internal links, and a restrained bridge to ProFlow without turning the tool into an intrusive advertisement.
+
+Add a visible data source, last-updated/freshness state, loading/error state, and a clear statement that financial/market outputs are estimates and not financial advice where applicable.
+
+Correct structured data: the tools hub currently inherits SoftwareApplication schema instead of calculator/tools-specific structured data.
+
+Business Tools functional and accessibility findings
+
+All audited numeric inputs lacked minimum and step constraints and accepted nonsensical negative values.
+
+Observed examples included negative currency conversion, negative precious-metal value, and negative crypto value.
+
+Add validation and localized error handling; do not display negative financial/weight results for invalid negative inputs.
+
+Form labels were not associated with controls through for/id, controls had no independent accessible labels, calculator tabs lacked tablist/tab/tabpanel, aria-selected, and aria-controls, and changing results lacked an aria-live announcement.
+
+Add complete keyboard, focus, screen-reader, contrast, empty/loading/error, and responsive verification in both locales.
+
+Correct Hebrew ביטקויין to ביטקוין.
+
+Normalize locale-appropriate numeric formatting; the English page currently displays European-style euro formatting while the rest of the page uses English/US conventions.
+
+Verify the reliability and source coverage of every supported currency, cryptocurrency, metal, purity option, and especially rhodium before describing rates as live or accurate.
+
+SEO and locale metadata findings
+
+Canonical and hreflang links were present for the audited /he, /en, /he/tools, and /en/tools pages.
+
+The Hebrew landing page nevertheless exposed English social metadata: English Open Graph title/description, og:locale=en_US, and an English Twitter title.
+
+The Hebrew landing page also inherited English/USD SoftwareApplication structured data. Correct social and structured metadata per locale.
+
+/ was observed to follow the last selected locale, while /he and /en are explicit. Verify crawler/new-user default behavior and do not rely on remembered client state as the only locale signal.
+
+Intentional market-specific contact routing — OWNER-CONFIRMED
+
+The different public contact addresses are intentional and must not be normalized into one address.
+
+Hebrew/Israel users use support@quotecodepro.com and are intended to receive Hebrew automated email responses.
+
+English/International users use info@quotecodepro.com and are intended to receive English automated email responses.
+
+This separation is part of the broader Local-versus-International architecture. Preserve it in landing pages, tools, contact actions, templates, and future automated email flows.
+
+The automated response system is described as existing or intended; verify its current runtime status before claiming automated response behavior publicly.
+
+Audit status
+
+Public visual/content/journey/SEO mapping: COMPLETED for the currently accessible public desktop pages.
+
+Product-entitlement, billing, security, email-automation runtime, and authenticated-feature verification: OPEN.
+
+Mobile visual validation of the public landing/tools pages: OPEN and must be performed separately rather than inferred from desktop CSS.
+
+Public Quote PDF correction and Clients table completion — IMPLEMENTED, TECHNICALLY VERIFIED (2026-09-04, Claude Code)
+
+This entry was appended by Claude Code, not by Codex or the Owner. It reports what was implemented and technically verified for the follow-up task described above (Prepared Claude task — Public Quote + focused Clients correction, and the direct real-visual-testing findings that followed it). Nothing in this entry should be read as Owner visual acceptance; that remains a separate, explicit step.
+
+Root cause of the PDF/Print defect: Download PDF and Print Document both called window.print() only. Download PDF was never a genuine direct download.
+
+Fix: Print Document is untouched and still calls window.print() only, using the Compact/Expanded chooser exactly as before. Download PDF now calls a new client-side generator (src/utils/generateQuotePdf.js) that renders the live, already-correct DOM via html2canvas at a high scale factor and embeds the result as real image content inside a genuine PDF document via jsPDF, then triggers the browser's normal file-save download. Both libraries were already declared package.json dependencies with zero prior use anywhere in the source; no new dependency was added.
+
+Why this approach and not selectable text: building the PDF via jsPDF's own low-level text-drawing API was evaluated and rejected. It has no automatic Unicode bidi handling for arbitrary mixed Hebrew/digit/currency strings, needs a manually embedded Hebrew-capable font, and would require re-implementing this document's entire layout a second time by hand, with real risk of exactly the reversed/broken/disconnected Hebrew text this task explicitly forbade. Rendering the already-correct, already-tested live DOM sidesteps that risk entirely at the cost of the resulting PDF text not being selectable/copyable. This trade-off is stated plainly here for Owner review, not hidden.
+
+Pagination: naive fixed-height slicing was rejected because it could cut a table row or item/section block in half at a page boundary. A page-break-aware algorithm walks the same "must not split" elements (table rows, item/section boxes, the recipient box, the header box) already used by the native print path's own CSS break-inside:avoid rules, and nudges each page boundary back to the top of any block it would otherwise cut through, unless doing so would waste more than about 85 percent of that page.
+
+Real verification performed, not only code/CSS review: real PDF files were downloaded (via CDP download-behavior configuration, not assumed) and opened. Confirmed for Hebrew Compact, Hebrew Expanded, English Compact, and English Expanded: real %PDF file signature, correct MIME/file-type via the `file` command, filename built from the real formatted quote number only (for example ProFlow-Quote-A100701.pdf, ProFlow-Quote-A100702.pdf), no UUID or internal database id in the filename, no browser date/time/URL/title/print-header content anywhere in the file (this is structurally guaranteed by the implementation, since jsPDF only ever draws what the code explicitly gives it). Hebrew rendered correctly RTL throughout, including a real 8-row measurement table with correct column order, currency, and totals; nothing was reversed, broken, missing, or disconnected. Expanded mode correctly showed full per-item measurement detail; Compact mode correctly showed only the summary line, for both languages, verified by re-generating each mode from a clean state and confirming the file's own byte size changed accordingly (not just assumed from the UI). A genuinely long quote (20 line items, real terms and warranty content, created as a disposable TEST quote in the Hebrew TEST account, "PDF Pagination Stress Test (disposable)", quote A100705, left in place afterward as harmless disposable TEST data) produced a real 2-page PDF with no item row split across the page boundary and no section heading stranded away from its own content.
+
+Native Print was also re-verified using Chrome's own print engine (CDP Page.printToPDF, which exercises the real @media print stylesheet without needing a live print-dialog interaction): confirmed for Hebrew Expanded, Hebrew Compact, and English Expanded that the header - previously a dark background with white/translucent text that would either vanish or waste ink once actually printed - now renders as a light box with solid dark text, specifically and only under print/PDF output; on-screen appearance is completely unchanged. A short Hebrew quote produced 2 printed pages because its Terms/Notice/Footer block did not fit the remaining space on page 1 and was pushed whole to page 2 rather than being split - a deliberate trade-off (page-count efficiency for block integrity), not a defect, and it is disclosed here rather than presented as fully page-optimal. Native print page 2 could not be visually captured this round due to a repeated browser-harness/Chrome-PDF-viewer screenshot tooling limitation (not a product defect) - page 1 was confirmed correct for every combination tested, and the equivalent page-2 continuation was independently confirmed correct via the Download PDF path's own multi-page test.
+
+Honest limitation, stated directly per this task's own instruction: native browser print headers/footers (date, URL, title, page numbers) are controlled by the user's own print-dialog settings and cannot always be fully suppressed by page CSS. This limitation applies only to the Print Document action (real window.print()); it does not apply to Download PDF, which never contains any browser-injected chrome by construction.
+
+Clients table completion: Company/Client Name and Client Type now have fully independent sort controls (desktop: two separate header buttons, each with its own arrow shown only when that field is active; mobile: a new compact "Sort by Name / Sort by Type" menu, since two full header buttons do not fit cleanly at 320-390px). Name sorting is locale-aware (Intl localeCompare with 'he' or 'en' depending on the quote's own market, not a plain code-point comparison). Client Type sorting places business/private in a deterministic, direction-reversing order, with null/missing/unknown types always last regardless of direction, verified live both ways. Sorting is stable (JavaScript's native Array.sort stability, plus explicit unit tests). Expanded-row state is tracked by client id (not array index) and was confirmed live to follow the correct client after a re-sort, never attaching to the wrong row. Collapsed desktop row height was measured live, found to be 28.5px (under the 38-40px target) on the first pass, corrected, and re-measured at 38.5px. Header row height measured at 31.8px. The existing type-badge position (between the chevron and the name) and the existing 44-48px/lavender-expanded-state work from the prior round were preserved untouched.
+
+Tests: 374/374 pass (up from 320; 5 new test files covering PDF-vs-print separation, filename safety, pagination math, and the independent sort controls), lint clean on every touched file, production build succeeds.
+
+Explicit scope note: this entry does not authorize or claim any change to the Landing Pages / Business Tools audit items above, and did not touch Admin, schema, Production, or any real customer account. TEST/local only throughout.
+
+A note on this file itself: this file was found substantially reauthored (plain-prose Codex/Owner planning content, 601 lines) since the version Claude Code had previously written to it (a status-table format, mirrored into the proflow-continuity worktree). Claude Code did not overwrite that content - this entry was appended to the end, and the proflow-continuity worktree's own copy of this file is being brought in line with this version, not the reverse, since this is now the actively-maintained copy.
+
+Landing-page/tools implementation priority and final design direction: OPEN pending Owner discussion.
