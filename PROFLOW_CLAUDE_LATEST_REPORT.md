@@ -4,93 +4,77 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Recover Browser QA, Genuinely Close the Prior Task, Then Implement the Owner-Approved Smart Quote UX
+## Task: New Focused Task — Faded Business Logo in Direct PDF Download
 
 **MODE: TEST/local-only. NOT authorized: application commit, application push, deployment, Production change, database change, LIVE action, payment/email/message trigger.**
 
-**This task is NOT reported as "complete."** Stage 1 is genuinely, browser-verifiably complete. Stage 2's core is implemented, tested, and partially browser-verified, with specific named sub-items still open. This report states exactly which is which.
+This is an independent, narrowly-scoped correction, separate from the prior "Recover Browser QA / Smart Quote UX" task (already reported complete separately — not reopened or rewritten here). Its own report remains valid and untouched.
+
+**This task IS complete and PDF-visually-verified.** The real defect was root-caused with live browser evidence, fixed, and the fix was confirmed by inspecting genuine downloaded PDF files (not a simulation).
 
 ---
 
-## GATE 0 — Browser connection
+## Owner-observed defect
 
-PASSED. `browser-harness --doctor`: chrome running / daemon alive / 1 active connection. A single tab was reused throughout (never more than 1, confirmed repeatedly). Navigation confirmed to `http://localhost:5186` only — never Production. A harmless read-only DOM check (location/title) proved real control before any implementation resumed.
+In a real PDF downloaded from the Hebrew public quote's "Download PDF" (the direct html2canvas+jsPDF path, not `window.print()`), the business logo in the header rendered extremely pale/washed-out while the rest of the document was readable.
 
-**Real root-cause finding**: every TEST-persona login failure in this and the immediately-prior task (previously misattributed to Supabase rate-limiting) was actually caused by an anti-bot honeypot — two password inputs exist in the login form's DOM, and every earlier scripted login used the ambiguous `input[type=password]` selector, which matched the hidden decoy (`name="fake_pass_login"`) instead of the real field (`name="user_password_field"`). Fixed the *test technique* only (query the named fields explicitly) — the form's own security mechanism was not touched or weakened. Login now works reliably for both TEST personas used this session.
+## The task's own starting hypothesis — investigated and disproven
 
----
+The task suspected a missing `crossOrigin="anonymous"` on the logo `<img>` was causing `html2canvas` (`useCORS: true`) to taint the canvas for a cross-origin `logo_url`, "possibly Supabase Storage."
 
-## STAGE 1 — Genuinely closed, browser-verified
+**Both parts of that premise were checked against real code/live evidence and corrected:**
 
-### A. Desktop workspace geometry — BROWSER-VERIFIED
+1. **No Supabase Storage bucket exists for logos at all.** Grep-confirmed the only bucket (`quote-files`, in `Dashboard.jsx`) is for quote attachments. `SettingsTab.jsx`'s logo control either embeds an uploaded file as an inline base64 data URI (`FileReader.readAsDataURL` — same-origin, never CORS-relevant) or accepts a business-typed plain external URL of any host. The genuine cross-origin case only exists for the latter.
+2. **Reproduced live** with a real external test image (`dummyimage.com`, real `Access-Control-Allow-Origin: *`), uploaded through the actual Business-Settings-save flow on the Local/Hebrew Basic TEST persona (not simulated). Confirmed the original `<img>` (no `crossOrigin`) genuinely taints a canvas (`SecurityError` on `toDataURL`) — the hypothesis was plausible. But after adding `crossOrigin="anonymous"` and confirming the canvas was then truly non-tainted, a byte-for-byte identical `html2canvas` capture of the logo region proved the attribute had **zero effect** on the actual pale output. `useCORS: true` already handles this internally for this defect's purposes. The attribute was kept anyway as legitimate, harmless canvas-safety hygiene (with an `onError` fallback to plain loading, so a genuinely non-CORS host can never break on-screen display) — it just was not the fix.
 
-| Width | Shell | Sidebar | Content | Gap | Overflow |
-|---|---|---|---|---|---|
-| 1920px | 1120px | 232px | 888px | 0px | none |
-| 1440px | 1120px | 232px | 888px | 0px | none |
-| 1280px | 1120px | 232px | 888px | 0px | none |
-| 1024px | 968.6px | 232px | 736.6px | 0px | none |
-| 900px | 849.6px | 232px | 617.6px | 0px | none |
+## The real root cause — proven by live pixel-value evidence
 
-Identical numbers in both languages — sidebar physically right in Hebrew, physically left in English (exact mirror), unchanged 232px at every width. Spot-checked zero overflow across Clients/Finances/Catalog/Business Settings/Quotes/New Quote at 1440px, both languages. **Screenshot capture timed out twice** (`Page.captureScreenshot`, 60s) — a tooling limitation, not a masked failure (every other CDP operation kept working on the same connection) — the numeric measurements above are the verification evidence.
+The logo sits inside a wrapper `<div style="background: rgba(255,255,255,0.92); ...">` (the white "chip" against the dark on-screen header). **`html2canvas` paints this parent's translucent background-color OVER its child `<img>` instead of behind it** — a paint-order bug in the library for this exact structure, unrelated to CORS or timing.
 
-### B. Landing pages / Business Tools re-verification — BROWSER-VERIFIED
+Proof, in order, all live-measured in the real browser:
+1. Wrapper background forced fully **transparent** → captured logo pixel read back as the exact true source color `rgb(30,90,210)` (`#1e5ad2`) — perfect.
+2. Wrapper background forced fully **opaque white** → same pixel read back as pure `rgb(255,255,255)` — logo completely hidden.
+3. The real, unmodified **92%-opacity** wrapper background → same pixel read back as `rgb(237,242,251)` — the exact mathematical blend of 92% white over the true blue (predicted `237.0, 241.8, 251.4`). This proves the image renders correctly first and the chip's background is then incorrectly painted on top of it, at whatever opacity it happens to have.
 
-Both languages: exactly 1 AI chat widget, correct contact routing (support@ Hebrew / info@ English), no calculator overlap, no overflow at 320/390px. Savings claims proven genuinely dynamic and accurate live (Hebrew: 20%/20%; English/USD: 20% Basic / 21% Pro — different values, proving the fix isn't another shared hardcoded number).
+Also disproven as contributing causes: the `.pq-pdf-capturing .pq-header-box` text-contrast rule (defect reproduces identically with that class entirely absent) and the existing fixed 80ms capture delay (image was already `complete:true` with correct dimensions well before capture in every test; a live `Network.enable` trace showed zero re-fetch to the logo host during capture).
 
-### C. Full verification suite
+## The fix
 
-`npx vitest run` 414/414 → 429/429 after Stage 2 (30 files). `npx eslint` clean on every touched file. `npx vite build` succeeds. Full-diff secret scan clean.
+- Added a `pq-logo-chip` class to the wrapper `<div>` in both branches (Mobile/Desktop) of the shared `PublicQuoteHeader.jsx`.
+- Added `.pq-pdf-capturing .pq-logo-chip { background: transparent !important; }` to both `PublicQuote.jsx` and `PublicQuoteEn.jsx` (identical rule, both languages, since the header component is shared).
+- Safe specifically because the pre-existing `.pq-pdf-capturing .pq-header-box` rule directly above it already forces the whole header background to opaque white at the exact moment of capture — the chip's own background is provably 100% redundant at that instant. Removing it only during capture eliminates the bug's opportunity without any artificial opacity/brightness/filter/recoloring on the logo, without touching the uploaded logo file, and without changing normal on-screen appearance.
+- Kept `crossOrigin="anonymous"` + `onError` fallback on the logo `<img>` (canvas-safety hygiene, not the fix itself) and added `waitForImagesReady()` to `generateQuotePdf.js` (awaits `img.decode()` with a safe fallback and bounded timeout, before calling `html2canvas`) — addressing a related risk the task correctly flagged (a fresh CORS-mode fetch racing a short delay), even though it wasn't the cause of this particular defect.
 
----
+## BROWSER/PDF-VISUALLY-VERIFIED (real files, not simulated)
 
-## STAGE 2 — Smart Quote UX: core implemented, tested, partially browser-verified
+Extracted the actual embedded JPEG image directly from each downloaded PDF's own byte stream and viewed it:
 
-**Architecture note**: `Dashboard.jsx`'s `addItem`/`handleItemChange` read the outer `items` closure directly rather than using functional `setState` — calling them synchronously in sequence (as a naive wizard would) risks one update silently overwriting another within the same React batch. The wizard therefore builds one complete item object (shape-identical to what those functions would collectively produce) and adds it via a single atomic `setItems` call — the same safe pattern the pre-existing `handleCatalogAdd` already used. No second calculation engine was written; `getActiveQuantity`/`cmToM`/`computeMeasurementValue`/`resolveCalculationMethod` (all pre-existing, canonical) are reused directly.
+1. **Hebrew, Compact mode, real cross-origin logo** — BEFORE: logo barely visible (pale near-white haze). AFTER: crisp, fully opaque, exact correct blue, correctly proportioned. Same quote, same session, only the fix differs.
+2. **English (genuine International/USD persona), Expanded mode** — logo crisp/correct/left-positioned; full measurement sub-table renders correctly. Confirms symmetry across languages.
+3. **No-logo fallback** (logo URL cleared, confirmed zero `<img>` elements present) — PDF correctly shows the bold business name instead. No regression.
+4. **Compact and Expanded modes** both exercised (Hebrew/Compact, English/Expanded).
+5. **Native print path** confirmed unaffected: `.pq-logo-chip`'s computed background under real `Emulation.setEmulatedMedia('print')` stayed at the original 92%-opacity white, since `.pq-pdf-capturing` is a JS-toggled class native print never sets — the fix cannot leak into printing by construction.
+6. **Normal on-screen rendering** at a real emulated mobile viewport (390×844) confirmed unchanged.
 
-### What's done
+## SOURCE-VERIFIED
 
-- **New `src/components/AddItemWizard.jsx`**: one dominant "+ Add item to quote" button replaces the two previously-competing mechanisms (catalog dropdown + blank "Add Item" button). The unrelated arithmetic calculator and "Add Section" were correctly left alone.
-- **4-step wizard, all 3 entry methods** (By units / By area-length / From catalog): choose method → describe → quantify → review, with Back/Next preserving values and plain-language validation.
-- **Live calculation feedback, verified live exactly matching spec**: "300 × 200 cm = 6.00 m²" then "$1,200.00". Linear method computes from width only, height genuinely hidden. Displayed in cm, stored in meters — confirmed via a real round-trip through the existing (untouched) item-editing UI, which correctly redisplayed the stored 3m/2m as 300cm/200cm.
-- **Optional specifications** ("Details shown to the customer — do not affect price") confirmed live and by test to never affect the computed total.
-- **Entitlement lock** for the measurement method reuses the exact existing upgrade-confirmation modal (no new one built) — source-verified and unit-tested, **not** live-tested against a real FREE-tier account this session.
-- **15 new focused tests** (`AddItemWizard.test.jsx`) — and they did real work: a test for catalog-selection validation failed first, exposing a real bug (`handleConfirm` skipped validation on the catalog shortcut path), which was then fixed and reconfirmed live.
+`crossOrigin`/`onError` fallback in `PublicQuoteHeader.jsx`; `waitForImagesReady()` in `generateQuotePdf.js`, exported and covered by 5 new unit tests (already-complete fast-path, awaiting `decode()`, a rejected `decode()` not crashing, the load/error-listener fallback, and the timeout bound).
 
-### What's explicitly NOT done this session (named, not hidden)
+## Regression coverage
 
-- **Item E (compact item display/actions menu)** — the largest open piece. The existing item-row UI is untouched; the wizard is additive in front of it, not a replacement.
-- Full English mobile pass (only Hebrew was checked at 320px).
-- A live test against a real non-empty catalog (this TEST persona's catalog is empty).
-- A live FREE-tier entitlement-lock walkthrough (only Basic/Pro personas were available this session).
-- A full keyboard-only tab-order walk and screen-reader-specific pass (ARIA attributes are present and unit-tested; a live walk wasn't done).
-- Duplicate-entitlement/id-stripping, immutable-quote protection, and full locale/currency/VAT separation tests — these are pre-existing behaviors the wizard never touches, so not retested here, but also not independently reconfirmed this session.
-
-### Verification
-
-`npx eslint` clean. `npx vitest run` 429/429 (30 files, +15 this stage). `npx vite build` succeeds. Full-diff secret scan clean. Tab count held at 1 throughout.
-
----
+6 new tests in `PublicQuoteHeader.test.jsx` (crossOrigin + `.pq-logo-chip` presence in both Desktop/Mobile × both languages, the onError fallback, no-logo path never renders an `<img>`); 5 new tests in `generateQuotePdf.test.js`. `npx vitest run`: **441/441 passing, 30 files** (+12 from this task; was 429/429 at the close of the prior task). `npx eslint` clean (0 errors) on every touched file. `npx vite build` succeeds (same pre-existing chunk-size advisory, unrelated). Full-diff secret scan clean.
 
 ## Files changed this task
 
-`src/index.css`, `src/pages/Dashboard.jsx` (Stage 1 geometry) · `src/pages/LandingLocal.jsx`, `src/pages/LandingGlobal.jsx`, `src/pages/savingsClaimTruthfulness.test.js` (new), `src/pages/landingCopyTruthfulness.test.js` (new) (Stage 1 truthfulness) · `src/components/QuoteForm.jsx`, `src/components/AddItemWizard.jsx` (new), `src/components/AddItemWizard.test.jsx` (new) (Stage 2) · continuity-drift repair: `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_TODO.md` (reconciled to the fuller continuity-branch version, no content lost).
-
-## Continuity-drift repair
-
-Found 4 of 7 continuity files where the continuity branch held real content (historical work rounds) that this session's local copies lacked — confirmed a pure superset in both diff directions before reconciling, not a two-sided conflict. The other 3 files were already in perfect sync.
-
-## Approved future dependency (recorded, not started)
-
-Four landing-page product-demo videos (2 Hebrew, 2 English) are planned. They must **not** be storyboarded, recorded, or integrated until the Smart Quote UX is fully implemented, TEST/browser-verified, and visually accepted by the Owner. TEST data only, never Production/LIVE, when that gate is reached.
+`src/components/PublicQuoteHeader.jsx`, `src/components/PublicQuoteHeader.test.jsx`, `src/utils/generateQuotePdf.js`, `src/utils/generateQuotePdf.test.js`, `src/pages/PublicQuote.jsx`, `src/pages/PublicQuoteEn.jsx` — all additive edits on top of the pre-existing dirty working tree; no unrelated file touched, no file created or deleted (`git status` count unchanged at 72).
 
 ## Explicit statements
 
 - **PRODUCTION/LIVE TOUCHED?** NO
 - **DEPLOYMENT PERFORMED?** NO
-- **APPLICATION COMMIT/PUSH PERFORMED?** NO
-- **DATABASE/SCHEMA CHANGED?** NO
-- **PAYMENT OR REAL EMAIL/MESSAGE TRIGGERED?** NO
-- **OWNER FINAL VISUAL ACCEPTANCE:** PENDING
+- **APPLICATION COMMIT/PUSH PERFORMED?** NO (`HEAD` unchanged: `main`, `f3b59d0`)
+- **DATABASE/SCHEMA CHANGED?** NO (TEST personas' `logo_url` changed only through the app's own normal Save Business Settings action — ordinary TEST-data use, not a schema change)
+- **PAYMENT OR REAL EMAIL/MESSAGE/WHATSAPP/SIGNATURE TRIGGERED?** NO
+- **OWNER FINAL VISUAL ACCEPTANCE:** PENDING (real PDF files were generated and visually inspected by Claude this session; Owner has not yet independently reviewed the fix)
 
-**Recovery instruction for the next session**: Stage 1 is closed and needs no further work. Stage 2's next priority is Item E (compact item card + actions menu), followed by the English-mobile and FREE-tier-lock live passes named above. No blocker prevents resuming immediately — this is a scope/time boundary, not a technical or safety block.
+**Recovery instruction for the next session**: this task is closed — no further work is required on the logo defect itself. The unrelated prior task (Smart Quote UX, Item E / English-mobile pass / FREE-tier-lock live walkthrough) remains open exactly as previously reported and is unaffected by this task.
