@@ -1741,3 +1741,10 @@ safety gate against silently losing continuity or duplicating/diverging work
 across two conversations during the transition — not a technical limitation
 of the Bridge itself. Once the gate passes, the new conversation becomes the
 active one and the old conversation's role as control point ends.
+
+**Note (2026-09-05/06)**: the "Complete the Owner-Approved Smart Quote UX"
+task (`PROFLOW_PROJECT_CONTEXT.md` §201, `PROFLOW_CODEX_CHECKPOINT.md`) is a
+pure application-feature task (`AddItemWizard.jsx`/`QuoteForm.jsx`/Public
+Quote signature display) and did not touch the Bridge/tunnel/cross-conversation
+continuity protocol described in this file at all — recorded here only so
+this file's own status accurately reflects "untouched," not silently absent.
