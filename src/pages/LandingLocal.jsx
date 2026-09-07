@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
+import BrandName from '../components/BrandName';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
 import {
@@ -41,8 +42,8 @@ export default function LandingLocal({ onForgotPassword }) {
       : '/';
 
     setSeoMeta({
-      title: "ProFlow - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
-      description: 'ProFlow - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
+      title: "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      description: 'TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
       canonicalPath,
       hreflang: [
         { lang: 'he', path: '/he' },
@@ -72,7 +73,7 @@ export default function LandingLocal({ onForgotPassword }) {
     },
     {
       q: 'האם המערכת מותאמת לסמארטפון ולמחשב?',
-      a: 'כן, ProFlow פותחה כפלטפורמת SaaS מודרנית רספונסיבית לחלוטין, המאפשרת לך להפיק הצעות ולנהל את העסק מכל מחשב, טאבלט או סמארטפון.'
+      a: <>כן, <BrandName /> פותחה כפלטפורמת SaaS מודרנית רספונסיבית לחלוטין, המאפשרת לך להפיק הצעות ולנהל את העסק מכל מחשב, טאבלט או סמארטפון.</>
     },
     {
       q: 'האם הנתונים העסקיים שלי מאובטחים בענן?',
@@ -277,13 +278,15 @@ export default function LandingLocal({ onForgotPassword }) {
           {/* AI Video Demo Showcase */}
           <div style={{ margin: '0 auto 40px auto', maxWidth: '400px' }}>
             <video
-              autoPlay
-              loop
-              muted
-              playsInline
+              controls
+              preload="none"
+              poster="/videos/proflow-he-commercial-poster.jpg"
+              aria-label="TEKANGO - מהצעת מחיר ועד אישור וחתימה"
               style={{ width: '100%', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.3)', border: '1px solid rgba(255, 255, 255, 0.12)', display: 'block' }}
+              onEnded={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.pause(); }}
             >
-              <source src="/proflow-demo.mp4" type="video/mp4" />
+              <source src="/videos/proflow-he-commercial.mp4" type="video/mp4" />
+              <track kind="captions" src="/videos/proflow-he-commercial.vtt" srcLang="he" label="כתוביות" />
               הדפדפן שלך אינו תומך בהצגת סרטונים.
             </video>
           </div>
@@ -316,7 +319,7 @@ export default function LandingLocal({ onForgotPassword }) {
                 </ul>
               </div>
               <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '18px 20px' }}>
-                <div style={{ color: '#34d399', fontWeight: '800', fontSize: '0.85rem', marginBottom: '12px' }}>עם ProFlow</div>
+                <div style={{ color: '#34d399', fontWeight: '800', fontSize: '0.85rem', marginBottom: '12px' }}>עם <BrandName /></div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {['הצעת מחיר מוכנה ומעוצבת תוך דקה', 'מע"מ 18% מחושב אוטומטית', 'חתימה דיגיטלית ואישור מיידי', 'כל הלקוחות וההצעות במקום אחד'].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', fontSize: '0.9rem' }}>
@@ -327,9 +330,9 @@ export default function LandingLocal({ onForgotPassword }) {
                 </ul>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#c4b5fd', fontWeight: '700', fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#e4e4e7', fontWeight: '700', fontSize: '1rem' }}>
               <Lightbulb size={18} color="#f0abfc" fill="#f0abfc" strokeWidth={1} />
-              יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך עם ProFlow!
+              <span>יש דרך הרבה יותר קלה, חכמה ומקצועית לנהל את העסק שלך עם <BrandName />!</span>
             </div>
           </div>
 
@@ -357,7 +360,7 @@ export default function LandingLocal({ onForgotPassword }) {
               </div>
             </div>
             <div style={{ background: '#131318', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px dashed rgba(255,255,255,0.1)', fontSize: '0.9rem', fontWeight: 'bold' }}>
-              כך ייראה דשבורד הניהול של העסק שלך ב-ProFlow
+              כך ייראה דשבורד הניהול של העסק שלך ב-<BrandName />
             </div>
           </div>
 
@@ -535,11 +538,11 @@ export default function LandingLocal({ onForgotPassword }) {
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>נגישות</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/he/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@quotecodepro.com)</button>
+            <button onClick={() => navigate('/he/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@tekango.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => navigate('/he/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
           </div>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Israel. כל הזכויות שמורות.</p>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} <BrandName /> ישראל. כל הזכויות שמורות.</p>
         </div>
       </footer>
 

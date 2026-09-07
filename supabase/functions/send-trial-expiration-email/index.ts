@@ -6,7 +6,7 @@ import { resolveTrialReminderStage } from "./eligibility.ts";
 // ==========================================
 // 🚨 פונקציה זו אחראית באופן בלעדי על מיילי תזכורת תום תקופת ניסיון חינמית
 // (14 יום), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך Resend
-// מ-support@quotecodepro.com למשתמשים דוברי עברית ומ-info@quotecodepro.com
+// מ-support@tekango.com למשתמשים דוברי עברית ומ-info@tekango.com
 // למשתמשים דוברי אנגלית.
 // ==========================================
 
@@ -30,7 +30,7 @@ const ACCENT_VIOLET = '#8b5cf6';
 type Stage = '3d' | '24h';
 
 function senderAddressFor(isHebrew: boolean) {
-  return isHebrew ? 'ProFlow Support <support@quotecodepro.com>' : 'ProFlow <info@quotecodepro.com>';
+  return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
 }
 
 function formatDate(dateStr: string, isHebrew: boolean) {
@@ -52,7 +52,7 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
           <tr>
             <td style="background:${HEADER_BG};padding:20px 28px;">
-              <span style="color:#ffffff;font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Pro</span><span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Flow</span>
+              <span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>
             </td>
           </tr>
           <tr>
@@ -69,7 +69,7 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
 }
 
 function ctaButton(isHebrew: boolean) {
-  const url = 'https://www.quotecodepro.com/dashboard' + (isHebrew ? '' : '?lang=en');
+  const url = 'https://www.tekango.com/dashboard' + (isHebrew ? '' : '?lang=en');
   return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${isHebrew ? 'שדרג עכשיו' : 'Upgrade Now'}</a>`;
 }
 
@@ -81,42 +81,42 @@ function buildTrialReminderEmail({ stage, businessName, trialEndsAt, isHebrew }:
 
   if (stage === '3d') {
     const subject = isHebrew
-      ? 'תקופת הניסיון שלך ב-ProFlow מסתיימת בעוד 3 ימים'
-      : 'Your ProFlow trial ends in 3 days';
+      ? 'תקופת הניסיון שלך ב-TEKANGO מסתיימת בעוד 3 ימים'
+      : 'Your TEKANGO trial ends in 3 days';
     const html = wrapEmail(isHebrew, `
       <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `תקופת הניסיון החינמית שלך במערכת <strong>ProFlow</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל יכולות ה-PRO ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
-            : `Your free ProFlow trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all PRO features without interruption, upgrade to a paid plan.`}
+            ? `תקופת הניסיון החינמית שלך במערכת <strong>TEKANGO</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל יכולות ה-PRO ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
+            : `Your free TEKANGO trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all PRO features without interruption, upgrade to a paid plan.`}
         </p>
         ${ctaButton(isHebrew)}
       </div>
     `);
     const text = isHebrew
-      ? `שלום ${name}, תקופת הניסיון שלך ב-ProFlow מסתיימת ב-${dateStr} (עוד 3 ימים). שדרג עכשיו: https://www.quotecodepro.com/dashboard`
-      : `Hi ${name}, your ProFlow trial ends on ${dateStr} (in 3 days). Upgrade now: https://www.quotecodepro.com/dashboard?lang=en`;
+      ? `שלום ${name}, תקופת הניסיון שלך ב-TEKANGO מסתיימת ב-${dateStr} (עוד 3 ימים). שדרג עכשיו: https://www.tekango.com/dashboard`
+      : `Hi ${name}, your TEKANGO trial ends on ${dateStr} (in 3 days). Upgrade now: https://www.tekango.com/dashboard?lang=en`;
     return { subject, html, text };
   }
 
   const subject = isHebrew
     ? 'תזכורת אחרונה: תקופת הניסיון שלך מסתיימת מחר'
-    : 'Last reminder: your ProFlow trial ends tomorrow';
+    : 'Last reminder: your TEKANGO trial ends tomorrow';
   const html = wrapEmail(isHebrew, `
     <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
       <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
       <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
         ${isHebrew
-          ? `נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-ProFlow, שתסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית לתוכנית החינמית. שדרג עכשיו כדי להימנע מהפסקת שירות.`
-          : `Less than 24 hours remain on your ProFlow trial, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Upgrade now to avoid any interruption.`}
+          ? `נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-TEKANGO, שתסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית לתוכנית החינמית. שדרג עכשיו כדי להימנע מהפסקת שירות.`
+          : `Less than 24 hours remain on your TEKANGO trial, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Upgrade now to avoid any interruption.`}
       </p>
       ${ctaButton(isHebrew)}
     </div>
   `);
   const text = isHebrew
-    ? `שלום ${name}, נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-ProFlow (מסתיימת ב-${dateStr}). שדרג עכשיו: https://www.quotecodepro.com/dashboard`
-    : `Hi ${name}, less than 24 hours remain on your ProFlow trial (ends ${dateStr}). Upgrade now: https://www.quotecodepro.com/dashboard?lang=en`;
+    ? `שלום ${name}, נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-TEKANGO (מסתיימת ב-${dateStr}). שדרג עכשיו: https://www.tekango.com/dashboard`
+    : `Hi ${name}, less than 24 hours remain on your TEKANGO trial (ends ${dateStr}). Upgrade now: https://www.tekango.com/dashboard?lang=en`;
   return { subject, html, text };
 }
 

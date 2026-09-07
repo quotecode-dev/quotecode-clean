@@ -15,4 +15,4 @@ Allow: /terms
 Allow: /he/terms
 Allow: /en/terms
 
-Sitemap: https://www.quotecodepro.com/sitemap.xml
+Sitemap: https://www.tekango.com/sitemap.xml

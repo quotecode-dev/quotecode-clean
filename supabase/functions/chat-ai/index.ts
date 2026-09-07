@@ -19,7 +19,7 @@ serve(async (req) => {
     const isDashboard = body.isDashboard === true || body.isDashboard === 'true';
     const userEmail = body.userEmail;
 
-    const supportEmail = isHebrew ? 'support@quotecodepro.com' : 'info@quotecodepro.com';
+    const supportEmail = isHebrew ? 'support@tekango.com' : 'info@tekango.com';
 
     // הגדרת חוק שפה קשיח לפי דרישת המשתמש
     const languageInstruction = isHebrew 
@@ -40,15 +40,15 @@ serve(async (req) => {
 - Basic: $12/mo (20 quotes/mo).
 - Pro: $23/mo (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to 30MB total, max 3MB per file).
 - 14-day free trial gives full PRO access.
-- Your ProFlow subscription itself is priced in USD as shown above. Separately, when you create your own quotes for your clients, you may choose USD, EUR, or GBP as that quote's currency.`;
+- Your TEKANGO subscription itself is priced in USD as shown above. Separately, when you create your own quotes for your clients, you may choose USD, EUR, or GBP as that quote's currency.`;
 
-    const systemPrompt = `You are the official AI Support Assistant for ProFlow, a cloud-based SaaS business management and smart quoting platform (www.quotecodepro.com).
-Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions. 
+    const systemPrompt = `You are the official AI Support Assistant for TEKANGO, a cloud-based SaaS business management and smart quoting platform (www.tekango.com).
+Your Persona: Helpful, professional, concise, and friendly. Answer directly without long introductions.
 ${languageInstruction}
 
 SUPPORT EMAIL RULE:
-- For Hebrew users, use: support@quotecodepro.com
-- For English users, use: info@quotecodepro.com
+- For Hebrew users, use: support@tekango.com
+- For English users, use: info@tekango.com
 
 ${pricingBlock}
 
@@ -87,7 +87,7 @@ Rules:
 
     // אכיפה גורפת ומדויקת שמחליפה את support ל-info בכל צורה שלא תהיה באנגלית
     if (!isHebrew) {
-      aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+      aiReply = aiReply.replace(/support@tekango\.com/gi, 'info@tekango.com');
       if (data.choices?.[0]?.message) {
         data.choices[0].message.content = aiReply;
       }

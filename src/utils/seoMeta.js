@@ -40,7 +40,7 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
   // only, no query string) - the standard, safe default for pages that
   // aren't true duplicates of one another.
   const path = canonicalPath !== undefined ? canonicalPath : window.location.pathname;
-  const fullUrl = `https://www.quotecodepro.com${path === '/' ? '/' : path.replace(/\/$/, '')}`;
+  const fullUrl = `https://www.tekango.com${path === '/' ? '/' : path.replace(/\/$/, '')}`;
 
   let canonicalLink = document.querySelector('link[rel="canonical"]');
   if (!canonicalLink) {
@@ -65,7 +65,7 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
         tag.setAttribute('hreflang', lang);
         document.head.appendChild(tag);
       }
-      tag.setAttribute('href', `https://www.quotecodepro.com${hrefPath}`);
+      tag.setAttribute('href', `https://www.tekango.com${hrefPath}`);
     });
   }
 }

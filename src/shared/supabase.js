@@ -19,7 +19,7 @@ function extractSupabaseProjectRef(url) {
 if (isLocalTestMode) {
   if (import.meta.env.VITE_PROFLOW_ENV !== 'TEST') {
     throw new Error(
-      'ProFlow TEST mode fail-closed: running with --mode localtest but VITE_PROFLOW_ENV is not "TEST". ' +
+      'TEKANGO TEST mode fail-closed: running with --mode localtest but VITE_PROFLOW_ENV is not "TEST". ' +
       'This usually means .env.localtest.local is missing or was not loaded. Refusing to start.'
     )
   }
@@ -28,20 +28,20 @@ if (isLocalTestMode) {
 
   if (!resolvedRef) {
     throw new Error(
-      `ProFlow TEST mode fail-closed: VITE_SUPABASE_URL is missing or malformed ("${supabaseUrl}"). Refusing to start.`
+      `TEKANGO TEST mode fail-closed: VITE_SUPABASE_URL is missing or malformed ("${supabaseUrl}"). Refusing to start.`
     )
   }
 
   if (resolvedRef === PRODUCTION_PROJECT_REF) {
     throw new Error(
-      'ProFlow TEST mode fail-closed: VITE_SUPABASE_URL resolves to the PRODUCTION project ref. ' +
+      'TEKANGO TEST mode fail-closed: VITE_SUPABASE_URL resolves to the PRODUCTION project ref. ' +
       'Refusing to start to prevent a TEST session from touching Production.'
     )
   }
 
   if (resolvedRef !== TEST_PROJECT_REF) {
     throw new Error(
-      `ProFlow TEST mode fail-closed: VITE_SUPABASE_URL resolves to an unexpected project ref ("${resolvedRef}"), ` +
+      `TEKANGO TEST mode fail-closed: VITE_SUPABASE_URL resolves to an unexpected project ref ("${resolvedRef}"), ` +
       `not the known TEST project ref ("${TEST_PROJECT_REF}"). Refusing to start.`
     )
   }

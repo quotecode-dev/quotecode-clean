@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
+import BrandName from '../components/BrandName';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
 import {
@@ -41,8 +42,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       : '/';
 
     setSeoMeta({
-      title: "ProFlow - Business & Quoting SaaS Platform",
-      description: 'ProFlow is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.',
+      title: "TEKANGO - Business & Quoting SaaS Platform",
+      description: 'TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.',
       canonicalPath,
       hreflang: [
         { lang: 'he', path: '/he' },
@@ -117,7 +118,7 @@ export default function LandingGlobal({ onForgotPassword }) {
     },
     {
       q: 'Is the platform optimized for mobile and desktop?',
-      a: 'Yes, ProFlow is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.'
+      a: <>Yes, <BrandName /> is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.</>
     },
     {
       q: 'Is my business data secure on the cloud?',
@@ -334,13 +335,15 @@ export default function LandingGlobal({ onForgotPassword }) {
           {/* AI Video Demo Showcase */}
           <div style={{ margin: '0 auto 40px auto', maxWidth: '400px' }}>
             <video
-              autoPlay
-              loop
-              muted
-              playsInline
+              controls
+              preload="none"
+              poster="/videos/proflow-en-commercial-poster.jpg"
+              aria-label="TEKANGO - from quote to approval and signature"
               style={{ width: '100%', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.3)', border: '1px solid rgba(255, 255, 255, 0.12)', display: 'block' }}
+              onEnded={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.pause(); }}
             >
-              <source src="/proflow-demoEN.mp4" type="video/mp4" />
+              <source src="/videos/proflow-en-commercial.mp4" type="video/mp4" />
+              <track kind="captions" src="/videos/proflow-en-commercial.vtt" srcLang="en" label="Captions" />
               Your browser does not support video playback.
             </video>
           </div>
@@ -373,7 +376,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 </ul>
               </div>
               <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '10px', padding: '18px 20px' }}>
-                <div style={{ color: '#34d399', fontWeight: '700', fontSize: '0.85rem', marginBottom: '12px' }}>With ProFlow</div>
+                <div style={{ color: '#34d399', fontWeight: '700', fontSize: '0.85rem', marginBottom: '12px' }}>With <BrandName /></div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {['A polished quote ready in a minute', 'Taxes calculated automatically', 'Instant digital signature & approval', 'Every client and quote in one place'].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', fontSize: '0.9rem' }}>
@@ -384,9 +387,9 @@ export default function LandingGlobal({ onForgotPassword }) {
                 </ul>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#c4b5fd', fontWeight: '700', fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', color: '#e4e4e7', fontWeight: '700', fontSize: '1rem' }}>
               <Lightbulb size={18} color="#f0abfc" fill="#f0abfc" strokeWidth={1} />
-              There is a much easier, smarter, and professional way to run your business with ProFlow!
+              <span>There is a much easier, smarter, and professional way to run your business with <BrandName />!</span>
             </div>
           </div>
 
@@ -414,7 +417,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               </div>
             </div>
             <div style={{ background: '#131318', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#a1a1aa', border: '1px dashed rgba(255,255,255,0.1)', fontSize: '0.9rem', fontWeight: 'bold' }}>
-              This is how your business dashboard will look in ProFlow
+              This is how your business dashboard will look in <BrandName />
             </div>
           </div>
 
@@ -583,11 +586,11 @@ export default function LandingGlobal({ onForgotPassword }) {
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => setAccessibilityOpen(true)} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Accessibility</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/en/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />Contact Us (info@quotecodepro.com)</button>
+            <button onClick={() => navigate('/en/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />Contact Us (info@tekango.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => navigate('/en/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />Business Tools</button>
           </div>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} ProFlow Global. All rights reserved.</p>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} <BrandName /> Global. All rights reserved.</p>
         </div>
       </footer>
 

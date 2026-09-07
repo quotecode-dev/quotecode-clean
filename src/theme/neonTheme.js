@@ -115,7 +115,7 @@ export const neonGlowTextStyle = {
 // Dashboard visual redesign. Same key names as NEON on purpose: a component
 // file can switch its entire visual theme by aliasing this at import time
 // (`import { LIGHT as NEON } from '../theme/neonTheme'`) without touching any
-// individual style reference. ProFlow purple remains the primary/action
+// individual style reference. TEKANGO purple remains the primary/action
 // color; green/red stay semantic only (success/approved vs. warning/attention)
 // rather than being used decoratively.
 export const LIGHT = {

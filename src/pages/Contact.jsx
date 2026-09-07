@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
+import ProFlowLogo from '../components/ProFlowLogo';
 import { setSeoMeta } from '../utils/seoMeta';
 
 export default function Contact({ isHebrew }) {
@@ -21,9 +22,13 @@ export default function Contact({ isHebrew }) {
     // /he/contact ו-/en/contact הם היחידים שיכולים אי-פעם להיות קנוני; ה-
     // alias הריק עצמו לעולם לא.
     setSeoMeta({
-      title: isHebrew ? 'ProFlow - צור קשר ותמיכה' : 'ProFlow - Contact Us & Support',
-      description: isHebrew ? 'צרו קשר עם צוות התמיכה של ProFlow לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the ProFlow support team for any question about managing your business and quotes.',
+      title: isHebrew ? 'TEKANGO - צור קשר ותמיכה' : 'TEKANGO - Contact Us & Support',
+      description: isHebrew ? 'צרו קשר עם צוות התמיכה של TEKANGO לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the TEKANGO support team for any question about managing your business and quotes.',
       canonicalPath: isHebrew ? '/he/contact' : '/en/contact',
+      // חוק ברזל (Landing Pages + Tools TEST/Staging task, §13): lang חדש -
+      // ר' seoMeta.js לתיעוד המלא של הבאג (html lang/dir/og:locale מעולם לא
+      // התעדכנו per-page, גם כאן).
+      lang: isHebrew ? 'he' : 'en',
       hreflang: [
         { lang: 'he', path: '/he/contact' },
         { lang: 'en', path: '/en/contact' },
@@ -36,7 +41,7 @@ export default function Contact({ isHebrew }) {
     subtitle: 'נשמח לעזור! אנחנו זמינים עבורך לכל שאלה, בקשה או תקלה טכנית.',
     back: 'חזור אחורה',
     emailTitle: 'אימייל לתמיכה',
-    emailValue: 'support@quotecodepro.com',
+    emailValue: 'support@tekango.com',
     emailDesc: 'פניות בנושאי שירות לקוחות, תמיכה טכנית ושאלות על המערכת.',
     responseTimeTitle: 'זמני מענה',
     responseTimeValue: 'אנו משתדלים להשיב לכל פנייה בתוך 24 שעות.',
@@ -44,13 +49,17 @@ export default function Contact({ isHebrew }) {
     aiTitle: 'צ\'אט תמיכה חכם (AI)',
     aiDesc: 'קבל מענה מיידי 24/7 לשאלות נפוצות, תפעול המערכת והדרכות בעזרת עוזר ה-AI שלנו.',
     aiButton: 'התחל צ\'אט ✦',
-    footerText: 'ProFlow Israel - פלטפורמת ה-SaaS המתקדמת לניהול עסק.'
+    footerText: 'TEKANGO ישראל - פלטפורמת ה-SaaS המתקדמת לניהול עסק.'
   } : {
     title: 'Contact Us',
     subtitle: 'We are here to help! Reach out for any questions, requests, or technical support.',
     back: 'Go Back',
     emailTitle: 'Support Email',
-    emailValue: 'support@quotecodepro.com',
+    // חוק ברזל (Landing Pages + Tools TEST/Staging task, §6): הפרדת ניתוב
+    // תמיכה לפי שוק היא דרישת Owner מפורשת - support@ לעברית/ישראל,
+    // info@ לאנגלית/בינלאומי. עמוד זה הציג בטעות support@ בשתי השפות
+    // (בניגוד לפוטר בדפי הנחיתה שכבר הפריד נכון) - תוקן כאן.
+    emailValue: 'info@tekango.com',
     emailDesc: 'For customer service, technical support, and general inquiries.',
     responseTimeTitle: 'Response Time',
     responseTimeValue: 'We aim to respond to all inquiries within 24 hours.',
@@ -58,7 +67,7 @@ export default function Contact({ isHebrew }) {
     aiTitle: 'AI Support Chat',
     aiDesc: 'Get instant 24/7 answers to common questions, system operations, and guides using our AI assistant.',
     aiButton: 'Start Chat ✦',
-    footerText: 'ProFlow Global - The advanced SaaS platform for business management.'
+    footerText: 'TEKANGO Global - The advanced SaaS platform for business management.'
   };
 
   const handleAiClick = () => {
@@ -117,11 +126,8 @@ export default function Contact({ isHebrew }) {
       {/* Header */}
       <header style={{ background: 'rgba(9, 13, 22, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <div style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-             </div>
-             ProFlow
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ProFlowLogo size={32} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <AIChatWidget isHebrew={isHebrew} isDashboard={false} />

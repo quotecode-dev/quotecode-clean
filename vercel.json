@@ -5,7 +5,23 @@
       "has": [
         { "type": "host", "value": "quotecode.vercel.app" }
       ],
-      "destination": "https://www.quotecodepro.com/:path*",
+      "destination": "https://www.tekango.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "quotecodepro.com" }
+      ],
+      "destination": "https://www.tekango.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "www.quotecodepro.com" }
+      ],
+      "destination": "https://www.tekango.com/:path*",
       "permanent": true
     }
   ],

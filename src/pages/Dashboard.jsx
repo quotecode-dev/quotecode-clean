@@ -1401,7 +1401,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // מ-bizCountry/session ומיועד לתצוגת חשבון *קיים* בלבד, לא localStorage,
       // לא שפת דפדפן, לא geo) - פשוט לא נרשמים, ומוצגת שגיאה כללית. emailRedirectTo
       // מוצמד לדומיין הקנוני המפורש בכוונה (לא window.location.origin), כדי
-      // שהאימות תמיד יחזור ל-www.quotecodepro.com גם אם ההרשמה בוצעה
+      // שהאימות תמיד יחזור ל-www.tekango.com גם אם ההרשמה בוצעה
       // דרך quotecode.vercel.app.
       if (typeof bundleIsHebrew !== 'boolean') {
         setAuthError(isHebrew
@@ -1414,7 +1414,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         email: emailInput,
         password: passwordInput,
         options: {
-          emailRedirectTo: 'https://www.quotecodepro.com/dashboard',
+          emailRedirectTo: 'https://www.tekango.com/dashboard',
           data: { signup_market: bundleIsHebrew ? 'Local' : 'International' }
         }
       });

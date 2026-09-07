@@ -7,11 +7,39 @@ import { resolveCanonicalRedirect, VERCEL_APP_HOST, CANONICAL_ORIGIN } from './m
 
 describe('resolveCanonicalRedirect', () => {
   it('canonical Production host root: NO redirect', () => {
-    expect(resolveCanonicalRedirect('www.quotecodepro.com', '/', '')).toBeNull();
+    expect(resolveCanonicalRedirect('www.tekango.com', '/', '')).toBeNull();
   });
 
   it('canonical Production host, any path: NO redirect', () => {
-    expect(resolveCanonicalRedirect('www.quotecodepro.com', '/dashboard', '?lang=he')).toBeNull();
+    expect(resolveCanonicalRedirect('www.tekango.com', '/dashboard', '?lang=he')).toBeNull();
+  });
+
+  // TEKANGO Public-Migration RC (Worker 3, 2026-09-07): the business
+  // requirement flipped from the prior task's decision. Previously
+  // www.quotecodepro.com was deliberately left as a non-redirecting legacy
+  // host (see git history for the old version of this test). Now old
+  // bookmarks/links to quotecodepro.com (bare) and www.quotecodepro.com must
+  // ALSO permanently 308-redirect to the equivalent path+query under
+  // CANONICAL_ORIGIN, exactly like the Vercel host - they no longer continue
+  // to resolve on the old site at all.
+  it('legacy host (quotecodepro.com, bare apex) root: redirects to the canonical origin root', () => {
+    expect(resolveCanonicalRedirect('quotecodepro.com', '/', '')).toBe(`${CANONICAL_ORIGIN}/`);
+  });
+
+  it('legacy host (quotecodepro.com, bare apex) with path and query: preserves both exactly', () => {
+    expect(resolveCanonicalRedirect('quotecodepro.com', '/en/public-quote/abc123', '?lang=en')).toBe(
+      `${CANONICAL_ORIGIN}/en/public-quote/abc123?lang=en`
+    );
+  });
+
+  it('legacy host (www.quotecodepro.com) root: redirects to the canonical origin root', () => {
+    expect(resolveCanonicalRedirect('www.quotecodepro.com', '/', '')).toBe(`${CANONICAL_ORIGIN}/`);
+  });
+
+  it('legacy host (www.quotecodepro.com) with path and query: preserves both exactly', () => {
+    expect(resolveCanonicalRedirect('www.quotecodepro.com', '/dashboard', '?lang=he')).toBe(
+      `${CANONICAL_ORIGIN}/dashboard?lang=he`
+    );
   });
 
   it('Vercel host root: redirects to the canonical origin root', () => {
@@ -28,8 +56,20 @@ describe('resolveCanonicalRedirect', () => {
     );
   });
 
-  it('is case-insensitive on the host header', () => {
+  it('is case-insensitive on the host header (Vercel host)', () => {
     expect(resolveCanonicalRedirect('QuoteCode.Vercel.App', '/', '')).toBe(`${CANONICAL_ORIGIN}/`);
+  });
+
+  it('is case-insensitive on the host header (bare apex legacy host)', () => {
+    expect(resolveCanonicalRedirect('QuoteCodePro.COM', '/dashboard', '?lang=he')).toBe(
+      `${CANONICAL_ORIGIN}/dashboard?lang=he`
+    );
+  });
+
+  it('is case-insensitive on the host header (www legacy host)', () => {
+    expect(resolveCanonicalRedirect('WWW.QuoteCodePro.com', '/en', '?lang=en')).toBe(
+      `${CANONICAL_ORIGIN}/en?lang=en`
+    );
   });
 
   it('local development host: NO forced Production redirect', () => {
@@ -47,7 +87,7 @@ describe('resolveCanonicalRedirect', () => {
   });
 
   it('never redirects the canonical host to itself (no loop possible by construction)', () => {
-    const target = resolveCanonicalRedirect('www.quotecodepro.com', '/', '');
+    const target = resolveCanonicalRedirect('www.tekango.com', '/', '');
     expect(target).toBeNull();
     // Even if it somehow returned a target, CANONICAL_ORIGIN never equals VERCEL_APP_HOST,
     // so a redirect can never point back to the same host that triggered it.

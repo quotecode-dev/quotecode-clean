@@ -138,7 +138,7 @@ html {
      Alignment task, Owner-final decision): כל סבב הניסויים הקודם (1440px
      קבוע → 1320px קבוע → min(1320px,72vw) → min(1320px,85vw)) הוחלף
      לגמרי - הבעלים קבע במפורש שאין "רוחב חדש" לעצב/לאמוד/לקרב: הרוחב
-     הקנוני היחיד של ProFlow הוא הרוחב הקיים, המאושר-בעלים, של Public
+     הקנוני היחיד של TEKANGO הוא הרוחב הקיים, המאושר-בעלים, של Public
      Quote עצמו (--pf-desktop-content-width, 980px, LOCKED) - לא 70-75%,
      לא 72vw, לא 85vw, לא ערך-דשבורד חדש שהומצא. משתנה הדשבורד נשאר
      קיים ונפרד בכוונה (לא מוחלף לגמרי בשימוש ישיר ב-var הראשי בכל מקום)
@@ -147,7 +147,7 @@ html {
      הקנוני של Public Quote במקום להחזיק מספר עצמאי, כך שיש מקור-אמת
      יחיד אמיתי (§56/§58) ולא רק שני מספרים שבמקרה שווים. הטבלה
      (QuotesTab.jsx) הותאמה בנפרד כדי להיכנס לרוחב הזה בלי overflow -
-     ר' ההערה שם ("Table Fits ProFlow, Not The Reverse", §58) - הרוחב
+     ר' ההערה שם ("Table Fits TEKANGO, Not The Reverse", §58) - הרוחב
      הזה עצמו לא הורחב כדי להתאים לטבלה, בהתאם לכלל המפורש של הבעלים. */
   --pf-dashboard-desktop-content-width: var(--pf-desktop-content-width);
   /* Public Quote document-shell decorative inset (Desktop only - the

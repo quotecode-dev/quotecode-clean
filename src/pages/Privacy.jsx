@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
+import ProFlowLogo from '../components/ProFlowLogo';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
@@ -13,9 +14,10 @@ export default function Privacy({ isHebrew }) {
     }
 
     setSeoMeta({
-      title: isHebrew ? 'ProFlow - מדיניות פרטיות' : 'ProFlow - Privacy Policy',
-      description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת ProFlow ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the ProFlow platform and how user data is handled.',
+      title: isHebrew ? 'TEKANGO - מדיניות פרטיות' : 'TEKANGO - Privacy Policy',
+      description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת TEKANGO ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the TEKANGO platform and how user data is handled.',
       canonicalPath: isHebrew ? '/he/privacy' : '/en/privacy',
+      lang: isHebrew ? 'he' : 'en',
       hreflang: [
         { lang: 'he', path: '/he/privacy' },
         { lang: 'en', path: '/en/privacy' },
@@ -30,7 +32,7 @@ export default function Privacy({ isHebrew }) {
     sections: [
       {
         title: '1. איסוף מידע',
-        content: 'בעת ההרשמה והשימוש במערכת ProFlow, אנו אוספים מידע אישי בסיסי כגון כתובת אימייל ופרטי התחברות. בנוסף, המערכת שומרת את הנתונים שאתה מזין (לקוחות, הצעות מחיר, הוצאות) כדי לספק לך את השירות.'
+        content: 'בעת ההרשמה והשימוש במערכת TEKANGO, אנו אוספים מידע אישי בסיסי כגון כתובת אימייל ופרטי התחברות. בנוסף, המערכת שומרת את הנתונים שאתה מזין (לקוחות, הצעות מחיר, הוצאות) כדי לספק לך את השירות.'
       },
       {
         title: '2. שימוש במידע',
@@ -60,7 +62,7 @@ export default function Privacy({ isHebrew }) {
     sections: [
       {
         title: '1. Data Collection',
-        content: 'When you register and use the ProFlow platform, we collect basic personal information such as your email address and login details. Additionally, the system stores the business data you input (clients, quotes, expenses) to provide the service.'
+        content: 'When you register and use the TEKANGO platform, we collect basic personal information such as your email address and login details. Additionally, the system stores the business data you input (clients, quotes, expenses) to provide the service.'
       },
       {
         title: '2. Use of Information',
@@ -91,13 +93,10 @@ export default function Privacy({ isHebrew }) {
       {/* Header */}
       <header style={{ background: 'rgba(9, 13, 22, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <div style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-             </div>
-             ProFlow
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ProFlowLogo size={32} />
           </div>
-          <button 
+          <button
             onClick={() => navigate(-1)} 
             style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', transition: 'all 0.2s' }}
             onMouseEnter={(e) => { e.target.style.color = '#ffffff'; e.target.style.borderColor = '#ffffff'; }}
@@ -127,7 +126,7 @@ export default function Privacy({ isHebrew }) {
 
       {/* Footer */}
       <footer style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        &copy; {new Date().getFullYear()} ProFlow. {isHebrew ? 'כל הזכויות שמורות.' : 'All rights reserved.'}
+        &copy; {new Date().getFullYear()} TEKANGO. {isHebrew ? 'כל הזכויות שמורות.' : 'All rights reserved.'}
       </footer>
     </div>
   );

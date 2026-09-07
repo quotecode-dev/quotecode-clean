@@ -6,7 +6,7 @@ import { buildSubscriptionEmailSafeResponse } from "./safeResponse.ts";
 // ==========================================
 // 🚨 פונקציה זו אחראית באופן בלעדי על מיילי תזכורת תפוגת מנוי בתשלום
 // (Basic/Pro), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך
-// Resend מ-support@quotecodepro.com למשתמשים דוברי עברית ומ-info@quotecodepro.com
+// Resend מ-support@tekango.com למשתמשים דוברי עברית ומ-info@tekango.com
 // למשתמשים דוברי אנגלית.
 // ==========================================
 
@@ -30,7 +30,7 @@ const ACCENT_VIOLET = '#8b5cf6';
 type Stage = '3d' | '24h';
 
 function senderAddressFor(isHebrew: boolean) {
-  return isHebrew ? 'ProFlow Support <support@quotecodepro.com>' : 'ProFlow <info@quotecodepro.com>';
+  return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
 }
 
 function formatDate(dateStr: string, isHebrew: boolean) {
@@ -52,7 +52,7 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
           <tr>
             <td style="background:${HEADER_BG};padding:20px 28px;">
-              <span style="color:#ffffff;font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Pro</span><span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">Flow</span>
+              <span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>
             </td>
           </tr>
           <tr>
@@ -69,7 +69,7 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
 }
 
 function ctaButton(isHebrew: boolean) {
-  const url = 'https://www.quotecodepro.com/dashboard' + (isHebrew ? '' : '?lang=en');
+  const url = 'https://www.tekango.com/dashboard' + (isHebrew ? '' : '?lang=en');
   const text = isHebrew ? 'חידוש מנוי' : 'Renew Subscription';
   return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${text}</a>`;
 }
@@ -82,42 +82,42 @@ function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsA
 
   if (stage === '3d') {
     const subject = isHebrew
-      ? 'המנוי שלך ב-ProFlow עומד פג תוקף בעוד 3 ימים'
-      : 'Your ProFlow subscription expires in 3 days';
+      ? 'המנוי שלך ב-TEKANGO עומד פג תוקף בעוד 3 ימים'
+      : 'Your TEKANGO subscription expires in 3 days';
     const html = wrapEmail(isHebrew, `
       <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `מנוי ה־PRO בתשלום שלך במערכת <strong>ProFlow</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
-            : `Your paid ProFlow subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
+            ? `מנוי ה־PRO בתשלום שלך במערכת <strong>TEKANGO</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
+            : `Your paid TEKANGO subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
         </p>
         ${ctaButton(isHebrew)}
       </div>
     `);
     const text = isHebrew
-      ? `שלום ${name}, המנוי שלך ב-ProFlow מסתיים ב-${dateStr} (עוד 3 ימים). חדש עכשיו: https://www.quotecodepro.com/dashboard`
-      : `Hi ${name}, your ProFlow subscription ends on ${dateStr} (in 3 days). Renew now: https://www.quotecodepro.com/dashboard?lang=en`;
+      ? `שלום ${name}, המנוי שלך ב-TEKANGO מסתיים ב-${dateStr} (עוד 3 ימים). חדש עכשיו: https://www.tekango.com/dashboard`
+      : `Hi ${name}, your TEKANGO subscription ends on ${dateStr} (in 3 days). Renew now: https://www.tekango.com/dashboard?lang=en`;
     return { subject, html, text };
   }
 
   const subject = isHebrew
-    ? 'תזכורת אחרונה: המנוי שלך ב-ProFlow פג מחר'
-    : 'Last reminder: your ProFlow subscription expires tomorrow';
+    ? 'תזכורת אחרונה: המנוי שלך ב-TEKANGO פג מחר'
+    : 'Last reminder: your TEKANGO subscription expires tomorrow';
   const html = wrapEmail(isHebrew, `
     <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
       <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
       <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
         ${isHebrew
-          ? `נשארו פחות מ-24 שעות למנוי שלך ב-ProFlow, שיסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינמי. חדש עכשיו כדי להימנע מהפרעה בעבודה.`
-          : `Less than 24 hours remain on your paid ProFlow subscription, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Renew now to avoid any disruption to your work.`}
+          ? `נשארו פחות מ-24 שעות למנוי שלך ב-TEKANGO, שיסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינמי. חדש עכשיו כדי להימנע מהפרעה בעבודה.`
+          : `Less than 24 hours remain on your paid TEKANGO subscription, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Renew now to avoid any disruption to your work.`}
       </p>
       ${ctaButton(isHebrew)}
     </div>
   `);
   const text = isHebrew
-    ? `שלום ${name}, נשארו פחות מ-24 שעות למנוי שלך ב-ProFlow (מסתיים ב-${dateStr}). חדש עכשיו: https://www.quotecodepro.com/dashboard`
-    : `Hi ${name}, less than 24 hours remain on your ProFlow subscription (ends ${dateStr}). Renew now: https://www.quotecodepro.com/dashboard?lang=en`;
+    ? `שלום ${name}, נשארו פחות מ-24 שעות למנוי שלך ב-TEKANGO (מסתיים ב-${dateStr}). חדש עכשיו: https://www.tekango.com/dashboard`
+    : `Hi ${name}, less than 24 hours remain on your TEKANGO subscription (ends ${dateStr}). Renew now: https://www.tekango.com/dashboard?lang=en`;
   return { subject, html, text };
 }
 

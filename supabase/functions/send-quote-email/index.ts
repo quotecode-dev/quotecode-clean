@@ -9,6 +9,14 @@ const corsHeaders = {
 const INTL_CURRENCIES = ['USD', 'EUR', 'GBP']
 const INTL_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' }
 
+// אותו דפוס בדיוק כמו ב-send-trial-expiration-email/send-subscription-expiration-email:
+// כתובת השולח נגזרת מ-effectiveHebrew (למטה) - אותה הכרעת אזור יחידה, אמינה
+// ומאומתת server-side, שכבר קובעת את שפת גוף המייל/הנושא/קישור ההצעה עצמם.
+// לעולם לא נוצר כאן מקור-אמת שני נפרד לכתובת השולח.
+function senderAddressFor(isHebrew: boolean) {
+  return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
+}
+
 // חוק ברזל: שפה וסמל מטבע חייבים תמיד לצאת מאותה הכרעת אזור יחידה - לעולם
 // לא שני מקורות נפרדים (כמו שהיה כאן קודם: effectiveHebrew מ-country אבל
 // resolvedSym ישירות מ-quote.currency, מה שיכול היה לייצר "English + ₪"
@@ -161,7 +169,7 @@ serve(async (req) => {
 
     // נמען ושם הלקוח נגזרים אך ורק מרשומת ה-client האמיתית המקושרת להצעה -
     // לעולם לא מהבקשה, אחרת קורא כלשהו יכול היה להפנות מייל "רשמי" של
-    // ProFlow לכל כתובת שירצה.
+    // TEKANGO לכל כתובת שירצה.
     let clientEmail: string | null = null
     let clientCompanyName: string | null = null
     if (quoteRow.client_id) {
@@ -184,7 +192,7 @@ serve(async (req) => {
     const effectiveHebrew = resolved.hebrew
     const resolvedSym = resolved.symbol
 
-    const bizTitle = bizName || 'ProFlow';
+    const bizTitle = bizName || 'TEKANGO';
     const clientDisplayName = clientCompanyName || (effectiveHebrew ? 'לקוח יקר' : 'Dear Client');
     // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
     // קודמת עשתה Math.round() כאן, ומחקה בשקט אגורות/סנטים מהסכום שמוצג
@@ -200,8 +208,18 @@ serve(async (req) => {
 
     // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
     // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור
-    // דיוג כלשהו בתוך מייל "רשמי" שנשלח מהדומיין האמיתי של ProFlow.
-    const PROD_ORIGIN = 'https://www.quotecodepro.com';
+    // דיוג כלשהו בתוך מייל "רשמי" שנשלח מהדומיין האמיתי של TEKANGO.
+    // TEKANGO Email Migration + Visible Rebrand Sweep task (2026-09-07):
+    // updated to the new canonical domain. Unlike the /dashboard links in
+    // send-trial-expiration-email/send-subscription-expiration-email (an
+    // AUTHENTICATED route - a returning user's session lives in that
+    // origin's own localStorage, so repointing it could strand an
+    // already-logged-in user on the new domain with no session), a public
+    // quote link is fully anonymous (get-public-quote has no auth check at
+    // all) - there is no session-continuity risk here. Already-sent emails
+    // keep working regardless: www.quotecodepro.com still resolves (no DNS
+    // change made), only NEW emails from this point use the new domain.
+    const PROD_ORIGIN = 'https://www.tekango.com';
     const canonicalQuoteLink = effectiveHebrew
       ? `${PROD_ORIGIN}/public-quote/${quoteId}`
       : `${PROD_ORIGIN}/en/public-quote/${quoteId}?lang=en`;
@@ -271,7 +289,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'ProFlow <info@quotecodepro.com>',
+        from: senderAddressFor(effectiveHebrew),
         to: [clientEmail],
         subject: subject,
         html: html,

@@ -166,7 +166,7 @@ serve(async (req) => {
         return jsonResponse({ error: 'Missing or invalid "invoiceLineItem"' }, 400);
       }
       const lineItem = buildRegionalInvoiceLineItem({
-        description: invoiceLineItem.description || 'ProFlow subscription',
+        description: invoiceLineItem.description || 'TEKANGO subscription',
         unitPriceCents: invoiceLineItem.unitPriceCents,
         quantity: invoiceLineItem.quantity || 1,
         billingProfile,

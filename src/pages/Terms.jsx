@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
+import ProFlowLogo from '../components/ProFlowLogo';
 
 export default function Terms({ isHebrew }) {
   const navigate = useNavigate();
@@ -13,9 +14,10 @@ export default function Terms({ isHebrew }) {
     }
 
     setSeoMeta({
-      title: isHebrew ? 'ProFlow - תנאי שימוש' : 'ProFlow - Terms of Service',
-      description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת ProFlow לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the ProFlow business management and quoting platform.',
+      title: isHebrew ? 'TEKANGO - תנאי שימוש' : 'TEKANGO - Terms of Service',
+      description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת TEKANGO לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the TEKANGO business management and quoting platform.',
       canonicalPath: isHebrew ? '/he/terms' : '/en/terms',
+      lang: isHebrew ? 'he' : 'en',
       hreflang: [
         { lang: 'he', path: '/he/terms' },
         { lang: 'en', path: '/en/terms' },
@@ -30,11 +32,11 @@ export default function Terms({ isHebrew }) {
     sections: [
       {
         title: '1. קבלת התנאים',
-        content: 'בעצם ההרשמה והשימוש במערכת ProFlow ("השירות"), אתה מסכים להיות כפוף לתנאים אלו. אם אינך מסכים לתנאים, אנא אל תשתמש במערכת.'
+        content: 'בעצם ההרשמה והשימוש במערכת TEKANGO ("השירות"), אתה מסכים להיות כפוף לתנאים אלו. אם אינך מסכים לתנאים, אנא אל תשתמש במערכת.'
       },
       {
         title: '2. תיאור השירות',
-        content: 'ProFlow היא פלטפורמת SaaS עננית לניהול עסק, הפקת הצעות מחיר, גבייה, ניהול הוצאות וניהול לקוחות. השירות מסופק למשתמשים במצבו הנוכחי ("As-Is").'
+        content: 'TEKANGO היא פלטפורמת SaaS עננית לניהול עסק, הפקת הצעות מחיר, גבייה, ניהול הוצאות וניהול לקוחות. השירות מסופק למשתמשים במצבו הנוכחי ("As-Is").'
       },
       {
         title: '3. חשבון משתמש ואבטחה',
@@ -46,11 +48,11 @@ export default function Terms({ isHebrew }) {
       },
       {
         title: '5. קניין רוחני',
-        content: 'כל הזכויות, הקוד, העיצוב (UI/UX) והקניין הרוחני של המערכת שייכים בלעדית ל-ProFlow. אין להעתיק, לשכפל, להפיץ או להשתמש בתוכן המערכת למטרות מסחריות מתחרות ללא אישור מפורש בכתב.'
+        content: 'כל הזכויות, הקוד, העיצוב (UI/UX) והקניין הרוחני של המערכת שייכים בלעדית ל-TEKANGO. אין להעתיק, לשכפל, להפיץ או להשתמש בתוכן המערכת למטרות מסחריות מתחרות ללא אישור מפורש בכתב.'
       },
       {
         title: '6. הגבלת אחריות',
-        content: 'ProFlow, מנהליה ועובדיה לא יישאו באחריות לכל נזק ישיר או עקיף, אובדן נתונים, הפסד הכנסות או עיכוב בפעילות העסקית שייגרם כתוצאה משימוש, אי-יכולת להשתמש במערכת, או תקלות צד שלישי (כגון שרתי הענן).'
+        content: 'TEKANGO, מנהליה ועובדיה לא יישאו באחריות לכל נזק ישיר או עקיף, אובדן נתונים, הפסד הכנסות או עיכוב בפעילות העסקית שייגרם כתוצאה משימוש, אי-יכולת להשתמש במערכת, או תקלות צד שלישי (כגון שרתי הענן).'
       },
       {
         title: '7. הדין החל וסמכות שיפוט',
@@ -64,11 +66,11 @@ export default function Terms({ isHebrew }) {
     sections: [
       {
         title: '1. Acceptance of Terms',
-        content: 'By registering and using the ProFlow platform ("the Service"), you agree to be bound by these terms. If you do not agree to these terms, please refrain from using the platform.'
+        content: 'By registering and using the TEKANGO platform ("the Service"), you agree to be bound by these terms. If you do not agree to these terms, please refrain from using the platform.'
       },
       {
         title: '2. Description of Service',
-        content: 'ProFlow is a cloud-based SaaS platform designed for business management, price quoting, billing, expense tracking, and CRM. The service is provided on an "As-Is" and "As-Available" basis.'
+        content: 'TEKANGO is a cloud-based SaaS platform designed for business management, price quoting, billing, expense tracking, and CRM. The service is provided on an "As-Is" and "As-Available" basis.'
       },
       {
         title: '3. User Account and Security',
@@ -80,11 +82,11 @@ export default function Terms({ isHebrew }) {
       },
       {
         title: '5. Intellectual Property',
-        content: 'All rights, code, UI/UX design, and intellectual property associated with the platform belong exclusively to ProFlow. You may not copy, reproduce, distribute, or reverse-engineer the platform for competing commercial purposes without explicit written consent.'
+        content: 'All rights, code, UI/UX design, and intellectual property associated with the platform belong exclusively to TEKANGO. You may not copy, reproduce, distribute, or reverse-engineer the platform for competing commercial purposes without explicit written consent.'
       },
       {
         title: '6. Limitation of Liability',
-        content: 'ProFlow, its directors, and employees shall not be liable for any direct, indirect, incidental, or consequential damages, data loss, or loss of revenue resulting from the use or inability to use the platform, including third-party server downtimes.'
+        content: 'TEKANGO, its directors, and employees shall not be liable for any direct, indirect, incidental, or consequential damages, data loss, or loss of revenue resulting from the use or inability to use the platform, including third-party server downtimes.'
       },
       {
         title: '7. Governing Law',
@@ -99,11 +101,8 @@ export default function Terms({ isHebrew }) {
       {/* Header */}
       <header style={{ background: 'rgba(9, 13, 22, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <div style={{ width: '28px', height: '28px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-             </div>
-             ProFlow
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ProFlowLogo size={32} />
           </div>
           <button 
             onClick={() => navigate(-1)} 
@@ -135,7 +134,7 @@ export default function Terms({ isHebrew }) {
 
       {/* Footer */}
       <footer style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        &copy; {new Date().getFullYear()} ProFlow. {isHebrew ? 'כל הזכויות שמורות.' : 'All rights reserved.'}
+        &copy; {new Date().getFullYear()} TEKANGO. {isHebrew ? 'כל הזכויות שמורות.' : 'All rights reserved.'}
       </footer>
     </div>
   );

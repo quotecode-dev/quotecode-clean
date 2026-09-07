@@ -23,8 +23,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
 
   const [messages, setMessages] = useState(() => {
     const defaultWelcome = isHebrew
-      ? (isDashboard ? 'שלום! אני עוזר ה-AI של ProFlow. איך אעזור לך בממשק המערכת היום?' : 'שלום! אני עוזר ה-AI של ProFlow. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?')
-      : (isDashboard ? 'Hello! I am ProFlow AI assistant. How can I help you with the interface today?' : 'Hello! I am ProFlow AI assistant. Have questions about our pricing, plans, or features?');
+      ? (isDashboard ? 'שלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?' : 'שלום! אני עוזר ה-AI של TEKANGO. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?')
+      : (isDashboard ? 'Hello! I am TEKANGO AI assistant. How can I help you with the interface today?' : 'Hello! I am TEKANGO AI assistant. Have questions about our pricing, plans, or features?');
 
     try {
       const storageKey = (isDashboard ? 'proflow_ai_chat_app_' : 'proflow_ai_chat_public_') + (isHebrew ? 'he' : 'en');
@@ -39,9 +39,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
           return parsed.map(msg => {
             if (msg.role === 'assistant') {
               if (!isHebrew) {
-                msg.content = msg.content.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+                msg.content = msg.content.replace(/support@tekango\.com/gi, 'info@tekango.com');
               } else {
-                msg.content = msg.content.replace(/info@quotecodepro\.com/gi, 'support@quotecodepro.com');
+                msg.content = msg.content.replace(/info@tekango\.com/gi, 'support@tekango.com');
               }
             }
             return msg;
@@ -112,9 +112,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
 
         // 🚨 נשק יום הדין: דורסים את התשובה בכוח בפרונטאנד! 🚨
         if (!isHebrew) {
-          aiReply = aiReply.replace(/support@quotecodepro\.com/gi, 'info@quotecodepro.com');
+          aiReply = aiReply.replace(/support@tekango\.com/gi, 'info@tekango.com');
         } else {
-          aiReply = aiReply.replace(/info@quotecodepro\.com/gi, 'support@quotecodepro.com');
+          aiReply = aiReply.replace(/info@tekango\.com/gi, 'support@tekango.com');
         }
 
         setMessages(prev => [...prev, { role: 'assistant', content: aiReply }]);
@@ -242,7 +242,11 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
                     <Bot size={17} strokeWidth={2.2} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{isHebrew ? 'שירות לקוחות ProFlow' : 'ProFlow Support'}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                      {isHebrew
+                        ? <>שירות לקוחות <bdi dir="ltr" style={{ color: NEON.violetLighter, fontWeight: 700 }}>TEKANGO</bdi></>
+                        : <><bdi dir="ltr" style={{ color: NEON.violetLighter, fontWeight: 700 }}>TEKANGO</bdi> Support</>}
+                    </div>
                     <div style={{ fontSize: '0.7rem', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
                       {isHebrew ? 'זמין 24/7' : 'Available 24/7'}
