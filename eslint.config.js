@@ -34,4 +34,12 @@ export default defineConfig([
       globals: globals.node,
     },
   },
+  {
+    // TEKANGO live-release guards run under Node via `npm run check:*`,
+    // not the browser.
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

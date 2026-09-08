@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from './shared/supabase';
-import { Bot, X, Send } from 'lucide-react';
+import { MessageCircleMore, Sparkles, X, Send } from 'lucide-react';
 import { NEON } from './theme/neonTheme';
 
 export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
@@ -136,7 +136,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
   };
 
   return (
-    <div className="no-print ai-chat-container" style={{
+    <div className={`no-print ai-chat-container${isDashboard ? ' ai-chat-dashboard' : ''}`} style={{
       position: 'fixed',
       bottom: '24px',
       left: 0,
@@ -163,8 +163,57 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
 
           <style>{`
             @media (max-width: 768px) {
+              /* V2 Mobile Overlap Correction (Owner real-device
+                 observation, not a simulator/devtools finding): the fixed
+                 85px clearance was measured against the mobile bottom nav's
+                 own content height but did not account for a real phone's
+                 own OS-level bottom safe-area (the iOS home-indicator
+                 gesture bar, and its Android equivalent) - env(safe-area-
+                 inset-bottom) is 0 in most desktop-browser device emulators
+                 (which is why this could look fine in devtools testing
+                 while still overlapping on the Owner's actual physical
+                 device) but a real, non-zero value on real notched/gesture-
+                 bar hardware. Adding it on top of the existing 85px base
+                 (not replacing it) restores real clearance without
+                 changing anything for devices that report 0. */
               .ai-chat-container {
-                bottom: 85px !important;
+                bottom: calc(85px + env(safe-area-inset-bottom, 0px)) !important;
+              }
+              /* Authenticated App Consolidation task, §7 (audited first, not
+                 moved blindly): the closed-button footprint itself - not
+                 just its offset - was the Owner's complaint ("remains
+                 visually large and can obscure content"). Geometry audited
+                 from source before touching anything: the button carried
+                 12px/20px padding + a visible text label ("AI Chat"/"צאט
+                 AI") alongside its icon, ~140-180px wide x ~44px tall,
+                 positioned at the wrapper's own inline-start edge (~20px
+                 from the physical screen edge on a narrow viewport, since
+                 the 1050px maxWidth wrapper collapses to the viewport width
+                 there) - not overlapping the bottom nav (85px clearance,
+                 the bottom nav's own height is well under that), but still
+                 a real, wide pill competing for space above it. Hides the
+                 text label on mobile only (desktop keeps the full pill -
+                 no complaint there, no reason to touch it) and shrinks to a
+                 fixed 48x48 circular tap target - still clearly a chat
+                 button (chat-bubble icon, brand gradient, shadow), no
+                 functionality removed, same onClick/aria.
+                 Release Candidate Blocker Fixes task (Blocker 3): scoped to
+                 .ai-chat-dashboard only (set via the existing isDashboard
+                 prop) - this fix was authorized specifically for the
+                 authenticated Dashboard's mobile bottom-nav overlap
+                 complaint, not for the public landing pages, whose
+                 already-approved mobile pill-with-text appearance must not
+                 change as an unreviewed side effect of an unrelated
+                 authenticated-app fix. */
+              .ai-chat-dashboard .ai-support-btn {
+                padding: 0 !important;
+                width: 48px !important;
+                height: 48px !important;
+                border-radius: 50% !important;
+                justify-content: center !important;
+              }
+              .ai-chat-dashboard .ai-btn-text {
+                display: none !important;
               }
               .ai-chat-popup {
                 position: fixed !important;
@@ -189,7 +238,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
             <button
               onClick={() => setIsOpen(true)}
               className="ai-support-btn"
+              aria-label={isHebrew ? 'צאט AI' : 'AI Chat'}
               style={{
+                position: 'relative',
                 background: NEON.gradient,
                 color: 'white',
                 border: 'none',
@@ -207,8 +258,23 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
               onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <Bot size={20} strokeWidth={2.2} />
+              <MessageCircleMore size={20} strokeWidth={2.2} />
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צאט AI' : 'AI Chat'}</span>
+              {/* Final Landing Polish task, Part B - "MessageCircleMore or
+                  MessagesSquare with a small Sparkles accent - not
+                  Bot/robot": restrained AI accent badge, decorative only.
+                  Root-cause fix: an earlier negative-offset placement (-3px)
+                  intentionally bled past the button's own edge as a
+                  notification-badge convention, but that made the button's
+                  own scrollWidth exceed its clientWidth (found via the
+                  required overflow sweep) - kept fully inside the border
+                  box instead, since nothing here required it to overhang. */}
+              <Sparkles
+                aria-hidden="true"
+                size={11}
+                strokeWidth={2.5}
+                style={{ position: 'absolute', top: '2px', [isHebrew ? 'left' : 'right']: '2px', color: '#fde68a', background: NEON.bgElevated, borderRadius: '50%', padding: '2px', boxShadow: '0 0 0 1.5px rgba(255,255,255,0.15)' }}
+              />
             </button>
           )}
 
@@ -239,7 +305,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Bot size={17} strokeWidth={2.2} />
+                    <MessageCircleMore size={17} strokeWidth={2.2} aria-hidden="true" />
                   </div>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>

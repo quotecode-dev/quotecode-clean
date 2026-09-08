@@ -36,7 +36,7 @@ export default function PublicQuoteEn({ quoteData }) {
   }, [hasSigned]);
 
   useEffect(() => {
-    document.title = "ProFlow - Digital Price Quote";
+    document.title = "TEKANGO - Digital Price Quote";
 
     // חוק ברזל: דף הצעת מחיר ציבורי מכיל נתוני לקוח/עסק ספציפיים ולעולם
     // אסור שייכנס לאינדקס של גוגל. ר' הגנה מקבילה ב-vercel.json
@@ -80,7 +80,7 @@ export default function PublicQuoteEn({ quoteData }) {
   const subtotal = quote.subtotal ? Number(quote.subtotal) : parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
   const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal;
 
-  const bizName = business?.business_name || 'ProFlow Business';
+  const bizName = business?.business_name || 'TEKANGO Business';
   const bizLogo = business?.logo_url;
   const bizTaxId = business?.tax_id;
   const bizEmail = business?.email;

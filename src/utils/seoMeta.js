@@ -6,7 +6,22 @@
 // /privacy, /terms etc. from being indexed as their own pages even though
 // they're all listed in sitemap.xml. Call setSeoMeta() from a useEffect on
 // every indexable page so each distinct URL gets its own correct tags.
-export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription, hreflang, updateSocial = true }) {
+//
+// חוק ברזל (Landing Pages + Business Tools TEST/Staging task, §13 - Locale
+// metadata correction): שלושה באגים אמיתיים אותרו וכולם מתוקנים כאן, במקום
+// אחד, כדי שכל הדפים הצרכניים (7 בסך הכול) יקבלו את התיקון בבת אחת:
+// (1) `<html lang="en" dir="ltr">` הקבוע ב-index.html מעולם לא עודכן ע"י
+// אף עמוד ציבורי - עמוד עברי כלשהו (כולל LandingLocal) הוגש בפועל עם
+// lang="en"/dir="ltr" על ה-<html> עצמו (רק ה-div הפנימי קיבל dir="rtl"
+// בעבר) - זה איתות-שפה שגוי חמור למנועי-חיפוש ולקוראי-מסך (dir על
+// אלמנט-תוכן פנימי משפיע רק על פריסה חזותית, לא על השפה המוכרזת בפועל).
+// (2) `og:locale`/`og:locale:alternate` היו קבועים סטטית ב-index.html
+// (en_US/he_IL) ומעולם לא התעדכנו per-page - בדיוק הממצא "Hebrew page
+// exposes English og:locale=en_US". (3) ה-JSON-LD הסטטי ב-index.html
+// (SoftwareApplication, priceCurrency:"USD") ירש לכל עמוד עברי גם הוא.
+// updateSocial:false (רק LandingLocal/LandingGlobal השתמשו בו, "שלב עתידי
+// נפרד") הוסר בכוונה - זהו בדיוק אותו שלב עתידי, עכשיו.
+export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription, hreflang, lang, structuredData, updateSocial = true }) {
   if (typeof document === 'undefined') return;
 
   if (title) document.title = title;
@@ -23,12 +38,17 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
     tag.setAttribute(attr, value);
   };
 
+  // חוק ברזל: מוחל תמיד (לא מותנה updateSocial) - שפת-ה-<html> היא איתות-
+  // שפה בסיסי, לא "תגית חברתית", ולעולם לא אמורה להישאר תלויה בברירת-
+  // המחדל הסטטית של index.html ברגע שהעמוד עצמו יודע את שפתו האמיתית.
+  if (lang === 'he' || lang === 'en') {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    setMeta('meta[property="og:locale"]', 'content', lang === 'he' ? 'he_IL' : 'en_US');
+    setMeta('meta[property="og:locale:alternate"]', 'content', lang === 'he' ? 'en_US' : 'he_IL');
+  }
+
   if (description) setMeta('meta[name="description"]', 'content', description);
-  // updateSocial: false לדפי נחיתה (LandingLocal/LandingGlobal) - הם עדיין
-  // לא נגעו ב-og:*/twitter:* בעבר, ואנחנו לא רוצים לגעת בזה כאן (שלב עתידי
-  // נפרד) רק בגלל האיחוד ל-setSeoMeta המשותף. שאר הדפים (Contact/Privacy/
-  // Terms/PublicTools) כבר השתמשו ב-og:*/twitter:* דרך הפונקציה הזו קודם,
-  // ולכן ברירת המחדל true משמרת את ההתנהגות הקיימת שלהם ללא שינוי.
   if (updateSocial) {
     setMeta('meta[property="og:title"]', 'content', ogTitle || title);
     setMeta('meta[property="og:description"]', 'content', ogDescription || description);
@@ -56,16 +76,34 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
   // find-or-create pattern above so repeated calls (e.g. on isHebrew change)
   // update the existing <link> tags in place instead of creating duplicates.
   if (Array.isArray(hreflang)) {
-    hreflang.forEach(({ lang, path: hrefPath }) => {
-      if (!lang || !hrefPath) return;
-      let tag = document.querySelector(`link[rel="alternate"][hreflang="${lang}"]`);
+    hreflang.forEach(({ lang: hrefLang, path: hrefPath }) => {
+      if (!hrefLang || !hrefPath) return;
+      let tag = document.querySelector(`link[rel="alternate"][hreflang="${hrefLang}"]`);
       if (!tag) {
         tag = document.createElement('link');
         tag.setAttribute('rel', 'alternate');
-        tag.setAttribute('hreflang', lang);
+        tag.setAttribute('hreflang', hrefLang);
         document.head.appendChild(tag);
       }
       tag.setAttribute('href', `https://www.tekango.com${hrefPath}`);
     });
+  }
+
+  // JSON-LD structured data override - replaces the static SoftwareApplication
+  // (priceCurrency:"USD") baked into index.html with a page-appropriate one
+  // (or removes the override entirely when a page passes none, falling back
+  // to the static default - never leaves a stale tag from a previous route
+  // behind after client-side navigation).
+  let ldTag = document.getElementById('proflow-structured-data-override');
+  if (structuredData) {
+    if (!ldTag) {
+      ldTag = document.createElement('script');
+      ldTag.type = 'application/ld+json';
+      ldTag.id = 'proflow-structured-data-override';
+      document.head.appendChild(ldTag);
+    }
+    ldTag.textContent = JSON.stringify(structuredData);
+  } else if (ldTag) {
+    ldTag.remove();
   }
 }

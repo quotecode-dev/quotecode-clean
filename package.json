@@ -9,7 +9,15 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:source-identity": "node scripts/check-release-source-identity.js origin/main 850486d584a0731f02a2bcfccd8d3025c87132b8",
+    "check:assets": "node scripts/check-asset-completeness.js",
+    "check:divergence": "node scripts/check-component-divergence.js",
+    "check:external-escape": "node scripts/check-external-source-escape.js",
+    "check:no-migration": "node scripts/check-no-migration-execution.js origin/main",
+    "check:no-backend-mutation": "node scripts/check-no-backend-mutation.js origin/main",
+    "check:spa-fallback": "node scripts/check-spa-fallback-safety.js",
+    "check:build-scope": "node scripts/check-build-source-scope.js"
   },
   "dependencies": {
     "@fontsource-variable/rubik": "^5.3.0",

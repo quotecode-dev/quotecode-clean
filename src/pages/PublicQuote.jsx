@@ -65,7 +65,7 @@ export default function PublicQuote({ quoteData }) {
   }, [hasSigned]);
 
   useEffect(() => {
-    document.title = "ProFlow - הצעת מחיר דיגיטלית";
+    document.title = "TEKANGO - הצעת מחיר דיגיטלית";
 
     // חוק ברזל: דף הצעת מחיר ציבורי מכיל נתוני לקוח/עסק ספציפיים ולעולם
     // אסור שייכנס לאינדקס של גוגל. ר' הגנה מקבילה ב-vercel.json
@@ -741,8 +741,8 @@ export default function PublicQuote({ quoteData }) {
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
           <span>
             מסמך זה נערך ע"י{' '}
-            <span onClick={() => navigate('/he')} style={{ color: LIGHT.violet, cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}>
-              ProFlow
+            <span onClick={() => navigate('/he')} dir="ltr" style={{ color: LIGHT.violet, cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline', unicodeBidi: 'isolate' }}>
+              TEKANGO
             </span>
             {' '}– התוכנה שעושה לעסקים את החיים קלים.
           </span>

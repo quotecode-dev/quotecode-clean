@@ -5,12 +5,15 @@ import BrandName from '../components/BrandName';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
 import {
-  CheckCircle2, XCircle, Flame, Rocket, Star, AlertTriangle,
-  Zap, PenTool, BarChart3, ChevronDown, Mail, Wrench, LogIn, KeyRound,
-  Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb
+  CheckCircle2, XCircle, Star, AlertTriangle,
+  Zap, PenTool, BarChart3, ChevronDown, Mail, LogIn, KeyRound,
+  Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb, Ruler,
+  FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness
 } from 'lucide-react';
 import { NEON, FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
+import { getPlanPricingDisplay, getVatBreakdown, getStripePriceId } from '../utils/pricingCatalog';
+import { VIDEOS_READY } from './landingVideoConfig';
 
 // שם קצר מקומי לתאימות לשאר הקובץ - אותם טוקנים מוגדרים מרכזית ב-neonTheme
 // כדי שהעיצוב יישאר מאוחד מול LandingGlobal.jsx ו-Dashboard.jsx.
@@ -20,8 +23,28 @@ const NEON_GLOW = NEON.glow;
 export default function LandingLocal({ onForgotPassword }) {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly');
+  // חוק ברזל (§B - billing-ready pricing foundation): נגזר ממקור-אמת קנוני
+  // אחד (pricingCatalog.js), לא ממחרוזות/חשבון-נפרד כאן - זהה ל-LandingGlobal.jsx.
+  const basicPricing = getPlanPricingDisplay('il', 'basic', billingCycle);
+  const proPricing = getPlanPricingDisplay('il', 'pro', billingCycle);
+  const basicVat = getVatBreakdown(basicPricing.monthlyRate);
+  const proVat = getVatBreakdown(proPricing.monthlyRate);
   const [openFaq, setOpenFaq] = useState(null);
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
+  // VIDEOS_READY הוא שער-תכונה מפורש וציבורי למקטע הסרטון המאושר (סרטון
+  // עברי שלם אחד, שאושר סופית ע"י הבעלים), מיובא ממודול משותף אחד יחד עם
+  // LandingGlobal.jsx כדי ששתי השפות לעולם לא יסטו למצב-שחרור שונה. כשהוא
+  // false (ברירת המחדל) המקטע כולו לא מרונדר בכלל (לא null-אחרי-טעינה, לא
+  // מלבן-כהה-ריק) - הוא הופך ל-true רק באישור נפרד ומפורש של הבעלים.
+  // Final Landing Polish task, Part C: "provide a safe TEST/local preview
+  // mechanism... that does not expose unfinished videos in normal
+  // rendering." VIDEOS_READY itself stays false (the real public gate,
+  // untouched) - this is a query-param-only escape hatch (?previewVideos=1)
+  // used only to QA/demo the real assets locally before Owner approval.
+  const [previewVideos] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('previewVideos') === '1'; } catch { return false; }
+  });
+  const showVideosSection = VIDEOS_READY || previewVideos;
 
   useEffect(() => {
     // כלל קנוני סופי (חוק ברזל, ר' PROFLOW_HANDOFF.md §16): רק ?lang=
@@ -41,22 +64,36 @@ export default function LandingLocal({ onForgotPassword }) {
       ? '/he'
       : '/';
 
+    // חוק ברזל (§13 - Locale metadata correction): lang:'he' חדש (מתקן
+    // <html lang="en" dir="ltr"> הקבוע שמעולם לא התעדכן, ר' seoMeta.js).
+    // updateSocial:false הוסר בכוונה - זה בדיוק ה"שלב עתידי" שההערה הישנה
+    // התייחסה אליו; og:*/twitter:*/og:locale מתעדכנים עכשיו נכון לעברית.
+    // structuredData: עוקף את ה-JSON-LD הסטטי (SoftwareApplication,
+    // priceCurrency:"USD") שירש לדף הזה תמיד - כאן ILS, כולל מע"מ.
     setSeoMeta({
       title: "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
       description: 'TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
       canonicalPath,
+      lang: 'he',
       hreflang: [
         { lang: 'he', path: '/he' },
         { lang: 'en', path: '/en' },
         { lang: 'x-default', path: '/' },
       ],
-      updateSocial: false,
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'TEKANGO',
+        operatingSystem: 'All',
+        applicationCategory: 'BusinessApplication',
+        inLanguage: 'he',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'ILS' },
+        description: 'מערכת ניהול עסק חכמה להפקת הצעות מחיר, ניהול לקוחות וחישוב מע"מ אוטומטי לעסקים בישראל.',
+      },
     });
   }, []);
 
-  const getLocalPriceId = (planType) => {
-    return billingCycle === 'monthly' ? `price_${planType}_il_monthly` : `price_${planType}_il_yearly`;
-  };
+  const getLocalPriceId = (planType) => getStripePriceId(planType, 'il', billingCycle);
 
   const faqs = [
     {
@@ -64,20 +101,27 @@ export default function LandingLocal({ onForgotPassword }) {
       a: 'כן! כל המחירים במסלולים מותאמים לשוק הישראלי וכוללים מע"מ 18% כחוק (עם פירוט הסכום לפני מע"מ).'
     },
     {
-      q: 'מה כוללת תקופת הניסיון של 14 יום?',
-      a: 'תקופת הניסיון מעניקה לך גישה מלאה וחופשית לכל פיצ\'רי ה-PRO של המערכת (הצעות מחיר ללא הגבלה, שליחת וואטסאפ, צירוף קבצים ושרטוטים ועוד) למשך 14 יום ללא שום התחייבות.'
-    },
-    {
-      q: 'מה קורה בתום 14 ימי הניסיון אם איני רוכש מנוי?',
-      a: 'החשבון שלך יעבור אוטומטית למסלול החינמי (FREE) עם המגבלות שלו, כך שתוכל להמשיך להשתמש במערכת בראש שקט.'
+      // Root-cause fix (Final Landing Polish task, Part A): two overlapping
+      // trial FAQ items ("what does the trial include" / "what happens when
+      // it ends") each independently repeated the trial duration - combined
+      // into one question/answer with a single duration mention, per the
+      // task's 3-location trial-message budget (hero / pricing / FAQ).
+      q: 'מה כוללת תקופת הניסיון החינמית, ומה קורה בסיומה?',
+      a: 'לאורך 14 יום מקבלים גישה מלאה וחופשית לכל פיצ\'רי ה-PRO (הצעות מחיר ללא הגבלה, שליחת וואטסאפ, צירוף קבצים ושרטוטים ועוד), ללא שום התחייבות. אם לא רוכשים מנוי בתום התקופה, החשבון עובר אוטומטית למסלול החינמי (FREE) עם המגבלות שלו, כך שאפשר להמשיך להשתמש במערכת בראש שקט.'
     },
     {
       q: 'האם המערכת מותאמת לסמארטפון ולמחשב?',
       a: <>כן, <BrandName /> פותחה כפלטפורמת SaaS מודרנית רספונסיבית לחלוטין, המאפשרת לך להפיק הצעות ולנהל את העסק מכל מחשב, טאבלט או סמארטפון.</>
     },
     {
+      // חוק ברזל (§9 - FAQ, security and trust language): "רמת אבטחה גבוהה
+      // ביותר"/"הצפנה מלאה"/"גיבויים אוטומטיים" הוחלפו בניסוח מדויק וניתן-
+      // לאימות - Supabase/PostgreSQL מספקים הצפנה בתעבורה (TLS) ובאחסון
+      // כברירת-מחדל של התשתית, זו עובדה שניתן לאמת מול ספק התשתית עצמו;
+      // "רמת האבטחה הגבוהה ביותר" ו"גיבויים אוטומטיים" (שלא אומתה תצורתם
+      // הספציפית בפרויקט הזה) הוסרו מהתשובה ולא הוחלפו בטענה לא-מאומתת אחרת.
       q: 'האם הנתונים העסקיים שלי מאובטחים בענן?',
-      a: 'בהחלט. אנו משתמשים במסדי נתונים מתקדמים בענן ברמת אבטחה גבוהה ביותר, עם הצפנה מלאה וגיבויים אוטומטיים שמבטיחים שהמידע שלך תמיד שמור.'
+      a: 'הנתונים שלך מאוחסנים בתשתית ענן מבוססת Supabase/PostgreSQL, הכוללת הצפנה בתעבורה (TLS) ובאחסון כחלק מתשתית הענן הסטנדרטית. הגישה לנתונים מוגבלת לחשבון שלך בלבד.'
     },
     {
       q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?',
@@ -205,11 +249,11 @@ export default function LandingLocal({ onForgotPassword }) {
         }
       `}</style>
 
-      {/* Top Banner Launch Special */}
-      <div style={{ background: NEON_GRADIENT, color: 'white', padding: '10px 20px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '700', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-        <Rocket size={16} strokeWidth={2.5} />
-        מבצע! 14 יום חינם לגמרי - עם גישה מלאה לכל הפיצ'רים של מסלול ה-PRO!
-      </div>
+      {/* Root-cause fix (Final Landing Polish task, Part A - "de-duplicate the
+          14-day trial message"): this top banner repeated the exact same
+          trial claim as the hero badge/CTA/helper line below it - removed
+          entirely rather than trimmed, since the hero helper line (below)
+          was chosen as the single hero-section occurrence. */}
 
       {/* Header */}
       <header style={{ background: 'rgba(5, 5, 6, 0.85)', backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', position: 'sticky', top: 0, zIndex: 1000 }}>
@@ -219,6 +263,13 @@ export default function LandingLocal({ onForgotPassword }) {
             <ProFlowLogo size={32} rtl={true} />
           </div>
 
+          {/* חוק ברזל (Two-Stage Completion Task, Stage 2A - "compact
+              navigation with one dominant trial CTA"): לפני התיקון, הפעולה
+              היחידה בסרגל הייתה "כניסה למערכת" (מיועדת למשתמש קיים) בעיצוב
+              ה-primary היחיד - למבקר חדש (הרוב המכריע בדף שיווקי) לא היה
+              CTA דומיננטי בסרגל בכלל. עכשיו "התחל ניסיון חינם" הוא ה-CTA
+              היחיד בעיצוב-primary (גרדיאנט) בסרגל; "כניסה" יורד לקישור-
+              משני קטן וברור לצדו - עדיין נגיש-מיידית, לא נעלם. */}
           <div className="header-actions">
             {onForgotPassword && (
               <button onClick={onForgotPassword} style={{ background: 'transparent', color: '#c4b5fd', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', whiteSpace: 'nowrap', marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -226,10 +277,15 @@ export default function LandingLocal({ onForgotPassword }) {
                 שכחת סיסמה?
               </button>
             )}
-            <button className="nav-btn neon-btn" onClick={() => navigate('/dashboard?lang=he')} style={{ background: NEON_GRADIENT, color: 'white', border: 'none', padding: '9px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', boxShadow: NEON_GLOW, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <LogIn size={15} strokeWidth={2.5} />
-              <span className="desktop-btn-text">כניסה למערכת / התחברות</span>
-              <span className="mobile-btn-text">כניסה / התחברות</span>
+            <button onClick={() => navigate('/dashboard?lang=he')} style={{ background: 'transparent', color: '#d4d4d8', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '8px 4px' }}>
+              <LogIn size={14} strokeWidth={2.5} />
+              <span className="desktop-btn-text">כניסה למערכת</span>
+              <span className="mobile-btn-text">כניסה</span>
+            </button>
+            <button className="nav-btn neon-btn" onClick={() => navigate('/dashboard?signup=true&lang=he')} style={{ background: NEON_GRADIENT, color: 'white', border: 'none', padding: '9px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', boxShadow: NEON_GLOW, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ArrowUpRight size={15} strokeWidth={2.5} />
+              <span className="desktop-btn-text">התחל ניסיון חינם</span>
+              <span className="mobile-btn-text">נסה חינם</span>
             </button>
           </div>
 
@@ -240,14 +296,20 @@ export default function LandingLocal({ onForgotPassword }) {
       <main className="hero-glow" style={{ flex: 1, padding: '60px 16px', width: '100%', boxSizing: 'border-box' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', textAlign: 'center' }}>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(139, 92, 246, 0.1)', color: '#f0abfc', padding: '8px 20px', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(236, 72, 153, 0.35)', boxShadow: '0 0 30px rgba(236, 72, 153, 0.2)' }}>
-            <Flame size={16} color="#f97316" fill="#f97316" strokeWidth={1.5} />
-            מבצע השקה: 14 יום ניסיון חינם לכל פיצ'רי ה-PRO!
-          </div>
+          {/* Root-cause fix (Part A): this badge duplicated the same "14-day
+              trial" claim as the CTA button and the helper line right below
+              it. Removed rather than trimmed - the helper line below is the
+              single hero-section trial occurrence per the task's 3-location
+              budget (hero / pricing / FAQ). */}
 
+          {/* חוק ברזל (§5 - Confirmed copy decisions): "גבייה" הוסרה מהכותרת -
+              יכולת גבייה/תשלומים אמיתית אינה קיימת במוצר (אין אינטגרציית
+              Stripe פעילה, ר' billing-checkout-stub - שלד בלבד, לא מבצע
+              חיוב). הכותרת עכשיו מתארת רק יכולות שאומתו בפועל בקוד: הפקת
+              הצעות מחיר חכמות + ניהול עסק. */}
           <h1 className="hero-title" style={{ fontSize: '3.2rem', fontWeight: '900', color: '#ffffff', lineHeight: '1.2', marginBottom: '20px', letterSpacing: '-1.5px' }}>
-            ניהול עסק, הפקת הצעות מחיר וגבייה <br />
-            <span style={{ background: 'linear-gradient(to right, #a78bfa, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>בקלות, במהירות ובחכמה</span>
+            הצעות מחיר חכמות וניהול העסק <br />
+            <span style={{ background: 'linear-gradient(to right, #a78bfa, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>בקלות, במהירות ובמקצועיות</span>
           </h1>
 
           <p style={{ fontSize: '1.15rem', color: '#a1a1aa', maxWidth: '750px', margin: '0 auto 25px auto', lineHeight: '1.6' }}>
@@ -260,36 +322,18 @@ export default function LandingLocal({ onForgotPassword }) {
               onClick={() => navigate('/dashboard?signup=true&lang=he')}
               style={{ background: NEON_GRADIENT, color: 'white', border: 'none', padding: '14px 32px', borderRadius: '12px', fontSize: '1.05rem', fontWeight: '800', cursor: 'pointer', boxShadow: NEON_GLOW, display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              התחל 14 יום ניסיון חינם ב-PRO עכשיו
-              <Rocket size={19} strokeWidth={2.5} />
+              התחל ניסיון חינם
+              <ArrowUpRight size={19} strokeWidth={2.5} />
             </button>
             <span style={{ color: '#34d399', fontSize: '0.95rem', fontWeight: '800' }}>
-              14 יום חינם לגמרי לכל פיצ'רי ה-PRO!
+              14 יום ניסיון PRO מלא, ללא כרטיס אשראי
             </span>
           </div>
 
-          <div style={{ marginBottom: '50px', color: '#a1a1aa', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <span style={{ display: 'flex', gap: '2px' }}>
-              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} color="#fbbf24" fill="#fbbf24" strokeWidth={1} />)}
-            </span>
-            מעל 500 עסקים כבר מפיקים הצעות מחיר בקלות
-          </div>
-
-          {/* AI Video Demo Showcase */}
-          <div style={{ margin: '0 auto 40px auto', maxWidth: '400px' }}>
-            <video
-              controls
-              preload="none"
-              poster="/videos/proflow-he-commercial-poster.jpg"
-              aria-label="TEKANGO - מהצעת מחיר ועד אישור וחתימה"
-              style={{ width: '100%', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(139, 92, 246, 0.3)', border: '1px solid rgba(255, 255, 255, 0.12)', display: 'block' }}
-              onEnded={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.pause(); }}
-            >
-              <source src="/videos/proflow-he-commercial.mp4" type="video/mp4" />
-              <track kind="captions" src="/videos/proflow-he-commercial.vtt" srcLang="he" label="כתוביות" />
-              הדפדפן שלך אינו תומך בהצגת סרטונים.
-            </video>
-          </div>
+          {/* חוק ברזל (§5 - Confirmed copy decisions): "מעל 500 עסקים" הוסר -
+              אין נתון-אמת מאומת התומך בטענה הזו (לא מספר-לקוחות אמיתי
+              שאומת). לא הוחלף במספר-בדוי אחר - שורת-האמון הוסרה כליל, לא
+              "תוקנה" למספר קטן יותר שגם הוא לא מאומת. */}
 
           {/* Pain-Point Section with AI Image */}
           <div className="pain-box" style={{ background: '#0c0c10', borderRadius: '16px', overflow: 'hidden', maxWidth: '850px', margin: '0 auto 40px auto', padding: '24px', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -306,7 +350,12 @@ export default function LandingLocal({ onForgotPassword }) {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+            {/* Root-cause fix (Stage 2D): 240px was right at the edge of a
+                320px viewport's available width (measured sw:240 vs cw:238)
+                - narrowed the minimum to keep a safe margin at the smallest
+                supported width instead of relying on the parent's
+                overflow:hidden to silently clip it. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', padding: '18px 20px' }}>
                 <div style={{ color: '#f87171', fontWeight: '800', fontSize: '0.85rem', marginBottom: '12px' }}>הדרך הישנה</div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -336,7 +385,12 @@ export default function LandingLocal({ onForgotPassword }) {
             </div>
           </div>
 
-          {/* Dashboard Preview Box */}
+          {/* חוק ברזל (§5 - "Do not present illustrative dashboard values as
+              genuine business traction"): תג "לדוגמה בלבד" חדש, גלוי וברור,
+              נוסף לתיבה - הנתונים המוצגים (24/₪84,200/142) נשארים דוגמה
+              מדגימה, לא שונו לנתונים אמיתיים (אין דרך "לאמת" נתון-לקוח בודד
+              כ"אמיתי" בדף שיווקי בלי לחשוף נתוני-לקוח אמיתיים) - הפתרון
+              הנדרש הוא תיוג חד-משמעי כדוגמה, לא הסתרת המספרים. */}
           <div className="preview-box" style={{ borderRadius: '16px', overflow: 'hidden', background: '#0c0c10', maxWidth: '850px', margin: '0 auto 60px auto', padding: '24px', textAlign: 'right' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -344,6 +398,7 @@ export default function LandingLocal({ onForgotPassword }) {
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308' }}></div>
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }}></div>
               </div>
+              <span style={{ background: 'rgba(255,255,255,0.08)', color: '#a1a1aa', fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' }}>לדוגמה בלבד</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: '#131318', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -363,6 +418,75 @@ export default function LandingLocal({ onForgotPassword }) {
               כך ייראה דשבורד הניהול של העסק שלך ב-<BrandName />
             </div>
           </div>
+
+          {/* חוק ברזל (Two-Stage Completion Task, Stage 2A - "Three-step
+              explanation: Create → Send → Approve & Sign"): מקטע חדש
+              לגמרי - לא היה קיים קודם בדף. שלושת השלבים ממופים ישירות
+              ליכולות שכבר קיימות ואומתו בקוד (Smart Quote wizard,
+              שליחה/לינק-ציבורי, useSignaturePad+public_approve_quote) -
+              לא תיאור-שיווקי גנרי. */}
+          <div style={{ marginBottom: '60px' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>איך זה עובד?</h2>
+            <p style={{ color: '#a1a1aa', marginBottom: '30px', fontSize: '1.05rem' }}>משלוש דקות עד הצעה חתומה.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', textAlign: 'center' }}>
+              {[
+                { icon: <FilePlus2 size={26} color="#a78bfa" strokeWidth={2} />, glow: 'rgba(139, 92, 246, 0.4)', bg: 'rgba(139, 92, 246, 0.12)', n: '1', title: 'יצירה', desc: 'בונים הצעה מודרכת - פריט רגיל, לפי מידות או מהקטלוג. החישוב והמע"מ מתעדכנים תוך כדי הקלדה.' },
+                { icon: <Send size={24} color="#38bdf8" strokeWidth={2.2} />, glow: 'rgba(56, 189, 248, 0.4)', bg: 'rgba(56, 189, 248, 0.12)', n: '2', title: 'שליחה', desc: 'שולחים ללקוח לינק אישי לצפייה בהצעה המעוצבת, מכל מכשיר - בלי הדפסה, בלי מייל כבד.' },
+                { icon: <ShieldCheck size={24} color="#34d399" strokeWidth={2.2} />, glow: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.12)', n: '3', title: 'אישור וחתימה', desc: 'הלקוח מאשר וחותם דיגיטלית ישירות מהטלפון - ואתם מקבלים עדכון מיידי.' },
+              ].map((step) => (
+                <div key={step.n} style={{ position: 'relative', background: '#0c0c10', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '30px 22px 24px' }}>
+                  <div style={{ position: 'absolute', top: '14px', insetInlineEnd: '18px', fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.25)' }}>{step.n}</div>
+                  <div style={{ margin: '0 auto 16px', background: step.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: `0 0 24px -6px ${step.glow}` }}>
+                    {step.icon}
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>{step.title}</h3>
+                  <p style={{ color: '#a1a1aa', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>{step.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* This section shows ONE complete, Owner-approved Hebrew commercial
+              film (problem -> product -> real workflow -> customer approval ->
+              result -> CTA), replacing an earlier four-teaser format the Owner
+              found unclear. The four original teaser files were removed from
+              disk with explicit Owner authorization after a privacy review
+              found unreferenced/unsafe content in them (Final Landing
+              Pre-Release Fixes task) - there is nothing left to preserve.
+              Gate: VIDEOS_READY controls public visibility; showVideosSection
+              ORs in the query-param-only local preview override
+              (?previewVideos=1) for pre-release QA. No autoplay; poster +
+              click-to-play only. */}
+          {showVideosSection && (
+            <div style={{ marginBottom: '60px' }}>
+              <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>
+                <PlayCircle size={22} style={{ verticalAlign: '-3px', marginInlineEnd: '8px' }} aria-hidden="true" color="#c4b5fd" />
+                ראו את זה בפעולה
+              </h2>
+              <p style={{ color: '#a1a1aa', marginBottom: '24px', fontSize: '0.95rem' }}>מבקשה של לקוח ועד הצעה חתומה - סרטון קצר אחד, על נתוני הדגמה בלבד.</p>
+              <div style={{ maxWidth: '860px', margin: '0 auto', background: '#0c0c10', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <video
+                  controls
+                  preload="none"
+                  poster="/videos/proflow-he-commercial-poster.jpg"
+                  aria-label="TEKANGO - מהצעת מחיר ועד אישור וחתימה"
+                  style={{ width: '100%', display: 'block', aspectRatio: '16/9', background: '#000' }}
+                  onEnded={(e) => { e.currentTarget.currentTime = 0; }}
+                >
+                  <source src="/videos/proflow-he-commercial.mp4" type="video/mp4" />
+                  {/* Hebrew Commercial Correction task - Correction 4: captions are already
+                      burned into the video; `default` here would make the browser's native
+                      VTT renderer show a second, overlapping copy on top of them. The track
+                      stays present and selectable via the player's own captions menu. */}
+                  <track kind="captions" src="/videos/proflow-he-commercial.vtt" srcLang="he" label="כתוביות" />
+                </video>
+                <div style={{ padding: '18px 20px' }}>
+                  <h3 style={{ fontSize: '1.1rem', color: '#ffffff', margin: '0 0 4px', fontWeight: '700' }}>מהצעת מחיר ועד אישור וחתימה</h3>
+                  <p style={{ color: '#a1a1aa', fontSize: '0.88rem', margin: 0 }}>איך <BrandName /> הופך בקשת לקוח להצעה מקצועית, שנשלחת, מאושרת ונחתמת - ישירות מהטלפון.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Features Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', textAlign: 'right', marginBottom: '60px' }}>
@@ -389,19 +513,65 @@ export default function LandingLocal({ onForgotPassword }) {
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>ניהול הכנסות והוצאות</h3>
               <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>עקוב אחר רווחי העסק, נהל הוצאות שוטפות וצפה בדוחות פיננסיים מדויקים בזמן אמת.</p>
             </div>
+
+            {/* חוק ברזל (§C - Professional/trade capability messaging,
+                PROFLOW_TODO.md #44/#52, Owner-authorized this task):
+                מבוסס על יכולת אמיתית ומאומתת בקוד (QuoteForm.jsx -
+                calculated_quantity/calculated_area, method='area'|'linear',
+                מספר שורות-מדידה לכל פריט) - לא תיאור ספציפי-אלומיניום (ר'
+                דרישת הבעלים המפורשת "Must be generic, not aluminum-
+                specific"). תרגום Feature→Benefit→Outcome: מדידות מובנות →
+                פחות חישוב ידני/טעויות → הצעות מדויקות ומהירות יותר על
+                עבודות חוזרות. לא מוזכר שיוך-מסלול כאן בכוונה (professionalQuotes
+                זמין ב-Basic+Pro, לא Free-כלל ולא PRO-בלעדי - פירוט המסלולים
+                כבר קיים בכרטיסי המחיר עצמם למטה, לא כפול כאן). */}
+            <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ marginBottom: '16px', background: 'rgba(56, 189, 248, 0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(56, 189, 248, 0.4)' }}>
+                <Ruler size={26} color="#38bdf8" strokeWidth={2.5} />
+              </div>
+              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>הצעות מחיר מקצועיות עם מדידות ומפרט</h3>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>בנה הצעה לפי מידות אמיתיות (שטח או אורך), עם כמה שורות-מדידה לכל פריט וחישוב כמות אוטומטי - מתאים לעבודות זכוכית ואלומיניום, ריצוף, חשמל, אינסטלציה ותחומי עבודה נוספים. פחות חישובים ידניים וטעויות, הצעות מדויקות יותר וחיסכון בזמן על הצעות חוזרות.</p>
+            </div>
           </div>
 
           {/* Pricing Section - Israel */}
           <div style={{ marginBottom: '60px' }}>
             <h2 style={{ fontSize: '2.2rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>מסלולים ומחירים</h2>
-            <p style={{ color: '#a1a1aa', marginBottom: '25px', fontSize: '1.05rem' }}>בחר את המסלול המתאים ביותר לעסק שלך.</p>
+            <p style={{ color: '#a1a1aa', marginBottom: '10px', fontSize: '1.05rem' }}>בחר את המסלול המתאים ביותר לעסק שלך.</p>
+            {/* חוק ברזל (§8 - Signup and pricing CTA correction): אין כרגע
+                מנגנון-חיוב/בחירת-מסלול אמיתי (Stripe אינו מחובר -
+                billing-checkout-stub הוא שלד בלבד, לא מבצע חיוב) - כל
+                הרשמה חדשה יוצרת בפועל את אותו חשבון-ניסיון PRO מלא, ללא
+                תלות בכרטיס שנלחץ. במקום לבנות מנגנון-בחירה שלא קיים,
+                המשפט הבא הופך את זה לשקוף וכן ללקוח, בדיוק כהנחיית המשימה
+                "make every CTA communicate that honestly". */}
+            {/* חוק ברזל (§C - ניסוח תשלום שלאחר-ניסיון): לא ממציא תהליך
+                מסחרי (לא "נחייב אוטומטית", לא "הצוות ייצור קשר") - רק עובדות
+                אמיתיות היום: הרשמה מתחילה ניסיון, בחירת מסלול/מחזור לא
+                מחייבת בהרשמה, השלמת תשלום היא צעד נפרד מאוחר יותר (ללא
+                פירוט מנגנון, שאינו קיים עדיין - ר' הדוח הסופי). */}
+            <p style={{ color: '#c4b5fd', marginBottom: '25px', fontSize: '0.85rem', fontWeight: '600' }}>כל הרשמה חדשה מתחילה בניסיון PRO מלא ל-14 יום, ללא תלות במסלול שבחרת להציג - בסיום התקופה תוכל/י להמשיך במסלול המתאים לך. בחירת מסלול/מחזור תשלום כאן אינה מבצעת שום חיוב בהרשמה - זו העדפה בלבד שתילקח בחשבון בהמשך; השלמת תשלום בפועל היא צעד נפרד ומאוחר יותר.</p>
 
-            <div style={{ display: 'inline-flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', background: '#0c0c10', padding: '4px', borderRadius: '12px', marginBottom: '30px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            {/* Root-cause fix (Two-Stage Completion Task, Stage 2D): found via
+                live 320/360px measurement that this row bled off both edges
+                (rect.x:-35, width:339 vs a 288px-wide container) because
+                flexWrap was pinned to 'nowrap' while its two buttons (one
+                carrying a discount badge) together need ~330px. LandingGlobal's
+                English mirror already uses flex-wrap:wrap for this same
+                toggle - bringing Hebrew in line with it. */}
+            <div style={{ display: 'inline-flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', background: '#0c0c10', padding: '4px', borderRadius: '12px', marginBottom: '30px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <button
                 onClick={() => setBillingCycle('annual')}
                 style={{ background: billingCycle === 'annual' ? NEON_GRADIENT : 'transparent', color: billingCycle === 'annual' ? '#ffffff' : '#a1a1aa', border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem' }}>
                 <span>מסלול שנתי</span>
-                <span style={{ background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>חסוך 20%!</span>
+                {/* חוק ברזל (§B - Proportional Workspace Correction task):
+                    תג משותף אחד שחל בו-זמנית על BASIC ו-PRO - אחוז החיסכון
+                    האמיתי (pricingCatalog.js) שונה מעט בין השניים (~20.4%
+                    מול ~20.2% ב-ILS) ומשמעותית בין מטבעות בדף הבינלאומי -
+                    תג משותף לא יכול להציג מספר מדויק אחד שנכון לשניהם, אז
+                    זה נשאר ניסוח לא-מספרי כן; האחוז המדויק בפועל מוצג בכל
+                    כרטיס-מסלול בנפרד למטה (מ-basicPricing/proPricing.savingsPercent). */}
+                <span style={{ background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>חסוך במעבר לשנתי!</span>
               </button>
               <button
                 onClick={() => setBillingCycle('monthly')}
@@ -423,16 +593,17 @@ export default function LandingLocal({ onForgotPassword }) {
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />עד 5 הצעות מחיר בחודש</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />ניהול לקוחות בסיסי</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />תמיכה במייל</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ, ללא מחיקת הצעות</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא צירוף קבצים ושרטוטים להזמנות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא עריכה/שכפול של הצעה שמורה</li>
                 </ul>
                 <button
                   data-price-id={getLocalPriceId('free')}
                   className="ghost-btn"
-                  onClick={() => navigate('/dashboard?signup=true&lang=he')}
+                  onClick={() => navigate(`/dashboard?signup=true&lang=he&intendedPlan=free&intendedCycle=${billingCycle}`)}
                   style={{ marginTop: 'auto', background: 'rgba(255,255,255,0.04)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  התחל בחינם
+                  התחל ניסיון חינם
                 </button>
               </div>
 
@@ -441,28 +612,42 @@ export default function LandingLocal({ onForgotPassword }) {
                 <div style={{ marginBottom: '10px', color: '#38bdf8', display: 'inline-flex', width: 'fit-content' }}><Layers size={22} strokeWidth={2} /></div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול בסיסי (Basic)</h3>
                 <p style={{ color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '16px' }}>לעסקים קטנים שצריכים פתרון מושלם.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '2px' }}>
-                  {billingCycle === 'monthly' ? '49 ₪' : '39 ₪'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#a1a1aa' }}>/ חודש</span>
+                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                  {basicPricing.monthlyRate} ₪ <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#a1a1aa' }}>/ חודש</span>
+                  {/* חוק ברזל (§B): אחוז מדויק לכרטיס הזה בלבד, מחושב מ-
+                      pricingCatalog.js (basicPricing.savingsPercent) - לא
+                      מספר קבוע/מומצא. */}
+                  {billingCycle === 'annual' && (
+                    <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700' }}>חיסכון {basicPricing.savingsPercent}%</span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#a1a1aa', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? 'סה"כ 588 ₪ לשנה' : 'סה"כ 468 ₪ לשנה (בחיוב שנתי)'}
+                  {billingCycle === 'monthly' ? `סה"כ ${basicPricing.annualTotal.toLocaleString('he-IL')} ₪ לשנה` : `סה"כ ${basicPricing.annualTotal.toLocaleString('he-IL')} ₪ לשנה (בחיוב שנתי)`}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginTop: '-12px', marginBottom: '12px' }}>
-                  {billingCycle === 'monthly' ? '* כולל מע"מ 18% (41.53 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (33.05 ₪ לפני מע"מ)'}
+                  {billingCycle === 'monthly' ? `* כולל מע"מ 18% (${basicVat.beforeVat.toFixed(2)} ₪ לפני מע"מ)` : `* חיוב שנתי, כולל מע"מ 18% (${basicVat.beforeVat.toFixed(2)} ₪ לפני מע"מ)`}
                 </p>
+                {/* חוק ברזל (§4 - capability matrix, מאומת בקוד):
+                    professionalQuotes=true כבר ב-BASIC (planCatalog.js) -
+                    לא היה מוזכר כלל קודם בעמוד הזה. editDuplicate=true גם
+                    ב-BASIC (עריכה/שכפול הצעות שמורות). whatsappDelete
+                    (שליחת-וואטסאפ + מחיקת-הצעה, שני מסלולים תחת דגל אחד
+                    בקוד) ו-attachments נשארים false ל-BASIC - נכון כפי שהיה. */}
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#d4d4d8', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />עד 20 הצעות מחיר בחודש</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />חתימה דיגיטלית וניהול לקוחות</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />עריכה ושכפול של הצעות שמורות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />הצעות מחיר חכמות עם מפרט מקצועי ומידות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא שליחה ישירה בווצאפ, ללא מחיקת הצעות</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}><XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />ללא צירוף קבצים ושרטוטים להזמנות</li>
                 </ul>
                 <button
                   data-price-id={getLocalPriceId('basic')}
                   className="ghost-btn"
-                  onClick={() => navigate('/dashboard?signup=true&lang=he')}
+                  onClick={() => navigate(`/dashboard?signup=true&lang=he&intendedPlan=basic&intendedCycle=${billingCycle}`)}
                   style={{ marginTop: 'auto', background: 'rgba(255,255,255,0.04)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  בחר מסלול Basic
+                  התחל ניסיון חינם
                 </button>
               </div>
 
@@ -475,28 +660,39 @@ export default function LandingLocal({ onForgotPassword }) {
                 <div style={{ marginBottom: '10px', color: '#c4b5fd', display: 'inline-flex', width: 'fit-content' }}><Crown size={22} fill="#c4b5fd" strokeWidth={1.5} /></div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול עסקי (Pro)</h3>
                 <p style={{ color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '16px' }}>לסוכנויות ועסקים צומחים ללא מגבלות.</p>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#c4b5fd', marginBottom: '2px' }}>
-                  {billingCycle === 'monthly' ? '99 ₪' : '79 ₪'} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#a1a1aa' }}>/ חודש</span>
+                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#c4b5fd', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                  {proPricing.monthlyRate} ₪ <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#a1a1aa' }}>/ חודש</span>
+                  {billingCycle === 'annual' && (
+                    <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700' }}>חיסכון {proPricing.savingsPercent}%</span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#a1a1aa', marginBottom: '16px' }}>
-                  {billingCycle === 'monthly' ? 'סה"כ 1,188 ₪ לשנה' : 'סה"כ 948 ₪ לשנה (בחיוב שנתי)'}
+                  {billingCycle === 'monthly' ? `סה"כ ${proPricing.annualTotal.toLocaleString('he-IL')} ₪ לשנה` : `סה"כ ${proPricing.annualTotal.toLocaleString('he-IL')} ₪ לשנה (בחיוב שנתי)`}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginTop: '-12px', marginBottom: '12px' }}>
-                  {billingCycle === 'monthly' ? '* כולל מע"מ 18% (83.90 ₪ לפני מע"מ)' : '* חיוב שנתי, כולל מע"מ 18% (66.95 ₪ לפני מע"מ)'}
+                  {billingCycle === 'monthly' ? `* כולל מע"מ 18% (${proVat.beforeVat.toFixed(2)} ₪ לפני מע"מ)` : `* חיוב שנתי, כולל מע"מ 18% (${proVat.beforeVat.toFixed(2)} ₪ לפני מע"מ)`}
                 </p>
+                {/* חוק ברזל (§4 - capability matrix, real defect found and
+                    fixed): "ניהול הכנסות והוצאות מלא" הוצג קודם כאילו הוא
+                    בלעדי ל-PRO - אומת בקוד (Dashboard.jsx) שאין שום שער-
+                    זכאות סביב Finances/Clients/Catalog/CSV/AI Chat כלל -
+                    הם זמינים בכל מסלול, כולל FREE. הוחלף בשתי יכולות
+                    שאומתו כבלעדיות-PRO אמיתיות בקוד: professionalQuoteReuse
+                    (שכפול פריטים מקצועיים) ו-editDuplicate/whatsappDelete
+                    שכבר מכוסים למעלה. */}
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', color: '#d4d4d8', fontSize: '0.9rem', lineHeight: '2', flex: 1 }}>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />הצעות מחיר ללא הגבלה כלל</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />שליחה ישירה בווצאפ (WhatsApp)</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />ניהול הכנסות והוצאות מלא</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />שליחה ישירה בווצאפ ומחיקת הצעות</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />שכפול מתקדם של פריטים מקצועיים</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#c4b5fd" style={{ flexShrink: 0 }} />צירוף קבצים ושרטוטים להזמנות (עד 30MB)</li>
                 </ul>
                 <button
                   data-price-id={getLocalPriceId('pro')}
                   className="neon-btn"
-                  onClick={() => navigate('/dashboard?signup=true&lang=he')}
+                  onClick={() => navigate(`/dashboard?signup=true&lang=he&intendedPlan=pro&intendedCycle=${billingCycle}`)}
                   style={{ marginTop: 'auto', background: NEON_GRADIENT, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: NEON_GLOW }}
                 >
-                  בחר מסלול PRO
+                  התחל ניסיון חינם
                 </button>
               </div>
 
@@ -510,19 +706,78 @@ export default function LandingLocal({ onForgotPassword }) {
 
             <div className="faq-container">
               {faqs.map((faq, idx) => (
-                <div key={idx} className="faq-item" style={{ padding: '16px', cursor: 'pointer' }} onClick={() => setOpenFaq(openFaq === idx ? null : idx)}>
+                // חוק ברזל (§16 QA finding - High): פריט ה-FAQ היה clickable div ללא
+                // tabIndex/role/aria-expanded - בלתי-נגיש למקלדת ובלתי-מזוהה לקורא-מסך
+                // כפקד-הרחבה. תוקן לתבנית accordion-button תקנית.
+                <div
+                  key={idx}
+                  className="faq-item"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={openFaq === idx}
+                  aria-controls={`faq-answer-${idx}`}
+                  style={{ padding: '16px', cursor: 'pointer' }}
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setOpenFaq(openFaq === idx ? null : idx);
+                    }
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', fontSize: '1rem', color: '#ffffff', gap: '10px' }}>
                     <span>{faq.q}</span>
                     <ChevronDown size={18} color="#c4b5fd" style={{ flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                   </div>
                   {openFaq === idx && (
-                    <div style={{ marginTop: '10px', color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                    <div id={`faq-answer-${idx}`} style={{ marginTop: '10px', color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
                       {faq.a}
                     </div>
                   )}
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Business Tools cross-link - קישור ויזואלי מרוסן לחוברת הכלים
+              החינמיים (/he/tools - מחשבוני מטבעות/יחידות/מתכות/קריפטו,
+              כבר בנויים ופעילים, ללא קשר למוצר התמחור בתשלום). ניסוח עובדתי
+              ומצומצם בלבד - ללא מספרי-משתמשים/דירוגים בדויים (ר' חוק ברזל
+              §5 למעלה - "מעל 500 עסקים" הוסר ולא הוחלף בטענה לא-מאומתת). */}
+          <div className="hover-card" style={{ background: '#0c0c10', borderRadius: '16px', border: '1px solid rgba(139, 92, 246, 0.22)', padding: '32px 28px', maxWidth: '750px', margin: '0 auto 60px auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+            <div style={{ background: 'rgba(139, 92, 246, 0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(139, 92, 246, 0.4)' }}>
+              <BriefcaseBusiness size={24} color="#a78bfa" strokeWidth={2} />
+            </div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#ffffff', margin: 0 }}>כלים עסקיים חינמיים</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '520px', margin: 0 }}>
+              כלים עסקיים בחינם: מחשבוני מטבעות, יחידות, מתכות וקריפטו - זמינים לכולם ללא הרשמה, כתוסף חופשי ל-<BrandName />.
+            </p>
+            <button
+              className="ghost-btn"
+              onClick={() => navigate('/he/tools')}
+              style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#c4b5fd', border: '1px solid rgba(167, 139, 250, 0.35)', padding: '10px 22px', borderRadius: '10px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              למעבר לכלים העסקיים
+              <BriefcaseBusiness size={15} strokeWidth={2.5} />
+            </button>
+          </div>
+
+          {/* Root-cause fix (Final Landing Polish task, Part A): the final CTA
+              previously repeated the same "14-day trial" duration already
+              stated in the hero and pricing sections. Per the task's
+              3-location budget, this band now focuses purely on the
+              outcome - no trial-duration mention. */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.14), rgba(56,189,248,0.08))', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '18px', padding: '36px 24px', maxWidth: '750px', margin: '0 auto 60px auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ffffff', margin: 0 }}>מוכנים ליצור את ההצעה הראשונה שלכם?</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '0.92rem', margin: 0 }}>הצעה מקצועית, מוכנה תוך דקות.</p>
+            <button
+              className="neon-btn"
+              onClick={() => navigate('/dashboard?signup=true&lang=he')}
+              style={{ background: NEON_GRADIENT, color: '#ffffff', border: 'none', padding: '13px 30px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: NEON_GLOW }}
+            >
+              <ArrowUpRight size={17} strokeWidth={2.5} />
+              התחל ניסיון חינם
+            </button>
           </div>
 
         </div>
@@ -540,7 +795,7 @@ export default function LandingLocal({ onForgotPassword }) {
             <span style={{ color: '#27272a' }}>|</span>
             <button onClick={() => navigate('/he/contact')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Mail size={13} />צור קשר (support@tekango.com)</button>
             <span style={{ color: '#27272a' }}>|</span>
-            <button onClick={() => navigate('/he/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><Wrench size={13} />כלים לעסקים</button>
+            <button onClick={() => navigate('/he/tools')} className="footer-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', fontWeight: 'bold' }}><BriefcaseBusiness size={13} />כלים לעסקים</button>
           </div>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>&copy; {new Date().getFullYear()} <BrandName /> ישראל. כל הזכויות שמורות.</p>
         </div>

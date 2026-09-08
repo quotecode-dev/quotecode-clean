@@ -1,4 +1,34 @@
-@import "tailwindcss";
+/* Isolated Landing Release Local Commit task - Resolve Landing Build
+   Determinism Blocker: Tailwind v4's automatic/heuristic content-detection
+   (no `@config` directive was ever added, so the pre-existing
+   `tailwind.config.js` content array was silently dead - `@tailwindcss/postcss`
+   only auto-scans the project tree instead) was proven, via three independent
+   fresh `npm ci` + build cycles, to non-deterministically pick up false-positive
+   "candidate classes" from plain text tokens unrelated to any actual
+   `className` usage: the bare word "italic" inside this very file's own
+   `font-style: italic` @font-face declarations further down, "ease-in"/
+   "ease-out" as substrings of the CSS keyword `ease-in-out` used in
+   Dashboard.jsx's animation shorthand, and "col-1"/"row-1" from bundled
+   `node_modules/exceljs` distribution files (spreadsheet cell-addressing
+   internals, nothing to do with CSS at all) - none of these six utility
+   classes are ever referenced as an actual class name anywhere in this
+   project. `source(none)` plus explicit `@source` globs below replace that
+   unreliable full-tree heuristic scan with exactly the same two entries the
+   dead `tailwind.config.js` already documented as this project's intended
+   content set (index.html plus every js/ts/jsx/tsx file under src/) -
+   deterministic, glob-based, and by construction never reaches into
+   node_modules or non-source file types like this file's own css
+   extension. Written as four separate single-extension @source lines
+   rather than one brace-expansion glob - a literal curly-brace character
+   anywhere in this file, even inside a comment, was found by direct
+   reproduction to make this project's PostCSS/Tailwind toolchain fail to
+   parse the file at all, so this comment itself avoids that character. */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.js";
+@source "./**/*.jsx";
+@source "./**/*.ts";
+@source "./**/*.tsx";
 
 /* Desktop Center-Axis / Scrollbar Stability Rule (Owner + ChatGPT approved,
    Final Local Polish Pass). Root cause (live-measured, see PROFLOW_HANDOFF.md
