@@ -10,28 +10,33 @@ import { dirname, join } from 'node:path';
 // (see PROFLOW_PROJECT_CONTEXT.md for the full-browser geometry verification
 // this test complements, not replaces).
 //
-// חוק ברזל (Authenticated UI Coherence task, Dashboard Header Compression):
-// Hot Quote עבר מכרטיס-KPI דו-שורתי (minHeight:52px + WebkitLineClamp:2,
-// שהיה מנגנון-היציבות המקורי כאן) להתראה דקה חד-שורתית (~44px). מנגנון-
-// היציבות עצמו השתנה בהתאם - שורה בודדת עם overflow:hidden+whiteSpace:
-// nowrap+textOverflow:ellipsis יש לה אפס שונות-גובה מעצם המבנה (טקסט ארוך
-// נחתך תמיד לאותו רוחב-שורה, לעולם לא "שובר שורה" ומרחיב את הגובה) - זו
-// גרסה פשוטה/חזקה יותר של אותו עיקרון בדיוק ("רוטציה בין שמות-לקוח
-// באורכים משתנים לא רשאית להזיז שום דבר מתחת לדשבורד"), לא ויתור עליו.
-// העוגן לחיפוש הבלוק עודכן בהתאם - dash-kpi-card dash-kpi-hot כבר לא קיים.
+// חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08):
+// המבנה עבר מ-`hotQuotesList.length > 0 && currentHotQuote && (...)` (מדלג
+// על כל הבלוק - אפס-תוכן, לא רק אפס-נראות - כשאין הצעה חמה זכאית, בדיוק
+// שורש-הבעיה שנחקר במשימה הזו) ל-ternary אמיתי: `... ? (real alert) : (
+// empty state)` - התיבה עצמה תמיד קיימת בעץ ה-DOM, כך שגיאומטריית הדשבורד
+// לעולם לא "קופצת" כשההצעה החמה היחידה עוברת ל-approved/paid (המעבר-סטטוס
+// התקין שגרם להיעלמות שדווחה). העוגן לחיפוש הבלוק עודכן בהתאם.
 const dashboardSource = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'Dashboard.jsx'),
   'utf-8',
 );
 
 function extractHotQuoteBlock(source) {
-  const start = source.indexOf("hotQuotesList.length > 0 && currentHotQuote && (");
-  const blockEnd = source.indexOf('</div>\n              )}', start);
-  return source.slice(start, blockEnd > start ? blockEnd : start + 2500);
+  const start = source.indexOf('{hotQuotesList.length > 0 && currentHotQuote ? (');
+  const blockEnd = source.indexOf('</span>\n              )}', start);
+  return source.slice(start, blockEnd > start ? blockEnd + '</span>'.length : start + 3500);
 }
 
 describe('Hot Quote fixed geometry (source-level regression guard)', () => {
   const block = extractHotQuoteBlock(dashboardSource);
+
+  it('the Hot Quote container is unconditionally present (ternary, not `&&`-gated) - never skips rendering entirely when no quote qualifies', () => {
+    expect(block).toMatch(/hotQuotesList\.length > 0 && currentHotQuote \? \(/);
+    // The old all-or-nothing `&& (` gate (which made the whole block vanish,
+    // the exact root cause investigated in this task) must be gone.
+    expect(dashboardSource).not.toMatch(/hotQuotesList\.length > 0 && currentHotQuote && \(/);
+  });
 
   it('renders the rotating client/quote message as a single truncated line, never a variable-height multi-line block', () => {
     expect(block).toMatch(/t\.hotQuoteAlert\(currentHotClientName, currentHotViewCount\)/);
@@ -39,11 +44,33 @@ describe('Hot Quote fixed geometry (source-level regression guard)', () => {
     expect(block).toMatch(/textOverflow:\s*hotQuoteExpanded\s*\?\s*['"]clip['"]\s*:\s*['"]ellipsis['"]/);
   });
 
-  it('reserves a fixed minHeight on the alert row so a short vs. long client name never shifts surrounding layout', () => {
+  it('reserves a fixed minHeight on the alert row (real-quote branch) so a short vs. long client name never shifts surrounding layout', () => {
     expect(block).toMatch(/minHeight:\s*['"]28px['"]/);
   });
 
-  it('only shows the alert when a real hot quote exists (never a fabricated/empty state)', () => {
-    expect(block).toMatch(/hotQuotesList\.length > 0 && currentHotQuote/);
+  it('reserves the same fixed minHeight on the empty-state branch, so appearing/disappearing hot quotes never change Dashboard geometry', () => {
+    const matches = block.match(/minHeight:\s*['"]28px['"]/g) || [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the empty state shows the exact Owner-specified Hebrew and English copy, never fabricated client/view-count data', () => {
+    expect(block).toMatch(/אין כרגע הצעה חמה/);
+    expect(block).toMatch(/No hot quote right now/);
+    expect(block).toMatch(/כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן\./);
+    expect(block).toMatch(/A quote will appear here after 3 or more views while it is still awaiting approval\./);
+  });
+
+  it('the empty state never reuses the real-quote branch\'s client-name/view-count variables', () => {
+    const elseBranchStart = block.indexOf(') : (');
+    const elseBranch = block.slice(elseBranchStart);
+    expect(elseBranch).not.toMatch(/currentHotClientName/);
+    expect(elseBranch).not.toMatch(/currentHotViewCount/);
+    expect(elseBranch).not.toMatch(/t\.hotQuoteAlert/);
+  });
+
+  it('the underlying eligibility formula (view_count>=3, excludes approved/paid) is unchanged by this task', () => {
+    expect(dashboardSource).toMatch(
+      /const hotQuotesList = quotes\.filter\(q => \(q\.view_count \|\| 0\) >= 3 && q\.status !== 'approved' && q\.status !== 'paid'\);/,
+    );
   });
 });

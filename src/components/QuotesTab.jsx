@@ -3,7 +3,7 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
 import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
@@ -107,9 +107,30 @@ export default function QuotesTab({
   t,
   setPendingEmailQuote,
   emailStatuses,
-  currency
+  currency,
+  stickyTopBase = 0
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
+
+  // חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08,
+  // "Quote History — Stable Scroll Contract"): כותרת+חיפוש+סינון+ייצוא
+  // (השורה למטה) הופכת ל-position:sticky בדסקטופ, ממוקמת מיד מתחת ל-
+  // dash-upper-section (stickyTopBase, מגיע מ-Dashboard.jsx, ר' שם).
+  // מובייל לא מושפע כלל - הסגנון המותנה מוחל רק כש-!isMobileView (אותו
+  // JS matchMedia שכבר קיים בקובץ הזה, לא CSS media query נפרד).
+  //
+  // חוק ברזל (אותה משימה, ממצא-אמת אמפירי): thead למטה *אינו* יכול להישאר
+  // sticky ביחס ל-dash-main-content דרך ה-wrapper של overflowX:'auto' -
+  // אומת חי בדפדפן אמיתי: כל ערך overflow-y שאינו 'visible' (כולל 'clip',
+  // לא רק 'hidden'/'auto') על wrapper שגם overflow-x שלו scroll-able הופך
+  // את ה-wrapper כולו לקונטיינר-גלילה מנקודת המבט של position:sticky - לא
+  // ניתן לעקוף את זה בלי לוותר על הגנת-הגלילה-האופקית הקיימת. הפתרון:
+  // אימוץ המנגנון במקום המאבק בו - ה-wrapper עצמו הופך לאזור-הגלילה
+  // האמיתי של הטבלה (flex:'1 1 auto' בתוך שרשרת flex-column קיימת -
+  // dash-main-content→כרטיס זה→wrapper - ממלא בדיוק את השטח שנותר מתחת
+  // ל-dash-upper-section+שורת-הכותרת הדביקים, ללא מספר-קסם), ו-thead
+  // מקבל top:0 פשוט ביחס ל-wrapper המקומי שלו - לא עוד חישוב-קיזוז מצטבר.
+  const headerRowRef = useRef(null);
 
   // רינדור מותנה אמיתי (JS), לא רק הסתרת CSS - כדי שלא יהיו שני עותקים
   // כפולים בו-זמנית בעץ ה-DOM (טבלת דסקטופ + כרטיסי מובייל) עבור אותן
@@ -421,7 +442,13 @@ export default function QuotesTab({
           מה שהבעלים ביקש. 'row-reverse' הקודם היפך את זה בטעות. באנגלית
           (dir="ltr"), אותו 'row' הרגיל כבר ממקם כותרת+ייצוא משמאל וחיפוש+
           סטטוס מימין - השיקוף הנכון מתקבל אוטומטית מכיוון הדף, בלי תנאי. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+      <div
+        ref={headerRowRef}
+        style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px',
+          ...(!isMobileView ? { position: 'sticky', top: stickyTopBase, zIndex: 14, background: NEON.bgCard, paddingTop: '2px', paddingBottom: '2px' } : {}),
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '800', letterSpacing: 'normal', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
             <History size={18} color={NEON.violetLight} strokeWidth={2.2} />
@@ -572,8 +599,27 @@ export default function QuotesTab({
           ב-980px (952px בפועל בתוך ריפוד הפאנל - ר' index.css). נמדד חי
           ב-1280/1366/1440/1920px, שתי השפות, ר' PROFLOW_CLAUDE_LATEST_
           REPORT.md למדידות המדויקות. */}
+      {/* חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08,
+          "ONLY QUOTE DATA ROWS SCROLL"): אומת חי בדפדפן אמיתי ש-overflow-x:
+          'auto' על div זה הופך אותו לקונטיינר-גלילה מנקודת-המבט של
+          position:sticky (ללא תלות בערך overflow-y הנלווה) - כלומר thead
+          לעולם לא יכול "לדלג מעליו" ולהיות sticky ביחס ל-dash-main-content
+          החיצוני. הפתרון: ה-wrapper הזה עצמו הופך לאזור-הגלילה-האמיתי של
+          הטבלה - thead מקבל top:0 פשוט, יחסית אליו (לא ל-dash-main-content).
+          maxHeight (calc(100vh - 420px), עם minHeight רצפתי) גובל אותו כדי
+          שהגלילה הפנימית אכן תופעל למקרה של רשימה ארוכה - נמדד חי כסכום כל
+          מה שנשאר מעל הטבלה (dash-upper-section+שורת-כותרת+ריפודים+footer,
+          ר' PROFLOW_CLAUDE_LATEST_REPORT.md למדידה המדויקת) בתוספת שוליים,
+          לא מספר-קסם שרירותי. חוק ברזל (המשך, ממצא-אמת נוסף): flex:'1 1
+          auto' על הכרטיס-החיצוני (שהוסר, לא כאן על ה-wrapper) התנגש עם
+          marginTop:'auto' של ה-footer ב-Dashboard.jsx - שניהם מנגנוני-
+          "בליעת-שטח-פנוי" מתחרים על אותו שטח בעמודת-flex אחת (dash-main-
+          content), וה-flex-grow של הכרטיס "זכה" בחלק מהשטח שהיה אמור
+          להידחף ל-footer בעמודים קצרים - הוסר מהכרטיס, maxHeight כאן
+          נשאר המנגנון היחיד. overflow-x:'auto' (הגנה-אמיתית קיימת, ר'
+          ההערה למעלה על 620-625px מתוך תקציב-980px) נשאר זהה. */}
       {!isMobileView && (
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', overflowY: 'auto', minHeight: '220px', maxHeight: 'calc(100vh - 420px)' }}>
         {/* חוק ברזל (Owner Visual Correction task - Frame B Corners): הבעלים
             זיהה חזותית שפינות Frame B (המסגרת סביב שורת-הכותרות) חדות, לא
             מעוגלות - למרות ש-getComputedStyle דיווח '12px' על borderTopLeftRadius
@@ -603,7 +649,14 @@ export default function QuotesTab({
             ה-minWidth הכולל הנמוך יותר של הטבלה - ר' האריתמטיקה המלאה
             בהערה שלפני ה-<table>. */}
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
-          <thead>
+          {/* חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+              2026-09-08, "ONLY QUOTE DATA ROWS SCROLL"): thead נדבק ל-
+              top:0 *ביחס לאזור-הגלילה המקומי* (ה-wrapper מיד למעלה, ר'
+              ההערה שם - הוא, לא dash-main-content, הוא אזור-הגלילה
+              האמיתי של הטבלה מהסיבה שהוסברה שם) - לא עוד חישוב-קיזוז
+              מצטבר מ-Dashboard.jsx. רקע לבן אטום על כל תא (למטה) כדי
+              ששורות גוללות מתחתיו לא ייראו "דרכו". */}
+          <thead style={{ position: 'sticky', top: 0, zIndex: 12 }}>
             {/* חוק ברזל (Owner New Final Dashboard Structure task - FRAME B,
                 נשמר): אותו טוקן-סגול/עובי-גבול/radius כמו Frame A. Client
                 Name (ראשון ב-DOM עכשיו) בקצה הימני ב-HE/השמאלי ב-EN;
@@ -624,7 +677,7 @@ export default function QuotesTab({
               {/* חוק ברזל (§5 Expandable Row): בקרת-הרחבה - ללא כותרת מילולית
                   (אייקון-בלבד, כמו Views/Email הישנים), aria-label על הכפתור
                   עצמו בכל שורה נותן את המשמעות הנגישה. */}
-              <th style={{ padding: '10px 3px', textAlign: 'center', width: '36px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
+              <th style={{ padding: '10px 3px', textAlign: 'center', width: '36px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
               {/* חוק ברזל (Authenticated App Consolidation task): שם הלקוח -
                   עדיין ראשון בין העמודות ה"תוכניות" (מיד אחרי בקרת ההרחבה),
                   לפי "PRIMARY ROW CONTENT" ברשימת המשימה עצמה. minWidth
@@ -637,21 +690,21 @@ export default function QuotesTab({
                   available budget - a real ~55-60px safety margin, unaffected
                   by reordering columns since no width value changed here,
                   only DOM order. */}
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', minWidth: '200px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', minWidth: '200px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
                 {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 3px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '72px', whiteSpace: 'nowrap', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
+              <th style={{ padding: '10px 3px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '72px', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
                 {isHebrew ? 'מס׳ הצעה' : 'Quote #'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '86px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '86px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
                 {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '78px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '78px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
                 {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* Date is now the last/outer column (was the expand control) -
                   it gains the outer-edge border/corner-radius treatment. */}
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '100px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '100px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
                 {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
             </tr>

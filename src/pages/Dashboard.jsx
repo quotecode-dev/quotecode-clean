@@ -268,6 +268,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
 
+  // חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08,
+  // "Quote History — Stable Scroll Contract"): מודדים את הגובה האמיתי
+  // המרונדר של dash-upper-section (ברכה/סטטיסטיקות/הצעה-חמה) כדי ש-
+  // QuotesTab.jsx יוכל למקם את שורת-הכותרת/חיפוש/סינון שלו כ-position:
+  // sticky בדיוק מתחתיו, ולא מעליו/חופף לו - ResizeObserver, לא מספר-קסם
+  // קבוע, כי הגובה משתנה (הצעה חמה מורחבת/מכווצת, אורך-שם-עסק, HE מול EN,
+  // Trial Notice). דסקטופ בלבד בפועל (ר' ה-CSS media query ב-QuotesTab.jsx
+  // ו-.dash-upper-section למטה) - במובייל הערך הזה פשוט לא נצרך.
+  const upperSectionRef = useRef(null);
+  const [upperSectionHeight, setUpperSectionHeight] = useState(0);
+  useEffect(() => {
+    const el = upperSectionRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect?.height;
+      if (typeof h === 'number') setUpperSectionHeight(Math.round(h));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab]);
+
   const [hotQuoteIndex, setHotQuoteIndex] = useState(0);
   // חוק ברזל (Authenticated UI Coherence task, Dashboard Header Compression):
   // מצב תצוגה טהור (לא לוגיקה עסקית) - האם ההתראה הדקה של Hot Quote
@@ -602,7 +623,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // plan!=='free' עם trial_ends_at=null, כך ש-effectivePlan כבר יצא 'pro'
   // ממילא. תחת המודל המפורש, is_lifetime אורתוגונלי לגמרי ל-plan/
   // trial_ends_at - חשבון Lifetime על plan='free'/'basic' (מוכח קיים, ר'
-  // §206/§208) היה מקבל isPro===false בטעות (מציג "החודש: X/∞" חסר-היגיון
+  // §206/§207) היה מקבל isPro===false בטעות (מציג "החודש: X/∞" חסר-היגיון
   // באזור הסטטיסטיקות), וחשבון Lifetime עם trial_ends_at שיורי לא-null
   // (לא מטופל ע"י Grant/Revoke בכוונה - ר' §206) היה עלול להציג "הניסיון
   // הסתיים"/"מסתיימת בעוד X ימים" מתחת ל-badge "LIFETIME" עצמו. שני
@@ -3797,6 +3818,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             min-height: 0;
             overflow-y: auto;
           }
+          /* חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+             2026-09-08, "Quote History — Stable Scroll Contract"):
+             dash-upper-section (ברכה/סטטיסטיקות/הצעה-חמה) נדבק לראש
+             אזור-הגלילה (.dash-main-content) בדסקטופ בלבד - כך שהוא
+             נשאר גלוי תמיד בזמן גלילת שורות ההצעות, גם אם המדידה של
+             QuotesTab.jsx (top ל-stickyTopBase שלו, ר' שם) אי-פעם
+             לא מדויקת לחלוטין. position:relative המקורי (inline)
+             נדרש כדי ש-Trial Notice הפנימי (position:absolute) ימשיך
+             להתמקם ביחס אליו - !important כאן דורס רק את הערך הזה
+             בדסקטופ, לא נוגע בשום מאפיין אחר. רקע לבן אטום כבר קיים
+             (inline) כך שתוכן גולל מתחתיו לא "נראה דרכו". */
+          .dash-upper-section {
+            position: sticky !important;
+            top: 0;
+            z-index: 15;
+          }
           /* Proportional Workspace Correction (Owner real-visual-review
              correction, 2026-09-05): the immediately-prior "Desktop
              Workspace Width" round added two rules, both removed here -
@@ -4500,7 +4537,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             </div>
           </div>
 
-      <div className="dash-main-content" style={{ flex: '1 1 auto', padding: '16px' }}>
+      <div className="dash-main-content" style={{ flex: '1 1 auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
         {/* Width history (condensed - full narrative now lives in
             PROFLOW_PROJECT_CONTEXT.md §54/§56/§58/§184/§186, not repeated
             in full here across every round): this content wrapper used to
@@ -4525,7 +4562,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             its plain width:100%/no-max-width/no-padding behavior exactly
             as before. Public Quote's own --pf-desktop-content-width/980px
             remains completely untouched and unreferenced here. */}
-        <div className="dash-content-container" style={{ width: '100%' }}>
+        {/* חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+            2026-09-08, "FOOTER — ALWAYS AT THE BOTTOM"): זהו ההורה הישיר
+            האמיתי של dash-upper-section/כרטיס QuotesTab/ה-footer (לא
+            dash-main-content עצמו, למרות השם - ר' ההערה שם) - טריק ה-
+            marginTop:'auto' של ה-footer דורש ש*ההורה הישיר* שלו יהיה
+            flex-column עם שטח-פנוי אמיתי לספוג, לא הורה רחוק יותר. flex:
+            '1 1 auto'+minHeight:0 ממלאים בדיוק את השטח שנותר בתוך
+            dash-main-content (שכבר flex-column+overflow-y:auto, קבוע-
+            גובה אמיתי מהשרשרת הקיימת) - עכשיו ה-footer באמת נדחף לתחתית
+            כשהתוכן קצר, ומופיע אחרי סוף התוכן כשהוא ארוך, בלי מספר-קסם. */}
+        <div className="dash-content-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
 
           {/* V2 Visual Completion Pass: greeting banner (Image 1 reference).
               Presentational only - greets the real business name already in
@@ -4625,7 +4672,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               בעצמם, כך שהעטיפה הזו לא משנה את הנראות שלהם באף מצב - רק
               מסירה את המעטפת-הריקה שהייתה קיימת בלעדם. */}
           {activeTab === 'main' && !showQuoteForm && !isSuperAdmin && (
-          <div className="dash-upper-section" style={{ position: 'relative', background: '#FFFFFF', border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
+          <div ref={upperSectionRef} className="dash-upper-section" style={{ position: 'relative', background: '#FFFFFF', border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
 
           {/* חוק ברזל (Trial Bar Owner-Reference Correction task): מרווח-כותרת
               קבוע (14px) - אין עוד marginBottom מותנה כאן. ה-Trial Notice
@@ -4788,8 +4835,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               {/* חוק ברזל (Dashboard Header Compression, Hot Quote): כרטיס-
                   KPI ענק (רדיוס 14px, ריפוד 16px, אייקון עגול 40px) הפך
                   להתראה דקה חד-שורתית (~44px), בתוך Frame A עדיין (ר'
-                  ההערה למעלה על עוגן ה-Trial Notice) - מוצגת רק כש-
-                  hotQuotesList.length>0, בדיוק כמו קודם. יציבות-הגיאומטריה
+                  ההערה למעלה על עוגן ה-Trial Notice). יציבות-הגיאומטריה
                   הקיימת (רוטציית-4-שניות בין שמות-לקוח משתנים) נשמרת
                   באמצעות overflow/whiteSpace/textOverflow על שורה אחת,
                   לא עוד line-clamp דו-שורתי, כי כל ה"כרטיס" עצמו עכשיו
@@ -4797,8 +4843,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   הטקסט המלא (ללא קיצוץ) בשורה שנייה - state מקומי טהור,
                   לא לוגיקה עסקית חדשה - ו"תצפה בהצעה" אמיתית (getQuoteViewLink
                   המקביל, אותה נוסחת קישור-ציבורי-לפי-מטבע שכבר קיימת ב-
-                  QuotesTab.jsx, לא בדויה). */}
-              {hotQuotesList.length > 0 && currentHotQuote && (
+                  QuotesTab.jsx, לא בדויה).
+
+                  חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+                  2026-09-08, Owner-authorized): התיבה עצמה מוצגת תמיד עכשיו
+                  (לא עוד `hotQuotesList.length > 0 &&` שמדלג על כל הבלוק) -
+                  שורש התקלה שהבעלים דיווח עליה (ההצעה החמה "נעלמה" מהדשבורד
+                  של David Aluminum) נחקר ואומת: אין שום שינוי קוד בכלל
+                  בנוסחת-הזכאות של Hot Quote (view_count>=3 && status!==
+                  'approved' && status!=='paid', בדיוק כמו קודם, לא נגעתי בה)
+                  ולא בטעינת/נירמול הסטטוס בשום commit רלוונטי היסטורי - הביטוי
+                  התנייתי `hotQuotesList.length > 0 &&` היה קיים כך מאז ומתמיד
+                  (גם ב-5f658f3 "stabilize hot quote geometry" המקורי, גם
+                  בהערה של הסבב הזה עצמו לפני התיקון - "מוצגת רק כש-
+                  hotQuotesList.length>0"). המסקנה: הסיבה האמיתית להיעלמות
+                  היא מעבר-סטטוס אמיתי (ההצעה שהייתה זכאית עברה ל-approved/
+                  paid - בדיוק ההתנהגות העסקית הנכונה שהבעלים אישר), אך
+                  התבנית-חזותית הקודמת (תיבה שנעלמת כליל) הפכה מעבר-סטטוס
+                  תקין למראה של "באג". התיקון כאן הוא אך ורק ויזואלי/מבני:
+                  מוסיף מצב-ריק קבוע-גיאומטריה כשאין הצעה חמה זכאית - אפס
+                  שינוי בנוסחת-הזכאות עצמה. */}
+              {hotQuotesList.length > 0 && currentHotQuote ? (
                 <div
                   role="button"
                   tabIndex={0}
@@ -4822,6 +4887,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <Eye size={13} strokeWidth={2.2} />
                   </button>
                   <ChevronDown size={15} strokeWidth={2.4} color={NEON.red} style={{ flexShrink: 0, transform: hotQuoteExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                </div>
+              ) : (
+                <div
+                  style={{ marginTop: '8px', background: 'rgba(148,163,184,0.06)', border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px' }}
+                >
+                  <Flame size={15} color={NEON.textMuted} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}
+                    </span>
+                    <span style={{ fontSize: '0.66rem', color: NEON.textMuted, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}
+                    </span>
+                  </span>
                 </div>
               )}
             </>
@@ -4946,6 +5025,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
           {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
+                stickyTopBase={isSuperAdmin ? 0 : upperSectionHeight}
                 quotes={filteredQuotes}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
@@ -5189,8 +5269,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               end of whichever tab's content, on both desktop and mobile
               (mobile is unaffected by the height/overflow change, so this
               is purely a DOM-location change there, not a behavior change -
-              the page still scrolls normally as a whole on mobile). */}
-          <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '16px', marginTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
+              the page still scrolls normally as a whole on mobile).
+
+              חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+              2026-09-08, "FOOTER — ALWAYS AT THE BOTTOM"): marginTop קבוע
+              (30px) לא היה מספיק - ב-.dash-main-content שהוא flex:1 1 auto
+              בתוך שרשרת flex-column כבר-קיימת (dash-app-shell→dash-shell-
+              outer→dash-shell-body→dash-shell-main, כולן flex-column
+              קבועות, לא תלויות-מדיה-query), ה-footer פשוט נדבק מיד אחרי
+              תוכן קצר, בלי להידחף לתחתית האזור הזמין - הטופס-הקצר-נראה-
+              "צף-באמצע" שהבעלים דיווח עליו. תוקן ללא position:absolute
+              (נמנע בכוונה, per Owner's explicit "no brittle absolute
+              positioning") - marginTop:'auto' על ה-footer עצמו, בתוך
+              .dash-main-content שקיבל display:flex+flexDirection:column
+              משלו (למעלה) - טריק flexbox סטנדרטי: שוליים-עליונים אוטומטיים
+              סופגים את כל השטח הפנוי הנותר בציר הראשי, ודוחפים לתחתית
+              בדיוק כשהתוכן קצר יותר מהגובה הזמין; כשהתוכן ארוך יותר,
+              ה-footer פשוט מופיע אחרי סוף התוכן (בזרימה רגילה, לעולם לא
+              overlay/clip) - אותו מנגנון עובד גם בדסקטופ (עם overflow-y:
+              auto על dash-main-content) וגם במובייל (עם גלילת-עמוד טבעית,
+              כי כל השרשרת ההורה כבר flex-column עם minHeight:100vh
+              מ-dash-app-shell). */}
+          <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '16px', marginTop: 'auto', paddingTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
             <div style={{ marginBottom: '6px' }}>
               {isHebrew ? <>מערכת <BrandName /> - ניהול עסק והצעות מחיר</> : <><BrandName /> - Business & Quoting SaaS Platform</>}
             </div>
