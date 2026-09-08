@@ -16,10 +16,14 @@ import { computeEffectivePlan } from '../utils/planEntitlements';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { shouldShowUpgradeCta } from '../utils/planCatalog';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
+import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney } from '../utils/money';
 import { compareClients } from '../utils/clientSort';
 import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getDefaultProfessionalUnit, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { computeTransparentTrimBounds } from '../utils/logoTrim';
+import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
+import { getFunctionErrorMessage } from '../utils/functionError';
+import { classifyQuoteEmailError } from '../utils/quoteEmailErrorClassification';
 import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
@@ -47,9 +51,9 @@ import AdminUsersTab from '../components/AdminUsersTab';
 // ואינו בתחום המשימה הזו.
 import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW, SHELL } from '../theme/neonTheme';
 import {
-  AlertTriangle, Shield, LogOut, FileText,
-  Users2, PlusCircle, Settings as SettingsIcon, BarChart3, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon, Package, X, Sparkles, Eye,
+  AlertTriangle, Shield, LogOut,
+  PlusCircle, Flame,
+  MessagesSquare, Accessibility as AccessibilityIcon, X, Sparkles, Eye,
   MessageCircle, ChevronDown, MoreHorizontal
 } from 'lucide-react';
 
@@ -806,6 +810,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       );
     }
   };
+
+  // חוק ברזל (Functional Parity Across Viewports task, 2026-09-08): מחושב
+  // פעם אחת לכל render, נצרך ע"י Desktop sidebar ו-Mobile bottom-nav/More
+  // כאחד - ר' src/utils/dashboardNavCapabilities.js לפירוט המלא.
+  const navCapabilities = getDashboardNavCapabilities({ isSuperAdmin, t, isHebrew });
 
   async function loadData(userId, userEmail, userMetadata) {
     await fetchQuotes(userId);
@@ -2000,9 +2009,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
-      console.error("Email send error:", err);
+      // חוק ברזל (LIVE Admin Email Failure root-cause task, 2026-09-08):
+      // לפני התיקון, כל כשל (session פגה/בעלות שגויה/כשל-תצורת-שולח/דחיית-
+      // Resend/כשל-רשת) הוצג באותה הודעה גנרית אחת בדיוק - בלתי-ניתן-
+      // לאבחון מצד המשתמש/מהדוח שהוא מדווח. getFunctionErrorMessage (אותו
+      // מנגנון בדיוק כמו AdminUsersTab.jsx, ר' functionError.js) מחלץ את
+      // ה-message האמיתי שהפונקציה כתבה ל-response body; classifyQuoteEmailError
+      // (quoteEmailErrorClassification.js) ממפה אותו לקטגוריה בטוחה-להצגה.
+      // ה-console.error עדיין מקבל את האובייקט הגולמי + ה-message שנפתר,
+      // לאבחון מפתחים - אף פעם לא נחשף כפי-שהוא למשתמש.
+      const hadReadableServerResponse = !!(err?.context && typeof err.context.json === 'function');
+      const rawMessage = await getFunctionErrorMessage(err, isHebrew ? 'שליחת האימייל נכשלה' : 'Email sending failed');
+      console.error("Email send error:", err, "| resolved server message:", rawMessage);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setAlertModalMsg(isHebrew ? '❌ שליחת האימייל נכשלה.' : '❌ Email sending failed.');
+      const { userMessage } = classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse });
+      setAlertModalMsg(userMessage);
     }
   };
 
@@ -2878,9 +2899,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   }
 
+  // חוק ברזל (Quote History Search root-cause task, 2026-09-08 - שורש-
+  // הבעיה שהבעלים דיווח עליו): "מס' הצעה" בחיפוש היה quote.id הגולמי
+  // (UUID פנימי, ללא שום קשר למספר-ההזמנה המוצג בפועל, "A57") - אותו
+  // class-of-bug שכבר תוקן פעם אחת עבור המיון למטה (getQuoteOrderSortKey)
+  // אבל מעולם לא הוחל כאן. quoteMatchesSearch (quoteSearch.js) הוא עכשיו
+  // מקור-האמת היחיד לחוזה-החיפוש - נבדק ישירות (בדיקות טהורות משלו), לא
+  // רק דרך המסך.
   const filteredQuotes = quotes.filter(quote => {
-    const matchesSearch = (quote.clients?.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          quote.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = quoteMatchesSearch(quote, searchTerm);
     const matchesStatus = statusFilter === 'All' || (quote.status || 'draft').toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   }).sort((a, b) => {
@@ -4293,18 +4320,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               </button>
             )}
 
-            {[
-              { key: 'main', icon: FileText, label: t.quotesNav },
-              { key: 'settings', icon: SettingsIcon, label: t.settingsNav },
-              { key: 'clients', icon: Users2, label: t.clientsNav },
-              { key: 'finances', icon: BarChart3, label: t.financesNav },
-              { key: 'catalog', icon: Package, label: t.catalogNav },
-              ...(isSuperAdmin ? [{ key: 'admin_clients', icon: Shield, label: t.usersAdminNav }] : [])
-            ].map(({ key, icon: TabIcon, label }) => (
+            {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
+                מקור-האמת עבר ל-getDashboardNavCapabilities (src/utils/
+                dashboardNavCapabilities.js) - בדיוק אותה רשימה, מסוננת לפי
+                אותו isSuperAdmin, נצרכת גם ע"י Mobile bottom-nav/More למטה.
+                סדר/תוכן/onClick זהים-בייט למערך הקודם שהיה מקומי כאן. */}
+            {navCapabilities.map(({ id, icon: TabIcon, label }) => (
               <button
-                key={key}
-                className={activeTab === key ? 'dash-sidebar-btn dash-sidebar-btn-active' : 'dash-sidebar-btn'}
-                onClick={() => { setActiveTab(key); setIsCreatingQuote(false); setEditingQuoteId(null); }}
+                key={id}
+                className={activeTab === id ? 'dash-sidebar-btn dash-sidebar-btn-active' : 'dash-sidebar-btn'}
+                onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               >
                 <TabIcon size={17} strokeWidth={2.2} />
                 <span>{label}</span>
@@ -4529,7 +4554,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
               </button>
               {isSuperAdmin && (
-                <button className="dash-topbar-ghost-btn" onClick={() => { window.location.href = '/ai-logs'; }}>
+                // חוק ברזל (Functional Parity Across Viewports task,
+                // 2026-09-08, תיקון פער-נגישות §211): .dash-admin-logs-text
+                // (הטקסט הגלוי) הוא display:none במובייל (ר' ה-CSS) - בלי
+                // aria-label נפרד, קורא-מסך היה מקבל כפתור-אייקון ללא שם
+                // נגיש בכלל. aria-label/title מוסיפים כאן בדיוק את אותו
+                // טקסט "AI Support Logs" הקיים כבר (זהה, לא מומצא) - אין
+                // תרגום עברי קיים לתווית הזו באף מקום בקובץ (גם בגרסת-
+                // Desktop, גם כאן) אז לא מומצא כזה חדש כאן לראשונה.
+                <button
+                  className="dash-topbar-ghost-btn"
+                  onClick={() => { window.location.href = '/ai-logs'; }}
+                  aria-label="AI Support Logs"
+                  title="AI Support Logs"
+                >
                   <MessagesSquare size={14} />
                   <span className="dash-admin-logs-text">AI Support Logs</span>
                 </button>
@@ -5345,22 +5383,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           aria-label={isHebrew ? 'עוד' : 'More'}
           style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998 }}
         >
-          <button
-            role="menuitem"
-            onClick={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === 'settings' ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === 'settings' ? NEON.violet : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
-          >
-            <SettingsIcon size={17} strokeWidth={2.2} />
-            {isHebrew ? 'הגדרות' : 'Settings'}
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => { setActiveTab('catalog'); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === 'catalog' ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === 'catalog' ? NEON.violet : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
-          >
-            <Package size={17} strokeWidth={2.2} />
-            {t.catalogNav}
-          </button>
+          {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
+              אותו מקור getDashboardNavCapabilities שה-Desktop sidebar צורך
+              למעלה, מסונן ל-mobileGroup==='more' - זו בדיוק הסיבה
+              ש-admin_clients (Users Admin, super_admin-only) עכשיו מופיע
+              כאן אוטומטית לחשבון Super Admin, בלי תנאי-role שני ונפרד.
+              Settings/Catalog נשארים זהים-בייט (אותו onClick/style/icon/
+              טקסט-מוצג - mobileLabel שומר על "הגדרות"/"Settings" הקצר
+              הקיים, לא "הגדרות עסק" של ה-Desktop). */}
+          {navCapabilities
+            .filter((cap) => cap.mobileGroup === 'more')
+            .map(({ id, icon: TabIcon, label, mobileLabel }) => (
+              <button
+                key={id}
+                role="menuitem"
+                onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === id ? NEON.violet : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
+              >
+                <TabIcon size={17} strokeWidth={2.2} />
+                {mobileLabel || label}
+              </button>
+            ))}
           {/* Task G (Owner-authorized, Mobile Sign Out): this menu had no
               account/session action at all before - Settings/Catalog above
               are byte-identical to before, untouched. Identity line reuses
@@ -5417,31 +5460,46 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           Finances נשארו יעדים ישירים ללא שינוי - שום התנהגות/handler/
           activeTab-target לא השתנו, רק ה-IA (מבנה-הניווט) עצמו. */}
       <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: NEON.bgElevated, color: NEON.textPrimary, justifyContent: 'space-around', padding: '5px 4px calc(5px + env(safe-area-inset-bottom, 0px))', zIndex: 9998, boxShadow: '0 -4px 16px -6px rgba(31,27,46,0.12)', borderTop: `1px solid ${NEON.border}`, boxSizing: 'border-box' }}>
-        <button onClick={() => { setActiveTab('main'); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: activeTab === 'main' && !showQuoteForm ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: activeTab === 'main' && !showQuoteForm ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-          <FileText size={16} style={{ marginBottom: '1px' }} />
-          {t.quotesNav}
-        </button>
-        <button onClick={() => { setActiveTab('clients'); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: activeTab === 'clients' ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: activeTab === 'clients' ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-          <Users2 size={16} style={{ marginBottom: '1px' }} />
-          {t.clientsNav}
-        </button>
-        <button onClick={() => { setActiveTab('finances'); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: activeTab === 'finances' ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: activeTab === 'finances' ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-          <BarChart3 size={16} style={{ marginBottom: '1px' }} />
-          {t.financesNav}
-        </button>
+        {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
+            אותו getDashboardNavCapabilities, מסונן ל-mobileGroup==='bottom' -
+            Quotes/Clients/Finances, סדר/handler/label זהים-בייט לשלושת
+            הכפתורים הנפרדים שהיו כאן קודם. 'main' שומר על תנאי-ה-active
+            המיוחד שלו (!showQuoteForm) - היחיד מבין השלושה שהיה שונה. */}
+        {navCapabilities
+          .filter((cap) => cap.mobileGroup === 'bottom')
+          .map(({ id, icon: TabIcon, label }) => {
+            const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
+            return (
+              <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                <TabIcon size={16} style={{ marginBottom: '1px' }} />
+                {label}
+              </button>
+            );
+          })}
+        {/* "עוד"/"More" מדגיש את עצמו גם כש-activeTab הוא כל יעד מתוך קבוצת
+            ה-more (Settings/Catalog/Admin) - נגזר מאותה רשימה, לא רשימת-
+            מחרוזות שנייה ונפרדת שהייתה עלולה לצאת מסונכרנת שוב. */}
         <button
           onClick={() => setShowMobileMoreMenu(prev => !prev)}
           aria-haspopup="true"
           aria-expanded={showMobileMoreMenu}
-          style={{ background: (showMobileMoreMenu || activeTab === 'settings' || activeTab === 'catalog') ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || activeTab === 'settings' || activeTab === 'catalog') ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}
+          style={{ background: (showMobileMoreMenu || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab)) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab)) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}
         >
           <MoreHorizontal size={16} style={{ marginBottom: '1px' }} />
           {isHebrew ? 'עוד' : 'More'}
         </button>
-        <button onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
-          <PlusCircle size={16} strokeWidth={2.5} style={{ marginBottom: '1px' }} />
-          {isHebrew ? 'חדש' : 'New'}
-        </button>
+        {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08,
+            תיקון פער-פריטי §211): Desktop כבר הסתיר את כפתור "הצעת מחיר
+            חדשה" מ-Super Admin ({'{'}!isSuperAdmin &&{'}'} סביב dash-sidebar-cta
+            למעלה) - כפתור "חדש" כאן לא נשא תנאי מקביל בכלל, כך שחשבון Super
+            Admin ראה יכולת-יצירת-הצעה ב-Mobile שה-Desktop שלו עצמו במפורש
+            שולל. אותו isSuperAdmin המשותף בדיוק - לא תנאי-role שני/עצמאי. */}
+        {!isSuperAdmin && (
+          <button onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
+            <PlusCircle size={16} strokeWidth={2.5} style={{ marginBottom: '1px' }} />
+            {isHebrew ? 'חדש' : 'New'}
+          </button>
+        )}
       </div>
     </div>
   );

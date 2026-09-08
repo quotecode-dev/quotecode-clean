@@ -12,6 +12,7 @@ import {
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { getPlanDefinition, PLAN_CATALOG, getDisplayIdentityLabel } from '../utils/planCatalog';
+import { getFunctionErrorMessage } from '../utils/functionError';
 
 // חוק ברזל (Admin V2 Foundation — Phase 1.5, Plan Icon/Badge Wiring, Owner-
 // authorized): מקור-אמת יחיד לזהות ויזואלית של חבילה - planCatalog.js -
@@ -38,21 +39,6 @@ function getPlanBadgeVisual(planValue, isGrantedLifetimePro) {
       ? <Crown size={size} strokeWidth={2.2} />
       : (PLAN_ICON_RENDERERS[badge.icon] || PLAN_ICON_RENDERERS.CircleUser)(size),
   };
-}
-
-// Edge Function errors return the real reason in the response body (e.g. "Cannot delete
-// a Super Admin account") - supabase-js's default error.message is just a generic
-// "non-2xx status code", so for a destructive admin action we dig out the real message.
-async function getFunctionErrorMessage(error, fallback) {
-  try {
-    if (error?.context && typeof error.context.json === 'function') {
-      const body = await error.context.json();
-      if (body?.error) return body.error;
-    }
-  } catch {
-    // fall through to the generic message below
-  }
-  return error?.message || fallback;
 }
 
 export default function AdminUsersTab({

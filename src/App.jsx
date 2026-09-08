@@ -296,11 +296,29 @@ export default function App() {
         <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />
         <Route path="/he/contact" element={<Contact isHebrew={true} />} />
         <Route path="/he/tools" element={<PublicTools />} />
-        
+        {/* חוק ברזל (Google Indexing / SEO Readiness root-cause task, 2026-09-08):
+            PublicTools/PublicToolsEn כבר תמכו במלואם ב-initialTab (מטא-דאטה/
+            canonical/H1/aria-selected ייעודיים לכל מחשבון, מכוסה במלואו ע"י
+            PublicToolsRouting.test.jsx הקיים כבר) - אבל אף נתיב לא-hub לא
+            נרשם כאן מעולם, כך שהארבעה נתיבים-פר-שפה שמופיעים ב-sitemap.xml
+            (/he/tools/currency|units|metals|crypto) נפלו בפועל ל-wildcard
+            (LandingLocal) ולעולם לא הציגו את תוכן-המחשבון הייעודי/מטא-דאטה
+            הנכונים - אומת חי מול Production לפני התיקון (HTTP 200 עם כותרת
+            גנרית, לא כותרת-מחשבון). זה שורש-הבעיה שתוקן כאן - לא הרחבה של
+            תכונה, רק חיבור נתיב-קיים ליעד-קיים. */}
+        <Route path="/he/tools/currency" element={<PublicTools initialTab="currency" />} />
+        <Route path="/he/tools/units" element={<PublicTools initialTab="units" />} />
+        <Route path="/he/tools/metals" element={<PublicTools initialTab="metals" />} />
+        <Route path="/he/tools/crypto" element={<PublicTools initialTab="crypto" />} />
+
         <Route path="/en/terms" element={<Terms isHebrew={false} />} />
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
+        <Route path="/en/tools/currency" element={<PublicToolsEn initialTab="currency" />} />
+        <Route path="/en/tools/units" element={<PublicToolsEn initialTab="units" />} />
+        <Route path="/en/tools/metals" element={<PublicToolsEn initialTab="metals" />} />
+        <Route path="/en/tools/crypto" element={<PublicToolsEn initialTab="crypto" />} />
 
         <Route path="*" element={<LandingLocal />} />
       </Routes>
