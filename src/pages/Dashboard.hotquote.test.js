@@ -25,7 +25,14 @@ const dashboardSource = readFileSync(
 function extractHotQuoteBlock(source) {
   const start = source.indexOf('{hotQuotesList.length > 0 && currentHotQuote ? (');
   const blockEnd = source.indexOf('</span>\n              )}', start);
-  return source.slice(start, blockEnd > start ? blockEnd + '</span>'.length : start + 3500);
+  // חוק ברזל (Header UI Dark-Panel Correction task, 2026-09-09): the true
+  // closing marker above has never actually matched this block's real
+  // nesting (</div> sits between the last </span> and )}) - this extractor
+  // has always silently relied on the fallback window, not the indexOf
+  // match. 4500 (was 3500) gives real headroom so a content-only edit
+  // (e.g. longer color-token names/values, no structural change) doesn't
+  // silently truncate the captured block before its own closing tags.
+  return source.slice(start, blockEnd > start ? blockEnd + '</span>'.length : start + 4500);
 }
 
 describe('Hot Quote fixed geometry (source-level regression guard)', () => {

@@ -26,7 +26,7 @@
 import {
   Leaf, Gem, Crown, Clock, Infinity as InfinityIcon,
 } from 'lucide-react';
-import { LIGHT as NEON } from '../theme/neonTheme';
+import { LIGHT as NEON, SHELL } from '../theme/neonTheme';
 import { getDisplayIdentityLabel, getDisplayIdentityVisual } from '../utils/planCatalog';
 
 const ICON_RENDERERS = {
@@ -55,7 +55,19 @@ function renderIcon(name, size, strokeWidth) {
 // לא מחושב כאן מחדש. upgradeAvailable מוסיף רמז חזותי בלבד (אייקון כתר קטן)
 // כשההורה עתיד לעטוף את זה ב-<button> - הלוגיקה/handler עצמם נשארים
 // ב-Dashboard.jsx (showUpgradeCta/setShowPricingModal, ללא שינוי).
-export default function PlanIdentityBadge({ displayIdentity, isHebrew, variant = 'header', size = 'md', daysLeft = null, upgradeAvailable = false, singleLine = false }) {
+// חוק ברזל (Header UI Dark-Panel Correction, systemic remediation task,
+// 2026-09-09): variant="compact" was explicitly documented above (§46) as
+// built "for the WHITE greeting area" - its label text color
+// (NEON[visual.colorToken]/NEON.textSecondary/NEON.textMuted) is the LIGHT
+// theme, tuned for contrast against white. When Dashboard.jsx's top
+// workspace panel moved to the sidebar's dark background, this same text
+// would be low/zero-contrast. onDark is additive-only, defaults to false
+// (byte-identical behavior for every other call site - variant="header"/
+// "panel" and any future compact usage on a light background), and swaps
+// only the compact variant's label/sub-label colors to the same
+// SHELL.sidebarText* tokens the sidebar itself already uses for its own
+// text - "the same visual language as the sidebar," not a new palette.
+export default function PlanIdentityBadge({ displayIdentity, isHebrew, variant = 'header', size = 'md', daysLeft = null, upgradeAvailable = false, singleLine = false, onDark = false }) {
   const label = getDisplayIdentityLabel(displayIdentity, isHebrew);
   const visual = getDisplayIdentityVisual(displayIdentity);
 
@@ -82,8 +94,8 @@ export default function PlanIdentityBadge({ displayIdentity, isHebrew, variant =
           display: 'inline-flex',
           alignItems: 'center',
           gap: singleLine ? '6px' : '8px',
-          background: `${visual.gradientTo}14`,
-          border: `1px solid ${visual.gradientTo}35`,
+          background: `${visual.gradientTo}${onDark ? '29' : '14'}`,
+          border: `1px solid ${visual.gradientTo}${onDark ? '55' : '35'}`,
           borderRadius: '10px',
           padding: singleLine ? '5px 10px' : '6px 12px',
           minHeight: singleLine ? '30px' : '36px',
@@ -130,7 +142,7 @@ export default function PlanIdentityBadge({ displayIdentity, isHebrew, variant =
           )}
         </span>
         {singleLine ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 800, color: NEON[visual.colorToken] || NEON.textSecondary, whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 800, color: onDark ? SHELL.sidebarTextActive : (NEON[visual.colorToken] || NEON.textSecondary), whiteSpace: 'nowrap' }}>
             {label}
             {daysLeft != null && daysLeft > 0 && (
               <>
@@ -142,12 +154,12 @@ export default function PlanIdentityBadge({ displayIdentity, isHebrew, variant =
           </span>
         ) : (
           <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15, minWidth: 0 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 800, color: NEON[visual.colorToken] || NEON.textSecondary, whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 800, color: onDark ? SHELL.sidebarTextActive : (NEON[visual.colorToken] || NEON.textSecondary), whiteSpace: 'nowrap' }}>
               {label}
               {upgradeAvailable && <Crown size={11} fill="currentColor" strokeWidth={1} style={{ flexShrink: 0, opacity: 0.85 }} />}
             </span>
             {daysLeft != null && daysLeft > 0 && (
-              <span style={{ fontSize: '0.66rem', fontWeight: 600, color: NEON.textMuted, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.66rem', fontWeight: 600, color: onDark ? SHELL.sidebarTextMuted : NEON.textMuted, whiteSpace: 'nowrap' }}>
                 {isHebrew ? `${daysLeft} ימים נותרו` : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
               </span>
             )}

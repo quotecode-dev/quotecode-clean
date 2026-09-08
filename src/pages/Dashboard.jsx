@@ -49,7 +49,7 @@ import AdminUsersTab from '../components/AdminUsersTab';
 // בלי לגעת בכל אחד מהם בנפרד. AdminUsersTab.jsx (Super Admin) מייבא NEON
 // האמיתי (הכהה) בעצמו ונשאר כך בכוונה - עיצובו מחדש אושר בעיקרון בנפרד
 // ואינו בתחום המשימה הזו.
-import { LIGHT as NEON, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW, SHELL } from '../theme/neonTheme';
+import { LIGHT as NEON, NEON as DARK_ACCENT, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW, SHELL } from '../theme/neonTheme';
 import {
   AlertTriangle, Shield, LogOut,
   PlusCircle, Flame,
@@ -4709,8 +4709,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               הענפים, ילידים אחרונים בתוך ה-div) כבר היו מוגבלים לאותו תנאי
               בעצמם, כך שהעטיפה הזו לא משנה את הנראות שלהם באף מצב - רק
               מסירה את המעטפת-הריקה שהייתה קיימת בלעדם. */}
+          {/* חוק ברזל (Header UI Dark-Panel Correction, systemic remediation
+              task, 2026-09-09, Owner-requested): the top workspace panel now
+              uses the exact same background/border as the sidebar
+              (SHELL.sidebarBg/sidebarBorder) instead of white - "the same
+              visual language as the sidebar." borderRadius is left
+              unchanged (RADIUS.lg, already the app's established radius
+              scale) per "preserve rounded corners consistent with the
+              sidebar" - not reduced to the sidebar's own edge-to-edge zero-
+              radius, which would look wrong on a floating card. Every text/
+              icon color inside this section (greeting, stats, Hot Quote,
+              plan badge) is updated below to the same SHELL.sidebarText*
+              tokens the sidebar itself already uses for its own text -
+              readability is proven, not assumed: see the live HE/EN,
+              Desktop/Mobile verification in this task's own report. No
+              business logic changed anywhere in this block. */}
           {activeTab === 'main' && !showQuoteForm && !isSuperAdmin && (
-          <div ref={upperSectionRef} className="dash-upper-section" style={{ position: 'relative', background: '#FFFFFF', border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
+          <div ref={upperSectionRef} className="dash-upper-section" style={{ position: 'relative', background: SHELL.sidebarBg, border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
 
           {/* חוק ברזל (Trial Bar Owner-Reference Correction task): מרווח-כותרת
               קבוע (14px) - אין עוד marginBottom מותנה כאן. ה-Trial Notice
@@ -4777,6 +4792,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     singleLine={singleLine}
                     daysLeft={displayIdentity === 'FREE_TRIAL' ? trialDaysLeft : null}
                     upgradeAvailable
+                    onDark
                   />
                 </button>
               ) : (
@@ -4786,6 +4802,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   variant="compact"
                   singleLine={singleLine}
                   daysLeft={displayIdentity === 'FREE_TRIAL' ? trialDaysLeft : null}
+                  onDark
                 />
               )
             );
@@ -4797,24 +4814,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <div className="dash-header-stats" style={{ display: 'flex', alignItems: 'center', gap: '18px', flexShrink: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: SHELL.sidebarText }}>
                       {isHebrew ? 'סה״כ הצעות:' : 'Total Quotes:'}
                     </span>
-                    <span style={{ fontSize: '1.05rem', fontWeight: '800', color: NEON.textPrimary }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
                       {totalQuotesCount}
                     </span>
                   </span>
                   {!isPro && (
-                    <span style={{ fontSize: '0.62rem', color: NEON.amber, fontWeight: '700', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.62rem', color: DARK_ACCENT.amber, fontWeight: '700', whiteSpace: 'nowrap' }}>
                       {isHebrew ? `החודש: ${monthlyQuotesCount}/${planLimit}` : `This month: ${monthlyQuotesCount}/${planLimit}`}
                     </span>
                   )}
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: SHELL.sidebarText }}>
                     {isHebrew ? 'סך הכנסות:' : 'Total Revenue:'}
                   </span>
-                  <span className="pf-money" style={{ fontSize: '1.05rem', fontWeight: '800', color: NEON.textPrimary }}>
+                  <span className="pf-money" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
                     {sym}{formatNum(totalRevenue)}
                   </span>
                 </span>
@@ -4856,7 +4873,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     אין כאן שום תנאי isHebrew על מיקום-פיזי, אותו עיקרון
                     "סדר-DOM יחיד, משתקף ע"י dir" שמשמש בכל הקובץ הזה. */}
                 <div className="dash-header-row" style={{ gap: '14px', minHeight: '44px' }}>
-                  <h1 className="dash-header-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', lineHeight: 1.2, color: NEON.textPrimary, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <h1 className="dash-header-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', lineHeight: 1.2, color: SHELL.sidebarTextActive, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {isHebrew ? `ברוך שובך` : `Welcome back`}
                   </h1>
 
@@ -4908,11 +4925,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   onClick={() => setHotQuoteExpanded(prev => !prev)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHotQuoteExpanded(prev => !prev); } }}
                   aria-expanded={hotQuoteExpanded}
-                  style={{ marginTop: '8px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', cursor: 'pointer' }}
+                  style={{ marginTop: '8px', background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', cursor: 'pointer' }}
                 >
-                  <Flame size={15} color={NEON.red} fill={NEON.red} strokeWidth={1} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.78rem', color: NEON.red, fontWeight: '800', flexShrink: 0 }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</span>
-                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: NEON.textPrimary, fontWeight: '600', overflow: hotQuoteExpanded ? 'visible' : 'hidden', textOverflow: hotQuoteExpanded ? 'clip' : 'ellipsis', whiteSpace: hotQuoteExpanded ? 'normal' : 'nowrap' }}>
+                  <Flame size={15} color={DARK_ACCENT.red} fill={DARK_ACCENT.red} strokeWidth={1} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.78rem', color: DARK_ACCENT.red, fontWeight: '800', flexShrink: 0 }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</span>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarTextActive, fontWeight: '600', overflow: hotQuoteExpanded ? 'visible' : 'hidden', textOverflow: hotQuoteExpanded ? 'clip' : 'ellipsis', whiteSpace: hotQuoteExpanded ? 'normal' : 'nowrap' }}>
                     {t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
                   </span>
                   <button
@@ -4920,22 +4937,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     onClick={(e) => { e.stopPropagation(); window.open(getHotQuoteViewLink(currentHotQuote), '_blank'); }}
                     title={isHebrew ? 'צפה בהצעה' : 'View quote'}
                     aria-label={isHebrew ? 'צפה בהצעה' : 'View quote'}
-                    style={{ flexShrink: 0, background: 'rgba(220,38,38,0.10)', border: 'none', borderRadius: RADIUS.sm, width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.red }}
+                    style={{ flexShrink: 0, background: 'rgba(248,113,113,0.18)', border: 'none', borderRadius: RADIUS.sm, width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: DARK_ACCENT.red }}
                   >
                     <Eye size={13} strokeWidth={2.2} />
                   </button>
-                  <ChevronDown size={15} strokeWidth={2.4} color={NEON.red} style={{ flexShrink: 0, transform: hotQuoteExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                  <ChevronDown size={15} strokeWidth={2.4} color={DARK_ACCENT.red} style={{ flexShrink: 0, transform: hotQuoteExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 </div>
               ) : (
                 <div
-                  style={{ marginTop: '8px', background: 'rgba(148,163,184,0.06)', border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px' }}
+                  style={{ marginTop: '8px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px' }}
                 >
-                  <Flame size={15} color={NEON.textMuted} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <Flame size={15} color={SHELL.sidebarTextMuted} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.6 }} />
                   <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                    <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.78rem', color: SHELL.sidebarText, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}
                     </span>
-                    <span style={{ fontSize: '0.66rem', color: NEON.textMuted, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.66rem', color: SHELL.sidebarTextMuted, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}
                     </span>
                   </span>
