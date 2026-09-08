@@ -61,6 +61,42 @@ describe('quoteMatchesSearch - legacy quotes without a real quote_number', () =>
   });
 });
 
+describe('quoteMatchesSearch - Owner-reported LIVE false-positive, exact reproduction (2026-09-09 corrective task)', () => {
+  // חוק ברזל (Quote Search corrective task, 2026-09-09): הבעלים דיווח שחיפוש
+  // "95" ב-LIVE החזיר גם A93/A45/A34/A31 (לא רק A95). הבדיקה הקודמת בדקה
+  // הצעה בודדת מול כמה מונחים, לעולם לא מערך מלא עם *כל* המספרים-השכנים
+  // האלה יחד - זו בדיוק הבדיקה שהייתה תופסת רגרסיה מהצורה הזו, גם אם
+  // לא הייתה קיימת בפועל (אומת חי ב-Production טרי - ר' §216: הבאג לא
+  // שוחזר בשום טעינה טרייה, כנראה טאב/session ישן שרץ קוד מלפני הפריסה).
+  const ownerReportedQuotes = [
+    { quote_number: 95, clients: { company_name: '[TEST] Release Cert EN Client v2' }, status: 'draft' },
+    { quote_number: 93, clients: { company_name: '[TEST] Release Cert EN Client' }, status: 'draft' },
+    { quote_number: 45, clients: { company_name: 'Shlomo Sinai' }, status: 'draft' },
+    { quote_number: 34, clients: { company_name: 'Shlomo Sinai' }, status: 'draft' },
+    { quote_number: 31, clients: { company_name: 'Shlomo Sinai' }, status: 'draft' },
+    { quote_number: 94, clients: { company_name: 'David Cohen' }, status: 'draft' },
+  ];
+
+  it('searching "95" against the full Owner-reported list matches ONLY quote_number 95', () => {
+    const results = ownerReportedQuotes.filter((q) => quoteMatchesSearch(q, '95'));
+    expect(results).toHaveLength(1);
+    expect(results[0].quote_number).toBe(95);
+  });
+
+  it('"95" does not match A93, A45, A34, A31, or A94 individually', () => {
+    expect(quoteMatchesSearch(ownerReportedQuotes[1], '95')).toBe(false); // A93
+    expect(quoteMatchesSearch(ownerReportedQuotes[2], '95')).toBe(false); // A45
+    expect(quoteMatchesSearch(ownerReportedQuotes[3], '95')).toBe(false); // A34
+    expect(quoteMatchesSearch(ownerReportedQuotes[4], '95')).toBe(false); // A31
+    expect(quoteMatchesSearch(ownerReportedQuotes[5], '95')).toBe(false); // A94
+  });
+
+  it('"A95" and "a95" against the full list also match only quote_number 95', () => {
+    expect(ownerReportedQuotes.filter((q) => quoteMatchesSearch(q, 'A95'))).toHaveLength(1);
+    expect(ownerReportedQuotes.filter((q) => quoteMatchesSearch(q, 'a95'))).toHaveLength(1);
+  });
+});
+
 describe('quoteMatchesSearch - normalization and edge cases', () => {
   it('trims surrounding whitespace', () => {
     expect(quoteMatchesSearch(heQuote, '  a57  ')).toBe(true);
