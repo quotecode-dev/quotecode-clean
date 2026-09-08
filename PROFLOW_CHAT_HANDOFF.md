@@ -148,6 +148,7 @@ AUDIT
 - Never reset/restore/stash/clean/discard without explicit authorization.
 - No production DB/migration/deploy change without explicit Owner approval.
 - No application commit/push unless explicitly authorized for that scope.
+- **Release Isolation Law (PERMANENT, added 2026-09-08 — full text `PROFLOW_PROJECT_CONTEXT.md` §205)**: the dirty development working tree must never again be used directly as a Production release source. Dirty work stays isolated in its own development area, preserved non-destructively — no reset/clean/discard/stash-drop to manufacture a clean release state. Every Production release must originate only from a clean, isolated canonical release lineage, freshly branched from `origin/main`. `reset`/`clean`/`discard`/destructive-checkout for release cleanliness are forbidden without their own separate, explicit Owner authorization. A release is not complete until it is verified on the real LIVE site, Owner visual verification included — push ≠ deploy ≠ LIVE-verified, each is its own independently-confirmed fact.
 - David Aluminum must remain protected from regression/disruption.
 - Before material changes, reconcile all six canonical project documents
   (see `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B), especially TODO.
@@ -1334,10 +1335,15 @@ But before LIVE:
 - establish rollback plan;
 - obtain explicit Owner GO.
 
-Canonical intended production domain: `www.quotecodepro.com`
+Canonical intended production domain: `www.tekango.com` (updated 2026-09-07,
+TEKANGO Email Migration + Visible Rebrand Sweep task — supersedes the prior
+`www.quotecodepro.com` value; Owner states DNS/SSL are externally configured,
+not independently re-verified from the repository; `middleware.ts`/
+`vercel.json` updated locally to match, not deployed).
 
 `quotecode.vercel.app` remains relevant to the canonical-domain/redirect and
-Supabase session/origin review.
+Supabase session/origin review. Old `www.quotecodepro.com` links continue to
+resolve unchanged (no DNS/decommission action taken).
 
 ## 13. Documentation state
 
@@ -1748,3 +1754,157 @@ pure application-feature task (`AddItemWizard.jsx`/`QuoteForm.jsx`/Public
 Quote signature display) and did not touch the Bridge/tunnel/cross-conversation
 continuity protocol described in this file at all — recorded here only so
 this file's own status accurately reflects "untouched," not silently absent.
+
+## 17. Permanent Owner Workflow Rule — Implementation Prompts Are Delivered as Downloadable Markdown, Never Inline or via the Bridge (reconfirmed 2026-09-06)
+
+**Binding requirement**: every future Claude/coding-agent *implementation*
+prompt must be delivered to the Owner as a downloadable Markdown file — not
+pasted only as an inline chat/writing block, and not sent directly through
+the read-only ProFlow Claude Bridge V2 (`PROFLOW_PROJECT_CONTEXT.md`
+§170-§172, §176-§180). The Bridge's role stays exactly what it was designed
+for: read-only inspection (`claude_bridge_info`/`claude_repo_status`/
+`claude_read_file`/`claude_search_repo`/`claude_ask`/`claude_task_*`) — it is
+not a channel for handing off a new implementation task. The Owner's own
+flow is: download the Markdown prompt file, then send that file to the
+local, writable Claude Code session directly (this session, or its
+successor) — never the Bridge — to actually perform the work.
+
+This rule was explicitly reconfirmed by the Owner on 2026-09-06, mid-way
+through the "Hebrew Commercial Correction and Final Pre-Release Verification
+Gate" task (`PROFLOW_CODEX_CHECKPOINT.md`), as a documentation-only addendum
+carrying no implementation/commit/push/deploy authorization of its own —
+recorded here as the permanent workflow rule, not scoped to that one task.
+
+**Note (2026-09-06)**: the "Hebrew Commercial Correction and Final Pre-Release
+Verification Gate" task itself (full detail in `PROFLOW_CODEX_CHECKPOINT.md`
+and `PROFLOW_CLAUDE_LATEST_REPORT.md`) is a pure video-production/landing-page
+task — all four Owner-reported Hebrew commercial defects (pronunciation, RTL,
+missing opening title, duplicated captions) were corrected and locally
+verified; the English commercial was confirmed byte-for-byte unchanged. It did
+not touch the Bridge/tunnel/cross-conversation continuity protocol described
+in this file. Per that task's own stricter stop gate, **nothing was committed
+or pushed this task, including to `proflow-continuity`** — a deliberate
+departure from the two prior video-production tasks in this session, which did
+push documentation-only commits to that branch. Hebrew Owner Final Visual
+Acceptance remains PENDING.
+
+**Note (2026-09-06, follow-up)**: a further narrowly-scoped "Focused Hebrew
+Narration Correction — פִּרְטֵי" task (full detail in
+`PROFLOW_CODEX_CHECKPOINT.md`) fixed one remaining Owner-reported mispronunciation
+(פרטי read as PRATI instead of the intended PIRTEY) by regenerating only the
+affected narration segment with the Owner's exact pointed Hebrew (פִּרְטֵי) and
+re-splicing/remuxing it into the already-approved film. Every previously-approved
+Hebrew element (opening title, RTL fixes, captions, single-caption behavior,
+poster) was re-verified unchanged; English remains byte-identical. Same
+Bridge-untouched status and same stricter no-commit/no-push stop gate apply.
+Hebrew Owner Final Acceptance remains PENDING — audible pronunciation
+confirmation requires the Owner's own listening, which this environment cannot
+perform.
+
+**Note (2026-09-06, second follow-up)**: a subsequent "Integrate Owner-Approved
+Human Hebrew Voice-over" task (full detail in `PROFLOW_CODEX_CHECKPOINT.md`)
+replaced the synthetic Hebrew narration entirely with five real, Owner-consented
+human recordings. The Owner's file-to-beat mapping was independently verified
+via local Whisper ASR transcription (not trusted from filename order, which
+would have scrambled it) - a locally-installed model transcribed all five
+originals and confirmed the mapping was correct, then re-confirmed it on the
+final processed files. Audio was gently trimmed/denoised/loudness-normalized
+(no pitch/time/identity change); the pipeline was restructured since each human
+recording covers multiple sub-actions in one continuous take, unlike the old
+per-action synthetic splices; a real caption-timing bug (a sub-caption
+stretching across the wrong duration) was caught and fixed before being burned
+into video. Every previously-approved Hebrew element and the full English
+asset set were re-verified unchanged. Same Bridge-untouched status and same
+stricter no-commit/no-push stop gate apply. Hebrew Owner Final Acceptance
+remains PENDING - only the Owner's own listening can confirm final voice
+quality and pronunciation.
+
+**Note (2026-09-06, third follow-up)**: a "Hebrew Human Voiceover Timing Fix"
+task (full detail in `PROFLOW_CODEX_CHECKPOINT.md`) eliminated a ~20-32s dead
+silent gap in beat C by splitting the same already-approved human recording at
+its natural pauses (found via `ffmpeg silencedetect`) and placing each of its
+4 phrases at its own matching visual action, found by inspecting the raw
+captured frames directly rather than estimating from script timing. While
+doing that frame-by-frame inspection, a real, previously-undetected privacy
+leak was found - beat C's raw footage began with a single leaked frame
+showing the ProFlow login screen and a visible TEST-account email address,
+present in every prior build of this film since the original TV Commercial
+task. This was surfaced to the Owner before acting (it touches visual content
+the task's own scope otherwise protected); the Owner authorized a minimal
+one-frame trim, which was applied and verified removed. A real mp3
+round-trip-encoding clipping bug was also caught and fixed during the audio
+split (re-cutting from the original lossless WAV instead). Every previously-
+approved element and the full English asset set were re-verified unchanged.
+Same Bridge-untouched status and stricter no-commit/no-push stop gate apply.
+Hebrew Owner Final Acceptance remains PENDING - only the Owner's own listening
+can confirm the repositioned phrases sound natural.
+
+**Note (2026-09-06, fourth follow-up)**: after listening to that timing-fix
+version, the Owner reported the 4 beat-C phrases still sounded like
+disconnected fragments (technical sync was not the same as natural pacing).
+A "Hebrew Commercial Natural Pacing Fix" task (full detail in
+`PROFLOW_CODEX_CHECKPOINT.md`) inverted the prior approach: instead of
+spreading the same 4 already-cut phrase clips across the full ~17.8s real
+footage, the narration was reassembled as one tight sequence with short
+human-scale pauses, and Beat C's video was compressed (a new short edited
+sequence of real-footage snippets with clean hard cuts, no speed-change
+filters) to follow it. A calibration bug was caught and fixed mid-task (a
+flat nominal silence gap measured longer than intended once each clip's own
+residual buffer was accounted for); the final, actually-measured inter-phrase
+pauses are 0.448-0.455s, inside the Owner's requested 0.3-0.6s range. Beat C
+duration dropped from 17.80s to 6.04s and the full film from 50.20s to
+38.44s, per the Owner's own explicit "concise over duration-preserving"
+guidance. The login-screen-leak fix was re-applied from scratch in the new
+video-builder script and re-verified removed; ProFlow/פִּרְטֵי pronunciation
+(beat B) and the full English asset set were re-verified untouched. Same
+Bridge-untouched status and stricter no-commit/no-push stop gate apply.
+Hebrew Owner Final Acceptance remains PENDING - only the Owner's own
+listening can confirm the sequence now reads as one natural sentence.
+
+**Note (2026-09-06, fifth follow-up) - HEBREW COMMERCIAL NOW OWNER ACCEPTED.**
+The Owner listened to and reviewed the 38.44s Hebrew commercial and gave
+explicit final approval of its narration, pacing, visuals, and duration -
+recorded in `PROFLOW_CODEX_CHECKPOINT.md`. A subsequent "Final Landing
+Pre-Release Fixes" task (full detail in the same checkpoint file) then fixed
+two independently-audited English-side blockers to bring English up to
+Hebrew's already-correct standard: removed the `default` attribute from
+English's caption `<track>` (English's MP4 already has burned-in captions,
+so `default` risked the same double-caption defect Hebrew had before),
+and replaced a busy, unsafe English poster (partial test email + overlapping
+UI chrome) with a clean frame from the approved English commercial's own
+ProFlow-logo beat. Along the way, a required scan of `public/videos/`
+(explicitly including unreferenced legacy assets) found 4 completely unused,
+untracked-by-git legacy teaser files with visible internal QA-labels and a
+placeholder test email - surfaced to the Owner before acting, who authorized
+removal; all 12 files (4 videos + captions + posters) were deleted. 9 new
+regression tests were added (`landingVideoCommercialIntegration.test.js`)
+guarding the video-gating logic and the no-`default`-on-either-track rule -
+verified to actually catch a regression by deliberately breaking it once.
+The Hebrew asset and the English MP4/VTT remain byte-identical throughout;
+only the English poster received an intentional new checksum. Same
+Bridge-untouched status and stricter no-commit/no-push stop gate apply.
+Independent Codex review of both this task and the Owner's new Hebrew
+acceptance is the required next step before any release action.
+
+**Note (2026-09-06, sixth follow-up) - RELEASE CANDIDATE READY FOR CODEX
+REVIEW.** A "Landing Pages Release Candidate Preparation" task (full detail
+in `PROFLOW_CODEX_CHECKPOINT.md`) built and verified a landing-only release
+candidate entirely inside a disposable directory outside the repo
+(`git archive HEAD` + a manifest-driven overlay of only the specific
+landing-relevant files, never the whole dirty tree), then ran a full clean
+install/build/test/lint/responsive/HTTP verification pass against it with
+`VIDEOS_READY=true` set only in that isolated copy - the real working tree's
+`VIDEOS_READY` was reconfirmed `false` throughout and never changed. No git
+staging, commit, push, or destructive git command occurred at any point. Two
+genuine issues were found and either fixed (a Supabase-env-var crash in the
+isolated build, fixed with placeholder non-functional values) or explicitly
+disclosed rather than silently touched (a pre-existing account-identifier
+string inside the *locked, Owner-approved* English film's own real footage -
+flagged for the Owner/Codex, not edited, since no task this session is
+authorized to alter that locked asset). A TEST-to-Production parity audit
+also surfaced one disclosed discrepancy (different contact emails per
+locale) for explicit Owner confirmation. Status: **RELEASE CANDIDATE READY
+FOR CODEX REVIEW** - next steps are Owner/Codex review of the manifest, then
+hunk-level staging review (one shared component mixes a landing-relevant
+change with an unrelated authenticated-app change), before any commit
+authorization. No commit/push/deploy/Production-LIVE action occurred.
