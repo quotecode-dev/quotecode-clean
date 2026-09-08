@@ -29,8 +29,8 @@ Claude reports, screenshots, code existence, PASS labels, and any single continu
 
 ## ACTIVE_TASK
 
-`ACTIVE_TASK: NONE — last completed: TEKANGO-RELEASE-ISOLATION-LAW-DOCUMENTATION (documentation-only)`
-`ACTIVE_STATUS: TWO REAL PRODUCTION/LIVE RELEASES SHIPPED AND OWNER-VERIFIABLE (landing pages, then authenticated dashboard shell — both on www.tekango.com, both real git push + real Vercel deploy + real LIVE browser verification, full detail PROFLOW_PROJECT_CONTEXT.md §204). Following that success, the Owner mandated a standing Release Isolation Law (PROFLOW_PROJECT_CONTEXT.md §205, PERMANENT) — now documented across all four continuity files. NOT YET DONE: actually building the isolated dedicated development area + clean canonical release lineage §205 requires as the new default (§205 records that the two completed releases satisfied it via a safe-at-the-time alternative method, not via the now-standing dedicated-lineage default) — that construction work is its own separate, not-yet-authorized future task.`
+`ACTIVE_TASK: NONE — last completed: TEKANGO-EXPLICIT-LIFETIME-ENTITLEMENT-MODEL (TEST/local only)`
+`ACTIVE_STATUS: EXPLICIT LIFETIME MODEL — READY FOR OWNER REVIEW. Lifetime is now an explicit business_settings.is_lifetime boolean (migration 20260908000000, quotecode-test only), never inferred from trial_ends_at===null. Server-side trigger extended, Admin UI's Lifetime toggle replaced with a password-reauthenticated Protected Action, Super Admin logo-gate bug fixed, two more real display bugs found+fixed in the consumer sweep (UserDetailsModal.jsx, PricingModal.jsx). Live-verified in TEST with synthetic personas only (Grant/Revoke round-trip, wrong-password rejection, HE+EN identity rendering). 533/533 tests, lint/build clean. Full detail PROFLOW_PROJECT_CONTEXT.md §206. Zero Production/real-customer-data mutation. Still standing from before: the Release Isolation Law (§205) dedicated development area/clean release lineage construction remains its own separate, not-yet-authorized future task.`
 
 A side request never replaces the active task. If a side request arrives, log it under SIDE_TASK and return here when it's resolved.
 

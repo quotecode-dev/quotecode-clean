@@ -82,6 +82,8 @@ Do **not** stop an entire task/workstream because of one isolated question — r
 
 **Important (owner-clarified)**: TEST-account QA inconsistencies (e.g. the `PROFLOW_TEST_ADMIN` browser-harness login/action classifier behavior documented across `PROFLOW_HANDOFF.md` §18.AO/§18.AQ/§18.BB) are a TEST-tooling/QA-process observation only — they do NOT reopen this completed security/permissions layer itself.
 
+**🟢 2026-09-08 pointer**: the Admin Lifetime grant/revoke action was rebuilt from a blind toggle into a password-reauthenticated Protected Action, and Lifetime itself is now an explicit `is_lifetime` column rather than inferred — see `PROFLOW_PROJECT_CONTEXT.md` §206 for the full record. TEST/local only, does not reopen this item's completed security-layer scope.
+
 ## 2. AI Chat — Local / International / Four Contexts
 
 **Status: 🟢 MAIN WORK COMPLETE / VERIFIED — multiple OPEN follow-ups (Admin indicator; Guided AI Support Entry; Complete-Product-Knowledge requirement; AI Knowledge Maintainability requirement — see 2026-09-02 update below)**
