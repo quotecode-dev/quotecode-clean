@@ -10,6 +10,33 @@ import { formatAddress } from '../utils/addressFormat';
 export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote }) {
   const hasLogo = bizLogo && bizLogo.length > 5;
 
+  // חוק ברזל (Faded PDF Logo Correction task - היפותזה שנבדקה ונשללה
+  // בפועל, לתיעוד כדי שאף אחד לא ינסה שוב): ההשערה הראשונית הייתה ש-
+  // crossOrigin חסר על ה-<img> גורם ל-canvas "מוכתם" (tainted) שה-
+  // html2canvas מטפל בו ע"י fallback חיוור. נבדק חי בדפדפן אמיתי מול
+  // URL חיצוני אמיתי (dummyimage.com, עם Access-Control-Allow-Origin: *
+  // אמיתי) - זו לא הייתה הסיבה: גם עם crossOrigin="anonymous" מוגדר
+  // וה-canvas מוכח כ"נקי" (לא-מוכתם, drawImage+toDataURL הצליחו), הלוגו
+  // עדיין יצא חיוור זהה לחלוטין (השוואת פיקסלים בייטים-לבייט). הסיבה
+  // האמיתית שהוכחה: תיבת ה"צ'יפ" הלבן-שקוף (rgba(255,255,255,0.92))
+  // שעוטפת את התמונה - html2canvas מצייר את background-color של האלמנט
+  // ההורה *מעל* התמונה-הבת שלו, לא מתחתיה (נבדק חי: עם רקע שקוף לגמרי
+  // הלוגו יצא בצבע האמיתי המדויק #1e5ad2; עם רקע לבן מלא-אטימות הלוגו
+  // נעלם כליל מאחורי לבן טהור; עם 92% אטימות - בדיוק התערובת המתמטית של
+  // 92% לבן על גבי הכחול האמיתי - נמדד 237,242,251 מול חיזוי מדויק). זו
+  // בעיית סדר-ציור (paint order) אמיתית ב-html2canvas עם ההרכב הספציפי
+  // הזה (הורה עם רקע-שקוף, ילד <img>), לא בעיית CORS/תזמון בכלל - ר'
+  // .pq-logo-chip ב-.pq-pdf-capturing (PublicQuote.jsx/PublicQuoteEn.jsx)
+  // לתיקון בפועל. crossOrigin="anonymous" נשאר כאן כהיגיינת-canvas
+  // תקינה ונדרשת (מונע הכתמה אמיתית במקרים אחרים, לא מזיק, ותומך בבקשת
+  // המשימה) - אך אינו הפתרון לתקלה שהבעלים דיווח עליה.
+  const [logoCrossOriginFailed, setLogoCrossOriginFailed] = useState(false);
+  useEffect(() => {
+    setLogoCrossOriginFailed(false);
+  }, [bizLogo]);
+  const logoCrossOrigin = logoCrossOriginFailed ? undefined : 'anonymous';
+  const handleLogoError = () => setLogoCrossOriginFailed(true);
+
   // חוק ברזל (תיקון בעלים מאושר - כותרת מובייל קומפקטית): לפני התיקון,
   // ה-flex-wrap הרגיל של הדסקטופ גרם לתיבת "הצעת מחיר #.../תאריך" (עמודה
   // שנייה) לגלוש למובייל כבלוק לבן גדול ונפרד *מתחת* לפרטי העסק - נמדד
@@ -43,6 +70,19 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   // בשינוי נוסף כשה-Edge Function בסופו של דבר תיפרס.
   const formattedNumber = formatQuoteNumber(quote.quote_number);
 
+  // חוק ברזל (Public Quote Redesign, Section A/B - dark elegant header):
+  // מחליף את הגרדיאנט הסגול-ורוד הקודם (LIGHT.gradient) בכותרת כהה-אלגנטית
+  // אחת, משותפת לענפי Desktop ו-Mobile - "dark elegant header replacing
+  // the old purple-gradient hero" (Owner spec, no reference image supplied
+  // this round - עיצוב לפי המפרט הטקסטואלי בלבד, מוצהר כאן, לא כמדידה מול
+  // תמונת-ייחוס בפועל, אותה שקיפות שכבר ננקטה ב-.pq-page-card-desktop-width
+  // history). תג המידע ("הצעת מחיר"/מספר/תאריך) הופך מקופסה לבנה אטומה
+  // לפאנל "זכוכית חלבית" (glass) על גבי הרקע הכהה - עדיין נבדל חזותית כ"תג"
+  // בלי לשבור את שפת-העיצוב הכהה.
+  const headerBg = 'linear-gradient(135deg, #14111f 0%, #1e1930 55%, #241c38 100%)';
+  const headerBorder = '1px solid rgba(255,255,255,0.09)';
+  const glassPanel = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)' };
+
   if (isMobileView) {
     // חוק ברזל (תיקון בעלים - קומפוזיציית כותרת מובייל, העברה נוספת):
     // קודם, מספר/תאריך ההצעה ישבו בשורה נפרדת ברוחב מלא מתחת לפרטי העסק
@@ -55,19 +95,19 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
     // בכל שאר הקומפוננטות בפרויקט, בלי צורך בתנאי isHebrew על סדר העמודות
     // עצמו (רק על יישור הטקסט הפנימי של העמודה המשנית).
     return (
-      <div style={{ background: LIGHT.gradient, borderRadius: '12px', padding: '10px 14px', marginBottom: '10px', boxShadow: LIGHT.glow }}>
+      <div className="pq-header-box" style={{ background: headerBg, border: headerBorder, borderRadius: '12px', padding: '10px 14px', marginBottom: '10px', boxShadow: '0 8px 24px -10px rgba(0,0,0,0.45)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
           <div style={{ flex: '1 1 auto', minWidth: 0 }}>
             {hasLogo ? (
-              <div style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '3px 8px', borderRadius: '6px', minWidth: 0 }}>
-                <img src={bizLogo} alt={bizName} style={{ maxHeight: '26px', maxWidth: '120px', objectFit: 'contain', display: 'block' }} />
+              <div className="pq-logo-chip" style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '3px 8px', borderRadius: '6px', minWidth: 0 }}>
+                <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '26px', maxWidth: '120px', objectFit: 'contain', display: 'block' }} />
               </div>
             ) : (
               <div style={{ fontSize: '1rem', fontWeight: '800', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                 {bizName}
               </div>
             )}
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.92)', lineHeight: '1.35', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.68)', lineHeight: '1.35', marginTop: '4px' }}>
               {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
               {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
               {bizEmail && <div>{bizEmail}</div>}
@@ -107,30 +147,33 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
                 אינו תכונת-locale) - תואם בדיוק את הענף Desktop של אותו
                 רכיב עצמו (שורה 169 למטה, שכבר משתמש ב-textAlign:'center'
                 אחיד לאותו תוכן בדיוק, בלי יישור מעורב). */}
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.3', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <div className="pq-header-glass" style={{ ...glassPanel, borderRadius: '8px', padding: '5px 10px', color: 'rgba(255,255,255,0.92)', lineHeight: '1.3', textAlign: 'center', whiteSpace: 'nowrap' }}>
               {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
                   לפני התיקון, ענף ה-fallback (formattedNumber falsy - המצב
                   היחיד הקיים בפועל היום, לפני הפעלת ה-migration) הציג רק
                   hash גולמי בלי תווית "מספר הצעה" מעליו ובלי מרכוז - בניגוד
                   לענף formattedNumber (שם התווית והמספר כן מוצגים ומורכזים
                   יחד). עכשיו שני המצבים חולקים בדיוק את אותו מבנה - תווית
-                  "מספר הצעה"/"Quote Number" תמיד מוצגת, עם הערך (מספר אמיתי
+                  "מס׳ הצעה"/"Quote #" תמיד מוצגת, עם הערך (מספר אמיתי
                   אחרי migration, או fallback עד אז) ממורכז מתחתיה - כך
                   שברגע שה-migration יופעל, אותה קומפוזיציה בדיוק תתחיל
-                  להציג את המספר האמיתי בלי שינוי מבני נוסף. */}
+                  להציג את המספר האמיתי בלי שינוי מבני נוסף.
+                  Public Quote Redesign (Section A): התווית עצמה שונתה מ-
+                  "מספר הצעה" ל-"מס׳ הצעה" - הניסוח המדויק שהבעלים דרש
+                  במפרט. */}
               <div style={{ textAlign: 'center', marginBottom: '1px' }}>
-                <div style={{ fontSize: '0.58rem', opacity: 0.85, fontWeight: '500' }}>{isHebrew ? 'מספר הצעה' : 'Quote Number'}</div>
-                <div style={{ fontWeight: '800', fontSize: '0.78rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
+                <div style={{ fontSize: '0.58rem', opacity: 0.75, fontWeight: '500' }}>{isHebrew ? 'מס׳ הצעה' : 'Quote #'}</div>
+                <div className="pq-header-number" style={{ fontWeight: '800', fontSize: '0.78rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
               </div>
               <div>{isHebrew ? 'תאריך:' : 'Date:'} {dateStr}</div>
               {validUntilStr && (
-                <div style={{ color: '#fecaca', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}</div>
+                <div className="pq-header-valid" style={{ color: '#fca5a5', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}</div>
               )}
             </div>
             {bizPhone && (
               <a
                 href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.94)', color: LIGHT.sky, textDecoration: 'none', fontWeight: '700', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}
               >
                 <Phone size={11} strokeWidth={2.6} />
                 {isHebrew ? 'חייג/י אליי' : 'Call me'}
@@ -147,20 +190,20 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
     // הוקטנו בכ-35-40% לעומת הגרסה הקודמת (רכיב משותף Local+International -
     // התיקון חל בו-זמנית על שתי השפות מעצם היותו רכיב יחיד משותף). כל
     // המידע הקיים נשמר במלואו - רק ריווח/גדלים הוקטנו.
-    <div style={{ background: LIGHT.gradient, borderRadius: '14px', padding: '14px 20px', marginBottom: '14px', boxShadow: LIGHT.glow }}>
+    <div className="pq-header-box" style={{ background: headerBg, border: headerBorder, borderRadius: '14px', padding: '14px 20px', marginBottom: '14px', boxShadow: '0 10px 30px -12px rgba(0,0,0,0.5)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
 
         {/* צד לוגו/שם העסק */}
         <div style={{ flex: '1 1 220px', textAlign: isHebrew ? 'right' : 'left' }}>
           {hasLogo ? (
-            <div style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '5px 10px', borderRadius: '8px', marginBottom: '6px' }}>
-              <img src={bizLogo} alt={bizName} style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
+            <div className="pq-logo-chip" style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '5px 10px', borderRadius: '8px', marginBottom: '6px' }}>
+              <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
             </div>
           ) : (
             <h2 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: '800' }}>{bizName}</h2>
           )}
 
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.92)', lineHeight: '1.4' }}>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.68)', lineHeight: '1.4' }}>
             {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
             {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
             {bizEmail && <div>{bizEmail}</div>}
@@ -190,23 +233,26 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
             נכון (alignItems:'center' על עמודת ה-flex ההורה - נמדד חי:
             שניהם centerX=608.5 זהה) ולא נגע. */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          {/* תיבת פרטי הצעת המחיר */}
-          <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.95)', padding: '10px 14px', borderRadius: '10px', minWidth: '170px' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1f1b2e', marginBottom: '3px' }}>{isHebrew ? 'הצעת מחיר' : 'Price Quote'}</div>
+          {/* תיבת פרטי הצעת המחיר - פאנל "זכוכית חלבית" על הכותרת הכהה
+              (Public Quote Redesign, Section A) במקום קופסה לבנה אטומה. */}
+          <div className="pq-header-glass" style={{ ...glassPanel, textAlign: 'center', padding: '10px 14px', borderRadius: '10px', minWidth: '170px' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#ffffff', marginBottom: '3px' }}>{isHebrew ? 'הצעת מחיר' : 'Price Quote'}</div>
             {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
-                אותו תיקון כמו בענף Mobile למעלה - התווית "מספר הצעה"/
-                "Quote Number" תמיד מוצגת, גם במצב ה-fallback (המצב היחיד
+                אותו תיקון כמו בענף Mobile למעלה - התווית "מס׳ הצעה"/
+                "Quote #" תמיד מוצגת, גם במצב ה-fallback (המצב היחיד
                 הקיים היום, לפני migration), במקום להעלם רק בגלל שאין עדיין
-                מספר אמיתי. */}
+                מספר אמיתי.
+                Public Quote Redesign (Section A): התווית שונתה מ-"מספר
+                הצעה" ל-"מס׳ הצעה" - הניסוח המדויק שהבעלים דרש במפרט. */}
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', color: '#6b6580', fontWeight: '600' }}>{isHebrew ? 'מספר הצעה' : 'Quote Number'}</div>
-              <div style={{ color: LIGHT.violet, fontWeight: '800', fontFamily: 'monospace', fontSize: '1.05rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
+              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.65)', fontWeight: '600' }}>{isHebrew ? 'מס׳ הצעה' : 'Quote #'}</div>
+              <div className="pq-header-number" style={{ color: '#c4b5fd', fontWeight: '800', fontFamily: 'monospace', fontSize: '1.05rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#6b6580', marginTop: '3px' }}>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '3px' }}>
               {isHebrew ? 'תאריך:' : 'Date:'} {new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
             </div>
             {quote.valid_until && (
-              <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 'bold' }}>
+              <div className="pq-header-valid" style={{ fontSize: '0.75rem', color: '#fca5a5', fontWeight: 'bold' }}>
                 {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
               </div>
             )}
@@ -215,7 +261,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.94)', color: LIGHT.violet, textDecoration: 'none', fontWeight: '700', fontSize: '0.8rem', padding: '5px 12px', borderRadius: '999px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.94)', color: LIGHT.sky, textDecoration: 'none', fontWeight: '700', fontSize: '0.8rem', padding: '5px 12px', borderRadius: '999px' }}
             >
               <Phone size={13} strokeWidth={2.4} />
               {isHebrew ? 'חייג/י אליי' : 'Call me'}

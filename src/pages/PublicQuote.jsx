@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
@@ -8,8 +8,11 @@ import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 import { LIGHT } from '../theme/neonTheme';
-import { UserRound, Paperclip, Phone, Printer } from 'lucide-react';
+import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lucide-react';
 import PdfFileIcon from '../components/PdfFileIcon';
+import QuotePrintModeModal from '../components/QuotePrintModeModal';
+import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
+import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
@@ -58,12 +61,83 @@ export default function PublicQuote({ quoteData }) {
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
+  // חוק ברזל (Owner-Approved Signature Record Improvement - audit-verified
+  // gap): quotes.signature (data URL) הוא עמודת-החתימה היחידה שקיימת בפועל -
+  // אין signed_at, אין signer_name, אין שום עמודת-timestamp-אחרת על quotes
+  // (נבדק ישירות במיגרציות). לכן "מי חתם ומתי" לא ניתן לשחזור אמין בסבב-
+  // צפייה נפרד/עתידי בלי migration (מחוץ לתחום המשימה הנוכחית). מה שכן בטוח
+  // וללא-migration: לתפוס שם-חותם *מאושר-במפורש-ע"י-החותם עצמו* (לא recipient/
+  // attn_name שהעסק הזין, בלי אישור) ברגע החתימה הזה עצמו, ולהציג אותו +
+  // חותמת-זמן-צד-לקוח יחד עם התמונה - נכון ומדויק אך ורק לאורך חיי-הטעינה
+  // הנוכחיים של הדף (state React רגיל, לא persisted).
+  const [signerName, setSignerName] = useState(quote.attn_name || '');
+  const [signerCompany, setSignerCompany] = useState(client?.company_name || '');
+  const [signerRole, setSignerRole] = useState(quote.attn_role || '');
+  const [signerNameWarning, setSignerNameWarning] = useState(false);
+  const [justSignedAt, setJustSignedAt] = useState(null);
+  const [justSignedImageDataUrl, setJustSignedImageDataUrl] = useState(null);
+  const isBusinessCustomer = quote.client_type === 'business';
+
+  // חוק ברזל (Public Quote PDF/Print UX task): printMode/printModalOpen/
+  // printIntent/pdfGenerating הם state UI-מקומי-בלבד, אף פעם לא נשלחים
+  // לשרת. "הורד PDF" ו"הדפס מסמך" בעבר שתיהן קראו בפועל ל-window.print()
+  // בלבד - "הורדת PDF" מעולם לא הייתה הורדה אמיתית. עכשיו שני המסלולים
+  // נפרדים: printIntent==='print' ממשיך להפעיל אך ורק window.print()
+  // (בלתי נגוע); printIntent==='pdf' קורא ל-generateQuotePdf האמיתי
+  // (html2canvas+jsPDF) ולעולם לא ל-window.print().
+  const [printMode, setPrintMode] = useState('compact');
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printIntent, setPrintIntent] = useState('print');
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const handleAfterPrint = () => setPrintModalOpen(false);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const openPrintChooser = (intent) => {
+    setPrintIntent(intent);
+    setPrintModalOpen(true);
+  };
+
+  const handleChooseOutputMode = async (mode) => {
+    setPrintMode(mode);
+    setPrintModalOpen(false);
+
+    if (printIntent === 'print') {
+      setTimeout(() => window.print(), 50);
+      return;
+    }
+
+    if (pdfGenerating) return; // הגנה מפני לחיצה כפולה
+    setPdfGenerating(true);
+    try {
+      // ה-class .pq-pdf-capturing (ר' <style> למטה) חייב להיות מוחל ו-DOM
+      // חייב להספיק לצייר-מחדש (reflow) לפני שה-canvas נלכד - setTimeout
+      // (לא rAF כפול, שנתקע בטאב לא-פעיל) נותן frame אמיתי אחד לדפדפן.
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const filename = buildQuotePdfFilename(formatQuoteNumber(quote.quote_number));
+      await generateQuotePdf({ captureEl: cardRef.current, filename });
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      setApproveToast({ type: 'error', message: 'לא הצלחנו להפיק את קובץ ה-PDF. נסו שוב בעוד רגע.' });
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   const { canvasRef, hasSigned, isActive, activateSigning, deactivateSigning, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   // ההתראה המקומית "יש לחתום" נעלמת אוטומטית ברגע שיש חתימה תקפה בקנבס
   useEffect(() => {
     if (hasSigned) setSignatureWarning(false);
   }, [hasSigned]);
+
+  useEffect(() => {
+    if (signerName.trim()) setSignerNameWarning(false);
+  }, [signerName]);
 
   useEffect(() => {
     document.title = "TEKANGO - הצעת מחיר דיגיטלית";
@@ -87,18 +161,35 @@ export default function PublicQuote({ quoteData }) {
   }, []);
 
   const handleApprove = async () => {
+    let blocked = false;
+    if (!signerName.trim()) {
+      setSignerNameWarning(true);
+      blocked = true;
+    }
     if (!hasSigned) {
       setSignatureWarning(true);
-      return;
+      blocked = true;
     }
+    if (blocked) return;
 
     try {
+      // חוק ברזל: ה-RPC עצמו (public_approve_quote) נשאר בלתי-נגוע לגמרי -
+      // עדיין מקבל רק p_quote_id/p_signature_data_url בדיוק כמו היום.
+      // signerName/Company/Role נשארים ב-state הצד-לקוח בלבד לתצוגה מיידית -
+      // לא נשלחים לשרת.
+      const signatureDataUrl = getSignatureDataUrl();
       const { error } = await supabase.rpc('public_approve_quote', {
         p_quote_id: quote.id,
-        p_signature_data_url: getSignatureDataUrl(),
+        p_signature_data_url: signatureDataUrl,
       });
 
       if (error) throw error;
+      // חוק ברזל (Owner-Approved Signature Record Improvement): quote.signature
+      // הוא prop סטטי מטעינת-הדף הראשונית (SmartPublicQuote.jsx, fetch יחיד,
+      // לעולם לא מרוענן אחרי RPC) - שומרים את ה-data URL שכבר חושב ברגע הזה
+      // עצמו (אותם בייטים בדיוק שנשלחו לשרת) ב-state מקומי לתצוגה מיידית.
+      setJustSignedImageDataUrl(signatureDataUrl);
+      setJustSignedAt(new Date());
       setApproved(true);
     } catch (err) {
       // הפרטים הטכניים/מסד הנתונים נשארים ב-console בלבד - הלקוח הציבורי
@@ -211,8 +302,26 @@ export default function PublicQuote({ quoteData }) {
   const isOtherBusinessAccount = Boolean(quote.caller_is_business_account) && !isOwnerViewing;
   const displayTerms = quote.terms;
 
+  // חוק ברזל (Public Quote Redesign - WhatsApp contact action): אותה
+  // נורמליזציית-טלפון בדיוק (00→+, 0 מקומי→+972, ספרות-בלבד→+) כמו
+  // sendWhatsApp הקיים כבר ב-Dashboard.jsx - לא נוסחה עצמאית שנייה. הודעה
+  // קצרה עם מספר ההצעה - הצופה בעמוד הוא הלקוח עצמו, לא שולח-בשם-העסק.
+  const bizWhatsAppHref = (() => {
+    const raw = business?.phone ? String(business.phone).trim() : '';
+    if (!raw) return null;
+    let clean = raw.replace(/[^\d+]/g, '');
+    if (clean.startsWith('00')) clean = '+' + clean.slice(2);
+    else if (clean.startsWith('0') && !clean.startsWith('00')) clean = '+972' + clean.slice(1);
+    else if (/^\d{9,15}$/.test(clean)) clean = '+' + clean;
+    const phoneForUrl = clean.replace('+', '');
+    if (!phoneForUrl) return null;
+    const numberDisplay = formatQuoteFallback(quote);
+    const text = `שלום, יש לי שאלה לגבי הצעת המחיר מספר ${numberDisplay}.`;
+    return `https://wa.me/${phoneForUrl}?text=${encodeURIComponent(text)}`;
+  })();
+
   return (
-    <div className="pq-page" dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}`} data-print-mode={printMode} dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`
         .pq-card { padding: var(--pf-doc-shell-padding); }
         /* חוק ברזל (Public Quote Bottom Actions - הפניה חזותית מהבעלים):
@@ -329,6 +438,109 @@ export default function PublicQuote({ quoteData }) {
             border: none !important;
             max-width: 100% !important;
           }
+          /* חוק ברזל (Public Quote Redesign - Print/PDF): A4-first pagination,
+             בלי לגעת ברוחב-מסך שהמשתמש רואה (@page משפיע רק על הפלט המודפס/
+             PDF עצמו). */
+          @page {
+            size: A4;
+            margin: 12mm 10mm;
+          }
+          table { border-collapse: collapse; }
+          thead { display: table-header-group; }
+          tr, .pq-section, .pq-recipient, .pq-action-tile {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          /* חוק ברזל (PDF Correction task - Readability): הכותרת הכהה החדשה
+             קריאה מצוין על מסך אך בלתי-קריאה בהדפסה - כאן, ורק כאן (הדפסה
+             בפועל), הכותרת הופכת לקופסה בהירה עם טקסט כהה-מוצק. */
+          .pq-header-box {
+            background: #ffffff !important;
+            border: 1.5px solid #334155 !important;
+            box-shadow: none !important;
+          }
+          .pq-header-box, .pq-header-box * {
+            color: #0f172a !important;
+            text-shadow: none !important;
+          }
+          .pq-header-glass {
+            background: #f1f5f9 !important;
+            border: 1px solid #94a3b8 !important;
+          }
+          .pq-header-number { color: #4338ca !important; }
+          .pq-header-valid { color: #b91c1c !important; }
+          .pq-card, .pq-card * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .pq-total-final-label, .pq-total-final-amount {
+            color: #0f172a !important;
+          }
+          .pq-total-final-amount {
+            color: #4c1d95 !important;
+          }
+          .pq-totals-box {
+            border: 1.5px solid #0f172a !important;
+            background: #f8fafc !important;
+          }
+          .pq-discount-negative {
+            color: #b91c1c !important;
+          }
+        }
+        /* חוק ברזל (PDF Correction task - Direct PDF via html2canvas): class
+           זה מוחל רק רגע לפני/במהלך generateQuotePdf - חוזר על אותה לוגיקה
+           בדיוק תחת class מפורש במקום media query (html2canvas לא "מדפיס",
+           הוא מצלם DOM רגיל) - הדפסה אמיתית נשארת בלתי-נגועה. */
+        .pq-pdf-capturing .no-print {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-card {
+          box-shadow: none !important;
+          border: none !important;
+        }
+        .pq-pdf-capturing .pq-header-box {
+          background: #ffffff !important;
+          border: 1.5px solid #334155 !important;
+          box-shadow: none !important;
+        }
+        .pq-pdf-capturing .pq-header-box, .pq-pdf-capturing .pq-header-box * {
+          color: #0f172a !important;
+        }
+        /* חוק ברזל (Faded PDF Logo Correction task - הוכח חי): html2canvas
+           מצייר את background-color השקוף-חלקית של תיבת ה"צ'יפ" *מעל* תמונת
+           הלוגו, לא מתחתיה. מכיוון שברגע הלכידה .pq-header-box כבר הפך ללבן
+           אטום לגמרי, רקע הצ'יפ עצמו מיותר לחלוטין באותו רגע - הסרתו
+           (transparent) רק בזמן הלכידה מסירה את ההזדמנות לבאג לקרות. */
+        .pq-pdf-capturing .pq-logo-chip {
+          background: transparent !important;
+        }
+        .pq-pdf-capturing .pq-header-glass {
+          background: #f1f5f9 !important;
+          border: 1px solid #94a3b8 !important;
+        }
+        .pq-pdf-capturing .pq-header-number { color: #4338ca !important; }
+        .pq-pdf-capturing .pq-header-valid { color: #b91c1c !important; }
+        .pq-pdf-capturing .pq-total-final-label,
+        .pq-pdf-capturing .pq-total-final-amount {
+          color: #0f172a !important;
+        }
+        .pq-pdf-capturing .pq-total-final-amount {
+          color: #4c1d95 !important;
+        }
+        .pq-pdf-capturing .pq-totals-box {
+          border: 1.5px solid #0f172a !important;
+          background: #f8fafc !important;
+        }
+        .pq-pdf-capturing .pq-discount-negative {
+          color: #b91c1c !important;
+        }
+        .pq-spin {
+          animation: pq-spin-rotate 0.9s linear infinite;
+        }
+        @keyframes pq-spin-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
       {/* חוק ברזל (תיקון בעלים מאושר - הצעת מחיר כמסמך רספונסיבי, לא A4):
@@ -391,7 +603,7 @@ export default function PublicQuote({ quoteData }) {
           את תיבת-התוכן של הכרטיס). מובייל לא נגע כלל - ה-override הנפרד
           ב-@media (max-width:640px) ממשיך לקבוע padding:2px משלו,
           בלתי-תלוי בטוקן הזה. */}
-      <div className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
+      <div ref={cardRef} className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
 
         <PublicQuoteHeader
           isHebrew={isHebrew}
@@ -425,6 +637,12 @@ export default function PublicQuote({ quoteData }) {
             לכבוד:
           </div>
           <div className="pq-recipient-name" style={{ fontSize: '1.2rem', fontWeight: '800', color: LIGHT.violet }}>{client?.company_name || 'לקוח נכבד'}</div>
+          {/* חוק ברזל (Public Quote Redesign - "respectful intro sentence"):
+              משפט-פתיחה קצר ומכבד, נתון-תצוגה גרידא (לא נשמר, לא משפיע על
+              שום חישוב) - אותו טקסט קבוע לכל הצעה. */}
+          <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px', marginBottom: '6px' }}>
+            שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:
+          </div>
           {client?.email && <div className="pq-recipient-detail" style={{ color: LIGHT.violet, fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{client.email}</div>}
           {clientPhoneFormatted && <div className="pq-recipient-detail" style={{ color: LIGHT.violet, fontSize: '0.9rem', direction: 'ltr', textAlign: 'right' }}>{clientPhoneFormatted}</div>}
           {client?.address && <div className="pq-recipient-detail" style={{ color: LIGHT.violet, fontSize: '0.9rem' }}>{formatAddress(client.address, true)}</div>}
@@ -554,7 +772,7 @@ export default function PublicQuote({ quoteData }) {
             הסופית הוא ילד-גריד נפרד שפורש שתי העמודות (gridColumn:'1/-1')
             כדי שהקו יהיה רציף על פני כל הרוחב. */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-          <div className="pq-section pq-totals-grid" style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '8px' }}>
+          <div className="pq-section pq-totals-grid pq-totals-box" style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '8px' }}>
             {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
                 (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
                 החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
@@ -566,8 +784,8 @@ export default function PublicQuote({ quoteData }) {
             )}
             {quote.discount > 0 && (
               <>
-                <span style={{ color: '#ef4444', fontSize: '0.9rem' }}>הנחה ({quote.discount}%):</span>
-                <span className="pf-money" style={{ color: '#ef4444', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(discountAmountDisplay)}</span>
+                <span className="pq-discount-negative" style={{ color: '#ef4444', fontSize: '0.9rem' }}>הנחה ({quote.discount}%):</span>
+                <span className="pf-money pq-discount-negative" style={{ color: '#ef4444', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(discountAmountDisplay)}</span>
               </>
             )}
             {/* client_type חסר/לא-מזוהה: לעולם לא מציגים פירוט מע"מ (מוסף/כלול/
@@ -590,8 +808,8 @@ export default function PublicQuote({ quoteData }) {
               </>
             )}
             <div style={{ gridColumn: '1 / -1', borderTop: `2px solid ${LIGHT.borderStrong}`, marginTop: '5px', paddingTop: '4px' }} />
-            <span style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1e293b' }}>סה"כ לתשלום:</span>
-            <span className="pf-money" style={{ color: LIGHT.violet, fontSize: '1.3rem', fontWeight: '900', textAlign: 'right' }}>{currencySymbol}{formatNum(finalTotalRounded)}</span>
+            <span className="pq-total-final-label" style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1e293b' }}>סה"כ לתשלום:</span>
+            <span className="pf-money pq-total-final-amount" style={{ color: LIGHT.violet, fontSize: '1.3rem', fontWeight: '900', textAlign: 'right' }}>{currencySymbol}{formatNum(finalTotalRounded)}</span>
           </div>
         </div>
 
@@ -627,10 +845,35 @@ export default function PublicQuote({ quoteData }) {
             <div className="pq-section" style={{ background: '#dcfce7', color: '#166534', padding: '20px', borderRadius: '12px', fontWeight: 'bold' }}>
               <div style={{ fontSize: '1.1rem', marginBottom: '5px' }}>✓ הצעת מחיר זו אושרה ונחתמה בהצלחה!</div>
               <div style={{ fontSize: '0.9rem', color: '#15803d', marginTop: '10px' }}>
-                {quote.signature && quote.signature.startsWith('data:image') ? (
+                {/* חוק ברזל (Owner-Approved Signature Record Improvement):
+                    quote.signature הוא prop סטטי מטעינת-הדף הראשונית - מיד
+                    אחרי חתימה ראשונה מוצלחת הוא עדיין null. justSignedImageDataUrl
+                    (state מקומי) הוא ה-fallback הראשון כדי שהתמונה תוצג מיד. */}
+                {(justSignedImageDataUrl || quote.signature) && (justSignedImageDataUrl || quote.signature).startsWith('data:image') ? (
                   <div>
-                    <div style={{ marginBottom: '5px' }}>חתימה דיגיטלית:</div>
-                    <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                    {/* justSignedAt קיים אך ורק כשהחתימה הזו בוצעה ממש עכשיו,
+                        באותו טעינת-עמוד - ביקור נפרד/מאוחר יותר חוזר בכוונה
+                        לתווית הגנרית הישנה, לא ממציא שם/תאריך. */}
+                    {justSignedAt ? (
+                      <div style={{ textAlign: 'start' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '6px' }}>נחתם על ידי: {signerName}</div>
+                        {isBusinessCustomer && signerCompany && (
+                          <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}>בשם: {signerCompany}{signerRole ? ` (${signerRole})` : ''}</div>
+                        )}
+                        <div style={{ fontSize: '0.82rem', color: '#166534', marginBottom: '2px' }}>
+                          תאריך ושעת חתימה: {justSignedAt.toLocaleDateString('he-IL')}, {justSignedAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#166534', marginBottom: '8px' }}>
+                          מס׳ הצעה: {formatQuoteNumber(quote.quote_number) || formatQuoteFallback(quote)}
+                        </div>
+                        <img src={justSignedImageDataUrl || quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ marginBottom: '5px' }}>חתימה דיגיטלית:</div>
+                        <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                      </div>
+                    )}
                   </div>
                 ) : 'חתימה דיגיטלית התקבלה בהצלחה'}
               </div>
@@ -646,6 +889,58 @@ export default function PublicQuote({ quoteData }) {
           ) : (
             <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>חתימת לקוח לאישור ההצעה:</h4>
+              {/* חוק ברזל (Owner-Approved Signature Record Improvement -
+                  "smallest clear confirmation step"): שדה שם-חותם מפורש -
+                  ממולא-מראש כהצעה מ-attn_name (הערך שהעסק הזין, לא מאושר
+                  ע"י החותם) אך תמיד ניתן לעריכה חופשית; הערך שנשלח בפועל
+                  לתצוגה הוא רק מה שהחותם עצמו רואה ומאשר בלחיצת הכפתור
+                  למטה - "confirms or edits", לא reuse שקט של recipient. */}
+              <div style={{ maxWidth: '350px', margin: '0 auto 12px', textAlign: 'right' }}>
+                <label htmlFor="pq-signer-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                  שם מלא של החותם/ת <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <input
+                  id="pq-signer-name"
+                  type="text"
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  placeholder="לדוגמה: ישראל ישראלי"
+                  aria-required="true"
+                  aria-invalid={signerNameWarning}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: `1px solid ${signerNameWarning ? '#dc2626' : '#cbd5e1'}`, borderRadius: '8px', fontSize: '16px', textAlign: 'right', marginBottom: isBusinessCustomer ? '8px' : 0 }}
+                />
+                {isBusinessCustomer && (
+                  <>
+                    <label htmlFor="pq-signer-company" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                      בשם (חברה/עסק) - אופציונלי
+                    </label>
+                    <input
+                      id="pq-signer-company"
+                      type="text"
+                      value={signerCompany}
+                      onChange={(e) => setSignerCompany(e.target.value)}
+                      placeholder="לדוגמה: חברה בע״מ"
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', textAlign: 'right', marginBottom: '8px' }}
+                    />
+                    <label htmlFor="pq-signer-role" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                      תפקיד - אופציונלי
+                    </label>
+                    <input
+                      id="pq-signer-role"
+                      type="text"
+                      value={signerRole}
+                      onChange={(e) => setSignerRole(e.target.value)}
+                      placeholder="לדוגמה: מנכ״ל"
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', textAlign: 'right' }}
+                    />
+                  </>
+                )}
+                {signerNameWarning && (
+                  <div role="alert" style={{ color: '#dc2626', fontSize: '0.78rem', fontWeight: '700', marginTop: '4px' }}>
+                    נא להזין שם מלא לפני האישור
+                  </div>
+                )}
+              </div>
               {/* חוק ברזל (Mobile Signature Pad Scroll-Block Fix, תיקון בעלים
                   אמיתי במכשיר): לפני התיקון, ה-canvas תמיד היה touchAction:
                   'none' - כל swipe אנכי מעליו (גם כזה שמיועד לגלול את העמוד)
@@ -705,53 +1000,67 @@ export default function PublicQuote({ quoteData }) {
           )}
         </div>
 
-        {/* חוק ברזל (Item 7 Public Quote Bottom Actions - עודכן לפי הפניה
-            חזותית מהבעלים: שלושה "אריחים" גדולים שווי-גובה, אייקון מעל
-            טקסט, קבוצה אופקית אחת. "חייג/י אליי" משתמש באותו bizPhone/
-            נירמול tel: בדיוק כמו ה-CTA הקיים ב-PublicQuoteHeader.jsx (אין
-            מקור-אמת שני) - אם אין טלפון עסק תקין, האריח מוסתר לגמרי (הקבוצה
-            הופכת לשני אריחים, לא שלושה - אותו דפוס `bizPhone &&` כמו קודם).
-            "הדפס מסמך" פועל דרך window.print() אמיתי.
-            "הורד כ-PDF" - הארכיטקטורה החזותית מוכנה לו (אריח ראשון/ראשי,
-            סגול, במיקום המדויק שהבעלים ביקש) אבל הוא לא פונקציונלי בכוונה
-            (item 8, עדיין נדחה) - חוק ברזל מפורש: "אין לזייף פונקציונליות
-            PDF" ו"אין להפוך כפתור PDF שנראה פונקציונלי שבפועל רק פותח
-            הדפסה". לכן זהו <div> לא ניתן ללחיצה (לא <button>/<a>, אין
-            onClick), aria-disabled, שקיפות מופחתת, ותווית "(בקרוב)" גלויה
-            תמיד - כולל במגע/מובייל שבו cursor:not-allowed לא נראה כלל.
-            כל הקבוצה מסומנת no-print - לא רלוונטית במסמך מודפס. */}
-        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
-          <div
-            aria-disabled="true"
-            role="button"
-            title={isHebrew ? 'הורדת PDF תהיה זמינה בקרוב' : 'PDF download coming soon'}
+        {/* חוק ברזל (Public Quote PDF Correction task - Bottom Actions):
+            4 אריחים - PDF/הדפסה/חיוג/וואטסאפ. **תיקון-שורש**: בעבר "הורד
+            כ-PDF" ו"הדפס מסמך" שתיהן קראו בפועל ל-window.print() בלבד -
+            "הורדת PDF" מעולם לא הייתה הורדה אמיתית. עכשיו שני המסלולים
+            נפרדים לגמרי (ר' handleChooseOutputMode למעלה): "הדפס מסמך"
+            ממשיך לקרוא אך ורק ל-window.print() (בלתי נגוע); "הורד כ-PDF"
+            קורא ל-generateQuotePdf האמיתי ומייצר קובץ .pdf אמיתי. שני
+            המסלולים משתמשים באותו QuotePrintModeModal. "חייג/י אליי"/
+            וואטסאפ מוסתרים לגמרי אם אין טלפון עסק תקין. כל הקבוצה + המודל
+            מסומנים no-print. */}
+        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          <button
+            type="button"
+            onClick={() => openPrintChooser('pdf')}
+            disabled={pdfGenerating}
             className="pq-action-tile"
-            style={{ background: LIGHT.gradient, color: 'white', border: 'none', opacity: 0.62, cursor: 'not-allowed' }}
+            style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
           >
-            <PdfFileIcon size={26} strokeWidth={1.75} />
-            <span>הורד כ-PDF</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: '600', opacity: 0.9 }}>(בקרוב)</span>
-          </div>
+            {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
+            <span>{pdfGenerating ? 'מפיק PDF...' : 'הורד כ-PDF'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openPrintChooser('print')}
+            className="pq-action-tile"
+            style={{ background: 'white', color: '#475569', border: '2px solid #cbd5e1', cursor: 'pointer' }}
+          >
+            <Printer size={26} strokeWidth={1.75} />
+            <span>הדפס מסמך</span>
+          </button>
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
               className="pq-action-tile"
-              style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, textDecoration: 'none' }}
+              style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
             >
               <Phone size={26} strokeWidth={1.75} />
               <span>חייג/י אליי</span>
             </a>
           )}
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="pq-action-tile"
-            style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, cursor: 'pointer' }}
-          >
-            <Printer size={26} strokeWidth={1.75} />
-            <span>הדפס מסמך</span>
-          </button>
+          {bizWhatsAppHref && (
+            <a
+              href={bizWhatsAppHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pq-action-tile"
+              style={{ background: 'white', color: LIGHT.emerald, border: `2px solid ${LIGHT.emerald}`, textDecoration: 'none' }}
+            >
+              <MessageCircle size={26} strokeWidth={1.75} />
+              <span>וואטסאפ</span>
+            </a>
+          )}
         </div>
+
+        <QuotePrintModeModal
+          open={printModalOpen}
+          isHebrew={isHebrew}
+          intent={printIntent}
+          onClose={() => setPrintModalOpen(false)}
+          onChoose={handleChooseOutputMode}
+        />
 
         {/* Footer */}
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>

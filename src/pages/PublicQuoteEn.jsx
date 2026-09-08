@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
 import { LIGHT } from '../theme/neonTheme';
-import { UserRound, Paperclip, Phone, Printer } from 'lucide-react';
+import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lucide-react';
 import PdfFileIcon from '../components/PdfFileIcon';
+import QuotePrintModeModal from '../components/QuotePrintModeModal';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
+import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
+import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -29,12 +32,76 @@ export default function PublicQuoteEn({ quoteData }) {
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
 
+  // Owner-Approved Signature Record Improvement - symmetric with
+  // PublicQuote.jsx (HE); see that file's comment for the full audited-gap
+  // rationale. State only, never persisted, never a silent reuse of attn_name.
+  const [signerName, setSignerName] = useState(quote.attn_name || '');
+  const [signerCompany, setSignerCompany] = useState(client?.company_name || '');
+  const [signerRole, setSignerRole] = useState(quote.attn_role || '');
+  const [signerNameWarning, setSignerNameWarning] = useState(false);
+  const [justSignedAt, setJustSignedAt] = useState(null);
+  const [justSignedImageDataUrl, setJustSignedImageDataUrl] = useState(null);
+  const isBusinessCustomer = quote.client_type === 'business';
+
+  // Public Quote PDF/Print UX task: printMode/printModalOpen/printIntent/
+  // pdfGenerating are local UI state only, never sent to the server.
+  // "Download PDF" and "Print" used to both just call window.print() - now
+  // they genuinely diverge: printIntent==='print' still only ever calls
+  // window.print() (untouched); printIntent==='pdf' calls the real
+  // generateQuotePdf (html2canvas+jsPDF) and never window.print().
+  const [printMode, setPrintMode] = useState('compact');
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printIntent, setPrintIntent] = useState('print');
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const handleAfterPrint = () => setPrintModalOpen(false);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const openPrintChooser = (intent) => {
+    setPrintIntent(intent);
+    setPrintModalOpen(true);
+  };
+
+  const handleChooseOutputMode = async (mode) => {
+    setPrintMode(mode);
+    setPrintModalOpen(false);
+
+    if (printIntent === 'print') {
+      setTimeout(() => window.print(), 50);
+      return;
+    }
+
+    if (pdfGenerating) return; // duplicate-click guard
+    setPdfGenerating(true);
+    try {
+      // A real frame so .pq-pdf-capturing + data-print-mode reflow before
+      // html2canvas captures (setTimeout, not rAF, which browsers throttle
+      // nearly to a halt in a backgrounded tab).
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const filename = buildQuotePdfFilename(formatQuoteNumber(quote.quote_number));
+      await generateQuotePdf({ captureEl: cardRef.current, filename });
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      setApproveToast({ type: 'error', message: "We couldn't generate the PDF file. Please try again." });
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   const { canvasRef, hasSigned, isActive, activateSigning, deactivateSigning, startDrawing, draw, stopDrawing, clearSignature, getSignatureDataUrl } = useSignaturePad();
 
   // The inline "please sign" warning clears itself as soon as a valid signature exists
   useEffect(() => {
     if (hasSigned) setSignatureWarning(false);
   }, [hasSigned]);
+
+  useEffect(() => {
+    if (signerName.trim()) setSignerNameWarning(false);
+  }, [signerName]);
 
   useEffect(() => {
     document.title = "TEKANGO - Digital Price Quote";
@@ -55,13 +122,24 @@ export default function PublicQuoteEn({ quoteData }) {
   }, []);
 
   const handleApprove = async () => {
-    if (!hasSigned) { setSignatureWarning(true); return; }
+    let blocked = false;
+    if (!signerName.trim()) { setSignerNameWarning(true); blocked = true; }
+    if (!hasSigned) { setSignatureWarning(true); blocked = true; }
+    if (blocked) return;
     try {
+      const signatureDataUrl = getSignatureDataUrl();
       const { error } = await supabase.rpc('public_approve_quote', {
         p_quote_id: quote.id,
-        p_signature_data_url: getSignatureDataUrl(),
+        p_signature_data_url: signatureDataUrl,
       });
       if (error) throw error;
+      // Owner-Approved Signature Record Improvement: quote.signature is a
+      // static prop from the initial page load (SmartPublicQuote.jsx fetches
+      // once, never refetches after the RPC) - right after a first sign it
+      // is still null. Store the data URL just computed (the same bytes just
+      // sent to the server) in local state for immediate display.
+      setJustSignedImageDataUrl(signatureDataUrl);
+      setJustSignedAt(new Date());
       setApproved(true);
     } catch (err) {
       // Technical/database details stay in the console only - the public
@@ -103,8 +181,29 @@ export default function PublicQuoteEn({ quoteData }) {
   // touching the RPC itself.
   const isOtherBusinessAccount = Boolean(quote.caller_is_business_account) && !isOwnerViewing;
 
+  // Public Quote Redesign - WhatsApp contact action: same phone
+  // normalization as sendWhatsApp (Dashboard.jsx) and PublicQuote.jsx (HE) -
+  // not a third independent formula. The visitor here IS the client, so
+  // this messages the business, not the client.
+  const bizWhatsAppHref = (() => {
+    const raw = business?.phone ? String(business.phone).trim() : '';
+    if (!raw) return null;
+    // International businesses store phone numbers already in full
+    // international format - no country code is invented here, unlike the
+    // Local +972 assumption that would be wrong for an International
+    // business based anywhere else.
+    let clean = raw.replace(/[^\d+]/g, '');
+    if (clean.startsWith('00')) clean = '+' + clean.slice(2);
+    else if (/^\d{9,15}$/.test(clean)) clean = '+' + clean;
+    const phoneForUrl = clean.replace('+', '');
+    if (!phoneForUrl) return null;
+    const numberDisplay = formatQuoteFallback(quote);
+    const text = `Hi, I have a question about quote number ${numberDisplay}.`;
+    return `https://wa.me/${phoneForUrl}?text=${encodeURIComponent(text)}`;
+  })();
+
   return (
-    <div className="pq-page" dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}`} data-print-mode={printMode} dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`
         .pq-card { padding: var(--pf-doc-shell-padding); }
         /* Iron rule (Public Quote Bottom Actions - Owner visual reference):
@@ -224,6 +323,111 @@ export default function PublicQuoteEn({ quoteData }) {
             border: none !important;
             max-width: 100% !important;
           }
+          /* Public Quote Redesign - Print/PDF: A4-first pagination, no
+             interactive chrome, avoided page splits, thead repetition. */
+          @page {
+            size: A4;
+            margin: 12mm 10mm;
+          }
+          table { border-collapse: collapse; }
+          thead { display: table-header-group; }
+          tr, .pq-section, .pq-recipient, .pq-action-tile {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          /* PDF Correction task - Readability: the dark header reads great
+             on screen but is unreadable in print - here, and only here, the
+             header becomes a light box with solid dark text. */
+          .pq-header-box {
+            background: #ffffff !important;
+            border: 1.5px solid #334155 !important;
+            box-shadow: none !important;
+          }
+          .pq-header-box, .pq-header-box * {
+            color: #0f172a !important;
+            text-shadow: none !important;
+          }
+          .pq-header-glass {
+            background: #f1f5f9 !important;
+            border: 1px solid #94a3b8 !important;
+          }
+          .pq-header-number { color: #4338ca !important; }
+          .pq-header-valid { color: #b91c1c !important; }
+          .pq-card, .pq-card * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .pq-total-final-label, .pq-total-final-amount {
+            color: #0f172a !important;
+          }
+          .pq-total-final-amount {
+            color: #4c1d95 !important;
+          }
+          .pq-totals-box {
+            border: 1.5px solid #0f172a !important;
+            background: #f8fafc !important;
+          }
+          .pq-discount-negative {
+            color: #b91c1c !important;
+          }
+        }
+        /* PDF Correction task - Direct PDF via html2canvas: this class is
+           applied only for the moment generateQuotePdf runs - repeats the
+           identical logic under an explicit class instead of a media query
+           (real Print stays untouched, but shares the same color values so
+           PDF and print output look consistent). */
+        .pq-pdf-capturing .no-print {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-card {
+          box-shadow: none !important;
+          border: none !important;
+        }
+        .pq-pdf-capturing .pq-header-box {
+          background: #ffffff !important;
+          border: 1.5px solid #334155 !important;
+          box-shadow: none !important;
+        }
+        .pq-pdf-capturing .pq-header-box, .pq-pdf-capturing .pq-header-box * {
+          color: #0f172a !important;
+        }
+        /* Faded PDF Logo Correction task - live-proven: html2canvas paints
+           the .pq-logo-chip's translucent background OVER its child logo
+           image, not behind it. Since .pq-header-box is already forced
+           fully opaque white at capture time, the chip's own background is
+           redundant then - removing it (transparent) only during capture
+           eliminates the bug's opportunity entirely. Shared component with
+           PublicQuote.jsx - same rule there. */
+        .pq-pdf-capturing .pq-logo-chip {
+          background: transparent !important;
+        }
+        .pq-pdf-capturing .pq-header-glass {
+          background: #f1f5f9 !important;
+          border: 1px solid #94a3b8 !important;
+        }
+        .pq-pdf-capturing .pq-header-number { color: #4338ca !important; }
+        .pq-pdf-capturing .pq-header-valid { color: #b91c1c !important; }
+        .pq-pdf-capturing .pq-total-final-label,
+        .pq-pdf-capturing .pq-total-final-amount {
+          color: #0f172a !important;
+        }
+        .pq-pdf-capturing .pq-total-final-amount {
+          color: #4c1d95 !important;
+        }
+        .pq-pdf-capturing .pq-totals-box {
+          border: 1.5px solid #0f172a !important;
+          background: #f8fafc !important;
+        }
+        .pq-pdf-capturing .pq-discount-negative {
+          color: #b91c1c !important;
+        }
+        .pq-spin {
+          animation: pq-spin-rotate 0.9s linear infinite;
+        }
+        @keyframes pq-spin-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
       {/* Iron rule (owner-approved correction - responsive document, not A4):
@@ -273,7 +477,7 @@ export default function PublicQuoteEn({ quoteData }) {
           are visually identical AND so the shared calc() formula (content
           + 2*padding + 2*border) is accurate for both files without a
           special-cased exception for English's border being 0. */}
-      <div className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
+      <div ref={cardRef} className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
 
         {/* Iron rule (owner correction - recipient visual hierarchy): the
@@ -298,6 +502,12 @@ export default function PublicQuoteEn({ quoteData }) {
             To:
           </div>
           <div className="pq-recipient-name" style={{ fontSize: '1.2rem', fontWeight: '800', marginTop: '4px', color: LIGHT.violet }}>{client?.company_name || 'Valued Client'}</div>
+          {/* Public Quote Redesign - "respectful intro sentence": display
+              only, never saved, never affects any calculation - mirrors the
+              Hebrew page's own intro line. */}
+          <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px', marginBottom: '6px' }}>
+            Hello, please find the price quote prepared for you below:
+          </div>
           {/* Baseline Closure Part 16 (English recipient contact parity):
               client.email/phone/address already exist in the payload
               (get-public-quote/index.ts already selects+returns them - this
@@ -376,7 +586,7 @@ export default function PublicQuoteEn({ quoteData }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-          <div className="pq-section" style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box' }}>
+          <div className="pq-section pq-totals-box" style={{ width: '100%', maxWidth: '380px', background: '#faf9fd', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${LIGHT.border}`, boxSizing: 'border-box' }}>
             {/* Iron rule (owner correction - parity audit finding): this row
                 did not exist at all before - a discounted quote showed
                 Subtotal then Total with no visible explanation for the
@@ -390,14 +600,14 @@ export default function PublicQuoteEn({ quoteData }) {
                 larger, not-yet-audited question, not conflated with this
                 targeted fix). */}
             {Number(quote.discount) > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#ef4444' }}>
+              <div className="pq-discount-negative" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#ef4444' }}>
                 <span>Discount ({quote.discount}%):</span>
                 <span className="pf-money">{currencySymbol}{formatNum(Math.max(subtotal - total, 0))}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}><span>Subtotal:</span><span className="pf-money">{currencySymbol}{formatNum(subtotal)}</span></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: '900', borderTop: `2px solid ${LIGHT.borderStrong}`, paddingTop: '12px' }}>
-              <span>Total:</span><span className="pf-money" style={{ color: LIGHT.violet }}>{currencySymbol}{formatNum(total)}</span>
+              <span className="pq-total-final-label">Total:</span><span className="pf-money pq-total-final-amount" style={{ color: LIGHT.violet }}>{currencySymbol}{formatNum(total)}</span>
             </div>
           </div>
         </div>
@@ -437,10 +647,37 @@ export default function PublicQuoteEn({ quoteData }) {
         {approved ? (
           <div className="pq-section" style={{ background: '#dcfce7', color: '#166534', padding: '20px', borderRadius: '12px', fontWeight: 'bold', textAlign: 'center' }}>
             ✓ This quote has been successfully approved and signed!
-            {quote.signature && quote.signature.startsWith('data:image') && (
+            {/* Owner-Approved Signature Record Improvement: quote.signature is
+                a static prop from the initial page load, never refetched
+                after the RPC - right after a first sign it is still null.
+                justSignedImageDataUrl (the exact bytes just sent to the
+                server) is checked first so the image renders immediately. */}
+            {(justSignedImageDataUrl || quote.signature) && (justSignedImageDataUrl || quote.signature).startsWith('data:image') && (
               <div style={{ marginTop: '10px' }}>
-                <div style={{ marginBottom: '5px', fontSize: '0.9rem' }}>Digital Signature:</div>
-                <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                {/* justSignedAt only exists for a signature made right now,
+                    this page load (not persisted). A separate/later visit
+                    intentionally falls back to the old generic label rather
+                    than fabricating a name/date. */}
+                {justSignedAt ? (
+                  <div style={{ textAlign: 'start' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '6px' }}>Signed by: {signerName}</div>
+                    {isBusinessCustomer && signerCompany && (
+                      <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}>On behalf of: {signerCompany}{signerRole ? ` (${signerRole})` : ''}</div>
+                    )}
+                    <div style={{ fontSize: '0.82rem', color: '#166534', marginBottom: '2px' }}>
+                      Signed on: {justSignedAt.toLocaleDateString('en-GB')}, {justSignedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#166534', marginBottom: '8px' }}>
+                      Quote #: {formatQuoteNumber(quote.quote_number) || formatQuoteFallback(quote)}
+                    </div>
+                    <img src={justSignedImageDataUrl || quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ marginBottom: '5px', fontSize: '0.9rem' }}>Digital Signature:</div>
+                    <img src={quote.signature} alt="Client Signature" style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #166534', borderRadius: '8px', background: 'white', padding: '4px' }} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -455,6 +692,57 @@ export default function PublicQuoteEn({ quoteData }) {
         ) : (
           <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>Client Signature to Approve This Quote:</h4>
+            {/* Owner-Approved Signature Record Improvement - "smallest clear
+                confirmation step": pre-filled from attn_name (the value the
+                business entered, not confirmed by the signer) as an editable
+                suggestion only - the value actually used for display is
+                whatever the signer sees and confirms by clicking Approve. */}
+            <div style={{ maxWidth: '350px', margin: '0 auto 12px', textAlign: 'left' }}>
+              <label htmlFor="pq-signer-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                Signer's full name <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input
+                id="pq-signer-name"
+                type="text"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder="e.g. John Smith"
+                aria-required="true"
+                aria-invalid={signerNameWarning}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: `1px solid ${signerNameWarning ? '#dc2626' : '#cbd5e1'}`, borderRadius: '8px', fontSize: '16px', textAlign: 'left', marginBottom: isBusinessCustomer ? '8px' : 0 }}
+              />
+              {isBusinessCustomer && (
+                <>
+                  <label htmlFor="pq-signer-company" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                    On behalf of (company) - optional
+                  </label>
+                  <input
+                    id="pq-signer-company"
+                    type="text"
+                    value={signerCompany}
+                    onChange={(e) => setSignerCompany(e.target.value)}
+                    placeholder="e.g. Acme Inc."
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', textAlign: 'left', marginBottom: '8px' }}
+                  />
+                  <label htmlFor="pq-signer-role" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                    Title - optional
+                  </label>
+                  <input
+                    id="pq-signer-role"
+                    type="text"
+                    value={signerRole}
+                    onChange={(e) => setSignerRole(e.target.value)}
+                    placeholder="e.g. CEO"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', textAlign: 'left' }}
+                  />
+                </>
+              )}
+              {signerNameWarning && (
+                <div role="alert" style={{ color: '#dc2626', fontSize: '0.78rem', fontWeight: '700', marginTop: '4px' }}>
+                  Please enter the signer's full name before approving
+                </div>
+              )}
+            </div>
             {/* Iron rule (Mobile Signature Pad Scroll-Block Fix, real-device
                 Owner correction): the canvas used to always be touchAction:
                 'none' - any vertical swipe over it (even one meant to scroll
@@ -499,55 +787,69 @@ export default function PublicQuoteEn({ quoteData }) {
           </div>
         )}
 
-        {/* Item 7 (Public Quote Bottom Actions - updated per Owner visual
-            reference): three equal-height "tiles", icon above label, one
-            horizontal group. "Call Me" reuses the exact same bizPhone/tel:
-            normalization as the existing PublicQuoteHeader.jsx CTA (no
-            second source of truth) - hidden entirely if no valid business
-            phone exists (group becomes two tiles, not three, same
-            `bizPhone &&` pattern as before). "Print Document" calls a real
-            window.print(). "Download PDF" - the visual architecture is
-            ready for it (first/primary purple tile, exact position
-            requested) but it is intentionally NOT functional yet (item 8,
-            still deferred) - explicit rule: never fake PDF functionality,
-            never make it look functional while secretly just opening
-            print. So this is a non-clickable <div> (no <button>/<a>, no
-            onClick), aria-disabled, reduced opacity, and an always-visible
-            "(Coming Soon)" label - visible on touch/mobile too, where
-            cursor:not-allowed alone would never be seen. Whole group is
-            no-print. */}
-        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
-          <div
-            aria-disabled="true"
-            role="button"
-            title="PDF download coming soon"
+        {/* Public Quote PDF Correction task - Bottom Actions: 4 tiles,
+            PDF/Print/Call/WhatsApp, each with an action-specific semantic
+            color. **Root cause fixed this round**: previously "Download PDF"
+            and "Print Document" both called window.print() only - "Download
+            PDF" was never a real direct download. The two paths now fully
+            diverge (see handleChooseOutputMode above): "Print Document"
+            still only ever calls window.print() (untouched); "Download PDF"
+            calls the real generateQuotePdf and produces a real .pdf file.
+            Both paths share the same QuotePrintModeModal. "Call Me" keeps
+            the exact same bizPhone/tel: normalization as PublicQuoteHeader.jsx's
+            own CTA. WhatsApp hidden under the same condition. Whole group +
+            modal are no-print. */}
+        <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          <button
+            type="button"
+            onClick={() => openPrintChooser('pdf')}
+            disabled={pdfGenerating}
             className="pq-action-tile"
-            style={{ background: LIGHT.gradient, color: 'white', border: 'none', opacity: 0.62, cursor: 'not-allowed' }}
+            style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
           >
-            <PdfFileIcon size={26} strokeWidth={1.75} />
-            <span>Download PDF</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: '600', opacity: 0.9 }}>(Coming Soon)</span>
-          </div>
+            {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
+            <span>{pdfGenerating ? 'Generating PDF...' : 'Download PDF'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openPrintChooser('print')}
+            className="pq-action-tile"
+            style={{ background: 'white', color: '#475569', border: '2px solid #cbd5e1', cursor: 'pointer' }}
+          >
+            <Printer size={26} strokeWidth={1.75} />
+            <span>Print Document</span>
+          </button>
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
               className="pq-action-tile"
-              style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, textDecoration: 'none' }}
+              style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
             >
               <Phone size={26} strokeWidth={1.75} />
               <span>Call Me</span>
             </a>
           )}
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="pq-action-tile"
-            style={{ background: 'white', color: LIGHT.violet, border: `2px solid ${LIGHT.violet}`, cursor: 'pointer' }}
-          >
-            <Printer size={26} strokeWidth={1.75} />
-            <span>Print Document</span>
-          </button>
+          {bizWhatsAppHref && (
+            <a
+              href={bizWhatsAppHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pq-action-tile"
+              style={{ background: 'white', color: LIGHT.emerald, border: `2px solid ${LIGHT.emerald}`, textDecoration: 'none' }}
+            >
+              <MessageCircle size={26} strokeWidth={1.75} />
+              <span>WhatsApp</span>
+            </a>
+          )}
         </div>
+
+        <QuotePrintModeModal
+          open={printModalOpen}
+          isHebrew={false}
+          intent={printIntent}
+          onClose={() => setPrintModalOpen(false)}
+          onChoose={handleChooseOutputMode}
+        />
       </div>
       <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={false} />
     </div>
