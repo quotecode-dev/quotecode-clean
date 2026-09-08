@@ -1,3 +1,5 @@
+import { CANONICAL_ORIGIN } from '../shared/brand';
+
 // index.html bakes in a single static <title>/<meta name="description">/
 // <link rel="canonical">/og:url pointing at the homepage. Since this is a
 // client-rendered SPA, every other route (react-router path) inherited that
@@ -60,7 +62,7 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
   // only, no query string) - the standard, safe default for pages that
   // aren't true duplicates of one another.
   const path = canonicalPath !== undefined ? canonicalPath : window.location.pathname;
-  const fullUrl = `https://www.tekango.com${path === '/' ? '/' : path.replace(/\/$/, '')}`;
+  const fullUrl = `${CANONICAL_ORIGIN}${path === '/' ? '/' : path.replace(/\/$/, '')}`;
 
   let canonicalLink = document.querySelector('link[rel="canonical"]');
   if (!canonicalLink) {
@@ -85,7 +87,7 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
         tag.setAttribute('hreflang', hrefLang);
         document.head.appendChild(tag);
       }
-      tag.setAttribute('href', `https://www.tekango.com${hrefPath}`);
+      tag.setAttribute('href', `${CANONICAL_ORIGIN}${hrefPath}`);
     });
   }
 

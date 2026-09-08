@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 import ProFlowLogo from '../components/ProFlowLogo';
 import { setSeoMeta } from '../utils/seoMeta';
+import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function Contact({ isHebrew }) {
     subtitle: 'נשמח לעזור! אנחנו זמינים עבורך לכל שאלה, בקשה או תקלה טכנית.',
     back: 'חזור אחורה',
     emailTitle: 'אימייל לתמיכה',
-    emailValue: 'support@tekango.com',
+    emailValue: SUPPORT_EMAIL_HE,
     emailDesc: 'פניות בנושאי שירות לקוחות, תמיכה טכנית ושאלות על המערכת.',
     responseTimeTitle: 'זמני מענה',
     responseTimeValue: 'אנו משתדלים להשיב לכל פנייה בתוך 24 שעות.',
@@ -59,7 +60,7 @@ export default function Contact({ isHebrew }) {
     // תמיכה לפי שוק היא דרישת Owner מפורשת - support@ לעברית/ישראל,
     // info@ לאנגלית/בינלאומי. עמוד זה הציג בטעות support@ בשתי השפות
     // (בניגוד לפוטר בדפי הנחיתה שכבר הפריד נכון) - תוקן כאן.
-    emailValue: 'info@tekango.com',
+    emailValue: SUPPORT_EMAIL_EN,
     emailDesc: 'For customer service, technical support, and general inquiries.',
     responseTimeTitle: 'Response Time',
     responseTimeValue: 'We aim to respond to all inquiries within 24 hours.',

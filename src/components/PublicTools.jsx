@@ -17,8 +17,8 @@ function PublicTools() {
     }
 
     setSeoMeta({
-      title: 'ProFlow - מרכז הכלים והמחשבונים העסקיים',
-      description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית ProFlow.',
+      title: 'TEKANGO - מרכז הכלים והמחשבונים העסקיים',
+      description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית TEKANGO.',
       canonicalPath: '/he/tools',
       hreflang: [
         { lang: 'he', path: '/he/tools' },
@@ -543,7 +543,7 @@ function PublicTools() {
         <section style={{ marginTop: '40px', background: NEON.bgCard, padding: '30px', borderRadius: '16px', border: `1px solid ${NEON.border}` }}>
           <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: NEON.textPrimary }}>כלים מתקדמים לניהול עסק וקשרי מסחר בינלאומיים</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: NEON.textSecondary, marginBottom: '15px' }}>
-            עסקים, עצמאיים ויבואנים נדרשים יום-יום לבצע חישובים מהירים של שערי מטבע, המרות מידות בעבודה מול ספקים בחו"ל ומעקב אחרי מדדים פיננסיים. מרכז הכלים של ProFlow נועד לרכז עבורכם את כל הפעולות הללו במקום אחד, בצורה מדויקת ומהירה.
+            עסקים, עצמאיים ויבואנים נדרשים יום-יום לבצע חישובים מהירים של שערי מטבע, המרות מידות בעבודה מול ספקים בחו"ל ומעקב אחרי מדדים פיננסיים. מרכז הכלים של TEKANGO נועד לרכז עבורכם את כל הפעולות הללו במקום אחד, בצורה מדויקת ומהירה.
           </p>
         </section>
 
@@ -553,7 +553,7 @@ function PublicTools() {
             <ProFlowLogo />
           </div>
           <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 'bold' }}>רוצה לנהל את העסק שלך ברמה הבאה?</h3>
-          <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>הפק הצעות מחיר חכמות, נהל לקוחות ופתח את העסק לעולם עם ProFlow.</p>
+          <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>הפק הצעות מחיר חכמות, נהל לקוחות ופתח את העסק לעולם עם TEKANGO.</p>
           <button
             onClick={() => navigate('/')}
             style={{ background: 'white', color: NEON.violet, padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'inline-block' }}

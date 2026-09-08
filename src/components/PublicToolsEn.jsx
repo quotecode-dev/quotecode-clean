@@ -18,8 +18,8 @@ function PublicToolsEn() {
     }
 
     setSeoMeta({
-      title: 'ProFlow - Business Tools & Calculators Hub',
-      description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from ProFlow.',
+      title: 'TEKANGO - Business Tools & Calculators Hub',
+      description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from TEKANGO.',
       canonicalPath: '/en/tools',
       hreflang: [
         { lang: 'he', path: '/he/tools' },
@@ -524,7 +524,7 @@ function PublicToolsEn() {
         <section style={{ marginTop: '40px', background: NEON.bgCard, padding: '30px', borderRadius: '16px', border: `1px solid ${NEON.border}` }}>
           <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: NEON.textPrimary }}>Advanced Tools for Business & International Trade</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: NEON.textSecondary, marginBottom: '15px' }}>
-            Businesses, freelancers, and importers daily need quick currency conversions, metric measurements when working with overseas suppliers, and financial tracking. ProFlow's tools hub centralizes all these actions in one place, accurately and instantly.
+            Businesses, freelancers, and importers daily need quick currency conversions, metric measurements when working with overseas suppliers, and financial tracking. TEKANGO's tools hub centralizes all these actions in one place, accurately and instantly.
           </p>
         </section>
 
@@ -534,7 +534,7 @@ function PublicToolsEn() {
             <ProFlowLogo />
           </div>
           <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 'bold' }}>Ready to take your business to the next level?</h3>
-          <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>Create smart quotes, manage clients, and expand globally with ProFlow.</p>
+          <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>Create smart quotes, manage clients, and expand globally with TEKANGO.</p>
           <button
             onClick={() => navigate('/')}
             style={{ background: 'white', color: NEON.violet, padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'inline-block' }}
