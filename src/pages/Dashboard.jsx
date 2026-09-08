@@ -25,7 +25,6 @@ import ExcelJS from 'exceljs';
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
-import LifetimeConfirmModal from '../components/LifetimeConfirmModal';
 import UserDetailsModal from '../components/UserDetailsModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -251,6 +250,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }, [bizLogoUrl]);
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
+  // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner
+  // mandate: "No more inference-based Lifetime model."): קריאה ישירה של
+  // business_settings.is_lifetime (migration 20260908000000) - Lifetime
+  // כבר לא נגזר מ-trial_ends_at===null. ר' src/utils/accountEntitlement.js
+  // לפירוט המלא.
+  const [bizIsLifetime, setBizIsLifetime] = useState(false);
 
   const [defaultTerms, setDefaultTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
   const [defaultWarranty, setDefaultWarranty] = useState('');
@@ -527,7 +532,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const [pendingLifetimeUser, setPendingLifetimeUser] = useState(null);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -575,23 +579,38 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // 'pro' לצמיתות אחרי הרשמה) והנימוק המלא לכל ענף בנוסחה. SettingsTab.jsx
   // (שער העלאת לוגו) קורא לאותו effectivePlan דרך prop, לא מחשב נוסחה
   // משלו יותר - כדי שלא יהיו שתי נוסחאות סותרות (ר' התיקון המקביל שם).
-  const { effectivePlan, isTrialExpired, trialDaysLeft } = computeEffectivePlan({ plan: bizPlan, trialEndsAt, now });
+  const { effectivePlan, isTrialExpired: rawIsTrialExpired, trialDaysLeft: rawTrialDaysLeft } = computeEffectivePlan({ plan: bizPlan, trialEndsAt, now });
 
   const isSuperAdmin = bizRole === 'super_admin';
-  const isPro = isSuperAdmin || effectivePlan === 'pro';
 
   // חוק ברזל (Stage 1 - Plan Identity / Trial / Lifetime Centralization,
   // PROFLOW_PROJECT_CONTEXT.md §148): קריאה נוספת לנקודת-האמת הקנונית
   // (resolveAccountEntitlement, כבר בשימוש ב-AdminUsersTab.jsx/
   // UserDetailsModal.jsx) עבור שני השדות היחידים ש-Dashboard.jsx לא חישב
   // בעצמו קודם - isLifetime ו-displayIdentity (אחת מחמש הזהויות הקנוניות:
-  // FREE/FREE_TRIAL/BASIC/PRO/LIFETIME). מכוון לא מחליף/משנה את effectivePlan/
-  // isPro/isBasicOrAbove למעלה - הנוסחה הזו כבר נכונה ובדוקה במלואה (כולל
-  // התיקון ההיסטורי לניסיון-שפג), אין סיבה לגעת בה. שני הקריאות מחשבות את
-  // אותה עובדה בפועל (plan/trialEndsAt/role זהים) - לא סתירה, לא שתי נוסחאות
-  // עצמאיות, רק שהשנייה חושפת מידע נוסף שכבר קיים בפונקציה המשותפת.
-  const resolvedIdentity = resolveAccountEntitlement({ plan: bizPlan, trialEndsAt, role: bizRole, now });
+  // FREE/FREE_TRIAL/BASIC/PRO/LIFETIME). שני הקריאות מחשבות את אותה עובדה
+  // בפועל (plan/trialEndsAt/role זהים) - לא סתירה, לא שתי נוסחאות עצמאיות,
+  // רק שהשנייה חושפת מידע נוסף שכבר קיים בפונקציה המשותפת.
+  const resolvedIdentity = resolveAccountEntitlement({ plan: bizPlan, trialEndsAt, role: bizRole, isLifetime: bizIsLifetime, now });
   const { isLifetime, displayIdentity, entitlement } = resolvedIdentity;
+
+  // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אמיתי): isPro (למטה)
+  // ו-isTrialExpired/trialDaysLeft (rawIsTrialExpired/rawTrialDaysLeft,
+  // למעלה) הגיעו במקור מ-computeEffectivePlan() בלבד - פונקציה שמצהירה
+  // במפורש שהיא "אינה יודעת כלום על Lifetime" (planEntitlements.js). לפני
+  // המודל המפורש, זה לא הזיק בפועל: Lifetime-בהסקה-ישנה תמיד קיבל raw
+  // plan!=='free' עם trial_ends_at=null, כך ש-effectivePlan כבר יצא 'pro'
+  // ממילא. תחת המודל המפורש, is_lifetime אורתוגונלי לגמרי ל-plan/
+  // trial_ends_at - חשבון Lifetime על plan='free'/'basic' (מוכח קיים, ר'
+  // §206/§208) היה מקבל isPro===false בטעות (מציג "החודש: X/∞" חסר-היגיון
+  // באזור הסטטיסטיקות), וחשבון Lifetime עם trial_ends_at שיורי לא-null
+  // (לא מטופל ע"י Grant/Revoke בכוונה - ר' §206) היה עלול להציג "הניסיון
+  // הסתיים"/"מסתיימת בעוד X ימים" מתחת ל-badge "LIFETIME" עצמו. שני
+  // התיקונים כאן מתקנים במקור אחד, לא בכל אתר-צריכה בנפרד - כל צרכן
+  // downstream (SettingsTab.jsx כולל) מקבל את הערך הנכון אוטומטית.
+  const isPro = isSuperAdmin || isLifetime || effectivePlan === 'pro';
+  const isTrialExpired = !isLifetime && rawIsTrialExpired;
+  const trialDaysLeft = isLifetime ? null : rawTrialDaysLeft;
 
   // חוק ברזל (אותה משימה): כלל-ראייה יחיד לכפתור "שדרג חבילה", גם כאן וגם
   // ב-SettingsTab.jsx (ר' shouldShowUpgradeCta ב-planCatalog.js) - התחליף
@@ -844,7 +863,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setBizLogoUrl(data.logo_url || '');
       setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
-      
+      setBizIsLifetime(data.is_lifetime === true);
+
       const countryVal = data.country || 'International';
       // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
       // sym/isLocalIsraeliBusiness בהמשך) מתעדכן מהמדינה האמיתית שבמסד
@@ -1026,35 +1046,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   }
 
-  async function handleToggleLifetime(accountId, currentTrialEnds) {
-    const newTrialEnds = currentTrialEnds === null ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-    const updatePayload = { trial_ends_at: newTrialEnds };
-
-    let { data, error } = await supabase
-      .from('business_settings')
-      .update(updatePayload)
-      .eq('id', accountId)
-      .select();
-
-    if ((error || !data || data.length === 0) && accountId) {
-      const targetAcc = allAccounts.find(a => a.id === accountId);
-      if (targetAcc && targetAcc.user_id) {
-        const res = await supabase
-          .from('business_settings')
-          .update(updatePayload)
-          .eq('user_id', targetAcc.user_id)
-          .select();
-        error = res.error;
-      }
-    }
-
-    if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון גישת המשתמש: ' + error.message : 'Error updating user access: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'סטטוס הגישה עודכן בהצלחה!' : 'Access status updated successfully!', type: 'success' });
-      fetchAllAccounts();
-    }
-  }
+  // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08): הפונקציה
+  // handleToggleLifetime הישנה שהייתה כאן הוסרה - היא כתבה רק trial_ends_at
+  // לפי ניחוש-ternary, אף פעם לא plan, מה שהיה השורש המוכח של הבאג "Lifetime
+  // גרגה מוענק בפועל אך מוצג כ-FREE" (ר' PROFLOW_PROJECT_CONTEXT.md §204).
+  // הענקה/ביטול Lifetime עכשיו פעולה מוגנת עצמאית בתוך AdminUsersTab.jsx
+  // עצמו (אישור-סיסמה + כתיבת is_lifetime מפורש בלבד + קריאה-חוזרת לאימות),
+  // לא עוד callback דרך Dashboard.jsx.
 
   async function handleExtendTrial14Days(accountId) {
     const acc = allAccounts.find(a => a.id === accountId);
@@ -4123,6 +4121,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew} 
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         currentPlan={bizPlan}
+        isLifetime={isLifetime}
         userId={session?.user?.id}
         onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
         currency={currency}
@@ -4152,19 +4151,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         onClose={() => setEditingExpense(null)}
         expense={editingExpense}
         onSave={handleSaveUpdatedExpense}
-        isHebrew={isHebrew}
-      />
-
-      <LifetimeConfirmModal 
-        isOpen={pendingLifetimeUser !== null}
-        onClose={() => setPendingLifetimeUser(null)}
-        onConfirm={async () => {
-          if (!pendingLifetimeUser) return;
-          const u = pendingLifetimeUser;
-          setPendingLifetimeUser(null);
-          await handleToggleLifetime(u.id, u.trial_ends_at);
-        }}
-        userEmail={pendingLifetimeUser?.email || ''}
         isHebrew={isHebrew}
       />
 
@@ -5107,6 +5093,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               professionalDomain={professionalDomain}
               setProfessionalDomain={setProfessionalDomain}
               canUseProfessionalQuotes={entitlement.professionalQuotes}
+              canUseAttachments={entitlement.attachments}
               isTrialExpired={isTrialExpired}
               trialDaysLeft={trialDaysLeft}
               setShowPricingModal={setShowPricingModal}
@@ -5185,8 +5172,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 sortDirection={sortDirection}
                 liveTick={liveTick}
                 handleExtendTrial14Days={handleExtendTrial14Days}
-                setPendingLifetimeUser={setPendingLifetimeUser}
-                handleToggleLifetime={handleToggleLifetime}
                 setSelectedUserDetails={setSelectedUserDetails}
                 handleOpenNewUsersModal={handleOpenNewUsersModal}
                 lastSeenNewUsersTime={lastSeenNewUsersTime}

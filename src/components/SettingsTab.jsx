@@ -38,6 +38,7 @@ export default function SettingsTab({
   isLifetime,
   displayIdentity,
   isSuperAdmin,
+  canUseAttachments,
   defaultTerms,
   setDefaultTerms,
   defaultWarranty,
@@ -261,15 +262,22 @@ export default function SettingsTab({
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit +
-              Fix): שער ה-Logo היה בודק את ה-plan הגולמי (bizPlan) ישירות -
-              נוסחה נפרדת, לא-מתואמת מול effectivePlan של Dashboard.jsx, ש
-              נשארה "תקועה" ב-PRO גם אחרי שניסיון פג. עכשיו קורא ל-
-              effectivePlan (אותה נקודת-אמת יחידה, ר' src/utils/
-              planEntitlements.js) - כדי שהזכאות בפועל תהיה זהה בכל מקום
-              באפליקציה, לא רק בדשבורד הראשי. */}
+          {/* חוק ברזל (Super Admin PRO-Gate Bug, PROVEN root cause,
+              PROFLOW_PROJECT_CONTEXT.md §204/§205-אזור, fixed 2026-09-08):
+              שער ה-Logo בדק בעבר effectivePlan!=='pro' ישירות - משתנה גולמי
+              שאין לו שום מודעות ל-role (computeEffectivePlan לוקח plan/
+              trialEndsAt בלבד, לעולם לא role) ולעולם לא יכול לדעת ש-
+              super_admin זכאי תמיד, וגם לא זיהה Lifetime על חשבון בסיסי-
+              basic (effectivePlan מחזיר 'basic', לא 'pro', עבור Lifetime
+              על plan גולמי='basic'). זהו היה השער היחיד באפליקציה שלא עבר
+              דרך entitlement.* הקנוני - כל שער-חסימה אחר (attachments/
+              editDuplicate/whatsappDelete/monthlyQuoteLimit) כבר עשה זאת
+              נכון. עכשיו קורא ל-canUseAttachments (=entitlement.attachments
+              מ-Dashboard.jsx, אותה נוסחה קנונית בדיוק כמו QuoteForm.jsx -
+              כבר כוללת isSuperAdmin/isLifetime באופן מובנה, ר'
+              accountEntitlement.js) - לא עוד נוסחה כפולה. */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}>
-            <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {effectivePlan !== 'pro' && <span style={{ color: NEON.amber, fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
+            <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {!canUseAttachments && <span style={{ color: NEON.amber, fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
@@ -277,16 +285,16 @@ export default function SettingsTab({
               value={bizLogoUrl}
               onChange={(e) => setBizLogoUrl(e.target.value)}
               placeholder="https://example.com/logo.svg"
-              disabled={effectivePlan !== 'pro'}
-              style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: effectivePlan !== 'pro' ? 'rgba(255,255,255,0.03)' : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
+              disabled={!canUseAttachments}
+              style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: !canUseAttachments ? 'rgba(255,255,255,0.03)' : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
             />
-            <label style={{ background: effectivePlan !== 'pro' ? 'rgba(255,255,255,0.08)' : NEON.gradient, color: effectivePlan !== 'pro' ? NEON.textMuted : 'white', padding: '7px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: effectivePlan !== 'pro' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', boxShadow: effectivePlan !== 'pro' ? 'none' : NEON.glowSoft }}>
+            <label style={{ background: !canUseAttachments ? 'rgba(255,255,255,0.08)' : NEON.gradient, color: !canUseAttachments ? NEON.textMuted : 'white', padding: '7px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: !canUseAttachments ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', boxShadow: !canUseAttachments ? 'none' : NEON.glowSoft }}>
               <span>{isHebrew ? 'העלה קובץ' : 'Upload File'}</span>
               <input
                 type="file"
                 accept=".svg,.png,.jpg,.jpeg"
                 onChange={handleLogoFileChange}
-                disabled={effectivePlan !== 'pro'}
+                disabled={!canUseAttachments}
                 style={{ display: 'none' }}
               />
             </label>

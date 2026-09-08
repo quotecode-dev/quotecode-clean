@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { supabase } from '../shared/supabase';
 import {
-  Mail, Building2, CreditCard, Globe, Shield, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
+  Mail, Building2, CreditCard, Globe, Shield, ShieldCheck, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
   UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
   Send, XCircle, ChevronDown
 } from 'lucide-react';
@@ -65,8 +65,6 @@ export default function AdminUsersTab({
   sortField,
   sortDirection,
   liveTick,
-  setPendingLifetimeUser,
-  handleToggleLifetime,
   setSelectedUserDetails,
   handleOpenNewUsersModal,
   lastSeenNewUsersTime,
@@ -74,6 +72,7 @@ export default function AdminUsersTab({
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [lifetimeActionUser, setLifetimeActionUser] = useState(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
@@ -296,16 +295,93 @@ export default function AdminUsersTab({
     }
   };
 
+  // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner
+  // mandate: "No single-click Lifetime toggle... Grant Lifetime must
+  // explicitly write the new Lifetime state. Revoke Lifetime must
+  // explicitly clear Lifetime state."): מחליף לגמרי את handleToggleLifetime
+  // הישן (Dashboard.jsx, שכתב רק trial_ends_at לפי ניחוש-ternary - השורש
+  // המוכח של הבאג "Lifetime→FREE", ר' PROFLOW_PROJECT_CONTEXT.md §204).
+  // הפעולה כאן כותבת אך ורק is_lifetime (עמודה מפורשת, migration
+  // 20260908000000) - שדה יחיד, אפס תופעות-לוואי על plan/trial_ends_at,
+  // באותה תבנית אימות-סיסמה+verify-server-side-role כמו Reset/Delete
+  // למעלה (guard_business_settings_plan_trial() המורחב מאמת מחדש
+  // server-side שהקורא הוא super_admin - לא נסמך על הקליינט). קריאה-חוזרת
+  // (read-back) אחרי הכתיבה מוודאת בפועל שהמצב החדש נכתב, לא רק "אין
+  // error" (אותו לקח בדיוק כמו admin-cleanup-user-quotes).
+  const handleExecuteLifetimeAction = async (e) => {
+    e.preventDefault();
+    if (!lifetimeActionUser) return;
+    setResetError('');
+    setIsResetting(true);
+
+    const targetIsLifetime = lifetimeActionUser.is_lifetime === true;
+    const nextIsLifetime = !targetIsLifetime;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !user.email) throw new Error('Admin session not found.');
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: adminPasswordInput
+      });
+
+      if (authError) {
+        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
+        setIsResetting(false);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('business_settings')
+        .update({ is_lifetime: nextIsLifetime })
+        .eq('id', lifetimeActionUser.id);
+
+      if (updateError) throw updateError;
+
+      // Read-back verification: confirm the actual stored value, not just
+      // "no error" (an RLS-filtered UPDATE can silently affect 0 rows).
+      const { data: verifyRow, error: verifyError } = await supabase
+        .from('business_settings')
+        .select('is_lifetime')
+        .eq('id', lifetimeActionUser.id)
+        .maybeSingle();
+
+      if (verifyError || !verifyRow || verifyRow.is_lifetime !== nextIsLifetime) {
+        throw new Error(isHebrew
+          ? 'הכתיבה לא אומתה בשרת - ייתכן שהפעולה לא הושלמה. לא בוצע שינוי מאושר.'
+          : 'The write could not be verified against the server - the action may not have completed. No confirmed change was made.');
+      }
+
+      setLifetimeActionUser(null);
+      setAdminPasswordInput('');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error("Lifetime action error:", err);
+      setResetError(err.message);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   // חשוב: Lifetime וניסיון פעיל הם היחידים שניתנים להוכחה אמיתית מהנתונים
   // הקיימים. שדה plan הגולמי לבדו, לאחר תום הניסיון, אינו מוכיח תשלום בפועל -
   // אין עדיין חיבור סליקה אמיתי, ולוגיקת ה-effectivePlan של Dashboard.jsx
   // עצמה כבר מתייחסת לחשבון שתם ניסיונו כ-free אלא אם כן הוענק לו Lifetime.
   // לכן, בכוונה, אין כאן יותר ניסוח "מנוי פעיל/בתשלום" עבור תום-ניסיון+plan
   // בתשלום - זה היה ניסוח מטעה. פג תוקף מוצג באופן אחיד לכל מי שאינו Lifetime.
-  const getRemainingTimeFormatted = (trialEndsAt, role) => {
+  // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08): לפני התיקון
+  // הזה, כל trialEndsAt ריק תויג "(Lifetime)" - כולל חשבון FREE רגיל בלי
+  // ניסיון שהוקצה לו מעולם, וכולל (אחרי מודל ה-Lifetime המפורש החדש) חשבון
+  // pro/basic תקף שאינו Lifetime בכלל. עכשיו מקבל isLifetime מפורש (מ-
+  // business_settings.is_lifetime, ר' accountEntitlement.js) - התווית
+  // "(Lifetime)" מוצגת רק כש-isLifetime===true בפועל, לא עוד ניחוש מ-
+  // trial_ends_at ריק בלבד.
+  const getRemainingTimeFormatted = (trialEndsAt, role, isLifetime) => {
     try {
-      if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-      if (!trialEndsAt) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+      if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (הרשאת Admin)' : 'No expiry (Admin authority)';
+      if (isLifetime) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
+      if (!trialEndsAt) return isHebrew ? 'אין ניסיון פעיל' : 'No trial set';
 
       const diffMs = new Date(trialEndsAt).getTime() - Date.now();
       if (diffMs > 0) {
@@ -335,7 +411,7 @@ export default function AdminUsersTab({
   // בכוונה (isSuperAdminUser/isLifetime/rawPlan/planValue/isGrantedLifetimePro)
   // כדי שה-JSX הקיים (טבלת-דסקטופ + כרטיסי-מובייל) לא ידרוש שום שינוי.
   const getAccountDerived = (acc) => {
-    const resolved = resolveAccountEntitlement({ plan: acc.plan, trialEndsAt: acc.trial_ends_at, role: acc.role });
+    const resolved = resolveAccountEntitlement({ plan: acc.plan, trialEndsAt: acc.trial_ends_at, role: acc.role, isLifetime: acc.is_lifetime });
     const isSuperAdminUser = resolved.isSuperAdmin;
     const isLifetime = resolved.isLifetime || isSuperAdminUser;
     const rawPlan = resolved.rawPlan;
@@ -513,6 +589,85 @@ export default function AdminUsersTab({
           </div>
         </div>
       )}
+
+      {/* Protected Actions: Lifetime grant/revoke — חוק ברזל (Explicit
+          Lifetime Entitlement Model, 2026-09-08): commercial-entitlement
+          mutation, hidden from the default row view (ר' כפתור ShieldCheck
+          בעמודת הפעולות), אישור-סיסמה אמיתי (signInWithPassword, לא
+          השוואת-מחרוזת), ואימות server-side עצמאי (guard trigger). מציג
+          במפורש: חשבון-יעד, מצב נוכחי, מצב מיועד. */}
+      {lifetimeActionUser && (() => {
+        const targetIsLifetime = lifetimeActionUser.is_lifetime === true;
+        const currentStateLabel = targetIsLifetime
+          ? (isHebrew ? 'Lifetime (זכאות PRO מלאה, ללא תפוגה)' : 'Lifetime (full PRO entitlement, no expiry)')
+          : (isHebrew ? 'רגיל (לא Lifetime)' : 'Standard (not Lifetime)');
+        const nextStateLabel = targetIsLifetime
+          ? (isHebrew ? 'רגיל (לא Lifetime) - plan/trial_ends_at הקיימים יקבעו את הזכאות בפועל, ללא שינוי בהם' : 'Standard (not Lifetime) - existing plan/trial_ends_at will determine actual entitlement, unchanged by this action')
+          : (isHebrew ? 'Lifetime (זכאות PRO מלאה, ללא תפוגה, ללא תלות ב-plan/trial_ends_at)' : 'Lifetime (full PRO entitlement, no expiry, independent of plan/trial_ends_at)');
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+            <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
+              <h3 style={{ marginTop: 0, color: NEON.violetLight, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={18} />
+                {targetIsLifetime
+                  ? (isHebrew ? 'פעולה מוגנת: ביטול Lifetime' : 'Protected Action: Revoke Lifetime')
+                  : (isHebrew ? 'פעולה מוגנת: הענקת Lifetime' : 'Protected Action: Grant Lifetime')}
+              </h3>
+              <p style={{ color: NEON.textSecondary, fontSize: '0.82rem', marginBottom: '4px', lineHeight: '1.4' }}>
+                {isHebrew ? 'חשבון יעד:' : 'Target account:'} <strong style={{ color: NEON.textPrimary }}>{lifetimeActionUser?.email || lifetimeActionUser?.business_name || 'N/A'}</strong>
+              </p>
+              <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '4px', lineHeight: '1.4' }}>
+                {isHebrew ? 'מצב נוכחי:' : 'Current state:'} <strong>{currentStateLabel}</strong>
+              </p>
+              <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>
+                {isHebrew ? 'מצב מיועד (אחרי אישור):' : 'Intended resulting state (after confirmation):'} <strong>{nextStateLabel}</strong>
+              </p>
+
+              <form onSubmit={handleExecuteLifetimeAction} autoComplete="off">
+                <input
+                  type="password"
+                  name="admin_lifetime_pwd_unique"
+                  autoComplete="one-time-code"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  placeholder={isHebrew ? 'סיסמת אדמין (שלך) לאישור...' : 'Your admin password to confirm...'}
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary }}
+                  required
+                />
+
+                {resetError && (
+                  <div style={{ color: NEON.red, fontSize: '0.78rem', marginBottom: '10px', fontWeight: 'bold' }}>
+                    {resetError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setLifetimeActionUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    {isHebrew ? 'ביטול' : 'Cancel'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isResetting}
+                    style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}
+                  >
+                    {isResetting
+                      ? (isHebrew ? 'מבצע...' : 'Working...')
+                      : targetIsLifetime
+                        ? (isHebrew ? 'אשר ביטול Lifetime' : 'Confirm Revoke Lifetime')
+                        : (isHebrew ? 'אשר הענקת Lifetime' : 'Confirm Grant Lifetime')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Module title bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
@@ -785,35 +940,32 @@ export default function AdminUsersTab({
                       </span>
                     </td>
 
-                    {/* Lifetime Status Column */}
+                    {/* Lifetime Status Column — חוק ברזל (Explicit Lifetime
+                        Entitlement Model, 2026-09-08, Owner mandate: "No
+                        single-click Lifetime toggle. No ambiguous infinity
+                        icon as the only affordance."): תצוגה בלבד עכשיו,
+                        קריאה-בלבד מ-business_settings.is_lifetime המפורש -
+                        אין עוד לחיצה-יחידה שמשנה מצב-זכאות מסחרי ישירות
+                        מהטבלה. הפעולה עצמה עברה ל"פעולות מוגנות" (ר' כפתור
+                        Shield בעמודת הפעולות למטה) - אישור-סיסמה + אימות
+                        server-side, לא עוד עמימות. */}
                     <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <button
-                          onClick={() => {
-                            if (!isLifetime) {
-                              setPendingLifetimeUser(acc);
-                            } else {
-                              handleToggleLifetime(acc.id, acc.trial_ends_at);
-                            }
-                          }}
-                          style={{
-                            background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
-                            color: isLifetime ? NEON.violetLight : NEON.textMuted,
-                            border: '1px solid',
-                            borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
-                            width: '24px', height: '24px',
-                            borderRadius: '50%',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title={isHebrew
-                            ? (isLifetime ? 'Lifetime מופעל (לחץ לביטול)' : 'הפעל Lifetime')
-                            : (isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime')}
-                        >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title={isHebrew ? 'לשינוי מצב Lifetime, ר\' "פעולות מוגנות" בעמודת הפעולות' : 'To change Lifetime status, see "Protected Actions" in the Actions column'}
+                      >
+                        <span style={{
+                          background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
+                          color: isLifetime ? NEON.violetLight : NEON.textMuted,
+                          border: '1px solid',
+                          borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
+                          width: '24px', height: '24px',
+                          borderRadius: '50%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
                           <InfinityIcon size={11} strokeWidth={2.5} />
-                        </button>
+                        </span>
                         <span style={{ fontSize: '0.68rem', fontWeight: '600', color: isLifetime ? NEON.violetLight : NEON.textSecondary }}>
                           {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
                         </span>
@@ -859,7 +1011,7 @@ export default function AdminUsersTab({
                                 {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
                               </span>
                               <span style={{ fontSize: '0.55rem', color: NEON.sky, fontWeight: 'bold' }}>
-                                {getRemainingTimeFormatted(acc.trial_ends_at, acc.role)}
+                                {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, isGrantedLifetimePro)}
                               </span>
                             </div>
                           </>
@@ -900,6 +1052,16 @@ export default function AdminUsersTab({
                             title={isHebrew ? 'מחק משתמש' : 'Delete User'}
                           >
                             <Trash2 size={11} strokeWidth={2.5} />
+                          </button>
+                        )}
+
+                        {!isSuperAdminUser && (
+                          <button
+                            onClick={() => setLifetimeActionUser(acc)}
+                            style={{ background: 'rgba(167, 139, 250, 0.12)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            title={isHebrew ? 'פעולות מוגנות (Lifetime)' : 'Protected Actions (Lifetime)'}
+                          >
+                            <ShieldCheck size={11} strokeWidth={2.5} />
                           </button>
                         )}
 
@@ -1018,23 +1180,21 @@ export default function AdminUsersTab({
 
                 {/* Lifetime + Trial */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '10px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* חוק ברזל (Explicit Lifetime Entitlement Model,
+                      2026-09-08): תצוגה בלבד - אין עוד לחיצה-יחידה. הפעולה
+                      עברה ל"פעולות מוגנות" למטה (Shield). */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        if (!isLifetime) setPendingLifetimeUser(acc);
-                        else handleToggleLifetime(acc.id, acc.trial_ends_at);
-                      }}
+                    <span
                       style={{
                         background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
                         color: isLifetime ? NEON.violetLight : NEON.textMuted,
                         border: '1px solid', borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
-                        width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                        width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                      title={isHebrew ? (isLifetime ? 'Lifetime מופעל (לחץ לביטול)' : 'הפעל Lifetime') : (isLifetime ? 'Lifetime Enabled (Click to Revoke)' : 'Enable Lifetime')}
                     >
                       <InfinityIcon size={13} strokeWidth={2.5} />
-                    </button>
+                    </span>
                     <span style={{ fontSize: '0.75rem', fontWeight: '600', color: isLifetime ? NEON.violetLight : NEON.textSecondary }}>
                       {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
                     </span>
@@ -1060,7 +1220,7 @@ export default function AdminUsersTab({
                           {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
                         </span>
                         <span style={{ fontSize: '0.65rem', color: NEON.sky, fontWeight: 'bold' }}>
-                          {getRemainingTimeFormatted(acc.trial_ends_at, acc.role)}
+                          {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, isGrantedLifetimePro)}
                         </span>
                       </div>
                     </div>
@@ -1083,6 +1243,13 @@ export default function AdminUsersTab({
                     <button onClick={() => setDeleteModalUser(acc)} style={actionBtnStyle(NEON.redDark, 'white')}>
                       <Trash2 size={13} strokeWidth={2.5} />
                       {isHebrew ? 'מחק' : 'Delete'}
+                    </button>
+                  )}
+
+                  {!isSuperAdminUser && (
+                    <button onClick={() => setLifetimeActionUser(acc)} style={actionBtnStyle('rgba(167, 139, 250, 0.12)', NEON.violetLight, '1px solid rgba(167, 139, 250, 0.4)')}>
+                      <ShieldCheck size={13} strokeWidth={2.5} />
+                      {isHebrew ? 'פעולות מוגנות' : 'Protected Actions'}
                     </button>
                   )}
                 </div>

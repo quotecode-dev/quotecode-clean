@@ -1,5 +1,6 @@
 import { NEON, neonGlowTextStyle } from '../theme/neonTheme';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
+import { getDisplayIdentityLabel } from '../utils/planCatalog';
 
 export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
   if (!isOpen || !user) return null;
@@ -46,23 +47,21 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
     );
   }
 
-  // חוק ברזל (Admin V2 Foundation — Phase 1, תיקון הבאג המאושר): הלוגיקה
-  // הישנה כאן גזרה Lifetime מ-trial_ends_at===null בלבד - בדיוק גם החתימה
-  // של ביטול-עצמי (PricingModal.jsx), כך שחשבון FREE שביטל את עצמו הוצג
-  // כ-"PRO (Lifetime)". התיקון: כל הגזירה (tier/Lifetime/badge) עוברת דרך
+  // חוק ברזל (Admin V2 Foundation — Phase 1, תיקון הבאג המאושר; מורחב
+  // Explicit Lifetime Entitlement Model, 2026-09-08, §4B "no parallel icon/
+  // label state"): כל הגזירה (tier/Lifetime/badge) עוברת דרך
   // resolveAccountEntitlement() - נקודת-האמת היחידה המשותפת עכשיו גם ל-
-  // AdminUsersTab.jsx וגם ל-Dashboard.jsx/SettingsTab.jsx (דרך computeEffectivePlan
-  // הקיים, לא נגוע). ר' src/utils/accountEntitlement.js לפירוט המלא. הצורה
-  // המוחזרת החוצה (isSuperAdminUser/isLifetime/displayPlan/isGrantedLifetimePro/
-  // isTrialActive) נשמרה זהה בכוונה - כדי שה-JSX למטה לא ידרוש שום שינוי.
-  const resolved = resolveAccountEntitlement({ plan: user.plan, trialEndsAt: user.trial_ends_at, role: user.role });
+  // AdminUsersTab.jsx וגם ל-Dashboard.jsx/SettingsTab.jsx. תווית "Plan:"
+  // עצמה עברה מ-resolved.tier.toUpperCase() + סיומת-Lifetime ידנית (שהציגה
+  // "PRO" גם במהלך ניסיון פעיל - בניגוד ל-displayIdentity הקנוני, שם ניסיון
+  // פעיל הוא FREE_TRIAL לא PRO) ל-getDisplayIdentityLabel(resolved.displayIdentity)
+  // הקנוני - אותה נקודת-אמת יחידה ש-AdminUsersTab.jsx/SettingsTab.jsx/
+  // PlanIdentityBadge.jsx כבר משתמשים בה, כך שאין נוסחת-תווית מקבילה נפרדת.
+  const resolved = resolveAccountEntitlement({ plan: user.plan, trialEndsAt: user.trial_ends_at, role: user.role, isLifetime: user.is_lifetime });
   const isSuperAdminUser = resolved.isSuperAdmin;
   const isLifetime = resolved.isLifetime || isSuperAdminUser;
   const isGrantedLifetimePro = resolved.isLifetime;
-  // displayPlan הופך עכשיו ל-tier המחושב (נכון תמיד - כולל ניסיון-שפג,
-  // Lifetime, ו-super_admin), לא ל-rawPlan הגולמי - מתקן את מחלקת-הבאג
-  // המלאה (לא רק את מקרה ה-null הספציפי).
-  const displayPlan = resolved.tier.toUpperCase();
+  const displayPlan = getDisplayIdentityLabel(resolved.displayIdentity, isHebrew);
 
   // מצב מנוי - רק Lifetime וניסיון (עדיין בתוקף / פג) הם עובדות שניתן להוכיח
   // מהנתונים הקיימים. אין עדיין חיבור סליקה אמיתי, כך שאין כאן ניסוח שמרמז
@@ -114,7 +113,7 @@ export default function UserDetailsModal({ isOpen, onClose, user, isHebrew }) {
           {row(
             isHebrew ? 'חבילה פעילה:' : 'Plan:',
             <span style={{ fontWeight: 'bold', color: isGrantedLifetimePro ? NEON.violetLight : NEON.sky, textTransform: 'uppercase' }}>
-              {displayPlan}{isGrantedLifetimePro ? (isHebrew ? ' (לכל החיים)' : ' (Lifetime)') : ''}
+              {displayPlan}
             </span>
           )}
           {row(

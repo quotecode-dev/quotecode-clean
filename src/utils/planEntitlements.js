@@ -1,35 +1,32 @@
-// חוק ברזל (Item: Trial Expiration -> FREE, Full Entitlement Audit + Fix):
-// נקודת אמת יחידה לחישוב ה-effective plan מתוך business_settings.plan +
-// trial_ends_at - כל מקום שצריך לדעת "האם החשבון הזה זכאי בפועל ל-FREE/
-// BASIC/PRO" חייב לקרוא לפונקציה הזו, לא לשכפל את הנוסחה בעצמו (בדיוק אותו
-// עיקרון כמו isQuoteImmutable ב-quoteLock.js). לפני התיקון הזה, Dashboard.jsx
-// חישב effectivePlan באופן מקומי, ו-SettingsTab.jsx בדק ישירות את ה-plan
-// הגולמי (bizPlan !== 'pro') - שתי נוסחאות שונות, לא-מסונכרנות, שתיהן היו
-// "תקועות" ב-PRO לצמיתות לכל חשבון שנרשם (ר' התיעוד למטה).
+// חוק ברזל (Item: Trial Expiration -> FREE, Full Entitlement Audit + Fix;
+// UPDATED 2026-09-08, Explicit Lifetime Entitlement Model): נקודת אמת יחידה
+// לחישוב ה-effective plan מתוך business_settings.plan + trial_ends_at
+// בלבד - כל מקום שצריך לדעת "האם החשבון הזה זכאי בפועל ל-FREE/BASIC/PRO
+// לפי המסלול/ניסיון הגולמיים שלו" חייב לקרוא לפונקציה הזו, לא לשכפל את
+// הנוסחה בעצמו (בדיוק אותו עיקרון כמו isQuoteImmutable ב-quoteLock.js).
 //
-// שורש הבעיה (מאומת מחדש מקוד חי, לא מונח): ההרשמה כותבת plan:'pro' פעם
-// אחת בזמן ה-signup (Dashboard.jsx handleSignUp), יחד עם trial_ends_at
-// אמיתי (+14 יום). שום קוד אחר בכל הריפו לא כותב חזרה ל-plan מלבד ביטול-
-// עצמי מפורש (PricingModal.jsx, שקובע plan:'free' + trial_ends_at:null
-// יחד, תמיד). "Toggle Lifetime" של האדמין (handleToggleLifetime) נוגע רק
-// ב-trial_ends_at (null=lifetime / +14 ימים), אף פעם לא ב-plan. משמעות
-// הדבר: plan==='basic' לא ניתן להיווצר כלל דרך הרשמה (ר' ה-RLS RESTRICTIVE
-// INSERT policy על business_settings) - הוא בהכרח נקבע דרך פעולת super_admin
-// מכוונת, ולכן הוא אמין ללא תנאי. plan==='pro' יחד עם trial_ends_at===null
-// הוא בהכרח Lifetime-grant מכוון (או פעולת super_admin מפורשת אחרת) -
-// גם הוא אמין ל-PRO ללא תנאי, בדיוק כמו שכבר היה נהוג (UserDetailsModal.jsx
-// מתייחס ל-trial_ends_at===null כ-Lifetime==PRO ללא תלות ב-plan הגולמי).
-// plan==='pro' יחד עם trial_ends_at שהוא תאריך אמיתי בעבר הוא בהכרח ניסיון
-// שפג ולא אופס - התרחיש שהתיקון הזה מטפל בו: הופך ל-FREE בפועל.
+// חוק ברזל (Explicit Lifetime Entitlement Model, Owner mandate: "No more
+// inference-based Lifetime model."): הפונקציה הזו במתכוון **אינה יודעת
+// כלום** על Lifetime - זהו כעת עמודה מפורשת ונפרדת (business_settings.
+// is_lifetime, ר' src/utils/accountEntitlement.js/migration
+// 20260908000000), לא מוסקת יותר מ-trial_ends_at===null. plan ו-
+// trial_ends_at חזרו למשמעות הטהורה שלהם בלבד: plan = זהות-מסלול מסחרית
+// (free/basic/pro), trial_ends_at = תזמון ניסיון בלבד. `rawPlan==='pro' &&
+// trialEndsAt===null` כאן פשוט אומר "חשבון pro פעיל בלי תאריך-סיום-ניסיון
+// כרוך" (מנוי-PRO רגיל שאינו כרגע בניסיון) - **לא** עוד סימן ל-Lifetime;
+// אם החשבון הזה גם Lifetime, זה תלוי אך ורק ב-is_lifetime הנפרד, שנבדק
+// שכבה אחת למעלה (accountEntitlement.js), לעולם לא כאן. ההיסטוריה המלאה
+// של הבאג שהמודל המפורש הזה מחליף (הענקת-Lifetime שכתבה רק trial_ends_at,
+// לעולם לא plan, והפיקה בשקט מצב שנקרא כ-FREE רגיל) מתועדת ב-
+// PROFLOW_PROJECT_CONTEXT.md §204/§205-אזור.
 //
-// עמימות ידועה, לא נפתרת כאן (מחוץ לתחום המשימה הזו, מדווחת בנפרד):
-// plan==='free' + trial_ends_at===null יכול להיות גם ביטול-עצמי אמיתי (הכוונה:
-// FREE) וגם - תיאורטית, נדיר - Lifetime-grant שהוענק לחשבון שכבר היה 'free'
-// בלי לשחזר את ה-plan בחזרה ל-'pro' (הכוונה במקרה הזה: PRO). הסכימה
-// הקיימת לא יכולה להבדיל בין השניים במקרה הצר הזה - לא מטופל כאן כי
-// (א) זה לא התרחיש שהמשימה הזו נועדה לתקן, (ב) התיקון כאן לא יוצר ולא
-// מחמיר את העמימות הזו כלל (ההתנהגות עבור plan==='free' נשארת זהה לגמרי
-// לפני ואחרי השינוי).
+// שורש-הבעיה ההיסטורי שהתיקון הזה (2026-08-30, לפני מודל ה-Lifetime
+// המפורש) עדיין פותר: ההרשמה כותבת plan:'pro' פעם אחת בזמן ה-signup
+// (Dashboard.jsx handleSignUp), יחד עם trial_ends_at אמיתי (+14 יום).
+// עצם ה-null אינו עוד "הוכחה ל-Lifetime" - זה תפקידו הבלעדי של is_lifetime
+// (למעלה) - אבל plan==='pro' + trial_ends_at שהוא תאריך אמיתי *בעבר* עדיין
+// זוהי בהכרח תוצאה של ניסיון שפג ולא אופס, וזה עדיין הופך נכון ל-'free'
+// כאן, ללא קשר ל-Lifetime.
 export function computeEffectivePlan({ plan, trialEndsAt, now = new Date() }) {
   const rawPlan = (plan || 'free').toLowerCase();
 
@@ -49,7 +46,8 @@ export function computeEffectivePlan({ plan, trialEndsAt, now = new Date() }) {
     effectivePlan = 'basic';
   } else if (rawPlan === 'pro') {
     if (trialEndsAt === null || trialEndsAt === undefined) {
-      // Lifetime-grant / explicit super_admin PRO assignment - לא ניסיון.
+      // מנוי-PRO פעיל בלי ניסיון כרוך כלל (לא נגזר Lifetime כאן - ר' חוק-
+      // הברזל למעלה; Lifetime הוא is_lifetime נפרד, נבדק ב-accountEntitlement.js).
       effectivePlan = 'pro';
     } else if (!isTrialExpired) {
       // ניסיון פעיל (או תאריך trial_ends_at תקין שעדיין לא הגיע).

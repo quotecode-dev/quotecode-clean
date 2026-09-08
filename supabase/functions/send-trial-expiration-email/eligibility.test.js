@@ -9,6 +9,7 @@ function baseCandidate(overrides = {}) {
     role: 'user',
     plan: 'pro',
     trial_ends_at: new Date(NOW + 2 * MS_PER_DAY).toISOString(),
+    is_lifetime: false,
     trial_reminder_3d_sent: false,
     trial_reminder_24h_sent: false,
     ...overrides,
@@ -51,8 +52,18 @@ describe('resolveTrialReminderStage', () => {
     expect(resolveTrialReminderStage(biz, NOW)).toBeNull();
   });
 
-  it('excludes a Lifetime PRO account (trial_ends_at null)', () => {
-    const biz = baseCandidate({ trial_ends_at: null });
+  it('excludes a Lifetime PRO account (trial_ends_at null, is_lifetime true — the current real-data shape)', () => {
+    const biz = baseCandidate({ trial_ends_at: null, is_lifetime: true });
+    expect(resolveTrialReminderStage(biz, NOW)).toBeNull();
+  });
+
+  it('EXPLICIT MODEL: excludes is_lifetime=true even with a real, non-null, in-window trial_ends_at (proves exclusion no longer depends on trial-null inference)', () => {
+    const biz = baseCandidate({ trial_ends_at: new Date(NOW + 2.5 * MS_PER_DAY).toISOString(), is_lifetime: true });
+    expect(resolveTrialReminderStage(biz, NOW)).toBeNull();
+  });
+
+  it('EXPLICIT MODEL: an ordinary active-PRO account with a null trial_ends_at and is_lifetime=false is excluded only because trial_ends_at is null (no trial-expiry date to remind about) — not because it is treated as Lifetime', () => {
+    const biz = baseCandidate({ trial_ends_at: null, is_lifetime: false });
     expect(resolveTrialReminderStage(biz, NOW)).toBeNull();
   });
 

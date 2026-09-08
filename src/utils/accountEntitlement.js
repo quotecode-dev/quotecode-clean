@@ -5,20 +5,22 @@
 // זכאות מובנה אחד, שכל צרכן (Dashboard/Settings/Admin, ובעתיד Billing/Badge)
 // אמור לקרוא ממנו - במקום לגזור לוגיקת plan/trial/lifetime משלו בנפרד.
 //
-// מתקן במפורש את הבאג המאושר (PROFLOW_PROJECT_CONTEXT.md §91/§92/§94.1):
-// UserDetailsModal.jsx ו-AdminUsersTab.jsx גזרו "Lifetime" מ-trial_ends_at
-// === null בלבד - אבל זה בדיוק גם החתימה של ביטול-עצמי (PricingModal.jsx
-// כותב plan:'free' + trial_ends_at:null יחד, תמיד) - כך שחשבון FREE
-// שביטל את עצמו הוצג כ"PRO (Lifetime)". התיקון: Lifetime נגזר רק כש-
-// trial_ends_at===null *וגם* ה-plan הגולמי אינו 'free' - כי אף כותב לגיטימי
-// אחר לא מייצר plan:'pro'/'basic' יחד עם trial_ends_at:null מלבד הענקת-
-// Lifetime מכוונת של super_admin (handleToggleLifetime) או הרשמה+ניסיון
-// (שתמיד מזווגת trial_ends_at לתאריך אמיתי, לעולם לא null). זהו התיקון
-// המלא, לא רק למקרה ה-Lifetime הספציפי: `tier` (השדה שה-UI אמור להציג)
-// כבר נגזר תמיד מ-computeEffectivePlan() בעצמו, ששוגה נכון לחלוטין גם
-// עבור ניסיון-שפג-בלי-ביטול-מפורש (plan:'pro' + trial_ends_at אמיתי בעבר
-// → effectivePlan:'free' כבר קיים ונכון) - הבאג היה רק בכך ש-Admin השתמש
-// ב-rawPlan/isLifetime-שגוי במקום ב-tier המחושב-נכון הזה.
+// חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner mandate:
+// "No more inference-based Lifetime model. No more patches."): Lifetime
+// הוא כעת עובדה מפורשת ומאוחסנת (business_settings.is_lifetime, ר'
+// migration 20260908000000), לא נגזרת יותר מ-trial_ends_at===null.
+// הגרסה הקודמת כאן תיקנה חלקית ("Lifetime רק כש-trial_ends_at===null *וגם*
+// plan!=='free'") אך ה-INFERENCE עצמו נשאר עמום מבנית: הענקת-Lifetime
+// שבוצעה בזמן ש-plan כבר היה 'free' (handleToggleLifetime הישן נגע רק
+// ב-trial_ends_at, לעולם לא ב-plan) הפיקה בדיוק את חתימת-ביטול-העצמי -
+// חשבון עם Lifetime-מכוון-אך-לא-מוחל היה מוצג כ-FREE רגיל, לצמיתות,
+// בשקט. isLifetime עכשיו הוא קלט מפורש (isLifetime param, מגיע ישירות
+// מ-business_settings.is_lifetime) - לא נגזר משום שילוב של plan/
+// trial_ends_at. plan ו-trial_ends_at חוזרים למשמעות הטהורה שלהם בלבד:
+// plan = זהות-מסלול מסחרית (free/basic/pro), trial_ends_at = תזמון ניסיון
+// בלבד. ר' PROFLOW_PROJECT_CONTEXT.md §205-אזור (Explicit Lifetime Model
+// task) לתיעוד המלא, כולל כלל ה-backfill הבטוח וכלל "REQUIRES OWNER
+// REVIEW" לשורות עמומות שלא הומרו אוטומטית.
 
 import { computeEffectivePlan } from './planEntitlements';
 import { getEntitlementSet } from './planCatalog';
@@ -26,20 +28,23 @@ import { getEntitlementSet } from './planCatalog';
 const TRIAL_EXPIRING_SOON_DAYS = 5;
 
 /**
- * @param {{plan: string|null|undefined, trialEndsAt: string|null|undefined, role?: string|null, now?: Date}} params
+ * @param {{plan: string|null|undefined, trialEndsAt: string|null|undefined, role?: string|null, isLifetime?: boolean|null, now?: Date}} params
  */
-export function resolveAccountEntitlement({ plan, trialEndsAt, role, now = new Date() }) {
+export function resolveAccountEntitlement({ plan, trialEndsAt, role, isLifetime: rawIsLifetime, now = new Date() }) {
   const rawPlan = (plan || 'free').toLowerCase();
   const isKnownPlan = rawPlan === 'free' || rawPlan === 'basic' || rawPlan === 'pro';
   const isSuperAdmin = role === 'super_admin';
 
   const { effectivePlan, isTrialExpired, trialDaysLeft } = computeEffectivePlan({ plan, trialEndsAt, now });
 
-  // ר' חוק-הברזל למעלה - זהו התיקון עצמו. trial_ends_at===null לבדו לעולם
-  // אינו הוכחה ל-Lifetime; rawPlan!=='free' הוא מה שבפועל מבדיל בין הענקת-
-  // Lifetime אמיתית לבין חתימת-ביטול-עצמי.
-  const hasNullTrial = trialEndsAt === null || trialEndsAt === undefined;
-  const isLifetime = !isSuperAdmin && hasNullTrial && rawPlan !== 'free';
+  // חוק ברזל (Explicit Lifetime Entitlement Model, למעלה): isLifetime הוא
+  // עכשיו קריאה ישירה של business_settings.is_lifetime - לא הסקה. super_admin
+  // לעולם לא "Lifetime" (אף אם is_lifetime=true הוגדר בטעות על שורת אדמין -
+  // הגנה מכוונת, זהות Admin ו-Lifetime הן שני מושגים נפרדים לחלוטין, ר'
+  // הכלל המפורש של הבעלים "Do not conflate full entitlement with Admin
+  // authority"). קלט לא-בוליאני (undefined/null, למשל שורה ישנה שנקראה
+  // לפני שה-migration רץ) נופל בבטחה ל-false, לא ל-true.
+  const isLifetime = !isSuperAdmin && rawIsLifetime === true;
 
   // tier הוא המקור-האמת היחיד שכל UI אמור להציג - כבר נכון במלואו עבור כל
   // מקרה (כולל Lifetime, כולל ניסיון-שפג, כולל super_admin) בזכות

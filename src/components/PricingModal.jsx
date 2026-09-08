@@ -10,7 +10,7 @@ import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
 import Toast from './Toast';
 import BrandName from './BrandName';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, isLifetime, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -64,6 +64,12 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
   const handleConfirmCancellation = async (e) => {
     e.preventDefault();
+    if (isLifetime) {
+      // הגנה שנייה, לצד הסתרת הכפתור למעלה: השרת ממילא דוחה כל ניסיון
+      // ביטול-עצמי על חשבון is_lifetime=true (guard_business_settings_plan_trial).
+      setShowCancelFlow(false);
+      return;
+    }
     if (!cancelReason) {
       setCancelSubmitAttempted(true);
       return;
@@ -236,7 +242,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
             </div>
 
-            {currentPlan && currentPlan !== 'free' && (
+            {currentPlan && currentPlan !== 'free' && !isLifetime && (
               <div style={{ textAlign: 'center', marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
                 <button
                   onClick={() => setShowCancelFlow(true)}
@@ -244,6 +250,20 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 >
                   {isHebrew ? 'ביטול מנוי פעיל' : 'Cancel active subscription'}
                 </button>
+              </div>
+            )}
+
+            {/* חוק ברזל (Explicit Lifetime Entitlement Model, migration
+                20260908000000): Lifetime הוא override מנהלתי, לא מנוי בתשלום -
+                אין ביטול עצמי. שרת (guard_business_settings_plan_trial)
+                דוחה ממילא כל UPDATE עצמי בזמן ש-is_lifetime=true, כך שהכפתור
+                לא היה מצליח בכל מקרה; במקום הודעת שגיאה לא ברורה, מוצג כאן
+                הסבר ברור שהביטול/שינוי דורש פנייה למנהל מערכת. */}
+            {isLifetime && (
+              <div style={{ textAlign: 'center', marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px', color: '#64748b', fontSize: '0.8rem' }}>
+                {isHebrew
+                  ? 'לחשבון זה גישת Lifetime שהוענקה על ידי מנהל מערכת. לשינוי או ביטול יש לפנות אלינו.'
+                  : 'This account has a Lifetime access grant from an administrator. Contact us to change or cancel it.'}
               </div>
             )}
 

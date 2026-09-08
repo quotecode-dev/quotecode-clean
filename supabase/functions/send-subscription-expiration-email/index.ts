@@ -164,37 +164,39 @@ serve(async (req) => {
         return jsonResponse({ error: 'Missing or invalid "email"' }, 400);
       }
 
-      const TEST_BYPASS_EMAILS = new Set(['tahshitishi@gmail.com', 'minhatshay@gmail.com']);
-      const isBypassedTestRecipient = TEST_BYPASS_EMAILS.has(email.toLowerCase());
+      // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אבטחה אמיתי -
+      // "test-only bypasses in email diagnostics", בדיוק הסיכון שהמשימה
+      // ביקשה במפורש לבדוק מחדש; אותו ממצא/תיקון בדיוק ב-send-trial-
+      // expiration-email/index.ts, §208): גרסה קודמת כאן דילגה על כל
+      // בדיקת-super_admin כש-email היה אחת משתי כתובות קשיחות-בקוד -
+      // כלומר כל מבקש לא-מאומת יכול היה להפעיל שליחת מייל אמיתית דרך
+      // Resend, ללא הגבלה. הוסר לגמרי - בדיקת super_admin חלה תמיד.
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return jsonResponse({ error: 'Missing Authorization header' }, 401);
+      }
 
-      if (!isBypassedTestRecipient) {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-          return jsonResponse({ error: 'Missing Authorization header' }, 401);
-        }
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
 
-        const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-        const callerClient = createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
+      const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
+      if (callerAuthErr || !callerUser) {
+        return jsonResponse({ error: 'Invalid or expired session' }, 401);
+      }
 
-        const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
-        if (callerAuthErr || !callerUser) {
-          return jsonResponse({ error: 'Invalid or expired session' }, 401);
-        }
+      const { data: callerBiz, error: callerBizErr } = await adminClient
+        .from('business_settings')
+        .select('role')
+        .eq('user_id', callerUser.id)
+        .maybeSingle();
 
-        const { data: callerBiz, error: callerBizErr } = await adminClient
-          .from('business_settings')
-          .select('role')
-          .eq('user_id', callerUser.id)
-          .maybeSingle();
-
-        if (callerBizErr) {
-          return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
-        }
-        if (callerBiz?.role !== 'super_admin') {
-          return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
-        }
+      if (callerBizErr) {
+        return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
+      }
+      if (callerBiz?.role !== 'super_admin') {
+        return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
       }
 
       const useHebrew = Boolean(body.isHebrew);

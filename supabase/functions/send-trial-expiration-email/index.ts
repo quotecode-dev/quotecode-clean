@@ -163,37 +163,42 @@ serve(async (req) => {
         return jsonResponse({ error: 'Missing or invalid "email"' }, 400);
       }
 
-      const TEST_BYPASS_EMAILS = new Set(['tahshitishi@gmail.com', 'minhatshay@gmail.com']);
-      const isBypassedTestRecipient = TEST_BYPASS_EMAILS.has(email.toLowerCase());
+      // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אבטחה אמיתי -
+      // "test-only bypasses in email diagnostics", בדיוק הסיכון שהמשימה
+      // ביקשה במפורש לבדוק מחדש): גרסה קודמת כאן דילגה על כל בדיקת-
+      // super_admin כש-email היה אחת משתי כתובות קשיחות-בקוד - כלומר כל
+      // מבקש לא-מאומת (אין דרישת Authorization header בכלל בענף הזה) יכול
+      // היה להפעיל שליחת מייל אמיתית דרך Resend, ללא הגבלה, כל עוד ידע את
+      // אחת משתי הכתובות. הוסר לגמרי - בדיקת super_admin חלה תמיד, ללא
+      // יוצא מן הכלל, תואם את התבנית הקיימת בכל שאר הפרויקט (למשל הטריגר
+      // guard_business_settings_plan_trial, §206) של "אימות-role עצמאי
+      // בצד-שרת תמיד, ללא קיצורי-דרך נוחות".
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return jsonResponse({ error: 'Missing Authorization header' }, 401);
+      }
 
-      if (!isBypassedTestRecipient) {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-          return jsonResponse({ error: 'Missing Authorization header' }, 401);
-        }
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
 
-        const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-        const callerClient = createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
+      const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
+      if (callerAuthErr || !callerUser) {
+        return jsonResponse({ error: 'Invalid or expired session' }, 401);
+      }
 
-        const { data: { user: callerUser }, error: callerAuthErr } = await callerClient.auth.getUser();
-        if (callerAuthErr || !callerUser) {
-          return jsonResponse({ error: 'Invalid or expired session' }, 401);
-        }
+      const { data: callerBiz, error: callerBizErr } = await adminClient
+        .from('business_settings')
+        .select('role')
+        .eq('user_id', callerUser.id)
+        .maybeSingle();
 
-        const { data: callerBiz, error: callerBizErr } = await adminClient
-          .from('business_settings')
-          .select('role')
-          .eq('user_id', callerUser.id)
-          .maybeSingle();
-
-        if (callerBizErr) {
-          return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
-        }
-        if (callerBiz?.role !== 'super_admin') {
-          return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
-        }
+      if (callerBizErr) {
+        return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
+      }
+      if (callerBiz?.role !== 'super_admin') {
+        return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
       }
 
       const useHebrew = Boolean(body.isHebrew);
@@ -227,7 +232,7 @@ serve(async (req) => {
 
     const { data: candidates, error: candidatesErr } = await adminClient
       .from('business_settings')
-      .select('user_id, email, business_name, country, trial_ends_at, trial_reminder_3d_sent, trial_reminder_24h_sent, role, plan')
+      .select('user_id, email, business_name, country, trial_ends_at, trial_reminder_3d_sent, trial_reminder_24h_sent, role, plan, is_lifetime')
       .not('trial_ends_at', 'is', null)
       .or('trial_reminder_3d_sent.is.false,trial_reminder_24h_sent.is.false');
 

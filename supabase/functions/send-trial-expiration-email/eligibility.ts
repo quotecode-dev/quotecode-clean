@@ -8,11 +8,21 @@
 // ניסיון פעיל), חשבון בניסיון פעיל תמיד plan==='pro' עם trial_ends_at
 // אמיתי בעתיד. plan==='free' הוא בדיוק מה שקורה *אחרי* שהניסיון כבר
 // הסתיים/בוטל - כלומר התנאי הישן פסל את כל קהל היעד האמיתי, פה אחד.
+//
+// חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner mandate:
+// "Lifetime exclusion must use the new explicit Lifetime state rather than
+// trial-null inference"): is_lifetime (business_settings.is_lifetime,
+// migration 20260908000000) נבדק כאן במפורש עכשיו - לא עוד נסמך רק על כך
+// ש-trial_ends_at ממילא ריק לחשבון Lifetime (וזה עדיין נכון, אבל זו הייתה
+// הדרה-בעקיפין, לא הדרה-מפורשת). מרגע שהמודל המפורש קיים, is_lifetime=true
+// הוא הסיבה האמיתית להדרה, גם אם trial_ends_at אי-פעם ישתנה בעתיד בלי
+// לגעת ב-is_lifetime.
 export type TrialReminderCandidate = {
   email: string | null | undefined;
   role: string | null | undefined;
   plan: string | null | undefined;
   trial_ends_at: string | null | undefined;
+  is_lifetime: boolean | null | undefined;
   trial_reminder_3d_sent: boolean | null | undefined;
   trial_reminder_24h_sent: boolean | null | undefined;
 };
@@ -24,6 +34,7 @@ export function resolveTrialReminderStage(
   nowMs: number,
 ): '3d' | '24h' | null {
   if (!biz.email || biz.role === 'super_admin') return null;
+  if (biz.is_lifetime === true) return null;
   if ((biz.plan || 'free').toLowerCase() !== 'pro') return null;
   if (!biz.trial_ends_at) return null;
 
