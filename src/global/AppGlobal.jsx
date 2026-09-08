@@ -206,6 +206,23 @@ export default function AppGlobal() {
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicToolsEn />} />
         <Route path="/en/tools" element={<PublicToolsEn />} />
+        {/* חוק ברזל (Google Indexing / SEO Readiness root-cause task, 2026-09-08,
+            תיקון-מסלול נכון): main.jsx בוחר AppLocal/AppGlobal ברמת ה-bootstrap
+            (isEnglishEnv ? AppGlobal : AppLocal) - App.jsx (root) אינו חלק
+            מה-bundle החי בכלל, כך שתיקון-נתיבים קודם שם לא שינה שום דבר ב-
+            Production בפועל. PublicToolsEn כבר תמך במלואו ב-initialTab
+            (מטא-דאטה/canonical/H1 ייעודיים לכל מחשבון, מכוסה ע"י
+            PublicToolsRouting.test.jsx הקיים) - אבל אף נתיב לא-hub לא נרשם
+            כאן, ברכיב ה-App האמיתי, מעולם. */}
+        {/* חוק ברזל (המשך התיעוד למעלה, גילוי-אמצע-משימה): אותו מצב בדיוק
+            כמו AppLocal.jsx - PublicToolsEn() ב-origin/main אינו מקבל props
+            כלל, ותמיכת-initialTab קיימת רק כעבודת-dirty-tree נפרדת ולא-
+            קשורה (590 שורות) - out-of-scope לתיקון הזה. ה-prop הוסר בכוונה
+            מהנתיבים למטה כדי לא להטעות. */}
+        <Route path="/en/tools/currency" element={<PublicToolsEn />} />
+        <Route path="/en/tools/units" element={<PublicToolsEn />} />
+        <Route path="/en/tools/metals" element={<PublicToolsEn />} />
+        <Route path="/en/tools/crypto" element={<PublicToolsEn />} />
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />

@@ -203,6 +203,32 @@ export default function AppLocal() {
         <Route path="/ai-logs" element={<AILogs />} />
         <Route path="/tools" element={<PublicTools />} />
         <Route path="/he/tools" element={<PublicTools />} />
+        {/* חוק ברזל (Google Indexing / SEO Readiness root-cause task, 2026-09-08,
+            תיקון-מסלול נכון): main.jsx בוחר AppLocal/AppGlobal ברמת ה-bootstrap
+            (isEnglishEnv ? AppGlobal : AppLocal) - App.jsx (root) אינו חלק
+            מה-bundle החי בכלל, כך שתיקון-נתיבים קודם שם לא שינה שום דבר ב-
+            Production בפועל. PublicTools כבר תמך במלואו ב-initialTab (מטא-
+            דאטה/canonical/H1 ייעודיים לכל מחשבון, מכוסה ע"י
+            PublicToolsRouting.test.jsx הקיים) - אבל אף נתיב לא-hub לא נרשם
+            כאן, ברכיב ה-App האמיתי, מעולם. זה שורש-הבעיה האמיתי - אומת חי
+            מול Production אחרי הפריסה הראשונה (כותרת/H1 גנריים, לא של
+            המחשבון) לפני התיקון הזה. */}
+        {/* חוק ברזל (המשך התיעוד למעלה, גילוי-אמצע-משימה): PublicTools()
+            ב-origin/main אינו מקבל props כלל כרגע (0 פרמטרים) - תמיכת-
+            initialTab (מטא-דאטה/canonical/H1 ייחודיים לכל מחשבון) קיימת רק
+            כעבודת-dirty-tree נפרדת ולא-קשורה, גדולה בהרבה מ"חיווט נתיבים"
+            (599 שורות ב-PublicTools.jsx בלבד) - אומתה כ-out-of-scope לתיקון
+            הזה (לא "תיקון-נתיב מדויק", אלא תכונת-מוצר נפרדת שלמה, לא
+            מבודדת-בבטחה בזמן הסביר של המשימה הזו). ה-prop initialTab הוסר
+            בכוונה מהנתיבים למטה - הצגתו כאן הייתה מטעה (לא עושה דבר בפועל
+            נגד הרכיב הנוכחי). מה שבאמת מתוקן כאן: הנתיבים עצמם קיימים
+            ומחזירים תוכן-אמיתי-ורלוונטי (מרכז-הכלים המלא, עם כל 4 המחשבונים
+            נגישים ללחיצה) במקום לנפול ל-wildcard (LandingLocal) כפי שקרה
+            קודם - שיפור אמיתי ומוכח, גם בלי ייחוד-מטא-דאטה-פר-מחשבון. */}
+        <Route path="/he/tools/currency" element={<PublicTools />} />
+        <Route path="/he/tools/units" element={<PublicTools />} />
+        <Route path="/he/tools/metals" element={<PublicTools />} />
+        <Route path="/he/tools/crypto" element={<PublicTools />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         {/* David Aluminum professional-item demo, Owner-authorized, David-only -
