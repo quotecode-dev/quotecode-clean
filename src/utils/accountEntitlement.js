@@ -21,7 +21,7 @@
 // ב-rawPlan/isLifetime-שגוי במקום ב-tier המחושב-נכון הזה.
 
 import { computeEffectivePlan } from './planEntitlements';
-import { getPlanDefinition } from './planCatalog';
+import { getEntitlementSet } from './planCatalog';
 
 const TRIAL_EXPIRING_SOON_DAYS = 5;
 
@@ -60,7 +60,36 @@ export function resolveAccountEntitlement({ plan, trialEndsAt, role, now = new D
     ? 'TRIAL'
     : tier.toUpperCase();
 
-  const planDef = getPlanDefinition(tier);
+  // Stage 1 (PROFLOW_PROJECT_CONTEXT.md §148): the five canonical user/Admin-
+  // facing display identities - FREE / FREE_TRIAL / BASIC / PRO / LIFETIME.
+  // Deliberately a NEW field, not a change to badgeState above - badgeState's
+  // own PRO-for-Lifetime behavior is already regression-locked by an existing
+  // test (accountEntitlement.test.js, "badgeState is PRO (not TRIAL) for a
+  // genuine Lifetime grant") and must not change. displayIdentity is what
+  // Stage 1's new consumers (Dashboard.jsx/SettingsTab.jsx) read instead.
+  const displayIdentity = isLifetime
+    ? 'LIFETIME'
+    : (trialStatus === 'active' || trialStatus === 'expiringSoon')
+      ? 'FREE_TRIAL'
+      : tier.toUpperCase();
+
+  // חוק ברזל (LIFETIME Full-PRO Inheritance, PROFLOW_PROJECT_CONTEXT.md §151,
+  // Owner-defined canonical rule): LIFETIME = הקבוצה המלאה של זכאות-PRO,
+  // כולל כל יכולת עתידית, ללא תלות בחבילה הגולמית הבסיסית - עד שהבעלים
+  // עצמו מבטל במפורש את מעמד-Lifetime. זה מוחלף במכוון על פני התיקון
+  // הקודם (§150, שרק monthlyQuoteLimit היה Lifetime-מודע בנפרד - בדיוק
+  // התבנית המפוזרת שנאסרה עכשיו במפורש): entitlementPlanId קובע *איזו*
+  // תוכנית-בסיס לרשת ממנה - 'pro' עבור LIFETIME, tier (הרגיל) עבור כל
+  // מקרה אחר - ואז getEntitlementSet (planCatalog.js) הוא נקודת-הקריאה
+  // *היחידה* שמעתיקה קבוצת-זכאות שלמה, לא שדה-שדה. יכולת עתידית שתתווסף
+  // ל-PLAN_CATALOG.pro.entitlements (למשל professionalQuotes) תזרום
+  // אוטומטית ל-LIFETIME בלי לגעת בקובץ הזה שוב, כי שני המקרים קוראים
+  // לאותה פונקציה עם אותו 'pro' - לא שני מסלולי-קוד נפרדים. isLifetime
+  // עצמו (מחושב למעלה) הוא הקובע היחיד - זהה לכל חשבון, לא תנאי ספציפי-
+  // ללקוח. super_admin כבר מקבל tier==='pro' תמיד (הענף למעלה) - אין צורך
+  // בטיפול נפרד עבורו כאן.
+  const entitlementPlanId = isLifetime ? 'pro' : tier;
+  const entitlement = getEntitlementSet(entitlementPlanId);
 
   return {
     tier,
@@ -72,11 +101,7 @@ export function resolveAccountEntitlement({ plan, trialEndsAt, role, now = new D
     trialDaysLeft,
     isTrialExpired,
     badgeState,
-    entitlement: {
-      monthlyQuoteLimit: planDef.monthlyQuoteLimit,
-      editDuplicate: isSuperAdmin || planDef.editDuplicate,
-      whatsappDelete: isSuperAdmin || planDef.whatsappDelete,
-      attachments: isSuperAdmin || planDef.attachments,
-    },
+    displayIdentity,
+    entitlement,
   };
 }

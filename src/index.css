@@ -179,7 +179,78 @@ html {
      (QuotesTab.jsx) הותאמה בנפרד כדי להיכנס לרוחב הזה בלי overflow -
      ר' ההערה שם ("Table Fits TEKANGO, Not The Reverse", §58) - הרוחב
      הזה עצמו לא הורחב כדי להתאים לטבלה, בהתאם לכלל המפורש של הבעלים. */
-  --pf-dashboard-desktop-content-width: var(--pf-desktop-content-width);
+  /* V2 Visual Transformation Pass, ROUND 2 (Owner URGENT CORRECTION,
+     2026-09-03, superseding the immediately-prior round's own decision
+     below - kept, struck through in spirit not deleted, for history):
+     the immediately-prior round widened this to min(1600px, 92vw) and the
+     Owner, after actually viewing the real TEST render (not just reading
+     a report), REJECTED it outright: "FAR TOO WIDE". The Owner's own
+     replacement instruction is precise and binding: the TOTAL visible
+     application shell (sidebar + main workspace + everything in it -
+     Dashboard/Quote History/Create Quote/topbar - together, not the
+     workspace alone) must be approximately 960-980px wide and CENTERED,
+     deliberately close to Public Quote's own long-locked ~980px reference
+     width (used here only as a size reference, per the Owner's own words -
+     Public Quote's actual token below remains untouched and this variable
+     is never aliased to it, preserving full isolation). Because the
+     232px-wide .dash-sidebar (Dashboard.jsx) sits OUTSIDE/beside whatever
+     this variable bounds (see the new unclassed centering wrapper directly
+     above <div className="dash-shell-body"> in Dashboard.jsx - the new
+     wrapper introduced this round specifically to bound sidebar+content
+     TOGETHER), this variable's role changed from "inner content-only
+     width" to "total outer shell width" - the inner content wrapper that
+     previously also read this variable no longer applies its own
+     max-width at all (it just fills whatever the outer shell leaves after
+     the sidebar). min(980px, 96vw), not a bare fixed 980px, so narrow
+     desktop/tablet windows below ~980px still fit without horizontal
+     overflow - responsive per the Owner's own explicit tablet/mobile
+     requirement in this same round, while never exceeding ~980px on wide
+     screens, which is the actual binding constraint. */
+  /* Proportional Workspace Correction (Owner real-visual-review correction,
+     2026-09-05, superseding the immediately-prior round's own Desktop
+     Workspace Width attempt): that round decoupled the inner content
+     wrapper from this variable entirely (`.dash-shell-outer{max-width:none
+     !important}` + a separately-capped/centered `.dash-content-container`)
+     to reach a ~1240px workspace - the Owner's real-browser review found
+     the result "far too wide/effectively full-screen" AND, independently,
+     that decoupling itself reintroduced exactly the contiguous-shell defect
+     this same variable's own Round-2 history above was created to prevent
+     (a blank gap between the sidebar and the workspace, because the content
+     was centering itself inside the leftover viewport instead of staying
+     attached to the sidebar as one shell). Both defects share one root
+     cause and one fix: this variable is the single source of truth for the
+     TOTAL shell (sidebar+content together, per the Round-2 comment above) -
+     widening the number here, with no override elsewhere decoupling
+     anything from it, both grows the workspace AND keeps it contiguous,
+     since Dashboard.jsx's sidebar+content flex row is still bounded and
+     centered as one unit by this one value. The prior round's own two
+     overrides were removed from Dashboard.jsx as part of this fix - see
+     its own comment there for the removal record. Owner's own explicit
+     target this round: only 15-20% larger than the actual pre-existing
+     content baseline (748px = the 980px prior shell minus the unchanged
+     232px sidebar), not the ~1240px the removed override had reached
+     (which was closer to 66% larger) - 1120px total (888px content,
+     +18.7% over 748px, inside the requested 15-20% band) is the new value,
+     replacing the immediately-prior 980px from the Round-2 correction
+     above (kept, not deleted, for history - superseded, not wrong at the
+     time it was written). */
+  --pf-dashboard-shell-total-width: min(1120px, 96vw);
+  /* V2 Mobile Width Regression Fix (Owner physical-device correction,
+     2026-09-03): root cause of the mobile regression the Owner found on a
+     real phone - the "sidebar + workspace together ≈ 980px" concept is
+     semantically about the DESKTOP shell (Dashboard.jsx's .dash-sidebar
+     hides entirely at ≤768px, the exact same breakpoint used below), so
+     applying this variable's min(980px,96vw) value UNCONDITIONALLY meant
+     mobile absorbed a brand-new ~4% total width reduction it never had
+     before this width-correction round, stacking on top of every
+     pre-existing internal padding layer (.dash-main-content, QuotesTab/
+     QuoteForm card padding) that was already there. The fix is a single
+     source-of-truth override, not a per-screen patch: below the exact
+     breakpoint where the sidebar itself disappears, this SAME variable
+     resolves to 100% instead - Dashboard.jsx's inline `maxWidth: 'var(...)'`
+     usage needs no change at all, since the variable it references now
+     means something different per breakpoint. See the matching mobile
+     media query further down in this file. */
   /* Public Quote document-shell decorative inset (Desktop only - the
      Mobile @media (max-width:640px) override in PublicQuote.jsx/
      PublicQuoteEn.jsx still hardcodes its own much smaller 2px padding
@@ -194,6 +265,27 @@ html {
      token stays correct automatically. */
   --pf-doc-shell-padding: 40px;
   --pf-doc-shell-border-width: 1px;
+}
+
+/* V2 Mobile Width Regression Fix, continued (see the comment on
+   --pf-dashboard-shell-total-width above): below the exact breakpoint where
+   Dashboard.jsx's own .dash-sidebar disappears (768px, unchanged, matching
+   .mobile-bottom-nav's own existing breakpoint - no new breakpoint
+   invented), the "total shell including sidebar" concept doesn't apply -
+   there is no sidebar to include. The variable resolves to 100% here, so
+   Dashboard.jsx's outer wrapper (`maxWidth: 'var(--pf-dashboard-shell-total-
+   width)'`) stops constraining the page at all on mobile/narrow tablet
+   portrait, restoring near-full-viewport-width behavior. The actual visual
+   gutter mobile users see comes entirely from the existing, deliberately
+   modest inner paddings (.dash-main-content's own already-existing mobile
+   override, QuotesTab/QuoteForm's own already-existing mobile card
+   padding) - this rule removes only the NEW outer constraint this width-
+   correction round introduced, it does not touch any of those pre-existing,
+   already-correct inner values. */
+@media (max-width: 768px) {
+  :root {
+    --pf-dashboard-shell-total-width: 100%;
+  }
 }
 
 /* Item 7 (Public Quote Print, TEST Acceptance Package 1): a `no-print`

@@ -15,18 +15,22 @@ const LIVE_COMPONENT_PATHS = [
   'src/pages/LandingGlobal.jsx',
   'src/components/ProFlowLogo.jsx',
   'src/pages/Dashboard.jsx',
+  'src/components/QuoteForm.jsx',
+  'src/components/ClientsTab.jsx',
+  'src/components/QuotesTab.jsx',
   'src/utils/pricingCatalog.js',
 ];
 
 // Known active worktrees/checkouts relevant to this specific release task.
-// The approved source candidate (C:/tkrc2, HEAD 850486d) is included
-// deliberately: this release's runtime tree is INTENDED to be identical to
-// it for the included files, so a reported divergence there is a real
-// signal, not noise.
+// The canonical dirty TEST tree is the approved authenticated-UI source of
+// truth for this task (port 5186 serves it directly) - a reported
+// divergence there for an included file is a real signal, not noise.
+// Dashboard.jsx/index.css are EXPECTED to diverge from it (deliberate,
+// documented, backend-safety surgical exclusions) - see
+// check-release-source-identity.js's SURGICALLY_MODIFIED list.
 function defaultComparisonRoots() {
   return [
-    { name: 'main-worktree (dirty TEST)', path: 'C:/Users/sales/Documents/YoutubeChanel/WebSite/quotecode-saas' },
-    { name: 'approved-candidate (850486d)', path: 'C:/tkrc2' },
+    { name: 'main-worktree (dirty TEST, approved authenticated UI source)', path: 'C:/Users/sales/Documents/YoutubeChanel/WebSite/quotecode-saas' },
     { name: 'plan-identity-release', path: 'C:/Users/sales/Documents/YoutubeChanel/WebSite/quotecode-saas-plan-identity-release' },
   ];
 }

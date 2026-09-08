@@ -3,10 +3,10 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { formatDateLocal } from '../utils/regionConfig';
-import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2 } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
+import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 
@@ -44,7 +44,7 @@ import { formatQuoteFallback } from '../utils/quoteNumber';
 // מיון נוסף כלשהו למובייל. "תיאור" (Description) לא ניתן-למיון גם
 // בדסקטופ (אין עליו onClick/handleQuoteSort כלל) ולכן גם לא מופיע כאן.
 const MOBILE_SORT_FIELDS = [
-  { value: 'id', he: 'מספר הזמנה', en: '# Order' },
+  { value: 'id', he: 'מס׳ הצעה', en: 'Quote #' },
   { value: 'client', he: 'שם לקוח', en: 'Client Name' },
   { value: 'clientType', he: 'סוג לקוח', en: 'Client Type' },
   { value: 'total', he: 'הסכום', en: 'Amount' },
@@ -54,18 +54,6 @@ const MOBILE_SORT_FIELDS = [
 ];
 
 const CLIENT_TYPE_BADGE_SIZE = 24;
-// חוק ברזל (Signature Fix + Mobile Cleanup task, תיקון-בעלים חי - "Fixed
-// Mobile Metadata Columns"): הבעלים דחה מפורשות את הגרסה הראשונה (flex +
-// flexWrap) - שם שם-לקוח ארוך "דחף" ויכל לגרום ל-Client Type/Views לעבור
-// שורה או לזוז, כך שהעמודות לא היו יציבות/זהות בין כרטיסים. התיקון: grid
-// אמיתי עם שלושה tracks ברוחב קבוע לחלוטין (לא flex עם wrap) - Client Type
-// ו-Views מקבלים רוחב-פיקסלים מפורש (זהה בכל כרטיס, גם כש-Views ריק),
-// שם-הלקוח מקבל 1fr ונחתך ב-ellipsis בשורה אחת בלבד, לעולם לא עוטף. ר'
-// ה-JSX למטה: שלושת האלמנטים (סוג/צפיות/שם) תמיד מרונדרים (אף פעם לא
-// null) כך שמיקום ה-grid tracks נשאר קבוע תמיד, גם בהצעה עם 0 צפיות.
-const MOBILE_META_TYPE_COL = CLIENT_TYPE_BADGE_SIZE; // 24px, בדיוק רוחב הבאדג'
-const MOBILE_META_VIEWS_COL = 32; // מספיק ל-"👁 999" (3 ספרות) בלי לגלוש
-const MOBILE_META_AMOUNT_COL = 78; // מספיק לרוב הסכומים המציאותיים (עד ~6 ספרות עם מטבע ואגורות) בלי להזיז את Type/Views
 function ClientTypeBadge({ clientType, isHebrew }) {
   if (clientType !== 'business' && clientType !== 'private') return null;
   const isBusiness = clientType === 'business';
@@ -113,10 +101,6 @@ export default function QuotesTab({
   handleProtectedAction,
   activeTooltip,
   openDropdownId,
-  setOpenDropdownId,
-  dropdownPos,
-  dropdownRef,
-  handleToggleDropdown,
   isHebrew,
   isLocalIsraeliBusiness,
   formatNum,
@@ -164,6 +148,25 @@ export default function QuotesTab({
       window.removeEventListener('resize', recompute);
     };
   }, []);
+
+  // חוק ברזל (Authenticated App Consolidation task, §5 Expandable Row):
+  // מודל single-expand מכוון (accordion) - לא multi-expand. נבחר כ"ההתנהגות
+  // הפשוטה והצפויה ביותר" (הנחיית המשימה עצמה) - רשימת עסק עלולה להכיל
+  // עשרות הצעות; אם כמה פאנלים ארוכים (תיאור+פעולות) היו יכולים להישאר
+  // פתוחים בו-זמנית, הרשימה הייתה יכולה להתארך בצורה בלתי-צפויה ולאבד
+  // הקשר-גלילה. state יחיד משותף לדסקטופ+מובייל (לא שני state נפרדים) -
+  // אותה "פילוסופיית אינטראקציה" בשני ה-layouts, לפי דרישת המשימה.
+  const [expandedQuoteId, setExpandedQuoteId] = useState(null);
+  const toggleExpanded = (quoteId) => {
+    setExpandedQuoteId(prev => (prev === quoteId ? null : quoteId));
+  };
+
+  // חוק ברזל (Authenticated UI Coherence task, Mobile Lists and Controls):
+  // "Consolidate status and sort controls behind one compact Filters
+  // control" - מובייל בלבד (דסקטופ, שיש בו מקום, ממשיך להציג את בורר-
+  // הסטטוס גלוי ישירות ליד החיפוש כמו קודם - שום שינוי שם). state מקומי
+  // טהור (לא נתון עסקי) לפתיחה/סגירה של ה-sheet הקומפקטי.
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // השפה/מע"מ של קישור ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate)
   // ולא מהגדרת השפה הנוכחית של המשתמש המחובר - כך שקישור להצעה בינלאומית
@@ -238,146 +241,168 @@ export default function QuotesTab({
     ) : null
   );
 
-  const renderActionsMenu = (quote, isDropdownOpen, isLocked) => (
-    isDropdownOpen && (
-      <>
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 999998, background: 'transparent' }}
-          onClick={() => setOpenDropdownId(null)}
-        />
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed',
-            top: `${dropdownPos.top}px`,
-            left: `${dropdownPos.left}px`,
-            background: NEON.bgElevated,
-            border: `1px solid ${NEON.borderStrong}`,
-            borderRadius: '10px',
-            boxShadow: '0 12px 28px -8px rgba(31,27,46,0.18)',
-            zIndex: 999999,
-            minWidth: '180px',
-            padding: '4px 0',
-            textAlign: isHebrew ? 'right' : 'left'
-          }}
+  // חוק ברזל (Authenticated App Consolidation task, §4/§5 - Actions move
+  // into the Expandable Row): הפונקציה הזו מחליפה את התפריט הצף הקודם
+  // (position:fixed popup, מופעל ע"י openDropdownId/dropdownPos) - "פעולות
+  // זמינות" הוא בדיוק אחד מהשדות המשניים שהמשימה מפרטת כמועמד למעבר לתוך
+  // ה-Expandable Row, במקום עמודה קבועה בשורה הראשית. כל שישה ה-handlers
+  // הקיימים (getQuoteViewLink+window.open, handleProtectedAction עוטף
+  // handleEditClick/handleDuplicateQuote/sendWhatsApp, setPendingEmailQuote
+  // ישיר, handleProtectedAction עוטף handleDeleteQuote) נקראים בדיוק כמו
+  // קודם, עם אותם תנאי-נעילה/טולטיפ-הרשאה (activeTooltip.quoteId+action) -
+  // רק המיכל הוויזואלי השתנה מ-position:fixed floating menu לשורת-שבבים
+  // (chips) שוכנת-במקום בתוך פאנל-ההרחבה, כך שאין עוד "תפריט מעל תפריט"
+  // כשלוחצים על שורה שכבר מורחבת. openDropdownId/dropdownPos/dropdownRef/
+  // handleToggleDropdown עדיין מתקבלים כ-props (Dashboard.jsx לא נגוע) אך
+  // אינם נדרשים עוד כאן - התפריט הצף המקורי הוסר לחלוטין, לא הוסתר.
+  // חוק ברזל (Design System Coherence task, Action-Hierarchy Contract):
+  // הפעולות עברו מ"כל פעולה מקבלת צבע-נושא משלה" (סגול/כתום/תכלת/ירוק/
+  // תכלת/אדום) לסולם-צבע ממושמע אחיד ברחבי המוצר - סגול הוא הפעולה
+  // הראשית היחידה (View, כי צפייה היא הפעולה הנפוצה/ה"טבעית" ביותר על
+  // הצעה), פעולות רגילות (Edit/Duplicate/WhatsApp/Email) ניטרליות (אותו
+  // אפור-שקט כמו כפתור Export CSV הקיים כבר ממש למעלה בקובץ הזה - לא צבע
+  // חדש), Delete בלבד אדום. זהות/handler/entitlement-gating/tooltip/
+  // aria-label של כל פעולה נשארו זהים לחלוטין - רק הצבע השתנה.
+  const renderInlineActions = (quote, isLocked) => {
+    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' };
+    const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
+    const neutralIconColor = NEON.textSecondary;
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        <button
+          onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
+          style={{ ...chipBase, background: 'rgba(124,58,237,0.10)', color: NEON.violet }}
         >
+          <Eye size={14} color={NEON.violet} strokeWidth={2.2} />
+          <span>{isHebrew ? 'צפה' : 'View'}</span>
+        </button>
+
+        <span style={{ position: 'relative', display: 'inline-block' }}>
           <button
-            onClick={() => { setOpenDropdownId(null); window.open(getQuoteViewLink(quote), '_blank'); }}
-            style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.violet, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(124,58,237,0.06)'}
-            onMouseLeave={(e) => e.target.style.background = 'none'}
+            disabled={isLocked}
+            title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
+            onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote)); }}
+            style={{ ...chipBase, ...neutralChip, opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
-            <Eye size={15} color={NEON.violetLight} strokeWidth={2.2} />
-            <span>{isHebrew ? 'צפה במסמך' : 'View Quote'}</span>
+            <Pencil size={14} color={neutralIconColor} strokeWidth={2.2} />
+            <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
           </button>
+          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
+              {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
+            </div>
+          )}
+        </span>
 
-          <div style={{ position: 'relative' }}>
-            <span
-              title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
-              style={{ display: 'block', width: '100%' }}
-            >
-              <button
-                disabled={isLocked}
-                onClick={() => {
-                  if (isLocked) return;
-                  setOpenDropdownId(null);
-                  handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
-                }}
-                style={{ width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? NEON.textMuted : NEON.amber, opacity: isLocked ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                onMouseEnter={(e) => { if (!isLocked) e.target.style.background = 'rgba(180,83,9,0.08)'; }}
-                onMouseLeave={(e) => e.target.style.background = 'none'}
-              >
-                <Pencil size={15} color={isLocked ? NEON.textMuted : NEON.amber} strokeWidth={2.2} />
-                <span>{isHebrew ? 'ערוך במסמך' : 'Edit Quote'}</span>
-              </button>
-            </span>
-            {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
-              <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-                {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
-              </div>
-            )}
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                setOpenDropdownId(null);
-                handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote));
-              }}
-              style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.sky, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(2,132,199,0.08)'}
-              onMouseLeave={(e) => e.target.style.background = 'none'}
-            >
-              <Copy size={15} color={NEON.sky} strokeWidth={2.2} />
-              <span>{isHebrew ? 'שכפל במסמך' : 'Duplicate Quote'}</span>
-            </button>
-            {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
-              <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-                {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
-              </div>
-            )}
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                setOpenDropdownId(null);
-                handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote));
-              }}
-              style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.emerald, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(5,150,105,0.08)'}
-              onMouseLeave={(e) => e.target.style.background = 'none'}
-            >
-              <MessageCircle size={15} color={NEON.emerald} strokeWidth={2.2} />
-              <span>{isHebrew ? 'שלח בוואטסאפ' : 'Send WhatsApp'}</span>
-            </button>
-            {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
-              <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-                {isHebrew ? '🚀 פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (WhatsApp sending & file attachments) is for Pro plan only'}
-              </div>
-            )}
-          </div>
-
+        <span style={{ position: 'relative', display: 'inline-block' }}>
           <button
-            onClick={() => { setOpenDropdownId(null); setPendingEmailQuote(quote); }}
-            style={{ width: '100%', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: 'pointer', fontSize: '0.8rem', color: NEON.sky, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(2,132,199,0.08)'}
-            onMouseLeave={(e) => e.target.style.background = 'none'}
+            onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))}
+            style={{ ...chipBase, ...neutralChip }}
           >
-            <Mail size={15} color={NEON.sky} strokeWidth={2.2} />
-            <span>{isHebrew ? 'שלח במייל' : 'Send Email'}</span>
+            <Copy size={14} color={neutralIconColor} strokeWidth={2.2} />
+            <span>{isHebrew ? 'שכפל' : 'Duplicate'}</span>
           </button>
+          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
+              {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
+            </div>
+          )}
+        </span>
 
-          <div style={{ position: 'relative' }}>
-            <span
-              title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
-              style={{ display: 'block', width: '100%' }}
-            >
-              <button
-                disabled={isLocked}
-                onClick={() => {
-                  if (isLocked) return;
-                  setOpenDropdownId(null);
-                  handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name }));
-                }}
-                style={{ width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '7px 12px', textAlign: isHebrew ? 'right' : 'left', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: isLocked ? NEON.textMuted : NEON.red, opacity: isLocked ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
-                onMouseEnter={(e) => { if (!isLocked) e.target.style.background = 'rgba(220, 38, 38, 0.08)'; }}
-                onMouseLeave={(e) => e.target.style.background = 'none'}
-              >
-                <Trash2 size={15} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
-                <span>{isHebrew ? 'מחק מסמך' : 'Delete Quote'}</span>
-              </button>
+        <span style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote))}
+            style={{ ...chipBase, ...neutralChip }}
+          >
+            <MessageCircle size={14} color={neutralIconColor} strokeWidth={2.2} />
+            <span>{isHebrew ? 'וואטסאפ' : 'WhatsApp'}</span>
+          </button>
+          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
+              {isHebrew ? '🚀 פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (WhatsApp sending & file attachments) is for Pro plan only'}
+            </div>
+          )}
+        </span>
+
+        <button
+          onClick={() => setPendingEmailQuote(quote)}
+          style={{ ...chipBase, ...neutralChip }}
+        >
+          <Mail size={14} color={neutralIconColor} strokeWidth={2.2} />
+          <span>{isHebrew ? 'שלח במייל' : 'Email'}</span>
+        </button>
+
+        <span style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            disabled={isLocked}
+            title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
+            onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }}
+            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : 'rgba(220,38,38,0.10)', color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
+          >
+            <Trash2 size={14} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
+            <span>{isHebrew ? 'מחק' : 'Delete'}</span>
+          </button>
+          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
+              {isHebrew ? '🚀 פונקציה זו (מחיקה וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (Deletion & file attachments) is for Pro plan only'}
+            </div>
+          )}
+        </span>
+      </div>
+    );
+  };
+
+  // חוק ברזל (Authenticated App Consolidation task, §4 - Secondary
+  // Information): פאנל-הרחבה משותף לדסקטופ (colSpan <td> בתוך <tr> שני)
+  // ולמובייל (div מותנה מתחת לכרטיס) - אותו תוכן בדיוק בשני ה-layouts, לפי
+  // דרישת המשימה ("share an interaction philosophy even if their layouts
+  // differ"). מציג את כל השדות המשניים שהוסרו מהשורה הראשית: תיאור מלא
+  // (לא חתוך יותר - היה כבר גלוי, רק חתוך; שום מידע לא הוסר, רק אורגן
+  // מחדש), סוג לקוח (עכשיו עם תווית טקסט גלויה, לא רק אייקון+טולטיפ),
+  // צפיות, מצב שליחת מייל, ואז שורת הפעולות (renderInlineActions).
+  const renderDetailPanel = (row) => {
+    const { quote, firstItemDesc, emailStatus, isLocked } = row;
+    const clientType = quote.clients?.client_type;
+    const clientTypeLabel = clientType === 'business'
+      ? (isHebrew ? 'לקוח עסקי' : 'Business Client')
+      : clientType === 'private'
+        ? (isHebrew ? 'לקוח פרטי' : 'Individual Client')
+        : null;
+    const emailLabel = quote.email_bounced
+      ? (isHebrew ? 'כתובת המייל אינה קיימת' : 'Email address does not exist')
+      : emailStatus === 'success'
+        ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully')
+        : emailStatus === 'failed'
+          ? (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')
+          : null;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
+          {clientTypeLabel && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ClientTypeBadge clientType={clientType} isHebrew={isHebrew} />
+              {clientTypeLabel}
             </span>
-            {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
-              <div className="feature-lock-tooltip" style={{ position: 'absolute', top: 0, [isHebrew ? 'right' : 'left']: '105%', background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-                {isHebrew ? '🚀 פונקציה זו (מחיקה וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (Deletion & file attachments) is for Pro plan only'}
-              </div>
-            )}
-          </div>
+          )}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <Eye size={13} color={NEON.textMuted} strokeWidth={2} />
+            {isHebrew ? `${quote.view_count || 0} צפיות` : `${quote.view_count || 0} views`}
+          </span>
+          {emailLabel && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {renderEmailDot(quote, emailStatus)}
+              {emailLabel}
+            </span>
+          )}
         </div>
-      </>
-    )
-  );
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: NEON.textSecondary }}>
+          <FileText size={14} color={NEON.textMuted} strokeWidth={2} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>{firstItemDesc || (isHebrew ? 'אין תיאור פריט' : 'No item description')}</span>
+        </div>
+        {renderInlineActions(quote, isLocked)}
+      </div>
+    );
+  };
 
   return (
     // חוק ברזל (Owner QA Correction task, Mobile Width Utilization): padding
@@ -388,7 +413,7 @@ export default function QuotesTab({
     // כבר קיים בקומפוננטה הזו בדיוק לצורך הזה (טבלה מול כרטיסים) - נעשה שימוש
     // חוזר בו כאן, לא נוסף מנגנון-CSS/media-query מקביל. דסקטופ (14px) לא נגע
     // בכלל - התנאי חל רק כש-isMobileView אמיתי.
-    <div style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '14px', borderRadius: '14px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
+    <div style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
       {/* חוק ברזל (תיקון בעלים מאושר): הוסר flexDirection: row-reverse עבור
           עברית - היה זה הבאג עצמו. במיכל עם dir="rtl" (יורש מה-Dashboard),
           'row' הרגיל כבר ממקם את הילד הראשון ב-DOM (כותרת+ייצוא) ב-"התחלה"
@@ -408,36 +433,131 @@ export default function QuotesTab({
               נשאר, שכן הוא שייך לטבלה עצמה. */}
           <button
             onClick={handleExportQuotes}
-            style={{ background: '#111827', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px -2px rgba(17, 24, 39, 0.3)' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#1f2937'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#111827'}
+            style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 14px', borderRadius: RADIUS.pill, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = NEON.violetLighter; e.currentTarget.style.color = NEON.violet; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = NEON.bgCardAlt; e.currentTarget.style.color = NEON.textSecondary; }}
           >
             <Download size={15} strokeWidth={2.5} />
             <span>{isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', width: '100%', maxWidth: '350px' }}>
-          <input
-            type="text"
-            placeholder={t.searchQuote}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: '1 1 130px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ flex: '1 1 90px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
-          >
-            <option value="All">{t.filterStatus}</option>
-            <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-            <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-            <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-            <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
-          </select>
-        </div>
+        {/* V2 Visual Completion Pass: row-reverse residual bug fixed - this
+            was the exact same "row-reverse for Hebrew is itself the bug"
+            pattern already diagnosed and fixed one container up (see the
+            comment above), left behind here. Plain 'row' lets the inherited
+            dir="rtl"/dir="ltr" mirror correctly with no isHebrew branch.
+            Authenticated UI Coherence task, Mobile Lists and Controls:
+            desktop keeps this exact search+status arrangement, unchanged
+            (there is room for both side by side). Mobile gets its own
+            deliberate composition below instead - not this same row
+            merely shrunk. */}
+        {!isMobileView && (
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%', maxWidth: '350px' }}>
+            <input
+              type="text"
+              placeholder={t.searchQuote}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ flex: '1 1 130px', padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ flex: '1 1 90px', padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
+            >
+              <option value="All">{t.filterStatus}</option>
+              <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
+              <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
+              <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
+              <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+            </select>
+          </div>
+        )}
       </div>
+
+      {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
+          Controls): מובייל בלבד - החיפוש מקבל שורה מלאה-רוחב עצמאית
+          משלו ("Search receives a full-width usable row," הדרישה המפורשת
+          של המשימה), וסטטוס+מיון (שהיו שני פקדים נפרדים - select-סטטוס
+          כאן למעלה, select-מיון+כפתור-כיוון בשורה נפרדת למטה) אוחדו
+          לכפתור "Filters" קומפקטי יחיד שפותח sheet - "one compact Filters
+          control... equivalent accessible pattern." אותם state/handlers
+          בדיוק (statusFilter/setStatusFilter/quoteSortField/
+          quoteSortDirection/handleQuoteSort) - רק המיכל החזותי השתנה. */}
+      {isMobileView && (
+        <div style={{ marginBottom: '10px' }} dir={tableDir}>
+          <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+            <input
+              type="text"
+              placeholder={t.searchQuote}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ flex: '1 1 auto', minWidth: 0, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(prev => !prev)}
+              aria-haspopup="true"
+              aria-expanded={showMobileFilters}
+              aria-label={isHebrew ? 'סינון ומיון' : 'Filters'}
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: `1px solid ${statusFilter !== 'All' || showMobileFilters ? NEON.violet : NEON.borderStrong}`, borderRadius: RADIUS.sm, background: statusFilter !== 'All' ? 'rgba(124,58,237,0.10)' : NEON.bgInput, color: statusFilter !== 'All' ? NEON.violet : NEON.textSecondary, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+            >
+              <Filter size={14} strokeWidth={2.2} />
+              {isHebrew ? 'סינון' : 'Filters'}
+            </button>
+          </div>
+          {showMobileFilters && (
+            <div style={{ marginTop: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.filterStatus}</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
+                >
+                  <option value="All">{t.filterStatus}</option>
+                  <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
+                  <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
+                  <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
+                  <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+                </select>
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'מיון' : 'Sort'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <select
+                    value={quoteSortField}
+                    onChange={(e) => handleQuoteSort(e.target.value)}
+                    style={{ flex: '1 1 auto', minWidth: 0, padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.75rem', fontWeight: '600' }}
+                  >
+                    {MOBILE_SORT_FIELDS.map((f) => (
+                      <option key={f.value} value={f.value}>{isHebrew ? f.he : f.en}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleQuoteSort(quoteSortField)}
+                    title={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
+                    aria-label={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
+                    style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }}
+                  >
+                    {quoteSortDirection === 'asc' ? '▲' : '▼'}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                style={{ alignSelf: isHebrew ? 'flex-start' : 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
+              >
+                <X size={12} strokeWidth={2.5} />
+                {isHebrew ? 'סגור' : 'Close'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ============ DESKTOP: sharp light table ============ */}
       {/* חוק ברזל (Critical Signature Forensic Audit + Final Canonical Width
@@ -468,517 +588,292 @@ export default function QuotesTab({
             כבר לא "חצי-מכווץ" לתוך גבול-הטבלה כמו ב-collapse, אלא מרונדר
             במלואו) - לא שינוי-גיאומטריה אמיתי של עמודה כלשהי; כל שאר רוחבי/
             מיקומי הכותרות זהים ב-100%. */}
-        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '700px' }} dir={tableDir}>
+        {/* חוק ברזל (Authenticated App Consolidation task, §4 "PRIMARY vs
+            SECONDARY INFORMATION" - horizontal-scroll removal): הטבלה
+            צומצמה מ-10 עמודות (Client Type/Views/Order#/Client Name/
+            Description/Amount/Date/Status/Email/Actions) ל-6 בלבד (Client
+            Name/Order#/Amount/Status/Date/Expand-control) - בדיוק רשימת
+            "PRIMARY ROW CONTENT" שהמשימה מפרטת. ארבעת העמודות שהוסרו
+            (Client Type/Views/Description/Email) + Actions (שהמשימה עצמה
+            מציינת כמועמד-סגירה: "available quote actions") עברו לפאנל-
+            ההרחבה (renderDetailPanel) - שום מידע/יכולת לא הוסרה, רק אורגנה
+            מחדש לפי עקרון PRIMARY/SECONDARY. minWidth הופחת בהתאם - עם
+            הרבה פחות עמודות, שם-הלקוח (העמודה הגמישה היחידה) מקבל בפועל
+            יותר רוחב מקודם (ר' ה-minWidth שלו למטה), לא פחות, למרות
+            ה-minWidth הכולל הנמוך יותר של הטבלה - ר' האריתמטיקה המלאה
+            בהערה שלפני ה-<table>. */}
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
           <thead>
-            {/* חוק ברזל (Owner New Final Dashboard Structure task - FRAME B):
-                Frame B עוטף אך ורק את שורת-הכותרות (thead), לא את שורות-
-                הנתונים - אותו טוקן-סגול/עובי-גבול/radius בדיוק כמו Frame A
-                (dash-upper-section, #E9D5FF/1px/12px), כדי ששני המסגרות
-                ייראו כזוג-מתואם, לפי דרישת הבעלים. טכניקה: border-collapse
-                כבר קיים על הטבלה (collapse) - במקום border ברמת ה-<tr>
-                (תמיכת-דפדפנים לא עקבית ל-border-radius ב-tr תחת collapse),
-                כל <th> מקבל בעצמו borderTop+borderBottom (1px #E9D5FF) -
-                אלה מתמזגים לקו רציף אחד לאורך כל השורה תחת collapse. רק
-                שני התאים הקיצוניים (הראשון/האחרון בסדר ה-DOM) מקבלים גם
-                border בצד החיצוני-הפיזי שלהם + עיגול-פינות בצד הזה - כדי
-                שהמסגרת תיראה כמלבן שלם אחד, לא כרשת-תאים. הצד הפיזי תלוי-
-                כיוון (isHebrew) בדיוק כמו כל שאר ה-inline-start/end בקובץ
-                הזה - Client Type (ראשון ב-DOM) בקצה הימני ב-HE/השמאלי
-                ב-EN; Actions (אחרון ב-DOM) בקצה הנגדי. */}
+            {/* חוק ברזל (Owner New Final Dashboard Structure task - FRAME B,
+                נשמר): אותו טוקן-סגול/עובי-גבול/radius כמו Frame A. Client
+                Name (ראשון ב-DOM עכשיו) בקצה הימני ב-HE/השמאלי ב-EN;
+                Expand-control (אחרון ב-DOM) בקצה הנגדי. */}
             <tr style={{ color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {/* חוק ברזל (Desktop HE/EN Mirroring Fix): Client Type + Views
-                  עברו להיות שני הטורים הראשונים בסדר ה-DOM (לפני # Order/שם
-                  לקוח), כדי שיתאימו לכלל הקבוע - Client Type הוא הפריט
-                  הראשון/החיצוני ביותר מקצה ה-inline-start (ימין ב-RTL, שמאל
-                  ב-LTR), Views מיד אחריו - תוך הסתמכות על dir={tableDir}
-                  הקיים כבר על ה-<table> לשיקוף אוטומטי, בדיוק כמו הכלל
-                  שכבר נקבע ל-Mobile (§63) - סדר DOM אחיד לא-מותנה-בשפה. */}
-              <th style={{ padding: '4px 4px', textAlign: 'center', width: `${CLIENT_TYPE_BADGE_SIZE + 10}px`, cursor: 'pointer', userSelect: 'none', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF', ...(isHebrew ? { borderRight: '1px solid #E9D5FF', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #E9D5FF', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} onClick={() => handleQuoteSort('clientType')}>
-                {isHebrew ? 'סוג לקוח' : 'Client Type'} {quoteSortField === 'clientType' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              {/* חוק ברזל (Desktop Final Layout Pass - Owner requirement): עמודת
-                  הצפיות עברה לאייקון-בלבד (בלי הטקסט "צפיות"/"Views") - האייקון
-                  כבר מזוהה אוניברסלית, והכותרת המלאה הייתה מיותרת ברוחב הצר
-                  הזה. aria-label + title נשמרים לנגישות/טולטיפ.
-                  עדכון (Quote History Final Polish task - Views Numeric Geometry
-                  Contract): הרוחב עודכן שוב 28px→46px - תא-הגוף עכשיו שומר
-                  רוחב-מספר קבוע (ר' ה-<td> למטה) שרוחבו הכולל בפועל (~39px+
-                  ריפוד) חורג מ-28px; table-layout ברירת המחדל (auto, לא נקבע
-                  fixed) היה מרחיב את העמודה ממילא לפי תוכן-הגוף - עדכון הרוחב
-                  המוצהר כאן רק הופך את זה למפורש/צפוי במקום מרומז. */}
-              <th style={{ padding: '4px 2px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '46px', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('views')} title={isHebrew ? 'מיון לפי צפיות' : 'Sort by views'} aria-label={isHebrew ? 'צפיות' : 'Views'}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}><Eye size={12} color={NEON.textSecondary} />{quoteSortField === 'views' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
-              </th>
-              {/* חוק ברזל (Desktop Final Layout Pass - Owner requirement): אייקון
-                  ה-# הדקורטיבי הוסר (הטקסט המקומי כבר מזהה את העמודה); הכותרת
-                  ממורכזת עכשיו מעל הטור (לא צמודה לקצה); הרוחב הוגדר במפורש
-                  צר (72px) כי ערכי מספר-הזמנה עצמם (למשל A100732) קצרים -
-                  הכותרת המילולית עצמה עשויה להיעטף לשתי שורות, זה תקין; מה
-                  שאסור להיעטף הוא הערך עצמו בשורה (formatQuoteFallback). */}
-              <th style={{ padding: '4px 4px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '72px', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('id')}>
-                {isHebrew ? 'מספר הזמנה' : '# Order'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th style={{ padding: '4px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('client')}>
+              {/* OWNER CORRECTION (RTL/LTR Sidebar Position + Quote-Row Expand
+                  Control task): the expand-control column moved from LAST to
+                  FIRST in DOM order - it must render "at the beginning of the
+                  language's natural reading direction, before the quote's
+                  primary information" (Owner's own wording), not after it.
+                  Under dir={tableDir} this places it at the row's true
+                  inline-start: physically RIGHT for Hebrew, physically LEFT
+                  for English - matching the corrected chevron rule exactly
+                  the same way Client Name used to be placed first for the
+                  same reason. No isHebrew-conditional DOM reordering was
+                  added - one single column order, mirrored automatically by
+                  dir, per this file's own established convention. */}
+              {/* חוק ברזל (§5 Expandable Row): בקרת-הרחבה - ללא כותרת מילולית
+                  (אייקון-בלבד, כמו Views/Email הישנים), aria-label על הכפתור
+                  עצמו בכל שורה נותן את המשמעות הנגישה. */}
+              <th style={{ padding: '10px 3px', textAlign: 'center', width: '36px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
+              {/* חוק ברזל (Authenticated App Consolidation task): שם הלקוח -
+                  עדיין ראשון בין העמודות ה"תוכניות" (מיד אחרי בקרת ההרחבה),
+                  לפי "PRIMARY ROW CONTENT" ברשימת המשימה עצמה. minWidth
+                  200px נשמר - אין עוד עיגול-פינה על העמודה הזו (עברה לבקרת-
+                  ההרחבה, שהיא העמודה החיצונית עכשיו). */}
+              {/* חוק ברזל (Authenticated App Consolidation task - UI specialist
+                  re-check finding, real defect found+fixed): the six column
+                  widths (now including the relocated expand-control column)
+                  still sum to ~620-625px against a confirmed ~680px
+                  available budget - a real ~55-60px safety margin, unaffected
+                  by reordering columns since no width value changed here,
+                  only DOM order. */}
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', minWidth: '200px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
                 {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              {/* חוק ברזל (Desktop Final Layout Pass - Owner requirement,
-                  §9 "Description gets the recovered space"): מוטב העיקרי של
-                  הרוחב שהתפנה מ-Views/Email/Order/הסרת אייקונים דקורטיביים -
-                  minWidth הוגדל מ-130px ל-190px כדי להציג משמעותית יותר טקסט
-                  לפני החיתוך (ellipsis) הקיים על תא הגוף (title מלא נשאר
-                  ב-hover, לא נוגעים בהתנהגות הקיימת). */}
-              <th style={{ padding: '4px 6px', textAlign: 'center', minWidth: '190px', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }}>
-                {isHebrew ? 'תיאור' : 'Description'}
+              <th style={{ padding: '10px 3px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '72px', whiteSpace: 'nowrap', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
+                {isHebrew ? 'מס׳ הצעה' : 'Quote #'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '4px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('total')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '86px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
                 {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '4px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('date')}>
-                {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th style={{ padding: '4px 6px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }} onClick={() => handleQuoteSort('status')}>
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '78px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
                 {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              {/* חוק ברזל (Desktop Final Layout Pass): עמודת סטטוס שליחת המייל
-                  כבר הייתה אייקון-בלבד (Mail) - לא נוסף/הוסר תוכן, רק צומצם
-                  מעט הרוחב (36px→28px) ומורכז, בדיוק כמו יתר העמודות הצרות.
-                  הסמנטיקה של האדום/ירוק/ריק בגוף הטבלה (renderEmailDot) לא
-                  נגעה בה כלל - נשארת זהה. */}
-              <th style={{ padding: '4px 2px', textAlign: 'center', width: '28px', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF' }}>
-                <Mail size={12} color={NEON.sky} style={{ display: 'inline-block' }} />
-              </th>
-              {/* חוק ברזל (Owner-Locked Regression Rule task, UI QA - EN Actions
-                  Clipping - נשמר, לא רגרסיה): minWidth מפורש עדיין קיים כדי
-                  שכפתור "Actions ▼"/"פעולות ▼" יישאר קריא/שמיש במלואו; הערך
-                  צומצם מ-110px ל-92px (מספיק לתוכן הכפתור בפועל בשתי השפות,
-                  נמדד חי) כחלק מהתאמת הטבלה לרוחב הקנוני החדש - ולא הוסר
-                  לגמרי, כדי שלא ליצור את אותה רגרסיה מחדש. עדכון (Desktop
-                  Final Layout Pass): רק ה-textAlign שונה למרכוז (לפי דרישת
-                  הבעלים למרכז כל כותרות הטבלה) - ה-minWidth עצמו לא נגוע. */}
-              <th style={{ padding: '4px 6px', textAlign: 'center', minWidth: '92px', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF', ...(isHebrew ? { borderLeft: '1px solid #E9D5FF', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #E9D5FF', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }}>
-                {isHebrew ? 'פעולות' : 'Actions'}
+              {/* Date is now the last/outer column (was the expand control) -
+                  it gains the outer-edge border/corner-radius treatment. */}
+              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '100px', borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
+                {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
             </tr>
           </thead>
           <tbody>
             {rowsMeta.length === 0 ? (
               <tr>
-                <td colSpan="10" style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
                   {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
                 </td>
               </tr>
             ) : (
-              rowsMeta.map(({ quote, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge }) => (
-                // חוק ברזל (Critical Signature Forensic Audit + Final Canonical
-                // Width Alignment task, §58 Quote History Desktop Density):
-                // ריפוד אנכי לכל תא צומצם מ-6px ל-4px (הכי משמעותי לגובה
-                // השורה בפועל - שני צדדים * 2px = 4px פחות גובה לכל שורה),
-                // וריפוד אופקי מ-8px ל-6px (תורם גם לצפיפות וגם להתאמת-הרוחב
-                // הכוללת של §12/§58). שום מידע לא הוסר - התיאור/סכום-לפני-מע"מ/
-                // כל תא נשארו קיימים במלואם, רק פחות "אוויר" סביבם.
-                <tr key={quote.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
-                  <td style={{ padding: '4px 4px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <ClientTypeBadge clientType={quote.clients?.client_type} isHebrew={isHebrew} />
-                    </div>
+              rowsMeta.map((row) => {
+                const { quote, quoteSym, badge } = row;
+                const isExpanded = expandedQuoteId === quote.id;
+                const detailId = `quote-detail-${quote.id}`;
+                return (
+                <Fragment key={quote.id}>
+                <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${NEON.divider}`, fontSize: '0.82rem', lineHeight: '1.2' }}>
+                  {/* OWNER CORRECTION: expand-control cell moved to be the
+                      first <td>, matching the reordered <th> above - see the
+                      comment on the header row for the full rationale. */}
+                  {/* חוק ברזל (Quote History Row Density task, added 2026-09-04):
+                      the collapsed row's rendered height was previously
+                      dictated almost entirely by THIS cell, not by any text
+                      content - the toggle button's own fixed 26x26px visual
+                      box (well above the ~16-18px line-height any text cell
+                      in this row actually needs) forced this cell alone to
+                      ~46px (10px padding + 26px button + 10px padding), even
+                      though every sibling cell's real text content would
+                      have comfortably fit in ~35-38px. No prior pass in this
+                      file's own history/PROFLOW docs had actually measured
+                      or targeted a collapsed-row height for Quote History
+                      specifically (confirmed by re-reading every existing
+                      comment in this file plus PROFLOW_HANDOFF.md/
+                      PROFLOW_TODO.md/PROFLOW_PROJECT_CONTEXT.md before this
+                      change - the closest prior work was ClientsTab.jsx's
+                      own equivalent accordion row, a separate file/component,
+                      which went through its own real-browser-measured
+                      6px→28.5px-too-small→11px→38.5px-in-band correction;
+                      that file's validated 38.5px real number is the closest
+                      available evidence for what padding+line-height this
+                      shared theme/font actually renders at, and is used
+                      below as a calibration reference, not copied blind).
+                      Fix here is therefore surgical: the button's own visual
+                      box shrinks 26px→20px (still a full ChevronDown-16
+                      icon's worth of room), landing this cell at 10+20+10=
+                      40px - the top of the requested ~38-40px band, and now
+                      the tallest cell in the row (previously false by a wide
+                      margin). Tap-target preservation: NOT achieved by
+                      shrinking the button and leaving it at that - the
+                      button gets 6px of real CSS padding on all sides
+                      (pushing its actual clickable/rendered border-box out
+                      to 32x32px) offset by an equal -6px margin, which
+                      cancels the padding's contribution back out of the
+                      surrounding table-cell layout (a negative margin on an
+                      inline-flex box reduces its line-box footprint the same
+                      way a positive margin would increase it) - so the row's
+                      own height budget only "sees" the original 20px, while
+                      a mouse/pointer actually clicking anywhere in that
+                      32x32px area still hits the button. In the resting
+                      (unexpanded, background:transparent) state this is
+                      completely invisible - only the aria-expanded highlight
+                      background paints slightly larger than the icon, which
+                      is a harmless, arguably-helpful larger "active" cue,
+                      not a visual regression. */}
+                  <td style={{ padding: '10px 3px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <button
+                      onClick={() => toggleExpanded(quote.id)}
+                      aria-expanded={isExpanded}
+                      aria-controls={detailId}
+                      aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                      style={{ background: isExpanded ? 'rgba(124,58,237,0.1)' : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
+                    >
+                      <ChevronDown size={16} strokeWidth={2.4} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                    </button>
                   </td>
-                  {/* חוק ברזל (Quote History Final Polish task - Views Numeric Geometry
-                      Contract): הבעיה שהבעלים דיווח עליה - `justifyContent:'center'`
-                      סביב [מספר, אייקון] ממרכז את *הקבוצה* כיחידה, כך שכשספירת
-                      הספרות גדלה (0→19→999) רוחב הקבוצה עצמה גדל ומיקום ה-X
-                      בפועל של האייקון זז בהתאם, גם אם רוחב העמודה עצמו לא זז.
-                      התיקון: תת-תיבת-מספר ברוחב-קבוע (22px, מספיק ל-3 ספרות
-                      לפי בדיקה חיה), מיושרת לימין (textAlign:'right' - כוונה,
-                      *לא* isHebrew?...: הכיוון הזה אינו תלוי-שפה בכלל, כי סדר
-                      הספרות עצמו (9,9,9) תמיד LTR גם בטקסט עברי - עוגן ספרת-
-                      האחדות תמיד בקצה הימני של התיבה, כך שספרות חדשות "נדחפות"
-                      שמאלה בלבד, בדיוק כמו יישור-מקום-ערכי במסמכים חשבונאיים)
-                      עם font-variant-numeric:'tabular-nums' (כל ספרה תופסת
-                      רוחב-גליף זהה, כך שעמודות-אחדות/עשרות/מאות מיושרות אנכית
-                      בין שורות שונות). האייקון flexShrink:0 בגודל קבוע. כתוצאה
-                      מכך רוחב-הקבוצה הכולל קבוע לחלוטין (22+3+14=39px) בלי תלות
-                      בערך - textAlign:'center' על ה-td עצמו הופך אז למרכוז
-                      עקבי-אמיתי של יחידה קבועה-רוחב, לא של תוכן גדל-וקטן. סדר
-                      ה-DOM (מספר ואז אייקון) לא השתנה - dir={tableDir} הקיים
-                      כבר על הטבלה ממשיך למרכז/למקם נכון אוטומטית בשתי השפות
-                      (ר' PROFLOW_PROJECT_CONTEXT.md, Tabular Numeric Geometry
-                      Contract). */}
-                  <td style={{ padding: '4px 2px', verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, fontSize: '0.8rem' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <span style={{ display: 'inline-block', width: '22px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{quote.view_count || 0}</span>
-                      <Eye size={14} color={NEON.textMuted} strokeWidth={2} style={{ flexShrink: 0 }} />
-                    </span>
-                  </td>
-                  {/* חוק ברזל (Final Quote-History Polish task - Order Column
-                      Centering): כמו Amount/Actions בסבב הקודם - textAlign:
-                      'center' על הכותרת בלבד לא הספיק, כי התוכן בגוף התא
-                      היה עדיין צמוד לקצה (offset מדוד ~5.3-6.1px ב-EN בין
-                      מרכז הכותרת למרכז ערך מספר-ההזמנה בפועל). מרכוז ה-td
-                      עצמו (במקום isHebrew?'right':'left') מיישר את שניהם על
-                      אותו מרכז גיאומטרי, בלי לגעת בערך/בלוגיקה של מספר
-                      ההזמנה עצמו (formatQuoteFallback, direction/whiteSpace
-                      לא נגועים).
-                      חוק ברזל (Typography Hierarchy Contract, המשימה הנוכחית):
-                      700→600 - הבעלים ביקש שמספר-ההזמנה ישמור על זיהוי דרך
-                      הצבע הסגול המאושר בלבד, בלי הדגשה מוגזמת דרך משקל-פונט
-                      מקסימלי בנוסף לצבע - שני ערוצי-הדגשה בו-זמנית (צבע+
-                      700) היו מיותרים. הצבע/ה-direction/ה-whiteSpace לא נגעו. */}
-                  <td style={{ padding: '4px 4px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: NEON.violet, direction: 'ltr', whiteSpace: 'nowrap' }}>
-                    {formatQuoteFallback(quote)}
-                  </td>
-                  {/* חוק ברזל (Typography Hierarchy Contract): 700→600 - הבעלים
-                      דיווח ששם-הלקוח כבד מדי חזותית. "table primary value" -
-                      תפקיד עקבי בשתי השפות ובין דסקטופ/מובייל (ר' השורה
-                      המקבילה במובייל למטה, אותו שינוי בדיוק).
-                      חוק ברזל (Owner Exact Typography Implementation task):
-                      600→300 מדויק (לא 400, לא קירוב) - מומש דרך
-                      @fontsource-variable/rubik (ציר משקל אמיתי 300-900,
-                      ר' src/fonts.css) עם fontFamily מפורש נקודתי - רק
-                      התא הזה עובר ל-'Rubik Variable', שאר האתר ממשיך
-                      ב-family 'Rubik' הבדיד הקיים ללא שינוי. גודל הפונט/
-                      הצבע/הרוחב/ה-ellipsis/ה-title לא נגעו. */}
-                  <td className="pf-font-variable" style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={quote.clients?.company_name || ''}>
+                  {/* חוק ברזל (Typography Hierarchy Contract, נשמר): 600→300
+                      מדויק דרך 'Rubik Variable' - זהה למקור. */}
+                  {/* חוק ברזל (Quote History Row Density task): 10px→9px
+                      vertical - a real, modest reduction (not the button
+                      fix's job to carry alone), kept deliberately small since
+                      this cell's own text content was never the row's
+                      bottleneck (see the button cell's comment above) and an
+                      explicit `lineHeight:'1.2'` was added at the <tr> level
+                      (inherited here) so this reduction lands on a
+                      deterministic content height instead of guessing at the
+                      browser/font's default "normal" line-height. */}
+                  <td className="pf-font-variable" style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={quote.clients?.company_name || ''}>
                     {quote.clients?.company_name || 'N/A'}
                   </td>
-                  {/* חוק ברזל (Desktop Final Layout Pass, §9): maxWidth הוגדל
-                      מ-190px ל-260px כדי לתת ביטוי אמיתי לרוחב שהתפנה (ר'
-                      minWidth של הכותרת למעלה) - עדיין חתוך/ellipsis יציב,
-                      לא ללא-הגבלה; title מלא ב-hover נשאר ללא שינוי. */}
-                  <td style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', color: NEON.textSecondary, fontSize: '0.8rem', lineHeight: '1.3', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={firstItemDesc || ''}>
-                    {firstItemDesc || '-'}
+                  <td style={{ padding: '11px 3px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: NEON.violet, direction: 'ltr', whiteSpace: 'nowrap' }}>
+                    {formatQuoteFallback(quote)}
                   </td>
-                  {/* חוק ברזל (Owner Visual Feedback - Amount/Actions Header
-                      Centering task): textAlign שונה מ-edge-aligned למרכוז -
-                      נמדד חי ש-textAlign:'center' על הכותרת בלבד לא הספיק,
-                      כי התוכן בגוף התא היה עדיין צמוד לקצה (offset מדוד
-                      ~11.76px בין מרכז הכותרת למרכז הסכום בפועל ב-EN) -
-                      מרכוז שני הצדדים (כותרת+גוף) על אותו טור מבטיח יישור
-                      גיאומטרי אמיתי, לא רק textAlign זהה.
-                      חוק ברזל (Owner Visual QA Correction task - Amount
-                      Numeric Place-Value Alignment, מכליל את ה-Numeric
-                      Geometry Contract שנוצר עבור Views על Amount): הבעלים
-                      זיהה חזותית שמרכוז *כל מחרוזת-הסכום המפורמטת* כיחידה
-                      (למשל "$10.00" מול "$5,625.00") גורם לספרת-האגורות
-                      לנוע שמאלה/ימינה לפי אורך המחרוזת הכולל - בדיוק אותה
-                      משפחת-באג שכבר תוקנה ב-Views (מרכוז קבוצה גדלה-וקטנה
-                      במקום עוגן קבוע). התיקון זהה בעיקרון: div פנימי ברוחב-
-                      קבוע (92px, נבדק חי עד $99,999.00) וממוין-ימין (עוגן
-                      ספרת-האגורות/היחידות בקצה הימני, קבוע לחלוטין - "ימין"
-                      בכוונה ולא isHebrew?..., כי סדר הספרות עצמו תמיד LTR
-                      גם בטקסט עברי, בדיוק כמו Views/Order למעלה), עם
-                      pf-money (tabular-nums+direction:ltr כבר קיים ב-
-                      index.css) שדואג שכל ספרה תופסת רוחב-גליף זהה - כך
-                      שאחדות מתחת לאחדות, עשרות מתחת לעשרות וכו' לאורך כל
-                      העמודה. מרכוז ה-div הפנימי (רוחב-קבוע) בתוך ה-td עצמו
-                      (textAlign:'center' לא נגע) שומר גם על "מרכז-כותרת ≈
-                      מרכז-גוף" (§79) כי רוחב-הקבוצה עכשיו קבוע לחלוטין ולא
-                      תלוי-תוכן - שתי הדרישות (place-value + header-body
-                      centering) מתקיימות בו-זמנית, לא מתחרות. סמל המטבע
-                      (quoteSym) לא טופל בנפרד - הוא חלק מאותה מחרוזת ממוינת-
-                      ימין, וגדילת ספרות "דוחפת" אותו שמאלה בלבד, בדיוק כמו
-                      שהפסיק-אלפים/הסימן עצמו לא אמורים להזיז את עוגן-
-                      היחידות. */}
-                  {/* חוק ברזל (Final Quote-History Polish task - HE-Only
-                      Before-VAT Density): הבעלים ביקש שהשורה השנייה הקבועה
-                      "לפני מע"מ: ₪X" (שצרכה גובה-שורה קבוע בכל הצעה של עסק
-                      ישראלי) תיעלם מהתצוגה הגלויה - הערך עצמו (beforeVatAmount,
-                      חושב למעלה, לא נגוע) זמין עכשיו רק דרך title (hover)
-                      על תא הסכום, לא כשורה נוספת גלויה. השומר isLocalIsraeliBusiness
-                      && isHebrew זהה לחלוטין לשומר הקודם - לא נוסף/שונה
-                      תנאי - כך שזה נשאר בלתי-אפשרי מבנית (fail-closed) עבור
-                      International, בדיוק כמו קודם, לא רק "לא ממומש". חוק
-                      ברזל קבוע (Market Separation): אין ואסור שיהיה מקבילה
-                      ל-International - אין title ל-Before VAT באנגלית, כי
-                      אין ל-International בכלל את הסמנטיקה העסקית הזו. */}
-                  <td style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(beforeVatAmount)}` : undefined}>
-                    {/* חוק ברזל (Owner QA Correction task, Row Amount Typography, סבב
-                        שני, PRESERVED): 800→600 (משימה קודמת) → 600→500 (משימה קודמת) - Rubik
-                        מוטען עם קובץ weight נפרד לכל אחד מ-400/500/600/700/800/900
-                        (ר' src/fonts.css) כך ש-500 הוא רינדור אמיתי ומובחן, לא
-                        fallback סינתטי. Total Revenue (Dashboard.jsx) 600 - כך
-                        שסכום-שורה נשאר קל-יותר-משמעותית מ-Total Revenue, לא שווה לו.
-                        אומת מחדש (Quote History Final Polish task, Typography
-                        Hierarchy Contract - Part A): הבדיקה כללה גם Amount, אבל
-                        המשקל כבר הופחת פעמיים בסבב קודם ומתועד כ-PRESERVED - לא
-                        נפתח מחדש כאן, כדי לא לבטל תיקון-בעלים קודם על סמך ניחוש;
-                        אם הבעלים רוצה הפחתה נוספת בסבב הבדיקה החזותית הבא, זה
-                        שינוי חד-שורתי ידוע וממוקד. */}
-                    {/* חוק ברזל (Owner Typography + Amount Geometry Correction task -
-                        Amount Header Centering Regression): הבעלים זיהה חזותית
-                        שהכותרת "הסכום"/"Amount" נראית לא-ממורכזת מעל האזור
-                        המספרי בפועל, למרות שמרכז-התיבה עצמו (92px, נמדד) כן
-                        התאים במדויק למרכז-הכותרת (0px offset מדוד). השורש: 92px
-                        נבחר עבור מקרה-קיצון אישי (99,999.00$, לא חלק מרשימת
-                        הבדיקה של הבעלים) - עבור ערכים טיפוסיים/מציאותיים (למשל
-                        ₪84.75, ~50px רוחב-טקסט טבעי) זה השאיר שוליים-ריקים
-                        גדולים בצד שמאל התיבה (HE) שהזיזו את הטקסט *הנראה
-                        לעין* הרחק ממרכז-הכותרת, גם כש-*תיבת*-ה-92px עצמה
-                        ממורכזת נכון. תוקן ל-76px - נמדד חי שמספיק בנוחות לטווח
-                        הבדיקה המפורש של הבעלים (עד ₪5,625.00/$5,625.00,
-                        ~68-71px רוחב-טקסט טבעי), בלי clipping (אין overflow:
-                        hidden על התיבה) גם אם ערך חריג-קיצוני נדיר יחרוג
-                        מעט מעבר לרוחב המוצהר - הוא פשוט ימשיך שמאלה, לא
-                        ייחתך. זה מצמצם משמעותית את השוליים-הריקים לעומת 92px,
-                        כך שמרכז-הטקסט הנראה לעין מתקרב הרבה יותר למרכז-
-                        התיבה/הכותרת - האיזון הטוב ביותר האפשרי בין שני
-                        האילוצים (place-value + header-centering) כשתוכן
-                        משתנה-רוחב מיושר-ימין מטבעו. */}
-                    <div style={{ display: 'inline-block', width: '76px', textAlign: 'right', fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }}>
+                  {/* חוק ברזל (Final Quote-History Polish task - HE-Only Before-VAT
+                      Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
+                      על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
+                      International (Market Separation, ללא שינוי). */}
+                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}>
+                    <div style={{ display: 'inline-block', width: '70px', textAlign: 'right', fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }}>
                       <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
                     </div>
                   </td>
-                  {/* חוק ברזל (Quote History All-Column Geometry Gate task -
-                      Date Column Centering): הבעלים זיהה חזותית שכותרת
-                      "תאריך" לא ממורכזת מעל הערכים בפועל - נמדד חי offset
-                      של ~1.62px ב-HE (מעל הסף המחמיר של <=1px). אותה
-                      משפחת-באג בדיוק כמו Order/Amount/Actions בעבר: הכותרת
-                      כבר textAlign:'center', אבל תא-הגוף היה עדיין צמוד-קצה
-                      (isHebrew?'right':'left'). בניגוד ל-Amount, תאריכים
-                      הם באורך-תווים קבוע בתוך אותה שפה (למשל "30/08/2026")
-                      - אין כאן בעיית place-value-גדל-וקטן, כך שמרכוז
-                      המחרוזת השלמה (במקום תיבה פנימית ברוחב-קבוע) בטוח
-                      ומספיק, בדיוק כמו Order Number. direction:'ltr' לא
-                      נגוע - התאריך ממשיך לרנדר בסדר-ספרות LTR נכון גם
-                      בתוך שורת RTL. */}
-                  <td style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, fontSize: '0.75rem', direction: 'ltr' }}>
-                    {formatDateLocal(quote.created_at, isHebrew, currency)}
-                  </td>
-                  <td style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
+                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }}>
                     <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '700', display: 'inline-block' }}>
                       {badge.text}
                     </span>
                   </td>
-
-                  <td style={{ padding: '4px 2px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    {renderEmailDot(quote, emailStatus)}
-                  </td>
-
-                  {/* חוק ברזל (Owner Visual Feedback - Amount/Actions Header
-                      Centering task): כמו Amount למעלה - נמדד חי offset של
-                      ~9.78px בין מרכז הכותרת "Actions"/"פעולות" למרכז הכפתור
-                      בפועל (שהיה צמוד לקצה ה-inline-end). מרכוז ה-td עצמו
-                      (לא רק הכותרת) מיישר את שניהם על אותו מרכז גיאומטרי,
-                      בלי תלות באורך התוכן. handleToggleDropdown מחשב את מיקום
-                      התפריט חי מ-getBoundingClientRect של הכפתור בזמן הלחיצה
-                      (לא מונח קבוע על קצה העמודה), כך שמרכוז הכפתור לא שובר
-                      את מיקום התפריט הנפתח. */}
-                  <td style={{ padding: '4px 6px', verticalAlign: 'middle', textAlign: 'center', position: 'relative' }}>
-                    <div ref={dropdownRef} style={{ display: 'inline-block', position: 'relative' }}>
-                      <button
-                        onClick={(e) => handleToggleDropdown(e, quote.id)}
-                        style={{
-                          background: NEON.gradient,
-                          color: 'white',
-                          border: 'none',
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.7rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          boxShadow: NEON.glowSoft
-                        }}
-                      >
-                        {isHebrew ? 'פעולות ▼' : 'Actions ▼'}
-                      </button>
-                      {renderActionsMenu(quote, isDropdownOpen, isLocked)}
-                    </div>
+                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, fontSize: '0.75rem', direction: 'ltr' }}>
+                    {formatDateLocal(quote.created_at, isHebrew, currency)}
                   </td>
                 </tr>
-              ))
+                {isExpanded && (
+                  <tr style={{ borderBottom: `1px solid ${NEON.divider}` }}>
+                    <td id={detailId} colSpan={6} style={{ padding: '4px 12px 14px', background: NEON.bgCardAlt }}>
+                      {renderDetailPanel(row)}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
       )}
 
-      {/* ============ MOBILE: real card layout, not a shrunk table ============ */}
-      {/* חוק ברזל (תיקון בעלים מאושר - צפיפות מובייל): הכרטיס הנייד צומצם
-          משלוש שורות מוערמות (שם+סטטוס / סכום+תאריך / צפיות+פעולות, ~141px
-          מדוד בפועל) לשתי שורות קומפקטיות בלבד (~65px יעד), תוך שמירה על
-          כל פרט קיים - שום מידע לא הוסר, רק אורגן מחדש. שורה 2 (מספר הזמנה/
-          תאריך/סטטוס + נורית-מייל/פעולות) עדיין ללא תנאי isHebrew על הסדר -
-          ה-dir כבר ממקם את הילד הראשון בצד ה"התחלה" הנכון בכל שפה.
-          עדכון (Signature Fix + Mobile Cleanup task, §8-11 - דרישת בעלים
-          מפורשת): שורה 1 עודכנה בכוונה - סוג לקוח וצפיות עברו לשם, כאשכול
-          אחד יחד עם שם הלקוח. Views הוסר משורה 2 (שם היה קודם) - אין שכפול,
-          אותו state/quote.view_count, רק מיקום אחד.
-          תיקון-בעלים נוסף, כלל קבוע (Mobile-Only HE/EN Directional Mirroring
-          Fix): הסדר הסמנטי מ-inline-start הוא תמיד סוג לקוח → צפיות → שם
-          לקוח, בשתי השפות (ימין ב-HE, שמאל ב-EN) - לא רצף הפוך בין השפות.
-          ר' ההערה המפורטת בהמשך הקומפוננטה (ליד ה-grid עצמו) לרקע המלא
-          ולמה גרסה קודמת הפכה את הרצף הסמנטי בטעות.
-          תיקון-בעלים חי, אותה משימה (נדחה בפועל ע"י הבעלים אחרי בדיקה
-          חזותית חיה): הגרסה הראשונה השתמשה ב-flex+flexWrap - שם-לקוח ארוך
-          "דחף" ויכל לגרום לעטיפת שורה שהזיזה את סוג-לקוח/צפיות בין
-          כרטיסים שונים, כך שהעמודות לא היו יציבות. תוקן ל-CSS Grid אמיתי
-          עם שלושה tracks ברוחב-פיקסלים קבוע ל-Client Type/Views (זהה בכל
-          כרטיס, גם כש-Views ריק - שני האלמנטים תמיד מרונדרים, אף פעם לא
-          null, בדיוק כדי שמיקום ה-tracks לא ישתנה) ו-1fr לשם-הלקוח, חתוך
-          ב-ellipsis בשורה אחת בלבד (לעולם לא עוטף). ר' MOBILE_META_TYPE_COL/
-          MOBILE_META_VIEWS_COL למעלה. title= (טולטיפ דפדפן טבעי) על שם-
-          הלקוח החתוך - אותו דפוס-נגישות-קיים-בדיוק שכבר בשימוש בעמודת שם-
-          הלקוח/תיאור בטבלת הדסקטופ (title על maxWidth+ellipsis), לא הומצא
-          מנגנון נגיעה/hover חדש עבור הדרישה הזו. */}
+
+      {/* ============ MOBILE: expandable card layout (§6) ============ */}
+      {/* חוק ברזל (Authenticated App Consolidation task, §6): הכרטיס הנייד
+          עבר מ"כל השדות תמיד גלויים" ל-PRIMARY/SECONDARY זהה לעקרון
+          הדסקטופ - שורה ראשית (שם לקוח/סכום/מספר הזמנה/תאריך/סטטוס) תמיד
+          גלויה, Client Type/Views/Email/Description/Actions עברו לפאנל-
+          הרחבה משותף (renderDetailPanel, אותו בדיוק כמו הדסקטופ). כל
+          הכרטיס לחיץ (כפתור אמיתי, לא div+onClick) - מטרת-מגע גדולה,
+          מקלדת-נגישה חינם. dir={tableDir} הקיים ממשיך למקם/למרכז נכון
+          בשתי השפות ללא תנאי isHebrew נוסף כלשהו, כמו בכל שאר הקובץ. */}
       {isMobileView && (
       <>
-      {/* חוק ברזל (Mobile Quote History Sorting, דרישת בעלים נוספת -
-          נוספה לתוך ההיקף המאושר של המשימה הזו באמצע ההרצה): הדסקטופ
-          מאבד את יכולת המיון בטבלה כשה-layout הרספונסיבי הופך אותה
-          לכרטיסי מובייל - זו רגרסיית-יכולת אמיתית (הכלל החדש: "טרנספורמציה
-          רספונסיבית חייבת לשמר יכולת פונקציונלית, לא רק תוכן נראה" - ר'
-          PROFLOW_PROJECT_CONTEXT.md). הפקד הזה אינו מנוע-מיון נפרד: הוא
-          קורא ישירות ל-handleQuoteSort/quoteSortField/quoteSortDirection -
-          בדיוק אותם props שה-<th onClick> של הדסקטופ כבר משתמשים בהם -
-          כך שה-state, ההתנהגות וה"toggle כיוון בבחירה חוזרת על אותו שדה"
-          זהים ב-100% בין דסקטופ למובייל. select לבדו לא יכול "לגלות
-          מחדש" אותו value (דפדפנים לא מפעילים change על אותה בחירה) -
-          לכן כפתור כיוון (▲/▼) נפרד קורא ל-handleQuoteSort(quoteSortField)
-          עם אותו שדה, בדיוק כמו לחיצה חוזרת על כותרת עמודה בדסקטופ. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }} dir={tableDir}>
-        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, flexShrink: 0 }}>
-          {isHebrew ? 'מיון:' : 'Sort:'}
-        </span>
-        <select
-          value={quoteSortField}
-          onChange={(e) => handleQuoteSort(e.target.value)}
-          style={{ flex: '1 1 auto', minWidth: 0, padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.75rem', fontWeight: '600' }}
-        >
-          {MOBILE_SORT_FIELDS.map((f) => (
-            <option key={f.value} value={f.value}>{isHebrew ? f.he : f.en}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => handleQuoteSort(quoteSortField)}
-          title={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
-          aria-label={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
-          style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }}
-        >
-          {quoteSortDirection === 'asc' ? '▲' : '▼'}
-        </button>
-      </div>
+      {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
+          Controls): פקד-המיון הנפרד שהיה כאן (select+כפתור-כיוון, שורה
+          עצמאית מעל רשימת הכרטיסים) אוחד לתוך ה-"Filters" sheet הקומפקטי
+          החדש למעלה (ר' showMobileFilters) - אותם handleQuoteSort/
+          quoteSortField/quoteSortDirection בדיוק, רק המיקום החזותי השתנה.
+          יכולת-המיון עצמה (הרגרסיה שהמשימה הקודמת תיקנה) עדיין קיימת
+          במלואה, לא נסוגה. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
             {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
           </div>
         ) : (
-          rowsMeta.map(({ quote, isDropdownOpen, isLocked, emailStatus, quoteSym, badge }) => {
-            // שלושת אלה מרונדרים תמיד (אף פעם לא null) - ר' ההערה למעלה,
-            // חובה לשם יציבות ה-grid tracks בין כרטיסים.
-            const clientTypeEl = (
-              <span key="type" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ClientTypeBadge clientType={quote.clients?.client_type} isHebrew={isHebrew} />
-              </span>
-            );
-            // חוק ברזל (Owner Visual QA - Mobile Views Column, תיקון נקודתי):
-            // 0 צפיות הוא ערך תקף (לא ערך-חסר) - הבעלים דחה מפורשות הסתרה
-            // מותנית (`view_count > 0 &&`) שהייתה קודם. עכשיו האייקון+
-            // המספר מרונדרים תמיד, כולל 0, באותה מוסכמה חזותית בדיוק. אין
-            // שינוי במיקום/רוחב/גיאומטריית ה-grid - רק תוכן הטרק עצמו.
-            // חוק ברזל (Quote History Final Polish task - Views Numeric Geometry
-            // Contract): אותה בעיה/תיקון בדיוק כמו עמודת הדסקטופ למעלה - תת-
-            // תיבת-מספר ברוחב-קבוע (17px, בתוך ה-grid track הקבוע-ורוחב
-            // MOBILE_META_VIEWS_COL=32px שכבר קיים), מיושרת-ימין +
-            // tabular-nums, אייקון flexShrink:0. רוחב-הקבוצה הכולל (11+2+17=30px)
-            // קבוע וללא תלות בערך, בתוך ה-32px השמורים ממילא.
-            const viewsEl = (
-              <span key="views" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', color: NEON.textMuted, fontSize: '0.7rem' }}>
-                <Eye size={11} color={NEON.textMuted} strokeWidth={2} style={{ flexShrink: 0 }} />
-                <span style={{ display: 'inline-block', width: '17px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{quote.view_count || 0}</span>
-              </span>
-            );
-            {/* חוק ברזל (Typography Hierarchy Contract): 700→600, אותו תפקיד
-                ("table primary value") ואותו שינוי-משקל בדיוק כמו תא שם-הלקוח
-                בטבלת הדסקטופ למעלה - HE/EN ודסקטופ/מובייל חייבים היררכיה
-                חזותית שקולה, לא רק בתוך אותה תצוגה.
-                חוק ברזל (Owner Exact Typography Implementation task): 600→300
-                מדויק, אותו fontFamily נקודתי 'Rubik Variable' בדיוק כמו
-                הדסקטופ למעלה - עקביות מוחלטת בין דסקטופ/מובייל, לא רק
-                בתוך שפה אחת. */}
-            const clientNameEl = (
-              <span
-                key="name"
-                className="pf-font-variable"
-                style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.85rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
-                title={quote.clients?.company_name || 'N/A'}
-              >
-                {quote.clients?.company_name || 'N/A'}
-              </span>
-            );
-            // חוק ברזל (Owner Visual QA Correction task - Amount Numeric
-            // Place-Value Alignment): textAlign היה isHebrew?'left':'right'
-            // - זה עיגן את *הצד השמאלי* של המחרוזת ב-HE, לא את ספרת-
-            // האגורות/היחידות (שתמיד בקצה הימני, כי pf-money כופה
-            // direction:'ltr' על סדר הספרות גם בתוך שורה עברית) - כלומר
-            // בפועל, גדילת-ספרות ב-HE הייתה מזיזה את עוגן-היחידות ימינה,
-            // בדיוק ההפרה שהבעלים אסר. תוקן ל-'right' קבוע (לא תלוי-שפה),
-            // בתוך אותו grid track ברוחב-קבוע (MOBILE_META_AMOUNT_COL,
-            // לא נגוע) שכבר קיים - עוגן-היחידות עכשיו קבוע בשתי השפות.
-            const amountEl = (
-              <div key="amount" style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
-              </div>
-            );
+          rowsMeta.map((row) => {
+            const { quote, quoteSym, badge } = row;
+            const isExpanded = expandedQuoteId === quote.id;
+            const detailId = `quote-detail-mobile-${quote.id}`;
+            // חוק ברזל (Authenticated App Consolidation task, §6 Mobile
+            // Quote History): הכרטיס עצמו מתמצה עכשיו לחמשת השדות
+            // ה"PRIMARY" שהמשימה מפרטת - זהה בדיוק לרשימת הדסקטופ (Client
+            // Name/Order#/Amount/Status/Date) - Client Type/Views/Email/
+            // Description/Actions עברו ל-renderDetailPanel המשותף (אותה
+            // "פילוסופיית אינטראקציה" כמו הדסקטופ, לפי דרישת המשימה, גם אם
+            // ה-layout שונה: card מלא-לחיצה כאן, כפתור-חץ נקודתי בדסקטופ).
+            // ה-<button> העוטף את כל הכרטיס נותן מטרת-מגע גדולה+טבעית,
+            // ומקבל aria-expanded/aria-controls + הפעלת-מקלדת חינם (כפתור
+            // אמיתי, לא div עם onClick).
             return (
-            <div key={quote.id} style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '8px 10px' }} dir={tableDir}>
-              {/* חוק ברזל (Mobile-Only HE/EN Directional Mirroring Fix, תיקון-
-                  בעלים - כלל קבוע חדש): הגרסה הקודמת השתמשה בסדר-DOM תלוי-
-                  שפה מפורש (isHebrew ? [Type,Views,Name] : [Name,Views,Type])
-                  כדי לייצר את מה שנראה כמו "שיקוף" - אבל זה בפועל *הפך את
-                  הרצף הסמנטי* בין השפות (HE: Type→Views→Name; EN: Name→
-                  Views→Type), לא רק את הכיוון. הבעלים תיקן את העיקרון: שיקוף
-                  RTL/LTR אמיתי משמר את סדר-העדיפות הסמנטי (Type ראשון, Views
-                  שני, Name שלישי) בשתי השפות כשסופרים מ-inline-start של כל
-                  שפה (ימין ב-HE, שמאל ב-EN) - הכיוון משתנה, הסדר הסמנטי לא.
-                  התיקון: סדר-DOM *אחיד*, ללא תנאי isHebrew בכלל - בדיוק כמו
-                  שורה 2 (מספר הזמנה/תאריך/סטטוס) שכבר משתמשת בדפוס הזה
-                  בהצלחה. ה-dir={tableDir} הקיים כבר על הכרטיס עושה את כל
-                  עבודת-השיקוף הפיזי לבד: track 1 של ה-grid (Type) יושב תמיד
-                  ב-inline-start (ימין ב-RTL, שמאל ב-LTR), track 2 (Views) אחריו,
-                  track 3 (Name, 1fr) אחריו, track 4 (Amount) בקצה הנגדי -
-                  זהה בדיוק לדפוס ה-flex+dir המקורי שכבר תועד למעלה. הסכום
-                  (טרק רביעי, רוחב-פיקסלים קבוע) נשאר כפי שהיה - ר' ההערה
-                  ההיסטורית שלו למטה לרקע המלא של אותו תיקון-רוחב. */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: `${MOBILE_META_TYPE_COL}px ${MOBILE_META_VIEWS_COL}px 1fr ${MOBILE_META_AMOUNT_COL}px`,
-                alignItems: 'center',
-                columnGap: '6px'
-              }}>
-                {clientTypeEl}{viewsEl}{clientNameEl}{amountEl}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
-                  {/* חוק ברזל (Typography Hierarchy Contract, המשימה הנוכחית):
-                      700→600, אותו שינוי בדיוק כמו תא מספר-ההזמנה בדסקטופ -
-                      זהות דרך צבע, לא דרך משקל-פונט מקסימלי כפול. */}
-                  <span style={{ fontWeight: '600', color: NEON.violet, direction: 'ltr' }}>{formatQuoteFallback(quote)}</span>
-                  <span>·</span>
-                  <span style={{ direction: 'ltr', whiteSpace: 'nowrap' }}>{formatDateLocal(quote.created_at, isHebrew, currency)}</span>
-                  <span>·</span>
-                  <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {badge.text}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  {renderEmailDot(quote, emailStatus)}
-                  <div ref={dropdownRef} style={{ display: 'inline-block', position: 'relative' }}>
-                    <button
-                      onClick={(e) => handleToggleDropdown(e, quote.id)}
-                      style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '3px', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}
+            <div key={quote.id} className="quote-card" style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', overflow: 'hidden' }} dir={tableDir}>
+              {/* OWNER CORRECTION (RTL/LTR Sidebar Position + Quote-Row Expand
+                  Control task): the chevron moved from the end of the card's
+                  own content to a dedicated leading element, first in DOM,
+                  before the primary Name/Amount/Order/Date/Status content -
+                  matching the desktop table's own corrected expand-control
+                  placement (now the first column) and the same "chevron at
+                  the beginning of the language's reading direction" rule.
+                  The button itself is now a flex row instead of a block, so
+                  under dir={tableDir} the chevron (first DOM child) lands at
+                  the card's true inline-start: physically RIGHT for Hebrew,
+                  physically LEFT for English. */}
+              <button
+                type="button"
+                onClick={() => toggleExpanded(quote.id)}
+                aria-expanded={isExpanded}
+                aria-controls={detailId}
+                aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px 10px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
+              >
+                <ChevronDown size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, marginTop: '2px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      className="pf-font-variable"
+                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.9rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
+                      title={quote.clients?.company_name || 'N/A'}
                     >
-                      {isHebrew ? 'פעולות ▼' : 'Actions ▼'}
-                    </button>
-                    {renderActionsMenu(quote, isDropdownOpen, isLocked)}
+                      {quote.clients?.company_name || 'N/A'}
+                    </span>
+                    <span
+                      style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}
+                    >
+                      <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
+                      <span style={{ fontWeight: '600', color: NEON.violet, direction: 'ltr' }}>{formatQuoteFallback(quote)}</span>
+                      <span>·</span>
+                      <span style={{ direction: 'ltr', whiteSpace: 'nowrap' }}>{formatDateLocal(quote.created_at, isHebrew, currency)}</span>
+                    </div>
+                    <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {badge.text}
+                    </span>
                   </div>
                 </div>
-              </div>
+              </button>
+              {isExpanded && (
+                <div id={detailId} style={{ padding: '2px 10px 12px', borderTop: `1px solid ${NEON.border}` }}>
+                  {renderDetailPanel(row)}
+                </div>
+              )}
             </div>
             );
           })

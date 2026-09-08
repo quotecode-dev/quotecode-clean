@@ -8,6 +8,7 @@ import { supabase } from '../shared/supabase';
 import { wipeUserData } from '../shared/wipeUserData';
 import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
 import Toast from './Toast';
+import BrandName from './BrandName';
 
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, userId, onPlanUpdated, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -113,7 +114,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           <>
             <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.3rem', textAlign: 'center', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Rocket size={20} color="#4f46e5" />
-              {isHebrew ? 'שדרג את העסק שלך עם ProFlow' : 'Upgrade Your Business with ProFlow'}
+              {isHebrew ? <>שדרג את העסק שלך עם <BrandName onDark={false} /></> : <>Upgrade Your Business with <BrandName onDark={false} /></>}
             </h2>
             <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '16px', fontSize: '0.85rem' }}>
               {isHebrew ? 'בחר את המסלול המתאים ביותר לצרכים שלך והתחל לעבוד ללא הגבלות' : 'Choose the best plan for your needs and work without limits'}

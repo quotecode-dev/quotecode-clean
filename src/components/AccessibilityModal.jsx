@@ -3,6 +3,8 @@
 // ==============================================================================
 
 
+import BrandName from './BrandName';
+
 export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
   if (!isOpen) return null;
 
@@ -15,13 +17,13 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
         
         {isHebrew ? (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <p>אנו ב-<strong>ProFlow</strong> רואים חשיבות עליונה בהנגשת המערכת והשירותים שלנו לכלל הציבור, כולל אנשים עם מוגבלויות, מתוך אמונה כי לכל אדם מגיעה הזכות לשוויון, כבוד, נוחות ועצמאות.</p>
+            <p>אנו ב-<BrandName onDark={false} /> רואים חשיבות עליונה בהנגשת המערכת והשירותים שלנו לכלל הציבור, כולל אנשים עם מוגבלויות, מתוך אמונה כי לכל אדם מגיעה הזכות לשוויון, כבוד, נוחות ועצמאות.</p>
             <p>המערכת שלנו נמצאת כעת בשלבי הרצה (Beta), ואנו פועלים באופן שוטף לשפר את הנגישות שלה בהתאם להנחיות תקן הנגישות (WCAG 2.1).</p>
             <p>אם במהלך הגלישה באתר או במערכת נתקלתם בבעיה, תקלה, או שיש לכם הצעה לשיפור בנושא נגישות, אנו נשמח לשמוע מכם ולטפל בנושא בהקדם האפשרי.</p>
           </div>
         ) : (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <p>At <strong>ProFlow</strong>, we are committed to making our platform and services accessible to everyone, including people with disabilities, believing that everyone deserves the right to equality, dignity, comfort, and independence.</p>
+            <p>At <BrandName onDark={false} />, we are committed to making our platform and services accessible to everyone, including people with disabilities, believing that everyone deserves the right to equality, dignity, comfort, and independence.</p>
             <p>Our system is currently in its Beta launch phase, and we are actively working to improve its accessibility in accordance with the WCAG 2.1 guidelines.</p>
             <p>If you encounter any accessibility barriers or have suggestions for improvement, we would love to hear from you and address the issue as soon as possible.</p>
           </div>

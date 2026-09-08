@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, ArrowUpCircle, XCircle } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
+import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, ArrowUpCircle, XCircle, Ruler } from 'lucide-react';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
+import { getDisplayIdentityLabel, shouldShowUpgradeCta } from '../utils/planCatalog';
+import { PROFESSIONAL_DOMAINS } from '../utils/professionalQuoteItem';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -33,10 +35,16 @@ export default function SettingsTab({
   setBizLogoUrl,
   bizPlan,
   effectivePlan,
+  isLifetime,
+  displayIdentity,
+  isSuperAdmin,
   defaultTerms,
   setDefaultTerms,
   defaultWarranty,
   setDefaultWarranty,
+  professionalDomain,
+  setProfessionalDomain,
+  canUseProfessionalQuotes,
   isTrialExpired,
   trialDaysLeft,
   setShowPricingModal
@@ -133,12 +141,48 @@ export default function SettingsTab({
   };
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
+    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+      {/* Cross-Surface Visual Consolidation (§10): shadow-card pattern,
+          matches Quote History/Dashboard - see ClientsTab.jsx for the full
+          rationale comment. Container-level only. */}
       <h2 style={{ fontSize: '1rem', fontWeight: '800', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
         <Settings size={18} color={NEON.violetLight} strokeWidth={2.2} />
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
       <form onSubmit={handleSaveSettings}>
+        {/* חוק ברזל (UI Composition Correction — Professional Business Type
+            Placement, Owner-required, 2026-09-03): הועבר מסוף הטופס (אחרי
+            תנאים/אחריות) לראש הטופס - הוא אמור להיות התצורה העסקית המשמעותית
+            הראשונה שהמשתמש רואה, לא שדה "שנוסף בהמשך" אחרי גלילה. תוכן/ערכים/
+            שמירה/persistence/entitlement-gating (canUseProfessionalQuotes)
+            זהים לחלוטין למה שהיה - זו תיקון-מיקום/הרכב בלבד, לא שינוי לוגיקה.
+            עיצוב-קופסה (רקע-גוון+מסגרת+פינות) תואם את התבנית הקיימת כבר לקטע
+            "כתובת העסק" למטה - כדי שהמיקום החדש ירגיש כמו חלק מכוון מהעיצוב,
+            לא כמו שדה שהוצמד בחיפזון לראש המסך. בקרה יחידה-אחת קיימת - לא
+            שכפול (הבקרה הישנה הוסרה במלואה מהמיקום הקודם). */}
+        {canUseProfessionalQuotes && (
+          <div style={{ background: 'rgba(139, 92, 246, 0.06)', padding: '14px', borderRadius: '10px', border: `1px solid rgba(139, 92, 246, 0.25)`, marginBottom: '18px' }}>
+            <h3 style={{ fontSize: '0.85rem', color: NEON.violetLight, fontWeight: '700', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Ruler size={14} color={NEON.violetLight} />{isHebrew ? 'מה סוג העיסוק המקצועי של העסק?' : 'What kind of professional work does your business do?'}
+            </h3>
+            <select
+              value={professionalDomain || ''}
+              onChange={(e) => setProfessionalDomain(e.target.value)}
+              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
+            >
+              <option value="">{isHebrew ? 'לא נבחר (ללא הצעת ברירת מחדל)' : 'Not set (no default suggestion)'}</option>
+              {PROFESSIONAL_DOMAINS.filter(d => d.id !== 'general').map(d => (
+                <option key={d.id} value={d.id}>{isHebrew ? d.he : d.en}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: '0.72rem', color: NEON.textMuted, marginTop: '4px' }}>
+              {isHebrew
+                ? 'קובע רק הצעת ברירת מחדל ליחידת תמחור בפריט מקצועי חדש - ניתן תמיד לבחור יחידה אחרת בכל פריט.'
+                : 'Only sets a default suggestion for a new Professional item\'s pricing unit - you can always choose a different unit on any item.'}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Building2 size={13} color={NEON.sky} />{isHebrew ? 'שם העסק' : 'Business Name'}</label>
@@ -280,6 +324,7 @@ export default function SettingsTab({
           />
         </div>
 
+
         <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
           {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
         </button>
@@ -296,20 +341,37 @@ export default function SettingsTab({
                <Users size={20} strokeWidth={2} />
              </div>
              <div>
-               {/* effectivePlan, לא ה-plan הגולמי - כך שהתווית לא תטען "PRO
-                   PLAN" בזמן שהזכאות בפועל היא כבר FREE (ניסיון שפג). */}
-               <div style={{ fontSize: '0.9rem', fontWeight: '400', color: NEON.textPrimary, textTransform: 'uppercase' }}>{effectivePlan} PLAN</div>
+               {/* חוק ברזל (Stage 1 - Plan Identity / Trial / Lifetime
+                   Centralization, PROFLOW_PROJECT_CONTEXT.md §148): התווית
+                   הייתה {effectivePlan} PLAN גולמי - מציגה "PRO PLAN" גם
+                   עבור חשבון Lifetime, ללא שום הבחנה (הפער הקונקרטי שנמצא
+                   בביקורת §147.1). עכשיו קוראת ל-getDisplayIdentityLabel
+                   הקנוני (planCatalog.js) - אותה נקודת-אמת יחידה כמו
+                   Dashboard.jsx/Admin - ומציגה את אחת מחמש הזהויות הנכונות:
+                   FREE / FREE (TRIAL) / BASIC / PRO / LIFETIME. */}
+               <div style={{ fontSize: '0.9rem', fontWeight: '400', color: NEON.textPrimary, textTransform: 'uppercase' }}>{getDisplayIdentityLabel(displayIdentity, isHebrew)} PLAN</div>
                <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>
                  {isTrialExpired ? (isHebrew ? 'תקופת הניסיון הסתיימה' : 'Trial Expired') : (trialDaysLeft ? (isHebrew ? `נותרו ${trialDaysLeft} ימי ניסיון` : `Trial ends in ${trialDaysLeft} days`) : (isHebrew ? 'מנוי פעיל' : 'Active Subscription'))}
                </div>
              </div>
            </div>
            <div style={{ display: 'flex', gap: '8px' }}>
-             <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: NEON.gradient, color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: NEON.glowSoft }}>
-               <ArrowUpCircle size={14} strokeWidth={2} />
-               {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
-             </button>
-             {bizPlan !== 'free' && (
+             {/* חוק ברזל (אותה משימה): הכפתור היה מוצג ללא תנאי בכלל, כולל
+                 ל-Lifetime/PRO - הפער הקונקרטי השני שנמצא (§147.1/§148),
+                 שונה לחלוטין מ-Dashboard.jsx (שכבר היה מסתיר נכון). עכשיו
+                 אותו כלל-ראייה קנוני בדיוק כמו Dashboard.jsx -
+                 shouldShowUpgradeCta (planCatalog.js), לא עוד שני כללים
+                 סותרים לאותו מושג. */}
+             {shouldShowUpgradeCta({ tier: effectivePlan, isLifetime, isSuperAdmin }) && (
+               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: NEON.gradient, color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: NEON.glowSoft }}>
+                 <ArrowUpCircle size={14} strokeWidth={2} />
+                 {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
+               </button>
+             )}
+             {/* חוק ברזל (אותה משימה): "ביטול מנוי" אינו הגיוני עבור חשבון
+                 Lifetime (אין מנוי מתחדש לבטל) - נוסף !isLifetime, שאר
+                 ההתנהגות הקיימת (bizPlan !== 'free') לא נגעה. */}
+             {!isLifetime && bizPlan !== 'free' && (
                <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: NEON.red, padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(248, 113, 113, 0.35)', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <XCircle size={14} strokeWidth={2} />
                   {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
-import { getPlanDefinition, PLAN_CATALOG } from '../utils/planCatalog';
+import { getPlanDefinition, PLAN_CATALOG, getDisplayIdentityLabel } from '../utils/planCatalog';
 
 // חוק ברזל (Admin V2 Foundation — Phase 1.5, Plan Icon/Badge Wiring, Owner-
 // authorized): מקור-אמת יחיד לזהות ויזואלית של חבילה - planCatalog.js -
@@ -343,6 +343,14 @@ export default function AdminUsersTab({
     // מתקן את מחלקת-הבאג המלאה, כולל אייקון-החבילה בטבלה/בכרטיסי-המובייל.
     const planValue = resolved.tier;
     const isGrantedLifetimePro = resolved.isLifetime;
+    // חוק ברזל (Plan Identity - Admin trial-vs-PRO consistency fix, Owner Night
+    // Run task): planValue (=tier) הוא 'pro' גם בזמן ניסיון פעיל בכוונה (הניסיון
+    // מעניק זכאות ברמת-PRO זמנית) - אבל התווית המוצגת ל-Admin חייבת להבחין בין
+    // ניסיון-פעיל לבין PRO אמיתי, בדיוק כמו ש-Dashboard.jsx/SettingsTab.jsx כבר
+    // עושים. displayIdentity (מאותו resolveAccountEntitlement) הוא נקודת-האמת
+    // לתווית-הטקסט המוצגת; planValue/isGrantedLifetimePro ממשיכים לשמש רק
+    // לבחירת-אייקון/צבע (getPlanBadgeVisual), שלא השתנתה.
+    const displayIdentity = resolved.displayIdentity;
     const currentCountry = acc.country || 'Local';
     const isIntl = currentCountry === 'International';
 
@@ -361,7 +369,7 @@ export default function AdminUsersTab({
     const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
 
     return {
-      isSuperAdminUser, isLifetime, rawPlan, planValue, isGrantedLifetimePro,
+      isSuperAdminUser, isLifetime, rawPlan, planValue, isGrantedLifetimePro, displayIdentity,
       currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
       lastSignInDateStr, lastSignInFullStr,
     };
@@ -721,11 +729,12 @@ export default function AdminUsersTab({
               activeAccountsList.map(acc => {
                 if (!acc) return null;
                 const {
-                  isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro,
+                  isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, displayIdentity,
                   currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
                   lastSignInDateStr, lastSignInFullStr,
                 } = getAccountDerived(acc);
                 const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
+                const planLabel = getDisplayIdentityLabel(displayIdentity, isHebrew);
 
                 return (
                   <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.78rem', height: '46px' }}>
@@ -747,9 +756,7 @@ export default function AdminUsersTab({
                     <td style={{ padding: '6px 6px', textAlign: 'center' }}>
                       <span
                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: planBadge.bg, color: planBadge.color }}
-                        title={isHebrew
-                          ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}`
-                          : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
+                        title={isHebrew ? `חבילה: ${planLabel}` : `Plan: ${planLabel}`}
                       >
                         {planBadge.renderIcon(12)}
                       </span>
@@ -921,11 +928,12 @@ export default function AdminUsersTab({
           activeAccountsList.map(acc => {
             if (!acc) return null;
             const {
-              isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro,
+              isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, displayIdentity,
               currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
               lastSignInDateStr, lastSignInFullStr,
             } = getAccountDerived(acc);
             const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
+            const planLabel = getDisplayIdentityLabel(displayIdentity, isHebrew);
 
             const isExpanded = expandedMobileRows.has(acc.id);
 
@@ -985,10 +993,10 @@ export default function AdminUsersTab({
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                   <span
                     style={chipStyle(planBadge.bg, planBadge.color)}
-                    title={isHebrew ? `חבילה: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (גישת Lifetime)' : ''}` : `Plan: ${planValue.toUpperCase()}${isGrantedLifetimePro ? ' (Lifetime Access)' : ''}`}
+                    title={isHebrew ? `חבילה: ${planLabel}` : `Plan: ${planLabel}`}
                   >
                     {planBadge.renderIcon(12)}
-                    {planValue.toUpperCase()}
+                    {planLabel}
                   </span>
 
                   <span

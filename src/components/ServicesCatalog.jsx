@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Package, Pencil, Trash2, Save, X, Search } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from './../theme/neonTheme';
+import { Package, PackagePlus, Pencil, Trash2, Save, X, Search } from 'lucide-react';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 
 export default function ServicesCatalog({
   t,
@@ -33,69 +33,120 @@ export default function ServicesCatalog({
     ? services.filter((svc) => (svc.name || '').toLowerCase().includes(normalizedSearch))
     : services;
 
+  // חוק ברזל (Consolidated Open UI Corrections task, §H2/§H3): שדות
+  // היצירה (newServiceName/newServicePrice, ה-state הקיימים כבר ב-
+  // Dashboard.jsx, ללא שינוי) לא נשארים מוצגים-לצמיתות לצד החיפוש - הם
+  // עוברים ל-drawer/מודל שנפתח ע"י כפתור "הוסף פריט"/"Add Item" ראשי
+  // אחד. state מקומי טהור לפתיחה/סגירה - handleAddService (הקיים) עדיין
+  // מבצע את היצירה בפועל; רק העטיפה החזותית סביבו השתנתה.
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const handleAddSubmit = (e) => {
+    e.preventDefault();
+    handleAddService(e);
+    setShowAddForm(false);
+  };
+
   return (
-    <div style={{ background: NEON.bgCard, padding: '14px', borderRadius: '14px', border: `1px solid ${NEON.border}` }}>
-      <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
+    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+      {/* חוק ברזל (§H1): כותרת ברורה - "קטלוג שירותים ומוצרים"/"Services &
+          Products Catalog" (הספק המדויק של המשימה). */}
+      <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
         <Package size={18} color={NEON.violetLight} strokeWidth={2.2} />
-        {t.servicesCatalog}
+        {isHebrew ? 'קטלוג שירותים ומוצרים' : 'Services & Products Catalog'}
       </h2>
 
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <form onSubmit={handleAddService} style={{ display: 'flex', gap: '6px', flexDirection: 'row', flexWrap: 'wrap', flex: '2 1 260px' }}>
-          <input
-            type="text"
-            placeholder={t.serviceName}
-            value={newServiceName}
-            onChange={(e) => setNewServiceName(e.target.value)}
-            required
-            style={{ flex: '2 1 140px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-          />
-          <input
-            type="number"
-            step="0.01"
-            placeholder={t.defaultPrice}
-            value={newServicePrice}
-            onChange={(e) => setNewServicePrice(e.target.value)}
-            required
-            style={{ flex: '1 1 80px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-          />
-          <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '7px 14px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', boxShadow: NEON.glow }}>
-            {t.addService}
-          </button>
-        </form>
-
-        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '160px' }}>
+      {/* חוק ברזל (§H2): שורת-כלים ברירת-מחדל - חיפוש רחב + כפתור-פעולה
+          ראשי אחד בלבד ("הוסף פריט"/"Add Item", סגול) - לא עוד שדות-יצירה
+          קבועים מעורבים עם החיפוש. */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '160px' }}>
           <Search size={14} color={NEON.textMuted} style={{ position: 'absolute', top: '50%', [isHebrew ? 'right' : 'left']: '10px', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder={isHebrew ? 'חיפוש בקטלוג...' : 'Search catalog...'}
             value={catalogSearchTerm}
             onChange={(e) => setCatalogSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: isHebrew ? '7px 32px 7px 10px' : '7px 10px 7px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            style={{ width: '100%', padding: isHebrew ? '8px 32px 8px 12px' : '8px 12px 8px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setShowAddForm((prev) => !prev)}
+          aria-expanded={showAddForm}
+          style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', background: NEON.gradient, color: 'white', border: 'none', padding: '8px 14px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', boxShadow: NEON.glowSoft }}
+        >
+          <PackagePlus size={15} strokeWidth={2.4} />
+          {isHebrew ? 'הוסף פריט' : 'Add Item'}
+        </button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
-          <thead>
-            <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <th style={{ padding: '6px' }}>{t.description}</th>
-              <th style={{ padding: '6px' }}>{t.defaultPrice}</th>
-              <th style={{ padding: '6px' }}>{t.actions}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredServices.length === 0 ? (
-              <tr>
-                <td colSpan="3" style={{ textAlign: 'center', padding: '16px', color: NEON.textMuted, fontSize: '0.8rem' }}>
-                  {services.length === 0
-                    ? (isHebrew ? 'הקטלוג ריק. הוסף שירותים למעלה.' : 'Your catalog is empty. Add services above.')
-                    : (isHebrew ? 'לא נמצאו פריטים תואמים לחיפוש.' : 'No catalog items match your search.')}
-                </td>
+      {/* חוק ברזל (§H3): "Add Item opens a deliberate inline row... Save/
+          Cancel" - name+price (שני השדות הממשיים היחידים הקיימים במודל-
+          הנתונים - אין שדה description אמיתי, ר' ההערה למעלה, ולכן לא
+          מוצג כאן שדה בדוי) + Save/Cancel על שורה אחת יחד, לא שדה תלוש
+          לבדו על שורה שנייה נפרדת. */}
+      {showAddForm && (
+        <form onSubmit={handleAddSubmit} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '12px', marginBottom: '14px' }}>
+          <div style={{ flex: '2 1 160px' }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.serviceName}</label>
+            <input
+              type="text"
+              placeholder={t.serviceName}
+              value={newServiceName}
+              onChange={(e) => setNewServiceName(e.target.value)}
+              required
+              autoFocus
+              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            />
+          </div>
+          <div style={{ flex: '1 1 100px' }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.defaultPrice}</label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder={t.defaultPrice}
+              value={newServicePrice}
+              onChange={(e) => setNewServicePrice(e.target.value)}
+              required
+              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}>
+              {isHebrew ? 'שמור' : 'Save'}
+            </button>
+            <button type="button" onClick={() => setShowAddForm(false)} style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+              {isHebrew ? 'ביטול' : 'Cancel'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* חוק ברזל (§H4/§H5): ניהול-פריטים-קיימים בטבלה נקייה מתחת; מצב-ריק
+          מכוון (לא רק שורת-טקסט בתוך טבלה ריקה) כשאין פריטים כלל; רשימה
+          קצרה לא נמתחת באופן מלאכותי (הטבלה עצמה ממילא לא כופה גובה). */}
+      {filteredServices.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px 16px', color: NEON.textMuted, fontSize: '0.85rem', border: `1px dashed ${NEON.border}`, borderRadius: RADIUS.sm }}>
+          <Package size={28} color={NEON.textMuted} strokeWidth={1.5} style={{ marginBottom: '8px', opacity: 0.6 }} />
+          <div>
+            {services.length === 0
+              ? (isHebrew ? 'הקטלוג ריק. הוסף שירותים ומוצרים כדי להתחיל.' : 'Your catalog is empty. Add services or products to get started.')
+              : (isHebrew ? 'לא נמצאו פריטים תואמים לחיפוש.' : 'No catalog items match your search.')}
+          </div>
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th style={{ padding: '6px' }}>{t.description}</th>
+                <th style={{ padding: '6px' }}>{t.defaultPrice}</th>
+                <th style={{ padding: '6px' }}>{t.actions}</th>
               </tr>
-            ) : (
-              filteredServices.map((svc) => {
+            </thead>
+            <tbody>
+              {filteredServices.map((svc) => {
                 const isEditingThisSvc = editingServiceId === svc.id;
                 return (
                   <tr key={svc.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
@@ -155,8 +206,13 @@ export default function ServicesCatalog({
                             <Pencil size={11} strokeWidth={2.5} />
                             {isHebrew ? 'ערוך' : 'Edit'}
                           </button>
+                          {/* חוק ברזל (§K - Shared Design-Language Check, real
+                              defect found+fixed): title היה t.delete הגלובלי
+                              ("מחק הצעה"/"Delete Quote") - אותה תקלה כמו זו
+                              שכבר תוקנה ב-ClientsTab.jsx, כאן על פריט-קטלוג.
+                              תוקן לתווית נקודתית-לקטלוג. */}
                           <button
-                            title={t.delete}
+                            title={isHebrew ? 'מחק פריט' : 'Delete item'}
                             onClick={() => handleDeleteService(svc.id, svc.name)}
                             style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
@@ -168,11 +224,11 @@ export default function ServicesCatalog({
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-         </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

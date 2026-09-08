@@ -4,7 +4,13 @@
 
 import { useState, useEffect } from 'react';
 
-export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew }) {
+// חוק ברזל (Consolidated Open UI Corrections task, §G1): isNew (חדש) -
+// אותו מודל/שדות/ולידציה בדיוק, רק כותרת+תווית-כפתור מתחלפות בין "עריכה"
+// ל"יצירה", ו-client (כשקיים) מאפס את הטופס לריק במקום למלא ערכים קיימים.
+// onSave עדיין מקבל את כל השדות המלאים בדיוק כמו קודם - Dashboard.jsx
+// מחליט אם זו INSERT או UPDATE (handleCreateClient/handleSaveUpdatedClient
+// בהתאמה), לא המודל הזה.
+export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -41,7 +47,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
         setLocalPhone(clean || rawPhone);
       }
     }
-  }, [client, defaultDial]);
+  }, [client, defaultDial, isNew]);
 
   if (!isOpen || !client) return null;
 
@@ -80,7 +86,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
 
         <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
-          {isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details'}
+          {isNew ? (isHebrew ? 'לקוח חדש' : 'New Client') : (isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details')}
         </h3>
 
         {errorMsg && (
@@ -142,7 +148,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               {isHebrew ? 'ביטול' : 'Cancel'}
             </button>
             <button type="submit" style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-              {isHebrew ? 'שמור שינויים' : 'Save Changes'}
+              {isNew ? (isHebrew ? 'צור לקוח' : 'Create Client') : (isHebrew ? 'שמור שינויים' : 'Save Changes')}
             </button>
           </div>
         </form>

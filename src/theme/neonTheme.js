@@ -163,3 +163,54 @@ export const lightHeadingTextStyle = {
   color: '#6d28d9',
   filter: 'none',
 };
+
+// TEKANGO V2 shared design-system tokens (Phase 1, Owner-approved visual
+// reference — authenticated User Shell/Dashboard/Create Quote mockup). Purely
+// additive: no existing NEON/LIGHT key was renamed or removed, so every
+// pre-existing call site keeps working byte-identical. New surfaces should
+// prefer these over hand-picked literals so spacing/radius/shadow stay
+// consistent as V2 rolls out to more screens in later phases.
+
+// SPACE — one shared spacing scale. Prefer a token over an arbitrary literal
+// for new V2 layout code; existing pixel values elsewhere in the app are
+// intentionally left untouched (preservation constraint, Phase 1).
+export const SPACE = {
+  xs: '4px',
+  sm: '8px',
+  md: '12px',
+  lg: '16px',
+  xl: '24px',
+  xxl: '32px',
+};
+
+// RADIUS — consistent rounded corners across V2 surfaces (cards/inputs/pills).
+export const RADIUS = {
+  sm: '8px',
+  md: '12px',
+  lg: '16px',
+  pill: '999px',
+};
+
+// SHADOW — subtle elevation levels for the light V2 surface language (no
+// dark-theme glow here on purpose — those stay under NEON.glow/glowSoft).
+export const SHADOW = {
+  sm: '0 1px 2px rgba(15,23,42,0.05)',
+  md: '0 4px 14px -4px rgba(15,23,42,0.10)',
+  lg: '0 16px 32px -12px rgba(15,23,42,0.16)',
+};
+
+// SHELL — the authenticated app's own dark navy sidebar surface (Owner-
+// approved V2 mockup), deliberately separate from LIGHT (the light content
+// surface) and NEON (the unrelated dark neon marketing theme) — this is a
+// third, small, purpose-specific palette for exactly one component family
+// (sidebar navigation), not a general dark-mode theme.
+export const SHELL = {
+  sidebarBg: '#171830',
+  sidebarBorder: 'rgba(255,255,255,0.08)',
+  sidebarItemHoverBg: 'rgba(255,255,255,0.06)',
+  sidebarItemActiveBg: '#7c3aed',
+  sidebarText: 'rgba(255,255,255,0.72)',
+  sidebarTextActive: '#ffffff',
+  sidebarTextMuted: 'rgba(255,255,255,0.42)',
+  sidebarLogoBg: 'rgba(255,255,255,0.08)',
+};
