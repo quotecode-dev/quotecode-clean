@@ -101,6 +101,27 @@ serve(async (req) => {
       .eq('user_id', quote.user_id)
       .maybeSingle();
 
+    // חוק ברזל (Owner-authorized Signature Contract Fix, systemic remediation
+    // task): public_approve_quote (20260831000000) already rejects ANY
+    // authenticated business account (EXISTS business_settings WHERE
+    // user_id = auth.uid()) before letting it sign as the customer - that
+    // exact predicate is mirrored here, read-only, purely so the frontend can
+    // hide the signing UI *before* a business account ever reaches the RPC,
+    // instead of only failing after a wasted signature with a generic error.
+    // Never used to bypass or weaken the RPC's own enforcement - the RPC
+    // remains the sole source of truth for the actual authorization decision;
+    // this flag is advisory-only for the UI.
+    const isOwner = Boolean(callerUserId && callerUserId === quote.user_id);
+    let callerIsBusinessAccount = isOwner; // the owner already IS a business account, trivially
+    if (callerUserId && !isOwner) {
+      const { data: callerBizRow } = await adminClient
+        .from('business_settings')
+        .select('user_id')
+        .eq('user_id', callerUserId)
+        .maybeSingle();
+      callerIsBusinessAccount = Boolean(callerBizRow);
+    }
+
     const { data: attachmentRows } = await adminClient
       .from('quote_attachments')
       .select('file_name, storage_path')
@@ -137,7 +158,8 @@ serve(async (req) => {
         signature: quote.signature,
         currency: quote.currency,
         client_type: quote.client_type,
-        is_owner_viewing: Boolean(callerUserId && callerUserId === quote.user_id),
+        is_owner_viewing: isOwner,
+        caller_is_business_account: callerIsBusinessAccount,
       },
       business: bizRow ? {
         business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,

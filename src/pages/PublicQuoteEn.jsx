@@ -6,6 +6,7 @@ import Toast from '../components/Toast';
 import { LIGHT } from '../theme/neonTheme';
 import { UserRound, Paperclip, Phone, Printer } from 'lucide-react';
 import PdfFileIcon from '../components/PdfFileIcon';
+import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 
@@ -64,9 +65,13 @@ export default function PublicQuoteEn({ quoteData }) {
       setApproved(true);
     } catch (err) {
       // Technical/database details stay in the console only - the public
-      // customer only ever sees a generic, friendly message, never raw error.message.
+      // customer sees a safe, specific message (classifyQuoteApprovalError),
+      // never raw error.message. The UI already prevents the business-account
+      // case up front (below, isOtherBusinessAccount) - this is defense-in-
+      // depth for a stale/already-open client only.
       console.error('Error approving quote:', err);
-      setApproveToast({ type: 'error', message: "We couldn't approve the quote. Please try again." });
+      const { userMessage } = classifyQuoteApprovalError(err?.message, false);
+      setApproveToast({ type: 'error', message: userMessage });
     }
   };
 
@@ -87,6 +92,16 @@ export default function PublicQuoteEn({ quoteData }) {
   const bizPhone = formatDisplayPhone(business?.phone);
   const bizAddress = business?.address;
   const isOwnerViewing = quote.is_owner_viewing;
+  // Iron rule (Signature Contract Fix, systemic remediation task): any OTHER
+  // authenticated business account (not this quote's own owner) is blocked
+  // from signing as the customer by the RPC (public_approve_quote,
+  // 20260831000000) - but until this fix the UI only hid the signing area
+  // from the exact owner, so a different business account still saw the full
+  // signing UI and only got a generic failure after signing. caller_is_
+  // business_account (get-public-quote) mirrors that exact decision, read-
+  // only, so the UI blocks it up front, before canvas entry, without ever
+  // touching the RPC itself.
+  const isOtherBusinessAccount = Boolean(quote.caller_is_business_account) && !isOwnerViewing;
 
   return (
     <div className="pq-page" dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
@@ -432,6 +447,10 @@ export default function PublicQuoteEn({ quoteData }) {
         ) : isOwnerViewing ? (
           <div className="pq-section" style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe', textAlign: 'center' }}>
             ℹ️ Admin View: Signature area is displayed to the client only.
+          </div>
+        ) : isOtherBusinessAccount ? (
+          <div className="pq-section" style={{ background: '#fff7ed', color: '#9a3412', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #fed7aa', textAlign: 'center' }}>
+            ⚠️ This quote cannot be signed from a logged-in business account. To sign as the customer, open this link in a private/incognito window, or sign out of your business account first.
           </div>
         ) : (
           <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>
