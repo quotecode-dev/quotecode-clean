@@ -3408,6 +3408,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           flex-direction: column;
           padding: 20px 14px;
           box-sizing: border-box;
+          /* Sidebar/Header Top Alignment Polish (Owner-approved, this round):
+             top corners only, matching .dash-upper-section's own RADIUS.lg -
+             physical top-left/top-right (not inline-start/end), since "top"
+             is a vertical concept unaffected by RTL/LTR mirroring. Bottom
+             corners stay square (0, unchanged) - the sidebar still meets the
+             shell's own bottom edge flush, only its new top edge (see the
+             margin-top/height pair below, desktop-only) floats and needs
+             rounding to read as one composition with the header. */
+          border-top-left-radius: ${RADIUS.lg};
+          border-top-right-radius: ${RADIUS.lg};
         }
         /* Sidebar Branding Hierarchy (Owner-authorized reversal): the
            business identity is the PRIMARY brand element at the top of the
@@ -3833,8 +3843,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           .dash-shell-body {
             min-height: 0;
           }
+          /* Sidebar/Header Top Alignment Polish (Owner-approved, this
+             round): 16px below matches .dash-main-content's own inline
+             padding:'16px' exactly (same literal value, not a separate
+             guess) - that's the real, existing distance between
+             .dash-shell-main's top and .dash-upper-section's own top edge
+             (dash-content-container/dash-topbar add zero offset of their
+             own: dash-topbar is display:none here at >=769px, and
+             dash-content-container carries no padding/margin). Moving the
+             sidebar down by the identical amount, and shrinking its own
+             height by the same amount (not just adding margin on top of
+             the existing height, which would overflow the fixed-height
+             shell below and clip the footer against .dash-app-shell's own
+             overflow:hidden), keeps the sidebar's BOTTOM edge exactly where
+             it already was - only the top edge moves, matching the task's
+             own "shrink into the same composition" framing rather than
+             "add empty space above." Desktop-only (this whole block is
+             already >=769px) - Tablet Portrait/Mobile (<=768px) render the
+             entirely different bottom-nav shell and are unaffected (.dash-
+             sidebar is display:none there, see below). */
           .dash-sidebar {
-            height: 100%;
+            margin-top: 16px;
+            height: calc(100% - 16px);
           }
           .dash-shell-main {
             min-height: 0;
