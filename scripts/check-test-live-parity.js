@@ -36,13 +36,50 @@ const DEFAULT_TEST_REF = 'ljfizgrdyzxddswcedwr';
 const CAPTURE_BASE_MARKER = 'capture_base';
 
 // Functions whose deployed source has been recovered into git (Orphan Edge
-// Function Recovery task) but whose trigger wiring/purpose could not be
-// confirmed read-only - deliberately NOT deployed to TEST pending that
-// confirmation. Not deploying them is an intentional STOP, not an oversight;
-// classify them distinctly so this script never nags about it as if it were
-// a plain missing-deployment bug. Update this list only once wiring is
-// confirmed and TEST deployment is authorized.
-const UNCONFIRMED_WIRING_FUNCTIONS = new Set(['clever-processor', 'send-welcome-email']);
+// Function Recovery task) and are now CONFIRMED unwired, not merely
+// unconfirmed (Final Orphan Wiring + TEST Secrets Closure task, 2026-09-09):
+// zero code-level callers anywhere in this repository; zero Database
+// Triggers/Event Triggers/Webhooks referencing either name on TEST or
+// Production (direct pg_catalog query - the `supabase_functions` webhooks
+// schema doesn't even exist on either project); Owner-confirmed fresh TEST
+// Dashboard evidence of no Auth Hooks and no matching DB triggers. Kept
+// undeployed to TEST as a deliberate, still-standing decision (a future
+// task would need separate authorization to redeploy/wire either one), but
+// the classification below no longer hedges with "unconfirmed."
+const CONFIRMED_UNWIRED_ORPHAN_FUNCTIONS = new Set(['clever-processor', 'send-welcome-email']);
+
+// Secret names whose ONLY current consumer code path is itself unreachable
+// on both TEST and Production (Final Orphan Wiring + TEST Secrets Closure
+// task, 2026-09-09) - missing does not block any currently-defined critical
+// journey, so it must not drive a row's classification to
+// 'missing-configuration' (a real blocker) the way OPENAI_API_KEY/
+// RESEND_API_KEY genuinely do for chat-ai/send-quote-email. Still reported
+// (nothing is hidden), just not counted as blocking:
+//  - CRON_SECRET: checked only in send-subscription-expiration-email's and
+//    send-trial-expiration-email's automated BATCH-send branch. No
+//    DATABASE-level scheduler reaches it on either project (pg_cron is not
+//    installed on TEST or Production - direct pg_catalog query - and no
+//    supabase/config.toml schedule exists). Production IS genuinely wired
+//    to this path via a real, source-controlled Vercel Cron Job instead
+//    (vercel.json's `crons` entry -> api/cron.js, daily, calling both
+//    functions in `mode: 'batch'` with an `x-cron-secret` header) - whether
+//    that path actually fires end-to-end also depends on Vercel's OWN
+//    CRON_SECRET environment variable matching (a Vercel-dashboard fact,
+//    not a Supabase one, and not independently confirmed by this check).
+//    Either way this has NO TEST equivalent: api/cron.js reads its Supabase
+//    target from Vercel's own env (VITE_SUPABASE_URL/SUPABASE_URL), and
+//    there is no separate Vercel deployment pointed at the isolated TEST
+//    project - so for TEST specifically this remains not-blocking. The
+//    already-real, testable Admin "send test email" path also returns
+//    before this check is ever reached, needing RESEND_API_KEY only.
+//  - RESEND_WEBHOOK_SECRET: resend-email-webhook is a passive receiver for
+//    Resend's own outbound webhook calls (configured externally on
+//    resend.com, outside this repo/Supabase project entirely). It cannot
+//    receive real traffic on TEST without RESEND_API_KEY already being set
+//    (no emails are ever sent, so no bounce/complaint events can ever
+//    occur) AND a webhook subscription actually pointed at TEST's specific
+//    endpoint URL on Resend's own dashboard - neither currently exists.
+const SECRETS_NOT_CURRENTLY_BLOCKING = new Set(['CRON_SECRET', 'RESEND_WEBHOOK_SECRET']);
 
 // { shell: true } is required on Windows, where `npx` is a .cmd shim rather
 // than a directly-spawnable executable - harmless/ignored on POSIX.
@@ -131,13 +168,18 @@ function diffFunctions(testRef, prodRef) {
     let classification;
     if (!hasSource) classification = 'unknown'; // deployed but no source in repo (orphan)
     else if (!p) classification = 'missing-deployment'; // no source-controlled function should be missing from Prod
-    else if (!t) classification = UNCONFIRMED_WIRING_FUNCTIONS.has(name) ? 'unconfirmed-wiring-hold' : 'missing-deployment';
+    else if (!t) classification = CONFIRMED_UNWIRED_ORPHAN_FUNCTIONS.has(name) ? 'confirmed-unwired-orphan' : 'missing-deployment';
     else classification = 'match'; // version/timestamp drift is informational, not auto-classified as dangerous
 
     const requiredSecrets = localReqs[name] || [];
     const missingOnTest = requiredSecrets.filter((s) => !testSecrets.has(s));
     const missingOnProd = requiredSecrets.filter((s) => !prodSecrets.has(s));
-    if (missingOnTest.length) classification = classification === 'match' ? 'missing-configuration' : classification;
+    // A secret missing on TEST only actually blocks this row's status when
+    // at least one of the missing names isn't in SECRETS_NOT_CURRENTLY_
+    // BLOCKING - see that set's own header for the per-secret reasoning.
+    // Every missing name is still reported in full below either way.
+    const blockingMissingOnTest = missingOnTest.filter((s) => !SECRETS_NOT_CURRENTLY_BLOCKING.has(s));
+    if (blockingMissingOnTest.length) classification = classification === 'match' ? 'missing-configuration' : classification;
 
     rows.push({
       name,
@@ -148,6 +190,7 @@ function diffFunctions(testRef, prodRef) {
       testUpdatedAt: t ? new Date(t.updated_at).toISOString() : null,
       requiredSecrets,
       missingOnTest,
+      blockingMissingOnTest,
       missingOnProd,
       classification,
     });
@@ -159,7 +202,7 @@ export function runParityCheck({ testRef = DEFAULT_TEST_REF, prodRef = DEFAULT_P
   const migrations = diffMigrations(testRef, prodRef);
   const functions = diffFunctions(testRef, prodRef);
 
-  const EXPECTED = new Set(['match', 'intentional-test-only', 'pending-future-feature', 'unconfirmed-wiring-hold']);
+  const EXPECTED = new Set(['match', 'intentional-test-only', 'pending-future-feature', 'confirmed-unwired-orphan']);
   const migrationDrift = migrations.filter((m) => !EXPECTED.has(m.classification));
   const functionDrift = functions.filter((f) => !EXPECTED.has(f.classification));
 
@@ -181,7 +224,9 @@ function printReport(report) {
   for (const f of report.functions) {
     const src = f.hasSource ? 'source-controlled' : 'NO SOURCE (orphan)';
     console.log(`  [${f.classification.padEnd(22)}] ${f.name.padEnd(34)} PROD v${f.prodVersion ?? '-'} / TEST v${f.testVersion ?? '-'}  (${src})`);
-    if (f.missingOnTest.length) console.log(`      missing on TEST: ${f.missingOnTest.join(', ')}`);
+    if (f.blockingMissingOnTest.length) console.log(`      missing on TEST (blocking): ${f.blockingMissingOnTest.join(', ')}`);
+    const infoOnly = f.missingOnTest.filter((s) => !f.blockingMissingOnTest.includes(s));
+    if (infoOnly.length) console.log(`      missing on TEST (not currently blocking - see SECRETS_NOT_CURRENTLY_BLOCKING): ${infoOnly.join(', ')}`);
     if (f.missingOnProd.length) console.log(`      missing on PROD: ${f.missingOnProd.join(', ')}`);
   }
 
