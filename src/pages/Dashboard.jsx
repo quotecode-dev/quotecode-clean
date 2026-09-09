@@ -15,6 +15,7 @@ import { isQuoteImmutable } from '../utils/quoteLock';
 import { computeEffectivePlan } from '../utils/planEntitlements';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { shouldShowUpgradeCta } from '../utils/planCatalog';
+import { normalizeAuthError } from '../utils/authErrorClassification';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney } from '../utils/money';
@@ -114,11 +115,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetMsg, setResetMsg] = useState('');
+  // Auth Lifecycle Forensic Audit (2026-09-09): styling used to be decided
+  // by `resetMsg.includes('Error')`, which never matches a Hebrew message
+  // (the English substring "Error" is never present) - a real, confirmed
+  // bug that rendered genuine Hebrew failures with success/green styling.
+  // This explicit flag, set alongside the message from the same
+  // normalizeAuthError() result, replaces that substring-sniffing.
+  const [resetMsgIsError, setResetMsgIsError] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
   const [isPasswordRecoveryMode, setIsPasswordRecoveryMode] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [recoveryUpdateMsg, setRecoveryUpdateMsg] = useState('');
+  // Same substring-sniffing bug as resetMsgIsError above, same fix.
+  const [recoveryUpdateMsgIsError, setRecoveryUpdateMsgIsError] = useState(false);
   const [recoveryUpdateLoading, setRecoveryUpdateLoading] = useState(false);
 
   const [quotes, setQuotes] = useState([]);
@@ -187,6 +198,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // קליקים קורים לפני שריצה חוזרת של React "רואה" עדכון state קודם.
   const isCreatingBusinessSettingsRef = useRef(false);
   const [isCreatingBusinessSettings, setIsCreatingBusinessSettings] = useState(false);
+  // Auth Final Blockers task (2026-09-09): live-reproduced a real, serious
+  // login defect - after a genuine interactive sign-in (not a page reload),
+  // loadData() sometimes never fired at all (zero business_settings/quotes/
+  // etc. network calls for 30+ seconds), leaving the user stuck on the
+  // generic pre-load dashboard shell indefinitely; a manual reload always
+  // recovered correctly. Root cause: the previous onAuthStateChange handler
+  // decided "is this a new user" via a side effect (`isNewUser = true`)
+  // mutated *inside* the setSession(prevSession => ...) updater function -
+  // an anti-pattern that is fragile under React 18/StrictMode, which may
+  // invoke a state-updater function more than once per dispatch to check
+  // for purity. A ref-based check is immune to that: refs are never
+  // double-invoked the way updater functions are, so this reliably loads
+  // data exactly once per distinct real user id, on every fresh login.
+  const lastLoadedUserIdRef = useRef(null);
   const [regionChoiceError, setRegionChoiceError] = useState(null);
   const [bizTaxId, setBizTaxId] = useState('');
   const [bizEmail, setBizEmail] = useState('');
@@ -436,6 +461,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session?.user?.id) {
+        lastLoadedUserIdRef.current = session.user.id;
         await loadData(session.user.id, session.user.email, session.user.user_metadata);
       }
       setIsInitializing(false);
@@ -445,15 +471,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        let isNewUser = false;
-        setSession((prevSession) => {
-          if (prevSession?.user?.id !== newSession?.user?.id) {
-            isNewUser = true;
-            return newSession;
-          }
-          return prevSession;
-        });
-        if (isNewUser && newSession?.user?.id) {
+        setSession(newSession);
+        // Ref-based check (see lastLoadedUserIdRef's own declaration comment
+        // above for why this replaced a fragile setSession-updater side
+        // effect): synchronous and immune to React double-invoking anything,
+        // so this reliably fires exactly once per distinct real user id.
+        if (newSession?.user?.id && newSession.user.id !== lastLoadedUserIdRef.current) {
+          lastLoadedUserIdRef.current = newSession.user.id;
           // כמו ב-initAuth למעלה: יש לחסום את רינדור ה-Dashboard (שם bizCountry
           // קובע שפה/כיוון) עד ש-loadData/fetchSettings מסיימים לטעון את
           // האזור האמיתי של המשתמש *החדש*. בלי זה, מעבר בין חשבונות באותו
@@ -465,6 +489,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
+        lastLoadedUserIdRef.current = null;
         setQuotes([]);
         setClients([]);
         setServices([]);
@@ -877,11 +902,30 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function fetchSettings(userId, userEmail, userMetadata) {
     const nowIso = new Date().toISOString();
 
-    let { data } = await supabase
+    let { data, error } = await supabase
       .from('business_settings')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
+
+    if (error) {
+      // Auth Final Blockers task (2026-09-09): live-reproduced by corrupting
+      // the stored session token and reloading - `error` was previously
+      // discarded entirely, so a genuine auth/network failure on this query
+      // (data: null, error: set) was indistinguishable from "no row exists
+      // yet" (data: null, error: null for .maybeSingle()), incorrectly
+      // sending an EXISTING user with a merely-invalid/expired session into
+      // the new-account region-choice bootstrap screen below - including a
+      // real INSERT attempt via createNewBusinessSettings for an account
+      // that already has one. A genuine query error here means the session
+      // itself cannot be trusted, not that this is a new user - sign out
+      // and let the normal unauthenticated login screen take over, rather
+      // than showing a confusing "choose your region" prompt or attempting
+      // any account-bootstrap mutation against an unverified session.
+      console.error('fetchSettings: business_settings query failed - treating as an invalid/expired session, not a new user:', error.message);
+      await supabase.auth.signOut();
+      return;
+    }
 
     if (data) {
       setSettingId(data.id);
@@ -1552,14 +1596,36 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    // Rapid double-submit fix (Auth Audit Completion, 2026-09-09): unlike
+    // its sibling handlers (handleResetSubmit/handleUpdatePasswordFromRecovery,
+    // both already loading-guarded), this handler had no loading flag at
+    // all - live-reproduced a real triple-click sending 3 separate
+    // /auth/v1/token requests. authLoading also gates re-entrancy here
+    // since the function itself is not otherwise reentrancy-safe.
+    if (authLoading) return;
+    setAuthLoading(true);
     setAuthError('');
     setAuthSuccess('');
 
+    // Auth Lifecycle Forensic Audit (2026-09-09): every message in this
+    // function now consistently uses `bundleIsHebrew`, not the local
+    // `isHebrew` - this function only ever runs pre-authentication or
+    // during the sign-up/sign-in transition itself, when `isHebrew`
+    // (derived from bizCountry/session, see its own definition above) is
+    // meaningless: bizCountry is still its unauthenticated default and
+    // session is null. This exact split already existed correctly in one
+    // place below (the pre-existing "typeof bundleIsHebrew !== 'boolean'"
+    // comment explains why) but was never applied to the sibling branches
+    // in this same function - found via a real reproduced defect this
+    // task: requesting a password reset on the real `/dashboard?lang=he`
+    // route rendered the English success text, not Hebrew.
     if (!emailEmailValidation(emailInput)) {
-      setAuthError(isHebrew ? 'כתובת האימייל אינה תקינה או פיקטיבית.' : 'Invalid email address.');
+      setAuthError(bundleIsHebrew ? 'כתובת האימייל אינה תקינה או פיקטיבית.' : 'Invalid email address.');
+      setAuthLoading(false);
       return;
     }
 
+    try {
     if (isSignUp) {
       const { data: existingBiz } = await supabase
         .from('business_settings')
@@ -1568,7 +1634,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .maybeSingle();
 
       if (existingBiz) {
-        setAuthError(isHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
+        setAuthError(bundleIsHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
         return;
       }
 
@@ -1585,9 +1651,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // שהאימות תמיד יחזור ל-www.tekango.com גם אם ההרשמה בוצעה
       // דרך quotecode.vercel.app.
       if (typeof bundleIsHebrew !== 'boolean') {
-        setAuthError(isHebrew
-          ? 'שגיאת הגדרה: לא ניתן לקבוע את אזור החשבון. רענן את העמוד ונסה שוב.'
-          : 'Configuration error: unable to determine account region. Please refresh the page and try again.');
+        // Genuinely can't know the language here (the one signal this
+        // whole function trusts is itself missing) - a hardcoded English
+        // fallback is honest about that, not a guess dressed up as
+        // `isHebrew`.
+        setAuthError('Configuration error: unable to determine account region. Please refresh the page and try again.');
         return;
       }
 
@@ -1600,10 +1668,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       });
       if (error) {
-        setAuthError(isHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
+        // Auth Lifecycle Forensic Audit (2026-09-09): this branch previously
+        // reported "email already registered" for EVERY signUp() error
+        // unconditionally - a weak password, a rate limit, or a genuine
+        // server error were all misreported as a duplicate-account
+        // problem, sending the user toward the wrong fix. normalizeAuthError
+        // classifies the real cause instead (see authErrorClassification.js).
+        setAuthError(normalizeAuthError(error, bundleIsHebrew).message);
       } else {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
-          setAuthError(isHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
+          setAuthError(bundleIsHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
         } else {
           setAuthSuccess(bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל פרופיל עם תקופת ניסיון...' : 'Sign up successful! Initializing user profile with free trial...');
         }
@@ -1611,10 +1685,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput });
       if (error) {
-        setAuthError(isHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.');
+        setAuthError(bundleIsHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.');
       } else {
         setStatusMsg({ text: bundleIsHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
       }
+    }
+    } catch (thrown) {
+      // A genuine network/DNS/CORS failure can make signUp()/signInWithPassword()
+      // throw instead of resolving with {error} - without this catch (mirroring
+      // the identical fix already applied to handleResetSubmit this same task),
+      // the exception propagated uncaught and authLoading was never cleared,
+      // leaving the submit button stuck disabled forever with no visible error.
+      setAuthError(normalizeAuthError(thrown, bundleIsHebrew).message);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -1622,14 +1706,34 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     e.preventDefault();
     setResetLoading(true);
     setResetMsg('');
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: window.location.origin,
-    });
+    setResetMsgIsError(false);
+    let error;
+    try {
+      ({ error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin,
+      }));
+    } catch (thrown) {
+      // A genuine network/DNS/CORS failure can make this call throw instead
+      // of resolving with `{error}` - without this catch, that exception
+      // propagated uncaught, resetLoading was never cleared, and the button
+      // stayed stuck on "sending" forever with no visible error at all
+      // (found this task, not previously handled by any of the 4 duplicate
+      // implementations this flow used to have).
+      error = thrown;
+    }
     setResetLoading(false);
     if (error) {
-      setResetMsg((isHebrew ? 'שגיאה: ' : 'Error: ') + error.message);
+      // bundleIsHebrew, not the account-derived isHebrew (which is
+      // meaningless before login - see handleAuth's own comment above for
+      // the full reasoning). This is the exact fix for a live-reproduced
+      // defect this task: requesting a reset on the real
+      // `/dashboard?lang=he` route rendered the English text.
+      const { message } = normalizeAuthError(error, bundleIsHebrew);
+      setResetMsg(message);
+      setResetMsgIsError(true);
     } else {
-      setResetMsg(isHebrew ? 'קישור לאיפוס סיסמה נשלח בהצלחה לאימייל שלך!' : 'Password recovery link sent successfully to your email!');
+      setResetMsg(bundleIsHebrew ? 'קישור לאיפוס סיסמה נשלח בהצלחה לאימייל שלך!' : 'Password recovery link sent successfully to your email!');
+      setResetMsgIsError(false);
       setTimeout(() => {
         setForgotOpen(false);
         setResetMsg('');
@@ -1642,12 +1746,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     e.preventDefault();
     setRecoveryUpdateLoading(true);
     setRecoveryUpdateMsg('');
-    const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
+    setRecoveryUpdateMsgIsError(false);
+    let error;
+    try {
+      ({ error } = await supabase.auth.updateUser({ password: newPasswordInput }));
+    } catch (thrown) {
+      error = thrown;
+    }
     setRecoveryUpdateLoading(false);
     if (error) {
-      setRecoveryUpdateMsg((isHebrew ? 'שגיאה בעדכון הסיסמה: ' : 'Error updating password: ') + error.message);
+      // bundleIsHebrew: this handler runs from the recovery-link screen,
+      // which (like the rest of AuthScreen) displays in the language the
+      // real link/route requested, not the not-yet-fully-loaded account's
+      // own business region.
+      const { message } = normalizeAuthError(error, bundleIsHebrew);
+      setRecoveryUpdateMsg(message);
+      setRecoveryUpdateMsgIsError(true);
     } else {
-      setRecoveryUpdateMsg(isHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך...' : 'Password updated successfully! Redirecting...');
+      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך...' : 'Password updated successfully! Redirecting...');
+      setRecoveryUpdateMsgIsError(false);
       setTimeout(() => {
         setIsPasswordRecoveryMode(false);
         window.location.href = window.location.origin;
@@ -3027,11 +3144,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         handleUpdatePasswordFromRecovery={handleUpdatePasswordFromRecovery}
         recoveryUpdateLoading={recoveryUpdateLoading}
         recoveryUpdateMsg={recoveryUpdateMsg}
+        recoveryUpdateMsgIsError={recoveryUpdateMsgIsError}
         isSignUp={isSignUp}
         setIsSignUp={setIsSignUp}
         authSuccess={authSuccess}
         authError={authError}
         handleAuth={handleAuth}
+        authLoading={authLoading}
         emailInput={emailInput}
         setEmailInput={setEmailInput}
         passwordInput={passwordInput}
@@ -3039,6 +3158,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         forgotOpen={forgotOpen}
         setForgotOpen={setForgotOpen}
         resetMsg={resetMsg}
+        resetMsgIsError={resetMsgIsError}
         handleResetSubmit={handleResetSubmit}
         resetEmail={resetEmail}
         setResetEmail={setResetEmail}

@@ -1559,3 +1559,7 @@ above is the correct normal Owner action for any new ProFlow chat.
 
 Separately, "קלודי סיים - תקרא את הדוח האחרון" remains a distinct, narrower
 trigger for retrieving Claude's newest task report specifically — see §15.A.
+
+## 16. Auth / Account Lifecycle Hardening — Local Commit Only (added 2026-09-09, this worktree, branch `tekango-test-mirror-rc`)
+
+A preflighted, 8-file Auth/Account-Lifecycle fix package (duplicate recovery-overlay removal, bilingual error normalization, rapid-double-submit guard, the high-severity interactive-login `loadData` fix, corrupted-session-safe-signout, TEST auth redirect config, new regression tests) was committed locally to this worktree — see `PROFLOW_PROJECT_CONTEXT.md` §132 for full detail. **Local commit only — not pushed, not deployed, not LIVE-verified.** `origin/main` unchanged. The note above about this worktree's §1-131 predating and being unrelated to real recent branch work applies here too — this entry and §132 are this task's own accurate, self-contained record, not a claim that the gap in between was retroactively documented.

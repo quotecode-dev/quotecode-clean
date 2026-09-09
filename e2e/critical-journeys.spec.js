@@ -449,3 +449,74 @@ test.describe('Critical Journeys — EN/International market', () => {
     expect(bodyText).not.toMatch(/[֐-׿]/);
   });
 });
+
+// Password-reset request classification (Auth/Account Lifecycle Forensic
+// Audit, 2026-09-09). The Owner-reported defect ("request fails, no email
+// arrives, UI shows a broken {}:Error-shaped message") was traced this task
+// to a real, live-reproduced Supabase Auth `over_email_send_rate_limit`
+// (HTTP 429) - not a successful send with broken rendering. Route
+// interception is used for BOTH the success and failure cases here
+// deliberately: a real send would consume this TEST project's already-
+// scarce, shared, per-project email quota on every automated run (the same
+// scarce resource behind the rate-limit finding itself), and the failure
+// case specifically needs a byte-for-byte reproduction of the real 429
+// payload this task captured live, not a hope that the real rate limit
+// happens to be active whenever this suite runs. `Route interception` here
+// still exercises the real component/route shell end-to-end (the actual
+// unauthenticated /dashboard AuthScreen, the real handleResetSubmit, the
+// real normalizeAuthError classification) - only the network response
+// itself is substituted, which is the standard, correct way to test an
+// error path deterministically.
+test.describe('Critical Journeys — password-reset request (real route, mocked network only)', () => {
+  test('a successful request shows a clear, non-error success message', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.goto('/dashboard?lang=he');
+    await page.getByRole('button', { name: /^(שכחת סיסמה\?)$/ }).click();
+    await page.locator('form').filter({ hasText: 'שלח קישור לשחזור' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /שלח קישור לשחזור/ }).click();
+    // expect(locator).toContainText() auto-retries until the async
+    // setResetMsg(...) state update actually renders - a single synchronous
+    // body.innerText() read right after .click() raced the React state
+    // update and flaked (found and fixed this task, not the WebKit-only
+    // sustained-load flakiness already disclosed elsewhere in this file).
+    await expect(page.locator('body')).toContainText('נשלח בהצלחה', { timeout: 10000 });
+  });
+
+  test('the real, live-reproduced 429 over_email_send_rate_limit is normalized to a clear message, never a raw object', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) => route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'over_email_send_rate_limit', message: 'For security purposes, you can only request this after 42 seconds.' }),
+    }));
+    await page.goto('/dashboard?lang=he');
+    await page.getByRole('button', { name: /^(שכחת סיסמה\?)$/ }).click();
+    await page.locator('form').filter({ hasText: 'שלח קישור לשחזור' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /שלח קישור לשחזור/ }).click();
+    // The exact regression this task fixed: must never render a raw
+    // object/JSON dump or the reported "{}:Error" shape - only the curated,
+    // classified message, with the real countdown preserved.
+    await expect(page.locator('body')).toContainText('42', { timeout: 10000 });
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toMatch(/\{\}/);
+    expect(bodyText).not.toMatch(/\[object Object\]/);
+  });
+
+  test('the rate-limit error message renders with error (not success) styling', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) => route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'over_email_send_rate_limit', message: 'For security purposes, you can only request this after 10 seconds.' }),
+    }));
+    await page.goto('/dashboard?lang=he');
+    await page.getByRole('button', { name: /^(שכחת סיסמה\?)$/ }).click();
+    await page.locator('form').filter({ hasText: 'שלח קישור לשחזור' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /שלח קישור לשחזור/ }).click();
+    // Regression guard for the fixed bug: styling used to be decided by
+    // `.includes('Error')`, which is never true for a Hebrew message - this
+    // asserts the actual rendered color, not just the text content.
+    const msgLocator = page.locator('div', { hasText: '10' }).last();
+    await expect(msgLocator).toBeVisible({ timeout: 10000 });
+    const color = await msgLocator.evaluate((el) => getComputedStyle(el).color);
+    expect(color).toBe('rgb(248, 113, 113)');
+  });
+});

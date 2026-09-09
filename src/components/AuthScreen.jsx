@@ -15,11 +15,13 @@ export default function AuthScreen({
   handleUpdatePasswordFromRecovery,
   recoveryUpdateLoading,
   recoveryUpdateMsg,
+  recoveryUpdateMsgIsError,
   isSignUp,
   setIsSignUp,
   authSuccess,
   authError,
   handleAuth,
+  authLoading,
   emailInput,
   setEmailInput,
   passwordInput,
@@ -27,6 +29,7 @@ export default function AuthScreen({
   forgotOpen,
   setForgotOpen,
   resetMsg,
+  resetMsgIsError,
   handleResetSubmit,
   resetEmail,
   setResetEmail,
@@ -74,8 +77,15 @@ export default function AuthScreen({
           <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '18px' }}>{isHebrew ? 'הזן את הסיסמה החדשה לחשבון שלך' : 'Enter your new account password'}</p>
 
           {recoveryUpdateMsg && (
-            <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsg.includes('Error') ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', color: recoveryUpdateMsg.includes('Error') ? NEON.red : NEON.emerald, fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {recoveryUpdateMsg.includes('Error') ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+            // Auth Lifecycle Forensic Audit (2026-09-09): was
+            // `recoveryUpdateMsg.includes('Error')` - never true for a
+            // Hebrew message (the English word "Error" never appears in
+            // "שגיאה בעדכון הסיסמה: ..."), which rendered a genuine failure
+            // with success/green styling. `recoveryUpdateMsgIsError` is set
+            // explicitly by the caller from normalizeAuthError()'s own
+            // result, not guessed from message text.
+            <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: recoveryUpdateMsgIsError ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', color: recoveryUpdateMsgIsError ? NEON.red : NEON.emerald, fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {recoveryUpdateMsgIsError ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
               {recoveryUpdateMsg}
             </div>
           )}
@@ -144,7 +154,7 @@ export default function AuthScreen({
             </label>
             <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
           </div>
-          <button type="submit" style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', boxShadow: NEON.glow, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <button type="submit" disabled={authLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem', cursor: authLoading ? 'default' : 'pointer', opacity: authLoading ? 0.7 : 1, boxShadow: NEON.glow, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             {isSignUp ? <Rocket size={16} strokeWidth={2.5} /> : <LogIn size={16} strokeWidth={2.5} />}
             {isSignUp ? (isHebrew ? 'הרשמה למערכת' : 'Sign Up') : (isHebrew ? 'התחבר' : 'Sign In')}
           </button>
@@ -185,7 +195,10 @@ export default function AuthScreen({
             </p>
 
             {resetMsg && (
-              <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsg.includes('Error') ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', color: resetMsg.includes('Error') ? NEON.red : NEON.emerald, fontWeight: 'normal' }}>
+              // Same fix as recoveryUpdateMsg above: an explicit flag from
+              // the caller's own normalizeAuthError() result, not a
+              // substring guess that fails for Hebrew messages.
+              <div style={{ padding: '8px', borderRadius: '6px', marginBottom: '12px', fontSize: '0.8rem', background: resetMsgIsError ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', color: resetMsgIsError ? NEON.red : NEON.emerald, fontWeight: 'normal' }}>
                 {resetMsg}
               </div>
             )}

@@ -1,4 +1,27 @@
 
+# Auth/Account Lifecycle Audit Completion task (2026-09-09): this project's
+# config.toml previously declared no [auth] section at all - `supabase
+# config diff` against the linked TEST project (ljfizgrdyzxddswcedwr) showed
+# its own hosted auth.site_url/additional_redirect_urls both set to
+# Production (https://www.tekango.com[/dashboard]), meaning a real TEST
+# password-reset/confirmation link would redirect to Production instead of
+# this canonical TEST mirror's own dev server. This section declares ONLY
+# these two fields, deliberately - no other [auth] sub-setting (email
+# confirmations, rate limits, MFA, SMS/Twilio, password policy) is declared
+# here, so `supabase config push` leaves every other already-correct hosted
+# setting untouched (confirmed via `supabase config diff` immediately
+# before pushing - see PROFLOW_PROJECT_CONTEXT.md §227 for the full diff
+# output). Exact origins only, no wildcard - matches this project's own
+# `npm run dev:localtest` fixed port (--port 5186 --strictPort) and the
+# two real hostnames it's reachable under in this environment.
+[auth]
+site_url = "http://localhost:5186"
+additional_redirect_urls = [
+  "http://localhost:5186/dashboard",
+  "http://127.0.0.1:5186",
+  "http://127.0.0.1:5186/dashboard",
+]
+
 [functions.chat-ai]
 enabled = true
 verify_jwt = true

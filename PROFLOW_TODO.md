@@ -1687,3 +1687,9 @@ The Owner authorized (1) governance hardening of the permanent-contract discover
 **Relationship to Item 30.E**: this is a *future marketing/messaging* requirement, entirely separate from Item 30.E's own product-architecture decisions (§121/§122, still open) and from the David-only demonstration work (§123-§131, still David-only, not globally rolled out). Recording this requirement does **not** authorize, schedule, or imply timing for either Item 30.E's global rollout or any Landing Page implementation work — both remain separately gated.
 
 **No Landing Page implementation, copywriting, or design work is authorized by recording this item.**
+
+## 45. Auth / Account Lifecycle Hardening — Committed Locally, Not Released (added 2026-09-09, `PROFLOW_PROJECT_CONTEXT.md` §132)
+
+**Status: 🟡 LOCAL COMMIT ONLY, NOT PUSHED, NOT DEPLOYED, NOT LIVE-VERIFIED.** An 8-file Auth/Account-Lifecycle fix package (see §132 for the full fix list and preflight evidence) is now one local commit on this worktree's `tekango-test-mirror-rc` branch, on top of `origin/main` (`3ac8c79`) with zero divergence — a clean fast-forward candidate. **Next step, when the Owner authorizes**: push to `origin/main`, then a separate, explicit deploy authorization and post-deploy LIVE Auth smoke (HE/EN/Super Admin login, password-reset, interactive-login-without-reload), per this project's standing two-gate (push ≠ deploy ≠ LIVE) discipline.
+
+**Known, disclosed, non-blocking follow-up, not addressed by this task**: a dead legacy `.env` credential block still exists in this worktree, confirmed not read by the test harness (`e2e/testPersonas.js` reads only `.env.localtest.local`) — `.env` editing was outside this task's authorization; do not claim it has been removed.
