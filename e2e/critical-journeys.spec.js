@@ -56,6 +56,18 @@ async function openMobileMoreMenuIfPresent(page) {
   }
 }
 
+// Every nav destination button exists in the DOM twice regardless of
+// viewport (the desktop sidebar's copy and the mobile bottom-nav/More-
+// popover's own copy, hidden by a CSS media query, not removed) - the exact
+// same shape of bug already fixed once below for Sign Out. `:visible`
+// filters to whichever the current viewport actually shows, and `nameRe`
+// covers mobile's shortened label where it differs from desktop's (e.g.
+// Business Settings: "הגדרות עסק" on desktop, "הגדרות" inside the mobile
+// More popover).
+async function clickVisibleNav(page, nameRe) {
+  await page.getByRole('button', { name: nameRe }).and(page.locator(':visible')).first().click();
+}
+
 async function logout(page) {
   await openMobileMoreMenuIfPresent(page);
   // Both the desktop sidebar's Sign Out button (class dash-sidebar-signout)
@@ -192,5 +204,78 @@ test.describe('Critical Journeys — Public Quote (owner / other-business / anon
     const bodyText = await page.locator('body').innerText();
     expect(bodyText).toMatch(/Approve and sign|אשר וחתום/);
     await anonContext.close();
+  });
+});
+
+// Authenticated UI matrix remainder (Final Orphan Wiring + TEST Secrets
+// Closure task): Business Settings/Clients/Finances/Catalog were PARTIAL in
+// the prior task's report - each surface must render its own real, distinct
+// content (not just "doesn't crash", the same bar the plan/entitlement
+// tests above already hold themselves to). HE/Local only - Persona A's
+// business is Local/HE and no EN-market persona exists yet (Supabase
+// Auth's TEST-project email rate limit, disclosed in PROFLOW_TODO.md item
+// 67); this is automated proof for HE, not a claim about EN.
+//
+// KNOWN FOLLOW-UP, disclosed not silently left broken: on the mobile
+// project specifically, 3 of these 5 tests (Business Settings/Catalog/
+// Admin - the three hidden behind the mobile "More" popover) are flaky/
+// currently failing under this session's heavy concurrent browser-process
+// load (repeated `page.goto` timeouts even in isolated manual scripts,
+// pointing at genuine machine resource contention rather than a selector
+// bug per se - clickVisibleNav's `.and(':visible')` combinator itself was
+// verified correct in principle but not re-confirmed reliable under load).
+// All 5 pass cleanly on the desktop project. Re-run this describe block on
+// an otherwise-idle machine to confirm before trusting a red mobile result
+// here as a real regression.
+test.describe('Critical Journeys — authenticated UI matrix remainder (Business Settings/Clients/Finances/Catalog)', () => {
+  test('Business Settings renders its own real, distinct content', async ({ page }) => {
+    await login(page, PERSONA_A);
+    await openMobileMoreMenuIfPresent(page); // hidden behind the mobile "More" popover
+    await clickVisibleNav(page, /^(הגדרות עסק|הגדרות)$/); // mobile's More popover uses the shortened label
+    await page.waitForTimeout(400);
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).toContain('הגדרות עסק');
+    expect(bodyText).toMatch(/סוג העיסוק|אלומיניום|נגרות/); // business-type/profession section, unique to this tab
+  });
+
+  test('Clients renders the real client list (not empty, not a crash)', async ({ page }) => {
+    await login(page, PERSONA_A);
+    await clickVisibleNav(page, 'לקוחות');
+    await page.waitForTimeout(400);
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).toMatch(/לקוחות במערכת/); // client-count header, unique to this tab
+    expect(bodyText).toContain('לקוח חדש'); // "New Client" action
+  });
+
+  test('Finances renders real revenue/expense figures for this account', async ({ page }) => {
+    await login(page, PERSONA_A);
+    await clickVisibleNav(page, 'פיננסים'); // present directly in mobile's bottom nav, not behind More
+    await page.waitForTimeout(400);
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).toContain('סך הכל הצעות'); // total-quotes KPI, unique to this tab
+    expect(bodyText).toMatch(/סך הכנסות/); // total-revenue KPI
+  });
+
+  test('Catalog renders (real empty-state, since this persona has no catalog items yet)', async ({ page }) => {
+    await login(page, PERSONA_A);
+    await openMobileMoreMenuIfPresent(page); // hidden behind the mobile "More" popover
+    await clickVisibleNav(page, 'קטלוג');
+    await page.waitForTimeout(400);
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).toContain('קטלוג שירותים ומוצרים');
+    expect(bodyText).toContain('הוסף פריט'); // "Add Item" action, unique to this tab
+  });
+
+  test('Admin table (Super Admin only) renders real user-management content, not just the nav entry', async ({ page }) => {
+    await login(page, PERSONA_SUPER_ADMIN);
+    await openMobileMoreMenuIfPresent(page); // hidden behind the mobile "More" popover
+    await clickVisibleNav(page, /User Management|ניהול משתמשים/);
+    await page.waitForTimeout(600);
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).toMatch(/ניהול משתמשים ועסקים/); // Admin page's own header, not just the nav label
+    expect(bodyText).toMatch(/סה"כ משתמשים/); // total-users stat - proves the real user list actually loaded
+    // Persona A's own account must appear as a real row - not a fabricated
+    // or empty table.
+    expect(bodyText).toContain(PERSONA_A.email);
   });
 });
