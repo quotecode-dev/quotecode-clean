@@ -194,8 +194,9 @@ export default function PublicQuote({ quoteData }) {
     } catch (err) {
       // הפרטים הטכניים/מסד הנתונים נשארים ב-console בלבד - הלקוח הציבורי
       // רואה הודעה בטוחה וספציפית (classifyQuoteApprovalError), לא raw
-      // error.message. ה-UI כבר מונע מראש את המקרה העסקי-חסום (למטה,
-      // isOtherBusinessAccount) - זו הגנת-עומק לקליינט ישן/מיושן בלבד.
+      // error.message. הבלוק היחיד שה-RPC חוסם כעת הוא הבעלים המדויק של
+      // ההצעה הזו (public_approve_quote, 20260909000000) - חשבון עסקי אחר
+      // מותר לו לחתום כלקוח לגיטימי.
       console.error('Error approving quote:', err);
       const { userMessage } = classifyQuoteApprovalError(err?.message, true);
       setApproveToast({ type: 'error', message: userMessage });
@@ -292,14 +293,6 @@ export default function PublicQuote({ quoteData }) {
 
   const clientPhoneFormatted = formatDisplayPhone(client?.phone);
   const isOwnerViewing = quote.is_owner_viewing;
-  // חוק ברזל (Signature Contract Fix, systemic remediation task): כל חשבון
-  // עסקי מחובר אחר (לא הבעלים של ההצעה הזו עצמה) חסום מלחתום כלקוח על ידי
-  // ה-RPC (public_approve_quote, 20260831000000) - אך עד לתיקון הזה ה-UI
-  // הסתיר את אזור החתימה רק מהבעלים המדויק, כך שחשבון עסקי *אחר* עדיין
-  // ראה את מסך החתימה המלא וקיבל כשל גנרי רק אחרי חתימה. caller_is_business_
-  // account (get-public-quote) משקף את אותה הכרעה בדיוק, read-only - כך שה-
-  // UI חוסם מראש, לפני כניסה ל-canvas, בלי לגעת ב-RPC עצמו כלל.
-  const isOtherBusinessAccount = Boolean(quote.caller_is_business_account) && !isOwnerViewing;
   const displayTerms = quote.terms;
 
   // חוק ברזל (Public Quote Redesign - WhatsApp contact action): אותה
@@ -881,10 +874,6 @@ export default function PublicQuote({ quoteData }) {
           ) : isOwnerViewing ? (
             <div className="pq-section" style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe' }}>
               ℹ️ תצוגת מנהל: אזור החתימה מוצג ללקוח בלבד.
-            </div>
-          ) : isOtherBusinessAccount ? (
-            <div className="pq-section" style={{ background: '#fff7ed', color: '#9a3412', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #fed7aa' }}>
-              ⚠️ לא ניתן לחתום על הצעה זו מחשבון עסקי מחובר. כדי לחתום כלקוח, יש לפתוח קישור זה בדפדפן פרטי (גלישה בסתר) או להתנתק תחילה מהחשבון העסקי.
             </div>
           ) : (
             <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>

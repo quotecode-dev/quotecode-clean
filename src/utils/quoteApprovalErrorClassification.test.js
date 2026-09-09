@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { classifyQuoteApprovalError } from './quoteApprovalErrorClassification';
 
 describe('classifyQuoteApprovalError', () => {
-  it('classifies the business-account-blocked RPC error (the signature contract fix)', () => {
-    const msg = "Not permitted: a ProFlow business account cannot approve or sign a quote on the customer's behalf";
+  it('classifies the owner-cannot-self-approve RPC error (the corrected, narrower contract)', () => {
+    const msg = "Not permitted: the quote's own business account cannot approve or sign it on the customer's behalf";
     expect(classifyQuoteApprovalError(msg, true)).toEqual({
-      category: 'business_account_blocked',
-      userMessage: '❌ לא ניתן לחתום על הצעה זו מחשבון עסקי מחובר. יש לפתוח את הקישור בדפדפן פרטי (גלישה בסתר) או להתנתק תחילה, ולחתום כלקוח בלבד.',
+      category: 'owner_cannot_self_approve',
+      userMessage: '❌ לא ניתן לחתום על הצעה זו מחשבון העסק ששלח אותה. אם את/ה הלקוח/ה, יש להיכנס עם החשבון שלך או בגלישה אנונימית.',
     });
-    expect(classifyQuoteApprovalError(msg, false).category).toBe('business_account_blocked');
+    expect(classifyQuoteApprovalError(msg, false).category).toBe('owner_cannot_self_approve');
+  });
+
+  it('still classifies the OLD (pre-2026-09-09) RPC error text the same way, for a stale/already-open client', () => {
+    const oldMsg = "Not permitted: a ProFlow business account cannot approve or sign a quote on the customer's behalf";
+    expect(classifyQuoteApprovalError(oldMsg, true).category).toBe('owner_cannot_self_approve');
   });
 
   it('classifies "quote not found or cannot be approved" as already-approved/unavailable', () => {

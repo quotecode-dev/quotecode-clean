@@ -101,26 +101,19 @@ serve(async (req) => {
       .eq('user_id', quote.user_id)
       .maybeSingle();
 
-    // חוק ברזל (Owner-authorized Signature Contract Fix, systemic remediation
-    // task): public_approve_quote (20260831000000) already rejects ANY
-    // authenticated business account (EXISTS business_settings WHERE
-    // user_id = auth.uid()) before letting it sign as the customer - that
-    // exact predicate is mirrored here, read-only, purely so the frontend can
-    // hide the signing UI *before* a business account ever reaches the RPC,
-    // instead of only failing after a wasted signature with a generic error.
-    // Never used to bypass or weaken the RPC's own enforcement - the RPC
-    // remains the sole source of truth for the actual authorization decision;
-    // this flag is advisory-only for the UI.
+    // חוק ברזל (Signature Product/Security Contract Correction, systemic
+    // remediation continuation task, 2026-09-09): public_approve_quote
+    // (20260909000000) now rejects only THIS QUOTE'S OWN OWNER, not any
+    // authenticated business account - the prior broader UI gate
+    // (caller_is_business_account, any business account at all) blocked
+    // legitimate customers who also hold their own TEKANGO business
+    // account, a real product dead-end the Owner directly hit and
+    // reported. is_owner_viewing is the only signal the UI needs now - it
+    // already, correctly, mirrors the RPC's own (corrected) predicate
+    // exactly. Never used to bypass or weaken the RPC's own enforcement -
+    // the RPC remains the sole source of truth for the actual
+    // authorization decision; this flag is advisory-only for the UI.
     const isOwner = Boolean(callerUserId && callerUserId === quote.user_id);
-    let callerIsBusinessAccount = isOwner; // the owner already IS a business account, trivially
-    if (callerUserId && !isOwner) {
-      const { data: callerBizRow } = await adminClient
-        .from('business_settings')
-        .select('user_id')
-        .eq('user_id', callerUserId)
-        .maybeSingle();
-      callerIsBusinessAccount = Boolean(callerBizRow);
-    }
 
     const { data: attachmentRows } = await adminClient
       .from('quote_attachments')
@@ -159,7 +152,6 @@ serve(async (req) => {
         currency: quote.currency,
         client_type: quote.client_type,
         is_owner_viewing: isOwner,
-        caller_is_business_account: callerIsBusinessAccount,
       },
       business: bizRow ? {
         business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,

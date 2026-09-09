@@ -4,14 +4,18 @@ import { MemoryRouter } from 'react-router-dom';
 import PublicQuote from './PublicQuote';
 import PublicQuoteEn from './PublicQuoteEn';
 
-// חוק ברזל (Signature Contract Fix, systemic remediation task): לפני התיקון,
-// ה-RPC (public_approve_quote, 20260831000000) כבר חסם כל חשבון עסקי מחובר
-// (לא רק בעלים) מלחתום כלקוח, אך ה-UI הסתיר את אזור החתימה רק מהבעלים
-// המדויק (is_owner_viewing) - כך שחשבון עסקי *אחר* עדיין ראה את מסך החתימה
-// המלא, יכול היה לצייר חתימה, ורק ב-Approve קיבל כשל גנרי מה-RPC. הבדיקות
-// האלה נועדו לתפוס בדיוק את הפער הזה: מוודאות שהדגל caller_is_business_
-// account (get-public-quote, מוחזר על גבי quote) חוסם את ה-UI *לפני* כניסה
-// ל-canvas - לא רק שה-RPC (שממוקד/ ammocked כאן) חוסם בסוף.
+// חוק ברזל (Signature Product/Security Contract Correction, systemic
+// remediation continuation task, 2026-09-09): the prior fix (Signature
+// Contract Fix) blocked ANY authenticated business account from signing,
+// not just this quote's own owner - which created a real, Owner-reported
+// product dead-end (a legitimate customer who also holds their own
+// TEKANGO business account could never sign a quote sent to them,
+// short of an incognito-window workaround). The RPC (public_approve_quote,
+// 20260909000000) now blocks only this quote's exact own owner. These
+// tests lock the CORRECTED contract: only is_owner_viewing hides the
+// signing UI - a different business account (caller_is_business_account
+// no longer even exists as a field) sees and can use the full signing UI,
+// exactly like an anonymous recipient.
 vi.mock('../shared/supabase', () => ({
   supabase: { rpc: vi.fn().mockResolvedValue({ error: null }) },
 }));
@@ -26,7 +30,6 @@ function buildQuoteData(overrides = {}) {
       tax_rate: 0.18,
       client_type: 'business',
       is_owner_viewing: false,
-      caller_is_business_account: false,
       ...overrides.quote,
     },
     business: { business_name: 'Test Business', ...overrides.business },
@@ -36,46 +39,43 @@ function buildQuoteData(overrides = {}) {
   };
 }
 
-describe('PublicQuote (HE) - business-account signing gate', () => {
-  it('shows the full signing UI to an anonymous recipient (caller_is_business_account: false, is_owner_viewing: false)', () => {
+describe('PublicQuote (HE) - corrected owner-only signing gate', () => {
+  it('shows the full signing UI to an anonymous recipient', () => {
     render(<MemoryRouter><PublicQuote quoteData={buildQuoteData()} /></MemoryRouter>);
     expect(screen.getByText('חתימת לקוח לאישור ההצעה:')).toBeInTheDocument();
-    expect(screen.queryByText(/לא ניתן לחתום על הצעה זו מחשבון עסקי מחובר/)).not.toBeInTheDocument();
   });
 
-  it('shows the admin-view message to the quote\'s own owner, not the business-blocked message', () => {
-    const data = buildQuoteData({ quote: { is_owner_viewing: true, caller_is_business_account: true } });
+  it('shows the admin-view message to the quote\'s own owner, hiding the signing UI', () => {
+    const data = buildQuoteData({ quote: { is_owner_viewing: true } });
     render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
     expect(screen.getByText(/תצוגת מנהל/)).toBeInTheDocument();
     expect(screen.queryByText('חתימת לקוח לאישור ההצעה:')).not.toBeInTheDocument();
-    expect(screen.queryByText(/לא ניתן לחתום על הצעה זו מחשבון עסקי מחובר/)).not.toBeInTheDocument();
   });
 
-  it('blocks a DIFFERENT authenticated business account with a specific message and hides the signing canvas entirely (the exact reported bug)', () => {
-    const data = buildQuoteData({ quote: { is_owner_viewing: false, caller_is_business_account: true } });
+  it('CORRECTED CONTRACT: a DIFFERENT authenticated business account (not this quote\'s owner) sees the full signing UI, exactly like an anonymous recipient - this is the exact scenario the Owner reported as a dead-end, now fixed', () => {
+    const data = buildQuoteData({ quote: { is_owner_viewing: false } });
     render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
-    expect(screen.getByText(/לא ניתן לחתום על הצעה זו מחשבון עסקי מחובר/)).toBeInTheDocument();
-    expect(screen.queryByText('חתימת לקוח לאישור ההצעה:')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /אשר וחתום/ })).not.toBeInTheDocument();
+    expect(screen.getByText('חתימת לקוח לאישור ההצעה:')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /אשר וחתום/ })).toBeInTheDocument();
   });
 });
 
-describe('PublicQuoteEn (EN) - business-account signing gate (symmetric with Hebrew)', () => {
+describe('PublicQuoteEn (EN) - corrected owner-only signing gate (symmetric with Hebrew)', () => {
   it('shows the full signing UI to an anonymous recipient', () => {
     render(<MemoryRouter><PublicQuoteEn quoteData={buildQuoteData()} /></MemoryRouter>);
-    expect(screen.queryByText(/cannot be signed from a logged-in business account/)).not.toBeInTheDocument();
+    expect(screen.getByText('Client Signature to Approve This Quote:')).toBeInTheDocument();
   });
 
-  it('shows the admin-view message to the quote\'s own owner, not the business-blocked message', () => {
-    const data = buildQuoteData({ quote: { is_owner_viewing: true, caller_is_business_account: true } });
+  it('shows the admin-view message to the quote\'s own owner, hiding the signing UI', () => {
+    const data = buildQuoteData({ quote: { is_owner_viewing: true } });
     render(<MemoryRouter><PublicQuoteEn quoteData={data} /></MemoryRouter>);
     expect(screen.getByText(/Admin View/)).toBeInTheDocument();
-    expect(screen.queryByText(/cannot be signed from a logged-in business account/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Client Signature to Approve This Quote:')).not.toBeInTheDocument();
   });
 
-  it('blocks a DIFFERENT authenticated business account with a specific message and hides the signing canvas entirely', () => {
-    const data = buildQuoteData({ quote: { is_owner_viewing: false, caller_is_business_account: true } });
+  it('CORRECTED CONTRACT: a DIFFERENT authenticated business account sees the full signing UI, exactly like an anonymous recipient', () => {
+    const data = buildQuoteData({ quote: { is_owner_viewing: false } });
     render(<MemoryRouter><PublicQuoteEn quoteData={data} /></MemoryRouter>);
-    expect(screen.getByText(/cannot be signed from a logged-in business account/)).toBeInTheDocument();
+    expect(screen.getByText('Client Signature to Approve This Quote:')).toBeInTheDocument();
   });
 });
