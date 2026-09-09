@@ -4,93 +4,73 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Two-Commit Release Capture With Push/Deploy Safety Gate
+## Task: Final Clean-Worktree Check + Push/Production Release
 
-**MODE: local commits only, worktree `C:/tkrc2`. Authorized: fresh precondition inspection, validation, Commit A exactly as defined, Commit B exactly as defined, push ONLY under proven-safe Case A, continuity updates. NOT authorized: Production deploy, LIVE promotion, push when deployment impact is unknown, any file outside the exact four-file set, secret/account changes, cleanup/reset/restore/stash/discard, unrelated work.**
+**MODE: Owner-authorized push + live Production deployment + synthetic-account verification, worktree `C:/tkrc2`. Authorized: exact clean-worktree check, push of only `74ca11e`+`3ac8c79`, the resulting automatic Vercel deployment, synthetic/test-safe post-deploy verification, continuity updates. NOT authorized: any new application change, any third commit, real customer data, David Aluminum, destructive cleanup, DNS/Search Console/indexing/Analytics/Stripe, unrelated Professional Quotes work.**
 
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §223.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §224.
 
 ---
 
-## 1. Canonical repo path
+## Step 1 — Clean-worktree/lineage check
 
-`C:/tkrc2`
+`git status --porcelain` → empty. `HEAD` = `3ac8c79...`. Fresh-fetched `origin/main` = `0c7d091...` (unchanged). `git log --oneline origin/main..HEAD` = exactly `74ca11e` then `3ac8c79`. **PASS.**
 
-## 2. Starting HEAD
+## Step 2 — Push
 
-`0c7d0918c756104c24e43dac8759df1f12158ed4` (identical to `origin/main`, zero divergence)
+`git push origin tekango-test-mirror-rc:main` → clean fast-forward `0c7d091..3ac8c79`. Re-fetched and confirmed the remote now matches exactly. **PASS.**
 
-## 3. Fresh precondition result
+## Step 3 — Production deployment
 
-**PASS** — re-verified immediately before any mutation: dirty set was still exactly the 4 preflight-approved files, `HEAD===origin/main`, zero drift since the immediately-preceding preflight report.
+Vercel's automatic Git-integration deploy completed within ~1 minute: `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, status Ready, aliased `www.tekango.com` (and the other production aliases). No manual deploy triggered. **PASS.**
 
-## 4. Exact dirty set before commits
+## Artifact identity
 
-`e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js`, `src/pages/Dashboard.jsx` — no others.
+Live-bundle content-grep of the deployed `www.tekango.com` main JS bundle (`index-C9kKPAXz.js`) found Commit B's exact new source verbatim: `border-top-left-radius: ${ur.lg}`, `margin-top: 16px`, `calc(100% - 16px)`. Commit A (`e2e/`, `playwright.config.js`) has no frontend-bundle footprint by design; its inclusion is established via `origin/main`'s own confirmed git ancestry instead. **PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: YES.**
 
-## 5. Commit A SHA + files
+## Step 4 — Post-deploy verification (real Production, designated TEST accounts only)
 
-`74ca11e` — "test: harden responsive e2e coverage and test personas" — `e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js` (3 files, 220 insertions(+), 21 deletions(-))
+| Check | Result |
+|---|---|
+| Desktop HE (sidebar.top===header.top, radius, footer reachable) | PASS |
+| Desktop EN | PASS |
+| Tablet Landscape HE | PASS |
+| Tablet Landscape EN | PASS |
+| Tablet Portrait HE (regression: mobile shell, no sidebar) | PASS |
+| Tablet Portrait EN (regression) | PASS |
+| Mobile HE (regression) | PASS |
+| Mobile EN (regression) | PASS |
+| Admin/Super Admin route | PASS (real content loaded, no crash on reload) |
+| Landing / /he / /en HTTP | 200 / 200 / 200 |
 
-## 6. Commit B SHA + files
+All measurements via `getBoundingClientRect()`/`getComputedStyle()` live in-browser — not inferred from source.
 
-`3ac8c79` — "style: align sidebar top with dashboard header" — `src/pages/Dashboard.jsx` only (1 file, 31 insertions(+), 1 deletion(-))
+## Side findings (disclosed, not fixed — out of this task's scope)
 
-Working tree confirmed clean after both commits.
-
-## 7. Tests
-
-`npx vitest run` — **547/547 passing, 38 files** (re-run fresh immediately before committing).
-
-## 8. Lint
-
-`npx eslint src/pages/Dashboard.jsx e2e/ playwright.config.js` — clean (0 errors, 1 pre-existing unrelated warning).
-
-## 9. Build
-
-`npx vite build` — clean.
-
-## 10. Push-to-main deployment-trigger finding
-
-**Triggers deployment (Case B).** Read-only evidence: `vercel.json` present (confirms Vercel as deploy platform); no `.github/workflows/`; no `ignoreCommand`/branch-skip in `vercel.json`. This project's own history supplies direct, repeated confirmation beyond mere repo-config inspection: at least 3 separate prior tasks pushed to `origin/main` and each independently verified (via `npx vercel inspect` + live-bundle grepping) that a real Production deployment went live within ~30-60 seconds — zero exceptions ever recorded. This is affirmative evidence of deployment, not unresolved uncertainty.
-
-## 11. Push performed
-
-**NO.**
-
-## 12. Remote verification if pushed
-
-Not applicable — not pushed. Both commits exist only locally on `tekango-test-mirror-rc`.
-
-## 13. Production deployment triggered
-
-**NO** — nothing was pushed, so nothing could have deployed.
-
-## 14. Continuity files updated
-
-`PROFLOW_PROJECT_CONTEXT.md` (§223), `PROFLOW_CODEX_CHECKPOINT.md` (ACTIVE_TASK/RESUME_TASK/latest-work entry), this file (replaced, transport-only) — all in the dedicated `quotecode-saas-continuity` worktree.
-
-## 15. Mutation declaration
-
-- **APPLICATION CODE CHANGED?** Committed (not newly changed this task) — 2 local commits capturing already-authored, already-preflighted work.
-- **PUSH PERFORMED?** NO.
-- **PRODUCTION TOUCHED?** NO.
-- **SCHEMA/SECRETS/CUSTOMER DATA CHANGED?** NO.
-- **DAVID ALUMINUM TOUCHED?** NO.
-
-## 16. Exact next action
-
-The two commits sit locally on `tekango-test-mirror-rc` in `C:/tkrc2`, ready to push, but push was correctly withheld because it would trigger a real Vercel Production deployment and no separate deployment authorization was given this task. The next decision is narrowly the Owner's: authorize pushing `origin/main` (and, with it, the resulting Production deployment of these two commits), or hold them local until a deployment window/process is decided separately.
+1. The primary dirty tree's `.env` has **duplicate, conflicting `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` entries** — only the first occurrence works on Production. `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` also failed to authenticate; `PROFLOW_TEST_USER1_EMAIL` (no alias) is the account that actually works for HE. A future task should de-duplicate this file.
+2. **Credential-exposure incident, self-disclosed**: a diagnostic `grep -n "^PROFLOW_TEST" .env` (meant to find duplicate key *names* only) printed plaintext TEST-account passwords into this task's own tool output — a violation of this project's own "never print credential values" rule. Synthetic TEST accounts only, never David Aluminum, never real customer data — but the Owner may want to rotate the exposed TEST passwords out of caution.
 
 ## Mandatory verdicts
 
-- 4-FILE SCOPE STILL CLEAN: **PASS**
-- COMMIT A: **PASS**
-- COMMIT B: **PASS**
-- PUSH SAFETY: **DEPLOY_TRIGGER**
-- PUSH TO ORIGIN/MAIN: **BLOCKED**
-- PRODUCTION DEPLOYMENT AUTHORIZED: **NO**
-- PRODUCTION DEPLOYMENT PERFORMED: **NO**
+- WORKTREE CLEAN: **PASS**
+- HEAD/ORIGIN LINEAGE: **PASS**
+- PUSH: **PASS**
+- PRODUCTION DEPLOYMENT: **PASS**
+- PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: **YES**
+- SIDEBAR/HEADER LIVE HE DESKTOP: **PASS**
+- SIDEBAR/HEADER LIVE EN DESKTOP: **PASS**
+- TABLET LANDSCAPE LIVE: **PASS**
+- TABLET PORTRAIT REGRESSION CHECK: **PASS**
+- MOBILE REGRESSION CHECK: **PASS**
+- LIVE SMOKE: **PASS**
 - CONTINUITY CURRENT: **YES**
 
-**Recovery instruction for the next session**: `74ca11e` and `3ac8c79` exist only in `C:/tkrc2`'s local git history on branch `tekango-test-mirror-rc` — they are not on `origin/main` and not visible to anyone else until explicitly pushed. If the Owner wants them live, the next task needs explicit push authorization with full awareness that it deploys to Production immediately.
+## FINAL RELEASE VERDICT
+
+**LIVE RELEASE VERIFIED: YES**
+
+Explicit distinction preserved: commit (§223, local) → push (this task, `origin/main` now `3ac8c79`) → automatic Production deployment (this task, `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, Ready) → verified LIVE (this task, real synthetic-account runtime proof). Each step independently evidenced.
+
+**Mutations this task**: `origin/main` advanced `0c7d091` → `3ac8c79` (real push); Production frontend deployed (real, automatic); zero schema/secrets/customer-data/David-Aluminum change; zero manual deploy; zero third commit.
+
+**Recovery instruction for the next session**: the sidebar/header alignment polish and the e2e/test-tooling hardening are both LIVE on `www.tekango.com` as of this task. Nothing further is required for this specific release. The two disclosed side findings above (`.env` duplication, the credential-print incident) are open items for a future task, not blockers.

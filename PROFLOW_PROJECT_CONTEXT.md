@@ -9630,3 +9630,49 @@ Continues directly from §203's unpushed state. Both blockers described there (t
 - CONTINUITY CURRENT: **YES**
 
 **Mutations this task**: 2 local git commits created on `tekango-test-mirror-rc` (`74ca11e`, `3ac8c79`) — **neither pushed to `origin/main` nor anywhere else**. Zero Production/schema/secrets/customer-data/David-Aluminum change. Zero deploy of any kind, manual or automatic.
+
+## §224. Final Clean-Worktree Check + Push/Production Release — EXECUTED, LIVE (2026-09-09, same day as §221/§222/§223, Owner-authorized push + live verification, worktree `C:/tkrc2`, branch `tekango-test-mirror-rc`)
+
+**Scope**: the Owner explicitly authorized, in this exact task, what §223 had correctly withheld — pushing `74ca11e`/`3ac8c79` to `origin/main`, accepting the resulting automatic Vercel Production deployment, and verifying it live with synthetic/TEST-safe accounts.
+
+**Step 1 — clean-worktree/lineage check, fresh**: `git status --porcelain` empty; `HEAD` = `3ac8c79...` exactly as expected; fetched `origin/main` fresh (not cached) = `0c7d091...` unchanged; `git log --oneline origin/main..HEAD` = exactly `74ca11e` then `3ac8c79`, nothing else. **PASS**, proceeded.
+
+**Step 2 — push**: `git push origin tekango-test-mirror-rc:main` → clean fast-forward `0c7d091..3ac8c79`. Re-fetched fresh and confirmed `origin/main` now equals `3ac8c79`, `git log` on the remote shows exactly the 2 new commits on top of the same prior base. **PASS**.
+
+**Step 3 — Production deployment**: `npx vercel ls` showed a new Production deployment (`dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, `https://quotecode-qvwsc7bek-quote-code.vercel.app`) created ~1 minute after the push, status Ready, aliased to `www.tekango.com` (and the other production aliases). No manual deploy was triggered — this was the automatic Git-integration deploy. **PASS**.
+
+**Artifact identity, verified by live-bundle content-grepping** (this project's own established method, since Vercel's CLI `inspect` output here didn't surface a plain commit-SHA field): downloaded the live `www.tekango.com` main JS bundle (`index-C9kKPAXz.js`) and confirmed the exact new source strings from Commit B are present verbatim — `border-top-left-radius: ${ur.lg}` (minified `RADIUS` reference), `margin-top: 16px`, `calc(100% - 16px)`. Commit A (`e2e/`, `playwright.config.js`) has zero frontend-bundle footprint by design (test/tooling only, never bundled) — its presence is established instead by `origin/main`'s own git ancestry (`0c7d091` → `74ca11e` → `3ac8c79`, confirmed via `git log` above), which Vercel's Git integration deploys as a whole ref, not a cherry-picked subset. **PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: YES.**
+
+**Step 4 — post-deploy verification, live on `www.tekango.com`, synthetic accounts only** (`PROFLOW_TEST_USER1`=HE/`tahshitishi@gmail.com`, the first-listed `PROFLOW_TEST_INTL`=EN/`nimrod1sinai@gmail.com`, `PROFLOW_TEST_ADMIN`=Super Admin/`shlomisiny22@gmail.com` — all pre-existing, already-established designated TEST accounts, never David Aluminum, never real customer data):
+
+- **Desktop (1280×900) HE**: sidebar/header both `top=16` (measured, not eyeballed), radius `16px`, `bottom=900` flush, zero overflow, footer/logout reachable, RTL sidebar-right correct. **PASS**.
+- **Desktop EN**: sidebar/header both `top=16`, `bottom=900` flush, zero overflow, LTR sidebar-left correct, USD currency, footer/logout reachable. **PASS**.
+- **Tablet Landscape (1024×768) HE + EN**: both `top=16`, zero overflow, correct RTL/LTR mirroring, footer reachable. **PASS**.
+- **Tablet Portrait (768×1024) HE + EN — regression check**: sidebar confirmed `display:none` (the pre-existing mobile/bottom-nav shell correctly active, unaffected by this release), zero overflow. **PASS**.
+- **Mobile (390×844) HE + EN — regression check**: same mobile shell, zero overflow, no navigation/chat/header change. **PASS**.
+- **Admin/Super Admin**: real login, real User Management table loaded (`ניהול משתמשים ועסקים`, real stats), sidebar alignment unaffected on this tab too, a fresh full-page reload produced no crash/fatal error. **PASS**.
+- **General smoke**: `www.tekango.com`, `/he`, `/en` all HTTP 200; HE/EN/Admin logins all succeeded; Dashboard/Quotes/Admin routes all loaded real content; no console-fatal/blank-page state observed on any checked path. **PASS**.
+
+**Side findings, disclosed not silently fixed (out of this task's authorized scope - no `.env`/file changes were made)**:
+1. The primary dirty tree's own `.env` has **duplicate, conflicting `PROFLOW_TEST_INTL_EMAIL`/`PROFLOW_TEST_INTL_PASSWORD` entries** (two separate definitions later in the file override the first) — the second (later) pair does not correspond to a working Production login; the **first** occurrence (`nimrod1sinai@gmail.com`) is the one that actually works on Production. `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` (a `+proflow-local-test@gmail.com` alias) also failed to authenticate on Production during this task; `PROFLOW_TEST_USER1_EMAIL` (`tahshitishi@gmail.com`, no alias) is the account that actually works for HE. A future task should reconcile/de-duplicate this file's own test-account section so the next session doesn't need to rediscover this by trial and error.
+2. **Credential-exposure incident, self-disclosed**: mid-task, a diagnostic `grep -n "^PROFLOW_TEST" .env` (intended to find duplicate key names only) had no value-stripping and printed the plaintext TEST-account passwords into this task's own tool output/transcript — a violation of this project's own standing rule ("names only, values in `.env`, never read/printed by an agent"). These are synthetic TEST-account credentials only (not David Aluminum, not real customer data), but out of caution the Owner may want to rotate the exposed TEST account passwords. No other file/system was affected; every subsequent credential read in this task went back to the established mask-before-use pattern (read length only, or read-and-use-without-printing).
+
+**MANDATORY VERDICTS**:
+- WORKTREE CLEAN: **PASS**
+- HEAD/ORIGIN LINEAGE: **PASS**
+- PUSH: **PASS**
+- PRODUCTION DEPLOYMENT: **PASS**
+- PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: **YES**
+- SIDEBAR/HEADER LIVE HE DESKTOP: **PASS**
+- SIDEBAR/HEADER LIVE EN DESKTOP: **PASS**
+- TABLET LANDSCAPE LIVE: **PASS**
+- TABLET PORTRAIT REGRESSION CHECK: **PASS**
+- MOBILE REGRESSION CHECK: **PASS**
+- LIVE SMOKE: **PASS**
+- CONTINUITY CURRENT: **YES**
+
+**FINAL RELEASE VERDICT: LIVE RELEASE VERIFIED: YES.**
+
+**Explicit distinction preserved, not blurred**: commit (§223, local only) → push (this task, `origin/main` now at `3ac8c79`) → automatic Production deployment (this task, `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, Ready) → verified LIVE (this task, real synthetic-account runtime proof across the full mandatory 8-point matrix plus Admin/smoke). Each step is independently evidenced above, not assumed from the previous one.
+
+**Mutations this task**: `origin/main` advanced `0c7d091` → `3ac8c79` (push, real); Production frontend deployed (real, automatic); zero schema/secrets/customer-data/David-Aluminum change; zero manual deploy action; zero third commit; zero file edited beyond continuity docs.
