@@ -46,46 +46,64 @@ function readEnvVar(name) {
   return line ? line.slice(name.length + 1).trim().replace(/^["']|["']$/g, '') : undefined;
 }
 
-const [targetUserId, tierName] = process.argv.slice(2);
-if (!targetUserId || !tierName || !TIERS[tierName] || !UUID_RE.test(targetUserId)) {
-  console.error(`Usage: node scripts/set-test-persona-tier.js <target_user_id> <tier>\n<target_user_id> must be a UUID.\nValid tiers: ${Object.keys(TIERS).join(', ')}`);
-  process.exit(1);
+// Exported so e2e/testPersonas.js (Playwright critical-journey suite) can
+// flip a persona's tier as a test setup step without shelling out to a
+// separate node process per call.
+export async function setPersonaTier({ targetUserId, tierName, supabaseUrl, anonKey, adminEmail, adminPassword }) {
+  if (!TIERS[tierName] || !UUID_RE.test(targetUserId)) {
+    throw new Error(`Invalid targetUserId/tierName. Valid tiers: ${Object.keys(TIERS).join(', ')}`);
+  }
+  const authRes = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+  });
+  const authData = await authRes.json();
+  if (!authRes.ok || !authData.access_token) {
+    throw new Error(`Super Admin auth failed: ${JSON.stringify(authData)}`);
+  }
+  const t = TIERS[tierName];
+  const patchRes = await fetch(`${supabaseUrl}/rest/v1/business_settings?user_id=eq.${targetUserId}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${authData.access_token}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({ plan: t.plan, trial_ends_at: t.trial_ends_at, is_lifetime: t.is_lifetime }),
+  });
+  const patchData = await patchRes.json();
+  if (!patchRes.ok) {
+    throw new Error(`PATCH failed (HTTP ${patchRes.status}): ${JSON.stringify(patchData)}`);
+  }
+  return patchData;
 }
 
-const supabaseUrl = readEnvVar('VITE_SUPABASE_URL');
-const anonKey = readEnvVar('VITE_SUPABASE_ANON_KEY');
-const adminEmail = process.env.TEST_SUPER_ADMIN_EMAIL;
-const adminPassword = process.env.TEST_SUPER_ADMIN_PASSWORD;
-if (!supabaseUrl || !anonKey || !adminEmail || !adminPassword) {
-  console.error('Missing config: VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (from .env.localtest.local) and TEST_SUPER_ADMIN_EMAIL/TEST_SUPER_ADMIN_PASSWORD (env vars) are all required.');
-  process.exit(1);
+async function runAsCli() {
+  const [targetUserId, tierName] = process.argv.slice(2);
+  if (!targetUserId || !tierName || !TIERS[tierName] || !UUID_RE.test(targetUserId)) {
+    console.error(`Usage: node scripts/set-test-persona-tier.js <target_user_id> <tier>\n<target_user_id> must be a UUID.\nValid tiers: ${Object.keys(TIERS).join(', ')}`);
+    process.exit(1);
+  }
+  const supabaseUrl = readEnvVar('VITE_SUPABASE_URL');
+  const anonKey = readEnvVar('VITE_SUPABASE_ANON_KEY');
+  const adminEmail = process.env.TEST_SUPER_ADMIN_EMAIL;
+  const adminPassword = process.env.TEST_SUPER_ADMIN_PASSWORD;
+  if (!supabaseUrl || !anonKey || !adminEmail || !adminPassword) {
+    console.error('Missing config: VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (from .env.localtest.local) and TEST_SUPER_ADMIN_EMAIL/TEST_SUPER_ADMIN_PASSWORD (env vars) are all required.');
+    process.exit(1);
+  }
+  try {
+    const result = await setPersonaTier({ targetUserId, tierName, supabaseUrl, anonKey, adminEmail, adminPassword });
+    console.log(JSON.stringify(result, null, 2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
 
-const authRes = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-  method: 'POST',
-  headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: adminEmail, password: adminPassword }),
-});
-const authData = await authRes.json();
-if (!authRes.ok || !authData.access_token) {
-  console.error('Super Admin auth failed:', authData);
-  process.exit(1);
+import { pathToFileURL } from 'node:url';
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await runAsCli();
 }
-
-const t = TIERS[tierName];
-const patchRes = await fetch(`${supabaseUrl}/rest/v1/business_settings?user_id=eq.${targetUserId}`, {
-  method: 'PATCH',
-  headers: {
-    apikey: anonKey,
-    Authorization: `Bearer ${authData.access_token}`,
-    'Content-Type': 'application/json',
-    Prefer: 'return=representation',
-  },
-  body: JSON.stringify({ plan: t.plan, trial_ends_at: t.trial_ends_at, is_lifetime: t.is_lifetime }),
-});
-const patchData = await patchRes.json();
-if (!patchRes.ok) {
-  console.error(`PATCH failed (HTTP ${patchRes.status}):`, patchData);
-  process.exit(1);
-}
-console.log(JSON.stringify(patchData, null, 2));

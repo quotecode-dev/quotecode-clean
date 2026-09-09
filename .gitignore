@@ -35,3 +35,9 @@ google-indexing-key.json
 # an external pentester) - never committed, local artifact only.
 pentest-source-review/
 pentest-source-review.zip
+
+# Playwright critical-journey suite (e2e/) run artifacts - never committed.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
