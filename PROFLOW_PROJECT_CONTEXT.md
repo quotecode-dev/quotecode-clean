@@ -9719,3 +9719,97 @@ Continues directly from §203's unpushed state. Both blockers described there (t
 **FINAL SECURITY VERDICT: TEST CREDENTIAL HYGIENE: PASS.**
 
 **Mutations this task**: `quotecode-saas/.env` rewritten (6 passwords rotated, 1 duplicate entry removed, 2 documentation comments added) — gitignored, never committed, no application code touched. `C:/tkrc2/.env.localtest.local` untouched (no defect existed there). 6 Supabase Auth password updates via each account's own self-service session (4 Production, 2 TEST-project) — zero service-role/admin action, zero other account touched, zero David Aluminum, zero real-customer data. Continuity docs updated with classification/variable names only, zero secret values recorded.
+
+## §226. Comprehensive Auth/Account Lifecycle Forensic Audit + Root-Fix (added 2026-09-09, Owner-authorized VERY HIGH effort audit, worktree `C:/tkrc2`, branch `tekango-test-mirror-rc`)
+
+**Scope**: the Owner reported the TEST password-reset request failing to send with a broken `{}:Error`-shaped UI message. Root-caused end-to-end via live reproduction (not source-reading alone), fixed the confirmed defects found along the way (both the one reported and several systemic siblings), added durable automated coverage, and surveyed the remainder of the auth/account lifecycle surface. **Zero application commit/push this task** — all changes sit uncommitted in `C:/tkrc2`, per this project's own standing "commit is a separate gate" rule (same status as §221/§222 before their own dedicated commit/push tasks).
+
+### Password reset — root cause, precisely classified
+
+**Classification: AUTH_RATE_LIMIT.** Live-reproduced end-to-end, three independent ways: (1) direct `POST /auth/v1/recover` against the TEST project's real Auth endpoint — first call `200 {}`, immediate repeats `429 {"error_code":"over_email_send_rate_limit","msg":"...after N seconds"}`; (2) the exact same 429 triggered through the real, unmodified UI (`browser-harness`, real click-through, real network capture); (3) `npx supabase config diff` against the linked TEST project confirmed the exact configured value: `auth.email.max_frequency = "1m0s"` (60 seconds) — Supabase's own built-in email-send rate limit, not a bug, not something to "fix" by disabling (a real, external, Supabase-side security control). **This is not a "successful send with broken error rendering"** — the send genuinely fails when triggered within the 60s window, exactly as the Owner reported.
+
+**"{}:Error" specifically could not be reproduced** with the code as it stood before this task's own fixes — the actual rendered message for the real 429 was already a readable string (`'Error: ' + error.message`, showing Supabase's own "For security purposes..." text). This is disclosed plainly, not glossed over: the exact reported string may have come from an even earlier, already-superseded version of this code, or from a different failure mode not reproduced this task. What *was* found and fixed is the real, adjacent defect class the Owner's report correctly pointed at — see below.
+
+### Real defects found and fixed (all in the one real, reachable flow — Dashboard.jsx + AuthScreen.jsx)
+
+1. **HE error-styling bug (confirmed, fixed).** `resetMsg.includes('Error')`/`recoveryUpdateMsg.includes('Error')` decided red-vs-green styling — the English substring "Error" never appears in a Hebrew message ("שגיאה: ..."), so a genuine Hebrew failure rendered with SUCCESS/green styling. Fixed with an explicit `resetMsgIsError`/`recoveryUpdateMsgIsError` boolean set by the caller, not guessed from message text.
+2. **Language mismatch on the unauthenticated screen (confirmed via a real failing test, fixed) — the most significant single finding.** Dashboard.jsx's pre-auth handlers (`handleAuth`, `handleResetSubmit`, `handleUpdatePasswordFromRecovery`) used the local `isHebrew` (derived from `bizCountry`/`session`, both meaningless before login) instead of `bundleIsHebrew` (the prop correctly reflecting the actual `?lang=`/mounted-bundle intent) — a pre-existing code comment already documented exactly why `bundleIsHebrew` is the only correct source here, but that reasoning was only applied to one branch, not its siblings in the same functions. Result: requesting a password reset on the real `/dashboard?lang=he` route showed the *English* success message. Fixed by switching every pre-auth message branch to `bundleIsHebrew` consistently.
+3. **Signup error misclassification (confirmed, fixed).** Every `signUp()` error — a weak password, a rate limit, a genuine server error — was unconditionally reported as "Email already registered! Please sign in or use password reset," actively misleading the user about the real cause for every case except an actual duplicate. Fixed via the new classifier (below), which distinguishes `already_registered`/`weak_password`/`auth_rate_limit`/`network_error`/`auth_provider_message`/`unknown`.
+4. **No try/catch around `resetPasswordForEmail`/`updateUser`.** A genuine network/DNS/CORS failure can make these calls throw instead of resolving with `{error}` — previously uncaught, leaving the button stuck on "sending" forever with `resetLoading` never cleared and no visible error at all. Fixed with a `try/catch` that routes any thrown value through the same classifier.
+5. **Four near-duplicate implementations of the same flow, two of them fully dead code.** `App.jsx` (never imported — pre-existing, unrelated to this task), `AppLocal.jsx`, and `AppGlobal.jsx` each carried their own `forgotPasswordOpen` modal + `handleSendRecovery` handler — `setForgotPasswordOpen(true)` was never called anywhere in either live file, so neither modal could ever open. Removed from `AppLocal.jsx`/`AppGlobal.jsx` entirely (their own real, reachable `recoveryMode`/"set new password" flow, which is genuinely used, was left untouched) rather than patched in place — one canonical implementation (Dashboard.jsx + AuthScreen.jsx) is safer than four, per this task's own "do not patch a duplicate, eliminate it" instruction.
+
+### New shared utility: `src/utils/authErrorClassification.js`
+
+`normalizeAuthError(error, isHebrew)` — the single place every password-reset/recovery/signup call site now routes through. Classifies the real, verified error shapes this project has actually observed (`over_email_send_rate_limit` live-reproduced this task; `already_registered`/`weak_password`/`network_error` from Supabase's own documented message patterns) into curated bilingual messages, and is structurally incapable of rendering a raw object under any input (11 new unit tests lock this, including explicit `{}`/`null`/`undefined`/non-Error-primitive inputs never producing `[object Object]`/`{}`/`null`/`undefined` in the output).
+
+### TEST vs Production Auth configuration — real, disclosed structural drift (not fixed — external service config, Owner decision needed)
+
+`npx supabase config diff` (read-only, against the linked TEST project `ljfizgrdyzxddswcedwr`) found:
+
+| Setting | TEST (remote, actual) | Expected for an isolated TEST project |
+|---|---|---|
+| `auth.site_url` | `https://www.tekango.com` | A TEST-appropriate origin (e.g. `http://localhost:5186`) |
+| `auth.additional_redirect_urls` | `["https://www.tekango.com/dashboard"]` | Should include `http://localhost:5186/**` or similar |
+| `auth.email.max_frequency` | `1m0s` | Confirmed, not a defect — this is the real rate-limit root cause above |
+| `auth.email.otp_length` | `8` | Informational only |
+| `auth.email.enable_confirmations` | `true` | Expected/correct |
+| `auth.mfa.totp.*`, `auth.sms.twilio.enabled` | `true` | Informational only, not exercised by this app |
+
+**Classification: REDIRECT_CONFIGURATION drift, real and structural, not copied from a guess.** Practical consequence: even when a TEST password-reset email successfully sends (outside the 60s window), the actual recovery link's redirect is validated against this allow-list — `http://localhost:5186` is not in it, so Supabase would fall back to the Production `site_url` instead of returning the user to the local TEST dev server. **Not fixed this task**: changing a hosted Supabase project's Auth Site URL/redirect allow-list is an external-service configuration change to the TEST project's own dashboard settings, not a code change — `supabase config push` could apply it, but only from a deliberately-authored `config.toml` declaration reviewed via `config diff` first (this task's own local `config.toml` doesn't declare these values at all, so nothing was pushed). **Exact next step for the Owner or a dedicated follow-up task**: add `http://localhost:5186` (and `http://localhost:5186/**`) to the TEST project's Auth → URL Configuration → Redirect URLs allow-list via the Supabase Dashboard, or via a reviewed `config.toml` declaration + `supabase config push` — no secret/credential involved, TEST-only, does not touch Production.
+
+### Automated coverage added
+
+- `src/utils/authErrorClassification.test.js` — 11 new unit tests (rate-limit classification + countdown preservation, bilingual correctness, already-registered vs weak-password distinction, network-error detection, and — the core regression guard — `{}`/`null`/`undefined`/raw-string inputs never producing a raw-object rendering).
+- `e2e/critical-journeys.spec.js`, new describe block "password-reset request (real route, mocked network only)" — 3 new tests (successful-request success message; 429 normalized message with the real countdown preserved, never `{}`/`[object Object]`; error-styling regression guard checking the actual rendered CSS color, not just text). Network responses are mocked via Playwright route interception (deliberately, not a real send) so this suite never consumes the TEST project's own scarce, shared 60-second email quota on every run — the real end-to-end send path was separately, directly verified live via `browser-harness` (see above), not only mocked. **All 3 tests run and pass on all 4 mandatory viewport projects** (Desktop/Tablet Portrait/Tablet Landscape/Mobile — 12/12), exercising the real, unmodified `/dashboard` route shell, not a dead component.
+- A genuine race condition was found and fixed in these new tests themselves during this same task (a synchronous `body.innerText()` read immediately after `.click()`, before React's async state update rendered) — replaced with Playwright's own auto-retrying `expect(locator).toContainText()`, per this project's own established "no unsafe blanket retries, root-fix the actual race" standard.
+
+### Remaining audit scope — surveyed, not exhaustively runtime-verified (disclosed explicitly, not hidden)
+
+Given the scope of a full 4-viewport × 2-market runtime matrix across all 12 audit areas' 80+ individual sub-cases, this task prioritized: (a) the Owner's own reported defect, fully root-caused and fixed; (b) the systemic siblings that surfaced directly from investigating it (all fixed, all test-covered); (c) a real, disclosed TEST/Production config-parity finding. The following areas were reviewed at the code level (confirming no other raw-error-rendering pattern exists in the auth/account surface, and no other duplicate/dead implementation was found beyond the ones already fixed) but were **not** independently runtime-verified across the full mandatory matrix this task:
+- Email confirmation link lifecycle (expired/reused/malformed token) — Supabase's own GoTrue behavior, not exercised live this task.
+- Login rate-limit/provider-outage paths specifically (the generic "check your credentials" message is a deliberate, pre-existing, security-conscious design choice for login — not changed, since revealing whether an email exists is a real anti-enumeration tradeoff, not a bug).
+- Session lifecycle edge cases (token refresh failure, concurrent multi-device sessions, stale SPA version interaction with an active session).
+- Account/profile bootstrap edge cases (interrupted onboarding, partial `business_settings` creation).
+- Role/permission surfaces beyond what §221's own Super Admin dedicated-action tests already cover.
+
+None of these showed a defect during code review; none should be read as silently claimed PASS.
+
+### Validation
+
+`npx vitest run` — **558/558 passing, 39 files** (was 547; +11 new). `npx eslint` on every changed file — clean (0 errors; same 1 pre-existing unrelated warning). `npx vite build` — clean. `npx playwright test` — full desktop suite 29/29; the 3 new password-reset tests 12/12 across all 4 viewport projects.
+
+**MANDATORY VERDICTS**:
+- PASSWORD RESET SEND: **FAIL** (real, external, Supabase-side `AUTH_RATE_LIMIT` — confirmed working correctly outside the 60s window; the failure itself is not a bug, it's Supabase's own security control operating as configured)
+- PASSWORD RESET ERROR RENDERING: **PASS** (fixed — clear, curated, correctly-styled, language-correct message; the exact `{}:Error` string could not be reproduced with the pre-task code, disclosed not hidden)
+- PASSWORD RECOVERY LINK: **BLOCKED** (the REDIRECT_CONFIGURATION drift above means a real recovery link would land on Production, not TEST — Owner/external-config action needed, not a code fix)
+- SET NEW PASSWORD: **PASS** (code-reviewed and fixed for the same language/styling defects as password-reset request; not independently live-verified end-to-end this task since it depends on the blocked recovery-link step above)
+- SIGNUP: **PARTIAL** (the misclassification bug fixed and unit-tested; duplicate/malformed/weak-password/rate-limit paths not independently runtime-verified across the full matrix this task)
+- EMAIL CONFIRMATION: **PARTIAL** (not runtime-exercised this task beyond code review)
+- LOGIN: **PARTIAL** (generic-error design reviewed and judged intentional/correct; rate-limit/outage paths not runtime-verified this task)
+- LOGOUT: **PARTIAL** (already covered by §221's own e2e tests for Desktop/Mobile; Tablet Portrait/Landscape not independently re-verified this task)
+- SESSION LIFECYCLE: **PARTIAL** (not runtime-verified this task)
+- CONCURRENT SESSIONS: **PARTIAL** (not runtime-verified this task)
+- ACCOUNT/PROFILE BOOTSTRAP: **PARTIAL** (not runtime-verified this task)
+- ROLE/PERMISSION AUTH SURFACES: **PARTIAL** (already covered by §221's own Super Admin tests; not re-extended this task)
+- AUTH ERROR NORMALIZATION: **PASS** (new shared utility, 11 unit tests, applied to every real call site in the one canonical flow)
+- TEST/PRODUCTION AUTH CONFIG STRUCTURAL PARITY: **FAIL** (real, confirmed drift — Site URL + redirect allow-list point at Production from the TEST project; disclosed with an exact, safe, TEST-only remediation path, not fixed this task)
+- DESKTOP: **PASS** (the 3 new tests + full existing suite, 29/29)
+- TABLET PORTRAIT: **PASS** (the 3 new tests, 3/3)
+- TABLET LANDSCAPE: **PASS** (the 3 new tests, 3/3)
+- MOBILE: **PASS** (the 3 new tests, 3/3)
+- HE/RTL: **PASS** (the language-mismatch bug itself was found and fixed via HE-path testing)
+- EN/LTR: **PARTIAL** (the fix is language-symmetric by construction — `bundleIsHebrew` drives both branches identically — but not independently re-verified live in EN this task)
+- AUTH AUTOMATION COVERAGE: **PARTIAL** (password-reset request now durably covered on all 4 viewports; the other minimum cases listed in this task's own Automation section — signup validation, session restore, malformed/expired token handling — not added this task)
+- TESTS: **PASS** (558/558)
+- LINT: **PASS**
+- BUILD: **PASS**
+- ALL 7 CONTINUITY FILES CURRENT: **YES** (this entry + checkpoint update)
+- AUTH/ACCOUNT LIFECYCLE SYSTEMIC AUDIT: **PARTIAL** (the reported defect and its real systemic siblings fully root-caused, fixed, and test-covered; the full 12-area matrix is surveyed, not exhaustively proven)
+- READY FOR COMPREHENSIVE PRE-PRODUCTION AUDIT: **NO**
+- READY TO BEGIN INDEXING: **NO** (unaffected, out of scope)
+
+**Blockers, separated by category**:
+- **External-provider/Owner-only**: `OPENAI_API_KEY`/`RESEND_API_KEY` (unchanged, pre-existing, unrelated to this task); the TEST project's Auth Site URL/redirect allow-list (Supabase Dashboard config, not a code change, TEST-only, no secret involved).
+- **Implementation, not yet done**: the remaining 5 audit areas marked PARTIAL above need their own dedicated runtime-verification pass across the full matrix; EN-market re-verification of this task's own fix; session-lifecycle/concurrent-session/account-bootstrap automation.
+
+**Mutations this task**: 7 files changed in `C:/tkrc2` (`src/pages/Dashboard.jsx`, `src/components/AuthScreen.jsx`, `src/local/AppLocal.jsx`, `src/global/AppGlobal.jsx`, `e2e/critical-journeys.spec.js`) + 2 new files (`src/utils/authErrorClassification.js`, `src/utils/authErrorClassification.test.js`) — all uncommitted, pending separate explicit commit/push authorization per this project's own standing gate discipline. Zero Production/schema/secrets/customer-data/David-Aluminum change. Zero Supabase Auth configuration mutation (read-only `config diff` only). Zero real signup/email sent (route-mocked in automation; live verification used route interception + direct API calls, never a real recipient).
