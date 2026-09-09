@@ -4,83 +4,70 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Replace the Four Frame-Based Teasers with Two TV-Commercial-Style Product Films
+## Task: TEKANGO Final Narrow Validation Closure
 
-**MODE: TEST/local-only. Authorized: local source/assets, synthetic recording, video production/encoding, landing-page preview integration behind the existing hidden gate, tests/lint/build, continuity documentation. NOT authorized: application commit/push, deployment, Production/LIVE change, publicly enabling the videos, database/schema/RPC change, real customer data, real email/WhatsApp/SMS, payments/invoices.**
+**MODE: TEST-only, isolated worktree `C:/tkrc2`. Authorized: TEST-only synthetic validation, reliability fixes for flaky mobile tests, EN persona creation if the rate limit permits, Super Admin test automation, Desktop/Tablet Portrait/Tablet Landscape/Mobile verification, safe tests/tooling, continuity updates after fresh verification. NOT authorized: copying Production secrets, deleting users, deleting orphan functions, Production customer-data mutation, David Aluminum use, Search Console/indexing/Change-of-Address/DNS/Analytics/Stripe, unrelated UI redesign/Professional Quotes work, destructive reset/stash/clean/discard.**
 
-Continuity bootstrap performed first: re-read all six canonical files' relevant tails plus this checkpoint in full; confirmed Fresh Local State (`git status` 78 entries, `HEAD` unchanged at `main`/`f3b59d0`) matched exactly where the prior "Final Landing Polish" task left off — no drift.
-
-**This task is reported as: both films implemented, muxed, captioned, and integrated behind the existing hidden gate, and locally verified to the full extent this environment can automate. It is NOT reported as fully accepted — Owner Final Visual Acceptance is explicitly PENDING, and the public gate has not been flipped.**
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §221.
 
 ---
 
-## The Owner's finding that drove this task
+## Bootstrap reconciliation
 
-The four teaser videos from the prior task (assembled from discrete `html2canvas` screenshots with a Ken-Burns zoom) read as "captions placed over still screenshots rather than films showing a real process" — not understandable even to someone who already knew what each video was meant to show. This task does not polish that structure; it replaces it with two complete commercial films built from genuine continuous screen-capture footage of the real, unmodified application.
+The local `main` working tree (canonical dirty development tree) was found 24 commits behind and 59 commits diverged from `origin/main` — its own local checkpoint described a materially different, stale state. Rather than treat the task's given baseline as fabricated, `origin/main` and this dedicated `quotecode-saas-continuity` worktree were checked directly — the baseline matched exactly (`CONFIG_MANIFEST.md`, `scripts/check-test-live-parity.js`, §220's own addendum). All work was performed in `C:/tkrc2` (already the adopted canonical TEST mirror per §219).
 
-## The core technical blocker, found and fixed
+## Mobile flaky tests — root-caused, not just re-confirmed
 
-`browser-harness`'s own recording is a low-frequency JPEG-per-event trace, not continuous video (already known from the prior task). This task instead drives Chrome's `Page.startScreencast` CDP domain directly over a raw WebSocket (`websocket-client`, a local `pip install`), running independently alongside `browser-harness`'s own CDP session.
+Running each of the 3 disclosed tests (Business Settings/Catalog/Admin table) in isolation found a real, deterministic defect, not timing/contention: `clickVisibleNav`'s `getByRole('button', ...)` never matches Dashboard.jsx's mobile "More"-popover items, which deliberately render as `<button role="menuitem">` (a correct, intentional ARIA menu pattern). This fails 100% of the time regardless of load — the prior "disclosed-flaky-under-load" framing was incorrect. Fixed by matching either role. All 3 now PASS reliably; none appeared in any of 4 subsequent full-suite failure sets.
 
-Two real defects blocked this before it worked:
-1. **A backgrounded tab is throttled to exactly one screencast frame** — confirmed via `Browser.getWindowForTarget` reporting `windowState:"minimized"` even after `activate_tab()` and a direct Win32 `SetForegroundWindow` call. Fixed with `Page.setWebLifecycleState({state:"active"})` + `Emulation.setFocusEmulationEnabled({enabled:true})` — forces CDP-visible/focused state without depending on real OS window-manager focus. Verified before/after: 1 frame → 10+ frames for an identical interaction.
-2. A threading bug in the first recorder draft (concurrent `ws.send()` calls) silently stalled the frame pipeline after ~3 frames — fixed by moving to a single-threaded poll loop.
+**A separate, genuine, disclosed flakiness was found in its place**: running the WebKit (mobile/tablet) suite sequentially for 5-12+ minutes produces a non-deterministic ~15-30% failure rate — a different random test fails each time (2 full mobile runs: 7 and 6 failures; tablet-portrait: 3; tablet-landscape: 1 — no two runs sharing a failing test). Never reproducible in isolation, never present on Desktop/Chromium (26/26 clean, twice). One instance was self-confirmed live: a desktop test failed only because this task's own second concurrent Playwright process was competing for the dev server. This is a real, bounded, machine/WebKit-specific limitation — mitigated by raising the test timeout 60s→90s based on measured real load times (up to 45s cold), not eliminated (would need a dedicated CI runner or periodic browser recycling).
 
-A third defect, found while building custom scene graphics: `dir="rtl"` on `<html>` measurably shifts where a `position:absolute; left:Npx` descendant physically renders (empirically confirmed: `left:1180px` rendered at `x:1180` under `ltr`, `x:2800` under `rtl`) — fixed with an explicit `direction:ltr` on the positioning container.
+## EN persona — available, not a new signup
 
-## What was built
+Before touching the disclosed Supabase Auth rate limit, a direct password-grant login check (no email sent, not rate-limited) found **4 EN/International personas already exist and work today** (`PROFLOW_TEST_INTL_{FREE,BASIC,PRO,EXPIRED}_EMAIL`, created 2026-08-31, predating the rate-limit block). No new signup was attempted. `PERSONA_EN` (PRO tier) was wired into `e2e/testPersonas.js`; `login()` generalized to accept a `lang` parameter. 6 new EN journey tests added (Dashboard/Quotes/Business Settings/Clients/Finances/Catalog) — all PASS on Desktop and both Tablet orientations (18/18), asserting `dir="ltr"`, real English content, zero Hebrew-Unicode/₪ leakage.
 
-**Storyboard/script first** (`video-production/film-v2/script.md`): full bilingual six-beat storyboard (problem → introduce ProFlow → real workflow → business-to-customer → result → end card), final narration per beat, short synced captions, and a claims-vs-functionality check — written before any rendering.
+## Tablet — added as first-class
 
-**Real footage**: two brand-new synthetic sessions in the two existing TEST accounts, with a persistent `MutationObserver` redaction watcher (survives React re-renders during a live multi-second recording, unlike a one-shot swap) substituting a synthetic business identity throughout. New quotes: **A100705** (EN, "Emily Carter," "Oak Bookshelf Unit," $153.00) and **A100708** (HE, "דוד לוי," "מדף עץ אלון," ₪153.00 incl. VAT), each carried through the real guided wizard and the real, unmodified `public_approve_quote` flow with a genuine synthetic mouse-drawn signature. Two real privacy leaks were caught and fixed during review, not after: a stray "Hot Quote!" banner naming an unrelated internal quote (hidden before recording Beat E), and one English mobile-view capture taken while still authenticated (showing the wrong "Admin View" surface — discarded and re-recorded signed-out). Two WhatsApp share links were captured via an intercepted `window.open` — no real message was ever sent.
+`playwright.config.js` previously had only `desktop`/`mobile`. Added `tablet-portrait`/`tablet-landscape` (`iPad Mini`, both orientations) as real, independent projects — not folded into Mobile.
 
-**Custom scenes**: two original HTML/CSS scenes (a "the problem" flat-lay with a generic chat bubble/calculator/sticky notes, and a logo reveal/end-card reusing `ProFlowLogo.jsx`'s exact real gradient treatment) captured via native `Page.captureScreenshot`.
+## Super Admin dedicated actions — extended, one real defect found and fixed
 
-**Voice-over**: `edge-tts` (licensed Microsoft neural-voice service, not voice cloning) — `he-IL-HilaNeural` / `en-US-AriaNeural`. Beats C/D narrated as short phrases synced to individual real actions, not one continuous paragraph. No music — no safely-licensable source available; captions + narration verified sufficient for muted comprehension.
+Added role/plan display (Admin page must show real plan-catalog vocabulary) and privileged-action-surface gating (Delete User exists for Super Admin, absent for an ordinary user — presence-only, **never clicked**, a real destructive action correctly out of scope). Building these surfaced a genuine, previously-unknown defect via a real tablet-portrait failure: `AdminUsersTab.jsx` renders **two independent responsive layouts** with different Delete-button labels ("מחק משתמש"/"Delete User" title-only on wide viewports vs "מחק"/"Delete" visible text on narrow ones) and different plan-display interaction models (always-visible on wide, expand-on-tap on narrow). Both tests corrected to be layout-agnostic. Now PASS on all 4 viewport projects.
 
-**Assembly**: real footage reassembled from captured frames with their own true per-frame timestamps (not a uniform frame rate); mobile footage composited as a large, centered, blurred-backdrop phone mockup (not a tiny floating screenshot); static scenes given a restrained Ken-Burns zoom; final mux of video + narration + burned-in synced captions; H.264 High profile, 1920x1080, 25fps, AAC, `+faststart`.
+## Orphan functions / TEST secrets — unchanged, reconciled
 
-## Final specs
+`clever-processor`/`send-welcome-email` remain `UNWIRED_ORPHAN`; `CRON_SECRET`/`RESEND_WEBHOOK_SECRET` remain `NOT_REQUIRED` for TEST; `OPENAI_API_KEY`/`RESEND_API_KEY` remain `REQUIRED` + external-provider-blocked. `CONFIG_MANIFEST.md`/`scripts/check-test-live-parity.js` re-checked, already accurate.
 
-| File | Duration | Resolution | Size |
-|---|---|---|---|
-| `proflow-en-commercial.mp4` | 53.32s | 1920x1080 H.264 High | ~3.9 MB |
-| `proflow-he-commercial.mp4` | 53.80s | 1920x1080 H.264 High | ~3.7 MB |
+## Validation
 
-Both ~3-4s over the 40-50s target — disclosed as deliberate: Beats C/D reflect real, unaccelerated, human-legible interaction time; compressing further would reintroduce the "rapid unexplained jumps" the task explicitly forbids.
-
-## Review performed (this environment cannot play audio/video as a human would)
-
-Frame-by-frame visual inspection across every beat of both films; independent before/after capture of all five beat transitions (confirmed the D→E cut — full-screen phone mockup to full desktop dashboard showing the same quote now "Approved" — is an unambiguous business-owner/customer signal); stream-level duration/codec/audio verification; a structured muted-comprehension check (every beat carries an independent caption, so the full story is legible without sound).
-
-## Landing-page integration
-
-Both `LandingLocal.jsx`/`LandingGlobal.jsx`'s reserved video section (same position: after "How It Works," before the Features Grid) now renders **one** video card instead of four, `max-width:860px`, real `<video controls preload="none" poster aria-label>` + `<source>` + `<track kind="captions" default>`. `VIDEOS_READY` remains **`false`** — unchanged, the true public default. The existing `?previewVideos=1` local-only override (built in the prior task) was reused unchanged.
-
-## Old assets
-
-The four prior teaser `.mp4`/`.vtt`/poster files remain byte-for-byte on disk in `public/videos/`, untouched, simply unreferenced — per "do not permanently delete... before the Owner accepts the replacements." The prior task's entire `video-production/` workspace is also untouched; this task's new source material lives in a new, git-ignored `video-production/film-v2/` folder.
-
-## Verification
-
-`npx eslint` clean (0 errors). `npx vite build` succeeds (same pre-existing chunk-size advisory). `npx vitest run` **499/499 passing, 34 files** (unchanged — the gated section's structural code wasn't touched, only its data). Secret scan clean (the two TEST-account emails appear only in local, git-ignored production scripts, matching their already-established use throughout this project's tracked history). Responsive/overflow sweep at 320/360/392/430/768/1024/1440px, both locales, with `?previewVideos=1`: **zero overflowing elements at every width**. Video element confirmed keyboard-focusable with correct `controls`/`preload`/`autoplay`/`aria-label`/caption-track attributes. `git status` file count: **78, unchanged from the prior task** (re-verified directly: `video-production/film-v2/` is git-ignored and adds zero porcelain lines; `public/videos/` was already a single untracked-directory line and stays exactly that after gaining more files inside it). `HEAD` unchanged (`main`, `f3b59d0`).
-
-## Gaps, named plainly
-
-- Native `<video>` shadow-DOM play/pause/seek could not be fully exercised via CDP automation (a known automation limitation, not a markup defect) — attributes verified directly instead.
-- Both films run ~3-4s over the 40-50s target, disclosed and justified above.
-- No background music (no safely-licensable source available this session).
-- The Hebrew narration speaks the brand name as a phonetic transliteration ("פרופלואו") for correct pronunciation; every on-screen instance still shows the real "ProFlow" spelling.
+`npx vitest run` **547/547 passing, 38 files** (unchanged — zero application code touched). `npx eslint e2e/ playwright.config.js` clean. Repo-wide `npx eslint .` still shows the same 2 pre-existing, unrelated Professional Quotes errors (confirmed predating this task, out of scope, not touched). `npx vite build` clean.
 
 ## Explicit statements
 
 - **PRODUCTION/LIVE TOUCHED?** NO
-- **DEPLOYMENT PERFORMED?** NO
-- **APPLICATION COMMIT/PUSH PERFORMED?** NO (`HEAD` unchanged: `main`, `f3b59d0`)
-- **DATABASE/SCHEMA/RPC CHANGED?** NO — two new synthetic TEST quotes (A100705 EN, A100708 HE) were created/approved entirely through the app's own existing, unmodified mechanisms.
-- **REAL CUSTOMER DATA USED?** NO — synthetic identities throughout, substituted via non-persistent DOM redaction.
-- **REAL PAYMENT, INVOICE, EMAIL, WHATSAPP, OR SMS TRIGGERED?** NO — share links were captured via an intercepted `window.open`, never opened.
-- **ARE THE FILMS VISIBLE TO PUBLIC/DEFAULT VISITORS?** NO — `VIDEOS_READY` is `false` in both files; confirmed live (zero `<video>` elements, zero `/videos/` network requests on a plain page load).
-- **OWNER FINAL VISUAL ACCEPTANCE:** PENDING. Both films are implemented and locally verified to the fullest extent this environment can automate; the actual creative/visual quality judgment the task reserves for the Owner has not been made by anyone else.
+- **APPLICATION CODE CHANGED?** NO — zero `src/`/`supabase/` files touched.
+- **TEST/TOOLING CODE CHANGED?** YES — 3 files in `C:/tkrc2`: `e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js`.
+- **COMMIT/PUSH PERFORMED?** NO — left uncommitted pending separate explicit authorization, per this project's own standing "commit/push are separate gates" rule.
+- **NEW SIGNUP/EMAIL SENT?** NO — the EN persona was a pre-existing, already-confirmed account found via a login check, not a new signup.
+- **REAL CUSTOMER DATA / DAVID ALUMINUM TOUCHED?** NO.
+- **USERS DELETED / ORPHAN FUNCTIONS REDEPLOYED?** NO.
 
-**Recovery instruction for the next session**: both commercial films are functionally complete and wired in. The only remaining step is the Owner's own viewing (ideally with real audio, which this environment cannot itself produce) and an explicit approve/reject decision — only after that should `VIDEOS_READY` be considered for flipping to `true`, and only as a separate, explicitly-authorized action.
+## Mandatory verdicts
+
+- MOBILE FLAKY TESTS (named 3): **PASS**
+- FULL MOBILE/TABLET SUITE UNDER SUSTAINED LOAD: **STILL_FLAKY** (disclosed, environment-driven, not a regression)
+- EN TEST PERSONA: **AVAILABLE**
+- EN/LTR RUNTIME COVERAGE: **PASS** for 6 of 8 requested surfaces (Create Quote/Public Quote not yet EN-automated)
+- SUPER ADMIN DEDICATED ACTIONS AUTOMATION: **PASS**
+- DESKTOP / TABLET PORTRAIT / TABLET LANDSCAPE / MOBILE FUNCTIONAL PARITY: **PASS** functionally, **PARTIAL** operationally on the 3 non-desktop projects (same disclosed sustained-run WebKit caveat)
+- HE/EN MARKET SEPARATION: **PASS**
+- TESTS: **PASS** (547/547). LINT: **PASS** for changed files. BUILD: **PASS**.
+- ALL 7 CONTINUITY FILES CURRENT: **YES**
+- READY FOR COMPREHENSIVE PRE-PRODUCTION AUDIT: **NO**
+- READY TO BEGIN INDEXING: **NO** (unaffected, out of scope)
+
+**Remaining blockers, separated**:
+- **Owner/external-provider only**: `OPENAI_API_KEY` (OpenAI) and `RESEND_API_KEY` (Resend) TEST-specific values.
+- **Implementation, not yet done**: Create Quote / quote-email-send / a completed signature run remain unautomated for either market; the disclosed sustained-run WebKit flakiness is bounded/mitigated, not eliminated; the 3 changed test files await a separate commit/push authorization decision.
+
+**Recovery instruction for the next session**: the fixes and new tests described above exist only in the uncommitted working tree of `C:/tkrc2` (branch `tekango-test-mirror-rc`). If the Owner wants them preserved beyond this session, they need an explicit commit (and, separately, an explicit push) authorization — nothing was pushed to `origin/main` this task.
