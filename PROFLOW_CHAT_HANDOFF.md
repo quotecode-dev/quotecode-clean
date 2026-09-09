@@ -401,7 +401,10 @@ Production (`clever-processor` and `send-welcome-email` have **no local
 source anywhere in this repo** — undocumented drift, purposes unclarified),
 **0 on TEST**. `get-public-quote` is the sole data source for the entire
 Public Quote page (not just attachments) — the single most important
-function for a first visible milestone.
+function for a first visible milestone. **[STALE, corrected 2026-09-09]**:
+source for both is now recovered (§218) and their wiring is CONFIRMED
+absent on both projects, not merely undocumented — see
+`PROFLOW_PROJECT_CONTEXT.md` §220.
 
 **Agent HE: PASS WITH CONDITIONS. Agent EN: BLOCKED** (citing the
 long-documented absence of any non-Owner International identity). **Claude
