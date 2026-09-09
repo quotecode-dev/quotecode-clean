@@ -4,73 +4,76 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Final Clean-Worktree Check + Push/Production Release
+**This report intentionally contains zero secret values, per this task's own explicit rule — every reference below is to a variable name or classification, never a password/token.**
 
-**MODE: Owner-authorized push + live Production deployment + synthetic-account verification, worktree `C:/tkrc2`. Authorized: exact clean-worktree check, push of only `74ca11e`+`3ac8c79`, the resulting automatic Vercel deployment, synthetic/test-safe post-deploy verification, continuity updates. NOT authorized: any new application change, any third commit, real customer data, David Aluminum, destructive cleanup, DNS/Search Console/indexing/Analytics/Stripe, unrelated Professional Quotes work.**
+## Task: Rotate Exposed Synthetic TEST Passwords + Clean TEST Env Duplicates
 
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §224.
+**MODE: security-hygiene, narrow scope. Authorized: rotate affected synthetic TEST passwords, update the approved TEST-local env credentials, remove duplicate/conflicting TEST env entries, update TEST persona mapping/tooling if needed, targeted TEST validation, continuity updates without secret values. NOT authorized: Production customer password changes, real user changes, David Aluminum, Production secrets, copying Production credentials into TEST, deleting users, unrelated application changes.**
+
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §225.
 
 ---
 
-## Step 1 — Clean-worktree/lineage check
+## 1. Accounts identified as affected
 
-`git status --porcelain` → empty. `HEAD` = `3ac8c79...`. Fresh-fetched `origin/main` = `0c7d091...` (unchanged). `git log --oneline origin/main..HEAD` = exactly `74ca11e` then `3ac8c79`. **PASS.**
+Every credential line the prior task's diagnostic `grep` printed:
 
-## Step 2 — Push
+| Variable | Role | Market | Environment |
+|---|---|---|---|
+| `PROFLOW_TEST_USER1_EMAIL`/`PASSWORD` | Ordinary user | HE/Local | Production |
+| `PROFLOW_TEST_USER2_EMAIL`/`PASSWORD` | Ordinary user | EN/International | Production |
+| `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` | Super Admin | N/A | Production |
+| `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` (1st occurrence) | Ordinary user | EN/International | Production |
+| `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` | Ordinary user | HE/Local | TEST Supabase project only |
+| `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` (2nd/duplicate occurrence) | Ordinary user | EN/International | TEST Supabase project only |
 
-`git push origin tekango-test-mirror-rc:main` → clean fast-forward `0c7d091..3ac8c79`. Re-fetched and confirmed the remote now matches exactly. **PASS.**
+## 2. Rotation
 
-## Step 3 — Production deployment
+All 6 rotated via each account's own self-service session: login with the old (now-exposed) password → `PUT /auth/v1/user` with a fresh 24-character cryptographically random password → verified with a subsequent login using only the new password. No service-role/admin key used or needed. No other account touched. No password value — old or new — was printed at any point.
 
-Vercel's automatic Git-integration deploy completed within ~1 minute: `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, status Ready, aliased `www.tekango.com` (and the other production aliases). No manual deploy triggered. **PASS.**
+## 3. Canonical env cleanup
 
-## Artifact identity
+`quotecode-saas/.env`: the duplicate 2nd `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` pair (confirmed unreferenced by any script/test in the repo) was removed entirely. Exactly one `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` pair remains — the Production-working one — with a new in-file comment marking it canonical. `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` was kept (a real, still-working account, not a duplicate), with a new in-file comment documenting its TEST-project-only nature.
 
-Live-bundle content-grep of the deployed `www.tekango.com` main JS bundle (`index-C9kKPAXz.js`) found Commit B's exact new source verbatim: `border-top-left-radius: ${ur.lg}`, `margin-top: 16px`, `calc(100% - 16px)`. Commit A (`e2e/`, `playwright.config.js`) has no frontend-bundle footprint by design; its inclusion is established via `origin/main`'s own confirmed git ancestry instead. **PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: YES.**
+## 4. `PROFLOW_TEST_LOCAL_*` classification
 
-## Step 4 — Post-deploy verification (real Production, designated TEST accounts only)
+**EXPECTED_TEST_ONLY.** Verified directly: these credentials authenticate successfully against the isolated TEST Supabase project every time, and return a genuine credential error against Production every time. This is a real account that was only ever created in the TEST project — not a misconfiguration, not stale, and per this task's own instruction, not treated as a blocker and not force-fitted into Production.
 
-| Check | Result |
-|---|---|
-| Desktop HE (sidebar.top===header.top, radius, footer reachable) | PASS |
-| Desktop EN | PASS |
-| Tablet Landscape HE | PASS |
-| Tablet Landscape EN | PASS |
-| Tablet Portrait HE (regression: mobile shell, no sidebar) | PASS |
-| Tablet Portrait EN (regression) | PASS |
-| Mobile HE (regression) | PASS |
-| Mobile EN (regression) | PASS |
-| Admin/Super Admin route | PASS (real content loaded, no crash on reload) |
-| Landing / /he / /en HTTP | 200 / 200 / 200 |
+## 5. Persona source of truth
 
-All measurements via `getBoundingClientRect()`/`getComputedStyle()` live in-browser — not inferred from source.
+`PROFLOW_CODEX_CHECKPOINT.md`'s "Test-account routing" section rewritten as an explicit two-table reference: Table A (Production-safe — USER1/USER2/ADMIN/canonical INTL) and Table B (TEST-Supabase-project-only — LOCAL plus the full existing `.env.localtest.local` persona roster, including the separate e2e-suite `PERSONA_EN`, which is a genuinely different account from Table A's Production `PROFLOW_TEST_INTL_EMAIL`). Names, roles, markets, environments only — zero values.
 
-## Side findings (disclosed, not fixed — out of this task's scope)
+## 6. Validation
 
-1. The primary dirty tree's `.env` has **duplicate, conflicting `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` entries** — only the first occurrence works on Production. `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` also failed to authenticate; `PROFLOW_TEST_USER1_EMAIL` (no alias) is the account that actually works for HE. A future task should de-duplicate this file.
-2. **Credential-exposure incident, self-disclosed**: a diagnostic `grep -n "^PROFLOW_TEST" .env` (meant to find duplicate key *names* only) printed plaintext TEST-account passwords into this task's own tool output — a violation of this project's own "never print credential values" rule. Synthetic TEST accounts only, never David Aluminum, never real customer data — but the Owner may want to rotate the exposed TEST passwords out of caution.
+Fresh logins performed reading directly from the updated `.env` (not from memory or cache):
+- HE (`USER1`) on Production: **PASS**
+- EN (`INTL` canonical) on Production: **PASS**
+- Super Admin (`ADMIN`) on Production: **PASS**
+- `LOCAL` on the TEST project: **PASS**
+
+`e2e/testPersonas.js`/`.env.localtest.local` untouched (the duplicate-key defect never existed there — confirmed zero occurrences of a colliding key name); still resolves exactly one credential set per persona. No application code changed, so the full `vitest`/lint/build suite provides no additional signal for this change and was not re-run — stated explicitly, not silently skipped.
+
+## 7. Security scan
+
+`git grep` for the exposed password string across the full working tree of both `quotecode-saas` and `quotecode-saas-continuity`: **zero matches, either repo.** `git log --all -S"<string>"` across full history, all branches, both repos: **zero matches, either repo** — the string was never introduced or removed by any commit, ever. Both `.env` files are `.gitignore`d and were never committed. The only place the old values ever appeared was this session's own transient tool-call output (the original incident) — never a tracked file, never git history, never a continuity doc.
 
 ## Mandatory verdicts
 
-- WORKTREE CLEAN: **PASS**
-- HEAD/ORIGIN LINEAGE: **PASS**
-- PUSH: **PASS**
-- PRODUCTION DEPLOYMENT: **PASS**
-- PRODUCTION ARTIFACT MATCHES EXPECTED TWO COMMITS: **YES**
-- SIDEBAR/HEADER LIVE HE DESKTOP: **PASS**
-- SIDEBAR/HEADER LIVE EN DESKTOP: **PASS**
-- TABLET LANDSCAPE LIVE: **PASS**
-- TABLET PORTRAIT REGRESSION CHECK: **PASS**
-- MOBILE REGRESSION CHECK: **PASS**
-- LIVE SMOKE: **PASS**
+- EXPOSED SYNTHETIC TEST PASSWORDS IDENTIFIED: **YES** (6)
+- EXPOSED SYNTHETIC TEST PASSWORDS ROTATED: **YES** (6/6)
+- TEST PERSONA LOGINS AFTER ROTATION: **PASS**
+- TEST ENV DUPLICATES: **CLEAN**
+- TEST PERSONA SOURCE OF TRUTH: **PASS**
+- `PROFLOW_TEST_LOCAL_*` CLASSIFICATION: **EXPECTED_TEST_ONLY**
+- PLAINTEXT SECRET IN TRACKED FILES: **NONE**
+- PLAINTEXT SECRET IN CONTINUITY DOCS: **NONE**
+- TARGETED TESTS: **PASS**
 - CONTINUITY CURRENT: **YES**
 
-## FINAL RELEASE VERDICT
+## FINAL SECURITY VERDICT
 
-**LIVE RELEASE VERIFIED: YES**
+**TEST CREDENTIAL HYGIENE: PASS**
 
-Explicit distinction preserved: commit (§223, local) → push (this task, `origin/main` now `3ac8c79`) → automatic Production deployment (this task, `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, Ready) → verified LIVE (this task, real synthetic-account runtime proof). Each step independently evidenced.
+**Mutations this task**: `quotecode-saas/.env` rewritten (gitignored, never committed, zero application code touched); 6 Supabase Auth self-service password updates (4 Production accounts, 2 TEST-project accounts); zero David Aluminum; zero real-customer data; zero service-role/admin action; continuity docs updated with variable names/classification only.
 
-**Mutations this task**: `origin/main` advanced `0c7d091` → `3ac8c79` (real push); Production frontend deployed (real, automatic); zero schema/secrets/customer-data/David-Aluminum change; zero manual deploy; zero third commit.
-
-**Recovery instruction for the next session**: the sidebar/header alignment polish and the e2e/test-tooling hardening are both LIVE on `www.tekango.com` as of this task. Nothing further is required for this specific release. The two disclosed side findings above (`.env` duplication, the credential-print incident) are open items for a future task, not blockers.
+**Recovery instruction for the next session**: every synthetic TEST account's password is now different from what any prior session's transcript may show — always read current values fresh from `.env`/`.env.localtest.local`, never trust a value seen in an old conversation. The "Test-account routing" section in this checkpoint is now the authoritative map of which variable belongs to which environment.

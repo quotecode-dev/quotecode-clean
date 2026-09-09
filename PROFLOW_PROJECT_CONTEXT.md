@@ -9676,3 +9676,46 @@ Continues directly from §203's unpushed state. Both blockers described there (t
 **Explicit distinction preserved, not blurred**: commit (§223, local only) → push (this task, `origin/main` now at `3ac8c79`) → automatic Production deployment (this task, `dpl_BneAwLV2qMwJX5baCjEEvVtCumQ7`, Ready) → verified LIVE (this task, real synthetic-account runtime proof across the full mandatory 8-point matrix plus Admin/smoke). Each step is independently evidenced above, not assumed from the previous one.
 
 **Mutations this task**: `origin/main` advanced `0c7d091` → `3ac8c79` (push, real); Production frontend deployed (real, automatic); zero schema/secrets/customer-data/David-Aluminum change; zero manual deploy action; zero third commit; zero file edited beyond continuity docs.
+
+## §225. Rotate Exposed Synthetic TEST Passwords + Clean TEST Env Duplicates (added 2026-09-09, same day as §224, Owner-authorized security-hygiene task — no secret values recorded anywhere in this section)
+
+**Scope**: §224's own self-disclosed credential-print incident (a diagnostic `grep` printed plaintext TEST-account passwords into that task's own tool output) required rotating every affected account and resolving the `PROFLOW_TEST_INTL_*` duplicate-key conflict that caused the underlying confusion. Zero application/business logic touched; zero David Aluminum; zero real-customer data.
+
+**1. Accounts identified as affected** (every credential line the incident's `grep -n "^PROFLOW_TEST"` printed, in `quotecode-saas/.env`):
+
+| Variable (old) | Role | Market | Environment | Status found |
+|---|---|---|---|---|
+| `PROFLOW_TEST_USER1_EMAIL`/`PASSWORD` | Ordinary user | HE/Local | **Production** | Confirmed live account |
+| `PROFLOW_TEST_USER2_EMAIL`/`PASSWORD` | Ordinary user | EN/International | **Production** | Confirmed live account |
+| `PROFLOW_TEST_ADMIN_EMAIL`/`PASSWORD` | Super Admin | N/A | **Production** | Confirmed live account |
+| `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` (1st occurrence) | Ordinary user | EN/International | **Production** | Confirmed live account — the one actually used throughout §221-§224 |
+| `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` | Ordinary user | HE/Local | **TEST Supabase project only** | Confirmed live account, fails on Production every time |
+| `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` (2nd/duplicate occurrence) | Ordinary user | EN/International | **TEST Supabase project only** | Confirmed live account, distinct from the 1st occurrence, silently overriding it whenever the file was parsed sequentially (last-wins) |
+
+**2. Rotation — every one of the 6 rows above**, via each account's own self-service `auth.updateUser()` call (login with the old, now-exposed password to obtain an access token, then `PUT /auth/v1/user` with a freshly-generated 24-character cryptographically random password, then a fresh login proving the new password alone works) — no service-role/admin key needed or used, no other account touched. All 6: **ROTATED + VERIFIED**. No old or new password value was printed at any point in this task's own output — only per-account success/failure and generated-length were logged.
+
+**3. Canonical env cleanup, `quotecode-saas/.env`**: the duplicate second `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` pair (the TEST-project-only account) was removed entirely from this Production-scoped file — it is not referenced by any script/test anywhere in the repo (grep-confirmed before removal), so nothing depends on it. Exactly one `PROFLOW_TEST_INTL_EMAIL`/`PASSWORD` pair remains, the Production-working one. A new in-file comment marks it as the canonical single source of truth. `PROFLOW_TEST_LOCAL_EMAIL`/`PASSWORD` was kept (not a duplicate, still a real working account) with a new in-file comment documenting its TEST-project-only nature so a future session doesn't rediscover this by trial and error.
+
+**4. `PROFLOW_TEST_LOCAL_*` classification: `EXPECTED_TEST_ONLY`.** Verified directly, not inferred: a password-grant login attempt with these exact credentials against the isolated TEST Supabase project (`ljfizgrdyzxddswcedwr`) succeeds; the identical credentials against Production (`ixabnzhjeqevtbhdfswv`) return a genuine credential error every time. This is an account that was only ever created in the TEST project — not a misconfiguration, not a stale/dead entry, and per the task's own instruction, **not treated as a blocker** and **not force-fitted into Production**.
+
+**5. Persona source of truth**: `PROFLOW_CODEX_CHECKPOINT.md`'s "Test-account routing" section rewritten in place as the single, disambiguated reference — table A (Production-safe: USER1/USER2/ADMIN/canonical INTL) vs. table B (TEST-Supabase-project-only: LOCAL plus the full existing `C:/tkrc2/.env.localtest.local` roster, including the *separate* `PERSONA_EN` used by the automated e2e suite, which is a different account entirely from table A's Production `PROFLOW_TEST_INTL_EMAIL`). Variable names, role, market, and environment only — no values recorded there or here.
+
+**6. Validation**: fresh logins performed by reading directly from the now-updated `.env` (not from memory/cached values) — HE (`USER1`), EN (`INTL` canonical), and Super Admin (`ADMIN`) all **PASS** against Production; `LOCAL` **PASS** against the TEST project. `e2e/testPersonas.js`/`.env.localtest.local` were not touched by this task (the duplicate-key defect never existed there — confirmed 0 occurrences of a colliding key name) and still resolve exactly one credential set per persona, unaffected. No code change was required outside env/persona documentation, so the full `vitest`/lint/build suite was not re-run (would provide zero additional signal for a `.env`-only change) — this is stated explicitly, not silently skipped.
+
+**7. Security scan**: `git grep` for the exposed password string across the full working tree of both `quotecode-saas` and `quotecode-saas-continuity` — zero matches in either. `git log --all -S"<the exposed string>"` across full history, all branches, both repos — zero matches in either (the string was never introduced or removed by any commit, ever). `quotecode-saas/.env` and `C:/tkrc2/.env.localtest.local` are both `.gitignore`d and were never committed. **PLAINTEXT SECRET IN TRACKED FILES: NONE. PLAINTEXT SECRET IN CONTINUITY DOCS: NONE.** The only place the old values ever appeared was this session's own transient tool-call output (the original incident) — not a tracked file, not git history, not a continuity doc — and that exposure is now moot since every affected password has been rotated.
+
+**MANDATORY VERDICTS**:
+- EXPOSED SYNTHETIC TEST PASSWORDS IDENTIFIED: **YES** (6 accounts, listed above)
+- EXPOSED SYNTHETIC TEST PASSWORDS ROTATED: **YES** (6 of 6)
+- TEST PERSONA LOGINS AFTER ROTATION: **PASS** (HE/EN/Admin on Production, LOCAL on TEST project, all read fresh from the updated `.env`)
+- TEST ENV DUPLICATES: **CLEAN**
+- TEST PERSONA SOURCE OF TRUTH: **PASS**
+- `PROFLOW_TEST_LOCAL_*` CLASSIFICATION: **EXPECTED_TEST_ONLY**
+- PLAINTEXT SECRET IN TRACKED FILES: **NONE**
+- PLAINTEXT SECRET IN CONTINUITY DOCS: **NONE**
+- TARGETED TESTS: **PASS** (live login validation; no code change existed to run vitest/lint/build against)
+- CONTINUITY CURRENT: **YES**
+
+**FINAL SECURITY VERDICT: TEST CREDENTIAL HYGIENE: PASS.**
+
+**Mutations this task**: `quotecode-saas/.env` rewritten (6 passwords rotated, 1 duplicate entry removed, 2 documentation comments added) — gitignored, never committed, no application code touched. `C:/tkrc2/.env.localtest.local` untouched (no defect existed there). 6 Supabase Auth password updates via each account's own self-service session (4 Production, 2 TEST-project) — zero service-role/admin action, zero other account touched, zero David Aluminum, zero real-customer data. Continuity docs updated with classification/variable names only, zero secret values recorded.
