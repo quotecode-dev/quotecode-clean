@@ -13,6 +13,7 @@ import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
+import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 import { supabase } from '../shared/supabase';
 
 export default function AppGlobal() {
@@ -117,6 +118,7 @@ export default function AppGlobal() {
 
   return (
     <BrowserRouter>
+      <UpdateAvailableBanner isHebrew={false} />
       {forgotPasswordOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
