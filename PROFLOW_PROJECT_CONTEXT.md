@@ -415,6 +415,43 @@ A dedicated orphan branch, `proflow-continuity`, carries **only** the six canoni
 
 **See §205 (Release Isolation Law, PERMANENT) for the companion rule governing where an approved RC's release commit must physically originate from** — an RC approval binds to a SHA (this section); §205 requires that SHA's commit to have been built from a clean canonical release lineage, never directly from the dirty development tree.
 
+### 17.M Permanent Mandatory Responsive Validation Law (added 2026-09-09, Sidebar/Header Top Alignment Polish task — Owner-locked, PERMANENT)
+
+**This codifies as an explicit, enforced rule what this project's own history had already been doing informally and inconsistently for months** (the 8-point "HE/EN × Desktop/Mobile/Tablet-Portrait/Tablet-Landscape" matrix already appears, by that name, in dozens of entries throughout this file — see e.g. the Quote History/QuotesTab responsive regression tasks) — never previously stated as a standing, mandatory, PASS-gating law with its own enforcement clause. It does not contradict that prior practice; it makes the practice's own already-implicit bar explicit and non-optional, and closes the gap where a task could (and occasionally did) claim full responsive parity while only actually exercising Desktop and Mobile.
+
+**From this task forward, for every TEKANGO UI/UX or functional change with any user-visible or viewport-dependent effect**, validation must cover all four viewport categories **independently**:
+
+1. **Desktop**
+2. **Tablet Portrait**
+3. **Tablet Landscape**
+4. **Mobile**
+
+**Tablet is a first-class category — never Mobile, never one collapsed "tablet" check.** Tablet Portrait and Tablet Landscape are two separate, independently-verified categories, precisely because (as this task's own runtime evidence proved) they can trigger genuinely different code paths: this app's real breakpoint is `max-width:768px` (mobile/bottom-nav shell) vs `min-width:769px` (desktop/sidebar shell) — a real iPad Mini in portrait (768px) lands in the FIRST bucket, while the identical device rotated to landscape (1024px) lands in the SECOND. Treating "tablet" as one category, or as a Mobile alias, would have hidden exactly this distinction.
+
+**PASS rule**: a change must not receive a PASS verdict if any required viewport category was skipped, inferred only from source reading, or not actually runtime-exercised where browser verification is technically available. If any required viewport is not verified: the overall viewport/parity verdict must be PARTIAL or FAIL, the final report must explicitly name the missing viewport, and the session must not state or imply full validation.
+
+**Applies to**: visual changes, layout changes, navigation, forms, tables, cards, modals/dialogs/sheets, responsive breakpoints, public pages, authenticated pages, Admin/Super Admin, quote flows, permissions/entitlements when UI exposure differs by viewport, and any functional change that can affect interaction or reachability on different viewport classes.
+
+**Market validation, where market-sensitive**: also verify both HE/Local/RTL and EN/International/LTR independently, unless the specific change is provably market-neutral AND runtime evidence already exists for both markets in the same release scope. If one market is not runtime-verified, that market's verdict cannot be a full PASS.
+
+**Minimum final-report contract for every future task that changes user-visible behavior**:
+```
+DESKTOP: PASS / PARTIAL / FAIL
+TABLET PORTRAIT: PASS / PARTIAL / FAIL
+TABLET LANDSCAPE: PASS / PARTIAL / FAIL
+MOBILE: PASS / PARTIAL / FAIL
+```
+and, where market-sensitive:
+```
+HE/RTL: PASS / PARTIAL / FAIL
+EN/LTR: PASS / PARTIAL / FAIL
+```
+**If any one of the four viewport verdicts is not PASS, the overall responsive parity verdict cannot be PASS.**
+
+**Standard verified device profiles used in this task, adopted as the default reference set going forward** (not the only valid widths, but the default unless a task has reason to check others): Desktop 1280×900; Tablet Portrait 768×1024 (iPad Mini portrait — the real breakpoint-boundary case, not an arbitrary tablet width); Tablet Landscape 1024×768 (iPad Mini landscape); Mobile 390×844 (iPhone 13). A task should also spot-check the boundary itself (767 vs 769px, and at least one wider real tablet width such as 820px) when the change touches the breakpoint logic directly, not just its two sides.
+
+**No contradiction with older wording**: earlier entries in this file describing "Desktop + Mobile" checks (mostly pre-dating the 8-point matrix's own informal adoption) are historical record of what those specific tasks actually did at the time — not rewritten, not deleted, but superseded going forward by this section as the binding standard for any new work.
+
 ### 18. Working-Tree-vs-GitHub Freshness Rule (added P0.3)
 
 A session must distinguish between (A) repository **working-tree** state as reported by the coding agent (Claude) during a task, and (B) the latest **committed and pushed** GitHub state that a GitHub connector can actually read. **A GitHub connector reading a file does not prove that recently-discussed local changes are already in GitHub.** Never claim GitHub contains a documentation update until that update has actually been committed and pushed — confirmed by an explicit `git status`/push report, not assumed. When a coding-agent report says files are modified/untracked but not committed, a session with GitHub read access must understand that GitHub may still expose the **previous, older** version of that file, and a fetch returning a 404 for a brand-new not-yet-committed file (or stale content for a modified-but-uncommitted one) is **expected, correct connector behavior — not a connector failure.**
@@ -9523,3 +9560,47 @@ Continues directly from §203's unpushed state. Both blockers described there (t
 **If the only remaining blockers were reduced to just the two secrets, that would be stated explicitly here — it is not yet true**: Create Quote/quote-email-send/signature-run automation and the sustained WebKit-flakiness pattern are real, disclosed, implementation-side gaps independent of `OPENAI_API_KEY`/`RESEND_API_KEY`.
 
 **Mutations this task**: application code changed — NO (zero `src/`/`supabase/` files touched). Test/tooling code changed — YES, 3 files in `C:/tkrc2` only (`e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js`), uncommitted pending separate explicit commit/push authorization per this project's own standing gate discipline. TEST/Production schema/secrets/customer-data — NO. David Aluminum — not touched, not referenced. Continuity files — this file, `PROFLOW_CODEX_CHECKPOINT.md`, `PROFLOW_TODO.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md` updated in the dedicated `quotecode-saas-continuity` worktree.
+
+## §222. Sidebar/Header Top Alignment Polish + Permanent Mandatory Responsive Validation Law (added 2026-09-09, same day as §221, Owner-authorized narrow UI-polish scope — TEST-only, worktree `C:/tkrc2`, branch `tekango-test-mirror-rc`)
+
+**Scope**: refine the authenticated shell so the sidebar's own top edge aligns exactly with `.dash-upper-section` (the dark "Welcome back" panel)'s top edge, with matching rounded top corners — plus permanently codify the mandatory 4-viewport responsive validation law (§17.M above). Bootstrap reconciliation: `C:/tkrc2` confirmed still exactly at `origin/main` HEAD (`0c7d091`, unchanged since §221), only §221's own 3 uncommitted test/tooling files present, no drift.
+
+**Root cause / prior layout rule**: `.dash-sidebar` (Dashboard.jsx) was a plain flex child of `.dash-shell-body` with `height:100%` (desktop-only media query, `min-width:769px`) — its box began at `y=0` of the shell, flush with the viewport's own top edge. `.dash-upper-section` (the dark header/greeting panel), by contrast, sits inside `.dash-main-content`, which carries its own `padding:'16px'` inline style on every side — so the header's own top edge sat 16px *below* the sidebar's, a real, measurable 16px vertical offset between the two dark surfaces, with the sidebar's own top corners left square (no radius at all) against the light page background.
+
+**Exact alignment method used**: shared shell CSS only, both edits scoped to `src/pages/Dashboard.jsx`'s existing `<style jsx>` block, no per-route/per-language duplication:
+1. Base `.dash-sidebar` rule: added `border-top-left-radius`/`border-top-right-radius: ${RADIUS.lg}` (16px, the exact same token `.dash-upper-section` already uses) — both physical top corners unconditionally, not the direction-aware inline-start/end pair, since "top" is a vertical concept unaffected by the sidebar's own RTL/LTR side-mirroring.
+2. Desktop-only media query (`@media (min-width:769px)`, the sidebar's existing visibility boundary): changed `.dash-sidebar { height:100% }` to `{ margin-top:16px; height:calc(100% - 16px) }` — 16px matches `.dash-main-content`'s own literal padding value exactly (not a separate guess), and reducing height by the same amount the margin adds keeps the sidebar's **bottom** edge exactly where it already was (flush with the shell's own bottom, footer/logout unaffected) — only the top edge moves down, per the task's own "shrink into the composition, don't just add empty space above" framing.
+
+**Sidebar top-corner radius implementation**: `border-top-left-radius: 16px; border-top-right-radius: 16px` on the base `.dash-sidebar` rule (both corners, unconditional); bottom corners left at their existing `0` (square, unchanged) — confirmed via live `getComputedStyle` read (`{tl:"16px", tr:"16px", bl:"0px", br:"0px"}`), not assumed from the source alone.
+
+**Breakpoint behavior**: the sidebar's own pre-existing visibility boundary (`display:none` at `max-width:768px`, i.e. the mobile/bottom-nav shell) was not touched — this fix lives entirely inside the already-existing `min-width:769px` block, so it activates/deactivates exactly where the sidebar itself already does. Confirmed live at the boundary itself, not just its two sides: 767px → sidebar `display:none` (mobile shell, unaffected); 769px → sidebar `display:flex`, top=16px (fix active); 820px (a real iPad Air/Pro portrait width, not just the Playwright default) → same, top=16px. Zero intermediate/broken state at the boundary.
+
+**Runtime evidence by viewport** (live browser via `browser-harness`, real synthetic TEST accounts, dev server `C:/tkrc2` on port 5186 — a stale-tab artifact was hit once mid-task, same class as this project's own previously-documented recurring nuisance, worked around by opening a fresh tab and closing the stale one, per the established pattern):
+- **Desktop** (1280×900): sidebar/header `top` both exactly `16` (measured via `getBoundingClientRect()`, not eyeballed); sidebar `bottom=900` (flush, unclipped); zero horizontal/vertical overflow (`scrollWidth===innerWidth`, `scrollHeight===innerHeight`); footer/logout row visible and reachable in the screenshot. **PASS**.
+- **Tablet Landscape** (1024×768, iPad Mini landscape): sidebar/header both `top=16`; sidebar `bottom=768` (flush); zero horizontal overflow; nav/footer fully visible, rounded top corners rendering correctly at this width too. **PASS**.
+- **Tablet Portrait** (768×1024, iPad Mini portrait — the real breakpoint-boundary width): sidebar confirmed `display:none`, the pre-existing mobile/bottom-nav shell active instead (topbar + bottom nav), exactly as before this task — **not** forced into desktop sidebar behavior, per the task's own explicit instruction. Zero horizontal overflow. **PASS (no regression; sidebar/header alignment fix does not apply here by design, correctly confirmed not by assumption)**.
+- **Mobile** (390×844, iPhone 13): identical mobile/bottom-nav shell, zero horizontal overflow, AI Chat button/header/bottom-nav all intact and unchanged. **PASS (no regression)**.
+
+**Runtime evidence by market**: all 4 viewports above independently re-verified in both markets (8 combinations total, matching the newly-codified §17.M matrix) — **HE/RTL**: `dir="rtl"` confirmed via `document.documentElement.dir`, sidebar physically on the right (Desktop `x≈960`, Tablet Landscape `x≈771`), header/content to its left, correct mirrored bottom-nav order on the two narrow viewports, zero clipping/overflow. **EN/LTR**: `dir="ltr"` confirmed, sidebar physically on the left (Desktop `x≈72`, Tablet Landscape `x≈20`), USD currency (`$0.00`, no `₪`), zero HE leakage. Both **PASS** on all 4 viewports (8/8).
+
+**Tests**: `npx vitest run` **547/547 passing, 38 files** (unchanged from §221 — this is a pure CSS/layout change, no logic touched, no test expected or found to need updating). **Lint**: `npx eslint src/pages/Dashboard.jsx` clean (0 errors; same 1 pre-existing unrelated `loadData` dependency warning already disclosed in every prior task touching this file). **Build**: `npx vite build` clean (same pre-existing chunk-size advisory, unrelated).
+
+**Continuity/governance files updated**: this file (§17.M new permanent law + this §222 entry), `PROFLOW_CODEX_CHECKPOINT.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md` (replaced — transport file, latest-only) — all in the dedicated `quotecode-saas-continuity` worktree. No contradiction remains: §17.M explicitly supersedes older "Desktop + Mobile" wording elsewhere in this file going forward without deleting or rewriting those tasks' own historical entries.
+
+**MANDATORY VERDICTS**:
+- SIDEBAR TOP == HEADER TOP: **PASS**
+- SIDEBAR TOP CORNERS: **PASS**
+- DESKTOP: **PASS**
+- TABLET PORTRAIT: **PASS**
+- TABLET LANDSCAPE: **PASS**
+- MOBILE: **PASS**
+- HE/RTL: **PASS**
+- EN/LTR: **PASS**
+- RESPONSIVE FUNCTIONAL PARITY: **PASS**
+- RESPONSIVE VISUAL PARITY: **PASS**
+- MANDATORY RESPONSIVE VALIDATION LAW DOCUMENTED: **YES** (§17.M above)
+- TESTS: **PASS** (547/547)
+- LINT: **PASS**
+- BUILD: **PASS**
+
+**Mutations this task**: application code changed — YES, exactly one file, `src/pages/Dashboard.jsx` (two CSS-only edits: the base `.dash-sidebar` top-radius rule, and the desktop-media-query margin/height pair), **uncommitted**, pending separate explicit commit/push authorization per this project's own standing gate discipline (same status as §221's 3 test files in the same worktree). Zero schema/secrets/customer-data/David-Aluminum change. Zero `supabase/` files touched.
