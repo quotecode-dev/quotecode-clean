@@ -71,6 +71,31 @@ const PATTERNS = [
       : '❌ Could not reach the server. Check your connection and try again.'),
   },
   {
+    category: 'auth_server_error',
+    // Production-discovered defect (2026-09-09): a real live password-reset
+    // request returned HTTP 500 with a genuine, readable server body -
+    // {"code":"unexpected_failure","message":"Error sending recovery email"}
+    // - yet rendered as a raw "Error: {}"/"שגיאה: {}" on screen. Root cause,
+    // confirmed against the installed @supabase/auth-js@2.110.9: for any 5xx
+    // response, its internal handleError() constructs an
+    // AuthRetryableFetchError BEFORE parsing the response body - the real
+    // server-authored message never reaches this module at all. What
+    // reaches here instead is an object whose own `.message` is the literal
+    // 3-character string "{}" (the unparsed Response, stringified) - a
+    // library behavior, not a vendor bug this app can fix, and out of this
+    // fix's scope to patch (vendor code is never modified here). Detected
+    // by `.name`, the one reliable signal the library itself sets for
+    // exactly this case - not by content-sniffing an arbitrary 5xx object,
+    // since only this specific vendor shape is actually known to produce
+    // the defect. This must run before the generic raw-message fallback
+    // below, which would otherwise trust that literal "{}" string as a
+    // real, safe-to-show provider message.
+    test: (err) => err?.name === 'AuthRetryableFetchError',
+    userMessage: (_err, isHebrew) => (isHebrew
+      ? 'שגיאת שרת. נסה שוב מאוחר יותר.'
+      : 'Server error. Please try again later.'),
+  },
+  {
     category: 'already_registered',
     // Signup-specific (found this task): Dashboard.jsx's own signup handler
     // previously showed this exact "already registered" message for

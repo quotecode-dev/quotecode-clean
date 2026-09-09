@@ -64,6 +64,53 @@ describe('normalizeAuthError - known Supabase Auth error shapes', () => {
   });
 });
 
+describe('normalizeAuthError - the real, Production-discovered AuthRetryableFetchError "{}" shape (2026-09-09)', () => {
+  // @supabase/auth-js@2.110.9 constructs an AuthRetryableFetchError for any
+  // 5xx response before parsing the body - the real server message
+  // ("Error sending recovery email") never reaches this module; what
+  // arrives is this exact shape, with `.message` being the literal
+  // 3-character string "{}" (the unparsed Response, stringified). This is
+  // the real object captured live against Production, not a hypothetical.
+  const retryableFetchError = { name: 'AuthRetryableFetchError', status: 500, message: '{}' };
+
+  it('EN: is classified as auth_server_error with a curated message, never the raw "{}"', () => {
+    const { category, message } = normalizeAuthError(retryableFetchError, false);
+    expect(category).toBe('auth_server_error');
+    expect(message).not.toBe('Error: {}');
+    expect(message).not.toContain('{}');
+    expect(message.length).toBeGreaterThan(0);
+  });
+
+  it('HE: is classified as auth_server_error with a curated bilingual message, never the raw "{}"', () => {
+    const { category, message } = normalizeAuthError(retryableFetchError, true);
+    expect(category).toBe('auth_server_error');
+    expect(message).not.toBe('שגיאה: {}');
+    expect(message).not.toContain('{}');
+    expect(message).toMatch(/[֐-׿]/); // contains real Hebrew characters
+  });
+
+  it('does not leak the internal status code, error name, or any raw JSON in either language', () => {
+    const en = normalizeAuthError(retryableFetchError, false).message;
+    const he = normalizeAuthError(retryableFetchError, true).message;
+    for (const msg of [en, he]) {
+      expect(msg).not.toMatch(/AuthRetryableFetchError/);
+      expect(msg).not.toMatch(/\b500\b/);
+      expect(msg).not.toMatch(/[{}[\]]/);
+    }
+  });
+
+  it('a differently-shaped 5xx-like object without the AuthRetryableFetchError name is not swept into this category (narrow, name-based detection only)', () => {
+    // Guards against over-broad classification: an ordinary AuthApiError
+    // that happens to carry a numeric 5xx status but a real, readable
+    // message must still be shown via the existing auth_provider_message
+    // path, not silently generalized into the server-error bucket.
+    const ordinaryServerError = { status: 500, message: 'Some other real, specific server message' };
+    const { category, message } = normalizeAuthError(ordinaryServerError, false);
+    expect(category).toBe('auth_provider_message');
+    expect(message).toContain('Some other real, specific server message');
+  });
+});
+
 describe('normalizeAuthError - never renders a raw object, the exact "{}:Error" bug class', () => {
   it('a genuinely empty error object ({}) never produces "[object Object]" or a raw JSON dump', () => {
     const { category, message } = normalizeAuthError({}, false);

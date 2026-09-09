@@ -519,4 +519,57 @@ test.describe('Critical Journeys — password-reset request (real route, mocked 
     const color = await msgLocator.evaluate((el) => getComputedStyle(el).color);
     expect(color).toBe('rgb(248, 113, 113)');
   });
+
+  // Production-discovered defect (2026-09-09): a real live password-reset
+  // request against Production returned this exact HTTP 500 body -
+  // {"code":"unexpected_failure","message":"Error sending recovery email"} -
+  // yet rendered a raw "Error: {}"/"שגיאה: {}" on screen instead of any real
+  // text. Root cause: @supabase/auth-js@2.110.9 constructs an
+  // AuthRetryableFetchError for any 5xx response before parsing this exact
+  // body, so the real server message never reaches the app at all. Mocking
+  // only the network response (not the classifier) exercises the real,
+  // installed Supabase Auth client's own error-construction path end-to-end,
+  // the same way the existing 429 test above does - this is the only way to
+  // prove the actual AuthRetryableFetchError branch fires, not just that the
+  // classification function handles a hand-built object shape correctly.
+  test('a real 500 "Error sending recovery email" response never renders as a raw object, in HE', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) => route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'unexpected_failure', message: 'Error sending recovery email' }),
+    }));
+    await page.goto('/dashboard?lang=he');
+    await page.getByRole('button', { name: /^(שכחת סיסמה\?)$/ }).click();
+    await page.locator('form').filter({ hasText: 'שלח קישור לשחזור' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /שלח קישור לשחזור/ }).click();
+    const msgLocator = page.getByText('שגיאת שרת. נסה שוב מאוחר יותר.');
+    await expect(msgLocator).toBeVisible({ timeout: 10000 });
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('{}');
+    expect(bodyText).not.toContain('Error: {}');
+    expect(bodyText).not.toContain('שגיאה: {}');
+    expect(bodyText).not.toMatch(/\[object Object\]/);
+    const color = await msgLocator.evaluate((el) => getComputedStyle(el).color);
+    expect(color).toBe('rgb(248, 113, 113)'); // error styling, never success/green
+  });
+
+  test('a real 500 "Error sending recovery email" response never renders as a raw object, in EN', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) => route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'unexpected_failure', message: 'Error sending recovery email' }),
+    }));
+    await page.goto('/dashboard?lang=en');
+    await page.getByRole('button', { name: /^Forgot password\?$/ }).click();
+    await page.locator('form').filter({ hasText: 'Send Reset Link' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /Send Reset Link/ }).click();
+    const msgLocator = page.getByText('Server error. Please try again later.');
+    await expect(msgLocator).toBeVisible({ timeout: 10000 });
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('{}');
+    expect(bodyText).not.toContain('Error: {}');
+    expect(bodyText).not.toMatch(/\[object Object\]/);
+    const color = await msgLocator.evaluate((el) => getComputedStyle(el).color);
+    expect(color).toBe('rgb(248, 113, 113)'); // error styling, never success/green
+  });
 });
