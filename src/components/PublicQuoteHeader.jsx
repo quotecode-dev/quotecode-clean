@@ -103,7 +103,14 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
                 <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '26px', maxWidth: '120px', objectFit: 'contain', display: 'block' }} />
               </div>
             ) : (
-              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+              // חוק ברזל (Long Business Name / PDF/Print Header Fix): לפני התיקון,
+              // whiteSpace:'nowrap' + textOverflow:'ellipsis' חתכו שם עסק ארוך
+              // ל"..." - מקובל לרכיב מסך רגיל, אבל לא קביל במסמך הצעת-מחיר
+              // הרשמי שיוצא כ-PDF/הדפסה (שם העסק חייב להופיע במלואו). הוחלף
+              // ל-whiteSpace:'normal' + overflowWrap/wordBreak:'break-word' -
+              // שם ארוך עכשיו נגלש לשורה שנייה במקום להיחתך; שמות קצרים
+              // (המקרה הרגיל) נראים זהים לחלוטין לפני התיקון.
+              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#ffffff', whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0 }}>
                 {bizName}
               </div>
             )}
@@ -194,13 +201,22 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
 
         {/* צד לוגו/שם העסק */}
-        <div style={{ flex: '1 1 220px', textAlign: isHebrew ? 'right' : 'left' }}>
+        <div style={{ flex: '1 1 220px', minWidth: 0, textAlign: isHebrew ? 'right' : 'left' }}>
           {hasLogo ? (
             <div className="pq-logo-chip" style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '5px 10px', borderRadius: '8px', marginBottom: '6px' }}>
               <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
             </div>
           ) : (
-            <h2 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: '800' }}>{bizName}</h2>
+            // חוק ברזל (Long Business Name / PDF/Print Header Fix): לפני התיקון,
+            // ה-h2 הזה היה ללא כל הגנת overflow - ולעמודת ההורה שלו (למעלה)
+            // חסר min-width:0. עבור flex item, ברירת המחדל min-width:auto
+            // מחושבת לפי מילה ארוכה ביותר ללא רווח (מונח min-content) - שם
+            // עסק ארוך במילה אחת רציפה (נפוץ בשמות עברית ללא רווחים) יכול
+            // "לדחוף" את העמודה רחב מהתקציב שלה ולהיחתך בעת captura ל-PDF
+            // (html2canvas תופס רוחב DOM קבוע, לא reflow הדפסה אמיתי). תוקן
+            // ב-min-width:0 על ההורה + overflowWrap/wordBreak:'break-word'
+            // כאן - עכשיו אפילו מילה אחת ארוכה נשברת לשורה הבאה במקום לחרוג.
+            <h2 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: '800', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{bizName}</h2>
           )}
 
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.68)', lineHeight: '1.4' }}>

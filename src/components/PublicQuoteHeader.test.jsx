@@ -179,3 +179,63 @@ describe('PublicQuoteHeader - logo canvas-safety (Faded PDF Logo Correction task
     expect(container.textContent).toContain('Test Business');
   });
 });
+
+// Systemic Closure task, Item H: a long business name must never be clipped
+// in the PDF/Print header (the shared component html2canvas captures). Before
+// this fix, Mobile truncated with textOverflow:'ellipsis' (real, visible loss
+// of the name) and Desktop had zero overflow protection on its <h2> (a single
+// long unbroken word could overflow its flex column uncontained). Both are
+// now full-text-preserving via wrapping, never truncation.
+describe('PublicQuoteHeader - long business name is never clipped (PDF/Print, Systemic Closure Item H)', () => {
+  const longName = 'AluminumAndSteelFabricationWorksInternationalHoldingsLimitedCompany';
+  const longHebrewNameNoSpaces = 'אלומיניוםופלדהמפעליתעשייהוהרכבהבעמ';
+
+  it('Desktop no-logo header renders the full long name (EN), never truncated', () => {
+    mockDesktopMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={false} bizLogo={null} bizName={longName} />);
+    const h2 = container.querySelector('h2');
+    expect(h2.textContent).toBe(longName);
+    expect(h2.style.overflowWrap).toBe('break-word');
+    expect(h2.style.wordBreak).toBe('break-word');
+  });
+
+  it('Desktop no-logo header renders the full long name (HE, single unbroken word), never truncated', () => {
+    mockDesktopMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={true} bizLogo={null} bizName={longHebrewNameNoSpaces} />);
+    const h2 = container.querySelector('h2');
+    expect(h2.textContent).toBe(longHebrewNameNoSpaces);
+  });
+
+  it("Desktop's business-name column has minWidth:0 so a long word can actually shrink/wrap instead of overflowing", () => {
+    mockDesktopMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={false} bizLogo={null} bizName={longName} />);
+    const h2 = container.querySelector('h2');
+    const column = h2.parentElement;
+    expect(column.style.minWidth).toBe('0px');
+  });
+
+  it('Mobile no-logo header renders the full long name (EN), never ellipsis-truncated', () => {
+    mockMobileMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={false} bizLogo={null} bizName={longName} />);
+    const nameEl = Array.from(container.querySelectorAll('div')).find((d) => d.textContent.trim() === longName);
+    expect(nameEl).toBeTruthy();
+    expect(nameEl.style.whiteSpace).toBe('normal');
+    expect(nameEl.style.textOverflow).toBe('');
+    expect(nameEl.style.overflow).toBe('');
+    expect(nameEl.style.overflowWrap).toBe('break-word');
+  });
+
+  it('Mobile no-logo header renders the full long name (HE, single unbroken word), never ellipsis-truncated', () => {
+    mockMobileMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={true} bizLogo={null} bizName={longHebrewNameNoSpaces} />);
+    const nameEl = Array.from(container.querySelectorAll('div')).find((d) => d.textContent.trim() === longHebrewNameNoSpaces);
+    expect(nameEl).toBeTruthy();
+    expect(nameEl.style.textOverflow).toBe('');
+  });
+
+  it('a short business name still renders identically to before the fix (no regression)', () => {
+    mockDesktopMatchMedia();
+    const { container } = render(<PublicQuoteHeader {...baseProps} isHebrew={false} bizLogo={null} bizName="Test Business" />);
+    expect(container.querySelector('h2').textContent).toBe('Test Business');
+  });
+});
