@@ -35,11 +35,28 @@ export const PERSONA_SUPER_ADMIN = {
   password: env.PROFLOW_TEST_PERSONA_SUPER_ADMIN_PASSWORD,
 };
 
+// EN/International persona (Final Narrow Validation Closure task,
+// 2026-09-09). Not a newly-created signup - a fresh, direct password-grant
+// login check against the TEST project found this account (and its
+// FREE/BASIC/EXPIRED siblings) already exists, confirmed, and working
+// today (business_settings: country="International", currency="USD",
+// created 2026-08-31) - it predates and is unrelated to the Supabase Auth
+// TEST-project email-send rate limit disclosed in PROFLOW_TODO.md item 67.
+// No new signup was attempted; this is the "safe existing-account
+// alternative" path, not a rate-limit-cleared new persona. PRO tier is used
+// (not FREE) so plan-gated UI (Catalog/quote limits) doesn't truncate the
+// EN reachability/parity checks below. Has no userId because no test here
+// mutates its tier the way PERSONA_A's does.
+export const PERSONA_EN = {
+  email: env.PROFLOW_TEST_INTL_PRO_EMAIL,
+  password: env.PROFLOW_TEST_PLAN_PERSONAS_PASSWORD,
+};
+
 export const SUPABASE_URL = env.VITE_SUPABASE_URL;
 export const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY;
 
-for (const [name, p] of [['PERSONA_A', PERSONA_A], ['PERSONA_SUPER_ADMIN', PERSONA_SUPER_ADMIN]]) {
-  if (!p.userId || !p.email || !p.password) {
+for (const [name, p] of [['PERSONA_A', PERSONA_A], ['PERSONA_SUPER_ADMIN', PERSONA_SUPER_ADMIN], ['PERSONA_EN', PERSONA_EN]]) {
+  if ((name !== 'PERSONA_EN' && !p.userId) || !p.email || !p.password) {
     throw new Error(`e2e/testPersonas.js: ${name} is missing from .env.localtest.local - critical-journey tests cannot run without it.`);
   }
 }
