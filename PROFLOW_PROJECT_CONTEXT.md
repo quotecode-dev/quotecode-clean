@@ -9604,3 +9604,29 @@ Continues directly from §203's unpushed state. Both blockers described there (t
 - BUILD: **PASS**
 
 **Mutations this task**: application code changed — YES, exactly one file, `src/pages/Dashboard.jsx` (two CSS-only edits: the base `.dash-sidebar` top-radius rule, and the desktop-media-query margin/height pair), **uncommitted**, pending separate explicit commit/push authorization per this project's own standing gate discipline (same status as §221's 3 test files in the same worktree). Zero schema/secrets/customer-data/David-Aluminum change. Zero `supabase/` files touched.
+
+## §223. Two-Commit Release Capture With Push/Deploy Safety Gate (added 2026-09-09, same day as §221/§222, Owner-authorized narrow commit-capture scope — LOCAL COMMITS ONLY, PUSH WITHHELD, worktree `C:/tkrc2`, branch `tekango-test-mirror-rc`)
+
+**Scope**: capture §221's and §222's already-preflighted (§222's own "4-FILE RELEASE PREFLIGHT: PASS") work as exactly two local commits, then determine — from fresh, read-only evidence, not assumption — whether pushing them to `origin/main` is safe, and push only if proven safe.
+
+**Zero-drift precondition, re-verified fresh (not assumed from the preflight report)**: `C:/tkrc2` still exactly at `HEAD===origin/main===0c7d091`, dirty set still exactly the same 4 files as the preflight found, zero drift in the time between that report and this task.
+
+**Pre-commit validation, re-run fresh immediately before committing** (per this task's own instruction not to re-run the expensive WebKit sustained suites when nothing changed since the immediately-preceding preflight — targeted smoke was correctly judged sufficient): `npx eslint` clean (0 errors, same 1 pre-existing unrelated warning); `npx vitest run` **547/547, 38 files**; `npx vite build` clean.
+
+**Commit A**: `74ca11e` "test: harden responsive e2e coverage and test personas" — `git add e2e/critical-journeys.spec.js e2e/testPersonas.js playwright.config.js` (verified via `git status --short` immediately after staging that exactly these 3 files were staged, `Dashboard.jsx` correctly still unstaged) — 3 files changed, 220 insertions(+), 21 deletions(-).
+
+**Commit B**: `3ac8c79` "style: align sidebar top with dashboard header" — `git add src/pages/Dashboard.jsx` (verified it was the only remaining dirty file before staging) — 1 file changed, 31 insertions(+), 1 deletion(-). Working tree confirmed clean (`git status --short` empty) after both commits.
+
+**Push/deploy safety gate — determined Case B (push DOES trigger Production deployment), not Case A**. Read-only evidence gathered fresh, not assumed: `vercel.json` exists in the repo (confirms Vercel as the deploy platform); no `.github/workflows/` directory exists (no GitHub-Actions-mediated deploy gate); `vercel.json` itself contains no `ignoreCommand`, no branch restriction, no deploy-skip mechanism of any kind. Local repo evidence alone cannot see Vercel's own dashboard-side Git-integration settings (those aren't stored in-repo), so this task did not stop at "cannot be proven" — it checked this project's own extensive, independently-verified operational history instead, which supplies exactly the affirmative evidence the task's own rule asks for: **at least 3 separate prior tasks** (§211's UI Stability release, §215's parity/search/SEO release, §216's quote-search regression-hardening release) each pushed directly to `origin/main` and each **independently confirmed via `npx vercel inspect` plus live-bundle content-grepping** that a real Production deployment went live within roughly 30-60 seconds, with zero exception ever recorded in this project's history. This is direct, repeated, first-hand confirmation that a push to `origin/main` deploys to Production — not speculation, and not merely "unproven either way." Per the task's own explicit rule, this is Case B: **push withheld**, both commits left local-only on `tekango-test-mirror-rc`.
+
+**MANDATORY VERDICTS**:
+- 4-FILE SCOPE STILL CLEAN: **PASS**
+- COMMIT A: **PASS**
+- COMMIT B: **PASS**
+- PUSH SAFETY: **DEPLOY_TRIGGER**
+- PUSH TO ORIGIN/MAIN: **BLOCKED**
+- PRODUCTION DEPLOYMENT AUTHORIZED: **NO**
+- PRODUCTION DEPLOYMENT PERFORMED: **NO**
+- CONTINUITY CURRENT: **YES**
+
+**Mutations this task**: 2 local git commits created on `tekango-test-mirror-rc` (`74ca11e`, `3ac8c79`) — **neither pushed to `origin/main` nor anywhere else**. Zero Production/schema/secrets/customer-data/David-Aluminum change. Zero deploy of any kind, manual or automatic.

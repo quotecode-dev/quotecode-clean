@@ -4,93 +4,93 @@
 
 **GOLDEN RULE: LATEST CLAUDE REPORT ≠ FRESH LOCAL STATE.** See `PROFLOW_PROJECT_CONTEXT.md` §17.C/§17.J.
 
-## Task: Sidebar/Header Top Alignment Polish + Mandatory Responsive Validation Law
+## Task: Two-Commit Release Capture With Push/Deploy Safety Gate
 
-**MODE: TEST-only, worktree `C:/tkrc2`. Authorized: the sidebar/header UI polish, shared shell CSS/layout changes directly required, responsive regression fixes directly caused by this change, validation/testing, documenting the permanent responsive validation law, continuity updates. NOT authorized: unrelated sidebar/header redesign, menu restructuring, logo redesign, new product features, indexing/Search Console/DNS/Analytics/Stripe, Production customer-data mutation, destructive reset/stash/clean/discard, unrelated Professional Quotes work.**
+**MODE: local commits only, worktree `C:/tkrc2`. Authorized: fresh precondition inspection, validation, Commit A exactly as defined, Commit B exactly as defined, push ONLY under proven-safe Case A, continuity updates. NOT authorized: Production deploy, LIVE promotion, push when deployment impact is unknown, any file outside the exact four-file set, secret/account changes, cleanup/reset/restore/stash/discard, unrelated work.**
 
-Full detail: `PROFLOW_PROJECT_CONTEXT.md` §222.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §223.
 
 ---
 
-## 1. Files changed
+## 1. Canonical repo path
 
-Exactly one: `src/pages/Dashboard.jsx` (in `C:/tkrc2`) — two CSS-only edits inside its existing `<style jsx>` block. No other file touched. (Note: two *other*, separately-authorized, still-uncommitted files from the immediately-prior task — `e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js` — also sit in the same worktree; this task did not touch them.)
+`C:/tkrc2`
 
-## 2. Root cause / prior layout rule
+## 2. Starting HEAD
 
-`.dash-sidebar` had `height:100%` inside the existing `min-width:769px` media query, with no top margin — its box began flush with the shell's own top edge (`y=0`). `.dash-upper-section` (the dark "Welcome back" header panel) sits inside `.dash-main-content`, which carries its own `padding:'16px'` on every side — so the header's own top edge sat a real, measurable 16px *below* the sidebar's. The sidebar's top corners were square (no radius) against the light page background.
+`0c7d0918c756104c24e43dac8759df1f12158ed4` (identical to `origin/main`, zero divergence)
 
-## 3. Exact alignment method used
+## 3. Fresh precondition result
 
-Shared shell CSS only, in `Dashboard.jsx`'s existing `<style jsx>` block:
-- Desktop-only media query (`min-width:769px`, the sidebar's own pre-existing visibility boundary): `.dash-sidebar { height:100% }` → `{ margin-top:16px; height:calc(100% - 16px) }`. 16px matches `.dash-main-content`'s own literal padding value exactly. Reducing height by the same amount the margin adds keeps the sidebar's **bottom** edge exactly where it was — the footer/logout row is never clipped; only the top moved (shrunk into the composition, not "empty space added above").
+**PASS** — re-verified immediately before any mutation: dirty set was still exactly the 4 preflight-approved files, `HEAD===origin/main`, zero drift since the immediately-preceding preflight report.
 
-## 4. Sidebar top-corner radius implementation
+## 4. Exact dirty set before commits
 
-Base `.dash-sidebar` rule: `border-top-left-radius: 16px; border-top-right-radius: 16px` (both physical top corners, unconditionally — not the direction-aware inline-start/end pair, since "top" is vertical and unaffected by RTL/LTR mirroring). Bottom corners left at their existing `0` (square, unchanged). Confirmed via live `getComputedStyle`: `{tl:"16px", tr:"16px", bl:"0px", br:"0px"}`.
+`e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js`, `src/pages/Dashboard.jsx` — no others.
 
-## 5. Breakpoint behavior
+## 5. Commit A SHA + files
 
-The sidebar's own pre-existing visibility rule (`display:none` at `max-width:768px`) was untouched — this fix lives entirely inside the already-existing `min-width:769px` block. Confirmed live at the boundary itself: 767px → sidebar hidden (mobile shell, unaffected); 769px → sidebar visible, top=16px (fix active); 820px (a real iPad Air/Pro portrait width) → same. Clean transition, no intermediate/broken state.
+`74ca11e` — "test: harden responsive e2e coverage and test personas" — `e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js` (3 files, 220 insertions(+), 21 deletions(-))
 
-## 6. Runtime evidence by viewport
+## 6. Commit B SHA + files
 
-All measured live via `browser-harness` (`getBoundingClientRect()`, not eyeballed) against real synthetic TEST accounts on the running `C:/tkrc2` dev server:
+`3ac8c79` — "style: align sidebar top with dashboard header" — `src/pages/Dashboard.jsx` only (1 file, 31 insertions(+), 1 deletion(-))
 
-| Viewport | Sidebar top | Header top | Notes |
-|---|---|---|---|
-| Desktop (1280×900) | 16 | 16 | bottom=900 (flush), zero overflow |
-| Tablet Landscape (1024×768) | 16 | 16 | bottom=768 (flush), zero overflow |
-| Tablet Portrait (768×1024) | sidebar `display:none` | n/a | mobile/bottom-nav shell active, confirmed unaffected |
-| Mobile (390×844) | sidebar `display:none` | n/a | mobile/bottom-nav shell active, confirmed unaffected |
+Working tree confirmed clean after both commits.
 
-## 7. Runtime evidence by market
+## 7. Tests
 
-All 4 viewports above independently re-verified in both markets (8 combinations):
-- **HE/RTL**: `document.documentElement.dir === "rtl"` confirmed; sidebar physically on the right (Desktop `x≈960`, Tablet Landscape `x≈771`); correct mirrored bottom-nav order on the two narrow viewports.
-- **EN/LTR**: `dir === "ltr"` confirmed; sidebar physically on the left (Desktop `x≈72`, Tablet Landscape `x≈20`); USD currency shown, zero `₪`/Hebrew leakage.
+`npx vitest run` — **547/547 passing, 38 files** (re-run fresh immediately before committing).
 
-All 8 combinations: **PASS**.
+## 8. Lint
 
-## 8. Tests
+`npx eslint src/pages/Dashboard.jsx e2e/ playwright.config.js` — clean (0 errors, 1 pre-existing unrelated warning).
 
-`npx vitest run` — **547/547 passing, 38 files** (unchanged — pure CSS/layout change, no logic touched).
+## 9. Build
 
-## 9. Lint
+`npx vite build` — clean.
 
-`npx eslint src/pages/Dashboard.jsx` — clean (0 errors; same 1 pre-existing, unrelated `loadData` dependency warning already disclosed in every prior task touching this file).
+## 10. Push-to-main deployment-trigger finding
 
-## 10. Build
+**Triggers deployment (Case B).** Read-only evidence: `vercel.json` present (confirms Vercel as deploy platform); no `.github/workflows/`; no `ignoreCommand`/branch-skip in `vercel.json`. This project's own history supplies direct, repeated confirmation beyond mere repo-config inspection: at least 3 separate prior tasks pushed to `origin/main` and each independently verified (via `npx vercel inspect` + live-bundle grepping) that a real Production deployment went live within ~30-60 seconds — zero exceptions ever recorded. This is affirmative evidence of deployment, not unresolved uncertainty.
 
-`npx vite build` — clean (same pre-existing chunk-size advisory, unrelated).
+## 11. Push performed
 
-## 11. Continuity/governance files updated
+**NO.**
 
-`PROFLOW_PROJECT_CONTEXT.md` (new permanent §17.M law + §222 task record), `PROFLOW_CODEX_CHECKPOINT.md` (ACTIVE_TASK/RESUME_TASK/latest-work entry), this file (replaced, transport-only) — all in the dedicated `quotecode-saas-continuity` worktree.
+## 12. Remote verification if pushed
 
-## 12. Mutation declaration
+Not applicable — not pushed. Both commits exist only locally on `tekango-test-mirror-rc`.
 
-- **APPLICATION CODE CHANGED?** YES — `src/pages/Dashboard.jsx`, CSS-only (2 rule edits), **uncommitted**.
-- **COMMIT/PUSH PERFORMED?** NO — left uncommitted pending separate explicit authorization, per this project's own standing "commit/push are separate gates" rule. (A second, unrelated set of uncommitted files from the prior task — `e2e/critical-journeys.spec.js`, `e2e/testPersonas.js`, `playwright.config.js` — also awaits the same decision in the same worktree.)
+## 13. Production deployment triggered
+
+**NO** — nothing was pushed, so nothing could have deployed.
+
+## 14. Continuity files updated
+
+`PROFLOW_PROJECT_CONTEXT.md` (§223), `PROFLOW_CODEX_CHECKPOINT.md` (ACTIVE_TASK/RESUME_TASK/latest-work entry), this file (replaced, transport-only) — all in the dedicated `quotecode-saas-continuity` worktree.
+
+## 15. Mutation declaration
+
+- **APPLICATION CODE CHANGED?** Committed (not newly changed this task) — 2 local commits capturing already-authored, already-preflighted work.
+- **PUSH PERFORMED?** NO.
+- **PRODUCTION TOUCHED?** NO.
 - **SCHEMA/SECRETS/CUSTOMER DATA CHANGED?** NO.
 - **DAVID ALUMINUM TOUCHED?** NO.
-- **PRODUCTION/LIVE TOUCHED?** NO.
+
+## 16. Exact next action
+
+The two commits sit locally on `tekango-test-mirror-rc` in `C:/tkrc2`, ready to push, but push was correctly withheld because it would trigger a real Vercel Production deployment and no separate deployment authorization was given this task. The next decision is narrowly the Owner's: authorize pushing `origin/main` (and, with it, the resulting Production deployment of these two commits), or hold them local until a deployment window/process is decided separately.
 
 ## Mandatory verdicts
 
-- SIDEBAR TOP == HEADER TOP: **PASS**
-- SIDEBAR TOP CORNERS: **PASS**
-- DESKTOP: **PASS**
-- TABLET PORTRAIT: **PASS**
-- TABLET LANDSCAPE: **PASS**
-- MOBILE: **PASS**
-- HE/RTL: **PASS**
-- EN/LTR: **PASS**
-- RESPONSIVE FUNCTIONAL PARITY: **PASS**
-- RESPONSIVE VISUAL PARITY: **PASS**
-- MANDATORY RESPONSIVE VALIDATION LAW DOCUMENTED: **YES** (`PROFLOW_PROJECT_CONTEXT.md` §17.M)
-- TESTS: **PASS** (547/547)
-- LINT: **PASS**
-- BUILD: **PASS**
+- 4-FILE SCOPE STILL CLEAN: **PASS**
+- COMMIT A: **PASS**
+- COMMIT B: **PASS**
+- PUSH SAFETY: **DEPLOY_TRIGGER**
+- PUSH TO ORIGIN/MAIN: **BLOCKED**
+- PRODUCTION DEPLOYMENT AUTHORIZED: **NO**
+- PRODUCTION DEPLOYMENT PERFORMED: **NO**
+- CONTINUITY CURRENT: **YES**
 
-**Recovery instruction for the next session**: this fix exists only in the uncommitted working tree of `C:/tkrc2` (branch `tekango-test-mirror-rc`), alongside the immediately-prior task's own 3 uncommitted test files. If the Owner wants any of this preserved beyond this session, it needs an explicit commit (and, separately, an explicit push) authorization — nothing was pushed to `origin/main` this task.
+**Recovery instruction for the next session**: `74ca11e` and `3ac8c79` exist only in `C:/tkrc2`'s local git history on branch `tekango-test-mirror-rc` — they are not on `origin/main` and not visible to anyone else until explicitly pushed. If the Owner wants them live, the next task needs explicit push authorization with full awareness that it deploys to Production immediately.
