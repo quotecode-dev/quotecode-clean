@@ -127,6 +127,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [isPasswordRecoveryMode, setIsPasswordRecoveryMode] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  // Password Recovery End-to-End Fix, Wave 1, §227/§228: the recovery form
+  // previously had only a single password field with no confirmation - a
+  // typo would save silently with no way for the user to notice before
+  // submitting. Added per this task's own explicit required behavior
+  // ("new password, confirm password... validate: non-empty, match").
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [recoveryUpdateMsg, setRecoveryUpdateMsg] = useState('');
   // Same substring-sniffing bug as resetMsgIsError above, same fix.
   const [recoveryUpdateMsgIsError, setRecoveryUpdateMsgIsError] = useState(false);
@@ -443,13 +449,36 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return () => { supabase.removeChannel(channel); };
   }, [session?.user?.id]);
 
+  // Password Recovery End-to-End Fix, Wave 1, §227/§228: a recovery link
+  // that Supabase itself already rejects (already used, expired, malformed)
+  // never carries type=recovery at all - it comes back as {redirectTo}
+  // ?error=access_denied&error_code=otp_expired&... with NO session ever
+  // established. Before this fix, that case fell straight through to a
+  // blank, unexplained ordinary login screen - technically "safe" (no
+  // crash, no raw provider error) but not the curated bilingual messaging
+  // this task explicitly requires. Reuses the exact same curated text
+  // already proven for the sibling case (a stale recovery session that
+  // reaches updateUser() and fails there) so the user sees one consistent
+  // message regardless of which of the two ways an invalid/expired link
+  // can fail. Kept as its own small effect (rather than folded into the
+  // big mount-only auth-init effect below) so it can correctly declare its
+  // one real dependency, bundleIsHebrew, instead of suppressing lint.
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
-    
-    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+    const isRecoveryLink = hash.includes('type=recovery') || search.includes('type=recovery');
+    const isErrorRedirect = hash.includes('error_code=') || search.includes('error_code=') || hash.includes('error=') || search.includes('error=');
+    if (isRecoveryLink) {
       setIsPasswordRecoveryMode(true);
+    } else if (isErrorRedirect) {
+      setAuthError(bundleIsHebrew
+        ? '❌ קישור השחזור אינו תקין או שפג תוקפו. יש לבקש קישור חדש.'
+        : '❌ This recovery link is invalid or has expired. Please request a new one.');
     }
+  }, [bundleIsHebrew]);
+
+  useEffect(() => {
+    const search = window.location.search;
 
     const params = new URLSearchParams(search);
     if (params.get('signup') === 'true') {
@@ -1709,8 +1738,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setResetMsgIsError(false);
     let error;
     try {
+      // חוק ברזל (Password Recovery End-to-End Fix, Wave 1, §227/§228): היה
+      // redirectTo: window.location.origin (שורש חשוף, בלי /dashboard ובלי
+      // ?lang=) - מפנה את הקישור לדף הנחיתה השיווקי, לא ל-Dashboard.jsx, כי
+      // אף אחד מ-AppLocal.jsx/AppGlobal.jsx (הראוטרים החיים בפועל - App.jsx
+      // עצמו הוא קוד מת, לא מיובא ע"י main.jsx) אינו מיירט type=recovery
+      // בנתיב השורש. לכן אירוע PASSWORD_RECOVERY נורה לריק (לאף מאזין לא היה
+      // סיכוי להירשם, כי Dashboard.jsx - המקום היחיד עם isPasswordRecoveryMode
+      // - מעולם לא היה מורכב) וההצעה-בפועל להצגת "קבע סיסמה חדשה" מעולם לא
+      // הופעלה בזמן. שורש-הבעיה האמיתי: לא חוסר-לוגיקה (isPasswordRecoveryMode
+      // קיים ותקין, ר' למטה) אלא ניתוב שגוי של הקישור עצמו. התיקון: להפנות
+      // ישירות ל-/dashboard עם ?lang= מפורש (תיקון-שורש כפול - גם מיירט נכון
+      // ל-Dashboard.jsx שכבר יודע לזהות type=recovery בעצמו [synchronous hash
+      // check + PASSWORD_RECOVERY listener, שניהם קיימים כבר], וגם פותר את
+      // ה-SIDE_TASK הנפרד של אובדן שפה/שוק ב-redirectTo - בלי ?lang= מפורש,
+      // main.jsx היה בוחר AppLocal/AppGlobal לפי storedLang/geo/browserLang,
+      // לא לפי השוק האמיתי של החשבון ששלח את הבקשה).
       ({ error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: window.location.origin,
+        redirectTo: window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en'),
       }));
     } catch (thrown) {
       // A genuine network/DNS/CORS failure can make this call throw instead
@@ -1744,9 +1789,30 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const handleUpdatePasswordFromRecovery = async (e) => {
     e.preventDefault();
-    setRecoveryUpdateLoading(true);
     setRecoveryUpdateMsg('');
     setRecoveryUpdateMsgIsError(false);
+
+    // Password Recovery End-to-End Fix, Wave 1, §227/§228: client-side
+    // non-empty/match validation, checked before ever calling Supabase -
+    // matches this task's own explicit required behavior. Minimum password
+    // strength itself is intentionally NOT duplicated here as a separate
+    // client-side rule - Supabase's own server-side check is already
+    // correctly classified into a curated bilingual message by
+    // normalizeAuthError()'s existing weak_password branch, so re-declaring
+    // a second, possibly-inconsistent client-side rule here would risk the
+    // two disagreeing later.
+    if (!newPasswordInput || !confirmPasswordInput) {
+      setRecoveryUpdateMsg(bundleIsHebrew ? 'יש למלא את שני שדות הסיסמה.' : 'Please fill in both password fields.');
+      setRecoveryUpdateMsgIsError(true);
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמאות אינן תואמות.' : 'Passwords do not match.');
+      setRecoveryUpdateMsgIsError(true);
+      return;
+    }
+
+    setRecoveryUpdateLoading(true);
     let error;
     try {
       ({ error } = await supabase.auth.updateUser({ password: newPasswordInput }));
@@ -1763,11 +1829,53 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setRecoveryUpdateMsg(message);
       setRecoveryUpdateMsgIsError(true);
     } else {
-      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך...' : 'Password updated successfully! Redirecting...');
+      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך למסך ההתחברות...' : 'Password updated successfully! Redirecting you to sign in...');
       setRecoveryUpdateMsgIsError(false);
-      setTimeout(() => {
+      // חוק ברזל (Password Recovery End-to-End Fix, Wave 1, §227/§228): לפני
+      // התיקון, ההפניה הייתה ל-window.location.origin (שורש חשוף) תוך השארת
+      // ה-session-שנוצר-מהשחזור פעיל - כלומר "המשך שקט כמחובר" בלי אימות
+      // אמיתי שהסיסמה החדשה בפועל עובדת. זה הפר את הדרישה המפורשת של §227:
+      // "new password successfully logs in" חייב להיות שלב נפרד ומוכח, לא
+      // תוצאה משתמעת מהמשך session ישן. התיקון: signOut מפורש (מנקה את
+      // ה-session-שחזור בבטחה, בלי דו-משמעות אם מותר להתייחס אליו כ-session
+      // רגיל) ואז הפניה למסך ההתחברות עם ?lang= הנכון (לא לשורש) - "asked to
+      // log in again", האפשרות הבטוחה יותר מבין השתיים שהמשימה עצמה מתירה,
+      // ומספקת את ההוכחה הנפרדת שהמשימה דורשת: התחברות מפורשת עם הסיסמה
+      // החדשה, לא session שרד מלפני העדכון.
+      //
+      // Root-cause correction (EN Matrix Closure follow-up task): the ORDER
+      // above - setIsPasswordRecoveryMode(false) BEFORE awaiting signOut() -
+      // created a genuine race, confirmed by source tracing and a real
+      // reproduction, not guessed. The pre-existing, unrelated
+      // getMarketRoutingCorrection effect (Item 25, src/utils/regionConfig.js)
+      // also depends on isPasswordRecoveryMode and is deliberately designed to
+      // stay inert (return null) WHILE it is true - but the instant it flips
+      // to false, that effect re-evaluates using the session/account data
+      // that has already been loaded in the background throughout the whole
+      // recovery flow. Whenever the recovering account's real registered
+      // market (business_settings.country, reflected in `isHebrew`) does NOT
+      // match the recovery link's own bundle (`bundleIsHebrew` - e.g. a
+      // Local-market account completing recovery via an ?lang=en link), that
+      // effect fires ITS OWN competing `window.location.href` navigation -
+      // which, firing synchronously off a state update, wins the race against
+      // the still in-flight `await supabase.auth.signOut()` below and aborts
+      // it before the session is actually cleared from storage. This is not
+      // an EN-only defect - it is a market-mismatch race, and the single-line
+      // fix is ordering: signOut() must fully resolve (clearing storage and
+      // dispatching its own SIGNED_OUT event) BEFORE isPasswordRecoveryMode
+      // is ever flipped, so the correction effect never finds a mismatched,
+      // still-authenticated state to react to. No new mechanism, no broad
+      // auth-state change - only the order of two pre-existing steps.
+      setTimeout(async () => {
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // best-effort - even if signOut itself throws, the redirect below
+          // still takes the user to the login screen, which is the safe
+          // outcome either way.
+        }
         setIsPasswordRecoveryMode(false);
-        window.location.href = window.location.origin;
+        window.location.href = window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en');
       }, 2000);
     }
   };
@@ -3141,6 +3249,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isPasswordRecoveryMode={isPasswordRecoveryMode}
         newPasswordInput={newPasswordInput}
         setNewPasswordInput={setNewPasswordInput}
+        confirmPasswordInput={confirmPasswordInput}
+        setConfirmPasswordInput={setConfirmPasswordInput}
         handleUpdatePasswordFromRecovery={handleUpdatePasswordFromRecovery}
         recoveryUpdateLoading={recoveryUpdateLoading}
         recoveryUpdateMsg={recoveryUpdateMsg}

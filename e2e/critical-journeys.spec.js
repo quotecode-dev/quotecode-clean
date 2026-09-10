@@ -573,3 +573,243 @@ test.describe('Critical Journeys — password-reset request (real route, mocked 
     expect(color).toBe('rgb(248, 113, 113)'); // error styling, never success/green
   });
 });
+
+// Password Recovery End-to-End Fix, Wave 1, §227/§228 (2026-09-09): root
+// cause proven by source inspection - resetPasswordForEmail's own
+// `redirectTo` was the bare `window.location.origin` with no `/dashboard`
+// path and no `?lang=`. Neither AppLocal.jsx nor AppGlobal.jsx (the two
+// live routers - the third, App.jsx, is confirmed dead code, never imported
+// by main.jsx) intercepts `type=recovery` at the root route ("/"), so a
+// clicked recovery link rendered the marketing landing page directly -
+// Dashboard.jsx, the only component with any isPasswordRecoveryMode/
+// PASSWORD_RECOVERY handling, was never mounted for that URL, so its
+// listener never had a chance to subscribe before Supabase's own
+// detectSessionInUrl silently consumed the token and fired the event into
+// the void. The fix redirects straight to `/dashboard?lang=he|en` instead -
+// this also fixes the separate, previously-known SIDE_TASK (an English
+// account's reset link opening the Hebrew landing experience), since an
+// explicit `?lang=` is the top-priority signal in main.jsx's own
+// isEnglishEnv decision chain, ahead of stored/geo/browser-language
+// guessing.
+test.describe('Critical Journeys — password recovery terminal chain (Wave 1, §227/§228)', () => {
+  test('the recovery link redirectTo now points at /dashboard with the correct locale, in HE — not the bare origin', async ({ page }) => {
+    let capturedUrl = null;
+    await page.route('**/auth/v1/recover*', (route) => {
+      capturedUrl = route.request().url();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/dashboard?lang=he');
+    await page.getByRole('button', { name: /^(שכחת סיסמה\?)$/ }).click();
+    await page.locator('form').filter({ hasText: 'שלח קישור לשחזור' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /שלח קישור לשחזור/ }).click();
+    await expect(page.locator('body')).toContainText('נשלח בהצלחה', { timeout: 10000 });
+    expect(capturedUrl).not.toBeNull();
+    const decoded = decodeURIComponent(capturedUrl);
+    expect(decoded).toContain('/dashboard?lang=he');
+    // Root-cause regression guard: must never again be the bare origin with
+    // no path (the exact defect this task fixed).
+    expect(decoded).not.toMatch(/redirect_to=https?:\/\/[^/?]+&/);
+  });
+
+  test('the recovery link redirectTo now points at /dashboard with the correct locale, in EN — not the bare origin', async ({ page }) => {
+    let capturedUrl = null;
+    await page.route('**/auth/v1/recover*', (route) => {
+      capturedUrl = route.request().url();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/dashboard?lang=en');
+    await page.getByRole('button', { name: /^Forgot password\?$/ }).click();
+    await page.locator('form').filter({ hasText: 'Send Reset Link' }).getByPlaceholder('user@example.com').fill('reset-request-test@example.com');
+    await page.getByRole('button', { name: /Send Reset Link/ }).click();
+    await expect(page.locator('body')).toContainText('sent successfully', { timeout: 10000 });
+    expect(capturedUrl).not.toBeNull();
+    const decoded = decodeURIComponent(capturedUrl);
+    expect(decoded).toContain('/dashboard?lang=en');
+    expect(decoded).not.toMatch(/redirect_to=https?:\/\/[^/?]+&/);
+  });
+
+  test('landing on /dashboard with type=recovery in the URL shows the dedicated new-password form, in HE — never the normal dashboard', async ({ page }) => {
+    await page.goto('/dashboard?lang=he&type=recovery');
+    await expect(page.getByText('הגדרת סיסמה חדשה')).toBeVisible({ timeout: 10000 });
+    // The two required fields (Iron Law required product behavior: new
+    // password + confirm password), both present, both empty by default.
+    await expect(page.getByPlaceholder('סיסמה חדשה', { exact: true })).toBeVisible();
+    await expect(page.getByPlaceholder('אימות סיסמה חדשה')).toBeVisible();
+    // Never the normal authenticated dashboard content while in recovery mode.
+    await expect(page.locator('body')).not.toContainText('היסטוריית הצעות מחיר');
+  });
+
+  test('landing on /dashboard with type=recovery in the URL shows the dedicated new-password form, in EN — never the normal dashboard', async ({ page }) => {
+    await page.goto('/dashboard?lang=en&type=recovery');
+    await expect(page.getByText('Set New Password')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('New password', { exact: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Confirm new password')).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Recent Quotes History');
+  });
+
+  test('mismatched new/confirm passwords are rejected client-side, in HE — no request ever reaches Supabase', async ({ page }) => {
+    let updateCalled = false;
+    await page.route('**/auth/v1/user*', (route) => {
+      updateCalled = true;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/dashboard?lang=he&type=recovery');
+    await page.getByPlaceholder('סיסמה חדשה', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('אימות סיסמה חדשה').fill('DifferentPass456!');
+    await page.getByRole('button', { name: /עדכן סיסמה ושמור/ }).click();
+    await expect(page.getByText('הסיסמאות אינן תואמות.')).toBeVisible({ timeout: 10000 });
+    expect(updateCalled).toBe(false);
+  });
+
+  test('mismatched new/confirm passwords are rejected client-side, in EN — no request ever reaches Supabase', async ({ page }) => {
+    let updateCalled = false;
+    await page.route('**/auth/v1/user*', (route) => {
+      updateCalled = true;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/dashboard?lang=en&type=recovery');
+    await page.getByPlaceholder('New password', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('Confirm new password').fill('DifferentPass456!');
+    await page.getByRole('button', { name: /Update Password & Save/ }).click();
+    await expect(page.getByText('Passwords do not match.')).toBeVisible({ timeout: 10000 });
+    expect(updateCalled).toBe(false);
+  });
+
+  test('an already-invalid/expired recovery link (Supabase error redirect, no type=recovery) shows curated bilingual messaging on the login screen, in HE', async ({ page }) => {
+    await page.goto('/dashboard?lang=he&error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+    await expect(page.getByText('קישור השחזור אינו תקין או שפג תוקפו')).toBeVisible({ timeout: 10000 });
+    // Safely back at the ordinary login screen, not stuck/blank, not the
+    // new-password form (there is no valid recovery to complete).
+    await expect(page.getByPlaceholder('user@example.com')).toBeVisible();
+  });
+
+  test('an already-invalid/expired recovery link (Supabase error redirect, no type=recovery) shows curated bilingual messaging on the login screen, in EN', async ({ page }) => {
+    await page.goto('/dashboard?lang=en&error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+    await expect(page.getByText('This recovery link is invalid or has expired')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('user@example.com')).toBeVisible();
+  });
+
+  test('a stale recovery session that reaches the save step still gets the curated invalid/expired message, not a raw provider string', async ({ page }) => {
+    await page.route('**/auth/v1/user*', (route) => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 401, msg: 'Auth session missing!' }),
+    }));
+    await page.goto('/dashboard?lang=he&type=recovery');
+    await page.getByPlaceholder('סיסמה חדשה', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('אימות סיסמה חדשה').fill('NewSafePass123!');
+    await page.getByRole('button', { name: /עדכן סיסמה ושמור/ }).click();
+    await expect(page.getByText('קישור השחזור אינו תקין או שפג תוקפו')).toBeVisible({ timeout: 10000 });
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('Auth session missing');
+  });
+
+  // EN Matrix Closure follow-up task (2026-09-09): root-caused a real,
+  // reproduced defect - a pre-existing, unrelated effect
+  // (getMarketRoutingCorrection, Item 25, src/utils/regionConfig.js) also
+  // depends on isPasswordRecoveryMode and fires its own competing
+  // window.location.href navigation the instant that flag flips to false,
+  // for any account whose real registered market doesn't match the recovery
+  // link's own bundle. The ORIGINAL code flipped isPasswordRecoveryMode to
+  // false BEFORE awaiting supabase.auth.signOut() - letting that competing,
+  // synchronous navigation win the race and abort the still-in-flight
+  // sign-out before it ever cleared the session. getMarketRoutingCorrection
+  // itself is already fully unit-tested and was never the defect (see
+  // regionConfig.test.js's own "isPasswordRecoveryMode: true" case) - the
+  // bug was purely in Dashboard.jsx's own call ORDER. Reproducing the actual
+  // race end-to-end would require a real, mismatched-market Supabase
+  // session, which this suite deliberately does not fabricate against any
+  // real backend - the real terminal chain proof for this lives in
+  // PROFLOW_PROJECT_CONTEXT.md's own real-TEST-persona verification instead.
+  // What IS safely testable here, and would have caught the original bug,
+  // is the sequencing contract itself: the redirect must never fire before
+  // signOut() has been given the chance to complete.
+  //
+  // Correction found while wiring this test up: supabase-js's own
+  // updateUser() checks for a truthy local session BEFORE ever touching the
+  // network (GoTrueClient._updateUser -> _useSession -> throws
+  // AuthSessionMissingError client-side if none exists) - so with a
+  // genuinely empty session (this suite's normal starting state), the
+  // "Password updated successfully" branch this test needs is unreachable
+  // no matter what the mocked /auth/v1/user endpoint returns; the request
+  // never leaves the browser. To exercise the ordering contract at all, an
+  // opaque placeholder session object is seeded directly into localStorage
+  // before the app boots - not a real or forged JWT asserting any identity
+  // to a real verifier, just a local value that satisfies supabase-js's own
+  // client-side truthiness check so it proceeds to the network call, which
+  // (like every other request in this test) is fully intercepted below and
+  // never reaches any real backend. That placeholder token isn't a real JWT,
+  // so it also fails PostgREST's own signature check on every REST call the
+  // rest of the dashboard fires in the background (business_settings,
+  // quotes, clients...) - Dashboard.jsx's own defensive fetchSettings code
+  // treats that failure as "session is invalid" and signs out on its own,
+  // before this test's own click ever happens. **/rest/v1/** is mocked to a
+  // generic empty success below purely to keep that unrelated background
+  // loading quiet, so it doesn't produce a false pass/fail on the actual
+  // thing under test - the update/signOut/redirect ordering.
+  test('the recovery flow never redirects before signOut() has been given the chance to complete', async ({ page }) => {
+    let signOutCalled = false;
+    await page.route('**/rest/v1/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.addInitScript(() => {
+      // Only seed once - the redirect this test verifies is itself a real
+      // full-page navigation, which would otherwise re-run this init script
+      // and re-plant the placeholder session right after the app's own
+      // signOut() just cleared it, masking a real regression.
+      if (sessionStorage.getItem('__e2e_ordering_test_seeded')) return;
+      sessionStorage.setItem('__e2e_ordering_test_seeded', '1');
+      const fakeSession = {
+        access_token: 'e2e-ordering-test-placeholder-token',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'e2e-ordering-test-placeholder-refresh',
+        user: {
+          id: 'e2e-ordering-test-user-id',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'e2e-ordering-test@example.com',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      };
+      localStorage.setItem('sb-ljfizgrdyzxddswcedwr-auth-token', JSON.stringify(fakeSession));
+    });
+    await page.route('**/auth/v1/user*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-user-id', email: 'test@example.com' }),
+    }));
+    await page.route('**/auth/v1/logout*', async (route) => {
+      signOutCalled = true;
+      // Deliberately slow response - if the app's own code redirects before
+      // this resolves, the assertion below (checked while this is still
+      // in flight) will catch it.
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await route.fulfill({ status: 204, contentType: 'application/json', body: '' });
+    });
+    await page.goto('/dashboard?lang=en&type=recovery');
+    await page.getByPlaceholder('New password', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('Confirm new password').fill('NewSafePass123!');
+    await page.getByRole('button', { name: /Update Password & Save/ }).click();
+    await expect(page.getByText('Password updated successfully')).toBeVisible({ timeout: 10000 });
+    // The app's own 2s pre-signOut delay, then signOut() begins (mocked to
+    // take 3s). Check partway through that window - the app must still be
+    // on the exact same recovery URL (type=recovery still present), not
+    // already redirected away. The redirect target itself also contains
+    // `lang=en`, so `type=recovery`'s presence/absence is the only reliable
+    // signal of whether navigation has happened yet.
+    await page.waitForTimeout(3500);
+    expect(signOutCalled).toBe(true);
+    expect(page.url()).toContain('type=recovery');
+    // Now let the mocked signOut() finish and confirm the redirect does
+    // eventually happen, correctly, afterward.
+    await page.waitForURL((u) => !u.toString().includes('type=recovery'), { timeout: 5000 });
+  });
+});

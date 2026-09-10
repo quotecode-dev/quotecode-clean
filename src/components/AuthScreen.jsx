@@ -12,6 +12,8 @@ export default function AuthScreen({
   isPasswordRecoveryMode,
   newPasswordInput,
   setNewPasswordInput,
+  confirmPasswordInput,
+  setConfirmPasswordInput,
   handleUpdatePasswordFromRecovery,
   recoveryUpdateLoading,
   recoveryUpdateMsg,
@@ -96,6 +98,16 @@ export default function AuthScreen({
               value={newPasswordInput}
               onChange={(e) => setNewPasswordInput(e.target.value)}
               placeholder={isHebrew ? 'סיסמה חדשה' : 'New password'}
+              autoComplete="new-password"
+              required
+              style={{ width: '100%', padding: '10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: isHebrew ? 'rtl' : 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
+            />
+            <input
+              type="password"
+              value={confirmPasswordInput}
+              onChange={(e) => setConfirmPasswordInput(e.target.value)}
+              placeholder={isHebrew ? 'אימות סיסמה חדשה' : 'Confirm new password'}
+              autoComplete="new-password"
               required
               style={{ width: '100%', padding: '10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: isHebrew ? 'rtl' : 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
             />
