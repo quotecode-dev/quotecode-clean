@@ -66,6 +66,25 @@ export function getMarketRoutingCorrection({
   return isHebrew ? 'he' : 'en';
 }
 
+// Post-Recovery Login Routing Fix - the final post-recovery redirect
+// (handleUpdatePasswordFromRecovery, Dashboard.jsx) previously used
+// bundleIsHebrew alone: the bundle that happened to handle the *original*
+// reset request, itself decided anonymously (pre-auth) by main.jsx's own
+// geo/browser-language fallback for whichever device/browser the user
+// requested from - not the account's real registered market. That let an
+// unrelated geo/browser-language signal silently override a market that,
+// by the time the user actually saves a new password, is already known
+// (business_settings has loaded in the background, same precondition
+// getMarketRoutingCorrection above already relies on via settingId).
+// Same precedence as that function: isHebrew (the real market) wins once
+// known; bundleIsHebrew is only a fallback for the rare case
+// business_settings never finished loading (e.g. a network failure) -
+// never a geo/browser-language guess.
+export function getPostRecoveryLoginLang({ settingId, isHebrew, bundleIsHebrew }) {
+  const knownIsHebrew = (settingId !== null && settingId !== undefined) ? isHebrew : bundleIsHebrew;
+  return knownIsHebrew ? 'he' : 'en';
+}
+
 export const getCurrencySym = (country, currency) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
   const effectiveCountry = country || cachedCountry;

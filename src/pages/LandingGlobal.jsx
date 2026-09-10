@@ -271,17 +271,39 @@ export default function LandingGlobal({ onForgotPassword }) {
           }
         }
 
-        /* Root-cause fix (Two-Stage Completion Task, Stage 2D): at <=400px
-           the header's two buttons (Sign In + Start Free Trial) don't both
-           fit with "Sign In" spelled out - found via live 320px measurement
-           (haRect right edge at 348px vs 320px viewport). Compact to an
-           icon-only Sign In button rather than letting the button clip. */
+        .signin-text-compact {
+          display: none;
+        }
+
+        /* Post-Recovery + EN Login CTA Parity Fix: the icon-only fallback
+           below previously left EN's existing-user login access with no
+           textual label at all at this width - unlike LandingLocal.jsx's
+           own header, which always keeps a textual "כניסה" even at its
+           narrowest breakpoint. Swaps to the shorter "Login" instead of
+           hiding text entirely, with the gaps below tightened to absorb as
+           much of the added width as possible without touching the
+           adjacent Start Free Trial button (out of this fix's scope).
+           Live-measured (iPhone 13 / 390px - this project's own tested
+           Mobile viewport, playwright.config.js): clean, no overflow, no
+           overlap between the two buttons. Below ~340px (already
+           independently overflowing before this fix, caused by the Free
+           Trial button's own width budget, not Sign In - not part of this
+           project's tested viewport matrix): residual overflow remains,
+           reported separately, not fixed here (would require touching the
+           Free Trial button, outside this fix's scope). */
         @media (max-width: 400px) {
           .signin-text {
             display: none;
           }
+          .signin-text-compact {
+            display: inline;
+          }
           .nav-btn:not(.neon-btn) {
             padding: 8px 10px !important;
+            gap: 4px !important;
+          }
+          .header-actions {
+            gap: 6px !important;
           }
         }
       `}</style>
@@ -314,6 +336,7 @@ export default function LandingGlobal({ onForgotPassword }) {
             <button className="nav-btn" onClick={() => navigate('/dashboard?lang=en')} aria-label="Sign In" style={{ background: 'transparent', color: '#e4e4e7', border: '1px solid rgba(255,255,255,0.14)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <LogIn size={14} strokeWidth={2.5} />
               <span className="signin-text">Sign In</span>
+              <span className="signin-text-compact">Login</span>
             </button>
             <button className="nav-btn neon-btn" onClick={() => navigate('/dashboard?signup=true&lang=en')} style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', boxShadow: NEON.glow, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <ArrowUpRight size={15} strokeWidth={2.5} />

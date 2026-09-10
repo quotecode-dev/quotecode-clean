@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMarketRoutingCorrection } from './regionConfig';
+import { getMarketRoutingCorrection, getPostRecoveryLoginLang } from './regionConfig';
 
 // Item 25 - automatic post-login market routing. These tests exercise the
 // pure decision function directly (no React/Supabase/browser needed), since
@@ -86,6 +86,50 @@ describe('getMarketRoutingCorrection', () => {
     ];
     for (const outcome of allPossibleOutcomes) {
       expect([null, 'he', 'en']).toContain(outcome);
+    }
+  });
+});
+
+// Post-Recovery Login Routing Fix - the post-recovery terminal redirect's
+// own decision logic, exercised directly as a pure function (same rationale
+// as getMarketRoutingCorrection above: no real TEST Auth users/live browser
+// needed to prove the decision itself).
+describe('getPostRecoveryLoginLang', () => {
+  it('A. International account recovering via a Hebrew-bundled link: known market (isHebrew=false) wins, routes to en, not the Hebrew bundle the link happened to carry', () => {
+    expect(getPostRecoveryLoginLang({ settingId: 42, isHebrew: false, bundleIsHebrew: true })).toBe('en');
+  });
+
+  it('B. International account, known market unaffected by whatever local IP/geolocation selected the recovery link bundle (bundleIsHebrew true from geo fallback): still en', () => {
+    expect(getPostRecoveryLoginLang({ settingId: 42, isHebrew: false, bundleIsHebrew: true })).toBe('en');
+  });
+
+  it('C. Local/Hebrew account recovering via an English-bundled link: known market (isHebrew=true) wins, routes to he', () => {
+    expect(getPostRecoveryLoginLang({ settingId: 42, isHebrew: true, bundleIsHebrew: false })).toBe('he');
+  });
+
+  it('D. Local/Hebrew account, link bundle already matched (bundleIsHebrew true): still he, no spurious flip', () => {
+    expect(getPostRecoveryLoginLang({ settingId: 42, isHebrew: true, bundleIsHebrew: true })).toBe('he');
+  });
+
+  it('known market and link bundle already agree (International): still en, unaffected', () => {
+    expect(getPostRecoveryLoginLang({ settingId: 42, isHebrew: false, bundleIsHebrew: false })).toBe('en');
+  });
+
+  it('business_settings never finished loading (settingId still null): falls back to the recovery link bundle, never a geo/browser-language guess', () => {
+    expect(getPostRecoveryLoginLang({ settingId: null, isHebrew: false, bundleIsHebrew: true })).toBe('he');
+    expect(getPostRecoveryLoginLang({ settingId: undefined, isHebrew: true, bundleIsHebrew: false })).toBe('en');
+  });
+
+  it('never returns anything but "he" or "en"', () => {
+    const allPossibleOutcomes = [
+      getPostRecoveryLoginLang({ settingId: 42, isHebrew: true, bundleIsHebrew: true }),
+      getPostRecoveryLoginLang({ settingId: 42, isHebrew: true, bundleIsHebrew: false }),
+      getPostRecoveryLoginLang({ settingId: 42, isHebrew: false, bundleIsHebrew: true }),
+      getPostRecoveryLoginLang({ settingId: 42, isHebrew: false, bundleIsHebrew: false }),
+      getPostRecoveryLoginLang({ settingId: null, isHebrew: false, bundleIsHebrew: true }),
+    ];
+    for (const outcome of allPossibleOutcomes) {
+      expect(['he', 'en']).toContain(outcome);
     }
   });
 });

@@ -9,7 +9,7 @@ import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import PlanIdentityBadge from '../components/PlanIdentityBadge';
-import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection } from '../utils/regionConfig';
+import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { computeEffectivePlan } from '../utils/planEntitlements';
@@ -1875,7 +1875,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           // outcome either way.
         }
         setIsPasswordRecoveryMode(false);
-        window.location.href = window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en');
+        // Post-Recovery Login Routing Fix: bundleIsHebrew here only reflects
+        // whichever anonymous bundle happened to handle the *original*
+        // reset request (itself decided by main.jsx's geo/browser-language
+        // fallback for a not-yet-authenticated visitor) - it has no
+        // reliable connection to the account's real registered market, and
+        // was the actual root cause of recovery landing on the wrong-
+        // language login. getPostRecoveryLoginLang applies the same known-
+        // market precedence getMarketRoutingCorrection above already uses
+        // (isHebrew wins once settingId confirms business_settings loaded;
+        // bundleIsHebrew only as a fallback) - never a geo/browser-language
+        // guess.
+        window.location.href = window.location.origin + '/dashboard?lang=' + getPostRecoveryLoginLang({ settingId, isHebrew, bundleIsHebrew });
       }, 2000);
     }
   };

@@ -387,6 +387,45 @@ test.describe('Critical Journeys — Super Admin dedicated actions (role/plan di
 // Mirrors the same real-content bar the HE matrix above holds itself to
 // (not just "doesn't crash") and additionally checks for HE/RTL/ILS
 // leakage into the English/International surface.
+// EN Login CTA Parity Fix (2026-09-10): the EN public marketing header
+// (LandingGlobal.jsx) previously hid its Sign In button's text entirely
+// below 400px width (an icon-only fallback added to avoid overflow against
+// the adjacent Start Free Trial button), leaving existing-user login access
+// ambiguous at narrow phone widths - unlike the HE header
+// (LandingLocal.jsx), which always keeps a textual "כניסה" at every
+// breakpoint. Fixed by swapping to a shorter "Login" label instead of
+// hiding text. These tests run across this suite's own full viewport
+// matrix (desktop/mobile/tablet-portrait/tablet-landscape - see
+// playwright.config.js), so the same test proves no-overflow/no-clipping at
+// each viewport, not just one.
+test.describe('Public Landing Header — Login CTA parity (EN Login CTA Parity Fix)', () => {
+  test('EN header shows a real, visible textual Login label at every viewport - never an icon-only, ambiguous state - and routes to the EN login', async ({ page }) => {
+    await page.goto('/en');
+    const signIn = page.getByRole('button', { name: 'Sign In' });
+    await expect(signIn).toBeVisible();
+    const visibleLabel = (await signIn.innerText()).trim();
+    expect(visibleLabel.length).toBeGreaterThan(0);
+    expect(['Sign In', 'Login']).toContain(visibleLabel);
+    // No overflow/clipping: the button's own right edge must stay within
+    // the viewport (a 1px allowance for sub-pixel layout rounding).
+    const box = await signIn.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+    await signIn.click();
+    await page.waitForURL((u) => u.toString().includes('/dashboard') && u.toString().includes('lang=en'));
+  });
+
+  test('HE header login CTA is unaffected by the EN fix - still always textual, still routes to the HE login', async ({ page }) => {
+    await page.goto('/he');
+    const login = page.getByRole('button', { name: /כניסה/ });
+    await expect(login).toBeVisible();
+    const visibleLabel = (await login.innerText()).trim();
+    expect(visibleLabel.length).toBeGreaterThan(0);
+    await login.click();
+    await page.waitForURL((u) => u.toString().includes('/dashboard') && u.toString().includes('lang=he'));
+  });
+});
+
 test.describe('Critical Journeys — EN/International market', () => {
   test('Dashboard renders in English/LTR with international currency, zero Hebrew/RTL/ILS leakage', async ({ page }) => {
     await login(page, PERSONA_EN, 'en');
@@ -811,5 +850,134 @@ test.describe('Critical Journeys — password recovery terminal chain (Wave 1, �
     // Now let the mocked signOut() finish and confirm the redirect does
     // eventually happen, correctly, afterward.
     await page.waitForURL((u) => !u.toString().includes('type=recovery'), { timeout: 5000 });
+  });
+
+  // Post-Recovery Login Routing Fix (2026-09-10): the actual root cause of
+  // recovery landing on the wrong-language login - the final redirect used
+  // bundleIsHebrew alone, which only reflects whichever anonymous bundle
+  // happened to carry the *original* reset request (itself decided by
+  // main.jsx's own geo/browser-language fallback for a not-yet-authenticated
+  // visitor), never the account's real registered market. These two tests
+  // reuse the placeholder-session pattern above, but additionally mock
+  // business_settings to return a real country - a genuine market/bundle
+  // MISMATCH (an International account whose recovery link happened to
+  // carry `lang=he`, and the mirror Local case) - proving the known market
+  // now wins over the stale link bundle, exactly the scenario that
+  // previously sent an International account to the Hebrew login.
+  test('A. International account recovering via a Hebrew-bundled link routes to the EN login, not the Hebrew bundle the link carried', async ({ page }) => {
+    await page.route('**/rest/v1/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.route('**/rest/v1/business_settings*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'e2e-post-recovery-routing-intl', country: 'International', business_name: 'TEST Intl', plan: 'pro' }),
+    }));
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('__e2e_routing_test_intl_seeded')) return;
+      sessionStorage.setItem('__e2e_routing_test_intl_seeded', '1');
+      const fakeSession = {
+        access_token: 'e2e-routing-test-intl-placeholder-token',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'e2e-routing-test-intl-placeholder-refresh',
+        user: {
+          id: 'e2e-routing-test-intl-user-id',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'e2e-routing-test-intl@example.com',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      };
+      localStorage.setItem('sb-ljfizgrdyzxddswcedwr-auth-token', JSON.stringify(fakeSession));
+    });
+    await page.route('**/auth/v1/user*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-user-id', email: 'test@example.com' }),
+    }));
+    await page.route('**/auth/v1/logout*', (route) => route.fulfill({ status: 204, contentType: 'application/json', body: '' }));
+    // The recovery link itself carries lang=he (e.g. the original reset
+    // request happened from a browser/geo that defaulted to Hebrew) - the
+    // mismatch this fix must resolve correctly.
+    await page.goto('/dashboard?lang=he&type=recovery');
+    await page.getByPlaceholder('סיסמה חדשה', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('אימות סיסמה חדשה').fill('NewSafePass123!');
+    await page.getByRole('button', { name: /עדכן סיסמה ושמור/ }).click();
+    await expect(page.locator('body')).toContainText('הסיסמה עודכנה בהצלחה', { timeout: 10000 });
+    // B. International context (en/LTR/international currency) must win at
+    // the final destination despite the Hebrew-bundled link - never en route
+    // through the Hebrew public landing page.
+    // page.waitForURL is event-based and can miss a same-tab hard
+    // window.location.href navigation that completes before it attaches
+    // (observed: the destination is already correctly rendered when this
+    // raced) - polling page.url() directly sidesteps that race.
+    await expect.poll(() => page.url(), { timeout: 8000 }).toContain('lang=en');
+    expect(page.url()).not.toContain('lang=he');
+    await expect(page.getByPlaceholder('user@example.com')).toBeVisible({ timeout: 45000 });
+    expect(await page.locator('html').getAttribute('dir')).toBe('ltr');
+  });
+
+  test('C. Local/Hebrew account recovering via an English-bundled link routes to the HE login, not the English bundle the link carried', async ({ page }) => {
+    await page.route('**/rest/v1/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.route('**/rest/v1/business_settings*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'e2e-post-recovery-routing-local', country: 'Local', business_name: 'TEST Local', plan: 'pro' }),
+    }));
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('__e2e_routing_test_local_seeded')) return;
+      sessionStorage.setItem('__e2e_routing_test_local_seeded', '1');
+      const fakeSession = {
+        access_token: 'e2e-routing-test-local-placeholder-token',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'e2e-routing-test-local-placeholder-refresh',
+        user: {
+          id: 'e2e-routing-test-local-user-id',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'e2e-routing-test-local@example.com',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      };
+      localStorage.setItem('sb-ljfizgrdyzxddswcedwr-auth-token', JSON.stringify(fakeSession));
+    });
+    await page.route('**/auth/v1/user*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-user-id', email: 'test@example.com' }),
+    }));
+    await page.route('**/auth/v1/logout*', (route) => route.fulfill({ status: 204, contentType: 'application/json', body: '' }));
+    // The recovery link itself carries lang=en - the mirror mismatch.
+    await page.goto('/dashboard?lang=en&type=recovery');
+    await page.getByPlaceholder('New password', { exact: true }).fill('NewSafePass123!');
+    await page.getByPlaceholder('Confirm new password').fill('NewSafePass123!');
+    await page.getByRole('button', { name: /Update Password & Save/ }).click();
+    await expect(page.locator('body')).toContainText('Password updated successfully', { timeout: 10000 });
+    // D. Local context (he/RTL/ILS) must win at the final destination
+    // despite the English-bundled link.
+    // See the sibling test above for why this polls page.url() directly
+    // rather than using page.waitForURL.
+    await expect.poll(() => page.url(), { timeout: 8000 }).toContain('lang=he');
+    expect(page.url()).not.toContain('lang=en');
+    await expect(page.getByPlaceholder('user@example.com')).toBeVisible({ timeout: 45000 });
+    expect(await page.locator('html').getAttribute('dir')).toBe('rtl');
   });
 });

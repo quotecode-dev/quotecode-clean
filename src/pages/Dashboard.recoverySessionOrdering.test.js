@@ -63,9 +63,21 @@ describe('Password recovery - signOut() must fully resolve before isPasswordReco
     const fnBody = dashboardSource.slice(fnStart, fnEnd);
 
     const flipIndex = fnBody.indexOf('setIsPasswordRecoveryMode(false);');
-    const redirectIndex = fnBody.indexOf("window.location.href = window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en');");
+    // Post-Recovery Login Routing Fix: the redirect's own destination logic
+    // moved into getPostRecoveryLoginLang (regionConfig.js, its own tested
+    // pure function) - bundleIsHebrew alone no longer decides it, but the
+    // redirect call itself must still only ever run after the flip above.
+    const redirectIndex = fnBody.indexOf("window.location.href = window.location.origin + '/dashboard?lang=' + getPostRecoveryLoginLang(");
 
     expect(redirectIndex).toBeGreaterThan(-1);
     expect(flipIndex).toBeLessThan(redirectIndex);
+  });
+
+  it('the redirect destination is delegated to getPostRecoveryLoginLang, not decided by bundleIsHebrew alone (Post-Recovery Login Routing Fix - the actual root cause of recovery landing on the wrong-language login)', () => {
+    const fnStart = dashboardSource.indexOf('const handleUpdatePasswordFromRecovery = async (e) => {');
+    const fnEnd = dashboardSource.indexOf('const handleSignOut = async () => {', fnStart);
+    const fnBody = dashboardSource.slice(fnStart, fnEnd);
+
+    expect(fnBody).toMatch(/getPostRecoveryLoginLang\(\{\s*settingId,\s*isHebrew,\s*bundleIsHebrew\s*\}\)/);
   });
 });
