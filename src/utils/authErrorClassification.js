@@ -110,6 +110,46 @@ const PATTERNS = [
       : 'Email already registered! Please sign in or use password reset.'),
   },
   {
+    category: 'password_reuse',
+    // Password Recovery Fresh-Link + Error-Classification Fix (2026-09-15
+    // task, Owner-reported live defect): Supabase/GoTrue's own documented
+    // updateUser() behavior rejects a new password identical to the
+    // account's current one with AuthApiError code 'same_password' and
+    // message text "New password should be different from the old
+    // password." - which contains the exact substring "should be" the
+    // weak_password pattern below also matches on, so without this branch
+    // running first, a genuine reuse rejection is misclassified as "password
+    // too weak" (the live-reported symptom this fixes), sending the user
+    // toward the wrong corrective action. Matched on the distinct `code`
+    // field first (most reliable, when present), and on reuse-specific
+    // wording as a fallback - never on the bare "should be"/generic-strength
+    // substrings the weak_password pattern uses, so this can never itself
+    // swallow a genuinely weak (but not reused) password. Disclosed: this
+    // exact code/message pair is Supabase's own documented Auth API
+    // behavior; a fresh live re-reproduction inside this task was blocked by
+    // this session's own credential-write safety gate (no service-role or
+    // token-persistence access available) - not silently assumed as
+    // untested, recorded here for Codex/Owner independent verification.
+    //
+    // Codex NO-GO remediation (2026-09-15, second pass) - the message
+    // fallback above was overbroad: `different from the old` and
+    // `(?:same|identical) as.*(?:old|current|previous)` are not
+    // password-qualified, so an unrelated provider error like "New email
+    // should be different from the old email." or "Email is the same as
+    // current email." also matched, misclassifying it as a password-reuse
+    // rejection. Every fallback branch below now requires the literal word
+    // "password" to be part of the matched phrase itself (never merely
+    // present elsewhere in the message) - "password (should be|is) (the)?
+    // (same|identical|different)" and "used this password" - so a
+    // structurally identical rejection about a different field (email,
+    // username, any other "same/different as old/current" value) can never
+    // match, no matter how similar its wording is.
+    test: (err) => err?.code === 'same_password' || /password\s+(?:should be|is)\s+(?:the\s+)?(?:same|identical|different)|used this password\b/i.test(String(err?.message || '')),
+    userMessage: (_err, isHebrew) => (isHebrew
+      ? '❌ כבר השתמשת בסיסמה הזו בעבר. יש לבחור סיסמה אחרת.'
+      : '❌ You have used this password before. Please choose a different password.'),
+  },
+  {
     category: 'weak_password',
     test: (err) => /password.*(?:at least|should be|too short|weak)/i.test(String(err?.message || '')),
     userMessage: (_err, isHebrew) => (isHebrew

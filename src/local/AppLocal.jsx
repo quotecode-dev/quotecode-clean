@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingLocal from '../pages/LandingLocal';
 import Dashboard from '../pages/Dashboard';
+import { rootRecoveryIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicTools from '../components/PublicTools';
@@ -46,7 +47,25 @@ export default function AppLocal() {
           /dashboard Route below) is the sole real implementation now. */}
 
       <Routes>
-        <Route path="/" element={<LandingLocal />} />
+        {/* Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15
+            task): a fresh recovery-email link's own callback can still land
+            here on bare "/" even though resetPasswordForEmail's own
+            redirectTo correctly requests /dashboard?lang=he - see
+            src/shared/supabase.js's own rootRecoveryIntent comment for the
+            full root-cause explanation (Supabase's own redirect-URL
+            allowlist / template behavior, not an application routing bug).
+            When that happens, ordinary routing alone would mount
+            LandingLocal (Dashboard is a distinct, mutually-exclusive route)
+            and the recovery UI would never appear. rootRecoveryIntent is a
+            synchronous, non-sensitive boolean captured before Supabase's
+            own client ever consumes/clears the URL - when it is set, this
+            route mounts the SAME Dashboard/AuthScreen recovery UI already
+            used by the direct /dashboard?lang=he path (no duplicate
+            implementation), so the account's own real recovery/expired-link
+            handling takes over. Ordinary "/" traffic (the marker false) is
+            completely unaffected and still renders LandingLocal exactly as
+            before. */}
+        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError) ? <Dashboard bundleIsHebrew={true} /> : <LandingLocal />} />
         <Route path="/he" element={<LandingLocal />} />
         {/* bundleIsHebrew=true: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}

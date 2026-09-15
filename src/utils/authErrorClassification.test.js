@@ -64,6 +64,134 @@ describe('normalizeAuthError - known Supabase Auth error shapes', () => {
   });
 });
 
+describe('normalizeAuthError - password reuse (Password Recovery Fresh-Link + Error-Classification Fix, 2026-09-15)', () => {
+  // Supabase/GoTrue's own documented updateUser() behavior: rejecting a new
+  // password identical to the account's current one returns this exact
+  // code/message pair. Live re-reproduction inside this task was blocked by
+  // this session's own credential-write safety gate - see the classifier's
+  // own comment for the full disclosure.
+  const sameCodeError = { code: 'same_password', message: 'New password should be different from the old password.' };
+
+  it('the real Supabase code+message pair maps to password_reuse, not weak_password', () => {
+    const { category } = normalizeAuthError(sameCodeError, false);
+    expect(category).toBe('password_reuse');
+    expect(category).not.toBe('weak_password');
+  });
+
+  it('HE message is the exact curated reuse text', () => {
+    const { message } = normalizeAuthError(sameCodeError, true);
+    expect(message).toBe('❌ כבר השתמשת בסיסמה הזו בעבר. יש לבחור סיסמה אחרת.');
+  });
+
+  it('EN message is the exact curated reuse text', () => {
+    const { message } = normalizeAuthError(sameCodeError, false);
+    expect(message).toBe('❌ You have used this password before. Please choose a different password.');
+  });
+
+  it('classifies correctly by message text alone, even without the code field (defensive - provider message wording is the fallback signal)', () => {
+    const messageOnlyError = { message: 'New password should be different from the old password.' };
+    expect(normalizeAuthError(messageOnlyError, false).category).toBe('password_reuse');
+  });
+
+  it('a genuinely weak (not reused) password is never swallowed by the reuse branch', () => {
+    const weak = { message: 'Password should be at least 6 characters' };
+    const { category } = normalizeAuthError(weak, false);
+    expect(category).toBe('weak_password');
+    expect(category).not.toBe('password_reuse');
+  });
+
+  it('the pre-existing weak-password test still passes unchanged (precedence regression guard)', () => {
+    const err = { message: 'Password should be at least 6 characters' };
+    expect(normalizeAuthError(err, false).category).toBe('weak_password');
+    expect(normalizeAuthError(err, true).category).toBe('weak_password');
+  });
+
+  it('reuse rejection cannot be swallowed by the broader weak-password substring rule (the exact live-reported defect)', () => {
+    // Both messages contain "should be" - proves ordering, not substring
+    // specificity, is what prevents the misclassification.
+    expect(sameCodeError.message).toMatch(/should be/i);
+    expect(normalizeAuthError(sameCodeError, false).category).toBe('password_reuse');
+  });
+
+  it('an unrelated unknown provider error remains sanitized, never raw object/JSON leakage', () => {
+    const weird = { code: 'some_other_code', message: 'Some completely different provider message' };
+    const { category, message } = normalizeAuthError(weird, false);
+    expect(category).toBe('auth_provider_message');
+    expect(message).not.toMatch(/\{|\}/);
+  });
+});
+
+describe('normalizeAuthError - password reuse negative controls (Codex NO-GO remediation, 2026-09-15, second pass)', () => {
+  // Codex finding: the original message fallback (`different from the old`,
+  // `(?:same|identical) as.*(?:old|current|previous)`) was not
+  // password-qualified, so a structurally identical rejection about a
+  // DIFFERENT field (email, username, any other value) also matched and was
+  // misclassified as password_reuse. Every case below asserts the exact
+  // actual category (not merely "not password_reuse"), proving these fall
+  // through to the same safe, curated auth_provider_message passthrough any
+  // other unrecognized-but-readable provider message gets - never raw
+  // object/JSON leakage, and never a password-specific message shown for a
+  // non-password field.
+
+  it('the real Supabase code+message pair still maps to password_reuse (positive control, unchanged)', () => {
+    const err = { code: 'same_password', message: 'New password should be different from the old password.' };
+    expect(normalizeAuthError(err, false).category).toBe('password_reuse');
+  });
+
+  it('a password-qualified message fallback without the code field still maps to password_reuse', () => {
+    const err = { message: 'New password is the same as current password.' };
+    expect(normalizeAuthError(err, false).category).toBe('password_reuse');
+  });
+
+  it('a genuine weak password still maps to weak_password', () => {
+    const err = { message: 'Password should be at least 6 characters' };
+    expect(normalizeAuthError(err, false).category).toBe('weak_password');
+  });
+
+  it('a genuine expired/invalid recovery session still maps to invalid_or_expired_recovery_session', () => {
+    const err = { message: 'Auth session missing!' };
+    expect(normalizeAuthError(err, false).category).toBe('invalid_or_expired_recovery_session');
+  });
+
+  it('"New email should be different from the old email." is NOT password_reuse - it is the generic provider-message passthrough', () => {
+    const err = { message: 'New email should be different from the old email.' };
+    const { category, message } = normalizeAuthError(err, false);
+    expect(category).toBe('auth_provider_message');
+    expect(category).not.toBe('password_reuse');
+    expect(message).not.toMatch(/password/i);
+  });
+
+  it('"Email is the same as current email." is NOT password_reuse - it is the generic provider-message passthrough', () => {
+    const err = { message: 'Email is the same as current email.' };
+    const { category, message } = normalizeAuthError(err, false);
+    expect(category).toBe('auth_provider_message');
+    expect(category).not.toBe('password_reuse');
+    expect(message).not.toMatch(/password/i);
+  });
+
+  it('"Username is the same as current username." is NOT password_reuse', () => {
+    const err = { message: 'Username is the same as current username.' };
+    expect(normalizeAuthError(err, false).category).toBe('auth_provider_message');
+  });
+
+  it('"New value should be different from the old value." is NOT password_reuse (generic, unqualified field)', () => {
+    const err = { message: 'New value should be different from the old value.' };
+    expect(normalizeAuthError(err, false).category).toBe('auth_provider_message');
+  });
+
+  it('"Current email already used." is NOT password_reuse', () => {
+    const err = { message: 'Current email already used.' };
+    expect(normalizeAuthError(err, false).category).toBe('auth_provider_message');
+  });
+
+  it('an additional generic non-password "different from old/current" case is NOT password_reuse', () => {
+    const err = { message: 'New name should be different from the old name.' };
+    const { category } = normalizeAuthError(err, false);
+    expect(category).toBe('auth_provider_message');
+    expect(category).not.toBe('password_reuse');
+  });
+});
+
 describe('normalizeAuthError - the real, Production-discovered AuthRetryableFetchError "{}" shape (2026-09-09)', () => {
   // @supabase/auth-js@2.110.9 constructs an AuthRetryableFetchError for any
   // 5xx response before parsing the body - the real server message

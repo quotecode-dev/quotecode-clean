@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
 import Dashboard from '../pages/Dashboard';
+import { rootRecoveryIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
@@ -49,7 +50,12 @@ export default function AppGlobal() {
           /dashboard Route below) is the sole real implementation now. */}
 
       <Routes>
-        <Route path="/" element={<LandingGlobal />} />
+        {/* Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15
+            task) - EN twin of AppLocal.jsx's own identical "/" route fix;
+            see that file's comment and src/shared/supabase.js's
+            rootRecoveryIntent for the full root-cause explanation and
+            contract. Ordinary "/" traffic is unaffected. */}
+        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError) ? <Dashboard bundleIsHebrew={false} /> : <LandingGlobal />} />
         <Route path="/en" element={<LandingGlobal />} />
         {/* bundleIsHebrew=false: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}

@@ -14,12 +14,25 @@
 # output). Exact origins only, no wildcard - matches this project's own
 # `npm run dev:localtest` fixed port (--port 5186 --strictPort) and the
 # two real hostnames it's reachable under in this environment.
+#
+# Pre-RC-freeze blocker closure (2026-09-15): the ?lang=he/?lang=en variants
+# of the two /dashboard redirect origins were confirmed already present on
+# the hosted TEST project via a fresh `supabase config diff` (they showed up
+# as remote-only against this file). This file was out of sync with that
+# already-applied hosted state; synced here to prevent a future `supabase
+# config push` from this file silently reverting them. No hosted mutation
+# was needed or performed for this addition - preserves every existing
+# entry, does not touch site_url or any other Auth setting.
 [auth]
 site_url = "http://localhost:5186"
 additional_redirect_urls = [
   "http://localhost:5186/dashboard",
   "http://127.0.0.1:5186",
   "http://127.0.0.1:5186/dashboard",
+  "http://localhost:5186/dashboard?lang=he",
+  "http://localhost:5186/dashboard?lang=en",
+  "http://127.0.0.1:5186/dashboard?lang=he",
+  "http://127.0.0.1:5186/dashboard?lang=en",
 ]
 
 [functions.chat-ai]

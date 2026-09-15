@@ -219,6 +219,91 @@ describe('classifyFreshLedger - operates on the FULL ledger (applied AND pending
     expect(errors.some((e) => e.check === 'unresolvable-ledger-version' && e.message.includes('PRODUCTION DELTA CHANGED'))).toBe(true);
   });
 
+  it('FAIL: version 09 (narrow-approve) missing entirely from the fresh ledger', () => {
+    const data = makeLedgerData({
+      appliedFiles: KNOWN_ALREADY_APPLIED_FILES,
+      pendingFiles: [...Object.keys(EXCLUDED_PENDING_MIGRATIONS).filter((f) => f !== NARROW_APPROVE_FILE), ...ALLOWED_NAMES],
+    });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'version-09-missing' && e.message.includes('PRODUCTION DELTA CHANGED'))).toBe(true);
+  });
+
+  it('FAIL: Lifetime missing entirely from the fresh ledger', () => {
+    const data = makeLedgerData({
+      appliedFiles: KNOWN_ALREADY_APPLIED_FILES.filter((f) => f !== LIFETIME_MIGRATION_FILE),
+      pendingFiles: [...Object.keys(EXCLUDED_PENDING_MIGRATIONS), ...ALLOWED_NAMES],
+    });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'lifetime-state-unchanged' && e.message.includes('missing entirely'))).toBe(true);
+  });
+
+  it('FAIL: a known expected-applied baseline migration missing entirely from the fresh ledger', () => {
+    const missingFile = '20260828000000_add_quote_attn_contact.sql';
+    const data = makeLedgerData({
+      appliedFiles: KNOWN_ALREADY_APPLIED_FILES.filter((f) => f !== missingFile),
+      pendingFiles: [...Object.keys(EXCLUDED_PENDING_MIGRATIONS), ...ALLOWED_NAMES],
+    });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'baseline-entry-missing' && e.message.includes(missingFile))).toBe(true);
+  });
+
+  it('FAIL: a known expected-pending-excluded baseline migration missing entirely from the fresh ledger', () => {
+    const missingFile = '20260830000000_capture_base_schema_tables.sql';
+    const data = makeLedgerData({
+      appliedFiles: KNOWN_ALREADY_APPLIED_FILES,
+      pendingFiles: [...Object.keys(EXCLUDED_PENDING_MIGRATIONS).filter((f) => f !== missingFile), ...ALLOWED_NAMES],
+    });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'baseline-entry-missing' && e.message.includes(missingFile))).toBe(true);
+  });
+
+  it('PASS: a superseded-by-package excluded file (e.g. the old TEST-history 20260902 file) missing entirely from the ledger does NOT fail baseline completeness', () => {
+    const supersededFile = '20260902000000_add_professional_quote_items_stage_a.sql';
+    const data = makeLedgerData({
+      appliedFiles: KNOWN_ALREADY_APPLIED_FILES,
+      pendingFiles: [...Object.keys(EXCLUDED_PENDING_MIGRATIONS).filter((f) => f !== supersededFile), ...ALLOWED_NAMES],
+    });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES.filter((f) => f !== supersededFile) });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.message.includes(supersededFile))).toBe(false);
+  });
+
+  it('FAIL: a baseline migration appears twice in the fresh ledger (duplicate row)', () => {
+    const data = EXPECTED_LEDGER();
+    data.migrations.push({ local: versionOf(ALLOWED_NAMES[0]), remote: '', time: 'x' });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'duplicate-ledger-row' && e.message.includes(ALLOWED_NAMES[0]))).toBe(true);
+  });
+
+  it('FAIL: a malformed row with neither local nor remote is not silently skipped', () => {
+    const data = EXPECTED_LEDGER();
+    data.migrations.push({ time: 'x' });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'malformed-ledger-row')).toBe(true);
+  });
+
+  it('FAIL: a malformed row with a non-string/invalid version value', () => {
+    const data = EXPECTED_LEDGER();
+    data.migrations.push({ local: 20260917000000, remote: '', time: 'x' });
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'malformed-ledger-row')).toBe(true);
+  });
+
+  it('FAIL: a malformed row that is not an object at all', () => {
+    const data = EXPECTED_LEDGER();
+    data.migrations.push('not-a-row');
+    const findings = classifyFreshLedger({ migrationListData: data, localFiles: ALL_KNOWN_LOCAL_FILES });
+    const errors = findings.filter((f) => f.level === 'error');
+    expect(errors.some((e) => e.check === 'malformed-ledger-row')).toBe(true);
+  });
+
   it('REMOTE_LEDGER_BASELINE is a single source of truth derived from the other exported constants - no separate hand-maintained list', () => {
     for (const f of KNOWN_ALREADY_APPLIED_FILES) expect(REMOTE_LEDGER_BASELINE[f]).toBe('applied');
     for (const f of Object.keys(EXCLUDED_PENDING_MIGRATIONS)) expect(REMOTE_LEDGER_BASELINE[f]).toBe('pending-excluded');
@@ -365,6 +450,15 @@ describe('parseDryRunOutput / parseMigrationListOutput - real captured CLI outpu
 
   it('throws a clear error when migration-list output is valid JSON but missing "migrations" (malformed)', () => {
     expect(() => parseMigrationListOutput('Connecting...\n{"message":"nothing here"}')).toThrow(/missing the expected "migrations" array field/);
+  });
+
+  it('throws a clear error when "migrations" is present but not an array', () => {
+    expect(() => parseMigrationListOutput('Connecting...\n{"migrations":"not-an-array","message":"x"}')).toThrow(/missing the expected "migrations" array field/);
+    expect(() => parseDryRunOutput('{"migrations":{"not":"an array"},"message":"x"}')).toThrow(/missing the expected "migrations" array field/);
+  });
+
+  it('throws a clear error when migration-list output\'s last line is not valid JSON', () => {
+    expect(() => parseMigrationListOutput('Connecting...\nnot json at all')).toThrow(/not valid JSON/);
   });
 
   it('parses the real captured migration-list output', () => {

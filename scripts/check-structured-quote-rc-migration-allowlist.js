@@ -93,6 +93,19 @@
 //      is removed (superseded) - it structurally could not see what this
 //      pass needed it to see.
 //
+// THIRD PASS (2026-09-15, same day) - pre-RC-freeze remediation of a
+// further independent Codex NO-GO against classifyFreshLedger specifically:
+// (1) it never required every REMOTE_LEDGER_BASELINE entry to be resolved
+// by the fresh ledger - a baseline file missing ENTIRELY from Production's
+// ledger (not merely reported pending) went undetected, since the code only
+// ever iterated whatever rows the CLI returned; (2) a malformed row (missing
+// both local/remote, an invalid/non-string version, or a non-object row)
+// was silently skipped via the old `if (!localPresent) continue`; (3) the
+// version-09/Lifetime "unexpectedly applied" checks never covered the
+// version-09/Lifetime "missing entirely" case, and no check anywhere
+// detected a duplicate ledger row for the same file. All four fixed inside
+// classifyFreshLedger below - see its own doc comment for exactly how.
+//
 // The underlying safety concern that remains valid across every release:
 // an uncontrolled `supabase db push` must never be allowed to sweep
 // arbitrary/forbidden migrations into Production. Fails closed: anything
@@ -269,6 +282,29 @@ export const REMOTE_LEDGER_BASELINE = Object.freeze({
 
 const NARROW_APPROVE_FILE = '20260909000000_narrow_public_approve_quote_to_owner_only.sql';
 
+// EXCLUDED_PENDING_MIGRATIONS entries that are excluded because they are
+// superseded by one of this RC's own 4 allowed package files (same intent,
+// reissued content - see each entry's own reason string above). Unlike the
+// bootstrap/capture files or version 09, these never need to physically
+// exist in a clean, isolated release branch's migrations directory: this
+// branch's own committed history never carried them (confirmed via `git log
+// --all` - zero commits for these paths on this branch), they exist only as
+// uncommitted historical files in OTHER, non-isolated working trees, and
+// nothing in this RC's own push path (buildIsolatedReleaseDirectory) ever
+// reads them. Baseline completeness (below) does not require their
+// presence - but if one DOES resolve to a ledger row from wherever this
+// check happens to run, it is still fully checked against its expected
+// 'pending-excluded' state by the per-file state check above, same as any
+// other excluded file; only its "must be present at all" requirement is
+// waived.
+const SUPERSEDED_BY_PACKAGE_FILES = new Set([
+  '20260902000000_add_professional_quote_items_stage_a.sql',
+  '20260903000000_add_business_professional_domain.sql',
+  '20260904000000_add_professional_quote_hierarchy.sql',
+  '20260915000000_add_save_quote_structured_atomic_function.sql',
+  '20260916000000_harden_save_quote_structured_existing_id_validation.sql',
+]);
+
 // Codex re-review remediation, blocker 3 (was: classifyAgainstRemoteLedger,
 // which only ever received a pre-filtered PENDING list - structurally
 // incapable of noticing a remote-only row or an unexpected applied-state
@@ -295,10 +331,64 @@ const NARROW_APPROVE_FILE = '20260909000000_narrow_public_approve_quote_to_owner
 // Named, redundant-but-clearer checks for Lifetime and 20260909
 // specifically are also included, since the task's own report format asks
 // for their exact behavior by name.
+//
+// Codex NO-GO remediation (round 3, 2026-09-15) - three further fail-open
+// gaps closed, all inside this one function (REMOTE LEDGER BASELINE
+// COMPLETENESS / REMOTE LEDGER ROW VALIDATION / VERSION-09 PRESENCE + STATE
+// GUARD):
+//   (a) row schema validation: every raw row is now validated BEFORE any
+//       classification - a row that is not an object, has a local/remote
+//       value that isn't a numeric timestamp string, or has neither a local
+//       nor a remote value at all, is a fail-closed `malformed-ledger-row`
+//       finding instead of being silently skipped (the old `if
+//       (!localPresent) continue` swallowed exactly this case).
+//   (b) duplicate detection: rows are resolved to filenames and grouped
+//       first: a file resolved by more than one ledger row is its own
+//       `duplicate-ledger-row` finding, independent of (and in addition to)
+//       whatever per-file state check would otherwise run against it.
+//   (c) baseline completeness: every key in REMOTE_LEDGER_BASELINE - not
+//       just this RC's own 4 package files - must be resolved by exactly
+//       one ledger row. A baseline entry that never resolves (file
+//       completely absent from the fresh ledger, not merely "pending") is a
+//       `baseline-entry-missing` finding; this is a genuinely different
+//       failure mode from a state mismatch (expected-applied-but-pending
+//       etc.) and was previously undetectable, since the old code only ever
+//       iterated the rows the CLI happened to return and never checked the
+//       baseline for full coverage. Lifetime, version 09 and this RC's own
+//       4 package files keep their existing dedicated, named checks (now
+//       extended to also cover their own "missing entirely" case); every
+//       other baseline file is covered by the generic check.
 export function classifyFreshLedger({ migrationListData, localFiles }) {
   const findings = [];
-  const rows = migrationListData.migrations || [];
+  const rawRows = migrationListData.migrations || [];
+  const allowedNames = ALLOWED_PRODUCTION_FORWARD_MIGRATIONS.map((m) => m.file);
+  const isVersionLike = (v) => typeof v === 'string' && /^\d{14,}$/.test(v);
 
+  // (a) Row schema validation - fail closed on anything structurally
+  // malformed instead of silently ignoring it.
+  const rows = [];
+  rawRows.forEach((row, index) => {
+    if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+      findings.push({ level: 'error', check: 'malformed-ledger-row', message: `Ledger row ${index} is not a valid migration object: ${JSON.stringify(row)}` });
+      return;
+    }
+    const localOk = row.local === undefined || row.local === null || row.local === '' || isVersionLike(row.local);
+    const remoteOk = row.remote === undefined || row.remote === null || row.remote === '' || isVersionLike(row.remote);
+    if (!localOk || !remoteOk) {
+      findings.push({ level: 'error', check: 'malformed-ledger-row', message: `Ledger row ${index} has an invalid local/remote version (expected a numeric timestamp string or empty): ${JSON.stringify(row)}` });
+      return;
+    }
+    if (!row.local && !row.remote) {
+      findings.push({ level: 'error', check: 'malformed-ledger-row', message: `Ledger row ${index} has neither a local nor a remote version - empty/incomplete row: ${JSON.stringify(row)}` });
+      return;
+    }
+    rows.push(row);
+  });
+
+  // Resolve every valid row to a local filename (when it has one) and group
+  // occurrences per file, so a duplicate ledger row is visible before any
+  // per-file state check runs.
+  const occurrencesByFile = new Map();
   for (const row of rows) {
     const remotePresent = Boolean(row.remote);
     const localPresent = Boolean(row.local);
@@ -311,7 +401,6 @@ export function classifyFreshLedger({ migrationListData, localFiles }) {
       });
       continue;
     }
-    if (!localPresent) continue; // neither local nor remote present - not a real row
 
     let file;
     try {
@@ -321,8 +410,24 @@ export function classifyFreshLedger({ migrationListData, localFiles }) {
       continue;
     }
 
+    const list = occurrencesByFile.get(file) || [];
+    list.push({ applied: remotePresent });
+    occurrencesByFile.set(file, list);
+  }
+
+  // (b) Duplicate detection - independent of, and reported alongside, the
+  // per-file state check below.
+  for (const [file, occ] of occurrencesByFile.entries()) {
+    if (occ.length > 1) {
+      findings.push({ level: 'error', check: 'duplicate-ledger-row', message: `${file} appears ${occ.length} times in the fresh ledger read - expected exactly one row per migration. PRODUCTION DELTA CHANGED — STOP AND RECONCILE.` });
+    }
+  }
+
+  // Per-file expected-vs-actual state check (first occurrence; duplicates
+  // are already reported independently above).
+  for (const [file, occ] of occurrencesByFile.entries()) {
     const expected = REMOTE_LEDGER_BASELINE[file];
-    const actual = remotePresent ? LEDGER_STATE_APPLIED : 'pending';
+    const actual = occ[0].applied ? LEDGER_STATE_APPLIED : 'pending';
 
     if (!expected) {
       findings.push({ level: 'error', check: 'unknown-ledger-entry', message: `${file} is not in this RC's reviewed ledger baseline (neither known-already-applied, a documented exclusion, nor this RC's own package). PRODUCTION DELTA CHANGED — STOP AND RECONCILE.` });
@@ -338,30 +443,45 @@ export function classifyFreshLedger({ migrationListData, localFiles }) {
     }
   }
 
-  const resolvedFiles = new Set();
-  for (const row of rows) {
-    if (!row.local) continue;
-    try { resolvedFiles.add(versionToFilename(row.local, localFiles)); } catch { /* already reported above */ }
+  // (c) Baseline completeness - every REMOTE_LEDGER_BASELINE entry other
+  // than Lifetime, version 09, this RC's own 4 package files (which get
+  // their own dedicated named checks below), and the superseded-by-package
+  // files above (which never need to physically exist in a clean isolated
+  // release branch) must resolve to exactly one ledger row.
+  const speciallyNamedFiles = new Set([LIFETIME_MIGRATION_FILE, NARROW_APPROVE_FILE, ...allowedNames]);
+  for (const file of Object.keys(REMOTE_LEDGER_BASELINE)) {
+    if (speciallyNamedFiles.has(file) || SUPERSEDED_BY_PACKAGE_FILES.has(file)) continue;
+    const occ = occurrencesByFile.get(file);
+    if (!occ || occ.length === 0) {
+      findings.push({ level: 'error', check: 'baseline-entry-missing', message: `${file} is missing entirely from the fresh ledger read - expected exactly one row (${REMOTE_LEDGER_BASELINE[file]}). PRODUCTION DELTA CHANGED — STOP AND RECONCILE.` });
+    }
   }
-  const allowedNames = ALLOWED_PRODUCTION_FORWARD_MIGRATIONS.map((m) => m.file);
-  const missingPackageFiles = allowedNames.filter((f) => !resolvedFiles.has(f));
+
+  const missingPackageFiles = allowedNames.filter((f) => !occurrencesByFile.get(f)?.length);
   if (missingPackageFiles.length > 0) {
     findings.push({ level: 'error', check: 'package-files-present', message: `Expected Production-forward package file(s) not found in the fresh ledger read: ${missingPackageFiles.join(', ')}` });
   }
 
   // Named checks for Lifetime and 20260909 specifically (report clarity -
-  // the generic loop above already independently catches both).
-  const lifetimeVersion = LIFETIME_MIGRATION_FILE.split('_')[0];
-  const lifetimeRow = rows.find((r) => r.local === lifetimeVersion);
-  const lifetimeAppliedToProd = Boolean(lifetimeRow && lifetimeRow.remote);
-  if (lifetimeAppliedToProd !== LIFETIME_MUST_ALREADY_BE_APPLIED_TO_PROD) {
-    findings.push({ level: 'error', check: 'lifetime-state-unchanged', message: `Lifetime migration applied-state on Production changed since this RC's own audit (expected appliedToProd=${LIFETIME_MUST_ALREADY_BE_APPLIED_TO_PROD}, got ${lifetimeAppliedToProd}).` });
+  // the generic checks above already independently catch most of these,
+  // but each of the three scenarios below - present+wrong-state, and now
+  // missing-entirely - gets its own unambiguous, specifically-named
+  // finding, since the task's own report format asks for their exact
+  // behavior by name).
+  const lifetimeOcc = occurrencesByFile.get(LIFETIME_MIGRATION_FILE);
+  if (!lifetimeOcc || lifetimeOcc.length === 0) {
+    findings.push({ level: 'error', check: 'lifetime-state-unchanged', message: `Lifetime migration (${LIFETIME_MIGRATION_FILE}) is missing entirely from the fresh ledger read (expected already-applied). PRODUCTION DELTA CHANGED — STOP AND RECONCILE.` });
+  } else {
+    const lifetimeAppliedToProd = lifetimeOcc[0].applied;
+    if (lifetimeAppliedToProd !== LIFETIME_MUST_ALREADY_BE_APPLIED_TO_PROD) {
+      findings.push({ level: 'error', check: 'lifetime-state-unchanged', message: `Lifetime migration applied-state on Production changed since this RC's own audit (expected appliedToProd=${LIFETIME_MUST_ALREADY_BE_APPLIED_TO_PROD}, got ${lifetimeAppliedToProd}).` });
+    }
   }
 
-  const narrowApproveVersion = NARROW_APPROVE_FILE.split('_')[0];
-  const narrowApproveRow = rows.find((r) => r.local === narrowApproveVersion);
-  const narrowApproveApplied = Boolean(narrowApproveRow && narrowApproveRow.remote);
-  if (narrowApproveApplied) {
+  const narrowApproveOcc = occurrencesByFile.get(NARROW_APPROVE_FILE);
+  if (!narrowApproveOcc || narrowApproveOcc.length === 0) {
+    findings.push({ level: 'error', check: 'version-09-missing', message: `PRODUCTION DELTA CHANGED — STOP AND RECONCILE: ${NARROW_APPROVE_FILE} is missing entirely from the fresh ledger read (expected present and pending).` });
+  } else if (narrowApproveOcc[0].applied) {
     findings.push({ level: 'error', check: 'version-09-unexpectedly-applied', message: `PRODUCTION DELTA CHANGED — FAIL: ${NARROW_APPROVE_FILE} was expected to remain excluded/pending but a fresh ledger read shows it now applied to Production.` });
   }
 

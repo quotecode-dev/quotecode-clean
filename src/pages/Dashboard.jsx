@@ -3,7 +3,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../shared/supabase';
+import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
@@ -467,8 +467,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
-    const isRecoveryLink = hash.includes('type=recovery') || search.includes('type=recovery');
-    const isErrorRedirect = hash.includes('error_code=') || search.includes('error_code=') || hash.includes('error=') || search.includes('error=');
+    // Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task):
+    // rootRecoveryIntent (src/shared/supabase.js) is the fallback source for
+    // exactly one case - this exact Dashboard instance was mounted via the
+    // "/" route (AppLocal.jsx/AppGlobal.jsx) because a fresh recovery link's
+    // callback landed there instead of /dashboard, and by the time this
+    // component's effect runs, Supabase's own client may already have
+    // consumed/cleared window.location.hash. The direct /dashboard?lang=he|en
+    // case (hash/search still present) is completely unchanged - this only
+    // adds an OR-fallback, never removes the existing URL-based check.
+    const isRecoveryLink = hash.includes('type=recovery') || search.includes('type=recovery') || rootRecoveryIntent.isRecovery;
+    const isErrorRedirect = hash.includes('error_code=') || search.includes('error_code=') || hash.includes('error=') || search.includes('error=') || rootRecoveryIntent.isError;
     if (isRecoveryLink) {
       setIsPasswordRecoveryMode(true);
     } else if (isErrorRedirect) {
@@ -476,6 +485,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         ? '❌ קישור השחזור אינו תקין או שפג תוקפו. יש לבקש קישור חדש.'
         : '❌ This recovery link is invalid or has expired. Please request a new one.');
     }
+    // Cleared unconditionally (whether it was used or not) so a later
+    // remount/navigation within the same page load can never re-trigger
+    // recovery mode from stale boot-time state.
+    consumeRootRecoveryIntent();
   }, [bundleIsHebrew]);
 
   useEffect(() => {
