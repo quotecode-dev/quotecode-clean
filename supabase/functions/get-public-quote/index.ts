@@ -80,17 +80,55 @@ serve(async (req) => {
     // עמודה לא קיימת), כלומר מפילה את כל דף ה-Public Quote בשני השווקים.
     // ההחזרה שלהן תתבצע בפריסה נפרדת לאחר שה-migration של item 18 יוחל
     // על הסביבה החיה - לא כאן, לא כחלק מהתיקון הממוקד הזה.
-    const { data: quote, error: quoteErr } = await adminClient
+    // חוק ברזל (Smart Quote Guided UX Completion task, Part E - customer-
+    // facing structured display): נסיון-ראשון כולל את שדות/טבלאות ה-
+    // Professional Quotes המובנים (project_name/quote_sections, ו-quote_
+    // items.pricing_unit/calculated_quantity/quantity_source/specification/
+    // section_id + quote_item_measurements) - קיימים היום ב-TEST בלבד (ר'
+    // supabase/migrations/2026090[234]...). PostgREST דוחה select שלם אם
+    // עמודה/יחס כלשהו בו לא קיים (לא רק את החלק החסר) - כך שנסיון-חוזר
+    // ל-select השטוח המקורי, בזיהוי-מדויק של הודעת-שגיאת עמודה/יחס-חסרים
+    // בלבד (לא בליעת שגיאות אחרות), הוא הכרחי כדי שהפונקציה הזו תמשיך
+    // לעבוד ללא שינוי בכל סביבה שעדיין לא קיבלה את אותן migrations (למשל
+    // Production, נכון לתאריך המשימה הזו) - זהה לעיקרון שכבר הוקם ב-
+    // Dashboard.jsx (isMissingAttnColumnError וכו').
+    const richSelect = `
+      id, user_id, created_at, valid_until, tax_rate, subtotal, total,
+      discount, terms, warranty, notes, subject, status, signature, currency, client_type,
+      quote_number, attn_name, attn_role, project_name,
+      clients ( company_name, email, phone, address ),
+      quote_sections ( id, name, sort_order ),
+      quote_items ( description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
+    `;
+    const flatSelect = `
+      id, user_id, created_at, valid_until, tax_rate, subtotal, total,
+      discount, terms, warranty, notes, subject, status, signature, currency, client_type,
+      quote_number, attn_name, attn_role,
+      clients ( company_name, email, phone, address ),
+      quote_items ( description, quantity, unit_price, total_price )
+    `;
+
+    let quote: any;
+    let quoteErr: any;
+    ({ data: quote, error: quoteErr } = await adminClient
       .from('quotes')
-      .select(`
-        id, user_id, created_at, valid_until, tax_rate, subtotal, total,
-        discount, terms, warranty, notes, subject, status, signature, currency, client_type,
-        quote_number, attn_name, attn_role,
-        clients ( company_name, email, phone, address ),
-        quote_items ( description, quantity, unit_price, total_price )
-      `)
+      .select(richSelect)
       .eq('id', quoteId)
-      .maybeSingle();
+      .maybeSingle());
+
+    const isMissingStructuredFieldError = (err: any) => {
+      const msg = String(err?.message || '');
+      return ['project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+        .some((col) => msg.includes(col));
+    };
+
+    if (quoteErr && isMissingStructuredFieldError(quoteErr)) {
+      ({ data: quote, error: quoteErr } = await adminClient
+        .from('quotes')
+        .select(flatSelect)
+        .eq('id', quoteId)
+        .maybeSingle());
+    }
 
     if (quoteErr) throw quoteErr;
     if (!quote) return jsonResponse({ error: 'Quote not found' }, 404);
@@ -152,6 +190,10 @@ serve(async (req) => {
         currency: quote.currency,
         client_type: quote.client_type,
         is_owner_viewing: isOwner,
+        // חוק ברזל (Part E): undefined כשה-select השטוח-בלבד רץ (עמודה
+        // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים
+        // ל-undefined בדיוק כמו "אין פרויקט", לא שגיאה.
+        project_name: quote.project_name,
       },
       business: bizRow ? {
         business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,
@@ -161,8 +203,24 @@ serve(async (req) => {
         company_name: quote.clients.company_name, email: quote.clients.email,
         phone: quote.clients.phone, address: quote.clients.address,
       } : null,
-      items: (quote.quote_items || []).map((i: any) => ({
+      // חוק ברזל (Part E): [] כשה-select השטוח-בלבד רץ - זהה-בייט ל"אין
+      // קבוצות" הקיים, לא שדה חסר/undefined.
+      sections: (quote.quote_sections || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map((s: any) => ({ id: s.id, name: s.name })),
+      items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
         description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
+        // חוק ברזל (Part E, customer-facing structured display): כל השדות
+        // הבאים undefined/[] עבור פריט שטוח (ללא pricing_unit) - זהה-בייט
+        // לתצוגה השטוחה הקיימת; PublicQuote.jsx/PublicQuoteEn.jsx חייבים
+        // להתייחס להיעדרם כ"פריט רגיל", לא לשגיאה.
+        pricing_unit: i.pricing_unit,
+        calculated_quantity: i.calculated_quantity,
+        quantity_source: i.quantity_source,
+        calculation_method: i.calculation_method,
+        specification: Array.isArray(i.specification) ? i.specification : [],
+        section_id: i.section_id,
+        measurements: (i.quote_item_measurements || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((m: any) => ({ width: m.width, height: m.height, unit: m.unit, calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
       })),
       attachments,
     }, 200);
