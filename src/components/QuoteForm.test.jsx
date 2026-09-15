@@ -48,9 +48,16 @@ function baseProps(overrides = {}) {
     items: [makeItem({ description: 'Aluminum window', unit_price: '300' })],
     setItems: vi.fn(),
     sections: [],
+    setSections: vi.fn(),
     addSection: vi.fn(),
     renameSection: vi.fn(),
     removeSection: vi.fn(),
+    // חוק ברזל (Smart Quote Structure-First UX Correction task): ברירת-
+    // מחדל 'regular' לכל הבדיקות הקיימות שכבר הניחו רשימה שטוחה גלויה-
+    // מיד - זהה למה ש-Dashboard.jsx נותן בפועל להצעה קיימת (עריכה) בלי
+    // sections אמיתיות (inferStructureModeFromQuote). בדיקות ל-null/
+    // 'divided' עצמן מעבירות ערך מפורש, לא מסתמכות על ברירת-המחדל הזו.
+    quoteStructureMode: 'regular', setQuoteStructureMode: vi.fn(),
     projectName: '', setProjectName: vi.fn(),
     services: [],
     clients: [],
@@ -101,18 +108,18 @@ describe('QuoteForm - compact item card is the default for a real (non-blank) it
     expect(screen.getByText('$300.00')).toBeTruthy();
   });
 
-  it('still shows the classic editable row for the blank starter item (not yet a saved item)', () => {
-    render(<QuoteForm {...baseProps({ items: [makeItem()] })} />);
-    expect(document.querySelector('input[placeholder="Description"]')).toBeTruthy();
+  it('shows the empty-state message instead of any editable row when there are zero items (Smart Quote Guided UX Completion task - no more blank starter row)', () => {
+    render(<QuoteForm {...baseProps({ items: [] })} />);
+    expect(screen.getByText(/No products or work added to this quote yet/)).toBeTruthy();
+    expect(document.querySelector('input[placeholder="Description"]')).toBeNull();
   });
 
-  it('expanding via the chevron reveals the existing full editor, and Collapse returns to compact', () => {
+  it('expanding via the chevron opens the guided AddItemWizard in edit mode, populated with the real saved values (Add/Edit unification - no more inline classic-row editor)', () => {
     render(<QuoteForm {...baseProps()} />);
-    fireEvent.click(screen.getByLabelText('Expand/edit item'));
-    expect(document.querySelector('input[value="Aluminum window"]')).toBeTruthy();
-    fireEvent.click(screen.getByText('Collapse'));
-    expect(document.querySelector('input[value="Aluminum window"]')).toBeNull();
-    expect(screen.getByText('Aluminum window')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Edit'));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Edit product or work')).toBeTruthy();
+    expect(screen.getAllByText('Aluminum window').length).toBeGreaterThan(0);
   });
 });
 
@@ -127,15 +134,217 @@ describe('QuoteForm - compact card optional indicators only appear when present'
     expect(screen.getByText('Details')).toBeTruthy();
   });
 
-  it('shows the section name as a badge when assigned, falling back to "(unnamed)" for an empty section name', () => {
-    // Regression: an empty-string section.name is falsy in JS - the badge must
-    // key off section presence, not the name string, or a freshly-created
-    // (not-yet-renamed) section silently loses its badge even though assigned.
+  it('an empty-string unit name never silently vanishes - falls back to "(unnamed)" in the safe-removal dialog (superseded by the Unit Board in the Structure-First UX Correction task; same regression concern as the old per-item badge)', () => {
+    // Regression: an empty-string section.name is falsy in JS - the fallback
+    // must key off section presence, not the name string, or a freshly-
+    // created (not-yet-renamed, non-empty) unit silently loses its label.
     render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
       items: [makeItem({ description: 'Item', unit_price: '10', section_key: 'sec1' })],
       sections: [{ key: 'sec1', name: '' }],
     })} />);
-    expect(screen.getByText('(unnamed)')).toBeTruthy();
+    fireEvent.click(screen.getByTitle('Remove unit'));
+    expect(screen.getByText('Remove (unnamed)')).toBeTruthy();
+  });
+});
+
+describe('QuoteForm - Structure-First selector (Smart Quote Structure-First UX Correction task, Locked Decision 1)', () => {
+  it('shows the structure question before any Add Item action when the mode is undecided (null)', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
+    expect(screen.getByText('How would you like to structure this quote?')).toBeTruthy();
+    expect(screen.getByText('Regular quote')).toBeTruthy();
+    expect(screen.getByText('All products and work appear in one list.')).toBeTruthy();
+    expect(screen.getByText('Quote by units')).toBeTruthy();
+    expect(screen.getByText('Ideal for apartments, rooms, floors, areas, or separate work units.')).toBeTruthy();
+    // Not "Smart Quote" as the opposite of "Regular" (Decision 1).
+    expect(screen.queryByText(/Smart Quote/)).toBeNull();
+    // No Add Item action reachable yet - structure comes first.
+    expect(screen.queryByText('Add product or work')).toBeNull();
+  });
+
+  it('choosing "Regular quote" calls setQuoteStructureMode("regular")', () => {
+    const setQuoteStructureMode = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], setQuoteStructureMode })} />);
+    fireEvent.click(screen.getByText('Regular quote'));
+    expect(setQuoteStructureMode).toHaveBeenCalledWith('regular');
+  });
+
+  it('choosing "Quote by units" calls setQuoteStructureMode("divided")', () => {
+    const setQuoteStructureMode = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], setQuoteStructureMode })} />);
+    fireEvent.click(screen.getByText('Quote by units'));
+    expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
+  });
+
+  it('HE copy matches exactly', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], isHebrew: true, sym: '₪' })} />);
+    expect(screen.getByText('איך תרצו לבנות את ההצעה?')).toBeTruthy();
+    expect(screen.getByText('הצעה רגילה')).toBeTruthy();
+    expect(screen.getByText('כל המוצרים והעבודות מופיעים ברשימה אחת.')).toBeTruthy();
+    expect(screen.getByText('הצעה לפי חלוקה')).toBeTruthy();
+    expect(screen.getByText('מתאים לדירות, חדרים, קומות, אזורים או יחידות נפרדות.')).toBeTruthy();
+  });
+});
+
+describe('QuoteForm - Regular quote flow (Locked Decision 2)', () => {
+  it('shows the primary Add action and no unit-management UI at all', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular' })} />);
+    expect(screen.getByText('Add product or work')).toBeTruthy();
+    expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
+    expect(screen.queryByText(/No items added yet/)).toBeNull();
+  });
+
+  it('offers a "Switch to a divided quote" link that calls setQuoteStructureMode("divided")', () => {
+    const setQuoteStructureMode = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode })} />);
+    fireEvent.click(screen.getByText('Switch to a divided quote'));
+    expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
+  });
+});
+
+describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', () => {
+  it('has no global "Add product or work" button - every add action belongs to a specific unit', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
+    expect(screen.queryByText('Add product or work')).toBeNull();
+  });
+
+  it('shows the unit\'s own real name in its per-unit Add Item button, item count, and offers "Add another unit"', () => {
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
+    })} />);
+    expect(screen.getByText('Add product or work to Apartment 33')).toBeTruthy();
+    expect(screen.getByText('1 item')).toBeTruthy();
+    expect(screen.getByText('Add another unit')).toBeTruthy();
+  });
+
+  it('an unnamed (freshly created) unit falls back to "this unit" in its Add Item button', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '' }] })} />);
+    expect(screen.getByText('Add product or work to this unit')).toBeTruthy();
+  });
+
+  it('an empty unit visibly shows "No items added yet" and still exposes its Add Item action - collapsed or not', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 35' }], items: [] })} />);
+    expect(screen.getByText('No items added yet')).toBeTruthy();
+    expect(screen.getByText('Add product or work to Apartment 35')).toBeTruthy();
+  });
+
+  it('offers "Add the first unit" when no unit exists yet, "Add another unit" once at least one does', () => {
+    const { rerender } = render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [] })} />);
+    expect(screen.getByText('Add the first unit')).toBeTruthy();
+    rerender(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
+    expect(screen.getByText('Add another unit')).toBeTruthy();
+  });
+
+  it('clicking a unit\'s own Add Item button opens the wizard already scoped to that unit (no re-selection asked)', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
+    fireEvent.click(screen.getByText('Add product or work to Apartment 33'));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('existing items with no section_key appear in a visible "Unassigned" unit, never silently disappear (Decision 8, Regular->Divided)', () => {
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }],
+      items: [makeItem({ description: 'Legacy item', unit_price: '50' })],
+    })} />);
+    expect(screen.getByText('Unassigned')).toBeTruthy();
+    expect(screen.getByText('Legacy item')).toBeTruthy();
+  });
+
+  it('offers a "Switch to a regular quote" link', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
+    expect(screen.getByText('Switch to a regular quote')).toBeTruthy();
+  });
+
+  it('"Switch to a regular quote" asks for confirmation, then flattens sections and clears every item\'s section_key (Decision 8, Divided->Regular)', () => {
+    const setItems = vi.fn();
+    const setSections = vi.fn();
+    const setQuoteStructureMode = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
+      setItems, setSections, setQuoteStructureMode,
+    })} />);
+    fireEvent.click(screen.getByText('Switch to a regular quote'));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(setSections).toHaveBeenCalledWith([]);
+    expect(setQuoteStructureMode).toHaveBeenCalledWith('regular');
+    const updater = setItems.mock.calls[0][0];
+    const result = updater([{ description: 'Window', section_key: 'sec1' }]);
+    expect(result[0].section_key).toBeNull();
+    confirmSpy.mockRestore();
+  });
+
+  it('declining the confirmation leaves the divided structure untouched', () => {
+    const setSections = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], setSections })} />);
+    fireEvent.click(screen.getByText('Switch to a regular quote'));
+    expect(setSections).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+});
+
+describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss)', () => {
+  it('removes an empty unit immediately, with no confirmation dialog', () => {
+    const removeSection = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 35' }], items: [], removeSection })} />);
+    fireEvent.click(screen.getByTitle('Remove unit'));
+    expect(removeSection).toHaveBeenCalledWith('sec1');
+    expect(screen.queryByText(/This unit has/)).toBeNull();
+  });
+
+  it('a non-empty unit opens a safe choice dialog instead of removing directly - cancel leaves everything untouched', () => {
+    const removeSection = vi.fn();
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
+      removeSection,
+    })} />);
+    fireEvent.click(screen.getByTitle('Remove unit'));
+    expect(screen.getByText(/This unit has 1 item\(s\)/)).toBeTruthy();
+    expect(removeSection).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByText(/This unit has/)).toBeNull();
+    expect(removeSection).not.toHaveBeenCalled();
+  });
+
+  it('confirming removal moves the unit\'s items (default: Unassigned) before removing the section - no item is ever deleted', () => {
+    const removeSection = vi.fn();
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
+      removeSection, setItems,
+    })} />);
+    fireEvent.click(screen.getByTitle('Remove unit'));
+    fireEvent.click(screen.getByText('Remove unit'));
+    const updater = setItems.mock.calls[0][0];
+    const result = updater([{ description: 'Window', section_key: 'sec1' }]);
+    expect(result[0].section_key).toBeNull();
+    expect(removeSection).toHaveBeenCalledWith('sec1');
+  });
+
+  it('offers moving the unit\'s items to another existing unit instead of Unassigned', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({
+      quoteStructureMode: 'divided',
+      sections: [{ key: 'sec1', name: 'Apartment 33' }, { key: 'sec2', name: 'Apartment 34' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
+      setItems,
+    })} />);
+    fireEvent.click(screen.getAllByTitle('Remove unit')[0]);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Move items to' }), { target: { value: 'sec2' } });
+    fireEvent.click(screen.getByText('Remove unit'));
+    const updater = setItems.mock.calls[0][0];
+    const result = updater([{ description: 'Window', section_key: 'sec1' }]);
+    expect(result[0].section_key).toBe('sec2');
   });
 });
 
@@ -168,11 +377,12 @@ describe('QuoteForm - consolidated actions menu', () => {
     nonDelete.forEach((c) => expect(c.color).not.toBe('rgb(220, 38, 38)'));
   });
 
-  it('Edit calls the same expand toggle as the chevron button', () => {
+  it('Edit opens the same guided AddItemWizard edit mode as the chevron button', () => {
     render(<QuoteForm {...baseProps()} />);
     fireEvent.click(screen.getByLabelText('More actions'));
     fireEvent.click(screen.getByRole('menuitem', { name: /Edit/ }));
-    expect(document.querySelector('input[value="Aluminum window"]')).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Edit product or work')).toBeTruthy();
   });
 
   it('Duplicate calls the existing duplicateItem function with the correct index', () => {
@@ -191,7 +401,7 @@ describe('QuoteForm - consolidated actions menu', () => {
     expect(removeItem).toHaveBeenCalledWith(1);
   });
 
-  it('"Move to section" calls handleItemChange with section_key, reusing the existing setter', () => {
+  it('"Move to unit" calls handleItemChange with section_key, reusing the existing setter', () => {
     const handleItemChange = vi.fn();
     render(<QuoteForm {...baseProps({
       items: [makeItem({ description: 'A' })],
@@ -199,7 +409,7 @@ describe('QuoteForm - consolidated actions menu', () => {
       handleItemChange,
     })} />);
     fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Move to section/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Move to unit/ }));
     const select = screen.getByRole('menu').querySelector('select');
     fireEvent.change(select, { target: { value: 'sec1' } });
     expect(handleItemChange).toHaveBeenCalledWith(0, 'section_key', 'sec1');

@@ -18,6 +18,39 @@ export function getProfessionalUnitLabel(unitId, isHebrew) {
   return isHebrew ? found.he : found.en;
 }
 
+// חוק ברזל (Smart Quote Final Visual Correction task - "HE MEASUREMENT UNIT
+// LOCALIZATION - ABSOLUTE"): נקודת-אמת יחידה לתווית הקצרה של "מטר" כשמדובר
+// במימד גולמי (רוחב/גובה שורת-מדידה) - שונה במכוון מ-getProfessionalUnitLabel
+// ('linear_meter',...) שמחזיר את המילה המלאה "מטר אורך" (יחידת-תמחור
+// לבחירה), לא את הסימון הקצר לשורת-מדידה עצמה. פורמט-לקוח (HE) אף פעם לא
+// מציג 'm'/'m²' אנגלי גולמי - זו נקודת-הקריאה היחידה שקובעת מה מוצג.
+export function getMeasurementDimensionUnit(isHebrew) {
+  return isHebrew ? "מ'" : 'm';
+}
+
+// נקודת-עיצוב משותפת יחידה לשורת-מדידה בפלט-הלקוח (Public Quote/Print/PDF,
+// HE ו-EN כאחד) - נקראת מכל מקום שמציג מדידות ללקוח (הן טבלת ה-Regular/
+// Compact-Item-Disclosure הקיימת, הן DividedQuoteUnits.jsx החדש) כדי
+// שתיקון-יחידה עתידי (או יחידת-מדידה שלישית) יידרש במקום אחד בלבד - לעולם
+// לא string replacement נקודתי במסך בודד. formatNum מוזרק (לא מיובא כאן)
+// כדי לא ליצור תלות מעגלית בין utils.
+export function formatMeasurementLine(measurement, isHebrew, formatNum) {
+  const dimUnit = getMeasurementDimensionUnit(isHebrew);
+  const areaUnit = getProfessionalUnitLabel('m2', isHebrew);
+  const hasHeight = measurement.height != null;
+  const dims = hasHeight
+    ? `${formatNum(measurement.width)} × ${formatNum(measurement.height)} ${dimUnit}`
+    : `${formatNum(measurement.width)} ${dimUnit}`;
+  const areaPart = measurement.calculated_area != null
+    ? ` = ${formatNum(measurement.calculated_area)} ${hasHeight ? areaUnit : dimUnit}`
+    : '';
+  const labelPrefix = measurement.label ? `${measurement.label}: ` : '';
+  const displayOnlySuffix = measurement.is_pricing_driving === false
+    ? (isHebrew ? ' (לתצוגה בלבד)' : ' (display only)')
+    : '';
+  return `${labelPrefix}${dims}${areaPart}${displayOnlySuffix}`;
+}
+
 // חוק ברזל (Business Professional Profile, Owner Night Run task,
 // PROFLOW_PROJECT_CONTEXT.md §160.4 - Gap #2): רשימת-נתונים פשוטה, לא enum,
 // מייצגת "סוג העיסוק המקצועי" של העסק - "ברירת מחדל רלוונטית", לא סיווג
@@ -46,6 +79,23 @@ export function getProfessionalDomainLabel(domainId, isHebrew) {
 export function getDefaultProfessionalUnit(domainId) {
   const found = PROFESSIONAL_DOMAINS.find(d => d.id === domainId);
   return found ? found.defaultUnit : null;
+}
+
+// חוק ברזל (Smart Quote Final UX Simplification task, Part B - "business
+// type MUST influence which pricing methods are shown first... but MUST
+// NOT lock pricing"): נקודת-קריאה יחידה הממפה את יחידת-ברירת-המחדל הקיימת
+// כבר של העסק (getDefaultProfessionalUnit, לעולם לא domain.id עצמו - "do
+// not hard-code brittle business names") לאחת מ-4 שיטות-התמחור של האשף
+// המודרך (fixed/units/area/linear). ללא domain מוגדר/domain לא-מוכר -
+// null, מה שהאשף מתרגם ל"סדר גנרי-שמרני" (§C), לעולם לא ניחוש. ההמלצה
+// היא ייעוץ בלבד - היא לעולם לא מסירה/נועלת שיטה כלשהי, רק קובעת סדר-
+// הצגה + תג "מומלץ" אחד.
+export function getRecommendedPricingMethod(domainId) {
+  const unit = getDefaultProfessionalUnit(domainId);
+  if (unit === 'm2') return 'area';
+  if (unit === 'linear_meter') return 'linear';
+  if (unit) return 'units'; // unit/hour/day/kg - כולן מבוססות-כמות
+  return null;
 }
 
 // חוק ברזל (§168 audit finding - "MEASURABLE_UNIT_ID is a single hardcoded
@@ -206,25 +256,29 @@ export function getActiveQuantity(item) {
   return Number(item.quantity || 0);
 }
 
-// חוק ברזל (§168 - Project/Section hierarchy, 30.C): קיבוץ טהור, ללא-DOM,
-// של items תחת ה-sections שלהם - נקודת-חישוב יחידה ש-QuoteForm.jsx (עריכה)
-// ו-PublicQuote.jsx/PublicQuoteEn.jsx (תצוגת-לקוח) שניהם קוראים לה, כדי
-// שהיגיון-הקיבוץ לא יתממש פעמיים בנפרד. item.section_key/section.key הם
-// מזהה-הצטרפות מנורמל (id אמיתי אחרי טעינה/שמירה, tempKey לפני-שמירה
-// חדש) - הצרכן (Dashboard.jsx) אחראי לשמור על עקביות ביניהם. items בלי
-// section_key תואם נופלים ל"ללא קטגוריה" (unsectioned) - קבוצה אחרונה,
-// ללא כותרת - זהה-בייט להתנהגות השטוחה הקיימת עבור הצעה בלי sections כלל.
-export function groupItemsBySection(items, sections) {
+// חוק ברזל (§168 - Project/Section hierarchy, 30.C; שדות-הצטרפות
+// הוכללו ב-Smart Quote End-to-End Structural Unification task): קיבוץ
+// טהור, ללא-DOM, של items תחת ה-sections שלהם - נקודת-חישוב יחידה אחת
+// ש-quotePresentationModel.js (הצרכן האמיתי היחיד כעת - ר' שם) קורא לה
+// עבור שתי הצורות הקיימות בפועל בקוד: צורת-העריכה
+// (item.section_key/section.key, tempKey לפני-שמירה) וצורת-הלקוח
+// (item.section_id/section.id, אחרי get-public-quote). הפרמטר השלישי
+// האופציונלי הוא ההרחבה היחידה הנדרשת כדי לשרת את שתיהן באותה פונקציה
+// אחת - ברירת-המחדל זהה-בייט להתנהגות המקורית (section_key/key), כך
+// שאף קורא קיים לא נפגע. items בלי מזהה-הצטרפות תואם נופלים ל"ללא
+// קטגוריה" (unsectioned) - קבוצה אחרונה, ללא כותרת - זהה-בייט להתנהגות
+// השטוחה הקיימת עבור הצעה בלי sections כלל.
+export function groupItemsBySection(items, sections, { itemKeyField = 'section_key', sectionKeyField = 'key' } = {}) {
   const safeItems = Array.isArray(items) ? items : [];
   const safeSections = (Array.isArray(sections) ? sections : [])
     .slice()
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const sectionKeys = new Set(safeSections.map(s => s.key));
+  const sectionKeys = new Set(safeSections.map(s => s[sectionKeyField]));
   const groups = safeSections.map(section => ({
     section,
-    items: safeItems.filter(it => it.section_key && it.section_key === section.key),
+    items: safeItems.filter(it => it[itemKeyField] && it[itemKeyField] === section[sectionKeyField]),
   }));
-  const unsectioned = safeItems.filter(it => !it.section_key || !sectionKeys.has(it.section_key));
+  const unsectioned = safeItems.filter(it => !it[itemKeyField] || !sectionKeys.has(it[itemKeyField]));
   return { groups, unsectioned };
 }
 
@@ -235,3 +289,14 @@ export function groupItemsBySection(items, sections) {
 export function withActiveQuantities(items) {
   return (items || []).map(it => ({ ...it, quantity: getActiveQuantity(it) }));
 }
+
+// חוק ברזל (Smart Quote Final Closure task, Part E - "CRITICAL FINAL
+// CLARIFICATION: DO NOT MERGE SAME-NAME ITEMS", supersedes the Final Smart
+// Quote Correction task's same-commercial-item grouping): the Owner
+// explicitly reversed that grouping requirement - "ONE SAVED ITEM = ONE
+// CUSTOMER-FACING ITEM ROW", even when two separately-saved items share
+// an identical commercial name/method/rate. The `groupItemsByCommercialIdentity`/
+// `commercialIdentityKey` functions that once lived here were removed
+// entirely (not merely unused) per this explicit reversal - do not
+// reintroduce customer-facing item merging without a fresh, separate
+// Owner decision.

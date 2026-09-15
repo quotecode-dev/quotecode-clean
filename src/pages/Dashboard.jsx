@@ -16,11 +16,12 @@ import { computeEffectivePlan } from '../utils/planEntitlements';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { shouldShowUpgradeCta } from '../utils/planCatalog';
 import { normalizeAuthError } from '../utils/authErrorClassification';
+import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney } from '../utils/money';
 import { compareClients } from '../utils/clientSort';
-import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getDefaultProfessionalUnit, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
+import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { computeTransparentTrimBounds } from '../utils/logoTrim';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
@@ -639,6 +640,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // חדש - ר' addSection למטה), items מפנים אליו דרך item.section_key. אין
   // "מבנה כפוי" - זו תוספת אופציונלית בלבד, לעולם לא שדה-חובה.
   const [sections, setSections] = useState([]);
+  // חוק ברזל (Smart Quote Structure-First UX Correction task, Locked
+  // Decision 1/9): מבחין בין "עדיין לא הוחלט" (null - חובה להציג את בורר-
+  // המבנה לפני פריט ראשון) לבין "נבחר Regular במפורש" (sections.length===0
+  // לבד לא מספיק להבחנה הזו - שתי המצבים חולקים sections ריקות). הצעה
+  // חדשה-ריקה-לגמרי מתחילה ב-null; הצעה קיימת (עריכה/שכפול) לעולם לא
+  // מציגה את הבורר - נגזרת-אוטומטית מ-inferStructureMode למטה לפי הנתונים
+  // שכבר נשמרו (יש sections אמיתיות => divided; אין => regular).
+  const [quoteStructureMode, setQuoteStructureMode] = useState(null);
   const [projectName, setProjectName] = useState('');
   const [newServiceName, setNewServiceName] = useState('');
   const [newServicePrice, setNewServicePrice] = useState('');
@@ -879,12 +888,39 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     await fetchSettings(userId, userEmail, userMetadata);
   }
 
+  // חוק ברזל (Smart Quote Root-Fix task, Phase 0 - Persistence Contract):
+  // הבחירה העשירה (quote_item_measurements/quote_sections) נדרשת כדי
+  // ש-mapQuoteItemToFormItem/handleEditClick/handleDuplicateQuote (הקוד
+  // הקיים כבר, ר' §158) יקבלו בפועל את הנתונים המקצועיים שהם כבר בנויים
+  // לצרוך - לפני התיקון הזה הם תמיד קיבלו undefined כי fetchQuotes מעולם
+  // לא ביקש את הטבלאות האלה, למרות שהערה קודמת (למעלה, ליד §158) טענה
+  // בטעות שכבר נוסף. Fallback לבחירה השטוחה המקורית אם הטבלאות עדיין לא
+  // קיימות בסביבה (למשל Production, שה-migrations המקצועיים עדיין
+  // TEST-only שם) - זיהוי מדויק של שגיאת יחס-חסר בלבד, לא בליעת שגיאות
+  // אחרות, אותו עיקרון בדיוק כמו isMissingAttnColumnError למטה.
+  const isMissingProfessionalRelationError = (err) => {
+    const msg = String(err?.message || '');
+    return msg.includes('quote_item_measurements') || msg.includes('quote_sections');
+  };
+
   async function fetchQuotes(userId) {
-    const { data, error } = await supabase
+    const richSelect = `*, clients ( company_name, email, phone, client_type, tax_id, address, terms, notes ), quote_items ( *, quote_item_measurements ( * ) ), quote_sections ( * )`;
+    const flatSelect = `*, clients ( company_name, email, phone, client_type, tax_id, address, terms, notes ), quote_items ( * )`;
+
+    let { data, error } = await supabase
       .from('quotes')
-      .select(`*, clients ( company_name, email, phone, client_type, tax_id, address, terms, notes ), quote_items ( * )`)
+      .select(richSelect)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    if (error && isMissingProfessionalRelationError(error)) {
+      ({ data, error } = await supabase
+        .from('quotes')
+        .select(flatSelect)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }));
+    }
+
     if (error) console.error('Error fetching quotes:', error.message);
     else setQuotes(data || []);
   }
@@ -967,6 +1003,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
       setBizIsLifetime(data.is_lifetime === true);
+      // חוק ברזל (Smart Quote Final UX Simplification task, Part B - "the
+      // business type/industry already known from Business Settings MUST
+      // influence pricing-method recommendations"): נמצא-חי, נמצא באג אמיתי -
+      // SettingsTab.jsx כבר מציג/עורך professionalDomain (setProfessionalDomain
+      // כבר מועבר אליו כ-prop), אך fetchSettings מעולם לא קרא את
+      // business_settings.professional_domain בפועל - הבחירה של הבעלים
+      // הייתה נעלמת בכל טעינה מחדש, למרות שהעמודה עצמה כבר קיימת
+      // (migration 20260903000000). data.professional_domain פשוט undefined
+      // בסביבה שעדיין לא קיבלה את אותו migration (למשל Production) - נופל
+      // בבטחה ל-'' (זהה-בייט ל"לא נבחר"), לא שגיאה.
+      setProfessionalDomain(data.professional_domain || '');
 
       const countryVal = data.country || 'International';
       // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
@@ -1221,8 +1268,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     };
 
     if (settingId) {
-      const { error } = await supabase.from('business_settings').update(payload).eq('id', settingId);
-      if (error) setAlertModalMsg(isHebrew ? 'שגיאה בעדכון ההגדרות: ' + error.message : 'Error updating settings: ' + error.message);
+      // חוק ברזל (Smart Quote Final UX Simplification task, Part B):
+      // professional_domain נכתב כעת בפועל (לא רק נקרא ל-state מקומי) -
+      // אותו עיקרון-fallback-מדויק בדיוק כמו isMissingAttnColumnError
+      // (Dashboard.jsx, handleSaveQuote) - עמודה שעדיין לא קיימת בסביבה
+      // מסוימת (למשל Production) לא תפיל את כל שמירת ההגדרות, רק תיפול
+      // חזרה לניסיון-בלי-השדה הזה.
+      let { error } = await supabase.from('business_settings').update({ ...payload, professional_domain: professionalDomain || null }).eq('id', settingId);
+      if (error && String(error.message || '').includes('professional_domain')) {
+        ({ error } = await supabase.from('business_settings').update(payload).eq('id', settingId));
+      }
+      if (error) {
+        console.error('Error updating settings:', error);
+        setAlertModalMsg(classifyDashboardActionError(error.message, isHebrew, 'update_settings'));
+      }
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
@@ -2491,6 +2550,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       })),
   });
 
+  // חוק ברזל (Smart Quote Structure-First UX Correction task, Locked
+  // Decision 9 - "legacy quotes / default state"): הצעה קיימת (עריכה או
+  // שכפול) לעולם לא מציגה מחדש את בורר-המבנה ("איך תרצו לבנות את
+  // ההצעה?") - המצב נגזר-אוטומטית מהנתונים שכבר נשמרו, פעם אחת, כאן.
+  // יש quote_sections אמיתיות (שם לא-ריק) => divided; אין אף אחת => regular.
+  // רק הצעה חדשה-ריקה-לגמרי (handleCreateNewQuoteClick) מתחילה ב-null.
+  const inferStructureModeFromQuote = (quote) => {
+    const realSections = (quote?.quote_sections || []).filter(s => (s?.name || '').trim() !== '');
+    return realSections.length > 0 ? 'divided' : 'regular';
+  };
+
   const handleEditClick = async (quote) => {
     if (isQuoteImmutable(quote)) {
       setAlertModalMsg(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
@@ -2516,6 +2586,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0 })));
+    setQuoteStructureMode(inferStructureModeFromQuote(quote));
 
     const quoteCurr = quote.currency || (isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setCurrency(quoteCurr);
@@ -2633,6 +2704,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       return { key, name: s.name, sort_order: idx };
     });
     setSections(newSections);
+    setQuoteStructureMode(inferStructureModeFromQuote(quote));
 
     if (quote.quote_items && quote.quote_items.length > 0) {
       setItems(quote.quote_items.map(item => {
@@ -2688,18 +2760,54 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // (עריכה שהתבססה על מצב לקוח לא-רענן ודרסה tax_rate/currency תקינים).
       let authoritativeQuote = null;
       let authoritativeItems = null;
+      let authoritativeSections = null;
 
       if (editingQuoteId) {
+        // חוק ברזל (SQ-F05, Codex Smart Quote P0/P1 review - "section/unit
+        // changes are not independently classified"): baseline אמין של
+        // quote_sections הקיימות בשרת - עד כה מעולם לא נשלף כאן בכלל, כך
+        // שלא הייתה שום דרך לדעת אילו יחידות הוסרו-בפועל מול sections
+        // הנוכחי ב-state (נדרש כדי למחוק בדיוק את מה שהוסר, לא הכל).
+        const { data: fetchedSections, error: fetchSectionsErr } = await supabase
+          .from('quote_sections')
+          .select('id, name, sort_order')
+          .eq('quote_id', editingQuoteId);
+        if (fetchSectionsErr) {
+          setAlertModalMsg(isHebrew
+            ? 'לא ניתן היה לאמת את מבנה היחידות הקיים מול השרת. השמירה בוטלה כדי למנוע פגיעה בנתונים.'
+            : 'Could not verify the existing unit structure against the server. Save cancelled to protect data.');
+          return;
+        }
+        authoritativeSections = fetchedSections || [];
+
         const { data: fetchedQuote, error: fetchQuoteErr } = await supabase
           .from('quotes')
           .select('id, currency, client_type, tax_rate, subtotal, discount, total, status')
           .eq('id', editingQuoteId)
           .single();
 
-        const { data: fetchedItems, error: fetchItemsErr } = await supabase
+        // חוק ברזל (Final Smart Quote Correction task - Codex P0-1
+        // "STRUCTURED EDIT PERSISTENCE"): נשלף כעת גם כל שדה-Professional
+        // עשיר + quote_item_measurements - לא רק ה-4 שדות השטוחים המקוריים.
+        // בלעדי זה, אין שום דרך לזהות שהמשתמש שינה מידה/מפרט/שיוך-יחידה,
+        // כי ה-authoritative snapshot עצמו לא היה מכיל את השדות האלה כלל.
+        // Fallback בטוח (isMissingProfessionalColumnError, אותו עיקרון
+        // בדיוק כמו למטה) לסביבה שעדיין לא עברה migration.
+        let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
-          .select('id, description, quantity, unit_price, total_price')
+          .select('id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, quote_item_measurements ( width, height, unit, label, is_pricing_driving )')
           .eq('quote_id', editingQuoteId);
+        if (fetchItemsErr) {
+          const msg = String(fetchItemsErr.message || '');
+          const isMissingCol = ['pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'quote_item_measurements']
+            .some((col) => msg.includes(col));
+          if (isMissingCol) {
+            ({ data: fetchedItems, error: fetchItemsErr } = await supabase
+              .from('quote_items')
+              .select('id, description, quantity, unit_price, total_price')
+              .eq('quote_id', editingQuoteId));
+          }
+        }
 
         if (fetchQuoteErr || !fetchedQuote || fetchItemsErr || !fetchedItems) {
           setAlertModalMsg(isHebrew
@@ -2739,6 +2847,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // (quantity, unit_price) זהה, סכום הביניים המחושב יהיה זהה במדויק בכל
       // מקרה - כך שאין צורך "לתפוס" שינוי קוסמטי כזה כפיננסי.
       let isFinancialEdit = true;
+      let itemsStructurallyChanged = false;
       let effectiveClientType = clientType;
       let financialQuotePatch = null;
       let descriptionUpdates = null;
@@ -2748,8 +2857,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const numKey = (v) => Number(v || 0).toFixed(6);
         const normType = (v) => v || '';
 
-        const currentItemPairs = items.map(it => `${numKey(it.quantity)}|${numKey(it.unit_price)}`).sort();
-        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(it.quantity)}|${numKey(it.unit_price)}`).sort();
+        // חוק ברזל (SQ-F01, Codex Smart Quote P0/P1 review - "stale quote
+        // financial totals after measurement-only edits"): משתמשים כאן ב-
+        // getActiveQuantity (אותה סמכות קנונית שכבר משמשת בהמשך הפונקציה
+        // הזו עצמה, ר' total_price למטה) ולא ב-it.quantity הגולמי - פריט
+        // מדוד יכול לשמור quantity שטוח קבוע (למשל 1) בעוד calculated_quantity
+        // בפועל משתנה כתוצאה משינוי מידות בלבד. השוואה לפי quantity גולמי
+        // הייתה "עיוורת" לשינוי כזה, ומשאירה isFinancialEdit=false כך
+        // שסכומי-ההצעה הישנים (subtotal/discount/total) נשמרים כפי שהם -
+        // גם כשסכום הפריט עצמו עומד להשתנות. getActiveQuantity הוא superset
+        // מדויק: לפריטים לא-מדודים הוא נופל בחזרה בדיוק לאותו quantity
+        // שטוח, אז אין כאן שום שינוי-התנהגות לפריטים רגילים/קבועים.
+        const currentItemPairs = items.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}`).sort();
+        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}`).sort();
         const itemsChanged = currentItemPairs.length !== authoritativeItemPairs.length
           || currentItemPairs.some((v, i) => v !== authoritativeItemPairs[i]);
 
@@ -2759,49 +2879,47 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isFinancialEdit = itemsChanged || discountChanged || clientTypeChanged;
         effectiveClientType = clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
 
-        if (!isFinancialEdit) {
-          // עריכה לא-פיננסית: משמרים במדויק (verbatim) את כל השדות
-          // הפיננסיים כפי שנשלפו מהשרת - בלי לגזור currency/client_type/
-          // tax_rate מחדש מהגדרות העסק/אזור הנוכחיים. זה כולל שימור
-          // client_type ריק/legacy בדיוק כפי שהוא שמור בהצעה הקיימת.
-          financialQuotePatch = {
-            currency: authoritativeQuote.currency,
-            client_type: authoritativeQuote.client_type,
-            tax_rate: authoritativeQuote.tax_rate,
-            subtotal: authoritativeQuote.subtotal,
-            discount: authoritativeQuote.discount,
-            total: authoritativeQuote.total,
-          };
+        // מיפוי בטוח id-to-id בין הטופס לבין ה-authoritative snapshot -
+        // נדרש הן לעדכון-description הממוקד הקיים, הן (חדש) לבדיקת שינוי-
+        // מבנה למטה. לעולם לא לפי index.
+        const formIds = items.map(it => it.id);
+        const authoritativeIds = authoritativeItems.map(it => it.id);
+        const formIdsMappingSafe =
+          formIds.length === authoritativeIds.length &&
+          formIds.every(id => id !== undefined && id !== null) &&
+          new Set(formIds).size === formIds.length &&
+          formIds.every(id => authoritativeIds.includes(id));
 
-          // מיפוי בטוח של עריכת description בלבד: לעולם לא לפי index (סדר
-          // עלול להשתנות) - רק לפי quote_items.id האמיתי שנשמר על כל פריט
-          // בזמן טעינת העריכה (ר' handleEditClick). אם המיפוי אינו בדיוק
-          // חד-חד-ערכי (id חסר על פריט, id כפול, או שסט ה-id-ים של הטופס
-          // אינו זהה בדיוק לסט ה-id-ים האמיתי) - נכשלים בבטחה ולא כותבים
-          // כלום, כדי לא להחיל תיאור על פריט לא-נכון ולא ליפול חזרה על
-          // DELETE+INSERT (שהיה מוחק/מייצר id-ים חדשים).
-          const formIds = items.map(it => it.id);
-          const authoritativeIds = authoritativeItems.map(it => it.id);
-          const formIdsMappingSafe =
-            formIds.length === authoritativeIds.length &&
-            formIds.every(id => id !== undefined && id !== null) &&
-            new Set(formIds).size === formIds.length &&
-            formIds.every(id => authoritativeIds.includes(id));
+        // חוק ברזל (Final Smart Quote Correction task - Codex P0-1
+        // "STRUCTURED EDIT PERSISTENCE", Owner law: "If the user changes
+        // any persisted Smart Quote item field, Save must persist it or
+        // fail visibly"): isFinancialEdit לעיל בודק רק quantity/unit_price -
+        // זה נכון ומספיק כדי להחליט על *recalculation פיננסי* (Owner P0-2:
+        // "editing a field must not change unrelated saved pricing
+        // semantics"), אבל *לא* מספיק כדי להחליט אם מותר לדלג על כתיבת
+        // הפריטים העשירים - שינוי מידה/מפרט/שיוך-יחידה/שיטת-תמחור לעיתים
+        // קרובות אינו משנה את quantity/unit_price כלל (לדוגמה: פריט מדוד
+        // שבו quantity השטוח קבוע על 1 ורק calculated_quantity/measurements
+        // משתנים) - וזה בדיוק מה שגרם לאובדן-נתונים השקט שה-audit מצא.
+        // בדיקה זו משווה per-id (לא multiset) את כל השדות המקצועיים+מידות,
+        // ומופעלת רק כשה-mapping בטוח (אחרת ממילא ניפול-בבטחה למטה).
+        const measurementFingerprint = (m) => `${Number(m?.width || 0).toFixed(4)}x${Number(m?.height || 0).toFixed(4)}|${m?.label || ''}|${m?.is_pricing_driving !== false}`;
+        const itemStructuralFingerprint = (it) => JSON.stringify({
+          pricing_unit: it.pricing_unit || null,
+          calculated_quantity: (it.calculated_quantity !== undefined && it.calculated_quantity !== '' && it.calculated_quantity !== null) ? Number(it.calculated_quantity) : null,
+          quantity_source: it.quantity_source || null,
+          specification: normalizeSpecificationRows(it.specification),
+          section: it.section_key ?? it.section_id ?? null,
+          calculation_method: it.calculation_method || null,
+          measurements: (Array.isArray(it.measurements) ? it.measurements : (Array.isArray(it.quote_item_measurements) ? it.quote_item_measurements : []))
+            .map(measurementFingerprint).sort(),
+        });
+        itemsStructurallyChanged = formIdsMappingSafe && items.some((formItem) => {
+          const authItem = authoritativeItems.find(a => a.id === formItem.id);
+          return !authItem || itemStructuralFingerprint(formItem) !== itemStructuralFingerprint(authItem);
+        });
 
-          if (!formIdsMappingSafe) {
-            setAlertModalMsg(isHebrew
-              ? 'לא ניתן היה למפות בבטחה את פריטי ההצעה לצורך שמירת שינוי בתיאור. השמירה בוטלה כדי למנוע שיוך תיאור לפריט הלא-נכון.'
-              : 'Could not safely map this quote\'s items to save a description change. Save cancelled to avoid applying a description to the wrong item.');
-            return;
-          }
-
-          descriptionUpdates = items
-            .filter(formItem => {
-              const authItem = authoritativeItems.find(a => a.id === formItem.id);
-              return (formItem.description || '') !== (authItem.description || '');
-            })
-            .map(formItem => ({ id: formItem.id, description: formItem.description || '' }));
-        } else {
+        if (isFinancialEdit) {
           const curr = (authoritativeQuote.currency || '').toUpperCase();
           let region;
           if (curr === 'ILS') region = 'Local';
@@ -2857,6 +2975,47 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             discount: Number(discount || 0),
             total: result.total,
           };
+        } else {
+          // עריכה לא-פיננסית (מבחינת quantity/unit_price/discount/client_type):
+          // משמרים במדויק (verbatim) את כל השדות הפיננסיים כפי שנשלפו
+          // מהשרת - בלי לגזור currency/client_type/tax_rate מחדש מהגדרות
+          // העסק/אזור הנוכחיים. תקף גם כששינוי-מבנה קיים למטה - Owner P0-2:
+          // שינוי מידה/שיוך/מפרט לא אמור לשנות סמנטיקת-תמחור.
+          financialQuotePatch = {
+            currency: authoritativeQuote.currency,
+            client_type: authoritativeQuote.client_type,
+            tax_rate: authoritativeQuote.tax_rate,
+            subtotal: authoritativeQuote.subtotal,
+            discount: authoritativeQuote.discount,
+            total: authoritativeQuote.total,
+          };
+
+          if (itemsStructurallyChanged) {
+            // חוק ברזל (Codex P0-1 fix): שינוי-מבנה עשיר בלי שינוי quantity/
+            // unit_price - itemsForPersist נשאר על ברירת-המחדל שלו (items
+            // המלא, כבר מאותחל למעלה) כדי שה-delete+insert העשיר ירוץ
+            // ויכתוב את המידות/מפרט/שיוך-היחידה האמיתיים - לעולם לא נשמט
+            // בשקט רק כי quantity/unit_price לא השתנו. אין descriptionUpdates
+            // כאן - ה-delete+insert המלא כבר כותב description עדכני לכל פריט.
+          } else {
+            // מיפוי בטוח של עריכת description בלבד: לעולם לא לפי index (סדר
+            // עלול להשתנות) - רק לפי quote_items.id האמיתי שנשמר על כל
+            // פריט בזמן טעינת העריכה (ר' handleEditClick). אם המיפוי אינו
+            // בדיוק חד-חד-ערכי - נכשלים בבטחה ולא כותבים כלום.
+            if (!formIdsMappingSafe) {
+              setAlertModalMsg(isHebrew
+                ? 'לא ניתן היה למפות בבטחה את פריטי ההצעה לצורך שמירת שינוי בתיאור. השמירה בוטלה כדי למנוע שיוך תיאור לפריט הלא-נכון.'
+                : 'Could not safely map this quote\'s items to save a description change. Save cancelled to avoid applying a description to the wrong item.');
+              return;
+            }
+
+            descriptionUpdates = items
+              .filter(formItem => {
+                const authItem = authoritativeItems.find(a => a.id === formItem.id);
+                return (formItem.description || '') !== (authItem.description || '');
+              })
+              .map(formItem => ({ id: formItem.id, description: formItem.description || '' }));
+          }
         }
       } else {
         // הצעה חדשה: אותה נקודת אמת פיננסית יחידה (calculateQuoteFinancials)
@@ -2924,15 +3083,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // taxRate/totalAmount המחושבים בגוף הקומפוננטה (שעלולים להסתמך על
       // quotes.find/bizCountry לא-רענן). להצעה חדשה ההתנהגות נשארת זהה
       // לחלוטין להתנהגות הקודמת.
+      // חוק ברזל (SQ-F02 final closure task - single atomic server-side
+      // transactional save boundary): לעריכה קיימת, השדות הפיננסיים (client_
+      // type/currency/subtotal/tax_rate/total/discount) הוסרו מה-payload
+      // הזה בכוונה - הם עכשיו נכתבים אך ורק בתוך save_quote_structured
+      // (יחד עם sections/items/measurements, כטרנזקציה אחת), לא יותר כאן
+      // כעדכון-quotes נפרד ולא-תלוי. להצעה חדשה (branch ה-else) הם נשארים
+      // בדיוק כמו קודם - ה-INSERT הבודד עצמו כבר אטומי, אין צורך לנתב
+      // דרך ה-RPC כלל (p_financial מועבר null בהמשך לפריט זה).
       const quotePayload = editingQuoteId
         ? {
             client_id: clientId,
-            client_type: financialQuotePatch.client_type,
-            currency: financialQuotePatch.currency,
-            subtotal: financialQuotePatch.subtotal,
-            tax_rate: financialQuotePatch.tax_rate,
-            total: financialQuotePatch.total,
-            discount: financialQuotePatch.discount,
             status: quoteStatus.toLowerCase(),
             valid_until: validUntil || null,
             terms: terms,
@@ -2961,11 +3122,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           };
 
       let quoteId;
-      // עריכה פיננסית והצעה חדשה: ממשיכים בדיוק כמו קודם - delete+insert
-      // מלא מה-state הנוכחי של items. עריכה לא-פיננסית: **אין** delete+insert
-      // בכלל (איפס כתיבה אם אין שינוי description; אחרת UPDATE ממוקד per-id
-      // בלבד, ר' descriptionUpdates למעלה) - כך שאין שינוי quantity/unit_price/
-      // total_price ואין regeneration של quote_item id-ים על עריכה לא-פיננסית.
+      // עריכה פיננסית, הצעה חדשה, או עריכה עם שינוי-מבנה עשיר
+      // (itemsStructurallyChanged - Codex P0-1 fix): delete+insert מלא
+      // מה-state הנוכחי של items. עריכה לא-פיננסית וללא שינוי-מבנה: **אין**
+      // delete+insert בכלל (איפס כתיבה אם אין שינוי description; אחרת
+      // UPDATE ממוקד per-id בלבד, ר' descriptionUpdates למעלה) - כך שאין
+      // שינוי quantity/unit_price/total_price ואין regeneration של
+      // quote_item id-ים על עריכה שאינה משנה דבר פיננסי/מבני אמיתי.
       let itemsForPersist = items;
 
       // חוק ברזל (item 18 - Attn/לידי, חבילת יישום מקומית בלבד): attn_name/
@@ -3003,9 +3166,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         if (updateError) throw updateError;
         quoteId = editingQuoteId;
 
-        if (isFinancialEdit) {
-          await supabase.from('quote_items').delete().eq('quote_id', quoteId);
-        } else {
+        // חוק ברזל (Codex P0-1 fix, ר' גם SQ-F02 למטה): שינוי-מבנה עשיר בלי
+        // שינוי quantity/unit_price עדיין חייב לגרום לכתיבת הפריטים - לעולם
+        // לא רק isFinancialEdit לבדו. בעבר כאן היה DELETE-הכל מוקדם על כל
+        // ה-quote_items לפני הכתיבה-מחדש; הוא הוסר (SQ-F02, "canonical-ID
+        // replacement risk") כי בלוק ה-UPSERT-לפי-id למטה (בתוך
+        // `if (itemsForPersist)`) כבר מטפל בעצמו, ובאופן בטוח יותר, בכל
+        // שלושת המקרים: עדכון-במקום לפריט קיים, הוספה לפריט חדש, ומחיקה
+        // ממוקדת (removedItemIds) רק לפריט שהוסר-בפועל - DELETE-הכל מוקדם
+        // כאן היה הורס בשקט את השורות שה-UPSERT מתכוון לעדכן, ומייצר בדיוק
+        // את שגיאת ה-foreign-key שגילה ה-e2e (quote_item_measurements
+        // מצביע ל-quote_item_id שכבר נמחק).
+        if (!(isFinancialEdit || itemsStructurallyChanged)) {
           for (const upd of descriptionUpdates) {
             const { error: descUpdateError } = await supabase
               .from('quote_items')
@@ -3045,31 +3217,132 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         quoteId = quoteData[0].id;
       }
 
-      if (itemsForPersist) {
-        // TEKANGO AUTHENTICATED UI RELEASE task: the Professional Quotes
-        // persistence layer (quote_sections table, and quote_items'
-        // pricing_unit/calculated_quantity/quantity_source/specification/
-        // section_id/calculation_method columns, and the quote_item_measurements
-        // table) depends on three Supabase migrations that are TEST-only and
-        // explicitly not applied to Production in this release. The
-        // Professional-item authoring UI (AddItemWizard, measurement/
-        // specification editing, section management) ships and renders
-        // exactly as approved in TEST - this is a persistence-boundary
-        // exclusion only, not a UI change: total_price still reflects
-        // whatever active quantity the item actually has (getActiveQuantity
-        // falls back to plain `quantity` for a non-Professional item, so
-        // this is byte-identical to the prior INSERT for every item that
-        // doesn't use a Professional pricing unit).
-        const quoteItemsToInsert = itemsForPersist.map((item) => ({
-          quote_id: quoteId,
+      // חוק ברזל (SQ-F02 FINAL CLOSURE task, 2026-09-14 - "single server-side
+      // transactional save boundary"): sections/items/measurements now
+      // persist through exactly ONE atomic RPC call (`save_quote_structured`,
+      // TEST-only, applied via the isolated `supabase db query --linked`
+      // mechanism - see PROFLOW_PROJECT_CONTEXT.md §174 for the full
+      // isolation proof - never `supabase db push`, which would also apply
+      // an unrelated, out-of-scope pending migration). A single top-level
+      // Postgres function call is one implicit transaction - any exception
+      // anywhere inside it rolls back every statement the function has run
+      // so far, automatically. This REPLACES (not supplements) the prior
+      // pass's sequential upsert-by-id calls: that pass closed SQ-F02's
+      // canonical-ID-churn half but left a failure partway through able to
+      // leave partial persisted state (an UPDATE that succeeds followed by
+      // a later INSERT that fails was never rolled back) - the exact
+      // multi-statement client-side sequence this task's own instructions
+      // forbid ("the client must not perform a destructive pre-delete that
+      // can leave partial state outside the transaction"). No fallback to
+      // that old sequential path exists on purpose: falling back would
+      // silently reintroduce the exact non-atomic risk this closes - every
+      // error path here fails closed instead (a real RPC error rolls back
+      // server-side already; a "function not found" scenario means this
+      // environment truly cannot save safely, and must say so, not degrade
+      // silently). SQ-F01's financial-authority function
+      // (`calculateQuoteFinancials`) and SQ-F04's grouping engine are
+      // untouched - this only changes the WRITE mechanism, never the
+      // numbers/eligibility computed before it.
+      if (quoteId) {
+        const currentNamedSections = (sections || []).filter(s => (s.name || '').trim() !== '');
+        const authoritativeSectionIds = new Set((authoritativeSections || []).map(s => s.id));
+        const currentSectionIds = new Set(currentNamedSections.filter(s => s.id).map(s => s.id));
+        const removedSectionIds = [...authoritativeSectionIds].filter(id => !currentSectionIds.has(id));
+
+        const sectionsPayload = currentNamedSections.map((s, idx) => ({
+          client_key: s.key,
+          id: s.id || null,
+          name: s.name,
+          sort_order: s.sort_order != null ? s.sort_order : idx,
+        }));
+
+        const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
+        const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
+          client_key: item.id || `new_${idx}`,
+          id: item.id || null,
+          section_client_key: item.section_key || null,
           description: item.description,
           quantity: Number(item.quantity || 1),
           unit_price: Number(item.unit_price || 0),
           total_price: getActiveQuantity(item) * Number(item.unit_price || 0),
-        }));
+          pricing_unit: item.pricing_unit || null,
+          calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== '' && item.calculated_quantity !== null) ? Number(item.calculated_quantity) : null,
+          quantity_source: item.quantity_source || null,
+          specification: normalizeSpecificationRows(item.specification),
+          calculation_method: item.calculation_method || null,
+          sort_order: idx,
+          measurements: (Array.isArray(item.measurements) ? item.measurements : [])
+            .filter((m) => !(m.width === '' && m.height === ''))
+            .map((m, mIdx) => ({
+              width: m.width !== '' && m.width != null ? Number(m.width) : null,
+              height: m.height !== '' && m.height != null ? Number(m.height) : null,
+              unit: m.unit || 'm',
+              calculated_area: m.calculated_area != null && m.calculated_area !== '' ? Number(m.calculated_area) : null,
+              label: m.label || '',
+              sort_order: mIdx,
+              is_pricing_driving: m.is_pricing_driving !== false,
+            })),
+        })) : [];
+        const currentItemIds = new Set((itemsForPersist || []).filter((it) => it.id).map((it) => it.id));
+        const removedItemIds = itemsForPersist ? [...authoritativeItemIds].filter((id) => !currentItemIds.has(id)) : [];
 
-        const { error: itemsError } = await supabase.from('quote_items').insert(quoteItemsToInsert);
-        if (itemsError) throw itemsError;
+        // הצעה חדשה: השדות הפיננסיים כבר נכתבו ב-INSERT הבודד (אטומי מטבעו)
+        // למעלה - p_financial=null כאן מדלג במפורש על כתיבה כפולה. עריכה
+        // לא-פיננסית: שום דבר פיננסי לא באמת השתנה (financialQuotePatch הוא
+        // עותק מדויק של authoritativeQuote) - null גם כאן מדלג על כתיבה
+        // מיותרת, בלי לשנות שום ערך בפועל.
+        const financialForRpc = (editingQuoteId && isFinancialEdit) ? {
+          currency: financialQuotePatch.currency,
+          client_type: financialQuotePatch.client_type,
+          tax_rate: financialQuotePatch.tax_rate,
+          subtotal: financialQuotePatch.subtotal,
+          discount: financialQuotePatch.discount,
+          total: financialQuotePatch.total,
+        } : null;
+
+        const { error: rpcError } = await supabase.rpc('save_quote_structured', {
+          p_quote_id: quoteId,
+          p_financial: financialForRpc,
+          p_sections: sectionsPayload,
+          p_items: itemsPayload,
+          p_removed_section_ids: removedSectionIds,
+          p_removed_item_ids: removedItemIds,
+        });
+
+        if (rpcError) {
+          // כל ענף-שגיאה כאן נכשל-בבטחה בתוך ה-RPC עצמו: הטרנזקציה בצד-השרת
+          // כבר ביטלה (rollback) כל מה שהפונקציה הספיקה לכתוב בקריאה הזו -
+          // לעולם אין כאן מצב-ביניים חלקי בתוך sections/items/measurements
+          // עצמם, גם כשהשגיאה היא "הפונקציה לא קיימת" בסביבה שעדיין לא
+          // הופעלה בה ה-migration.
+          //
+          // חוק ברזל (SQ-F02-B, "ONE-PASS SMART QUOTE FINAL REMEDIATION"
+          // task): זה עצמו לא מספיק להצעה **חדשה** - ה-quote row עצמו (עם
+          // quote_number/financial/status אמיתיים) כבר נוצר למעלה (INSERT
+          // נפרד, אטומי בפני עצמו) *לפני* קריאת ה-RPC הזו. אם ה-RPC נכשל,
+          // אותו שלד-הצעה כבר-קיים היה נשאר יתום לצמיתות: הצעה אמיתית,
+          // גלויה למשתמש (למשל ברשימת ההצעות), עם 0 sections/items - בדיוק
+          // מצב-הביניים החלקי שהמשימה אוסרת. פתרון: פעולת-פיצוי מפורשת
+          // (compensating delete) שמוחקת את שלד ההצעה החדש שזה עתה נוצר,
+          // אך ורק בענף ההצעה-החדשה (editingQuoteId היה null) - לעולם לא
+          // בעריכת הצעה קיימת (שם quoteId === editingQuoteId, הצעה אמיתית
+          // שהתקיימה כבר לפני הקריאה הזו, ואסור למחוק אותה). אם גם מחיקת-
+          // הפיצוי עצמה נכשלת (תרחיש קצה נדיר), זה מדווח בנפרד ובכנות - לא
+          // נבלע בשקט - כדי שלא תיווצר אשליית "בוטל במלואה" שגויה.
+          if (!editingQuoteId) {
+            const { error: compensatingDeleteError } = await supabase.from('quotes').delete().eq('id', quoteId);
+            if (compensatingDeleteError) {
+              setAlertModalMsg(isHebrew
+                ? 'לא ניתן היה לשמור את מבנה ההצעה החדשה, וגם ניקוי שלד ההצעה שנוצר בטעות נכשל. אנא פנה לתמיכה - ייתכן שנותרה הצעה ריקה/שגויה.'
+                : 'Could not save the new quote\'s structure, and cleaning up the accidentally-created quote shell also failed. Please contact support - an empty/invalid quote may remain.');
+              return;
+            }
+          }
+          setAlertModalMsg(isHebrew
+            ? 'לא ניתן היה לשמור את מבנה ההצעה (יחידות/פריטים/מידות) בסביבה הנוכחית. השמירה בוטלה במלואה כדי למנוע פגיעה בנתונים - שום שינוי חלקי לא נשמר.'
+            : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The entire save was cancelled to protect data - no partial change was persisted.');
+          return;
+        }
       }
 
       for (let file of quoteFiles) {
@@ -5409,7 +5682,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               warranty={warranty} setWarranty={setWarranty}
               notes={notes} setNotes={setNotes}
               items={items} setItems={setItems}
-              sections={sections} addSection={addSection} renameSection={renameSection} removeSection={removeSection}
+              sections={sections} setSections={setSections} addSection={addSection} renameSection={renameSection} removeSection={removeSection}
+              quoteStructureMode={quoteStructureMode} setQuoteStructureMode={setQuoteStructureMode}
               projectName={projectName} setProjectName={setProjectName}
               services={services}
               clients={clients}
@@ -5429,7 +5703,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               handleAddFromCatalog={handleAddFromCatalog}
               canUseAttachments={entitlement.attachments}
               canUseProfessionalQuotes={entitlement.professionalQuotes}
-              businessDefaultProfessionalUnit={getDefaultProfessionalUnit(professionalDomain)}
+              recommendedPricingMethod={getRecommendedPricingMethod(professionalDomain)}
               duplicateItem={duplicateItem}
               canUseProfessionalQuoteReuse={entitlement.professionalQuoteReuse}
               handleProfessionalUnitChange={handleProfessionalUnitChange}

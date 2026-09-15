@@ -14,12 +14,25 @@ import { LIGHT } from '../theme/neonTheme';
 // cannot reliably guarantee for a financial/legal document. Shared between
 // PublicQuote.jsx (HE) and PublicQuoteEn.jsx (EN) so the two files can
 // never drift on this behavior.
-export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, onChoose }) {
+// חוק ברזל (Smart Quote End-to-End Structural Unification task, Locked
+// Decision 12): להצעה מחולקת יש משמעות שונה-לגמרי ל-Compact/Expanded
+// (יחידות-בלבד מול פירוט-מלא-לפי-יחידה) מאשר להצעה רגילה (פירוט-מידות
+// מכווץ/מורחב לכל פריט) - isDivided (אופציונלי, ברירת-מחדל false לשמירת
+// התנהגות-ברירת-המחדל הקיימת לכל קורא ישן) בוחר את הניסוח הנכון, בלי
+// מודל/כפתורים כפולים.
+export default function QuotePrintModeModal({ open, isHebrew, intent, isDivided = false, onClose, onChoose }) {
   if (!open) return null;
 
   const title = intent === 'pdf'
     ? (isHebrew ? 'הורדת PDF' : 'Download PDF')
     : (isHebrew ? 'הדפסת מסמך' : 'Print document');
+
+  const compactDesc = isDivided
+    ? (isHebrew ? 'שם כל יחידה וסה"כ שלה בלבד - ללא פירוט פריטים' : 'Each unit\'s name and total only - no item breakdown')
+    : (isHebrew ? 'שורות פריטים וסיכום בלבד - ללא פירוט מידות מורחב' : 'Item lines and totals only - no expanded measurement detail');
+  const expandedDesc = isDivided
+    ? (isHebrew ? 'כל יחידה עם כל הפריטים, המידות והמפרט שלה, וסכום-ביניים ליחידה' : 'Every unit with its full items, measurements & specifications, and its own subtotal')
+    : (isHebrew ? 'כולל פירוט מידות ומפרט מלא לכל פריט מקצועי' : 'Includes full measurements & specifications for every professional item');
 
   return (
     <div
@@ -54,7 +67,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
             <LayoutList size={18} color={LIGHT.violet} strokeWidth={2} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{isHebrew ? 'תמציתי' : 'Compact'}</span>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{isHebrew ? 'שורות פריטים וסיכום בלבד - ללא פירוט מידות מורחב' : 'Item lines and totals only - no expanded measurement detail'}</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{compactDesc}</span>
             </span>
           </button>
           <button
@@ -65,7 +78,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
             <FileDown size={18} color={LIGHT.violet} strokeWidth={2} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{isHebrew ? 'מורחב' : 'Expanded'}</span>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{isHebrew ? 'כולל פירוט מידות ומפרט מלא לכל פריט מקצועי' : 'Includes full measurements & specifications for every professional item'}</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{expandedDesc}</span>
             </span>
           </button>
         </div>

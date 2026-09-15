@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
@@ -6,7 +6,7 @@ import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatAddress } from '../utils/addressFormat';
-import { formatMoney } from '../utils/money';
+import { formatMoney, formatWholeMoney } from '../utils/money';
 import { LIGHT } from '../theme/neonTheme';
 import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lucide-react';
 import PdfFileIcon from '../components/PdfFileIcon';
@@ -14,6 +14,9 @@ import QuotePrintModeModal from '../components/QuotePrintModeModal';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
+import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
+import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import DividedQuoteUnits from '../components/DividedQuoteUnits';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -33,6 +36,54 @@ import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassific
 // וכו') - הוא עצמו לעולם לא מעגל בפועל, בדיוק כמו formatMoney - כך שהחלפה
 // לקריאה ל-formatMoney אינה משנה שום התנהגות עיגול קיימת, רק מסירה שכפול.
 const formatNum = (val) => formatMoney(val);
+
+// עדכון 2026-09-14 (Final Smart Quote Merge + Rounding Remediation task,
+// Part 9 - "restore the approved whole-shekel display law" שהיה עד כה
+// ממומש רק בסה"כ-לתשלום הסופי למטה): הרחבה מפורשת-בעלים לכל סכום-כספי
+// אחר שהלקוח רואה בהצעה מחולקת - סכום-פריט/group, סה"כ-יחידה - דרך
+// formatMoneyDisplay (מוזרק ל-DividedQuoteUnits.jsx כאן בלבד, לעולם לא
+// ל-formatNum הכללי שממשיך לשרת גם ערכים לא-כספיים/מספרי-מדידה במקומות
+// אחרים). formatWholeMoney (utils/money.js) הוא display-only - Math.round
+// לתצוגה בלבד, אף פעם לא נכתב-חזרה ל-quotes.total/quote_items.total_price
+// ואינו נוגע בשום נוסחת-חישוב קיימת. בכוונה HE/ILS-בלעדי (אושר מפורשות
+// עבור המשימה הזו) - PublicQuoteEn.jsx ממשיך להזריק formatNum הרגיל
+// (דיוק-סנט/אירו/פאונד מלא, ללא שינוי), כדי לא להחזיר את הבאג שתוקן כבר
+// ב-Money Consolidation task (Global Surface Audit finding I-1 - "עיגול
+// שקט של International"). קופסת-הסה"כ הסופית למטה (finalTotalRounded/
+// netAmountDisplay/vatAmountDisplay) לא נגעה - כבר שלמה (finalTotalRounded)
+// עבור לקוח לא-אמביגואלי, ונטו/מע"מ נשארים במדויק-לאגורה בכוונה כדי לשמר
+// את חוק "הסכום סוגר בדיוק" שתועד למעלה - הרחבתם לשלם דורשת החלטת-בעלים
+// נפרדת אם ירצו זאת, ולא הייתה חלק מהדוגמה שהוצגה (דירה 33).
+const formatMoneyDisplayForDivided = formatWholeMoney;
+
+// חוק ברזל (Smart Quote End-to-End Structural Unification task, Part B/O -
+// "no UI component should independently rediscover grouping from raw
+// arrays"): במקום קיבוץ עצמאי, זהו כעת עטיפה דקה סביב
+// buildCustomerPresentationModel (quotePresentationModel.js) - נקודת-
+// הקיבוץ/סכום-ביניים היחידה שגם העורך (QuoteForm.jsx) בונה עליה (דרך
+// groupItemsBySection המשותפת). שומרת על אותה צורת-פלט בדיוק
+// ({item,index,groupName,isNewGroup,isGroupEnd,groupTotal}) שהטבלה
+// המורחבת (Expanded) כבר משתמשת בה - כדי שכל הרינדור/הבדיקות הקיימות
+// ימשיכו לעבוד ללא שינוי. index השמור הוא ה-index המקורי במערך items -
+// נדרש כדי ש-expandedItemDetails (state) ימשיך להתייחס לפריט הנכון גם
+// אחרי סידור-מחדש לפי קבוצה. יחידה ריקה (0 פריטים) מדולגת כאן בכוונה -
+// זהה להתנהגות הקודמת (אין טעם להציג כותרת-קבוצה ריקה בתוך פירוט-פריטים).
+function orderPublicItemsByGroup(items, sections) {
+  const model = buildCustomerPresentationModel(items, sections);
+  if (!model.isDivided) {
+    return items.map((item, index) => ({ item, index, groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null }));
+  }
+  const ordered = [];
+  model.units.filter((u) => u.itemCount > 0).forEach((unit) => {
+    unit.items.forEach((item, i) => {
+      ordered.push({ item, index: items.indexOf(item), groupName: unit.title, isNewGroup: i === 0, isGroupEnd: i === unit.items.length - 1, groupTotal: unit.subtotal });
+    });
+  });
+  model.unassignedItems.forEach((item) => {
+    ordered.push({ item, index: items.indexOf(item), groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null });
+  });
+  return ordered;
+}
 
 const formatDisplayPhone = (phone) => {
   if (!phone) return '';
@@ -56,10 +107,23 @@ const formatDisplayPhone = (phone) => {
 
 export default function PublicQuote({ quoteData }) {
   const navigate = useNavigate();
-  const { quote, business, client, items, attachments } = quoteData;
+  const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
+  // חוק ברזל (Smart Quote End-to-End Structural Unification task, Locked
+  // Decision 10 - "one quote model, many views"): נקודת-חישוב יחידה,
+  // פעם אחת, לכל מה שהעמוד הזה צריך לדעת על מבנה ההצעה - Compact/Expanded,
+  // ברירת-מחדל של printMode, ורינדור-הטבלה (orderPublicItemsByGroup, עטיפה
+  // דקה סביב אותו מודל). quoteData.items/quoteSections הם props קבועים
+  // (לא state) - אין תלות ב-re-render מיותר.
+  const presentationModel = buildCustomerPresentationModel(items, quoteSections);
   const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
+  // חוק ברזל (Smart Quote Guided UX Completion task, Part E - customer-
+  // facing structured display): פירוט מקצועי (מידות/פרטים) מוצג מכווץ
+  // כברירת מחדל, ניתן להרחבה - החלטת-בעלים כבר תועדה ב-PROFLOW_TODO.md
+  // (item 30.C/§ Public Quote shows professional detail collapsed/
+  // expandable by default). מפתח לפי index הפריט.
+  const [expandedItemDetails, setExpandedItemDetails] = useState({});
 
   // חוק ברזל (Owner-Approved Signature Record Improvement - audit-verified
   // gap): quotes.signature (data URL) הוא עמודת-החתימה היחידה שקיימת בפועל -
@@ -85,7 +149,20 @@ export default function PublicQuote({ quoteData }) {
   // נפרדים: printIntent==='print' ממשיך להפעיל אך ורק window.print()
   // (בלתי נגוע); printIntent==='pdf' קורא ל-generateQuotePdf האמיתי
   // (html2canvas+jsPDF) ולעולם לא ל-window.print().
+  // חוק ברזל (Final Public Quote Restoration task - "DEFAULT PUBLIC QUOTE
+  // STATE - HARD LOCK", supersedes the old Locked Decision 11): הבעלים
+  // תיקן במפורש - הצעה מחולקת חייבת להיפתח עם כל היחידות מכווצות (שם +
+  // סה"כ בלבד, בדיוק כמו Compact), לא Expanded. "Expanded" כ-mode נשאר
+  // קיים ומלא בתפקידו רק כבחירה מפורשת בתצוגת-הדפסה/PDF (QuotePrintModeModal)
+  // - אף פעם לא ברירת-המחדל של הפתיחה הרגילה. הצעה רגילה ממשיכה עם
+  // compact, זהה-בייט להתנהגות הקודמת.
   const [printMode, setPrintMode] = useState('compact');
+  // חוק ברזל (Final Smart Quote Correction task - Codex P0-4 "DETERMINISTIC
+  // COMPACT/EXPANDED EXPORT"): נספר בכל בחירה מפורשת ב-modal (גם אם הערך
+  // עצמו זהה לקודם, למשל Compact פעמיים ברצף) - DividedQuoteUnits מאפס
+  // לפיו, לא לפי printMode עצמו (ש-React לא בהכרח "משנה" כשהערך זהה) -
+  // כדי שמצב-קיפול ידני-של-המשתמש בין הבחירות לא ידלוף לתוך פלט מפורש.
+  const [outputModeNonce, setOutputModeNonce] = useState(0);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -102,8 +179,30 @@ export default function PublicQuote({ quoteData }) {
     setPrintModalOpen(true);
   };
 
+  // חוק ברזל (Locked Decision 12 - Compact/Expanded, המשמעות המקורית
+  // שכבר תועדה ב-QuotePrintModeModal.jsx עצמו אך מעולם לא מומשה בפועל:
+  // "Compact: no expanded measurement detail" / "Expanded: includes full
+  // measurements & specifications for every professional item" - printMode
+  // עצמו נשמר כ-data-attribute מאז §160 בלי אף לוגיקה שקוראת אותו).
+  // מיושם כאן כ"קביעה חד-פעמית ברגע הבחירה" - לא כ-binding מתמשך - כדי
+  // לשמר את יכולת-ההרחבה הידנית-לכל-פריט הקיימת (expandedItemDetails)
+  // לגלישה רגילה על-המסך, בלי לרגרס אותה: בחירת "Compact"/"Expanded"
+  // מה-modal קובעת את המצב לכל הפריטים-בעלי-פרטים באותו רגע (לצורך
+  // הלכידה/ההדפסה הבאה), אך לא כובלת אותם לצמיתות ל-printMode עצמו.
+  const buildItemDetailsMap = (allOpen) => {
+    const map = {};
+    items.forEach((item, index) => {
+      const hasMeasurements = Array.isArray(item.measurements) && item.measurements.length > 0;
+      const hasSpec = Array.isArray(item.specification) && item.specification.some((s) => s.label || s.value);
+      if (hasMeasurements || hasSpec) map[index] = allOpen;
+    });
+    return map;
+  };
+
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
+    setOutputModeNonce((n) => n + 1);
+    setExpandedItemDetails(buildItemDetailsMap(mode === 'expanded'));
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
@@ -256,7 +355,6 @@ export default function PublicQuote({ quoteData }) {
     ? (resolvedSubtotal * (Number(quote.discount || 0) / 100))
     : financials.discountAmount;
   const netAmount = financials.netAmount;
-  const vatAmount = financials.taxAmount;
   const total = dbTotal > 0 ? dbTotal : (isAmbiguousClientType ? (subtotal - discountAmountDisplay) : financials.total);
 
   // חוק ברזל (תיקון בעלים - עיגול שקל שלם, עקבי חשבונאית לא רק תצוגתי):
@@ -280,9 +378,26 @@ export default function PublicQuote({ quoteData }) {
   const netAmountDisplay = isPrivateDisplay
     ? Math.round((finalTotalRounded / (1 + vatRate)) * 100) / 100
     : netAmount;
-  const vatAmountDisplay = (!isAmbiguousClientType && netAmountDisplay !== null && netAmountDisplay !== undefined)
-    ? Math.round((finalTotalRounded - netAmountDisplay) * 100) / 100
-    : vatAmount;
+
+  // חוק ברזל (Urgent Money Format Correction task - הרחבה מפורשת-בעלים של
+  // "עגל לשקל שלם, הצג עם שתי ספרות" לקופסת-הסה"כ למטה: סיכום-ביניים/מע"מ/
+  // סה"כ סופי - לא רק לכרטיסי-הפריט/יחידה בהצעה מחולקת). netAmountDisplay/
+  // finalTotalRounded למעלה *לא* נגעו - "do not change pricing calculations".
+  // vatAmountDisplay המדויק-לאגורה (finalTotalRounded - netAmountDisplay)
+  // הוסר - לא היה עוד קורא אחריו ברגע שהתצוגה עברה למשתני-*WholeDisplay
+  // למטה, שמשתמשים באותה שיטת-שארית בדיוק, רק ברמת-השלם: netAmountWholeDisplay
+  // מעוגל-לשלם באופן עצמאי; vatAmountWholeDisplay הוא תמיד השארית
+  // (finalTotalWholeDisplay - netAmountWholeDisplay), לעולם לא מעוגל בנפרד -
+  // כך נטו+מע"מ המוצגים תמיד מסתכמים בדיוק לסה"כ המוצג, גם ברמת-השלם, בדיוק
+  // כמו שהבעלים דרש במקור לרמת-האגורה. subtotalWholeDisplay/
+  // discountWholeDisplay מעוגלים עצמאית - אינם חלק ממשולש הסגירה-המדויקת
+  // (subtotal/discount אינם מוצגים יחד עם net+vat+total באותה שורת-בדיקה),
+  // רק לעקביות חזותית בתוך אותה קופסת-סכומים.
+  const finalTotalWholeDisplay = Math.round(Number(finalTotalRounded || 0));
+  const netAmountWholeDisplay = Math.round(Number(netAmountDisplay || 0));
+  const vatAmountWholeDisplay = finalTotalWholeDisplay - netAmountWholeDisplay;
+  const subtotalWholeDisplay = Math.round(Number(subtotal || 0));
+  const discountWholeDisplay = Math.round(Number(discountAmountDisplay || 0));
 
   const bizName = business?.business_name || 'עסק ישראלי';
   const bizLogo = business?.logo_url;
@@ -426,10 +541,36 @@ export default function PublicQuote({ quoteData }) {
             display: block !important;
             min-height: 0 !important;
           }
+          /* חוק ברזל (ONE SHARED A4 DOCUMENT CONTRACT, "FINAL SMART QUOTE
+             PDF/PRINT/A4 CLOSURE PASS" task, Owner-mandated: "PDF and Print
+             must share the same A4 content bounds"). max-width:100% הקודם
+             הסתמך על סמנטיקת-CSS-Paged-Media (אחוזים נפתרים מול תיבת-
+             התוכן של @page, שכבר מוקטנת ע"י margin:12mm 10mm) - נכון
+             תיאורטית, אך לא מפורש/לא-ניתן-לאימות-ישיר. הוחלף בערך פיזי
+             מפורש, 190mm (=210mm A4 - 2*10mm), זהה-בייט לאותו חוזה-רוחב
+             ש-generateQuotePdf.js's getA4ContentBoxPt() עצמה משתמשת בו
+             (contentWidthPt) - לא שני מספרים בלתי-תלויים יותר, אחד בלבד,
+             באותה יחידה פיזית (mm), בשני מקומות. margin:0 auto מבטיח מרכוז
+             מפורש ללא תלות בפרשנות %/auto-margin-ברירת-מחדל של הדפדפן. */
           .pq-card {
             box-shadow: none !important;
             border: none !important;
-            max-width: 100% !important;
+            max-width: 190mm !important;
+            margin: 0 auto !important;
+            /* חוק ברזל (FINAL NATIVE-PRINT / COMPACT PARITY / PAGINATION-STRESS
+               CLOSURE task, real root cause found via precise live geometry
+               measurement on the EN sibling file - identical mechanism here,
+               HE just never happened to hit it because A100726's own real
+               content is multi-page anyway). See PublicQuoteEn.jsx's own
+               identical rule for the full rationale - not duplicated here.
+               A short HE document's real content can end comfortably under
+               one page's own usable height and still trigger a near-empty
+               second page purely because of the card's own decorative
+               padding-bottom (40px) plus the last section's normal trailing
+               margin (25px) - real trailing whitespace, never real content;
+               every real content block sits well above this point,
+               untouched. Print-only, padding-bottom-only. */
+            padding-bottom: 8px !important;
           }
           /* חוק ברזל (Public Quote Redesign - Print/PDF): A4-first pagination,
              בלי לגעת ברוחב-מסך שהמשתמש רואה (@page משפיע רק על הפלט המודפס/
@@ -440,10 +581,26 @@ export default function PublicQuote({ quoteData }) {
           }
           table { border-collapse: collapse; }
           thead { display: table-header-group; }
-          tr, .pq-section, .pq-recipient, .pq-action-tile {
+          tr, .pq-section, .pq-unit-item, .pq-recipient, .pq-action-tile {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          /* חוק ברזל (FINAL SMART QUOTE PDF/PRINT/A4 CLOSURE PASS task, real
+             regression found and reverted): margin-bottom קבוע-תמידי על
+             .pq-totals-box (שהתווסף במשימה הקודמת ליצירת "מרווח-ביטחון"
+             נוסף לפני תחתית-העמוד) נמצא, באמצעות Page.printToPDF אמיתי +
+             בדיקת A/B מבודדת, גורם לעמוד-הדפסה נוסף **ריק לחלוטין** במסמכים
+             קצרים (הצעת EN דו-פריטית האמיתית - עמוד תוכן אחד אמיתי, ואז
+             עמוד שני 100% ריק) ברגע ששילוב עם תיקון-ה-max-width של המשימה
+             הזו עצמה - רגרסיה אמיתית ובלתי-מתקבלת. break-inside:avoid (למטה,
+             קיים כבר, ללא שינוי) כבר מבטיח שבלוק-הסיכומים לעולם לא מתפצל -
+             הדרישה האמיתית היחידה. מרווח-הביטחון ה"נוסף" (לא-לגעת-בדיוק-
+             בקצה) נשאר ממומש, בבטחה, אך ורק בצינור ה-Download-PDF
+             (generateQuotePdf.js's own TOTALS_BOTTOM_SAFE_MARGIN_PT - מחושב
+             ב-JS, מותנה במפורש, מוכח ע"י 2 בדיקות-יחידה ייעודיות שהוא מזיז
+             את הבלוק רק כשהוא אכן היה נוגע בקצה, ומוסיף אפס עמוד נוסף כשכבר
+             קיים מרווח אמיתי) - margin CSS עיוור ובלתי-מותנה אינו יכול
+             לשחזר את אותה בטיחות-מותנית בלי בדיוק סוג-הרגרסיה הזה. */
           /* חוק ברזל (PDF Correction task - Readability): הכותרת הכהה החדשה
              קריאה מצוין על מסך אך בלתי-קריאה בהדפסה - כאן, ורק כאן (הדפסה
              בפועל), הכותרת הופכת לקופסה בהירה עם טקסט כהה-מוצק. */
@@ -479,6 +636,29 @@ export default function PublicQuote({ quoteData }) {
           }
           .pq-discount-negative {
             color: #b91c1c !important;
+          }
+          /* חוק ברזל (CORRECTIVE ADDENDUM: PRINT/PDF STATIC-DOCUMENT CLEANUP
+             task, Owner-approved). שני כללים: (1) בקר-הגילוי האינטראקטיבי
+             (chevron + טקסט הצג/הסתר מידות) חסר-משמעות במסמך סטטי - מוסתר
+             לגמרי (display:none, לא רווח ריק) ב-PDF/פרינט כאחד, בלי תלות
+             ב-mode. (2) כפילות-סה"כ-יחידה: ב-Expanded (pq-unit-expanded)
+             הכותרת וגם התחתית מציגות את אותו unit.subtotal - במסמך סטטי
+             משאירים רק את זה שבתחתית (אחרי הפריטים) ומסתירים את זה
+             שבכותרת. ב-Compact (pq-unit-collapsed) התחתית ממילא לא
+             מרונדרת כלל (collapsed מדלג עליה) - הכותרת נשארת הסה"כ היחיד,
+             ללא שינוי. */
+          .pq-unit-disclosure {
+            display: none !important;
+          }
+          .pq-unit-expanded .pq-unit-head-total {
+            display: none !important;
+          }
+          /* חוק ברזל (אותה משימה): כותרת-יחידה מעט גדולה יותר ומודגשת יותר
+             במסמך סטטי בלבד (לא במסך) - היררכיה ברורה יותר בלי קו-הפרדה/
+             underline, בלי לגעת במיקום/יישור/RTL-LTR הקיימים. */
+          .pq-unit-title {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
           }
         }
         /* חוק ברזל (PDF Correction task - Direct PDF via html2canvas): class
@@ -527,6 +707,16 @@ export default function PublicQuote({ quoteData }) {
         }
         .pq-pdf-capturing .pq-discount-negative {
           color: #b91c1c !important;
+        }
+        .pq-pdf-capturing .pq-unit-disclosure {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-unit-expanded .pq-unit-head-total {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-unit-title {
+          font-size: 1.05rem !important;
+          font-weight: 800 !important;
         }
         .pq-spin {
           animation: pq-spin-rotate 0.9s linear infinite;
@@ -660,7 +850,26 @@ export default function PublicQuote({ quoteData }) {
         )}
         </div>
 
-        {/* Items Table */}
+        {/* חוק ברזל (Smart Quote Final Visual Correction task - "ONE
+            DISCLOSURE CONTROL PER UNIT. ZERO ITEM-LEVEL DISCLOSURE
+            CONTROLS."): הצעה מחולקת (Compact או Expanded כאחד) עוברת
+            תמיד דרך DividedQuoteUnits (הרכיב המשותף היחיד, זהה ל-HE/EN) -
+            לעולם לא הטבלה המשותפת עם הצעה רגילה, כדי שאף בקר-גילוי פר-
+            פריט לא ידלוף לתוך תצוגת-יחידות. הצעה רגילה בלבד ממשיכה עם
+            הטבלה הקיימת למטה (שם ה-Compact/Expanded הפר-פריט הוא באמת
+            המשמעות הנכונה, ר' Locked Decision 12's המקורי ל-Regular). */}
+        {presentationModel.isDivided ? (
+          <DividedQuoteUnits
+            units={presentationModel.units}
+            unassignedItems={presentationModel.unassignedItems}
+            mode={printMode}
+            resetToken={outputModeNonce}
+            isHebrew={isHebrew}
+            currencySymbol={currencySymbol}
+            formatNum={formatNum}
+            formatMoneyDisplay={formatMoneyDisplayForDivided}
+          />
+        ) : (
         <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
             <thead>
@@ -673,13 +882,37 @@ export default function PublicQuote({ quoteData }) {
             </thead>
             <tbody>
               {items && items.length > 0 ? (
-                items.map((item, index) => {
+                orderPublicItemsByGroup(items, quoteSections).map(({ item, index, groupName, isNewGroup, isGroupEnd, groupTotal }) => {
                   const itemPrice = Number(item.price || 0);
-                  const itemQty = Number(item.quantity || 1);
+                  const rawQty = Number(item.quantity || 1);
+                  const isPro = Boolean(item.pricing_unit);
+                  const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : rawQty;
+                  const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, true) : '';
+                  const measurements = Array.isArray(item.measurements) ? item.measurements : [];
+                  const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
+                  const hasDetails = measurements.length > 0 || specRows.length > 0;
+                  const isDetailsOpen = !!expandedItemDetails[index];
                   return (
-                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
-                      <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>{item.description || item.name || 'פריט'}</td>
-                      <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{itemQty}</td>
+                    <Fragment key={index}>
+                    {isNewGroup && groupName && (
+                      <tr>
+                        <td colSpan="4" style={{ padding: '14px 10px 4px', fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem', textAlign: 'right' }}>{groupName}</td>
+                      </tr>
+                    )}
+                    <tr style={{ borderBottom: hasDetails && isDetailsOpen ? 'none' : '1px solid #f1f5f9', fontSize: '0.9rem' }}>
+                      <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>
+                        {item.description || item.name || 'פריט'}
+                        {hasDetails && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedItemDetails((prev) => ({ ...prev, [index]: !prev[index] }))}
+                            style={{ display: 'block', marginTop: '2px', background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                          >
+                            {isDetailsOpen ? '▲ הסתר פרטים' : '▼ הצג פרטים'}
+                          </button>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : rawQty}</td>
                       {/* חוק ברזל (Money Alignment Fix, סבב זה): textAlign:'left'
                           כאן היה שגוי - עמודת המחיר/סה"כ כבר משותפת ברוחב
                           בין שורות (טבלה רגילה, לא grid/flex עצמאי-לשורה),
@@ -690,8 +923,35 @@ export default function PublicQuote({ quoteData }) {
                           left=730.83/513.5 זהה, right משתנה - אחרי התיקון
                           הימני (הנכון) הוא המשותף. */}
                       <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
-                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (itemQty * itemPrice))}</span></td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
                     </tr>
+                    {hasDetails && isDetailsOpen && (
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td colSpan="4" style={{ padding: '4px 10px 14px', background: '#f8fafc' }}>
+                          {measurements.length > 0 && (
+                            <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: specRows.length > 0 ? '6px' : 0 }}>
+                              {measurements.map((m, mi) => (
+                                <div key={mi}>{formatMeasurementLine(m, isHebrew, formatNum)}</div>
+                              ))}
+                            </div>
+                          )}
+                          {specRows.length > 0 && (
+                            <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                              {specRows.map((s, si) => (
+                                <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    {isGroupEnd && groupName && (
+                      <tr>
+                        <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`סה"כ ${groupName}`}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}><span className="pf-money">{currencySymbol}{formatNum(groupTotal)}</span></td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })
               ) : (
@@ -704,6 +964,7 @@ export default function PublicQuote({ quoteData }) {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Attachments Section - always visible (product awareness: the customer
             should see the system supports attachments even when none exist) */}
@@ -772,37 +1033,45 @@ export default function PublicQuote({ quoteData }) {
             {!isPrivateDisplay && (
               <>
                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>סיכום ביניים:</span>
-                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(subtotal)}</span>
+                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(subtotalWholeDisplay)}</span>
               </>
             )}
             {quote.discount > 0 && (
               <>
                 <span className="pq-discount-negative" style={{ color: '#ef4444', fontSize: '0.9rem' }}>הנחה ({quote.discount}%):</span>
-                <span className="pf-money pq-discount-negative" style={{ color: '#ef4444', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(discountAmountDisplay)}</span>
+                <span className="pf-money pq-discount-negative" style={{ color: '#ef4444', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(discountWholeDisplay)}</span>
               </>
             )}
             {/* client_type חסר/לא-מזוהה: לעולם לא מציגים פירוט מע"מ (מוסף/כלול/
                 נטו) מבוסס-ניחוש - לא Business, לא Private. מציגים רק
                 subtotal/discount/total האמינים שכבר שמורים, בלי שורת מע"מ כלל. */}
+            {/* חוק ברזל (Urgent Money Format Correction task): שורות נטו/מע"מ/
+                סה"כ מציגות עכשיו את *WholeDisplay - מעוגלות-לשלם, שתי ספרות
+                קבועות - ולא netAmountDisplay/vatAmountDisplay/finalTotalRounded
+                המדויקים-לאגורה ישירות (אלה עדיין מחושבים בדיוק כפי שהיו,
+                ללא שינוי - ר' ההגדרה למעלה - רק לא מוצגים ישירות יותר).
+                netAmountWholeDisplay+vatAmountWholeDisplay=finalTotalWholeDisplay
+                תמיד בדיוק (שארית, לא שני עיגולים עצמאיים) - שומר על חוק
+                "הסכום סוגר בדיוק" גם ברמת-השלם. */}
             {isAmbiguousClientType ? null : isPrivateDisplay ? (
               // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
               // - אותם ערכים בדיוק כמו קודם (netAmount, vatAmount), רק
               // תוויות/סדר שונים; אין נוסחה חדשה.
               <>
                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>סכום לפני מע"מ:</span>
-                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(netAmountDisplay)}</span>
+                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(netAmountWholeDisplay)}</span>
                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>מע"מ (18%):</span>
-                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(vatAmountDisplay)}</span>
+                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(vatAmountWholeDisplay)}</span>
               </>
             ) : (
               <>
                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>מע"מ (18%):</span>
-                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatNum(vatAmountDisplay)}</span>
+                <span className="pf-money" style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(vatAmountWholeDisplay)}</span>
               </>
             )}
             <div style={{ gridColumn: '1 / -1', borderTop: `2px solid ${LIGHT.borderStrong}`, marginTop: '5px', paddingTop: '4px' }} />
             <span className="pq-total-final-label" style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1e293b' }}>סה"כ לתשלום:</span>
-            <span className="pf-money pq-total-final-amount" style={{ color: LIGHT.violet, fontSize: '1.3rem', fontWeight: '900', textAlign: 'right' }}>{currencySymbol}{formatNum(finalTotalRounded)}</span>
+            <span className="pf-money pq-total-final-amount" style={{ color: LIGHT.violet, fontSize: '1.3rem', fontWeight: '900', textAlign: 'right' }}>{currencySymbol}{formatWholeMoney(finalTotalWholeDisplay)}</span>
           </div>
         </div>
 
@@ -1047,6 +1316,7 @@ export default function PublicQuote({ quoteData }) {
           open={printModalOpen}
           isHebrew={isHebrew}
           intent={printIntent}
+          isDivided={presentationModel.isDivided}
           onClose={() => setPrintModalOpen(false)}
           onChoose={handleChooseOutputMode}
         />

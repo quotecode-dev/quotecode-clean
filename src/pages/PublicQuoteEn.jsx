@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
@@ -12,6 +12,9 @@ import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
+import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
+import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import DividedQuoteUnits from '../components/DividedQuoteUnits';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -19,7 +22,39 @@ import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuoteP
 // discount/total on this entire page. International retains full cent
 // precision always (no whole-unit rounding rule exists for International -
 // that rule is Local/ILS-only, and lives exclusively in PublicQuote.jsx).
+//
+// Re-confirmed 2026-09-14 (Final Smart Quote Merge + Rounding Remediation
+// task, Part 9): that task explicitly asked whether whole-money display
+// should extend to International too - the Owner confirmed HE/ILS only.
+// This file's DividedQuoteUnits usage now passes formatMoneyDisplay={formatNum}
+// explicitly (same function as always) specifically so that decision is
+// visible and auditable here, not just "unchanged because nobody touched it."
 const formatNum = (val) => formatMoney(val);
+
+// חוק ברזל (Smart Quote End-to-End Structural Unification task, Part B/O) -
+// see PublicQuote.jsx's own copy of this function for full rationale. Kept
+// as its own local adapter (not a shared render helper - matching this
+// file's own established pattern of not sharing RENDER code with the HE
+// page) but now delegates all grouping/subtotal logic to the shared,
+// canonical buildCustomerPresentationModel (quotePresentationModel.js) -
+// the same one QuoteForm.jsx's own editor board is built on - never a
+// third, independently-reimplemented grouping predicate.
+function orderPublicItemsByGroup(items, sections) {
+  const model = buildCustomerPresentationModel(items, sections);
+  if (!model.isDivided) {
+    return items.map((item, index) => ({ item, index, groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null }));
+  }
+  const ordered = [];
+  model.units.filter((u) => u.itemCount > 0).forEach((unit) => {
+    unit.items.forEach((item, i) => {
+      ordered.push({ item, index: items.indexOf(item), groupName: unit.title, isNewGroup: i === 0, isGroupEnd: i === unit.items.length - 1, groupTotal: unit.subtotal });
+    });
+  });
+  model.unassignedItems.forEach((item) => {
+    ordered.push({ item, index: items.indexOf(item), groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null });
+  });
+  return ordered;
+}
 
 const formatDisplayPhone = (phone) => {
   if (!phone) return '';
@@ -27,10 +62,19 @@ const formatDisplayPhone = (phone) => {
 };
 
 export default function PublicQuoteEn({ quoteData }) {
-  const { quote, business, client, items, attachments } = quoteData;
+  const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
+  // Smart Quote End-to-End Structural Unification task, Locked Decision 10
+  // ("one quote model, many views") - see PublicQuote.jsx's own copy of
+  // this comment for full rationale. Same shared model, same reasons.
+  const presentationModel = buildCustomerPresentationModel(items, quoteSections);
   const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
+  // Smart Quote Guided UX Completion task, Part E - customer-facing
+  // structured display: professional detail (measurements/specification)
+  // shown collapsed by default, expandable - matches PublicQuote.jsx (HE)
+  // exactly, same already-recorded Owner decision.
+  const [expandedItemDetails, setExpandedItemDetails] = useState({});
 
   // Owner-Approved Signature Record Improvement - symmetric with
   // PublicQuote.jsx (HE); see that file's comment for the full audited-gap
@@ -49,7 +93,18 @@ export default function PublicQuoteEn({ quoteData }) {
   // they genuinely diverge: printIntent==='print' still only ever calls
   // window.print() (untouched); printIntent==='pdf' calls the real
   // generateQuotePdf (html2canvas+jsPDF) and never window.print().
+  // Final Public Quote Restoration task - "DEFAULT PUBLIC QUOTE STATE -
+  // HARD LOCK" (supersedes the old Locked Decision 11): a divided quote
+  // must open with every unit collapsed, matching PublicQuote.jsx (HE)
+  // exactly. Expanded remains a real, fully-functional mode - only reached
+  // via an explicit Print/PDF chooser selection, never the default on
+  // normal open. A regular quote keeps the existing compact default.
   const [printMode, setPrintMode] = useState('compact');
+  // Final Smart Quote Correction task - Codex P0-4 "DETERMINISTIC
+  // COMPACT/EXPANDED EXPORT": bumped on every explicit chooser selection
+  // (even a repeat of the same value) - DividedQuoteUnits resets off this,
+  // not printMode alone (React won't "change" when the value is identical).
+  const [outputModeNonce, setOutputModeNonce] = useState(0);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -66,8 +121,26 @@ export default function PublicQuoteEn({ quoteData }) {
     setPrintModalOpen(true);
   };
 
+  // Locked Decision 12 - restores QuotePrintModeModal.jsx's own long-
+  // documented, never-implemented promise (see PublicQuote.jsx's identical
+  // comment for the full rationale): a one-time, explicit set at the
+  // moment of choice, not a continuous binding - preserves the existing,
+  // already-tested per-item manual expand/collapse for ordinary on-screen
+  // browsing.
+  const buildItemDetailsMap = (allOpen) => {
+    const map = {};
+    items.forEach((item, index) => {
+      const hasMeasurements = Array.isArray(item.measurements) && item.measurements.length > 0;
+      const hasSpec = Array.isArray(item.specification) && item.specification.some((s) => s.label || s.value);
+      if (hasMeasurements || hasSpec) map[index] = allOpen;
+    });
+    return map;
+  };
+
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
+    setOutputModeNonce((n) => n + 1);
+    setExpandedItemDetails(buildItemDetailsMap(mode === 'expanded'));
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
@@ -304,10 +377,44 @@ export default function PublicQuoteEn({ quoteData }) {
             display: block !important;
             min-height: 0 !important;
           }
+          /* ONE SHARED A4 DOCUMENT CONTRACT ("FINAL SMART QUOTE PDF/PRINT/A4
+             CLOSURE PASS" task, Owner-mandated). Mirrors PublicQuote.jsx's
+             own identical fix - explicit 190mm (=210mm A4 - 2*10mm), the
+             SAME literal content-width value generateQuotePdf.js's
+             getA4ContentBoxPt() uses for the Download-PDF pipeline, not a
+             second independent number. See that file's own comment for the
+             full rationale. */
           .pq-card {
             box-shadow: none !important;
             border: none !important;
-            max-width: 100% !important;
+            max-width: 190mm !important;
+            margin: 0 auto !important;
+            /* חוק ברזל (FINAL NATIVE-PRINT / COMPACT PARITY / PAGINATION-STRESS
+               CLOSURE task, real root cause found via precise live geometry
+               measurement, not guessed): a short document's real, visible
+               content can end comfortably under one page's own usable
+               height (confirmed live: real content ends at ~992px against
+               a ~1032px usable A4-content-box height, per §178's own
+               190mm×273mm contract) and STILL trigger a genuinely near-
+               empty second print page - because .pq-card's own decorative
+               padding-bottom (40px, --pf-doc-shell-padding, unchanged on
+               every OTHER side) plus the last visible section's own normal
+               inter-section trailing margin (25px, the same spacing used
+               between every section - not itself excessive) pushed the
+               CARD's total height (not the real content) just over that
+               usable-height threshold. This is real trailing DECORATIVE
+               whitespace, never real content - reducing it clips nothing
+               (every real content block - header/recipient/units/
+               attachments/totals/terms - sits well above this point,
+               completely untouched). Scoped to print only (screen/PDF
+               capture unaffected - the Download-PDF pipeline has its own,
+               separately-tested TOTALS_BOTTOM_SAFE_MARGIN_PT/content-box
+               math, not this CSS rule) and to padding-BOTTOM only (top/
+               left/right padding, and every other page's own visual
+               density, stay exactly as before) - the smallest, most
+               targeted change that closes the real gap without touching
+               the shared A4 margin contract at all. */
+            padding-bottom: 8px !important;
           }
           /* Public Quote Redesign - Print/PDF: A4-first pagination, no
              interactive chrome, avoided page splits, thead repetition. */
@@ -317,10 +424,30 @@ export default function PublicQuoteEn({ quoteData }) {
           }
           table { border-collapse: collapse; }
           thead { display: table-header-group; }
-          tr, .pq-section, .pq-recipient, .pq-action-tile {
+          tr, .pq-section, .pq-unit-item, .pq-recipient, .pq-action-tile {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          /* חוק ברזל (FINAL SMART QUOTE PDF/PRINT/A4 CLOSURE PASS task, real
+             regression found and reverted): a persistent margin-bottom on
+             .pq-totals-box (added by the immediately-prior task to create
+             extra bottom-safe-zone clearance) was found, via real
+             Page.printToPDF capture + isolated A/B testing, to cause a
+             genuinely BLANK trailing page for SHORT documents (this exact
+             EN 2-item fixture: 1 real page of content, then one 100% blank
+             page) once combined with this task's own .pq-card max-width
+             fix - a real, unacceptable regression this task will not ship.
+             break-inside:avoid (below, already present, unchanged) already
+             guarantees the totals block is never SPLIT across pages - the
+             one real requirement. The EXTRA "never touch the exact bottom
+             edge" clearance remains implemented, safely, in the Download-
+             PDF pipeline only (generateQuotePdf.js's own explicit, JS-
+             computed, conditionally-applied TOTALS_BOTTOM_SAFE_MARGIN_PT -
+             proven by 2 dedicated unit tests to move the block ONLY when
+             it would actually touch the edge, and to add zero extra page
+             when real clearance already exists) - a blind, unconditional
+             CSS margin cannot replicate that same conditional safety
+             without this exact class of regression. */
           /* PDF Correction task - Readability: the dark header reads great
              on screen but is unreadable in print - here, and only here, the
              header becomes a light box with solid dark text. */
@@ -356,6 +483,31 @@ export default function PublicQuoteEn({ quoteData }) {
           }
           .pq-discount-negative {
             color: #b91c1c !important;
+          }
+          /* CORRECTIVE ADDENDUM: PRINT/PDF STATIC-DOCUMENT CLEANUP task,
+             Owner-approved. Two rules: (1) the interactive disclosure
+             control (chevron + Show/Hide measurements text) is meaningless
+             on a static document - fully hidden (display:none, not merely
+             blank space) in PDF/Print alike, regardless of mode. (2) unit
+             subtotal duplication: in Expanded (pq-unit-expanded) both the
+             header and the footer show the same unit.subtotal - on a static
+             document only the footer copy (after the items) is kept, the
+             header copy is hidden. In Compact (pq-unit-collapsed) the
+             footer never renders at all (collapsed skips it), so the header
+             stays the one and only total, unchanged. */
+          .pq-unit-disclosure {
+            display: none !important;
+          }
+          .pq-unit-expanded .pq-unit-head-total {
+            display: none !important;
+          }
+          /* Same task: unit heading is slightly larger and bolder on the
+             static document only (not on screen) for clearer hierarchy,
+             without an underline/divider and without touching position,
+             alignment or LTR/RTL behavior. */
+          .pq-unit-title {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
           }
         }
         /* PDF Correction task - Direct PDF via html2canvas: this class is
@@ -407,6 +559,16 @@ export default function PublicQuoteEn({ quoteData }) {
         }
         .pq-pdf-capturing .pq-discount-negative {
           color: #b91c1c !important;
+        }
+        .pq-pdf-capturing .pq-unit-disclosure {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-unit-expanded .pq-unit-head-total {
+          display: none !important;
+        }
+        .pq-pdf-capturing .pq-unit-title {
+          font-size: 1.05rem !important;
+          font-weight: 800 !important;
         }
         .pq-spin {
           animation: pq-spin-rotate 0.9s linear infinite;
@@ -528,6 +690,35 @@ export default function PublicQuoteEn({ quoteData }) {
             so the table shrinks/wraps naturally on narrow screens instead
             of forcing a horizontal scrollbar - true composition parity,
             not just a defensive safety net that behaves differently. */}
+        {/* Smart Quote Final Visual Correction task - "ONE DISCLOSURE
+            CONTROL PER UNIT. ZERO ITEM-LEVEL DISCLOSURE CONTROLS." (same
+            rule as PublicQuote.jsx/HE, identical shared component so the
+            two files can never drift): a divided quote (Compact or
+            Expanded alike) always goes through DividedQuoteUnits - never
+            the shared regular-quote table below, so no per-item disclosure
+            control can leak into unit content. Regular quotes only keep
+            the existing table (its own Compact/Expanded per-item meaning
+            is correct and unchanged for Regular). */}
+        {presentationModel.isDivided ? (
+          <DividedQuoteUnits
+            units={presentationModel.units}
+            unassignedItems={presentationModel.unassignedItems}
+            mode={printMode}
+            resetToken={outputModeNonce}
+            isHebrew={false}
+            currencySymbol={currencySymbol}
+            formatNum={formatNum}
+            // Final Smart Quote Merge + Rounding Remediation task, Part 9 -
+            // explicitly confirmed Owner-scoped to Local/ILS only. Passed
+            // explicitly (not just relying on DividedQuoteUnits.jsx's own
+            // formatNum fallback) so this file states its own money-display
+            // law in one visible place: International always keeps full
+            // cent precision - see money.js's formatWholeMoney doc comment
+            // for why reusing it here would reintroduce a previously-fixed
+            // defect (Global Surface Audit finding I-1).
+            formatMoneyDisplay={formatNum}
+          />
+        ) : (
         <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -539,17 +730,71 @@ export default function PublicQuoteEn({ quoteData }) {
             </tr>
           </thead>
           <tbody>
-            {items?.map((item, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '12px 10px' }}>{item.description || 'Item'}</td>
-                <td style={{ padding: '12px 10px', textAlign: 'center' }}>{item.quantity}</td>
-                <td style={{ padding: '12px 10px', textAlign: 'right' }}><span className="pf-money">{currencySymbol}{formatNum(item.price)}</span></td>
-                <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span></td>
-              </tr>
-            ))}
+            {orderPublicItemsByGroup(items || [], quoteSections).map(({ item, index: i, groupName, isNewGroup, isGroupEnd, groupTotal }) => {
+              const isPro = Boolean(item.pricing_unit);
+              const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
+              const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, false) : '';
+              const measurements = Array.isArray(item.measurements) ? item.measurements : [];
+              const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
+              const hasDetails = measurements.length > 0 || specRows.length > 0;
+              const isDetailsOpen = !!expandedItemDetails[i];
+              return (
+                <Fragment key={i}>
+                {isNewGroup && groupName && (
+                  <tr>
+                    <td colSpan="4" style={{ padding: '14px 10px 4px', fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem' }}>{groupName}</td>
+                  </tr>
+                )}
+                <tr style={{ borderBottom: hasDetails && isDetailsOpen ? 'none' : '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '12px 10px' }}>
+                    {item.description || 'Item'}
+                    {hasDetails && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedItemDetails((prev) => ({ ...prev, [i]: !prev[i] }))}
+                        style={{ display: 'block', marginTop: '2px', background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                      >
+                        {isDetailsOpen ? '▲ Hide details' : '▼ Show details'}
+                      </button>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : item.quantity}</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'right' }}><span className="pf-money">{currencySymbol}{formatNum(item.price)}</span></td>
+                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span></td>
+                </tr>
+                {hasDetails && isDetailsOpen && (
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td colSpan="4" style={{ padding: '4px 10px 14px', background: '#f8fafc' }}>
+                      {measurements.length > 0 && (
+                        <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: specRows.length > 0 ? '6px' : 0 }}>
+                          {measurements.map((m, mi) => (
+                            <div key={mi}>{formatMeasurementLine(m, false, formatNum)}</div>
+                          ))}
+                        </div>
+                      )}
+                      {specRows.length > 0 && (
+                        <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                          {specRows.map((s, si) => (
+                            <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                {isGroupEnd && groupName && (
+                  <tr>
+                    <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`Total ${groupName}:`}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #f1f5f9' }}><span className="pf-money">{currencySymbol}{formatNum(groupTotal)}</span></td>
+                  </tr>
+                )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
         </div>
+        )}
 
         {/* Attachments Section - always visible (product awareness: the customer
             should see the system supports attachments even when none exist) */}
@@ -829,6 +1074,7 @@ export default function PublicQuoteEn({ quoteData }) {
           open={printModalOpen}
           isHebrew={false}
           intent={printIntent}
+          isDivided={presentationModel.isDivided}
           onClose={() => setPrintModalOpen(false)}
           onChoose={handleChooseOutputMode}
         />

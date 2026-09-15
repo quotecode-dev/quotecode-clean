@@ -125,6 +125,41 @@ html {
   unicode-bidi: isolate;
 }
 
+/* Final Money Place-Value Alignment Fix (Codex-identified root cause: a
+   per-row min-width guess does not create ONE shared numeric column when
+   rows live in independently-positioned containers with different insets
+   and different money font sizes - shared width alone does not fix
+   geometry+metric mismatches at once). Scoped to the divided-quote card
+   presentation only (DividedQuoteUnits.jsx) - NOT a change to the general
+   .pf-money class above, which stays exactly as it was for every other
+   caller in the app. --pq-money-column-width is computed once, in JS, for
+   the whole currently-rendered divided-quote region (the widest real
+   rendered money token, remeasured on every render and once more after
+   document.fonts.ready) - never per-row, never from character count alone.
+   .pq-money-cell is the fixed-size flex slot (never shrinks, never grows
+   per-row); .pq-money-token is the actual LTR-isolated, tabular-numeral
+   text inside it, sized/weighted identically everywhere this class is used
+   so "ones under ones" also holds digit-by-digit, not just at the string's
+   outer edges. */
+.pq-money-cell {
+  display: inline-block;
+  inline-size: var(--pq-money-column-width, auto);
+  min-inline-size: var(--pq-money-column-width, auto);
+  max-inline-size: var(--pq-money-column-width, auto);
+  flex: 0 0 var(--pq-money-column-width, auto);
+  box-sizing: border-box;
+  text-align: right;
+}
+
+.pq-money-token {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
+
 /* Canonical shared Desktop content-width token (Owner decision, Global
    Surface Audit follow-up: the authenticated app and Public Quote HE/EN
    previously used two independently-chosen values, 1040px and 980px -
@@ -299,4 +334,41 @@ html {
   .no-print {
     display: none !important;
   }
+  /* חוק ברזל (SIGNATURE "BLACK-BOX" DEFECT - real root cause found, "FINAL
+     SMART QUOTE PDF/PRINT/A4 CLOSURE PASS" task): מה שנראה בצילומי-מסך
+     קודמים כ"קנבס-חתימה שחור מוצק" בפלט-הדפסה אינו קשור לקנבס-החתימה בכלל
+     - נמדד ישירות (browser-harness, print-media, DOM אמיתי): הקנבס עצמו
+     כבר מוסתר-נכון (offsetParent===null, יורש display:none מ-.no-print
+     ההורה שלו, בדיוק כפי שה-@media print .no-print הזה כבר אמור לעשות).
+     האלמנט הכהה האמיתי שנמצא הוא <html>/<body> עצמם - index.html's own
+     inline style (background:#050506, ערכת-הנושא הכהה הגלובלית של האפליקציה
+     כולה) - שאף פעם לא אופס ללבן עבור הדפסה. .pq-page מקבל כבר background:
+     #ffffff!important בהדפסה, אך זה מכסה רק את התיבה-הגבולית שלו עצמו; כש-
+     תוכן ה-.pq-page קצר מגובה-העמוד הפיזי המלא, השטח-הנותר חושף את רקע-
+     ה-body הכהה מתחתיו/מסביבו - בדיוק ה"קופסה שחורה" שנצפתה. תיקון גלובלי
+     יחיד כאן (לא ב-.pq-page עצמו, שכבר תוקן) סוגר את הפער עבור כל עמוד-
+     הדפסה עתידי בכל מסך-לקוח, לא רק Public Quote - אין כאן שום שינוי
+     לסמנטיקת-חתימה/persistence/approval, אך ורק תיקון-רקע-CSS. */
+  html, body {
+    background: #ffffff !important;
+  }
+}
+
+/* Full Header + Dual Analytics + Plan Sort Root Task: standard visually-
+   hidden-but-real utility for analytics chart accessibility data lists
+   (DonutBreakdownChart.jsx/TrendBarChart.jsx) - content stays in the
+   accessibility tree and is real, assertable DOM text for tests, but is
+   not visually rendered (no permanent on-screen category-text clutter,
+   per this task's own explicit "avoid permanent category text clutter"
+   rule) and never affects layout/height of its own container. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

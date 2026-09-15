@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket, Ruler, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText } from 'lucide-react';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
 import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
-import { formatNumberLocal } from '../utils/regionConfig';
+import { formatNumberLocal, calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatQuoteFallback } from '../utils/quoteNumber';
-import { PROFESSIONAL_UNITS, getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, cmToM, mToCm, isMeasurableUnit, resolveCalculationMethod } from '../utils/professionalQuoteItem';
+import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -41,7 +41,8 @@ export default function QuoteForm({
   defaultWarranty,
   notes, setNotes,
   items, setItems,
-  sections, addSection, renameSection, removeSection,
+  sections, setSections, addSection, renameSection, removeSection,
+  quoteStructureMode, setQuoteStructureMode,
   projectName, setProjectName,
   services,
   clients,
@@ -58,76 +59,20 @@ export default function QuoteForm({
   handleItemChange,
   canUseAttachments,
   canUseProfessionalQuotes,
-  businessDefaultProfessionalUnit,
+  recommendedPricingMethod,
   duplicateItem,
   canUseProfessionalQuoteReuse,
-  handleProfessionalUnitChange,
-  addMeasurementRow,
-  removeMeasurementRow,
-  handleMeasurementChange,
-  toggleManualQuantityOverride,
-  handleManualQuantityChange,
-  toggleMeasurementPricingDriving,
-  addSpecificationRow,
-  handleSpecificationChange,
-  removeSpecificationRow,
   onOpenPricingModal,
   quoteFiles,
   setQuoteFiles,
   allUserAttachments
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
-  // חוק ברזל (Two-Stage Completion Task, Stage 1B - תיקון-שורש, לא סימפטום):
-  // נמצא חי (סריקת scrollWidth>clientWidth על כל האלמנטים ב-392px) ששורת
-  // העריכה הקלאסית (Description/Qty/Price/Total) נשאה minWidth:'650px'
-  // קשיח בתוך מכל overflow-x:auto - זה לא הזליג ל-document.documentElement.
-  // scrollWidth (שנשאר תקין, 392===392), אבל יצר אזור-גלילה-אופקית פנימי
-  // שמשתרע על כמעט כל רוחב המסך ("אפשר להחליק בהצעה כולה בצדדים" - בדיוק
-  // תיאור הבעלים). התיקון האמיתי: באותם רוחבים, השורה הקלאסית (רק שורת-
-  // הפתיחה הריקה + פריטים שהורחבו במפורש דרך "ערוך" - לא כרטיסי-הסיכום
-  // הקומפקטיים, שכבר תמיד responsive) עוברת לפריסה מוערמת (label מעל שדה),
-  // לא רוחב-קבוע+גלילה. אותה טכניקת matchMedia שכבר הוכיחה עצמה ב-
-  // AddItemWizard.jsx/PublicQuoteHeader.jsx.
-  const [isNarrowForm, setIsNarrowForm] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const recompute = () => setIsNarrowForm(window.matchMedia('(max-width: 640px)').matches);
-    recompute();
-    const mq = window.matchMedia('(max-width: 640px)');
-    mq.addEventListener ? mq.addEventListener('change', recompute) : mq.addListener(recompute);
-    return () => {
-      mq.removeEventListener ? mq.removeEventListener('change', recompute) : mq.removeListener(recompute);
-    };
-  }, []);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
   const dateInputRef = useRef(null);
-
-  // חוק ברזל (Professional Quotes Stage C, §158): מצב UI-בלבד, לעולם לא
-  // נשלח לשרת (לא חלק מ-items) - אינדקס→boolean, override ידני של ברירת-
-  // המחדל "פתוח כשיש כבר נתונים מקצועיים" (isProItemExpanded למטה).
-  const [expandedProItems, setExpandedProItems] = useState({});
-  const isProItemExpanded = (index, item) => expandedProItems[index] ?? isProfessionalItem(item);
-  const handleProfessionalToggleClick = (index, item) => {
-    if (!canUseProfessionalQuotes && !isProfessionalItem(item)) {
-      setShowUpgradeConfirm('professional');
-      return;
-    }
-    const willExpand = !isProItemExpanded(index, item);
-    // חוק ברזל (Business Professional Profile, Owner Night Run task, §160.4,
-    // Gap #2): ברירת-מחדל, לא נעילה - כשפריט חדש (עדיין ללא pricing_unit) נפתח
-    // לראשונה ולעסק יש professional_domain עם defaultUnit, הבורר קופץ ישירות
-    // ליחידה המומלצת במקום ל-"ללא (פריט רגיל)" - חוסך לחיצה חוזרת-על-עצמה
-    // לרוב הפריטים, אך המשתמש עדיין יכול לבחור יחידה אחרת/לחזור ל-Simple
-    // באותו בורר הקיים, ללא הבדל. פריט שכבר יש לו pricing_unit (עריכה חוזרת)
-    // אף פעם לא נדרס.
-    if (willExpand && !item.pricing_unit && businessDefaultProfessionalUnit) {
-      handleProfessionalUnitChange(index, businessDefaultProfessionalUnit);
-    }
-    setExpandedProItems(prev => ({ ...prev, [index]: willExpand }));
-  };
 
   // חוק ברזל (Professional Quotes Stage C, §158, Visible-but-Locked, §155.1.11):
   // אותו מודל-שדרוג קיים בדיוק (לא מודל חדש - "do NOT build a large reusable
@@ -136,27 +81,6 @@ export default function QuoteForm({
   // שתי הודעות שונות דרך אותו JSX/state.
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(null); // null | 'attachments' | 'professional'
   const [errorMessage, setErrorMessage] = useState('');
-
-  // חוק ברזל (Owner Visual Review - Correction 4, "compact saved-item card"):
-  // מצב UI-בלבד נפרד לגמרי מ-expandedProItems למעלה (זה שולט על הפאנל
-  // המקצועי הפנימי בלבד; זה כאן שולט על כל הכרטיס - קלט-שורה מלא מול
-  // כרטיס-סיכום קומפקטי). ברירת המחדל היא "סגור/קומפקטי" לכל פריט - לא
-  // "פתוח כשיש נתונים מקצועיים" כמו expandedProItems, כי הבעלים ביקש
-  // במפורש שהמצב-הסגור יהיה ברירת-המחדל אחרי הוספה (§4: "do not leave
-  // the user with the old permanently open spreadsheet-like editor").
-  // חריג יחיד: שורת-הפתיחה הריקה (עדיין אין items אמיתיים) ממשיכה
-  // להיות ערוכה ישירות בשורה, כמו תמיד - היא לא "פריט שמור" עדיין.
-  const [itemCardOpen, setItemCardOpen] = useState({});
-  const isBlankStarterRow = (item) => items.length === 1 && item.description === '' && item.unit_price === '';
-  const isItemCardOpen = (index, item) => isBlankStarterRow(item) || (itemCardOpen[index] ?? false);
-  // "רק פריט אחד מורחב בו-זמנית כשמעשי" (§4) - פתיחת פריט סוגרת את כל
-  // השאר; סגירה פשוט מסירה את הדגל של האינדקס הזה.
-  const toggleItemCard = (index) => {
-    setItemCardOpen(prev => {
-      const willOpen = !(prev[index] ?? false);
-      return willOpen ? { [index]: true } : { ...prev, [index]: false };
-    });
-  };
 
   // חוק ברזל (Owner Visual Review - Correction 4, "one consolidated actions
   // menu"): אינדקס יחיד פתוח (לא boolean-per-index) - מבטיח תפריט-פעולות
@@ -210,17 +134,92 @@ export default function QuoteForm({
   // "+ פריט לקטגוריה זו" הקיים לפתוח את אותו אשף עם הקטגוריה כבר-נבחרת.
   const [isAddWizardOpen, setIsAddWizardOpen] = useState(false);
   const [wizardSectionKey, setWizardSectionKey] = useState(null);
-  const openAddWizard = (sectionKey = null) => { setWizardSectionKey(sectionKey); setIsAddWizardOpen(true); };
-  // חוק ברזל: אותו תנאי-בדיוק שכבר קיים ב-handleCatalogAdd/handleAddFromCatalog
-  // (Dashboard.jsx) - הצעה חדשה מתחילה עם שורת-פתיחה ריקה אחת; אם זו עדיין
-  // אותה שורה בלי תיאור/מחיר, האשף מחליף אותה במקום להשאיר שורה ריקה לצד
-  // הפריט האמיתי הראשון.
-  const handleWizardAdd = (newItem) => {
-    if (items.length === 1 && items[0].description === '' && items[0].unit_price === '') {
-      setItems([newItem]);
-    } else {
-      setItems([...items, newItem]);
+  // חוק ברזל (Smart Quote Guided UX Completion task, §C - Add/Edit
+  // unification): editingItemIndex הוא היחיד שמבחין בין הוספה (null) לעריכה
+  // (אינדקס אמיתי) - אותו AddItemWizard, אותו קולבק (handleWizardSave),
+  // אין עוד משטח-עריכה נפרד/טכני שני. openEditWizard הוא ה-onEdit היחיד
+  // שכל כרטיס-פריט קורא לו עכשיו.
+  const [editingItemIndex, setEditingItemIndex] = useState(null);
+  const openAddWizard = (sectionKey = null) => { setWizardSectionKey(sectionKey); setEditingItemIndex(null); setIsAddWizardOpen(true); };
+  const openEditWizard = (index) => { setEditingItemIndex(index); setIsAddWizardOpen(true); };
+  const handleWizardSave = (savedItem) => {
+    if (editingItemIndex != null) {
+      setItems(items.map((it, i) => (i === editingItemIndex ? savedItem : it)));
+      return;
     }
+    setItems([...items, savedItem]);
+  };
+
+  // חוק ברזל (Smart Quote Structure-First UX Correction task): כל יחידה
+  // (unit/section) היא כעת קונטיינר-עבודה חי - Decision 10 (collapse/
+  // expand, session-only, ללא schema/persistence חדשים - "do not add
+  // schema only for UI collapse state"). ברירת-המחדל היא "מורחב" (הרשימה
+  // הריקה עצמה היא כבר אינדיקציה שימושית - "empty units must remain
+  // visibly empty" ולכן לא כדאי לקפל ברירת-מחדל) - collapsedUnitKeys
+  // מחזיק רק את מה שהמשתמש-בפועל קיפל, לא ההפך.
+  const [collapsedUnitKeys, setCollapsedUnitKeys] = useState(() => new Set());
+  const toggleUnitCollapsed = (key) => {
+    setCollapsedUnitKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  // חוק ברזל (Decision 7 - "create / rename / remove unit safely"): הסרת
+  // יחידה עם פריטים בתוכה לעולם לא מוחקת/מייתמת פריטים בשקט - נפתח דיאלוג-
+  // בחירה בטוח (ביטול / העברה ל"לא משויך" / העברה ליחידה אחרת קיימת).
+  // יחידה ריקה מוסרת מיידית, ללא דיאלוג - "remove empty unit" בלבד.
+  const [unitRemovalTarget, setUnitRemovalTarget] = useState(null); // { key, name, itemCount } | null
+  const [unitRemovalDestination, setUnitRemovalDestination] = useState('');
+  const requestRemoveSection = (section, itemCount) => {
+    if (itemCount === 0) { removeSection(section.key); return; }
+    setUnitRemovalDestination('');
+    setUnitRemovalTarget({ key: section.key, name: section.name || (isHebrew ? '(ללא שם)' : '(unnamed)'), itemCount });
+  };
+  const confirmRemoveSection = () => {
+    if (!unitRemovalTarget) return;
+    const { key } = unitRemovalTarget;
+    const destinationKey = unitRemovalDestination || null; // '' = Unassigned
+    setItems(prev => prev.map(it => (it.section_key === key ? { ...it, section_key: destinationKey } : it)));
+    removeSection(key);
+    setUnitRemovalTarget(null);
+  };
+
+  // חוק ברזל (Decision 11 - "unit subtotal must reconcile exactly with the
+  // items shown in that unit... never maintain a second independent
+  // financial calculation"): אותה נקודת-אמת קנונית בדיוק ש-Dashboard.jsx
+  // עצמו כבר משתמש בה לסכום-הביניים הכולל (calculateQuoteFinancials +
+  // withActiveQuantities) - country/clientType מושמטים בכוונה (enteredSubtotal
+  // מחושב לפני כל ענף תלוי-מע"מ/אזור בפונקציה עצמה, ר' regionConfig.js -
+  // getRegionTaxRate(undefined) עצמה בטוחה/לא-זורקת) כי כאן נדרש רק סכום-
+  // ביניים גולמי, לא מס/הנחה ברמת-היחידה. discount:0 בכוונה - הנחת ההצעה
+  // כולה מוצגת פעם אחת בלבד, ברמת ההצעה, לא כפולה בכל יחידה.
+  const computeUnitSubtotal = (indices) => {
+    const unitItems = indices.map(i => items[i]);
+    return calculateQuoteFinancials({ items: withActiveQuantities(unitItems), discount: 0 }).enteredSubtotal;
+  };
+
+  // חוק ברזל (Decision 8 - "change quote structure without data loss"):
+  // Regular -> Divided לעולם לא נדרש למחוק/להמציא נתונים - בכל פריט קיים
+  // כבר section_key===null (בהכרח, כל עוד המבנה היה Regular - הבורר/הכפתור
+  // הגלובלי לא מציעים שיוך-יחידה בכלל) - אז המעבר עצמו הוא רק שינוי-דגל,
+  // הפריטים הקיימים "נופלים" אוטומטית ל-"לא משויך" (unassignedIndices
+  // למטה), בדיוק כפי שנדרש ("a clearly visible temporary Unassigned
+  // container requiring review") בלי אף מוטציה על items/sections.
+  const handleSwitchToDivided = () => setQuoteStructureMode('divided');
+
+  // Divided -> Regular: תמיד בטוח (איחוד לרשימה שטוחה אחת, אף פריט/סכום
+  // לא הולך לאיבוד - section_key מתאפס לכולם) אך דורש אישור מפורש לפני
+  // איבוד-המבנה עצמו (לא הנתונים) - "truthful blocking is better than
+  // destructive convenience" מתייחס למקרה מסוכן-אמיתי, וזה אינו כזה.
+  const handleSwitchToRegular = () => {
+    const msg = isHebrew
+      ? 'המעבר להצעה רגילה יאחד את כל היחידות לרשימה אחת. כל הפריטים והסכומים יישמרו במלואם. להמשיך?'
+      : 'Switching to a regular quote will merge all units into one list. All items and amounts will be fully preserved. Continue?';
+    if (!window.confirm(msg)) return;
+    setItems(prev => prev.map(it => ({ ...it, section_key: null })));
+    setSections([]);
+    setQuoteStructureMode('regular');
   };
 
   const currencyPhoneConfig = getDialByCurrency(currency);
@@ -298,12 +297,71 @@ export default function QuoteForm({
   // (unsectioned, כולל section_key שמצביע ל-section שהוסר) בסוף - זהה-בייט
   // לפריסה השטוחה הקיימת עבור הצעה בלי sections כלל (orderedItemIndices
   // === [0,1,2,...] בדיוק).
-  const sectionKeySet = new Set(sections.map(s => s.key));
-  const sortedSections = sections.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const orderedItemIndices = [
-    ...sortedSections.flatMap(s => items.map((it, idx) => idx).filter(idx => items[idx].section_key === s.key)),
-    ...items.map((it, idx) => idx).filter(idx => !items[idx].section_key || !sectionKeySet.has(items[idx].section_key)),
-  ];
+  // חוק ברזל (Smart Quote End-to-End Structural Unification task, Part O
+  // anti-patch self-check - "no UI component should independently
+  // rediscover grouping from raw arrays"): קיבוץ-לפי-אינדקסים כאן קורא
+  // עכשיו ישירות ל-groupItemsBySection (professionalQuoteItem.js), אותה
+  // פונקציה קנונית ש-quotePresentationModel.js גם היא בנויה עליה - לא
+  // פרדיקטה מקבילה עצמאית יותר (כפי שהייתה עד למשימה הזו). ה-editor
+  // עצמו לעולם לא קורא ל-buildEditorPresentationModel ישירות: המודל הזה
+  // מסנן יחידות-ללא-שם-ממשי-עדיין (tempKey טרי) כי הוא מיועד לתצוגה
+  // סופית/ללקוח - אך העורך חייב להציג גם יחידה כזו (המשתמש באמצע הקלדת
+  // השם שלה, ר' Journey 2), ולכן ממשיך להשתמש ב-groupItemsBySection
+  // הגולמי (ללא הסינון-על-שם), רק ממיר item-objects בחזרה ל-index (via
+  // items.indexOf, בטוח - כל item הוא reference ייחודי מתוך items עצמו)
+  // כדי ש-onEdit/onDelete/onDuplicate/handleItemChange הקיימים (עובדים
+  // לפי index) ימשיכו לפעול ללא שינוי, גם מתוך כרטיס-יחידה מקונן.
+  const { groups: sectionGroups, unsectioned: unsectionedItems } = groupItemsBySection(items, sections);
+  const unitItemIndices = sectionGroups.map(({ section, items: groupItems }) => ({
+    section,
+    indices: groupItems.map((it) => items.indexOf(it)),
+  }));
+  const unassignedIndices = unsectionedItems.map((it) => items.indexOf(it));
+  const orderedItemIndices = [...unitItemIndices.flatMap(g => g.indices), ...unassignedIndices];
+
+  // חוק ברזל (Smart Quote Structure-First UX Correction task): נקודת-
+  // רינדור משותפת יחידה לכרטיס-פריט קומפקטי - הרשימה השטוחה (Regular) וכל
+  // כרטיס-יחידה (Divided, ר' UnitCard למטה) קוראים לה, כך שאין שני עותקים
+  // בלתי-תלויים של אותו JSX/props. sectionName תמיד null כאן - במצב Regular
+  // אין sections בכלל (מבנה), ובמצב Divided ההכלה-בתוך-כרטיס-היחידה כבר
+  // מציינת את השיוך, תג-badge חוזר-על-עצמו היה כפילות-מיותרת.
+  const renderItemCard = (index) => {
+    const item = items[index];
+    const isPro = isProfessionalItem(item);
+    const isMeasurable = isMeasurableUnit(item.pricing_unit);
+    const activeQty = getActiveQuantity(item);
+    const unitPriceLabel = getProfessionalUnitLabel(item.pricing_unit, isHebrew);
+    const compactCalcSummary = isPro && isMeasurable
+      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${sym}${formatNum(item.unit_price || 0)}`
+      : `${formatNum(activeQty)} × ${sym}${formatNum(item.unit_price || 0)}`;
+    const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
+    return (
+      <CompactItemCard
+        isHebrew={isHebrew}
+        name={item.isFromCatalog || item.description ? item.description : (isHebrew ? '(ללא שם)' : '(unnamed)')}
+        calcSummary={compactCalcSummary}
+        total={`${sym}${formatNum(activeQty * Number(item.unit_price || 0))}`}
+        hasSpec={compactHasSpec}
+        sectionName={null}
+        onExpand={() => openEditWizard(index)}
+        menuOpen={openActionsMenu === index}
+        onToggleMenu={(e) => { e.stopPropagation(); setOpenActionsMenu(openActionsMenu === index ? null : index); }}
+        onEdit={() => { setOpenActionsMenu(null); openEditWizard(index); }}
+        onDuplicate={() => {
+          setOpenActionsMenu(null);
+          if (isPro && !canUseProfessionalQuoteReuse) { setShowUpgradeConfirm('reuse'); return; }
+          duplicateItem(index);
+        }}
+        canDuplicate={true}
+        duplicateLocked={isPro && !canUseProfessionalQuoteReuse}
+        sections={sections}
+        currentSectionKey={item.section_key || ''}
+        onMoveSection={(key) => { handleItemChange(index, 'section_key', key || null); }}
+        onDelete={() => { setOpenActionsMenu(null); removeItem(index); }}
+        canDelete={items.length > 1}
+      />
+    );
+  };
 
   // חוק ברזל (Entitlement/Quota Centralization, §150, סעיף 4): קורא ישירות
   // ל-entitlement.attachments (resolveAccountEntitlement, מחושב פעם אחת
@@ -409,7 +467,8 @@ export default function QuoteForm({
       <AddItemWizard
         isOpen={isAddWizardOpen}
         onClose={() => setIsAddWizardOpen(false)}
-        onAdd={handleWizardAdd}
+        onAdd={handleWizardSave}
+        editingItem={editingItemIndex != null ? items[editingItemIndex] : null}
         isHebrew={isHebrew}
         sym={sym}
         formatNum={formatNum}
@@ -417,6 +476,7 @@ export default function QuoteForm({
         sections={sections}
         defaultSectionKey={wizardSectionKey}
         canUseProfessionalQuotes={canUseProfessionalQuotes}
+        recommendedMethod={recommendedPricingMethod}
         onRequestUpgrade={() => { setIsAddWizardOpen(false); setShowUpgradeConfirm('professional'); }}
       />
 
@@ -854,536 +914,233 @@ export default function QuoteForm({
         </div>
         </div>
 
-        <div style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0, ...neonGlowTextStyle }}>{t.quoteItems}</h3>
-            <div style={{ display: 'flex', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: '10px' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: '0 0 10px', ...neonGlowTextStyle }}>{t.quoteItems}</h3>
+
+        {/* חוק ברזל (Smart Quote Structure-First UX Correction task,
+            Locked Decision 1/Part B): ההחלטה המבנית הראשונה - לפני כל
+            פעולת-הוספה - היא "איך תרצו לבנות את ההצעה?", לא עוד קישור-
+            אופציונלי אחרי שכבר אפשר להוסיף פריט. מוצג רק להצעה חדשה-
+            ריקה-לגמרי שעדיין לא הוכרעה (quoteStructureMode===null) -
+            הצעה קיימת (עריכה/שכפול) לעולם לא רואה את זה, ר' Dashboard.jsx
+            inferStructureModeFromQuote (Decision 9). "Smart Quote" לא
+            משמש כשם-הניגוד ל"הצעה רגילה" (Decision 1 - "the division
+            choice is about structure, not intelligence"). */}
+        {quoteStructureMode == null && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: NEON.textPrimary, textAlign: isHebrew ? 'right' : 'left' }}>
+              {isHebrew ? 'איך תרצו לבנות את ההצעה?' : 'How would you like to structure this quote?'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
               <button
                 type="button"
-                onClick={() => setIsCalcOpen(true)}
-                title={isHebrew ? 'מחשבון' : 'Calculator'}
-                style={{
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  border: '1px solid rgba(167, 139, 250, 0.4)',
-                  padding: '5px 8px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: NEON.violetLight,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
+                onClick={() => setQuoteStructureMode('regular')}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
               >
-                <Calculator size={16} strokeWidth={2.2} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
+                  <LayoutList size={16} color={NEON.violetLight} />
+                  {isHebrew ? 'הצעה רגילה' : 'Regular quote'}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+                  {isHebrew ? 'כל המוצרים והעבודות מופיעים ברשימה אחת.' : 'All products and work appear in one list.'}
+                </span>
               </button>
-              {/* חוק ברזל (Owner-Approved Smart Quote UX, Stage 2, §A):
-                  מחליף את שני מנגנוני-ההוספה שהיו גלויים בו-זמנית (בורר
-                  "הוספה מהירה" מהקטלוג + כפתור "הוסף פריט" ריק) בפעולה
-                  דומיננטית אחת - האשף עצמו מציע גם קטלוג וגם יחידות/מדידה
-                  כבחירה מודרכת בשלב 1, לא שלושה נתיבים מקבילים גלויים יחד.
-                  addItem/handleCatalogAdd (הקיימים, Dashboard.jsx/למעלה)
-                  אינם נמחקים - handleWizardAdd משתמש באותו תנאי-שורת-פתיחה
-                  בדיוק, רק לא נקראים יותר משני כפתורים נפרדים כאן. */}
-              <button type="button" onClick={() => openAddWizard(null)} style={{ background: NEON.gradient, border: 'none', color: 'white', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Plus size={14} strokeWidth={3} />
-                {isHebrew ? 'הוסף פריט להצעה' : 'Add item to quote'}
+              <button
+                type="button"
+                onClick={handleSwitchToDivided}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.violetLight}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
+                  <Building2 size={16} color={NEON.violetLight} />
+                  {isHebrew ? 'הצעה לפי חלוקה' : 'Quote by units'}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+                  {isHebrew ? 'מתאים לדירות, חדרים, קומות, אזורים או יחידות נפרדות.' : 'Ideal for apartments, rooms, floors, areas, or separate work units.'}
+                </span>
               </button>
-              {/* חוק ברזל (§168 - Project/Section hierarchy, PROFLOW_TODO.md
-                  30.C): "+ Add Section" תמיד גלוי, לצד כפתורי-ההוספה
-                  הקיימים - תוספת אופציונלית, לא מבנה כפוי. לחיצה יוצרת
-                  section ריק (tempKey) מיד - השם עצמו נערך inline למטה. */}
-              <button type="button" onClick={addSection} style={{ background: 'rgba(139, 92, 246, 0.10)', border: '1px solid rgba(139, 92, 246, 0.3)', color: NEON.violetLight, padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem' }}>
-                {isHebrew ? '+ הוסף קטגוריה' : '+ Add Section'}
-              </button>
-            </div>
-        </div>
-        {/* חוק ברזל (Two-Stage Completion Task, Stage 1A - "one short,
-            friendly helper sentence"): קומפקטי בכוונה - שורת-טקסט משנית
-            אחת, לא כרטיס/באנר/פאנל-הדרכה, בלי שוליים אנכיים נוספים
-            שיתפחו את הכותרת. עוטף באופן טבעי ב-320px (אין white-space:
-            nowrap). */}
-        <p style={{ margin: '4px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
-          {isHebrew
-            ? 'הוסיפו להצעה מוצרים או עבודות — אפשר להזין פריט רגיל, לחשב לפי מידות או לבחור מהקטלוג.'
-            : 'Add products or work to this quote — enter a simple item, calculate it by measurements, or pick one from your catalog.'}
-        </p>
-        </div>
-
-        {/* חוק ברזל (§168 - Project/Section hierarchy, 30.C): ניהול ה-
-            sections עצמם - שם חופשי-לחלוטין (data המשתמש, לא מושג-אפליקציה
-            קבוע), הסרה משאירה את הפריטים (רק מאפסת section_key שלהם). */}
-        {sections.length > 0 && (
-          <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {sections.map(section => (
-              <div key={section.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-                <input
-                  type="text"
-                  value={section.name}
-                  onChange={(e) => renameSection(section.key, e.target.value)}
-                  placeholder={isHebrew ? 'לדוגמה: דירה 33' : 'e.g. Apartment 33'}
-                  style={{ flex: '0 1 220px', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.82rem', fontWeight: 700, textAlign: isHebrew ? 'right' : 'left' }}
-                />
-                <button type="button" onClick={() => openAddWizard(section.key)} style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
-                  {isHebrew ? '+ פריט לקטגוריה זו' : '+ Item in this section'}
-                </button>
-                <button type="button" onClick={() => removeSection(section.key)} title={isHebrew ? 'הסר קטגוריה (הפריטים נשארים)' : 'Remove section (items are kept)'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <X size={13} strokeWidth={3} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* חוק ברזל (Stage 1B): כותרת-העמודות המשותפת רלוונטית רק לפריסת-
-            הרשת הקלאסית (Description|Qty|Price|Total באותה שורה) - בפריסה
-            המוערמת (narrow) לכל שדה כבר יש תווית-inline משלו (ר' StackedRow
-            למטה), אז כותרת נפרדת מיותרת ולא-responsive; מוסתרת לגמרי שם
-            במקום להישאר כאלמנט 650px-רוחב-קשיח נוסף. */}
-        {!isNarrowForm && (
-          <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '5px' }}>
-            <div style={{ minWidth: '650px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', marginBottom: '4px', padding: '0 6px', fontSize: '0.7rem', fontWeight: 'bold', color: NEON.textSecondary }}>
-                <span>{t.description}</span>
-                <span>{t.quantity}</span>
-                <span>{t.unitPrice}</span>
-                <span>{t.totalPrice}</span>
-                {items.length > 1 && <span></span>}
-              </div>
             </div>
           </div>
         )}
 
-        {/* חוק ברזל (Professional Quotes Stage C, §158): כל פריט הוא כעת
-            wrapper עצמאי - השורה הקלאסית (Description/Qty/Price/Total)
-            שומרת בדיוק על אותו minWidth:650px+overflowX:auto לכל פריט
-            בנפרד (זהה-ויזואלית להתנהגות הקודמת, ששיתפה scroll-container
-            אחד לכל השורות יחד - עדיין 650px רוחב-מינימלי לכל שורה, בלי
-            שינוי מוחשי). הלוח/פאנל המקצועי (כשמורחב) יושב מתחת, מחוץ
-            למכל הגלילה-האופקית לגמרי - לא "טבלה רחבה הדורשת גלילה
-            אופקית" (§17 בעלים), רק השדות הקלאסיים הקיימים ממשיכים
-            להתנהג כפי שהתנהגו תמיד. */}
-        {orderedItemIndices.map((index, renderPos) => {
-          const item = items[index];
-          const isPro = isProfessionalItem(item);
-          const isMeasurable = isMeasurableUnit(item.pricing_unit);
-          const isExpanded = isProItemExpanded(index, item);
-          const activeQty = getActiveQuantity(item);
-          // חוק ברזל (§168 - real calculation-method framework, 30.B/30.E):
-          // נגזר תמיד מ-pricing_unit+quantity_source (לא נשמר UI-state
-          // עצמאי) - 'linear' משתמש רק ברוחב (מוצג כ"אורך") ולא בגובה.
-          const method = resolveCalculationMethod(item.pricing_unit, item.quantity_source);
-          const isLinear = method === 'linear';
-          const unitLabel = getProfessionalUnitLabel(item.pricing_unit, isHebrew);
-          // חוק ברזל (§168 - Project/Section hierarchy, 30.C): כותרת-
-          // section מוצגת רק במעבר אמיתי לתוך section (לא לכל פריט בתוכו) -
-          // items.map() המקורי לא שונה בכלל, רק סדר-האיטרציה
-          // (orderedItemIndices) והכותרת-האופציונלית-הזו נוספו סביבו.
-          const currentSection = item.section_key && sectionKeySet.has(item.section_key) ? sortedSections.find(s => s.key === item.section_key) : null;
-          const prevIndex = renderPos > 0 ? orderedItemIndices[renderPos - 1] : null;
-          const prevItem = prevIndex != null ? items[prevIndex] : null;
-          const prevSectionKey = prevItem && prevItem.section_key && sectionKeySet.has(prevItem.section_key) ? prevItem.section_key : null;
-          const showSectionHeader = currentSection && currentSection.key !== prevSectionKey;
-          const cardOpen = isItemCardOpen(index, item);
-          const isBlankStarter = isBlankStarterRow(item);
-          // חוק ברזל (Owner Visual Review - Correction 4, "concise calculation
-          // summary"): נקודת-בנייה יחידה לטקסט-הסיכום הקומפקטי - נגזר מאותם
-          // ערכים-קנוניים כבר-מחושבים למעלה (activeQty/method/unitLabel),
-          // לא נוסחה עצמאית. פריט מקצועי-נמדד: "3.60 מ"ר × ₪300"; כל פריט
-          // אחר (פשוט/יחידות/קטלוג): "5 × ₪50".
-          const compactCalcSummary = isPro && isMeasurable
-            ? `${formatNum(activeQty)} ${unitLabel} × ${sym}${formatNum(item.unit_price || 0)}`
-            : `${formatNum(activeQty)} × ${sym}${formatNum(item.unit_price || 0)}`;
-          const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
-          return (
-            <div key={index}>
-            {showSectionHeader && (
-              <div style={{ margin: '14px 0 6px', paddingTop: '10px', borderTop: `1px dashed ${NEON.borderStrong}`, fontSize: '0.85rem', fontWeight: 800, color: NEON.violetLight, textAlign: isHebrew ? 'right' : 'left' }}>
-                {isHebrew ? `קטגוריה: ${currentSection.name}` : `Section: ${currentSection.name}`}
-              </div>
-            )}
-            {/* חוק ברזל (Owner Visual Review - Correction 4, "compact
-                saved-item card"): כרטיס-סיכום קומפקטי הוא ברירת-המחדל לכל
-                פריט "שמור" (לא שורת-הפתיחה הריקה) - לא משכפל/מוחק את
-                העורך-המלא הקיים (isBlankStarter ממשיך להתנהג בדיוק כמו
-                קודם), רק עוטף אותו בבחירת-תצוגה. */}
-            {!isBlankStarter && !cardOpen && (
-              <CompactItemCard
+        {/* חוק ברזל (Locked Decision 2 - "the regular path must remain
+            fast"): כל מה שהיה קיים לפני המשימה הזו נשמר בייט-לבייט - כפתור
+            הפעולה הראשי, המחשבון, האשף המפושט, ההמלצות מודעות-לעסק,
+            ארבעת-השלבים, פרטי-לקוח אופציונליים, כל תיקוני-הבטיחות - שום
+            UI לניהול-יחידות לא מוצג במצב הזה בכלל. */}
+        {quoteStructureMode === 'regular' && (
+          <>
+            <button
+              type="button"
+              onClick={() => openAddWizard(null)}
+              style={{ background: NEON.gradient, border: 'none', color: 'white', padding: '13px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', fontSize: '0.92rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', boxShadow: NEON.glow, marginBottom: '8px' }}
+            >
+              <Plus size={18} strokeWidth={3} />
+              {isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'}
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setIsCalcOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
+                <Calculator size={13} strokeWidth={2.2} />
+                {isHebrew ? 'מחשבון' : 'Calculator'}
+              </button>
+              {/* חוק ברזל (Locked Decision 8 - "Regular -> Divided... the
+                  user may discover later that a regular quote should have
+                  been divided"): קישור-טקסט משני קבוע, לא רק בזמן-יצירה -
+                  פריטים קיימים (section_key===null תמיד במצב Regular) נופלים
+                  אוטומטית ל"לא משויך" הגלוי ברגע המעבר, בלי מוטציה כלל. */}
+              <button type="button" onClick={handleSwitchToDivided} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
+                <Building2 size={13} strokeWidth={2.2} />
+                {isHebrew ? 'מעבר להצעה לפי חלוקה' : 'Switch to a divided quote'}
+              </button>
+            </div>
+
+            <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+              {isHebrew
+                ? 'אפשר להוסיף מוצר או עבודה, לבחור מהקטלוג, או לתמחר לפי מידות - בלי צורך להכיר את המונחים הפנימיים.'
+                : 'Add a product or work item, pick one from your catalog, or price it by measurements — no internal terminology required.'}
+            </p>
+          </>
+        )}
+
+        {/* חוק ברזל (Locked Decision 3/4/6 - "the system first allows
+            creating the units"; "do not keep a visually-competing global
+            Add button"; "every unit is a live working container"): במצב
+            מחולק אין כפתור-הוספה גלובלי בכלל - כל פעולת-הוספה שייכת
+            ליחידה ספציפית (או ל"לא משויך" הגלוי), ר' לוח-היחידות למטה. */}
+        {quoteStructureMode === 'divided' && (
+          <>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+              {isHebrew
+                ? 'צרו את היחידות בהצעה, ואז הוסיפו לכל יחידה את המוצרים והעבודות שלה.'
+                : 'Create the units in the quote, then add the relevant products and work to each one.'}
+            </p>
+            <button type="button" onClick={handleSwitchToRegular} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0 0' }}>
+              <LayoutList size={13} strokeWidth={2.2} />
+              {isHebrew ? 'מעבר להצעה רגילה' : 'Switch to a regular quote'}
+            </button>
+          </>
+        )}
+        </div>
+
+        {quoteStructureMode === 'regular' && items.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '20px 14px', color: NEON.textSecondary, fontSize: '0.82rem', background: NEON.bgCardAlt, borderRadius: '10px', border: `1px dashed ${NEON.borderStrong}`, marginBottom: '10px' }}>
+            {isHebrew ? 'עדיין לא נוספו מוצרים או עבודות להצעה זו.' : 'No products or work added to this quote yet.'}
+          </div>
+        )}
+
+        {/* חוק ברזל (Smart Quote Guided UX Completion task, §C - Add/Edit
+            unification, נשמר): כל פריט הוא כרטיס-סיכום קומפקטי - עריכה
+            עוברת דרך AddItemWizard (editingItem), לא עוד שורה
+            קלאסית+פאנל-מקצועי inline. renderItemCard משותף בין הרשימה
+            השטוחה (Regular) לבין כל כרטיס-יחידה (Divided) - נקודת-רינדור
+            יחידה לכל פריט, לא שני עותקים בלתי-תלויים. */}
+        {quoteStructureMode === 'regular' && orderedItemIndices.map((index) => (
+          <div key={index}>{renderItemCard(index)}</div>
+        ))}
+
+        {/* חוק ברזל (Part C/Locked Decision 4/5/7/10 - "the divided-quote
+            unit board"): כל יחידה היא קונטיינר-עבודה חי וגלוי תמיד - שם,
+            ספירת-פריטים, סכום-ביניים, מצב-ריק, פעולת-הוספה מפורשת - גם
+            כשמכווץ. groupItemsBySection (professionalQuoteItem.js) הוא
+            נקודת-הקיבוץ הקנונית; כאן נדרשים אינדקסים (לא אובייקטי-פריט,
+            ר' unitItemIndices למעלה) כדי שפעולות עריכה/מחיקה/שכפול
+            הקיימות ימשיכו לפעול ללא שינוי. */}
+        {quoteStructureMode === 'divided' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+            {unitItemIndices.map(({ section, indices }) => (
+              <UnitCard
+                key={section.key}
                 isHebrew={isHebrew}
-                name={item.isFromCatalog || item.description ? item.description : (isHebrew ? '(ללא שם)' : '(unnamed)')}
-                calcSummary={compactCalcSummary}
-                total={`${sym}${formatNum(activeQty * Number(item.unit_price || 0))}`}
-                hasSpec={compactHasSpec}
-                // חוק ברזל (§4 - "optional indicators only when present",
-                // באג אמיתי שנתפס חי בבדיקת-דפדפן): section.name יכול
-                // להיות '' (ברירת-מחדל לפני שהמשתמש בפועל משנה אותו,
-                // addSection) - מחרוזת ריקה היא falsy ב-JS, אז
-                // currentSection?.name ישיר היה מדליק תג-badge ריק/נעלם
-                // גם כשהפריט *כן* משויך ל-section אמיתית (currentSection
-                // עצמו truthy). הבדיקה כאן היא על נוכחות ה-section, לא על
-                // מחרוזת-השם שלה - עם אותה נפילה-חזרה בדיוק ("(ללא שם)"/
-                // "(unnamed)") שכבר קיימת בבוררי ה-section האחרים למטה.
-                sectionName={currentSection ? (currentSection.name || (isHebrew ? '(ללא שם)' : '(unnamed)')) : null}
-                onExpand={() => toggleItemCard(index)}
-                menuOpen={openActionsMenu === index}
-                onToggleMenu={(e) => { e.stopPropagation(); setOpenActionsMenu(openActionsMenu === index ? null : index); }}
-                onEdit={() => { setOpenActionsMenu(null); toggleItemCard(index); }}
-                onDuplicate={() => {
-                  setOpenActionsMenu(null);
-                  if (isPro && !canUseProfessionalQuoteReuse) { setShowUpgradeConfirm('reuse'); return; }
-                  duplicateItem(index);
-                }}
-                canDuplicate={true}
-                duplicateLocked={isPro && !canUseProfessionalQuoteReuse}
-                sections={sections}
-                currentSectionKey={item.section_key || ''}
-                onMoveSection={(key) => { handleItemChange(index, 'section_key', key || null); }}
-                onDelete={() => { setOpenActionsMenu(null); removeItem(index); }}
-                canDelete={items.length > 1}
-              />
-            )}
-            {(isBlankStarter || cardOpen) && (
-            <div style={{ marginBottom: '6px' }}>
-              {!isBlankStarter && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                  <button type="button" onClick={() => toggleItemCard(index)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: '4px' }}>
-                    <ChevronDown size={13} style={{ transform: 'rotate(180deg)' }} />
-                    {isHebrew ? 'כווץ' : 'Collapse'}
-                  </button>
-                </div>
-              )}
-              {isNarrowForm ? (
-                // חוק ברזל (Stage 1B, תיקון-שורש): פריסה מוערמת (label מעל
-                // שדה, לא רשת-4-עמודות ברוחב-קבוע) - אותם handlers/ערכים
-                // בדיוק כמו הפריסה הרחבה למטה, בלי minWidth/overflow-x
-                // בכלל, כך שאין שום אזור-גלילה-אופקית-פנימי ליצור.
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: NEON.bgCardAlt, padding: '10px', borderRadius: isExpanded ? '8px 8px 0 0' : '8px', border: `1px solid ${NEON.border}`, borderBottom: isExpanded ? 'none' : `1px solid ${NEON.border}` }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: NEON.textMuted, marginBottom: '3px' }}>{t.description}</label>
-                    <input
-                      type="text"
-                      placeholder={t.description}
-                      value={item.description}
-                      onChange={(e) => !item.isFromCatalog && handleItemChange(index, 'description', e.target.value)}
-                      readOnly={item.isFromCatalog}
-                      required
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', fontSize: '16px', background: item.isFromCatalog ? NEON.bgCardAlt : NEON.bgInput, color: NEON.textPrimary, cursor: item.isFromCatalog ? 'not-allowed' : 'text' }}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: NEON.textMuted, marginBottom: '3px' }}>{t.quantity}</label>
-                      {isPro ? (
-                        <div
-                          title={isHebrew ? 'כמות זו מחושבת מהפאנל המקצועי (מידות/כמות ידנית) למטה - ולא ניתנת לעריכה כאן' : 'This quantity is calculated from the professional panel below (measurements / manual quantity) — not editable here'}
-                          style={{ padding: '9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgCardAlt, color: NEON.textSecondary, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'help' }}
-                        >
-                          <span>{formatNum(activeQty)}</span>
-                          <span style={{ fontSize: '0.65rem', color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? '(מחושב)' : '(calc.)'}</span>
-                        </div>
-                      ) : (
-                        <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ width: '100%', boxSizing: 'border-box', padding: '9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px' }} />
-                      )}
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: NEON.textMuted, marginBottom: '3px' }}>{t.unitPrice}</label>
-                      <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ width: '100%', boxSizing: 'border-box', padding: '9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px' }} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: NEON.textMuted, marginBottom: '3px' }}>{t.totalPrice}</label>
-                      <div className="pf-money" style={{ padding: '9px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', color: NEON.textPrimary, textAlign: isHebrew ? 'right' : 'left', fontSize: '0.85rem', fontWeight: 700 }}>{sym}{formatNum(activeQty * Number(item.unit_price || 0))}</div>
-                    </div>
-                    {items.length > 1 && <button type="button" onClick={() => removeItem(index)} aria-label={isHebrew ? 'מחק פריט' : 'Delete item'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={16} strokeWidth={3} /></button>}
-                  </div>
-                </div>
-              ) : (
-              <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <div style={{ minWidth: '650px', display: 'grid', gridTemplateColumns: items.length > 1 ? '2fr 1fr 1fr 1fr 36px' : '2fr 1fr 1fr 1fr', gap: '6px', background: NEON.bgCardAlt, padding: '6px', borderRadius: isExpanded ? '8px 8px 0 0' : '8px', border: `1px solid ${NEON.border}`, borderBottom: isExpanded ? 'none' : `1px solid ${NEON.border}` }}>
-                  <input
-                    type="text"
-                    placeholder={t.description}
-                    value={item.description}
-                    onChange={(e) => !item.isFromCatalog && handleItemChange(index, 'description', e.target.value)}
-                    readOnly={item.isFromCatalog}
-                    required
-                    style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', fontSize: '0.8rem', background: item.isFromCatalog ? NEON.bgCardAlt : NEON.bgInput, color: NEON.textPrimary, cursor: item.isFromCatalog ? 'not-allowed' : 'text' }}
-                  />
-                  {/* חוק ברזל (§7 - Quantity disconnect fix, Owner-required): לפריט
-                      מקצועי, ה"כמות" הגלויה כאן היא activeQty (זהה-בייט לכמות
-                      שהכסף משתמש בה, getActiveQuantity) - לא עוד item.quantity
-                      הגולמי (שנשאר "1" בלי-נגיעה, לעולם לא edited/repurposed -
-                      איסור מפורש). השדה מוצג read-only עם רמז ויזואלי (רקע מנוגד
-                      + title) שהערך מגיע מהפאנל המקצועי למטה; פריט Simple ממשיך
-                      להיות שדה חופשי לגמרי, בלי שינוי. */}
-                  {isPro ? (
-                    <div
-                      title={isHebrew ? 'כמות זו מחושבת מהפאנל המקצועי (מידות/כמות ידנית) למטה - ולא ניתנת לעריכה כאן' : 'This quantity is calculated from the professional panel below (measurements / manual quantity) — not editable here'}
-                      style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgCardAlt, color: NEON.textSecondary, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'help' }}
-                    >
-                      <span>{formatNum(activeQty)}</span>
-                      <span style={{ fontSize: '0.65rem', color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? '(מחושב)' : '(calc.)'}</span>
-                    </div>
-                  ) : (
-                    <input type="number" step="any" placeholder={t.quantity} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} required style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
-                  )}
-                  <input type="number" step="any" placeholder={t.unitPrice} value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} required style={{ padding: '7px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
-                  {/* חוק ברזל (Money Alignment Fix, סבב קודם): יישור-ימין תמיד,
-                      בלי קשר לשפה. חוק ברזל (Professional Quotes Stage C):
-                      הסכום משתמש בכמות הפעילה (getActiveQuantity) - זהה-בייט
-                      ל-item.quantity הרגיל עבור פריט Simple, ומחליף אותו
-                      ל-calculated_quantity עבור פריט מקצועי. */}
-                  <div className="pf-money" style={{ padding: '7px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', color: NEON.textPrimary, textAlign: 'right', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{sym}{formatNum(activeQty * Number(item.unit_price || 0))}</div>
-                  {items.length > 1 && <button type="button" onClick={() => removeItem(index)} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} strokeWidth={3} /></button>}
-                </div>
-              </div>
-              )}
+                sym={sym}
+                formatNum={formatNum}
+                section={section}
+                itemCount={indices.length}
+                subtotal={computeUnitSubtotal(indices)}
+                collapsed={collapsedUnitKeys.has(section.key)}
+                onToggleCollapse={() => toggleUnitCollapsed(section.key)}
+                onRename={(name) => renameSection(section.key, name)}
+                onRemove={() => requestRemoveSection(section, indices.length)}
+                onAddItem={() => openAddWizard(section.key)}
+              >
+                {indices.map((index) => (
+                  <div key={index}>{renderItemCard(index)}</div>
+                ))}
+              </UnitCard>
+            ))}
 
-              {/* חוק ברזל (§2/§4 בעלים - Progressive Disclosure): קישור-פתיחה
-                  זמין תמיד לכל פריט (לא מסתתר, "Visible-but-Locked" §155.1.11) -
-                  משתמש לא-זכאי שעדיין אין לו נתונים מקצועיים רואה 🔒 ומקבל
-                  את מודל-השדרוג בלחיצה מכוונת; לעולם לא popup אוטומטי. */}
-              <div style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderTop: 'none', borderRadius: '0 0 8px 8px', padding: isExpanded ? '10px' : '6px 8px' }}>
-                {/* חוק ברזל (Professional Trigger Discoverability Fix, Owner Night
-                    Run task, PROFLOW_PROJECT_CONTEXT.md §160.2 - Gap #1): הבעלים
-                    דיווח שהקישור הקודם (טקסט שקוף, ללא רקע/מסגרת, צבע textMuted
-                    "חלש") נראה כמו טקסט משני/מבוטל - כמעט ופוספס לגמרי. עכשיו
-                    כפתור-pill מובחן (רקע+מסגרת בגוון סגול-בהיר, כמו badge/chip
-                    קיימים אחרים במוצר) - נראה בבירור לחיץ, אך במכוון *לא* גרדיאנט
-                    מלא כמו כפתור-הפעולה-הראשי (Save Quote) כדי לא "לצעוק" יותר
-                    ממנו. מצב-פתוח/סגור ניכר משתיים: עוצמת-הרקע גבוהה יותר כשפתוח,
-                    וטקסט "הסתר"/"הוסף" משתנה (כפי שכבר היה). לא תלוי בצבע בלבד -
-                    האייקון (Ruler, קשור-מידה) קבוע בשתי המצבים, המנעול (Lock)
-                    מתווסף רק כשלא-זכאי, זהה להתנהגות הקודמת. */}
-                <button
-                  type="button"
-                  onClick={() => handleProfessionalToggleClick(index, item)}
-                  style={{
-                    background: isExpanded ? 'rgba(139, 92, 246, 0.20)' : 'rgba(139, 92, 246, 0.10)',
-                    border: `1px solid ${isExpanded ? 'rgba(139, 92, 246, 0.45)' : 'rgba(139, 92, 246, 0.25)'}`,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '999px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    color: NEON.violetLight,
-                    flexDirection: isHebrew ? 'row-reverse' : 'row',
-                  }}
-                >
-                  {!canUseProfessionalQuotes && !isPro && <Lock size={12} strokeWidth={2.5} />}
-                  <Ruler size={14} strokeWidth={2.4} />
-                  {isExpanded
-                    ? (isHebrew ? 'הסתר מידות / פירוט מקצועי' : 'Hide measurements / professional details')
-                    : (isHebrew ? 'הוסף מידות / פירוט מקצועי' : 'Add measurements / professional details')}
+            {/* חוק ברזל (Locked Decision 8 - Regular->Divided): פריטים
+                קיימים בלי יחידה (או ששיוכם הוסר, ר' requestRemoveSection)
+                נופלים תמיד ל"לא משויך" הגלוי - לעולם לא נעלמים, לעולם לא
+                מקבלים שם-יחידה מומצא. הכרטיס הזה מוצג רק כשיש בו תוכן. */}
+            {unassignedIndices.length > 0 && (
+              <UnitCard
+                isHebrew={isHebrew}
+                sym={sym}
+                formatNum={formatNum}
+                section={{ key: '__unassigned__', name: isHebrew ? 'לא משויך' : 'Unassigned' }}
+                itemCount={unassignedIndices.length}
+                subtotal={computeUnitSubtotal(unassignedIndices)}
+                collapsed={collapsedUnitKeys.has('__unassigned__')}
+                onToggleCollapse={() => toggleUnitCollapsed('__unassigned__')}
+                isUnassigned
+                onAddItem={() => openAddWizard(null)}
+              >
+                {unassignedIndices.map((index) => (
+                  <div key={index}>{renderItemCard(index)}</div>
+                ))}
+              </UnitCard>
+            )}
+
+            <button type="button" onClick={addSection} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px dashed ${NEON.borderStrong}`, color: NEON.violetLight, borderRadius: '10px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
+              <Plus size={15} strokeWidth={3} />
+              {sections.length === 0
+                ? (isHebrew ? 'הוספת היחידה הראשונה' : 'Add the first unit')
+                : (isHebrew ? 'הוסף עוד יחידה' : 'Add another unit')}
+            </button>
+          </div>
+        )}
+
+        {/* חוק ברזל (Locked Decision 7 - "create / rename / remove unit
+            safely"): הסרת יחידה לא-ריקה לעולם לא קורית ישירות מלחיצת-כפתור
+            אחת - נדרש דיאלוג-בחירה בטוח ומפורש (ביטול / העברה ל"לא משויך" /
+            העברה ליחידה קיימת אחרת). "No data loss" - removeSection עצמו
+            (Dashboard.jsx) גם ככה לעולם לא מוחק פריטים, רק מאפס section_key -
+            הדיאלוג הזה מוסיף את השקיפות/הבחירה שהייתה חסרה, לא בטיחות חדשה
+            ברמת ה-state עצמו. */}
+        {unitRemovalTarget && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
+            <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '22px', borderRadius: '14px', maxWidth: '380px', width: '90%', textAlign: isHebrew ? 'right' : 'left', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
+              <h3 style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle, flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                <AlertTriangle size={18} color={NEON.red} />
+                {isHebrew ? `הסרת ${unitRemovalTarget.name}` : `Remove ${unitRemovalTarget.name}`}
+              </h3>
+              <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+                {isHebrew
+                  ? `ליחידה זו יש ${unitRemovalTarget.itemCount} פריטים. הם לא יימחקו - לאן להעביר אותם?`
+                  : `This unit has ${unitRemovalTarget.itemCount} item(s). They will not be deleted - where should they move?`}
+              </p>
+              <select
+                aria-label={isHebrew ? 'העברת הפריטים אל' : 'Move items to'}
+                value={unitRemovalDestination}
+                onChange={(e) => setUnitRemovalDestination(e.target.value)}
+                style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', marginBottom: '14px' }}
+              >
+                <option value="">{isHebrew ? 'לא משויך' : 'Unassigned'}</option>
+                {sections.filter(s => s.key !== unitRemovalTarget.key).map(s => (
+                  <option key={s.key} value={s.key}>{s.name || (isHebrew ? '(ללא שם)' : '(unnamed)')}</option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                <button type="button" onClick={() => setUnitRemovalTarget(null)} style={{ flex: 1, background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
-
-                {/* חוק ברזל (Professional Quotes Stage F - Advanced Reuse,
-                    PROFLOW_PROJECT_CONTEXT.md §155.18 שורה F/§165): מוצג רק
-                    לפריט שכבר מקצועי (isPro) - "שכפול" נתונים שעדיין לא קיימים
-                    חסר-משמעות. Visible-but-Locked (§155.14): הכפתור עצמו תמיד
-                    גלוי ל-BASIC (לא נעלם), אך לחיצה בלי professionalQuoteReuse
-                    (PRO+) פותחת את אותו מודל-שדרוג הקיים כבר (ר' showUpgradeConfirm
-                    למעלה, כל ערך שאינו 'professional' מקבל את הודעת-PRO הגנרית
-                    הקיימת). professionalQuotes (Core) ≠ professionalQuoteReuse
-                    (Advanced) - שני capabilities נפרדים, לא flag אחד. */}
-                {isPro && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!canUseProfessionalQuoteReuse) {
-                        setShowUpgradeConfirm('reuse');
-                        return;
-                      }
-                      duplicateItem(index);
-                    }}
-                    title={isHebrew ? 'שכפל פריט מקצועי זה' : 'Duplicate this professional item'}
-                    style={{
-                      background: NEON.bgCardAlt,
-                      border: `1px solid ${NEON.borderStrong}`,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '6px 10px',
-                      borderRadius: '999px',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: NEON.textSecondary,
-                      marginInlineStart: '6px',
-                      flexDirection: isHebrew ? 'row-reverse' : 'row',
-                    }}
-                  >
-                    {!canUseProfessionalQuoteReuse && <Lock size={11} strokeWidth={2.5} />}
-                    <CopyPlus size={13} strokeWidth={2.2} />
-                    {isHebrew ? 'שכפל פריט' : 'Duplicate item'}
-                  </button>
-                )}
-
-                {isExpanded && (
-                  <div style={{ marginTop: '6px', paddingTop: '8px', borderTop: `1px dashed ${NEON.border}` }} dir={isHebrew ? 'rtl' : 'ltr'}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: NEON.textSecondary, marginBottom: '3px' }}>
-                        {isHebrew ? 'יחידת תמחור מקצועית' : 'Professional pricing unit'}
-                      </label>
-                      <select
-                        value={item.pricing_unit || ''}
-                        onChange={(e) => handleProfessionalUnitChange(index, e.target.value)}
-                        disabled={!canUseProfessionalQuotes}
-                        style={{ padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', minWidth: '180px' }}
-                      >
-                        <option value="">{isHebrew ? 'ללא (פריט רגיל)' : 'None (Simple item)'}</option>
-                        {PROFESSIONAL_UNITS.map(u => <option key={u.id} value={u.id}>{isHebrew ? u.he : u.en}</option>)}
-                      </select>
-                    </div>
-
-                    {/* חוק ברזל (§168 - Project/Section hierarchy, 30.C):
-                        שיוך-section ברמת-פריט, אופציונלי - "ללא קטגוריה"
-                        (unsectioned) הוא הערך המקורי/ברירת המחדל, זהה-בייט
-                        לפריט שטוח קיים. מוצג רק כשקיימת לפחות section אחת -
-                        אין טעם להציג בורר ריק להצעה בלי sections כלל. */}
-                    {sections.length > 0 && (
-                      <div style={{ marginBottom: '8px' }}>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: NEON.textSecondary, marginBottom: '3px' }}>
-                          {isHebrew ? 'קטגוריה' : 'Section'}
-                        </label>
-                        <select
-                          value={item.section_key || ''}
-                          onChange={(e) => handleItemChange(index, 'section_key', e.target.value || null)}
-                          style={{ padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', minWidth: '180px' }}
-                        >
-                          <option value="">{isHebrew ? 'ללא קטגוריה' : 'No section'}</option>
-                          {sections.map(s => <option key={s.key} value={s.key}>{s.name || (isHebrew ? '(ללא שם)' : '(unnamed)')}</option>)}
-                        </select>
-                      </div>
-                    )}
-
-                    {isMeasurable && (
-                      item.quantity_source === 'manual' ? (
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: NEON.textSecondary }}>
-                              {isHebrew ? `כמות ידנית (${unitLabel})` : `Manual quantity (${unitLabel})`}
-                            </label>
-                            <button type="button" onClick={() => toggleManualQuantityOverride(index)} disabled={!canUseProfessionalQuotes} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                              {isHebrew ? 'חזרה לחישוב לפי מידות' : 'Back to calculated from measurements'}
-                            </button>
-                          </div>
-                          <input type="number" step="any" value={item.calculated_quantity} onChange={(e) => handleManualQuantityChange(index, e.target.value)} disabled={!canUseProfessionalQuotes} style={{ padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', width: '140px' }} />
-                        </div>
-                      ) : (
-                        <div>
-                          {(item.measurements || []).map((m, mIdx) => (
-                            <div key={mIdx} style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px', alignItems: 'flex-end' }}>
-                              {/* חוק ברזל (Dimension Input — cm entry, Owner-required):
-                                  קלט/תצוגה בס"מ בלבד, גבול-UI טהור - m.width/m.height
-                                  עצמם (state/persistence/quote_item_measurements) נשארים
-                                  במטרים ללא שינוי כלל (mToCm/cmToM, professionalQuoteItem.js,
-                                  לא נוגעים ב-DB/בחישוב-השטח הקיים). זה בדיוק "הגבול הנכון
-                                  ביישום", לא שכתוב-סכימה. */}
-                              <div style={{ flex: '1 1 90px' }}>
-                                <label style={{ display: 'block', fontSize: '0.68rem', color: NEON.textMuted, marginBottom: '2px' }}>{isLinear ? (isHebrew ? 'אורך (ס"מ)' : 'Length (cm)') : (isHebrew ? 'רוחב (ס"מ)' : 'Width (cm)')}</label>
-                                <input type="number" step="any" min="0" value={mToCm(m.width)} onChange={(e) => handleMeasurementChange(index, mIdx, 'width', e.target.value === '' ? '' : cmToM(e.target.value))} disabled={!canUseProfessionalQuotes} style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
-                              </div>
-                              {/* חוק ברזל (§168 - real calculation-method framework):
-                                  Height מוסתר לגמרי עבור method='linear' - אין
-                                  "גובה" רלוונטי לאורך יחיד (מטר רץ), לא רק
-                                  ערך-לא-בשימוש שנשאר גלוי ומבלבל. */}
-                              {!isLinear && (
-                                <div style={{ flex: '1 1 90px' }}>
-                                  <label style={{ display: 'block', fontSize: '0.68rem', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'גובה (ס"מ)' : 'Height (cm)'}</label>
-                                  <input type="number" step="any" min="0" value={mToCm(m.height)} onChange={(e) => handleMeasurementChange(index, mIdx, 'height', e.target.value === '' ? '' : cmToM(e.target.value))} disabled={!canUseProfessionalQuotes} style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
-                                </div>
-                              )}
-                              <div style={{ flex: '1 1 90px' }}>
-                                <label style={{ display: 'block', fontSize: '0.68rem', color: NEON.textMuted, marginBottom: '2px' }}>{isLinear ? (isHebrew ? 'אורך' : 'Length') : (isHebrew ? 'שטח' : 'Area')}</label>
-                                <div style={{ padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgCardAlt, color: NEON.textSecondary, fontSize: '0.8rem' }}>
-                                  {m.calculated_area != null ? `${formatNum(m.calculated_area)} ${isLinear ? (isHebrew ? 'מ\'' : 'm') : 'm²'}` : '—'}
-                                </div>
-                              </div>
-                              {/* חוק ברזל (§168 - specification-vs-pricing-driving,
-                                  30.E "Pricing Unit ≠ Specification Data"): מוצג
-                                  ללקוח תמיד (Public Quote), אך שורה עם is_pricing_
-                                  driving===false לעולם לא נספרת ב-calculated_quantity -
-                                  הנתון עצמו (width/height) לעולם לא נמחק. */}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: '0 0 auto' }}>
-                                <label style={{ fontSize: '0.62rem', color: NEON.textMuted, whiteSpace: 'nowrap' }}>{isHebrew ? 'משפיע על מחיר' : 'Affects price'}</label>
-                                <input
-                                  type="checkbox"
-                                  checked={m.is_pricing_driving !== false}
-                                  onChange={() => toggleMeasurementPricingDriving(index, mIdx)}
-                                  disabled={!canUseProfessionalQuotes}
-                                  title={isHebrew ? 'בטל כדי להציג מידה זו ללקוח בלי שתשפיע על הכמות/המחיר' : 'Uncheck to show this measurement to the customer without it affecting quantity/price'}
-                                />
-                              </div>
-                              {(item.measurements.length > 1) && (
-                                <button type="button" onClick={() => removeMeasurementRow(index, mIdx)} disabled={!canUseProfessionalQuotes} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <X size={13} strokeWidth={3} />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginTop: '4px' }}>
-                            <button type="button" onClick={() => addMeasurementRow(index)} disabled={!canUseProfessionalQuotes} style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <Plus size={12} strokeWidth={2.5} />
-                              {isHebrew ? 'הוסף מידה' : 'Add measurement'}
-                            </button>
-                            <button type="button" onClick={() => toggleManualQuantityOverride(index)} disabled={!canUseProfessionalQuotes} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                              {isHebrew ? 'הזן כמות ידנית' : 'Enter manual quantity'}
-                            </button>
-                            <span style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: 600 }}>
-                              {isHebrew ? 'כמות מחושבת: ' : 'Calculated quantity: '}{formatNum(activeQty)} {unitLabel}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    )}
-
-                    {item.pricing_unit && !isMeasurable && (
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: NEON.textSecondary, marginBottom: '3px' }}>
-                          {isHebrew ? `כמות (${getProfessionalUnitLabel(item.pricing_unit, isHebrew)})` : `Quantity (${getProfessionalUnitLabel(item.pricing_unit, isHebrew)})`}
-                        </label>
-                        <input type="number" step="any" value={item.calculated_quantity} onChange={(e) => handleManualQuantityChange(index, e.target.value)} disabled={!canUseProfessionalQuotes} style={{ padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', width: '140px' }} />
-                      </div>
-                    )}
-
-                    {/* חוק ברזל (§168 - specification-only data, 30.E
-                        "Pricing Unit ≠ Specification Data"): רשימת {תווית,ערך}
-                        חופשית-לגמרי - התוויות הן נתון-משתמש (color/profile/
-                        glass/וכו', לעולם לא רשימת-שדות קבועה של האפליקציה).
-                        מוצג ללקוח (Public Quote) אך לעולם לא משפיע על
-                        calculated_quantity/total_price. */}
-                    {item.pricing_unit && (
-                      <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: `1px dashed ${NEON.border}` }}>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: NEON.textSecondary, marginBottom: '4px' }}>
-                          {isHebrew ? 'מפרט טכני (לתצוגה בלבד, לא משפיע על המחיר)' : 'Technical specification (display only, never affects price)'}
-                        </label>
-                        {(item.specification || []).map((spec, sIdx) => (
-                          <div key={sIdx} style={{ display: 'flex', gap: '6px', marginBottom: '5px', alignItems: 'center' }}>
-                            <input type="text" value={spec.label} onChange={(e) => handleSpecificationChange(index, sIdx, 'label', e.target.value)} placeholder={isHebrew ? 'לדוגמה: צבע' : 'e.g. Color'} disabled={!canUseProfessionalQuotes} style={{ flex: '1 1 110px', padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.78rem' }} />
-                            <input type="text" value={spec.value} onChange={(e) => handleSpecificationChange(index, sIdx, 'value', e.target.value)} placeholder={isHebrew ? 'לדוגמה: לבן' : 'e.g. White'} disabled={!canUseProfessionalQuotes} style={{ flex: '1 1 140px', padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.78rem' }} />
-                            <button type="button" onClick={() => removeSpecificationRow(index, sIdx)} disabled={!canUseProfessionalQuotes} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <X size={12} strokeWidth={3} />
-                            </button>
-                          </div>
-                        ))}
-                        <button type="button" onClick={() => addSpecificationRow(index)} disabled={!canUseProfessionalQuotes} style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Plus size={12} strokeWidth={2.5} />
-                          {isHebrew ? 'הוסף שדה מפרט' : 'Add specification field'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <button type="button" onClick={confirmRemoveSection} style={{ flex: 1, background: NEON.red, border: 'none', color: 'white', borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {isHebrew ? 'הסר יחידה' : 'Remove unit'}
+                </button>
               </div>
             </div>
-            )}
-            </div>
-          );
-        })}
+          </div>
+        )}
 
         {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
             כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
@@ -1549,11 +1306,16 @@ function CompactItemCard({
           </div>
         </div>
         <div className="pf-money" style={{ fontWeight: '800', color: NEON.violet, fontSize: '0.88rem', whiteSpace: 'nowrap', flexShrink: 0 }}>{total}</div>
-        <button type="button" onClick={onExpand} aria-label={isHebrew ? 'הרחב/ערוך פריט' : 'Expand/edit item'} style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary, flexShrink: 0 }}>
-          <ChevronDown size={15} />
+        {/* חוק ברזל (Smart Quote Final UX Simplification task, Part L -
+            "replace ambiguous chevrons with explicit visible edit
+            affordance"): טקסט "עריכה"/"Edit" גלוי, לא רק חץ-כיוון ללא
+            הסבר; יעד-מגע 44px לפחות (Part N - מובייל כמעמד ראשון). */}
+        <button type="button" onClick={onExpand} aria-label={isHebrew ? 'עריכה' : 'Edit'} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', padding: '0 10px', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary, flexShrink: 0, fontSize: '0.76rem', fontWeight: '600' }}>
+          <Pencil size={13} />
+          <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
         </button>
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <button ref={triggerRef} type="button" onClick={onToggleMenu} aria-label={isHebrew ? 'פעולות נוספות' : 'More actions'} aria-haspopup="menu" aria-expanded={menuOpen} style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary }}>
+          <button ref={triggerRef} type="button" onClick={onToggleMenu} aria-label={isHebrew ? 'פעולות נוספות' : 'More actions'} aria-haspopup="menu" aria-expanded={menuOpen} style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary }}>
             <MoreVertical size={15} />
           </button>
           {menuOpen && createPortal(
@@ -1579,7 +1341,7 @@ function CompactItemCard({
                 />
               )}
               {sections && sections.length > 0 && (
-                <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העבר לקטגוריה...' : 'Move to section...'} onClick={() => setMovingSectionOpen((v) => !v)} />
+                <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העבר ליחידה...' : 'Move to unit...'} onClick={() => setMovingSectionOpen((v) => !v)} />
               )}
               {movingSectionOpen && (
                 <div style={{ padding: '4px 10px 8px' }} onClick={(e) => e.stopPropagation()}>
@@ -1589,7 +1351,7 @@ function CompactItemCard({
                     onChange={(e) => { onMoveSection(e.target.value); setMovingSectionOpen(false); }}
                     style={{ width: '100%', padding: '5px 6px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.78rem' }}
                   >
-                    <option value="">{isHebrew ? 'ללא קטגוריה' : 'No section'}</option>
+                    <option value="">{isHebrew ? 'ללא יחידה' : 'No unit'}</option>
                     {sections.map((s) => <option key={s.key} value={s.key}>{s.name || (isHebrew ? '(ללא שם)' : '(unnamed)')}</option>)}
                   </select>
                 </div>
@@ -1605,6 +1367,80 @@ function CompactItemCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// חוק ברזל (Smart Quote Structure-First UX Correction task, Locked
+// Decision 4/5/10 - "every unit is a live working container"): כרטיס-
+// יחידה יחיד, מוצג תמיד (גם מכווץ) עם שם/ספירת-פריטים/סכום-ביניים/מצב-
+// ריק/פעולת-הוספה מפורשת - "the user must be able to scan all units and
+// immediately identify a forgotten or empty unit" בלי צורך להרחיב אף
+// כרטיס. isUnassigned: כרטיס "לא משויך" הגלוי (Decision 8) - שם קבוע,
+// לא ניתן לשינוי-שם/הסרה (אין section אמיתית מאחוריו).
+function UnitCard({
+  isHebrew, sym, formatNum, section, itemCount, subtotal, collapsed,
+  onToggleCollapse, onRename, onRemove, onAddItem, isUnassigned, children,
+}) {
+  const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
+  return (
+    <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+        <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחב יחידה' : 'Expand unit') : (isHebrew ? 'כווץ יחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
+          <ChevronDown size={16} style={{ transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+        </button>
+
+        <Building2 size={15} color={NEON.violetLight} style={{ flexShrink: 0 }} />
+
+        {isUnassigned ? (
+          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: NEON.textPrimary, flex: '1 1 140px' }}>{section.name}</span>
+        ) : (
+          <input
+            type="text"
+            value={section.name}
+            onChange={(e) => onRename(e.target.value)}
+            placeholder={isHebrew ? 'לדוגמה: דירה 33, חדר שינה, בניין A' : 'e.g. Apartment 33, Bedroom, Building A'}
+            style={{ flex: '1 1 140px', minWidth: '120px', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', fontWeight: 800, textAlign: isHebrew ? 'right' : 'left' }}
+          />
+        )}
+
+        {/* חוק ברזל (Decision 4 - "even when collapsed, the user must be
+            able to see at minimum: item count; unit subtotal; whether it
+            is empty"): גלוי תמיד בשורת-הכותרת עצמה, לא רק במצב-מורחב. */}
+        <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {itemCount === 0
+            ? (isHebrew ? 'עדיין לא נוספו פריטים' : 'No items added yet')
+            : (isHebrew ? `${itemCount} פריטים` : `${itemCount} item${itemCount === 1 ? '' : 's'}`)}
+        </span>
+
+        {itemCount > 0 && (
+          <span className="pf-money" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatNum(subtotal)}</span>
+        )}
+
+        {!isUnassigned && (
+          <button type="button" onClick={onRemove} title={isHebrew ? 'הסר יחידה' : 'Remove unit'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <X size={14} strokeWidth={3} />
+          </button>
+        )}
+      </div>
+
+      {/* חוק ברזל (Locked Decision 6 - "the primary Add Item action
+          belongs inside each unit"; Decision 4 - "clear Add Item action"
+          visible even collapsed): כפתור-ההוספה נשאר גלוי גם כשמכווץ, לא רק
+          בגוף-המורחב - הקשר-היחידה כבר ידוע (הצטרפות אוטומטית לאשף, ר'
+          defaultSectionKey/wizardSectionKey ב-QuoteForm.jsx). */}
+      <div style={{ padding: '0 12px 10px' }}>
+        <button type="button" onClick={onAddItem} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
+          <Plus size={14} strokeWidth={3} />
+          {isHebrew ? `הוסף מוצר או עבודה ל${unitLabel}` : `Add product or work to ${unitLabel}`}
+        </button>
+      </div>
+
+      {!collapsed && itemCount > 0 && (
+        <div style={{ borderTop: `1px solid ${NEON.borderStrong}`, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
