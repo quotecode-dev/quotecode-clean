@@ -23,8 +23,13 @@ import AppGlobal from './global/AppGlobal';
 // current fields at render time; Dashboard.jsx both reads and clears it) -
 // a frozen/static mock value would make the "/" root-recovery routing
 // tests below unable to simulate a fresh recovery link at all.
-const { mockRootRecoveryIntent, mockUpdateUserImpl } = vi.hoisted(() => ({
+const { mockRootRecoveryIntent, mockRootSignupIntent, mockUpdateUserImpl } = vi.hoisted(() => ({
   mockRootRecoveryIntent: { isRecovery: false, isError: false },
+  // Signup Callback Fix (2026-09-16, TEST-only task): same mutable-object
+  // shape as mockRootRecoveryIntent immediately above, for the independent
+  // signup-intent marker (src/shared/supabase.js's rootSignupIntent) -
+  // AppLocal.jsx/AppGlobal.jsx now read this at render time too.
+  mockRootSignupIntent: { isSignup: false },
   // Codex integration-coverage gap (2026-09-15, second pass): a plain
   // object holder (not a bare `let`) so the mock factory below - evaluated
   // once, before any test body runs - and individual test bodies share the
@@ -54,6 +59,16 @@ vi.mock('./shared/supabase', () => ({
     isRecovery: hash.includes('type=recovery') || search.includes('type=recovery'),
     isError: hash.includes('error_code=') || search.includes('error_code=') || hash.includes('error=') || search.includes('error='),
   }),
+  // Signup Callback Fix (2026-09-16, TEST-only task): mirrors the recovery
+  // marker's mock exports immediately above, independently.
+  rootSignupIntent: mockRootSignupIntent,
+  consumeRootSignupIntent: () => {
+    mockRootSignupIntent.isSignup = false;
+  },
+  computeRootSignupIntent: ({ hash = '', search = '' } = {}) => ({
+    isSignup: hash.includes('type=signup') || search.includes('type=signup'),
+  }),
+  isLocalTestMode: false,
 }));
 
 // PublicTools.jsx/PublicToolsEn.jsx read localStorage synchronously on mount
@@ -119,9 +134,27 @@ describe('AppLocal (HE shell) - real route resolution', () => {
     }
   });
 
-  it('an unknown path falls through to the wildcard LandingLocal, not a blank/broken page (positive control for the fallback route itself)', async () => {
+  // SEO indexing remediation (2026-09-16 TEST task, item B7): this test
+  // used to assert the wildcard route fell through to LandingLocal (the
+  // real homepage component) - a real, confirmed defect, since
+  // LandingLocal unconditionally asserts its own indexable canonical/
+  // title/hreflang/structured-data on every render, with no way to know
+  // it was reached via an unknown path rather than a real homepage visit.
+  // Fixed: the wildcard route now renders a dedicated NotFound component
+  // (src/pages/NotFound.jsx) - distinct content, never mistaken for the
+  // homepage, and (per the second assertion below) an explicit noindex
+  // signal, never the homepage's own indexable canonical carried over by
+  // accident.
+  it('an unknown path falls through to a dedicated NotFound view, not a blank/broken page, and never the real (indexable) homepage', async () => {
     renderAtPath(AppLocal, '/this-path-does-not-exist-anywhere');
-    expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
+    expect(await screen.findByText('404')).toBeInTheDocument();
+    expect(screen.queryByText('מרכז הכלים והמחשבונים העסקיים')).not.toBeInTheDocument();
+  });
+
+  it('the NotFound view sets noindex - an unknown path must never carry the homepage\'s own indexable canonical/meta', async () => {
+    renderAtPath(AppLocal, '/this-path-does-not-exist-anywhere');
+    await screen.findByText('404');
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, nofollow');
   });
 });
 
@@ -157,9 +190,18 @@ describe('AppGlobal (EN shell) - real route resolution', () => {
     }
   });
 
-  it('an unknown path falls through to the wildcard LandingGlobal (positive control)', async () => {
+  // SEO indexing remediation (2026-09-16 TEST task, item B7) - see the
+  // AppLocal equivalent test above for the full root-cause/fix rationale,
+  // identical here for the EN shell.
+  it('an unknown path falls through to a dedicated NotFound view, never the real (indexable) homepage', async () => {
     renderAtPath(AppGlobal, '/this-path-does-not-exist-anywhere');
-    expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
+    expect(await screen.findByText('404')).toBeInTheDocument();
+  });
+
+  it('the NotFound view sets noindex for an unknown EN path too', async () => {
+    renderAtPath(AppGlobal, '/this-path-does-not-exist-anywhere');
+    await screen.findByText('404');
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, nofollow');
   });
 });
 
@@ -190,6 +232,7 @@ describe('Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task) 
   beforeEach(() => {
     mockRootRecoveryIntent.isRecovery = false;
     mockRootRecoveryIntent.isError = false;
+    mockRootSignupIntent.isSignup = false;
   });
 
   it('HE: root "/" with a recovery marker mounts the Dashboard/AuthScreen recovery owner, not LandingLocal', async () => {
@@ -255,6 +298,79 @@ describe('Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task) 
     await new Promise((r) => setTimeout(r, 0));
     expect(mockRootRecoveryIntent.isRecovery).toBe(false);
     expect(mockRootRecoveryIntent.isError).toBe(false);
+  });
+});
+
+// Signup Callback Fix (2026-09-16, TEST-only task): EN AUTH SIGNUP EMAIL
+// root cause was a fresh signup-confirmation link's callback landing on
+// bare "/" and silently mounting the public landing page instead of the
+// authenticated app - the "/" route previously had NO fallback at all for
+// type=signup (unlike recovery, which already had rootRecoveryIntent for
+// the identical class of Supabase redirect-allowlist fallback). These
+// tests prove the fix through REAL route resolution (the same class of
+// proof AppShellRoutes.test.jsx exists for, per this file's own header
+// comment), not a source-string check - the actual defect was "the wrong
+// React component mounts," which only a real route-resolution test can
+// catch.
+describe('Signup Callback Fix (2026-09-16 task) - real route resolution', () => {
+  beforeEach(() => {
+    mockRootRecoveryIntent.isRecovery = false;
+    mockRootRecoveryIntent.isError = false;
+    mockRootSignupIntent.isSignup = false;
+  });
+
+  it('HE: root "/" with a signup-confirmation marker mounts Dashboard/AuthScreen (the authenticated app), not the public LandingLocal', async () => {
+    mockRootSignupIntent.isSignup = true;
+    renderAtPath(AppLocal, '/');
+    expect(await screen.findByText('התחבר למערכת הניהול שלך')).toBeInTheDocument();
+    expect(screen.queryByText('מרכז הכלים והמחשבונים העסקיים')).not.toBeInTheDocument();
+  });
+
+  it('EN: root "/" with a signup-confirmation marker mounts Dashboard/AuthScreen (the authenticated app), not the public LandingGlobal', async () => {
+    mockRootSignupIntent.isSignup = true;
+    renderAtPath(AppGlobal, '/');
+    expect(await screen.findByText('Sign in to your management dashboard')).toBeInTheDocument();
+  });
+
+  it('HE: root "/" WITHOUT a signup marker still renders the ordinary public landing page (no regression to normal traffic)', async () => {
+    renderAtPath(AppLocal, '/');
+    expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('התחבר למערכת הניהול שלך')).not.toBeInTheDocument();
+  });
+
+  it('EN: root "/" WITHOUT a signup marker still renders the ordinary public landing page', async () => {
+    renderAtPath(AppGlobal, '/');
+    expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Sign in to your management dashboard')).not.toBeInTheDocument();
+  });
+
+  it('a signup marker does not leak into recovery mode - the login screen renders, not the "Set New Password" form (no cross-contamination between the two independent markers)', async () => {
+    mockRootSignupIntent.isSignup = true;
+    renderAtPath(AppGlobal, '/');
+    expect(await screen.findByText('Sign in to your management dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('Set New Password')).not.toBeInTheDocument();
+  });
+
+  it('recovery behavior is completely unaffected by the signup marker existing - a recovery marker (signup marker false) still reaches "Set New Password", not the login screen', async () => {
+    mockRootRecoveryIntent.isRecovery = true;
+    renderAtPath(AppGlobal, '/');
+    expect(await screen.findByText('Set New Password')).toBeInTheDocument();
+    expect(screen.queryByText('Sign in to your management dashboard')).not.toBeInTheDocument();
+  });
+
+  it('the direct /dashboard?lang=en route (hash still present) is unaffected by this fix - documents that the "/" fallback is additive, not a replacement for the primary redirect fix', async () => {
+    cleanup();
+    window.history.pushState({}, '', '/dashboard?lang=en#access_token=fake&type=signup');
+    render(<AppGlobal />);
+    expect(await screen.findByText('Sign in to your management dashboard')).toBeInTheDocument();
+  });
+
+  it('the marker is cleared after Dashboard consumes it, so a later render in the same module instance does not re-trigger the authenticated route from stale state', async () => {
+    mockRootSignupIntent.isSignup = true;
+    renderAtPath(AppGlobal, '/');
+    await screen.findByText('Sign in to your management dashboard');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockRootSignupIntent.isSignup).toBe(false);
   });
 });
 

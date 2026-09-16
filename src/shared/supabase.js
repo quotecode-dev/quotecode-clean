@@ -9,7 +9,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 // במצב ברירת המחדל/פרודקשן ה-guard כולו לא רץ ואין שום שינוי התנהגות.
 const PRODUCTION_PROJECT_REF = 'ixabnzhjeqevtbhdfswv'
 const TEST_PROJECT_REF = 'ljfizgrdyzxddswcedwr'
-const isLocalTestMode = import.meta.env.MODE === 'localtest'
+export const isLocalTestMode = import.meta.env.MODE === 'localtest'
 
 function extractSupabaseProjectRef(url) {
   const match = typeof url === 'string' && url.match(/^https:\/\/([a-z0-9]+)\.supabase\.co\/?$/)
@@ -85,6 +85,33 @@ export const rootRecoveryIntent = typeof window === 'undefined'
 export function consumeRootRecoveryIntent() {
   rootRecoveryIntent.isRecovery = false;
   rootRecoveryIntent.isError = false;
+}
+
+// Signup Callback Fix (2026-09-16, TEST-only task): same pattern as
+// rootRecoveryIntent immediately above, for `type=signup` - a fresh signup
+// confirmation link's callback can also land on bare "/" (identical
+// Supabase redirect-URL-allowlist mechanism, not a signup-specific
+// difference), and unlike recovery, the "/" route previously had NO
+// fallback check at all for this case, so a successfully-verified signup
+// silently mounted the public landing page instead of the authenticated
+// app. Deliberately does not carry language/market info of its own (same
+// limitation rootRecoveryIntent already has) - the actual market-safe fix
+// is emailRedirectTo now explicitly carrying ?lang=he|en in TEST (see
+// Dashboard.jsx's handleAuth), so this is a defense-in-depth fallback for
+// the same class of edge case rootRecoveryIntent already covers for
+// recovery, not the primary correctness mechanism.
+export function computeRootSignupIntent({ hash = '', search = '' } = {}) {
+  return {
+    isSignup: hash.includes('type=signup') || search.includes('type=signup'),
+  };
+}
+
+export const rootSignupIntent = typeof window === 'undefined'
+  ? { isSignup: false }
+  : computeRootSignupIntent({ hash: window.location.hash || '', search: window.location.search || '' });
+
+export function consumeRootSignupIntent() {
+  rootSignupIntent.isSignup = false;
 }
 
 // יצירת הקליינט עם תמיכה מובנית ב-Realtime

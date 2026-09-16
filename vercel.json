@@ -72,6 +72,18 @@
       ]
     },
     {
+      "source": "/professional-preview",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/public-quote/:id/preview",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
       "source": "/dashboard",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }

@@ -3,7 +3,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent } from '../shared/supabase';
+import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
@@ -489,6 +489,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // remount/navigation within the same page load can never re-trigger
     // recovery mode from stale boot-time state.
     consumeRootRecoveryIntent();
+    // Signup Callback Fix (2026-09-16): same one-shot-clear rationale as
+    // consumeRootRecoveryIntent() immediately above, for the independent
+    // signup-intent marker (src/shared/supabase.js's rootSignupIntent) - a
+    // later "/" navigation within the same page load must not re-trigger
+    // mounting Dashboard from stale boot-time state. Does not read or touch
+    // any recovery-related variable.
+    consumeRootSignupIntent();
   }, [bundleIsHebrew]);
 
   useEffect(() => {
@@ -1750,7 +1757,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // לא שפת דפדפן, לא geo) - פשוט לא נרשמים, ומוצגת שגיאה כללית. emailRedirectTo
       // מוצמד לדומיין הקנוני המפורש בכוונה (לא window.location.origin), כדי
       // שהאימות תמיד יחזור ל-www.tekango.com גם אם ההרשמה בוצעה
-      // דרך quotecode.vercel.app.
+      // דרך quotecode.vercel.app - **בפרודקשן בלבד, ר' isLocalTestMode למטה**.
       if (typeof bundleIsHebrew !== 'boolean') {
         // Genuinely can't know the language here (the one signal this
         // whole function trusts is itself missing) - a hardcoded English
@@ -1760,11 +1767,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         return;
       }
 
+      // Signup Callback Fix (2026-09-16, TEST-only task): the Production-pinned
+      // emailRedirectTo above previously ran unchanged in TEST too, where
+      // https://www.tekango.com/dashboard is not on the TEST project's own
+      // redirect allow-list - Supabase silently fell back to the TEST
+      // site_url's bare root, landing a successfully-confirmed signup on the
+      // public marketing page instead of the authenticated app (root cause
+      // confirmed via a fresh, read-only `supabase config diff`, see
+      // PROFLOW_CODEX_CHECKPOINT.md). isLocalTestMode (src/shared/supabase.js)
+      // is the same live/TEST discriminator that module's own fail-closed
+      // guard already uses. In TEST this mirrors handleResetSubmit's own
+      // dynamic-origin + explicit ?lang= pattern below (same reasoning:
+      // preserves market/language across the redirect, not just the origin).
+      // Production behavior is completely unchanged.
+      const emailRedirectTo = isLocalTestMode
+        ? window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en')
+        : 'https://www.tekango.com/dashboard';
+
       const { data, error } = await supabase.auth.signUp({
         email: emailInput,
         password: passwordInput,
         options: {
-          emailRedirectTo: 'https://www.tekango.com/dashboard',
+          emailRedirectTo,
           data: { signup_market: bundleIsHebrew ? 'Local' : 'International' }
         }
       });

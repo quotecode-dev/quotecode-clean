@@ -7,6 +7,7 @@ import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import CustomerQuoteItemRow from '../components/CustomerQuoteItemRow';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { formatMoney } from '../utils/money';
+import { setSeoMeta } from '../utils/seoMeta';
 
 // Customer-facing preview: full-quote-context comparison of the CURRENT
 // public quote presentation against three distinct new customer-facing
@@ -60,6 +61,16 @@ function useIsMobileView() {
 export default function ProfessionalPublicPreview() {
   const { id } = useParams();
   const [state, setState] = useState({ status: 'loading', dto: null });
+
+  // SEO indexing remediation (2026-09-16 TEST task): this is a PUBLIC (no
+  // login required) internal preview route, reachable by a crawler with no
+  // auth barrier at all - a real "internal/test route reachable to
+  // crawlers" risk. `noindex: true` is the one required explicit
+  // assertion; never treated as an independent indexable page regardless
+  // of how a crawler might reach a specific quote id.
+  useEffect(() => {
+    setSeoMeta({ noindex: true });
+  }, []);
   const initialVariant = new URLSearchParams(window.location.search).get('variant');
   const [variant, setVariant] = useState(VARIANTS.some((v) => v.key === initialVariant) ? initialVariant : 'B+');
   const isMobileView = useIsMobileView();

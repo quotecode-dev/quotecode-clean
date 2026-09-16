@@ -45,7 +45,15 @@
     <meta property="og:title" content="TEKANGO - SaaS Business & Quoting Platform" />
     <meta property="og:description" content="Smart quotes and client management made easy." />
     <meta property="og:url" content="https://www.tekango.com/" />
-    <meta property="og:image" content="https://www.tekango.com/tekango-logo-horizontal-white.png" />
+    <!-- SEO indexing remediation (2026-09-16 TEST task): og/twitter:image
+         previously referenced /tekango-logo-horizontal-white.png, a V1
+         asset that no longer exists in public/ - the URL fell through the
+         SPA catch-all rewrite and served index.html (text/html) instead of
+         an image, so link previews on Facebook/Twitter/Slack/etc. broke
+         silently. Repointed to an actual deployed asset already used
+         elsewhere in this app (src/components/ProFlowLogo.jsx's own
+         light-background variant) rather than inventing a new one. -->
+    <meta property="og:image" content="https://www.tekango.com/tekango-logo-horizontal-light-transparent.png" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="he_IL" />
 
@@ -53,10 +61,22 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TEKANGO - SaaS Business & Quoting Platform" />
     <meta name="twitter:description" content="Smart quotes and client management made easy." />
-    <meta name="twitter:image" content="https://www.tekango.com/tekango-logo-horizontal-white.png" />
+    <meta name="twitter:image" content="https://www.tekango.com/tekango-logo-horizontal-light-transparent.png" />
 
-    <!-- Google Structured Data (JSON-LD) for SaaS -->
-    <script type="application/ld+json">
+    <!-- Google Structured Data (JSON-LD) for SaaS - static fallback only
+         for the very first paint before any client route mounts. SEO
+         indexing remediation (2026-09-16 TEST task): this tag was NEVER
+         removed once a real page's own setSeoMeta({ structuredData })
+         override mounted (src/utils/seoMeta.js only ever added/removed its
+         OWN #proflow-structured-data-override tag, never touched this
+         static one) - pages that provide their own correct, localized
+         structured data ended up shipping TWO SoftwareApplication JSON-LD
+         blocks simultaneously, one with this tag's own hardcoded USD
+         pricing (wrong for a Hebrew/ILS page) and one with the page's real
+         data. The `id` below lets setSeoMeta.js remove this tag
+         permanently on its very first call (every real, indexable page in
+         this app calls setSeoMeta on mount) - see that file's own comment. -->
+    <script type="application/ld+json" id="proflow-static-structured-data">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",

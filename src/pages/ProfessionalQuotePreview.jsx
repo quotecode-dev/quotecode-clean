@@ -6,6 +6,7 @@ import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllow
 import { classifyQuoteItems } from '../utils/professionalItemClassifier';
 import ProfessionalItemComparisonCard from '../components/ProfessionalItemComparisonCard';
 import { formatQuoteFallback } from '../utils/quoteNumber';
+import { setSeoMeta } from '../utils/seoMeta';
 
 // Business-side (authenticated) preview: "how would MY existing quote look in
 // the new professional item experience?" Read-only - fetches the account's
@@ -17,6 +18,16 @@ import { formatQuoteFallback } from '../utils/quoteNumber';
 export default function ProfessionalQuotePreview() {
   const navigate = useNavigate();
   const [state, setState] = useState({ status: 'loading', quote: null, items: null });
+
+  // SEO indexing remediation (2026-09-16 TEST task): an internal,
+  // authenticated-only preview route - never intended to be indexed even
+  // if a crawler somehow reached it (e.g. via a leaked/shared link).
+  // `noindex: true` is the one required explicit assertion; every other
+  // setSeoMeta field is omitted since this route has no real title/
+  // description/hreflang of its own to advertise.
+  useEffect(() => {
+    setSeoMeta({ noindex: true });
+  }, []);
 
   useEffect(() => {
     (async () => {

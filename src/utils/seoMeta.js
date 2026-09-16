@@ -23,10 +23,37 @@ import { CANONICAL_ORIGIN } from '../shared/brand';
 // (SoftwareApplication, priceCurrency:"USD") ירש לכל עמוד עברי גם הוא.
 // updateSocial:false (רק LandingLocal/LandingGlobal השתמשו בו, "שלב עתידי
 // נפרד") הוסר בכוונה - זהו בדיוק אותו שלב עתידי, עכשיו.
-export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription, hreflang, lang, structuredData, updateSocial = true }) {
+// SEO indexing remediation (2026-09-16 TEST task), item B6: a fresh audit
+// found this function had NO robots/indexing-state handling at all, and
+// its own hreflang handling only ever ADDED/UPDATED tags, never REMOVED
+// one a previous page had set that the current page doesn't repeat - both
+// are real, confirmed "stale SPA meta across navigation" defects: a page
+// previously marked noindex (item B1's internal preview routes now call
+// this with `noindex: true`) would leave that state behind on the next
+// page that doesn't explicitly reset it, and a hreflang cluster from one
+// content family (e.g. /he/tools's own alternates) could survive
+// navigation to a page with a different/no cluster of its own. Both are
+// fixed by making every call an EXPLICIT, total assertion of the current
+// page's indexing/hreflang state rather than a partial patch - `noindex`
+// defaults to `false` (index, follow) on every call with no exception,
+// and `hreflang` tags not present in the CURRENT call are actively
+// removed, never left over from the last page that happened to set them.
+export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescription, hreflang, lang, structuredData, updateSocial = true, noindex = false }) {
   if (typeof document === 'undefined') return;
 
   if (title) document.title = title;
+
+  // Always writes an explicit value - never conditional, never skipped -
+  // so a noindex page navigated away from can never leave that state
+  // behind, and an indexable page always positively asserts index,follow
+  // rather than merely "not overriding" whatever robots state came before.
+  let robotsTag = document.querySelector('meta[name="robots"]');
+  if (!robotsTag) {
+    robotsTag = document.createElement('meta');
+    robotsTag.setAttribute('name', 'robots');
+    document.head.appendChild(robotsTag);
+  }
+  robotsTag.setAttribute('content', noindex ? 'noindex, nofollow' : 'index, follow');
 
   const setMeta = (selector, attr, value) => {
     if (!value) return;
@@ -77,25 +104,47 @@ export function setSeoMeta({ title, description, canonicalPath, ogTitle, ogDescr
   // of { lang: 'he' | 'en' | 'x-default', path: '/he/contact' }. Reuses the
   // find-or-create pattern above so repeated calls (e.g. on isHebrew change)
   // update the existing <link> tags in place instead of creating duplicates.
-  if (Array.isArray(hreflang)) {
-    hreflang.forEach(({ lang: hrefLang, path: hrefPath }) => {
-      if (!hrefLang || !hrefPath) return;
-      let tag = document.querySelector(`link[rel="alternate"][hreflang="${hrefLang}"]`);
-      if (!tag) {
-        tag = document.createElement('link');
-        tag.setAttribute('rel', 'alternate');
-        tag.setAttribute('hreflang', hrefLang);
-        document.head.appendChild(tag);
-      }
-      tag.setAttribute('href', `${CANONICAL_ORIGIN}${hrefPath}`);
-    });
-  }
+  //
+  // Fix (item B6 above): a hreflang tag from the PREVIOUS page's own
+  // cluster that this call does not repeat is now actively removed - the
+  // full set of `link[rel=alternate][hreflang]` tags is reconciled to
+  // EXACTLY what this call specifies (an empty/omitted `hreflang` clears
+  // every existing one), never a partial patch that could leave one
+  // page's alternates pointing at a completely different page after SPA
+  // navigation.
+  const hreflangEntries = Array.isArray(hreflang) ? hreflang.filter((h) => h && h.lang && h.path) : [];
+  const keepLangs = new Set(hreflangEntries.map((h) => h.lang));
+  document.querySelectorAll('link[rel="alternate"][hreflang]').forEach((tag) => {
+    if (!keepLangs.has(tag.getAttribute('hreflang'))) tag.remove();
+  });
+  hreflangEntries.forEach(({ lang: hrefLang, path: hrefPath }) => {
+    let tag = document.querySelector(`link[rel="alternate"][hreflang="${hrefLang}"]`);
+    if (!tag) {
+      tag = document.createElement('link');
+      tag.setAttribute('rel', 'alternate');
+      tag.setAttribute('hreflang', hrefLang);
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute('href', `${CANONICAL_ORIGIN}${hrefPath}`);
+  });
 
-  // JSON-LD structured data override - replaces the static SoftwareApplication
-  // (priceCurrency:"USD") baked into index.html with a page-appropriate one
-  // (or removes the override entirely when a page passes none, falling back
-  // to the static default - never leaves a stale tag from a previous route
-  // behind after client-side navigation).
+  // Fix (item B10 above): the static SoftwareApplication JSON-LD baked
+  // into index.html (priceCurrency:"USD", id="proflow-static-structured-
+  // data") is removed the FIRST time any real page's own setSeoMeta call
+  // runs - it existed only for the very first paint before any client
+  // route mounts, and every real indexable page in this app calls
+  // setSeoMeta on mount, so this always fires before a crawler executing
+  // JS would see the final DOM. Without this, a page that provides its
+  // own correct structuredData ended up shipping TWO SoftwareApplication
+  // blocks simultaneously (the static USD one plus this page's own,
+  // correct, localized one) - a genuine duplicate-schema defect. Idempotent
+  // (a no-op once already removed).
+  document.getElementById('proflow-static-structured-data')?.remove();
+
+  // JSON-LD structured data override - the ONE dynamic structured-data
+  // tag this app now carries once the static default above is gone (or
+  // removes itself entirely when a page passes none - never leaves a
+  // stale tag from a previous route behind after client-side navigation).
   let ldTag = document.getElementById('proflow-structured-data-override');
   if (structuredData) {
     if (!ldTag) {

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingLocal from '../pages/LandingLocal';
 import Dashboard from '../pages/Dashboard';
-import { rootRecoveryIntent } from '../shared/supabase';
+import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicTools from '../components/PublicTools';
@@ -11,6 +11,7 @@ import ProfessionalPublicPreview from '../pages/ProfessionalPublicPreview';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
+import NotFound from '../pages/NotFound';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 
 export default function AppLocal() {
@@ -64,8 +65,14 @@ export default function AppLocal() {
             implementation), so the account's own real recovery/expired-link
             handling takes over. Ordinary "/" traffic (the marker false) is
             completely unaffected and still renders LandingLocal exactly as
-            before. */}
-        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError) ? <Dashboard bundleIsHebrew={true} /> : <LandingLocal />} />
+            before.
+            Signup Callback Fix (2026-09-16, TEST-only task): OR'd in
+            rootSignupIntent.isSignup, the identical fallback for a fresh
+            signup-confirmation link's callback landing on bare "/" (same
+            Supabase redirect-allowlist mechanism, previously had no
+            fallback at all here). Recovery's own condition/behavior is
+            unchanged - this only adds an independent additional case. */}
+        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={true} /> : <LandingLocal />} />
         <Route path="/he" element={<LandingLocal />} />
         {/* bundleIsHebrew=true: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
@@ -114,7 +121,14 @@ export default function AppLocal() {
         <Route path="/contact" element={<Contact isHebrew={true} />} />
         <Route path="/he/contact" element={<Contact isHebrew={true} />} />
 
-        <Route path="*" element={<LandingLocal />} />
+        {/* SEO indexing remediation (2026-09-16 TEST task, item B7): an
+            unknown path used to fall through here to LandingLocal, the
+            real (indexable) homepage - a soft-404/duplicate-URL risk, since
+            LandingLocal unconditionally asserts its own canonical/hreflang/
+            structured-data on every render with no way to know it was
+            reached via an invalid path. NotFound is a dedicated view that
+            asserts noindex instead. See src/pages/NotFound.jsx. */}
+        <Route path="*" element={<NotFound isHebrew={true} />} />
       </Routes>
     </BrowserRouter>
   );

@@ -7,13 +7,14 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
 import Dashboard from '../pages/Dashboard';
-import { rootRecoveryIntent } from '../shared/supabase';
+import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
+import NotFound from '../pages/NotFound';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 
 export default function AppGlobal() {
@@ -54,8 +55,14 @@ export default function AppGlobal() {
             task) - EN twin of AppLocal.jsx's own identical "/" route fix;
             see that file's comment and src/shared/supabase.js's
             rootRecoveryIntent for the full root-cause explanation and
-            contract. Ordinary "/" traffic is unaffected. */}
-        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError) ? <Dashboard bundleIsHebrew={false} /> : <LandingGlobal />} />
+            contract. Ordinary "/" traffic is unaffected.
+            Signup Callback Fix (2026-09-16, TEST-only task): OR'd in
+            rootSignupIntent.isSignup, the identical fallback for a fresh
+            signup-confirmation link's callback landing on bare "/" (same
+            Supabase redirect-allowlist mechanism, previously had no
+            fallback at all here). Recovery's own condition/behavior is
+            unchanged - this only adds an independent additional case. */}
+        <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={false} /> : <LandingGlobal />} />
         <Route path="/en" element={<LandingGlobal />} />
         {/* bundleIsHebrew=false: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
@@ -92,7 +99,9 @@ export default function AppGlobal() {
         <Route path="/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
 
-        <Route path="*" element={<LandingGlobal />} />
+        {/* SEO indexing remediation (2026-09-16 TEST task, item B7): see the
+            identical AppLocal.jsx comment above / src/pages/NotFound.jsx. */}
+        <Route path="*" element={<NotFound isHebrew={false} />} />
       </Routes>
     </BrowserRouter>
   );
