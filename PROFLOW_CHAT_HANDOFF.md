@@ -95,6 +95,10 @@ the huge technical histories already stored in `PROFLOW_HANDOFF.md`.
 
 **Scope note**: this standard governs professional working method — evidence discipline, delegation judgment, root-cause reasoning, checkpoint continuity, recommendation quality, Owner/agent boundaries, verification depth, change scope, follow-through, and communication quality. It is deliberately **not** a record of conversational style, nicknames, temporary infrastructure state, current SHAs, current blockers, or ephemeral technical workarounds — those belong in `PROFLOW_HANDOFF.md`/`PROFLOW_PROJECT_CONTEXT.md`'s own current-state sections, not here. This section is permanent and evergreen; do not edit it to reflect the state of any single task.
 
+## 0.3 ⚠️ CURRENT-STATE POINTER (added 2026-09-16, "Final Reconciliation / Continuity Closure" task)
+
+This file's own resume-point narrative further below has not been freshly re-synced today. As of 2026-09-16 (later same day): an Owner-authorized one-time Codex Builder exception is remediating **Admin V1**, entirely inside the separate worktree `C:\tkrtl1` — status **PARTIAL**, HE browser-verified, **EN/International Super Admin acceptance BLOCKED** (no International Super Admin TEST credentials exist), Task 3 backend deploy on **HOLD**, nothing committed/pushed. The Owner's own visual assessment: an improvement exists, but not a major enough transformation to declare Admin complete. Separately, commit `7cd78ea` (**Signup callback fix + SEO fix**) is confirmed **LIVE on Production**; the Owner has since directly confirmed the real-email terminal outcome — **SIGNUP: CLOSED** (HE + EN both delivered/clicked/completed end-to-end, ~09:15 local time 2026-09-16); Password Recovery's root cause remains a **separate, still-open** item, not closed by this. Full detail: `PROFLOW_CODEX_CHECKPOINT.md`'s `ACTIVE_TASK` and "Latest completed and verified work" sections — the authoritative source, this is a pointer only.
+
 ## 1. Roles and decision authority
 
 **Owner**: final authority for product, visual acceptance, LIVE, migrations,
@@ -401,10 +405,7 @@ Production (`clever-processor` and `send-welcome-email` have **no local
 source anywhere in this repo** — undocumented drift, purposes unclarified),
 **0 on TEST**. `get-public-quote` is the sole data source for the entire
 Public Quote page (not just attachments) — the single most important
-function for a first visible milestone. **[STALE, corrected 2026-09-09]**:
-source for both is now recovered (§218) and their wiring is CONFIRMED
-absent on both projects, not merely undocumented — see
-`PROFLOW_PROJECT_CONTEXT.md` §220.
+function for a first visible milestone.
 
 **Agent HE: PASS WITH CONDITIONS. Agent EN: BLOCKED** (citing the
 long-documented absence of any non-Owner International identity). **Claude
@@ -1370,9 +1371,7 @@ commit.
 
 ## 14. Current resume point
 
-**🟢 UPDATED 2026-09-09, same day, mandatory continuation task (SIGNATURE CONTRACT CORRECTION + TEST/LIVE HEADER ROOT-CAUSE + GATES E/F BUILT — READ THIS PARAGRAPH FIRST).** The Owner provided direct evidence that §218's own stated success conditions were not met: (1) creating and opening a real quote showed the exact old "cannot be signed from a logged-in business account… use incognito" dead-end §218 was supposed to have closed — §218's fix only blocked the *broad* case (any business account), not specifically the quote's own owner; (2) the Owner directly observed the new dark header live on Production while TEST still showed the old header, proving `TEST UI != LIVE UI`. **Signature contract re-derived from first principles**: anonymous approval is `public_approve_quote`'s fully-open intended path, so the broad business-account block added no real anti-forgery protection (a determined actor already bypasses it via incognito) while blocking legitimate customers who also run their own TEKANGO account — corrected to reject only the quote's *own owner* (`auth.uid() = quotes.user_id`), migration `20260909000000` applied to both TEST and Production. **Live-verified end-to-end on TEST with two fresh synthetic business accounts** (no real customer data): the quote's owner is still correctly blocked (UI shows an admin-view note; a direct RPC call as the owner independently confirms HTTP 403 server-side); a *different* authenticated business account — the exact scenario the Owner reported broken — now sees the full signing UI and successfully signed a real quote end-to-end, confirmed in the database; anonymous approval (HTTP 204) remains unchanged. **TEST/LIVE header root cause**: every §217/§218 fix was pushed straight to `origin/main`/Production, but nothing ever updated what `npm run dev:localtest` actually served (the long-diverged dirty tree) — fixed by resetting the existing-but-abandoned worktree `C:/tkrc2` to `origin/main` and adopting it as the permanent canonical TEST mirror (Gate A), verified byte-identical to Production by querying the running dev server's actual served source. **Gates E and F built and proven live, not just designed**: Gate F (`src/shared/versionAwareness.js` + `UpdateAvailableBanner.jsx`, a Vite plugin embedding the build SHA into both the bundle and a `dist/version.json`) and Gate E (`scripts/verify-production-artifact.js`, read-only HTTP check) — run for real after deploy: PRODUCTION ARTIFACT MATCHES the exact commit approved on TEST. Orphan-function (`clever-processor`/`send-welcome-email`) wiring remains explicitly UNKNOWN (no Management API access available, re-confirmed not silently dropped); the 4 TEST secret values remain the Owner-only blocker for full TEST parity. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §219. **RESOLUTION STATUS**: signature flow PASS (now proven end-to-end on TEST with real accounts under the corrected contract), header TEST/LIVE parity PASS, stale-client version risk mitigated YES, TEST artifact == Production artifact YES for the first time — but **current release process safe enough for general Production remains NO**: the full synthetic-persona matrix, automated critical-journey suite, and complete authenticated-UI parity matrix remain open. **Mutations this task**: application code changed, 3 commits pushed directly to `origin/main`, one migration applied to both TEST and Production, `get-public-quote` redeployed to both, two synthetic TEST `auth.users` rows had `email_confirmed_at` set via Owner-approved direct SQL (TEST only, no real customer data), 2 synthetic TEST quotes created/approved — zero Production customer data, zero David Aluminum, zero Professional Quotes migrations applied.
-
-**Prior paragraph, kept for history (2026-09-09, same day, systemic remediation task, FULL SYSTEMIC REMEDIATION — LIVE DEFECTS, TEST↔LIVE TOOLING, HEADER UI).** Following a read-only Production-readiness audit (§217) into why "TEST passes, Claude reports PASS, Production is still wrong" kept recurring, the Owner authorized full remediation (§218). **Live defects fixed and verified on Production with real accounts**: `chat-ai` was serving 1.5-day-stale pre-rebrand content (redeployed, verified clean); the Public Quote **signature contract gap** — a business account other than the quote's own owner could see the full signing UI and only fail after signing, matching the Owner's exact "signature draws, Approve fails" report — closed by having `get-public-quote` expose a read-only `caller_is_business_account` flag so the UI blocks before canvas entry, RPC untouched; live-verified all 3 states (anonymous/owner/other-business-account) with real accounts. The **Public Quote redesign** the Owner had reviewed (dark header, PDF export, print modes, signer-identity capture, WhatsApp tile) was found to exist only in the uncommitted dirty tree, never promoted anywhere — extracted and released, explicitly excluding everything dependent on the unapplied Professional Quotes migrations. Two Production Edge Functions (`clever-processor`, `send-welcome-email`) had **zero source in git** — recovered byte-for-byte, redeploy held pending trigger-wiring confirmation. `billing-checkout-stub` and (newly found via the new domain-drift guard) `PublicTools.jsx`/`PublicToolsEn.jsx`'s live SEO title/copy both had the same stale-brand defect, fixed. **New permanent tooling, built and run for real**: `scripts/check-test-live-parity.js` (generic TEST↔Production structural diff, categorized output, replaces every past release's bespoke one-off script), `scripts/generate-release-manifest.js`, `scripts/retired-domain-guard.test.js`, `src/AppShellRoutes.test.jsx` (first-ever tests rendering the real app shells and resolving real routes), `src/shared/brand.js`, `CONFIG_MANIFEST.md`. All 9 Edge Functions now deployed to TEST for the first time (was 2 of 9) — blocked only on 4 secret *values* only the Owner can provide. Header UI (Phase 9, done last per its own sequencing): the top workspace panel now matches the sidebar's dark background/visual language, live-verified legible on HE/EN Desktop and EN Mobile. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §217 (audit) and §218 (remediation). **RESOLUTION STATUS**: chat-ai brand parity PASS, signature flow PASS, Public Quote UI parity PASS (for the released safe subset), orphan functions source-controlled YES (redeploy gated) — but **current release process safe enough for general Production remains NO**: Gates A/C/D(full)/E/F are designed, not built, and future releases still use manual worktree reconstruction until a dedicated follow-up task builds them. **Mutations this task**: application code changed, 8 commits pushed directly to `origin/main`, Production frontend deployed multiple times, 3 Edge Functions redeployed to Production (`chat-ai`, `billing-checkout-stub`, `get-public-quote`), all 9 deployed to TEST for the first time — zero schema/secrets/customer-data/Search-Console/DNS mutation, zero Professional Quotes migrations applied.
+**🟢 UPDATED 2026-09-09, same day, systemic remediation task (FULL SYSTEMIC REMEDIATION — LIVE DEFECTS, TEST↔LIVE TOOLING, HEADER UI — READ THIS PARAGRAPH FIRST).** Following a read-only Production-readiness audit (§217) into why "TEST passes, Claude reports PASS, Production is still wrong" kept recurring, the Owner authorized full remediation (§218). **Live defects fixed and verified on Production with real accounts**: `chat-ai` was serving 1.5-day-stale pre-rebrand content (redeployed, verified clean); the Public Quote **signature contract gap** — a business account other than the quote's own owner could see the full signing UI and only fail after signing, matching the Owner's exact "signature draws, Approve fails" report — closed by having `get-public-quote` expose a read-only `caller_is_business_account` flag so the UI blocks before canvas entry, RPC untouched; live-verified all 3 states (anonymous/owner/other-business-account) with real accounts. The **Public Quote redesign** the Owner had reviewed (dark header, PDF export, print modes, signer-identity capture, WhatsApp tile) was found to exist only in the uncommitted dirty tree, never promoted anywhere — extracted and released, explicitly excluding everything dependent on the unapplied Professional Quotes migrations. Two Production Edge Functions (`clever-processor`, `send-welcome-email`) had **zero source in git** — recovered byte-for-byte, redeploy held pending trigger-wiring confirmation. `billing-checkout-stub` and (newly found via the new domain-drift guard) `PublicTools.jsx`/`PublicToolsEn.jsx`'s live SEO title/copy both had the same stale-brand defect, fixed. **New permanent tooling, built and run for real**: `scripts/check-test-live-parity.js` (generic TEST↔Production structural diff, categorized output, replaces every past release's bespoke one-off script), `scripts/generate-release-manifest.js`, `scripts/retired-domain-guard.test.js`, `src/AppShellRoutes.test.jsx` (first-ever tests rendering the real app shells and resolving real routes), `src/shared/brand.js`, `CONFIG_MANIFEST.md`. All 9 Edge Functions now deployed to TEST for the first time (was 2 of 9) — blocked only on 4 secret *values* only the Owner can provide. Header UI (Phase 9, done last per its own sequencing): the top workspace panel now matches the sidebar's dark background/visual language, live-verified legible on HE/EN Desktop and EN Mobile. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §217 (audit) and §218 (remediation). **RESOLUTION STATUS**: chat-ai brand parity PASS, signature flow PASS, Public Quote UI parity PASS (for the released safe subset), orphan functions source-controlled YES (redeploy gated) — but **current release process safe enough for general Production remains NO**: Gates A/C/D(full)/E/F are designed, not built, and future releases still use manual worktree reconstruction until a dedicated follow-up task builds them. **Mutations this task**: application code changed, 8 commits pushed directly to `origin/main`, Production frontend deployed multiple times, 3 Edge Functions redeployed to Production (`chat-ai`, `billing-checkout-stub`, `get-public-quote`), all 9 deployed to TEST for the first time — zero schema/secrets/customer-data/Search-Console/DNS mutation, zero Professional Quotes migrations applied.
 
 **Prior paragraph, kept for history (2026-09-09, corrective task, QUOTE SEARCH LIVE RE-VERIFICATION — OWNER CONTRADICTED §215'S PASS CLAIM).** The Owner reported direct LIVE evidence that searching "95" on Production still returned A93/A45/A34/A31 alongside A95, contradicting §215's own "QUOTE SEARCH LIVE RESULT: PASS." Investigated exhaustively without assuming any one cause: re-read source (`quoteSearch.js` unchanged, correct since §215's `829dfc4`), decompiled and read the live minified bundle's actual executing logic (byte-identical to source), confirmed `QuotesTab.jsx` has no second/independent filter path, and ran a full fresh-session LIVE reproduction matrix (95/A95/a95/client-name/partial-name/non-match, HE+EN, Desktop+Mobile, using the Owner's *exact* reported quote numbers on the EN designated TEST account) — **the reported false-positive could not be reproduced anywhere, on any account, on any viewport.** Best-evidenced (not forensically certain) explanation: a stale client-side session running pre-deploy JS, since SPAs never re-fetch their bundle from mere user interaction. Added a permanent array-level regression guard (3 new tests in `quoteSearch.test.js`, using the Owner's exact numbers 95/93/45/34/31/94 together — the previous suite only ever tested one quote in isolation, never a realistic neighboring-numbers array) — no functional code changed. Released via isolated worktree `C:/tkrel3` (test-only, 1 file, 36 insertions, 0 deletions), committed `a33e3bf`, pushed directly to `origin/main`, Vercel auto-deployed (bundle hash unchanged, confirming zero client-side behavior change). Final fresh-session LIVE re-check on Production, EN account, Desktop and Mobile: searching "95" now renders **exactly one row (A95)**, no contamination. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §216. **RESOLUTION STATUS: QUOTE SEARCH: RESOLVED** (based on this task's own fresh LIVE proof, not a re-assertion of §215's claim). **Mutations this task**: one test-only file changed and released to Production (no functional/runtime code changed) — schema/secrets/Search-Console/DNS/other application code all untouched. Next recommended work unchanged from §215: `PROFLOW_TODO.md` item 66 (fuller SEO feature) and item 62 (TEST/LIVE alignment, still HIGH PRIORITY, not started).
 
@@ -1913,6 +1912,131 @@ Bridge-untouched status and stricter no-commit/no-push stop gate apply.
 Independent Codex review of both this task and the Owner's new Hebrew
 acceptance is the required next step before any release action.
 
+**Note (2026-09-09) - AUTH / ACCOUNT LIFECYCLE HARDENING, LOCAL COMMIT ONLY.**
+An 8-file Auth/Account-Lifecycle fix package (recovery-overlay dedup,
+bilingual error normalization, rapid-double-submit guard, the high-severity
+interactive-login `loadData` fix, corrupted-session-safe signout, TEST-only
+auth redirect config, new regression tests) was implemented and preflighted
+in a separate isolated worktree (`C:/tkrc2`, branch
+`tekango-test-mirror-rc` — not this tree's own dirty `main`, never merged
+into it), then committed locally: commit `7d1c092d4458f5c65d9b484eb73fff40e60853f9`.
+**Local commit only - not pushed, not deployed, not LIVE-verified.**
+`origin/main` unchanged. Full detail: `PROFLOW_CODEX_CHECKPOINT.md`
+(ACTIVE_TASK + "Latest completed work") and `PROFLOW_PROJECT_CONTEXT.md`
+§219. Unrelated to, and does not affect, the video-commercial track
+recorded in the notes below.
+
+**Note (2026-09-09, follow-up same day) - PUSHED, AUTO-DEPLOYED, REAL DEFECT
+FOUND ON LIVE PRODUCTION, NOT FIXED.** Commit `7d1c092` above was pushed
+(clean fast-forward, `3ac8c79..7d1c092`) directly to `origin/main`; Vercel's
+automatic deployment fired and its artifact identity was proven live via
+bundle-content grep (new curated Auth-error strings present). Credential-
+gated flows (login/logout/Super Admin/interactive-login-without-reload)
+were **not attempted** - this session holds no Production passwords, by
+this project's own standing practice of never persisting them. What WAS
+reachable without credentials (login-form rendering, duplicate-overlay
+check, one real password-reset request per market) surfaced a genuine,
+reproducible defect: a real HTTP 500 `"Error sending recovery email"`
+server response renders on-screen as raw `"שגיאה: {}"`/`"Error: {}"`
+instead of that real text - the exact "{}:Error" symptom class this
+release's own `authErrorClassification.js` was written to close, not fully
+closed for this one real, unmocked shape. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §220. **AUTH PRODUCTION RELEASE VERIFIED: NO.**
+
+**Note (2026-09-09, follow-up same day) - 5XX "{}" RENDERING DEFECT CLIENT-SIDE
+FIXED, TEST/LOCAL ONLY, NOT COMMITTED.** Root-caused against the actual
+installed `@supabase/auth-js@2.110.9`: any 5xx response makes the library
+construct an `AuthRetryableFetchError` before parsing the body, so the real
+server message never reaches the app - only a stringified `"{}"` does.
+Fixed via one narrow, name-based pattern in
+`src/utils/authErrorClassification.js`. 4 new unit tests + 2 new E2E tests
+(HE/EN, exercising the real Supabase client's own error path via a mocked
+HTTP 500). 559→563 tests passing, lint/build clean, targeted E2E 20/20
+across all 4 viewports. 3 files touched, left dirty/uncommitted per explicit
+instruction. **CLIENT UI FIX ≠ SERVER INFRA FIX**: the separate, real
+Production recovery-email server-side failure remains completely untouched
+- password-reset is not fully repaired. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §221.
+
+**Note (2026-09-09, follow-up same day) - AUTH 5XX FIX, LOCAL COMMIT.** The
+3 files above are now one local commit: `285ef4004ea36dff3c917bbc2d19938af827088b`,
+"fix: handle retryable auth server errors safely", branch
+`tekango-test-mirror-rc`, `C:/tkrc2` - a clean 1-ahead candidate on top of
+`origin/main` (`7d1c092`, unchanged). **Not pushed, not deployed.**
+Production's own recovery-email sending remains untouched and broken.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md` §222.
+
+**Note (2026-09-09, follow-up same day) - PUSHED, AUTO-DEPLOYED, LIVE-
+VERIFIED: RAW "{}" CONFIRMED FIXED.** Commit `285ef400` pushed (clean
+fast-forward `7d1c092..285ef40`) directly to `origin/main`; automatic
+Vercel deployment proven live via definitive content proof (new bundle
+contains the new curated strings; the prior bundle re-checked and
+confirmed to contain neither). One real password-reset request per market
+(HE/EN, the authorized maximum) still hit the same known server-side 500,
+but the UI now correctly shows the curated fallback instead of any raw
+object, in both markets and across all 4 viewports (Desktop live,
+Tablet Portrait/Landscape/Mobile via safe resize of the same real error
+state, no extra provider calls). **Production's recovery-email sending
+itself remains completely broken and untouched** - only the confusing
+raw-object symptom is closed. Full detail: `PROFLOW_PROJECT_CONTEXT.md`
+§223.
+
+**Note (2026-09-09, follow-up same day) - RECOVERY-EMAIL INFRA ROOT-CAUSE
+INVESTIGATION, READ-ONLY, NOT FIXED.** `supabase config diff
+--project-ref ixabnzhjeqevtbhdfswv` (read-only, no link/push) directly
+confirmed Production Auth's own dashboard-only SMTP sender still reads
+`info@quotecodepro.com`/`"ProFlow"` - the retired pre-rebrand identity,
+never updated by the TEKANGO migration (git-untracked, invisible to every
+prior drift check). Also confirmed `site_url`/redirect URLs still on the
+old domain - **contradicting an earlier continuity claim this was already
+fixed**, flagged not silently corrected. Leading hypothesis (HIGH
+confidence, not formally confirmed - no Auth log/Resend account access was
+available): this stale sender identity is causing the observed `500`. A
+two-item, Dashboard-only, trivially-reversible remediation plan is ready,
+not executed. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §224.
+
+**Note (2026-09-09, follow-up same day) - PRODUCTION AUTH SITE URL/REDIRECTS
+FIXED LIVE, SENDER NAME SAFELY BLOCKED.** Owner authorized exactly 3 field
+corrections; 2 executed (`site_url` -> `https://www.tekango.com`;
+`additional_redirect_urls` gained both canonical TEKANGO entries, old ones
+preserved), pushed via an isolated scratchpad-only config (the repo's own
+committed config.toml was never touched), verified via dry-run diff before
+and a fresh diff after - every SMTP field independently re-confirmed
+unchanged, zero secrets sent. The 3rd field (sender display name) was
+**safely abandoned before any write**: a read-only probe proved this CLI
+tool requires the live SMTP password to declare the SMTP block at all -
+since that must not be touched, this correctly hit the task's own STOP
+boundary rather than being worked around. One live re-test confirmed the
+recovery-email failure is unchanged, as expected - the site_url fix was
+never expected to touch the real (still-open) sender-identity problem.
+**SAFE AUTH REBRAND CONFIG FIX ≠ SMTP/RECOVERY EMAIL INFRA FIX.** Full
+detail: `PROFLOW_PROJECT_CONTEXT.md` §225.
+
+**Note (2026-09-09, follow-up same day) - LIVE "Error: {}" REPORT COULD NOT
+BE REPRODUCED.** A reported fresh Owner screenshot (raw `"Error: {}"`,
+said to follow a manual Dashboard SMTP sender-name change) triggered one
+authorized, fully-instrumented live capture - it showed the identical
+known 500 shape correctly rendering the curated fallback, not raw text.
+Most likely a stale pre-fix browser tab on the Owner's side, matching a
+pattern already confirmed twice earlier in this sequence. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §226.
+
+**Note (2026-09-09, follow-up same day) - AUTH + RECOVERY-EMAIL SAGA
+CLOSED.** The Owner completed the remaining fix directly in the Supabase
+Dashboard: SMTP sender name -> "TEKANGO", sender email ->
+info@tekango.com, and a stale/invalid SMTP password replaced with a new
+dedicated Resend API key (never shared in chat). This session independently
+re-verified the config-level changes fresh via `supabase config diff` -
+confirmed live. Real email delivery is Owner-asserted (a real reset email
+arrived, correctly TEKANGO-labeled). **The entire Auth release +
+recovery-email arc is now closed.** New deferred, non-blocking SIDE_TASK:
+an International account's correctly-English reset email linked to the
+Hebrew landing experience - not investigated, not reopened. **Next major
+step, not yet started**: `TEKANGO_COMPREHENSIVE_NON_AUTH_SYSTEM_SECURITY_AUDIT_ROOTFIX.md`.
+Full detail: `PROFLOW_PROJECT_CONTEXT.md`'s "Latest completed work" (Auth +
+Recovery-Email Saga — CLOSED entry) and the SIDE_TASK section of
+`PROFLOW_CODEX_CHECKPOINT.md`.
+
 **Note (2026-09-06, sixth follow-up) - RELEASE CANDIDATE READY FOR CODEX
 REVIEW.** A "Landing Pages Release Candidate Preparation" task (full detail
 in `PROFLOW_CODEX_CHECKPOINT.md`) built and verified a landing-only release
@@ -1935,3 +2059,312 @@ FOR CODEX REVIEW** - next steps are Owner/Codex review of the manifest, then
 hunk-level staging review (one shared component mixes a landing-relevant
 change with an unrelated authenticated-app change), before any commit
 authorization. No commit/push/deploy/Production-LIVE action occurred.
+
+**Note (2026-09-09, latest) - REAL-USER OUTCOME VERIFICATION LAW ADDED,
+PASSWORD RECOVERY REOPENED, WAVE 1 STARTED.** A new permanent, locked
+governance section was added: `PROFLOW_PROJECT_CONTEXT.md` §227 - no
+PASS/COMPLETE/FIXED/VERIFIED/CLOSED may ever again be declared from
+intermediate evidence (API success, mocked/unit tests, a screenshot, DOM
+state, a commit, a push, a deploy, a bundle/config match) when the actual
+terminal real-user outcome can instead be tested; every multi-step flow
+must be proven end-to-end to its final real-user result; TEST proof never
+substitutes for a Production claim; Tablet Portrait and Tablet Landscape
+are separate, first-class, never inferred from each other or from Mobile;
+a skipped terminal step forces PARTIAL/BLOCKED/NOT RUN, never PASS; prior
+continuity PASS labels (including this project's own) are evidence to
+challenge, not authority. Applying this law immediately reopened Password
+Recovery: `PROFLOW_PROJECT_CONTEXT.md` §228 corrects the prior "Auth +
+Recovery-Email Saga - CLOSED" entry to **PASSWORD RECOVERY STATUS: OPEN /
+PARTIAL** - email delivery/sender-identity/raw-`"{}"` are genuinely proven,
+but the actual new-password-form-forced / old-password-rejected /
+new-password-login terminal chain was never exercised end-to-end. A Wave 1
+task (Password Recovery only - the rest of the non-Auth audit's findings
+are queued, not touched) is now investigating root cause and implementing
+the smallest safe fix in the canonical worktree `C:/tkrc2`. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §227/§228, `PROFLOW_CODEX_CHECKPOINT.md`.
+
+**Note (2026-09-09, latest) - WAVE 1 COMPLETE (TEST ONLY), PASSWORD RECOVERY
+REAL TERMINAL CHAIN PROVEN.** Root cause confirmed: `resetPasswordForEmail`'s
+`redirectTo` was a bare origin with no `/dashboard` path and no `?lang=`, so
+every recovery link landed on the marketing landing page - not
+`Dashboard.jsx`, the only component that actually knows how to detect
+`type=recovery` - so the `PASSWORD_RECOVERY` event fired with nobody
+listening, and the user was silently treated as an ordinary authenticated
+user without ever being forced to set a new password. Same root cause also
+explains the earlier SIDE_TASK (English account's reset link opening the
+Hebrew landing). Fixed (2 files, `src/pages/Dashboard.jsx` +
+`src/components/AuthScreen.jsx`): redirect straight to `/dashboard?lang=he|en`;
+added a missing confirm-password field with client-side match validation;
+after a successful save, explicit sign-out + redirect to login (forcing a
+real, provable new-password login) instead of silently continuing the old
+recovery session; curated bilingual messaging added for Supabase's own
+already-invalid/expired-link redirect shape (previously blank/unexplained).
+**Proven against the real TEST Supabase project, not mocked** (genuine
+Admin-API-issued recovery tokens): HE and Super Admin personas each ran the
+complete real cycle - new-password form appears, saves, signs out, old
+password rejected, new password logs in, correct state/role retained,
+original password safely restored afterward; EN persona proven for
+routing/locale/UI only (shared-password persona, deliberately not swapped).
+Along the way, a stale dev-server process from an unrelated earlier session
+was found silently occupying the canonical TEST port and was stopped -
+every check before that discovery had unknowingly been exercising old,
+pre-fix code. 36/36 new E2E tests passing across all 4 viewports, 563/563
+unit tests unchanged, lint/build clean. **TEST: PASS. PRODUCTION: NOT RUN,
+no claim made** - zero commit/push/deploy this task. A disclosed,
+not-fixed nuance: merely viewing a recovery link (without saving) leaves a
+real, valid session active indefinitely if abandoned - flagged as a future
+hardening candidate, not required by this task's own scope. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §229.
+
+**Note (2026-09-09, follow-up same day) - WAVE 1 MATRIX CLOSURE: HE COMPLETE
+(PASS), EN BLOCKED BY A NEWLY-FOUND REAL DEFECT.** A follow-up task closed
+the remaining HE viewport cells (Tablet Portrait/Landscape/Mobile) with the
+same real terminal chain - all 4 HE viewports now genuinely PASS. Attempting
+EN/Desktop with a fresh real recovery token surfaced a real, reproducible
+defect: after a real matching-password save, the recovery session was NOT
+correctly exited - a valid session token persisted in `localStorage` well
+past the intended delay, landing the browser in the authenticated dashboard
+instead of the login screen (with the URL separately flipping from
+`?lang=en` to `?lang=he` along the way). Reproduced twice; manual logout via
+the dashboard's own ordinary control worked correctly both times, ruling out
+a general `signOut()` failure. Root cause NOT confirmed this task - no fix
+attempted, per this task's own explicit no-fix authorization. EN/Tablet
+Portrait/Landscape/Mobile not attempted, assessed BLOCKED by the same
+defect. `PERSONA_A` cleanly restored to baseline. **WAVE 1 OVERALL:
+BLOCKED.** Full detail: `PROFLOW_PROJECT_CONTEXT.md` §230.
+
+**Note (2026-09-10, latest) - WAVE 1 EN ROOT CAUSE CONFIRMED + FIXED + FULL
+MATRIX RE-VERIFIED. WAVE 1 PASSWORD RECOVERY: PASS (TEST ONLY).** Root cause
+of the §230 EN defect is now confirmed: a pre-existing, unrelated effect
+(`getMarketRoutingCorrection`, Item 25 - already fully unit-tested, never
+itself the defect) shares the `isPasswordRecoveryMode` dependency with the
+recovery-save handler. The prior fix flipped that flag to `false` *before*
+awaiting `signOut()` - the instant it flipped, the routing-correction effect
+raced in and fired its own competing navigation for `PERSONA_A` (real
+account market: Local/Hebrew, mismatched against the EN link's bundle),
+aborting the still-in-flight sign-out before the session was ever cleared.
+One mechanism explains both symptoms §230 found. **Fix**: a minimal
+two-statement reorder in `handleUpdatePasswordFromRecovery` - `signOut()`
+now fully resolves before `isPasswordRecoveryMode` is cleared. New automated
+regression: a source-level guard test plus an E2E ordering test (all 4
+viewports). Static regression clean: unit 566/566, lint unchanged baseline,
+build clean. **Real terminal-chain re-verification, `PERSONA_A`, genuine
+Admin-API tokens**: EN now PASS at all 4 viewports - session confirmed
+cleared from `localStorage` every time, correct EN/LTR login screen, no
+premature/wrong-market redirect, old password rejected, new password logs
+in (Desktop + Mobile). HE regression PASS (fresh cycle). Invalid/expired-
+link EN PASS. Super Admin non-destructive regression PASS. `PERSONA_A`
+restored to its original password via Admin API after every cycle.
+**Disclosed, not a Wave 1 regression**: a subsequent *normal* login for
+`PERSONA_A` is then correctly routed to `?lang=he` by the same pre-existing
+Item 25 feature (real account market is Hebrew, not International) - out
+of scope, does not affect the recovery-termination step itself; an honest
+caveat is recorded that "International market" was therefore not literally
+demonstrated with a true International persona this task (optional future
+follow-up). **Disclosed, unrelated, correctly not touched**: a full E2E-
+suite run surfaced several failures, all individually re-run in isolation
+and traced to either this task's own concurrent real-persona Admin-API
+activity, or pre-existing, already-dirty, uncommitted UI-copy drift in
+`AdminUsersTab.jsx`/`AuthScreen.jsx` from a separate in-progress task
+already in this worktree - neither is Dashboard.jsx recovery-flow related.
+**Zero commit/push/deploy/Production this task** - stopped at a verified
+TEST result, per this task's own explicit release boundary, for the
+Owner's own release decision. Full detail: `PROFLOW_PROJECT_CONTEXT.md`
+§231.
+
+**Note (2026-09-10, overnight package) - ADMIN UI DENSITY/SHELL REFINED,
+TRUE INTERNATIONAL RECOVERY CLOSED, STALE E2E CLEANED UP. Codex was
+concurrently active in the same worktree throughout, coordinated safely.**
+Admin UI (Codex's own SIDE_TASK, picked up from Codex's own PARTIAL
+verdict): the canonical fixed-header/fixed-sidebar/scrolling-main-content
+shell law was independently re-verified via real DOM measurement (not
+screenshots, which timed out in this environment) using 10 real TEST
+accounts at all 4 viewports - genuinely fixed, zero double-scroll, zero
+clipping. Density tightened via one targeted `adminUsers.css` edit only
+(row height 48px->40.5px measured live) - `AdminUsersView.jsx`'s own
+structure untouched, per "preserve existing work, do not restart."
+`AdminUsersTab.test.jsx` 5/5 unchanged. Disclosed, not fully closed: no
+Admin-specific Owner mockup was ever available to compare against - full
+pixel-level visual-fidelity sign-off remains the Owner's own call.
+**True International password recovery** (closes §231's own disclosed
+caveat): `PROFLOW_TEST_INTL_PRO_EMAIL` ("TEST EN Pro", real International/
+LIFETIME account) completed the full real terminal chain in EN with a
+genuine Admin-API token - the literal "Password updated successfully!"
+message was captured directly this time, session confirmed cleared,
+correct EN/LTR login screen, old (shared-family) password rejected, new
+password logged in to the correct final International/EN/LTR state with
+zero HE/RTL/ILS leakage. Shared password restored via the Admin API
+within under a minute. **Stale E2E cleanup**: the Super Admin admin-table
+heading assertion was already fixed by Codex's own concurrent work; the
+EN quotes-list heading assertion (`/Quote History/i` vs the real plural
+"Recent Quotes History") was fixed this task and reconfirmed passing.
+Unit 571/571 (up from 566, Codex's own concurrent additions), lint
+unchanged baseline, build clean. **ADMIN UI: PASS** (shell/density
+re-verified; Owner visual sign-off still pending). **TRUE INTERNATIONAL
+PASSWORD RECOVERY: PASS. STALE E2E ASSERTION CLEANUP: PASS. OVERALL
+OVERNIGHT PACKAGE: PASS.** Zero commit/push/deploy/Production - stopped
+at a verified TEST result for the Owner's own review and release
+decision. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §232.
+
+**Note (2026-09-10, latest) - FULL ADMIN CONSOLE IMPLEMENTED + HEADER
+ALIGNMENT CORRECTED. Codex declared READ-ONLY; Claude is Builder for
+this Admin implementation.** Admin is now a real multi-section console -
+Overview (new default landing screen, recently-registered/trials-ending-
+soon/needs-attention + quick actions), Users (Codex's own dense table,
+preserved), Plans/Subscriptions (new), System Activity (new, honestly
+narrow - no audit-log table exists in this schema for plan/Lifetime/
+trial/Super-Admin-action history, disclosed rather than fabricated), AI
+Support Logs (now an in-shell section via `AILogs.jsx`'s new additive
+`embedded` prop, not a full navigation - the standalone `/ai-logs` route
+is unchanged). One shared `AdminHeader.jsx` (metrics + 2 real graphs) and
+one Admin-mode sidebar (`AdminSidebarNav.jsx`/`adminNavGroups.js`) persist
+across every section, reusing the exact same already-proven fixed-shell
+CSS - no second shell built. The existing `activeTab === 'admin_clients'`
+entry point is completely unchanged. No verified Supabase/Vercel/Resend
+operational link exists anywhere in this codebase, so the Operations
+sidebar group was intentionally omitted, not invented - disclosed as a
+gap. **A real, self-corrected safety incident**: live-verifying this
+task, Super Admin login unexpectedly failed - root-caused to an operator
+error in the *prior* task's own International-recovery cleanup step (the
+wrong user_id was used for a password restore, colliding with Super
+Admin's own id and overwriting its password, while leaving the real
+`TEST EN Pro` account un-restored). Both found and fixed this task via a
+fresh, carefully re-verified Admin-API lookup, reconfirmed via real
+login - no real customer/Owner/David-Aluminum data involved; the prior
+task's own substantive findings remain valid, only its cleanup step was
+wrong. **Admin Header Vertical Alignment Correction** (a follow-up
+request that arrived mid-task): root cause confirmed empirically - the
+header's own `position:sticky;top:16px` stacked a redundant second 16px
+on top of `.dash-main-content`'s own separate 16px padding, while the
+sidebar had no equivalent offset. Fixed with a single CSS rule change
+(`top:16px` -> `top:0`) - no header height/content change, no sidebar
+height change. **Verified live across all 5 Admin sections at all 4
+viewports** (Desktop/Tablet Portrait/Tablet Landscape/Mobile) via real
+DOM measurement, not screenshots (which time out in this environment) or
+CSS inspection alone - header/sidebar both sit at exactly 16px,
+unchanged through real forced scrolling, at Desktop and Tablet Landscape;
+zero double-scroll, zero clipping, zero errors at every section/
+viewport combination checked. Lint unchanged baseline, build clean.
+**ADMIN UI: PASS** (full console genuinely implemented and independently
+verified - not components-render-without-crashing; full pixel-level
+Owner visual-fidelity sign-off on the overall look still open, since no
+dedicated Admin mockup has ever existed to compare against). **ADMIN
+HEADER ALIGNMENT: PASS.** Zero commit/push/deploy/Production - stopped
+at a verified TEST result for the Owner's own visual review and release
+decision. Full detail: `PROFLOW_PROJECT_CONTEXT.md` §233.
+
+## 18. Permanent Bridge Usage Law — One Narrow Task, One Goal, One Result
+
+**Binding requirement, added 2026-09-10 per explicit Owner authorization**:
+every Bridge task must be scoped to exactly one narrow question, one goal,
+one result.
+
+1. ONE BRIDGE TASK = ONE NARROW QUESTION / ONE GOAL / ONE RESULT.
+2. Prefer exact file paths and exact narrow evidence requests.
+3. Do not combine multiple unrelated audits, reconciliations, root-cause
+   investigations, environment checks, or governance reviews in one
+   Bridge task.
+4. Split broad investigations into sequential small tasks.
+5. A Bridge timeout is not evidence of a project, repository, code,
+   environment, or Claude failure.
+6. After a timeout, do not resend the same oversized task unchanged;
+   reduce scope and split it.
+7. Large implementation work must be sent to Claude as a complete
+   downloadable Markdown prompt, not as a Bridge read-only query.
+8. The Bridge remains primarily a read-only inspection/reconciliation
+   channel and does not alter Owner authorization boundaries.
+9. This rule is about task sizing and routing only; it does not relax
+   any existing governance, release, security, Production, customer-data,
+   or authorization law.
+
+**Note (2026-09-10, latest) - ADMIN CONSOLE MASTER SPEC IMPLEMENTED,
+VERIFICATION BLOCKED BY A BROWSER-AUTOMATION OUTAGE.** On top of the
+already-live multi-section console: Role column removed from the Users
+table (presentation only, permissions/data untouched); a Daily
+Operations sidebar group added with exactly 2 links independently
+verified from current project configuration (GitHub via `git remote -v`,
+Supabase via the real linked project ref in
+`supabase/.temp/linked-project.json`) - Vercel and Resend deliberately
+NOT included, no verified project-specific identifier for either exists
+in this repo, disclosed as a gap rather than guessed or silently
+dropped; the ordinary Quotes/Business Settings/Clients/Financials/
+Catalog tabs are now reachable from inside the same persistent Admin
+shell (existing Dashboard.jsx render blocks widened by one OR-condition
+each, not duplicated - same components/props/handlers/tenant-scoped
+data); RTL audited sound at the source level (one root `dir="rtl"`
+authority, only email addresses carry a technical `dir="ltr"`
+exception). Unit 571/571, lint unchanged baseline, build clean.
+**A genuine tooling outage, disclosed, not worked around**: mid-task,
+closing ~16 browser tabs accumulated across this session's many prior
+live-verification cycles left the automation daemon in a bad state;
+running `browser-harness --reload` to recover it instead stopped it,
+and this environment has `BH_REQUIRE_EXISTING_DAEMON=1` set, meaning the
+daemon cannot self-restart - only the external orchestrator that
+provisioned it can. Every reconnection attempt this task failed
+identically. No code was altered to compensate; no visual result was
+guessed. **Live verification status**: the underlying shell/scroll/
+alignment/icon-only-badge/offline-Last-Login mechanisms were already
+genuinely verified live in prior tasks and remain valid evidence for
+those specific pieces - but this task's own new work (Role removal,
+Operations links, the 5 passthrough sections, RTL) and the carried-over
+gaps (online/green Last-Login state, Tablet Portrait/Landscape/Mobile)
+are NOT independently confirmed live this task. **ADMIN UI: PARTIAL** -
+complete feature set implemented and statically clean, Owner-visible
+terminal confirmation remains outstanding. Zero commit/push/deploy/
+Production. **Next step, gated on browser/daemon availability being
+restored by the orchestrator**: resume live verification of every item
+in the "not verified" list in one focused follow-up task. Full detail:
+`PROFLOW_PROJECT_CONTEXT.md` §234.
+
+## 19. Permanent Codex / Builder / Reviewer Role Split
+
+**Binding requirement, added 2026-09-10 per explicit Owner authorization**:
+the following role split is permanent project governance for TEKANGO /
+ProFlow.
+
+1. Claude Code is the primary Builder for TEKANGO / ProFlow.
+2. Codex is the independent Reviewer by default.
+3. Codex is READ-ONLY by default.
+4. ChatGPT is responsible for:
+   - reconciliation
+   - governance
+   - continuity
+   - routing
+5. The Owner is the sole final authorization authority.
+6. Codex findings and PASS labels are evidence only, never final authority.
+7. Codex does not replace:
+   - Claude Code
+   - ChatGPT
+   - the active checkpoint
+   - locked governance
+   - Owner authorization
+8. Codex must not, unless the Owner explicitly authorizes that exact task
+   and scope:
+   - edit files
+   - create files
+   - delete files
+   - rename files
+   - alter Git state
+   - commit
+   - push
+   - merge
+   - deploy
+   - access Production
+   - use real customer data
+9. When Codex finds an issue that Claude should fix:
+   - pass only the relevant finding into that specific authorized Claude
+     task
+   - do not make Codex a permanent dependency of Claude continuity
+10. ChatGPT must reconcile Codex findings against:
+    - fresh repository evidence
+    - Claude reports
+    - the active checkpoint
+    - locked governance
+    - the Real-User Outcome Verification Law
+11. Codex may temporarily act as Builder only when the Owner explicitly
+    authorizes that exact task and scope. Such temporary authorization
+    does not change the permanent default role split.
+
+## 20. Real-Browser Verification Iron Law — Permanent Cross-Reference
+
+**Authoritative full text: `PROFLOW_PROJECT_CONTEXT.md` §235 (added 2026-09-14, Owner-mandated, LOCKED).** Recorded here only as a durable pointer so no future session in this chat lineage misses it: any browser-visible TEKANGO/ProFlow outcome (UI/UX, responsive layout, RTL/LTR/HE/EN, auth flows, Public Quote, Smart Quote, Admin, PDF/print, or any multi-step flow with a browser-visible terminal result) requires real-browser verification (`browser-harness`, Playwright, or this project's own approved Direct CDP fallback) before it may be called PASS/COMPLETE/FIXED/VERIFIED/CLOSED/READY/STABLE — source/tests alone are never sufficient. Browser capability must be freshly checked before ever being declared unavailable; a prior outage is not proof of a current one. Two permanent, verbatim markers: **NO REAL BROWSER VERIFICATION = NO PASS** and **AVAILABLE BROWSER NOT USED = PROCESS FAILURE**. Applies to every actor in the §19 role split above — Claude Builder must run it before claiming a browser-visible fix complete; Codex, though READ-ONLY, must still perform or independently inspect real-browser evidence within its review scope; ChatGPT must reject any PASS/COMPLETE claim lacking it. This law is senior/complementary to, and does not replace, `PROFLOW_PROJECT_CONTEXT.md` §227 (Real-User Outcome Verification Law) — it is that law's browser-specific sharpening wherever the terminal outcome is itself browser-visible.
