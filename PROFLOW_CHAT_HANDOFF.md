@@ -14,7 +14,7 @@ not a live inconsistency):
 - `PROFLOW_PROJECT_CONTEXT.md`
 - `PROFLOW_TODO.md`
 
-**Plus a seventh, supplementary file added 2026-09-04: `PROFLOW_CODEX_CHECKPOINT.md`** — read it last, after the six above. It preserves Owner-approved decisions still open or pending visual acceptance, open visual-review findings, and chat-recovery notes specifically for a future ChatGPT/Codex session via the ProFlow Claude Bridge V2. It supplements, never replaces, this file or any of the six — see its own header for the full contract.
+**Plus the active bootstrap entry point / current checkpoint, `PROFLOW_CODEX_CHECKPOINT.md` (added 2026-09-04) — read it FIRST, before this file and before the six above (corrected 2026-09-17, "Continuity Governance Reconciliation" task; earlier wording here calling it a "seventh, supplementary file" read "last, after the six" is superseded, not a live inconsistency).** It preserves the active task, current status/blockers/next-action, Owner-approved decisions still open or pending visual acceptance, open visual-review findings, and chat-recovery notes specifically for a future ChatGPT/Codex session via the ProFlow Claude Bridge V2. It supplements, never replaces, this file or any of the six, and it is not itself a member of the six-file set — see its own header for the full contract.
 
 Its job is narrow: teach a new ChatGPT conversation how Owner + ChatGPT +
 Claude work together, the permanent safety rules, the product invariants, the

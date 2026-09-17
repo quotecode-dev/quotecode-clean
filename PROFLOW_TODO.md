@@ -8,7 +8,7 @@ This is the **authoritative living backlog / roadmap** for ProFlow. It is one of
 - `PROFLOW_HANDOFF.md` = exact operational checkpoint / resume state for the next session.
 - `PROFLOW_TODO.md` (this file) = the living backlog: every known work item, its status, dependencies, and verification requirements.
 - `PROFLOW_CLAUDE_LATEST_REPORT.md` = a report-transport bridge holding only the newest completed Claude task's Final Report.
-- `PROFLOW_CODEX_CHECKPOINT.md` (added 2026-09-04) = a seventh, supplementary file — Owner-approved decisions still open or pending visual acceptance, open visual-review findings, chat-recovery notes for a future ChatGPT/Codex session via the ProFlow Claude Bridge V2. Read last, after the six above; supplements, never replaces, any of them.
+- `PROFLOW_CODEX_CHECKPOINT.md` (added 2026-09-04) = the active bootstrap entry point / current checkpoint — active task, current status/blockers/next-action, Owner-approved decisions still open or pending visual acceptance, open visual-review findings, chat-recovery notes for a future ChatGPT/Codex session via the ProFlow Claude Bridge V2. **Read FIRST, before the six above** (corrected 2026-09-17, "Continuity Governance Reconciliation" task; earlier "read last, after the six" wording is superseded). It is not itself a member of the six-file set; it supplements, never replaces, any of them.
 
 Do not duplicate architecture or checkpoint detail here — reference `PROFLOW_PROJECT_CONTEXT.md` / `PROFLOW_HANDOFF.md` sections instead of copying their content.
 

@@ -12,15 +12,19 @@
 
 Claude reports, screenshots, code existence, PASS labels, and any single continuity file are **evidence requiring reconciliation**, not conclusive proof of current state. Reconcile against fresh evidence before acting.
 
-## Permanent continuity execution rule — DUAL READ-BACK (LOCKED, added 2026-09-16, "Continuity Integrity Repair" task — root cause: the GitHub-synced `proflow-continuity` branch was found ~7 days stale, which is the confirmed reason later sessions kept reading outdated state)
+## This file's own role (corrected 2026-09-17, "Continuity Governance Reconciliation" task)
+
+**This file (`PROFLOW_CODEX_CHECKPOINT.md`) is the active bootstrap entry point and current checkpoint — read FIRST, before anything else, including the six canonical continuity documents below.** It is not, and has never been, "a seventh continuity file" read last, and it is not itself a member of the six-file canonical set (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` — see `PROFLOW_PROJECT_CONTEXT.md` §0.A/§0.B for the full, authoritative statement). Earlier wording in this section describing an "AT END: update all six continuity files (this file, ...)" list that both included this file and omitted `PROFLOW_ARCHITECTURE.md` was itself a second, conflicting definition of "six" and is corrected below. This file must remain synchronized in meaning with the six canonical files, maintained alongside them, and updated at the end of every meaningful task exactly as they are — it is simply not one of the six for counting/set-membership purposes.
+
+## Permanent continuity execution rule — DUAL READ-BACK (LOCKED, added 2026-09-16, "Continuity Integrity Repair" task — root cause: the GitHub-synced `proflow-continuity` branch was found ~7 days stale, which is the confirmed reason later sessions kept reading outdated state; corrected 2026-09-17 to fix this section's own "six files" miscount, described immediately above)
 
 **Every future continuity task must follow this pattern, without needing to be re-instructed:**
 
-**AT START**: read the active checkpoint first → reconcile local canonical continuity → verify remote `proflow-continuity` freshness (fetch + compare, don't assume) → verify ACTIVE_TASK/SIDE_TASK alignment between local and remote.
+**AT START**: read this checkpoint first → reconcile local canonical continuity → verify remote `proflow-continuity` freshness (fetch + compare, don't assume) → verify ACTIVE_TASK/SIDE_TASK alignment between local and remote.
 
-**AT END**: update all six continuity files (this file, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_TODO.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`) → reconcile and push a documentation-only commit to `proflow-continuity` → perform a LOCAL read-back → perform a REMOTE read-back (fetch + read the pushed commit back, not just trust the push exit code) → verify ACTIVE_TASK matches → verify SIDE_TASK matches → only then declare continuity complete.
+**AT END**: update this checkpoint and the six canonical continuity files (`PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md`) → reconcile and push a documentation-only commit to `proflow-continuity` → perform a LOCAL read-back → perform a REMOTE read-back (fetch + read the pushed commit back, not just trust the push exit code) → verify ACTIVE_TASK matches → verify SIDE_TASK matches → only then declare continuity complete.
 
-**Mandatory completion markers for any future task claiming continuity is current**: `LOCAL CONTINUITY READ-BACK: PASS`, `REMOTE CONTINUITY READ-BACK: PASS`, `ACTIVE TASK MATCH: PASS`, `SIDE TASK MATCH: PASS`. If any marker is not PASS, continuity status is PARTIAL/BLOCKED, never COMPLETE. Do not create a seventh continuity file — reconcile within these six.
+**Mandatory completion markers for any future task claiming continuity is current**: `LOCAL CONTINUITY READ-BACK: PASS`, `REMOTE CONTINUITY READ-BACK: PASS`, `ACTIVE TASK MATCH: PASS`, `SIDE TASK MATCH: PASS`. If any marker is not PASS, continuity status is PARTIAL/BLOCKED, never COMPLETE. Do not create an additional continuity file — reconcile within this checkpoint plus the six canonical files.
 
 ## Snapshot metadata
 

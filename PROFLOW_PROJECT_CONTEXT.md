@@ -1,10 +1,12 @@
 # PROFLOW — PERSISTENT PROJECT CONTEXT
 
-## ⚠️ NEW CHAT / SESSION: READ THIS ENTIRE FILE FIRST
+## ⚠️ NEW CHAT / SESSION: READ `PROFLOW_CODEX_CHECKPOINT.md` FIRST, THEN THIS ENTIRE FILE
 
-**PERMANENT SIX-FILE CONTINUITY RULE (see §0.B below for the full rule): this project maintains exactly SIX canonical continuity documents, always read together from the `proflow-continuity` ref, never from `main`, a stale upload, or chat memory.** Earlier wording throughout this project's documentation (in this file and others) has referred to "four" or "five" documents at various points in its history, as the set genuinely grew from three to six over time. §0.B is the current, authoritative statement — treat any "four"/"five" phrasing found elsewhere (including deeper in this very file) as superseded by §0.B, not as a live inconsistency to re-litigate.
+**PERMANENT CHECKPOINT-FIRST BOOTSTRAP RULE (corrected 2026-09-17, "Continuity Governance Reconciliation" task — see §0.B.A below for the full rule): `PROFLOW_CODEX_CHECKPOINT.md` is read FIRST, always — before this file, before any of the six canonical documents, before anything else.** It is the project's active bootstrap entry point: the active task, current status, current blockers, and the current next-action, in one place. Earlier wording throughout this project's documentation (including deeper in this very file, `PROFLOW_HANDOFF.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_TODO.md`, and `PROFLOW_ARCHITECTURE.md`) called it a "seventh, supplementary file," said to "read last," or "after the six" — that wording is now **superseded, not a live inconsistency to re-litigate.** The checkpoint is not, and has never functionally been, a trailing supplement — it is the fastest path to "what is happening right now" and must be read before anything else.
 
-**⚠️ SEVENTH FILE, `PROFLOW_CODEX_CHECKPOINT.md` (added 2026-09-04) — SUPPLEMENTS, NEVER REPLACES, THE SIX ABOVE.** It preserves Owner-approved design/product decisions still open or pending visual acceptance, open Codex/Owner visual-review findings, and chat-recovery notes for a future ChatGPT/Codex session using the ProFlow Claude Bridge V2. Read it **after** the six below, as the seventh and final step of the bootstrap sequence — see its own header for the full contract (status vocabulary, who may grant `OWNER-ACCEPTED`, etc.). If it and a canonical file disagree about *implemented state*, the canonical file wins — the seventh file tracks intent/acceptance status, not a second copy of implementation fact.
+**PERMANENT SIX-FILE CANONICAL CONTINUITY-DOCUMENT SET (see §0.B below for the full rule): this project maintains exactly SIX canonical continuity documents, always read together from the `proflow-continuity` ref, never from `main`, a stale upload, or chat memory: `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_TODO.md`.** Earlier wording throughout this project's documentation (in this file and others) has referred to "four" or "five" documents at various points in its history, as the set genuinely grew from three to six over time. §0.B is the current, authoritative statement — treat any "four"/"five" phrasing found elsewhere (including deeper in this very file) as superseded by §0.B, not as a live inconsistency to re-litigate.
+
+**`PROFLOW_CODEX_CHECKPOINT.md` (added 2026-09-04) is the active bootstrap entry point and current checkpoint — it is NOT a seventh member of the six-file set, and it is read FIRST, not last.** It preserves the active task, current status/blockers/next-action, Owner-approved design/product decisions still open or pending visual acceptance, open Codex/Owner visual-review findings, and chat-recovery notes for a future ChatGPT/Codex session using the ProFlow Claude Bridge V2 — see its own header for the full contract (status vocabulary, who may grant `OWNER-ACCEPTED`, etc.). It supplements, never replaces, the six canonical files, and must remain synchronized in meaning with them (§0.B.A). If it and a canonical file disagree about *implemented state*, the canonical file wins — the checkpoint tracks the active task/intent/acceptance status, not a second copy of implementation fact.
 
 **⚠️ CURRENT-STATE POINTER (added 2026-09-16, "Final Reconciliation / Continuity Closure" task) — this file's own §-numbered history below has not been freshly re-synced today; read `PROFLOW_CODEX_CHECKPOINT.md` first for today's actual current state before relying on anything in this file dated earlier.** Headline facts as of 2026-09-16 (later same day): (1) an Owner-authorized one-time Codex Builder exception is remediating Admin V1 entirely inside the separate worktree `C:\tkrtl1` — status **PARTIAL**, HE browser-verified across Overview/Users/Details/Plans/Activity, EN/International Super Admin acceptance BLOCKED (no International Super Admin TEST credentials exist), backend deploy of the new Admin Edge Functions + audit-log migration is on HOLD, nothing committed/pushed/deployed, and the Owner's own visual assessment is "an improvement exists, but not a major enough visual transformation to declare Admin complete." (2) Separately, commit `7cd78ea` (signup callback fix + SEO fix) is confirmed **LIVE on Production**; the Owner has since directly confirmed the real-email terminal outcome — **SIGNUP: CLOSED** (HE + EN both delivered, correctly branded, both links clicked, both flows completed end-to-end, ~09:15 local time 2026-09-16). **SEO: CLOSED / LIVE.** Password Recovery's root cause remains a **separate, still-open** item, not closed by the Signup correction. Full detail for both: `PROFLOW_CODEX_CHECKPOINT.md`'s `ACTIVE_TASK` and "Latest completed and verified work" sections.
 
@@ -14,19 +16,18 @@
 
 **⚠️ FOLLOW THE CANONICAL CHATGPT WORKING STANDARD** — evidence before conclusion, root cause before repair, recommend don't just enumerate, Owner is decision authority not technical transport, complete the current action, and more — permanent rule, full text: `PROFLOW_CHAT_HANDOFF.md` §0.2. This governs *how* every session reasons and acts on the state below, not merely what the state is.
 
-**THEN READ `PROFLOW_CHAT_HANDOFF.md`** — the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point). It does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
+**CANONICAL BOOTSTRAP SEQUENCE (corrected 2026-09-17, "Continuity Governance Reconciliation" task — see §0.D for the full contract):**
 
-**THEN READ `PROFLOW_ARCHITECTURE.md`.**
+1. **Read `PROFLOW_CODEX_CHECKPOINT.md` first** — the active checkpoint: active task, current status, current blockers, current next-action.
+2. **Read this file (`PROFLOW_PROJECT_CONTEXT.md`) and `PROFLOW_CHAT_HANDOFF.md`** — the current locked governance. `PROFLOW_CHAT_HANDOFF.md` is the ChatGPT continuity snapshot (working relationship, accepted product/visual state, current resume point); it does **not** replace any canonical technical document below, and it does **not** by itself prove the current filesystem/git/runtime state — see §17.B.
+3. **Read task-specific files only as the work at hand actually needs them** — this is a correction from the old "read all six in full, every time" instruction (superseded below):
+   - `PROFLOW_ARCHITECTURE.md` when the task needs current technical/product architecture — **not** a mandatory full read on every bootstrap.
+   - `PROFLOW_TODO.md` when backlog/status/priority/product-requirement context is needed — the authoritative living backlog; identify the current owner-approved priority before beginning any workstream it covers.
+   - `PROFLOW_HANDOFF.md` when engineering chronology or prior execution detail is needed.
+   - `PROFLOW_CLAUDE_LATEST_REPORT.md` when the newest completed task's Final Report is needed (report-transport bridge, not a standing bootstrap requirement on its own).
+4. **Never read archives/history (`docs/archive/continuity/`) broadly during routine bootstrap** — only for explicit historical investigation.
 
-**THEN READ `PROFLOW_HANDOFF.md`.**
-
-**THEN READ `PROFLOW_TODO.md`** — the authoritative living backlog; identify the current owner-approved priority before beginning any workstream.
-
-**THEN READ `PROFLOW_CLAUDE_LATEST_REPORT.md`** — the newest completed task's Final Report (report-transport bridge, not a standing bootstrap requirement on its own, but part of the six-file set — see §17.C and §0.B).
-
-**THEN READ `PROFLOW_CODEX_CHECKPOINT.md`** — the seventh, supplementary continuity file: open/pending Owner-approved decisions, open visual-review findings, and chat-recovery notes. Read last, after the six above.
-
-**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL ALL SIX (PLUS THE SEVENTH CHECKPOINT FILE) ARE UNDERSTOOD AND THE LOCAL WORKING TREE HAS BEEN FRESHLY VERIFIED** (§17.B, §0.B).
+**DO NOT PROPOSE OR EXECUTE PROJECT CHANGES UNTIL THE CHECKPOINT AND THE CURRENT LOCKED GOVERNANCE (steps 1-2 above) ARE UNDERSTOOD AND THE LOCAL WORKING TREE HAS BEEN FRESHLY VERIFIED** (§17.B, §0.B) — the task-specific files in step 3 are read as the work requires them, not as a blocking gate before any action.
 
 **RESUME FROM THE CURRENT EXACT CHECKPOINT (§28 below) — DO NOT RESTART FROM ZERO.**
 
@@ -42,21 +43,20 @@ This is now a **permanent ProFlow workflow requirement**, not a one-time migrati
 
 This protocol is not optional guidance — it is a standing operating rule for every session that touches this project.
 
-### 1. Required Reading Order
+### 1. Required Reading Order (corrected 2026-09-17, "Continuity Governance Reconciliation" task — checkpoint-first, task-specific files read as needed rather than unconditionally in full)
 
 Every new session must, before proposing or executing anything:
-1. Read this entire file (`PROFLOW_PROJECT_CONTEXT.md`) — the Permanent Bootstrap Protocol itself.
-2. Read `PROFLOW_CHAT_HANDOFF.md` — a ChatGPT continuity snapshot only; see §17.B for its role and limits before relying on it.
-3. Read `PROFLOW_ARCHITECTURE.md` in full.
-4. Read `PROFLOW_HANDOFF.md` in full.
-5. Read `PROFLOW_TODO.md` in full — the authoritative living backlog (see §35).
-6. Obtain a **FRESH** local/Claude working-tree check (`git status`, `git log`, current branch/HEAD vs. `origin`) and reconcile it against the documents above — see §17.B and §18. The documentation snapshot alone is never proof of current state.
-7. Locate the **CURRENT EXACT CHECKPOINT** (§28 below).
-8. Identify all **OPEN / PENDING** items (§24, and the full backlog in `PROFLOW_TODO.md`).
-9. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
-10. Identify the **exact next proposed action** (§29 below) and the current **owner-approved priority** in `PROFLOW_TODO.md` — do not begin another backlog item merely because it is open.
-11. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, §38, and Part C-derived rules below) before proposing any change.
-12. Continue maintaining this file, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
+1. Read `PROFLOW_CODEX_CHECKPOINT.md` first — the active checkpoint (active task, current status, current blockers, current next-action).
+2. Read this entire file (`PROFLOW_PROJECT_CONTEXT.md`) — the Permanent Bootstrap Protocol itself.
+3. Read `PROFLOW_CHAT_HANDOFF.md` — a ChatGPT continuity snapshot only; see §17.B for its role and limits before relying on it.
+4. Read `PROFLOW_ARCHITECTURE.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_TODO.md`, and `PROFLOW_CLAUDE_LATEST_REPORT.md` **as the task at hand actually needs them** — not unconditionally in full on every bootstrap. `PROFLOW_TODO.md` is the authoritative living backlog (see §35); consult it whenever backlog/priority/product-requirement context is needed. `PROFLOW_ARCHITECTURE.md` is consulted task-specifically for current technical/product architecture. `PROFLOW_HANDOFF.md` is consulted for engineering chronology or prior execution detail. `PROFLOW_CLAUDE_LATEST_REPORT.md` is consulted for the newest completed task's Final Report.
+5. Obtain a **FRESH** local/Claude working-tree check (`git status`, `git log`, current branch/HEAD vs. `origin`) and reconcile it against the checkpoint and governance above — see §17.B and §18. The documentation snapshot alone is never proof of current state.
+6. Locate the **CURRENT EXACT CHECKPOINT** (§28 below, and `PROFLOW_CODEX_CHECKPOINT.md`'s own ACTIVE_TASK/SIDE_TASK).
+7. Identify all **OPEN / PENDING** items relevant to the task (§24, and the full backlog in `PROFLOW_TODO.md` when consulted per step 4).
+8. Identify the current **authorization state** for whatever work is in flight (§9 of this protocol).
+9. Identify the **exact next proposed action** (§29 below) and, when `PROFLOW_TODO.md` is consulted, the current **owner-approved priority** there — do not begin another backlog item merely because it is open.
+10. Understand the **permanent product/safety rules** (§4, §18, §19, §36, §37, §38, and Part C-derived rules below) before proposing any change.
+11. Continue maintaining this file, `PROFLOW_CODEX_CHECKPOINT.md`, and `PROFLOW_HANDOFF.md`/`PROFLOW_ARCHITECTURE.md`/`PROFLOW_TODO.md` where appropriate, throughout its own session — see §0.A (Document Hierarchy) and §35 (Backlog Continuity Rule) below.
 
 ### 0.A Document Hierarchy & Conflict Resolution
 
@@ -77,12 +77,13 @@ Six permanent documents, each with a distinct role — do not blur them. (This l
 - **D.** `PROFLOW_HANDOFF.md` preserves historical evidence — it is never rewritten merely to make old sections match current architecture.
 - **E.** If `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_ARCHITECTURE.md` both claim current technical truth and genuinely conflict, repository/live evidence decides — not document priority.
 - **F.** `PROFLOW_CHAT_HANDOFF.md` and `PROFLOW_CLAUDE_LATEST_REPORT.md` are never authoritative on their own for architecture, backlog status, or historical claims — documents 1/3/4/5 govern those. Each is useful only as a fast orientation/transport snapshot and must always be verified against a fresh local working-tree check before it informs any implementation decision (§17.B, §17.C).
+- **G. Continuity Precedence Model (added 2026-09-17, "Continuity Governance Reconciliation" task).** For bootstrap/routing/workflow questions ("what do I read, in what order, and does an instruction still apply"): the permanent project router → `PROFLOW_CODEX_CHECKPOINT.md` → the relevant current locked governance (this file, `PROFLOW_CHAT_HANDOFF.md`) → task-specific continuity/architecture/backlog files, consulted only as the task needs them → historical records, consulted only for explicit historical investigation. For current filesystem/runtime/branch/deployment facts: fresh read-only evidence always wins over any document (unchanged from E above). For technical/product architecture: `PROFLOW_ARCHITECTURE.md` plus fresh repository evidence. For backlog/product-requirement status: `PROFLOW_TODO.md` plus fresh current-state reconciliation. For engineering chronology: `PROFLOW_HANDOFF.md`. For chat-oriented continuation: `PROFLOW_CHAT_HANDOFF.md`. For the latest Claude execution report: `PROFLOW_CLAUDE_LATEST_REPORT.md`. This item records the precedence order itself; it does not change any of A-F above, which remain the authoritative rules for each named case.
 
-### 0.B PERMANENT SIX-FILE CONTINUITY RULE (added 2026-08-30 — Continuity Integrity Audit task)
+### 0.B PERMANENT SIX-FILE CONTINUITY RULE (added 2026-08-30 — Continuity Integrity Audit task; §A corrected 2026-09-17, "Continuity Governance Reconciliation" task, to state the checkpoint's relationship to this set explicitly)
 
 **This is the single, current, authoritative statement of the six-file continuity system. It supersedes any "three"/"four"/"five"-document phrasing found anywhere else in this file or in the other five canonical documents — those are historical artifacts of how this system grew over time, not active inconsistencies requiring further correction.**
 
-**A. The six canonical files** (see §0.A for each one's distinct role): `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_TODO.md`. They are transported via the dedicated `proflow-continuity` branch/ref (§17.J) — always read from that ref, never from `main`, a stale upload, or chat memory (see §0.C, Bootstrap Safety, below).
+**A. The six canonical files** (see §0.A for each one's distinct role): `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md` (this file), `PROFLOW_TODO.md`. They are transported via the dedicated `proflow-continuity` branch/ref (§17.J) — always read from that ref, never from `main`, a stale upload, or chat memory (see §0.C, Bootstrap Safety, below). **`PROFLOW_CODEX_CHECKPOINT.md` is NOT a seventh member of this set** — it is the separate, active bootstrap entry point and current checkpoint, read FIRST (before this set), maintained alongside it, and kept synchronized in meaning with it. Any wording elsewhere describing the checkpoint as "the seventh file," "supplementary," or "read last, after the six" is superseded by this correction.
 
 **B. Every meaningful ProFlow action, decision, test, discovery, implementation, environment change, status change, approval, blocker, or completed phase must be reconciled against all six canonical files before a task is considered closed.** "Reconciled" means each file is individually reviewed for whether it needs an update — not that all six are blindly edited every time.
 
@@ -110,7 +111,7 @@ Six permanent documents, each with a distinct role — do not blur them. (This l
 
 ### 0.C Bootstrap Safety — Introduction Must Not Substitute for the Six Files (added 2026-08-30 — Continuity Integrity Audit task)
 
-Any future ChatGPT bootstrap/Introduction instruction (an external, ChatGPT-maintained document, not part of this repository's six-file set — see §15.B's note about it in `PROFLOW_CHAT_HANDOFF.md`) **must begin by reading all six canonical files from `ref = proflow-continuity`** on GitHub. It must **not** substitute `main`, the default branch, a stale uploaded copy, chat memory, or a previous report for that read. **If all six files cannot be read from `proflow-continuity`, the bootstrap must STOP and report exactly:**
+Any future ChatGPT bootstrap/Introduction instruction (an external, ChatGPT-maintained document, not part of this repository's six-file set — see §15.B's note about it in `PROFLOW_CHAT_HANDOFF.md`) **must begin by reading `PROFLOW_CODEX_CHECKPOINT.md` first (§0.A intro, corrected 2026-09-17), then all six canonical files from `ref = proflow-continuity`** on GitHub. It must **not** substitute `main`, the default branch, a stale uploaded copy, chat memory, or a previous report for that read. **If all six files cannot be read from `proflow-continuity`, the bootstrap must STOP and report exactly:**
 
 ```
 CONTINUITY BOOTSTRAP INCOMPLETE
@@ -128,12 +129,16 @@ phrase "ProFlow — תמשיך מהנקודה האחרונה" / its English equi
         ↓
 THIS SHORT, STABLE BOOTSTRAP CONTRACT (this section)
         ↓
+READ PROFLOW_CODEX_CHECKPOINT.md FIRST (active task/status/blockers/next-action)
+        ↓
 READ SIX FRESH FILES FROM ref = proflow-continuity
         ↓
 INDEPENDENT SIX-FILE RECONCILIATION (never trust a prior PASS/ledger blindly)
         ↓
 CURRENT PROJECT STATE, reported to the Owner
 ```
+
+**(Diagram corrected 2026-09-17, "Continuity Governance Reconciliation" task, to show the checkpoint-first step this contract's own step B.1 below already implies but previously left undiagrammed.)**
 
 **A. The permanent trigger phrase.** The Owner's primary standing trigger for resuming this project in **any** AI session is exactly:
 
@@ -143,17 +148,18 @@ This is recognized identically to the pre-existing Magic Phrase Continuity Contr
 
 **B. On receiving the trigger, before doing anything else, a session must:**
 
-1. **Read all six canonical files** — `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` (§0.A) — **directly from `ref = proflow-continuity`** on GitHub (`quotecode-dev/quotecode-clean`).
-2. **Never silently substitute** `main`, the default branch, a stale uploaded copy, previous chat history, or memory for that read.
-3. **If any of the six cannot be read from `proflow-continuity`**, STOP immediately and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (§0.C) — no guessing, no partial resume. **"Cannot be read" means every reasonable read-only path was attempted and none returned content — not that the first attempt returned an empty `content` field.** `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` are known to exceed the GitHub Contents API's ~1 MB inline-content limit, which returns empty `content` alongside a valid, usable blob `sha` — that is proven, expected API behavior for a file this size, not evidence of a failed read. Before reporting `CONTINUITY BOOTSTRAP INCOMPLETE` for either file, resolve and read the underlying Git blob (`git/blobs/{sha}`) or the raw content URL — see `PROFLOW_CHAT_HANDOFF.md` §0 and §188 below for the exact endpoints and proof.
-4. **Perform an INDEPENDENT SIX-FILE RECONCILIATION.** This is critical: a prior session's own "PASS" verdict or its own Six-File Continuity Ledger is *evidence*, never *proof by itself* — the bootstrapping session must read and cross-check the six files' actual current content, not merely trust a prior session's self-report. See §0.E for the standing rule this derives from.
-5. **Treat `PROFLOW_CLAUDE_LATEST_REPORT.md` as a report transport / review bridge** (§17.C) — the newest completed task's report, useful evidence, never the sole Source of Truth for current state.
-6. **Detect and report** stale documents, conflicting current-state claims, missing updates, or inconsistent checkpoints found across the six files, before proceeding.
-7. **Distinguish DOCUMENTED STATE from FRESH LOCAL STATE.** Anything that genuinely requires current filesystem/git/runtime evidence (exact `HEAD`, `git status`, current TEST/Production live state) must be named as requiring a fresh Claude/local check — never guessed or assumed from documentation alone (§17.B/§18 golden rule, unchanged).
-8. **Reconstruct, from the six-file reconciliation**: completed work, open work, local/uncommitted state (if documented), TEST state, Production state, current authorization boundaries, and the current recommended next action.
-9. **Preserve every existing permanent ProFlow safety/workflow rule** by reference, not duplication — Owner final authority; Claude Lead; Agent HE/Agent EN ownership and reconciliation (§17.F/§17.G/§0.B.G); the File-by-File HE/EN Ledger where applicable (§17.I); the Six-File Continuity Ledger (§0.B.D); `EFFORT LEVEL` (§38); Fresh Local State; TEST ≠ Production (§17.D); explicit authorization boundaries; `commit ≠ push ≠ deploy ≠ LIVE authorization` (§0.B.I); no Production mutation without explicit Owner authorization; no guessing missing state; preserve pre-existing uncommitted work; no reset/restore/stash/clean/discard without authorization. This contract does not restate these rules' full text — it points to where each already lives, per this section's own anti-duplication design principle.
-10. **Make NO changes during bootstrap.** Do not modify code, DB, configuration, documentation, TEST, Production, or deployment merely because a new session started. (Rotation timing itself — when a *new* session should be started in the first place — is governed by the separate, permanent §48 Claude Session Rotation Rule.)
-11. **Do not prepare implementation instructions merely as part of bootstrap.** Reconstruct and report project state to the Owner first; implementation planning is a separate, later step.
+1. **Read `PROFLOW_CODEX_CHECKPOINT.md` first** — the active checkpoint (active task, current status, current blockers, current next-action). It is not one of the six canonical files (§0.B.A) and is not read last.
+3. **Read all six canonical files** — `PROFLOW_ARCHITECTURE.md`, `PROFLOW_CHAT_HANDOFF.md`, `PROFLOW_CLAUDE_LATEST_REPORT.md`, `PROFLOW_HANDOFF.md`, `PROFLOW_PROJECT_CONTEXT.md`, `PROFLOW_TODO.md` (§0.A) — **directly from `ref = proflow-continuity`** on GitHub (`quotecode-dev/quotecode-clean`).
+4. **Never silently substitute** `main`, the default branch, a stale uploaded copy, previous chat history, or memory for that read.
+5. **If any of the six cannot be read from `proflow-continuity`**, STOP immediately and report exactly `CONTINUITY BOOTSTRAP INCOMPLETE` (§0.C) — no guessing, no partial resume. **"Cannot be read" means every reasonable read-only path was attempted and none returned content — not that the first attempt returned an empty `content` field.** `PROFLOW_PROJECT_CONTEXT.md` and `PROFLOW_HANDOFF.md` are known to exceed the GitHub Contents API's ~1 MB inline-content limit, which returns empty `content` alongside a valid, usable blob `sha` — that is proven, expected API behavior for a file this size, not evidence of a failed read. Before reporting `CONTINUITY BOOTSTRAP INCOMPLETE` for either file, resolve and read the underlying Git blob (`git/blobs/{sha}`) or the raw content URL — see `PROFLOW_CHAT_HANDOFF.md` §0 and §188 below for the exact endpoints and proof.
+6. **Perform an INDEPENDENT SIX-FILE RECONCILIATION.** This is critical: a prior session's own "PASS" verdict or its own Six-File Continuity Ledger is *evidence*, never *proof by itself* — the bootstrapping session must read and cross-check the six files' actual current content, not merely trust a prior session's self-report. See §0.E for the standing rule this derives from.
+7. **Treat `PROFLOW_CLAUDE_LATEST_REPORT.md` as a report transport / review bridge** (§17.C) — the newest completed task's report, useful evidence, never the sole Source of Truth for current state.
+8. **Detect and report** stale documents, conflicting current-state claims, missing updates, or inconsistent checkpoints found across the six files, before proceeding.
+9. **Distinguish DOCUMENTED STATE from FRESH LOCAL STATE.** Anything that genuinely requires current filesystem/git/runtime evidence (exact `HEAD`, `git status`, current TEST/Production live state) must be named as requiring a fresh Claude/local check — never guessed or assumed from documentation alone (§17.B/§18 golden rule, unchanged).
+10. **Reconstruct, from the checkpoint plus the six-file reconciliation**: completed work, open work, local/uncommitted state (if documented), TEST state, Production state, current authorization boundaries, and the current recommended next action.
+11. **Preserve every existing permanent ProFlow safety/workflow rule** by reference, not duplication — Owner final authority; Claude Lead; Agent HE/Agent EN ownership and reconciliation (§17.F/§17.G/§0.B.G); the File-by-File HE/EN Ledger where applicable (§17.I); the Six-File Continuity Ledger (§0.B.D); `EFFORT LEVEL` (§38); Fresh Local State; TEST ≠ Production (§17.D); explicit authorization boundaries; `commit ≠ push ≠ deploy ≠ LIVE authorization` (§0.B.I); no Production mutation without explicit Owner authorization; no guessing missing state; preserve pre-existing uncommitted work; no reset/restore/stash/clean/discard without authorization. This contract does not restate these rules' full text — it points to where each already lives, per this section's own anti-duplication design principle.
+12. **Make NO changes during bootstrap.** Do not modify code, DB, configuration, documentation, TEST, Production, or deployment merely because a new session started. (Rotation timing itself — when a *new* session should be started in the first place — is governed by the separate, permanent §48 Claude Session Rotation Rule.)
+13. **Do not prepare implementation instructions merely as part of bootstrap.** Reconstruct and report project state to the Owner first; implementation planning is a separate, later step.
 
 **C. On successful reconciliation, report:**
 
