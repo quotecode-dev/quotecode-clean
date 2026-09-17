@@ -467,6 +467,28 @@ A side request never replaces the active task. If a side request arrives, log it
 
 ## Latest completed and verified work
 
+### TEKANGO Continuity Sync + tkrel Worktree Removal (2026-09-17, even later still than the entry immediately below, Owner-authorized "HIGH effort" combined task, Claude Builder) — FIRST ACTUAL CLEANUP MUTATION FROM THE ELIGIBILITY LINEAGE
+
+**CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `origin/main` unchanged (`7cd78ea`), local continuity (`ca856aa`) one documentation-only commit ahead of remote (`1559ffa`, exactly the disclosed lag from the immediately-prior task), `ACTIVE_TASK` unchanged (Admin V1 exception, `C:\tkrtl1`), canonical `main` dirty unchanged (70), worktree count unchanged (20), `C:\tkrel` unchanged (branch `tekango-release-isolated`, HEAD `b7318b3`, 0 dirty). `BROWSER TABS AT START: 1` — compliant. `BROWSER TABS AT END: 1`.
+
+**Continuity sync**: pushed `proflow-continuity` (`1559ffa..ca856aa`, fast-forward, confirmed touching only `PROFLOW_CODEX_CHECKPOINT.md`, no application branch) to `origin/proflow-continuity`. Remote read-back: `origin/proflow-continuity` re-fetched, confirmed `ca856aa`, exact match; checkpoint blob hash independently confirmed identical between local worktree and remote ref. `origin/main` re-confirmed unchanged throughout.
+
+**tkrel pre-removal gate, fresh immediately before mutation (not reused from the eligibility investigation's own timestamp)**: branch `tekango-release-isolated`, HEAD `b7318b31b7afed6f9f04c3963fb11e037b92ea63` (unchanged), 0 dirty paths, 0 unique commits vs known remotes (`git rev-list --count b7318b3 --not --remotes` = 0, re-run fresh), zero running process referencing `tkrel` (fresh `Get-CimInstance Win32_Process` search), no `.env`/`.env.localtest.local` present (unchanged), worktree registration still present exactly as `C:/tkrel  b7318b3 [tekango-release-isolated]`. Every condition from the prior investigation held unchanged — nothing required re-classification.
+
+**Mutation, exactly as authorized**: `git worktree remove C:\tkrel` — the narrowest git-native operation for a clean linked worktree; removes only the linked working directory and its own `.git/worktrees/tekango-release-isolated` administrative registration, never the branch ref itself.
+
+**Post-removal verification, fresh**: `C:\tkrel` confirmed gone from both `git worktree list` and the filesystem (`ls` → "No such file or directory"). Worktree count: 20 → 19, exactly as expected — `C:/tkrel2` and `C:/tkrel3` (distinct worktrees, unaffected) both independently re-confirmed present and unchanged in the same listing. Branch `refs/heads/tekango-release-isolated` confirmed still present, still pointing at the identical `b7318b31b7afed6f9f04c3963fb11e037b92ea63` — retained exactly as required. Canonical `main` dirty count unchanged (70). `main` HEAD unchanged (`06e29b1`). `origin/main` unchanged (`7cd78ea`). `preservation/2026-09-17-phase1-2` unchanged (`22db012`). `release/landing-pages-clean-20260906` unchanged (`0893c918...`). No tag deleted (this operation cannot delete a tag; not attempted). No other worktree touched. TEST/Production: not applicable to a purely local git-administrative operation — neither was touched.
+
+**No cleanup beyond the single authorized worktree removal was performed.** No other worktree removed, no branch/ref/tag deleted, no reset/restore/stash/clean/prune, no `main` change, `main` not pushed, TEST/Production untouched, no Owner tab closed.
+
+**CHECKPOINT END UPDATE: REQUIRED — satisfied by this entry.** Current `ACTIVE_TASK`/`SIDE_TASK`: both unchanged. Exact next action: none proposed by this task — the next cleanup-eligibility candidate (if any) would need its own fresh, individual investigation (per the same method just used for `tkrel`) before any further Owner authorization is sought; this task does not pre-select one. Authorization boundary: unchanged; this task's own authorization was exhausted by the one worktree removal it performed. Branch/HEAD/ref state: `main` unchanged; `tekango-release-isolated` retained at `b7318b3`. TEST touched: NO. Production touched: NO. Push/deploy: `proflow-continuity` pushed twice this task (the pre-existing lag, then this closing update); no application push. New blockers: none. Browser hygiene end state: `BROWSER TABS AT END: 1`, `OWNER TABS CLOSED: NO`, `RESTORE ALL TABS USED: NO`.
+
+**LOCAL CHECKPOINT READ-BACK: PASS** — this file re-read from disk after the edit, confirmed this entry present as written.
+
+**COMMIT/PUSH/DEPLOY: `proflow-continuity` pushed to `origin/proflow-continuity` (twice — the pre-existing sync, then this closing update below). No application commit, no `main` push. PRODUCTION TOUCHED: NO. TEST DATA CHANGED: NO. REAL CUSTOMER DATA / DAVID ALUMINUM: NO.**
+
+**NEXT ACTION**: no further cleanup is authorized or proposed by this task. Any future worktree/branch cleanup candidate requires its own fresh, individual eligibility investigation (the same rigor just applied to `tkrel`) before any new Owner authorization request.
+
 ### TEKANGO C:\tkrel Release/Rollback + Dist Read-Only Eligibility Investigation (2026-09-17, even later still than the entry immediately below, Owner-authorized "HIGH effort" read-only investigation task, Claude Builder)
 
 **CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `origin/main` unchanged (`7cd78ea`), local/remote continuity both at `1559ffa` (exact sync, no lag), `ACTIVE_TASK` unchanged (Admin V1 exception, `C:\tkrtl1` — does not depend on `C:\tkrel`), `SIDE_TASK` unchanged. `BROWSER TABS AT START: 1` — compliant, no action needed. `BROWSER TABS AT END: 1`.
