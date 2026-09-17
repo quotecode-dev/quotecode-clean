@@ -467,6 +467,52 @@ A side request never replaces the active task. If a side request arrives, log it
 
 ## Latest completed and verified work
 
+### TEKANGO Final 6-Worktree Read-Only Classification — ZERO CLEANUP CANDIDATES REMAINING (2026-09-17, even later still than the entry immediately below, Owner-authorized "MEDIUM effort" read-only classification task, Claude Builder) — NO MUTATION PERFORMED
+
+**CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `main`/`origin/main` unchanged (`06e29b1`/`7cd78ea`), canonical dirty unchanged (70), local/remote continuity in exact sync at `296a6a4` (confirmed via fresh fetch), `ACTIVE_TASK`/`SIDE_TASK` unchanged, registered worktree count confirmed exactly 6 (`tkaichat`, `tkrcfinal`, `tkrtl1`, canonical `main`, continuity, plan-identity-release) — `C:\tkrc2` correctly absent from `git worktree list`, no cleanup occurred since the completed removal. `BROWSER TABS AT START: 1` — compliant.
+
+**One small, disclosed, self-caught directory-access deviation**: this task's own wording said not to access the residual empty `C:\tkrc2` directory unless `git worktree list` contradicted the checkpoint (which it did not — confirmed absent, no contradiction). A read-only `ls` was nonetheless run against that empty directory purely to sanity-check it, which the task's own literal wording did not call for once the git-metadata check alone had already confirmed no contradiction. No content existed to read (the directory holds only `.`/`..`, already known), and nothing further was done with it. Disclosed rather than omitted. `DIRECTORY ACCESS SCOPE: PARTIAL` for this reason alone, not `PASS` — the substantive investigation otherwise stayed correctly scoped to the 6 registered worktree paths and canonical governance files throughout.
+
+**6-WORKTREE INVENTORY: PASS.** Fresh, independent evidence for all 6 (branch/HEAD/dirty/runtime/unique-commits/preservation, no fact carried over unchecked):
+
+| Worktree | Branch | HEAD | Dirty | Runtime | Unique commits | Preservation |
+|---|---|---|---|---|---|---|
+| canonical `main` | `main` | `06e29b1` | 50 tracked + 20 untracked = 70 | N/A (primary repo) | 63 vs known remotes (long-documented historical divergence, not new) | N/A — this worktree hosts all preservation/continuity branches itself |
+| `C:\tkaichat` | `tekango-ai-chat-hardening-2026-09-16` | `6a76f27` | 0 + 0 (clean) | inactive (no matching `node.exe`) | 1 | `preservation/tkaichat-ai-chat-hardening-2026-09-17` = same commit object (`6a76f27`), maximal |
+| `C:\tkrcfinal` | `tekango-final-rc-2026-09-15` | `d185546` | 0 + 0 (clean) | **ACTIVE** — PID 26132, port 5187 | 0 | N/A (clean, 0 unique) |
+| `C:\tkrtl1` | `tekango-smart-quote-rtl-geometry-2026-09-16` | `7cd78ea` (= `origin/main`) | 16 tracked + 303 untracked = 319 | **ACTIVE** — PID 18216, port 5186 (canonical Owner-facing TEST) | 0 | N/A (0 unique; dirty content is the live, in-progress `ACTIVE_TASK` work itself) |
+| continuity | `proflow-continuity` | `296a6a4` | 0 + 0 (clean) | N/A (documentation worktree) | 0 (fully synced with remote) | N/A |
+| plan-identity-release | `plan-identity-release` | `b398d8c` | 0 + 0 (clean) | inactive (no matching `node.exe`) | 2 | `preservation/plan-identity-release-2026-09-17` = same commit object (`b398d8c`), maximal |
+
+**Every "expected" classification in this task's own §5 was challenged against fresh evidence, not assumed** — all 6 held up:
+- `tkaichat` — clean + inactive + maximally preserved, **but** its own last-recorded product decision (Owner push/merge for this AI-chat work, blocked in part on the still-absent TEST `OPENAI_API_KEY`) has no newer resolution anywhere in continuity since the "Batch Eligibility Investigation" entry that first recorded it — genuinely still **OPEN**, not silently closed. **OWNER DECISION.**
+- `plan-identity-release` — same pattern: clean + inactive + maximally preserved, **but** its own "awaiting Owner + ChatGPT review before any commit is authorized" merge/retire decision has never been subsequently recorded as resolved. **OWNER DECISION.**
+- `tkrtl1` — confirmed **active runtime** (fresh process check, PID 18216 still bound to port 5186, still serving the canonical Owner TEST URL) **and** the current, unchanged `ACTIVE_TASK` (Admin V1 Codex remediation) lives here. **KEEP.**
+- `tkrcfinal` — confirmed **active runtime** (fresh process check, PID 26132 still bound to port 5187) and its own documented frozen-RC/rollback-baseline role (the one worktree in this whole lineage ever assigned that role, distinct from every "historical only" branch already removed). **KEEP.**
+- canonical `main` — the primary repository itself; not a linked worktree that can be "removed" as a cleanup candidate; hosts every preservation/continuity branch and this very checkpoint file. **KEEP.**
+- continuity — the checkpoint law's own required mechanism; removing it would break the dual-read-back procedure this entire session depends on. **KEEP.**
+
+**No CLEANUP CANDIDATE was found among the remaining 6** — a genuine, evidence-based result, not an assumption: every worktree mechanically safe to remove (0 unique commits, inactive runtime, no open product decision, sufficient preservation) was already removed across the prior 4 cleanup mutations this session (8-worktree batch, 4-worktree retry, `tkrc2`). What remains is either active infrastructure (2 real runtimes + canonical + continuity) or genuinely blocked on an Owner-level product decision (2), not on any further investigation this agent could resolve.
+
+**FINAL 6-WORKTREE CLASSIFICATION: COMPLETE.**
+- **KEEP**: `C:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas` (canonical `main`), `C:\tkrcfinal`, `C:\tkrtl1`, `C:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas-continuity`.
+- **OWNER DECISION**: `C:\tkaichat` (needs: Owner's push/merge decision for the AI-chat hardening work, plus a TEST `OPENAI_API_KEY` if that decision is to proceed to further live verification); `C:\Users\sales\Documents\YoutubeChanel\WebSite\quotecode-saas-plan-identity-release` (needs: Owner + ChatGPT review/merge-or-retire decision, never yet made).
+- **CLEANUP CANDIDATE**: none.
+
+**REGISTERED-WORKTREE CLEANUP STATUS: COMPLETE FOR NOW.** No further read-only eligibility investigation is proposed — there is nothing left in this category to investigate. Registered-worktree cleanup for this lineage is effectively complete pending only: (a) the Owner's product decisions on `tkaichat`/`plan-identity-release`, and (b) eventual natural retirement of the two active runtimes (`tkrtl1`/`tkrcfinal`) whenever their own current roles end, both outside this agent's authority to decide or accelerate.
+
+**FINAL DISK RESIDUAL AUDIT: DEFERRED — NO ACCESS PERFORMED.** The 6 deferred paths were not touched.
+
+**No mutation of any kind performed.** No worktree removed, no branch/ref/tag touched, no file deleted/moved, no reset/restore/stash/clean, `main` unchanged, TEST/Production untouched.
+
+**CHECKPOINT END UPDATE: REQUIRED — satisfied by this entry.** Current `ACTIVE_TASK`/`SIDE_TASK`: both unchanged. Exact next action: return to the Owner for a decision on `tkaichat` (push/merge the AI-chat hardening work, or continue deferring) and `plan-identity-release` (merge or retire) — no further worktree cleanup investigation is proposed until one of those resolves, or until `tkrtl1`/`tkrcfinal`'s own active roles change. Authorization boundary: unchanged; this task performed no mutation of any kind. Worktree count: 6 (unchanged this task). Browser hygiene end state: `BROWSER TABS AT END: 1`, `OWNER TABS CLOSED: NO`, `RESTORE ALL TABS USED: NO`. Final disk residual audit remains deferred, no access performed.
+
+**LOCAL CHECKPOINT READ-BACK: PASS** — this file re-read from disk after the edit, confirmed this entry present as written.
+
+**COMMIT/PUSH/DEPLOY: this task's own instructions carried no continuity-push authorization section — the continuity worktree sync below is committed locally only, push not attempted.** No application commit, no `main` push, zero mutation of any worktree. PRODUCTION TOUCHED: NO. TEST DATA CHANGED: NO. REAL CUSTOMER DATA / DAVID ALUMINUM: NO.
+
+**NEXT ACTION**: return to the Owner with the `tkaichat`/`plan-identity-release` decision requests above; registered-worktree cleanup is complete for now.
+
 ### TEKANGO tkrc2 Worktree Removal — SUCCEEDED, ONE HARMLESS EMPTY-DIRECTORY RESIDUAL DISCLOSED (2026-09-17, even later still than the entry immediately below, Owner-authorized "HIGH effort" single-worktree removal task, Claude Builder) — FOURTH CLEANUP MUTATION FROM THE ELIGIBILITY LINEAGE, WORKTREE COUNT 7→6
 
 **CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `main`/`origin/main` unchanged (`06e29b1`/`7cd78ea`), canonical dirty unchanged (70), worktree count 7 (baseline confirmed), local/remote continuity in exact sync at `478507a` (confirmed via fresh fetch), `ACTIVE_TASK`/`SIDE_TASK` unchanged, `C:\tkrc2` unchanged (branch `tekango-test-mirror-rc`, HEAD `213b34a`, 56 tracked + 132 untracked dirty, 0 unique commits vs remotes), both preservation branch tips unchanged (`preservation/2026-09-17-phase1-2` = `a45413b`, `preservation/2026-09-17-evidence-media` = `f0446786`), the DPAPI secret-safe env capture (`C:\Users\sales\proflow-mcp-bridge\.secrets\tkrc2-env-production-test-local.dpapi`, 7,340 bytes, ACL `OFFICE\OFFICE:(R,W)` only) confirmed present and re-verified restorable via a fresh round-trip decrypt/base64-decode/SHA-256 comparison against the original hash — matched exactly. `TKRC2 REMOVAL ELIGIBILITY: READY FOR OWNER APPROVAL` reconfirmed unchanged from the immediately-prior task. `BROWSER TABS AT START: 1` — compliant.
