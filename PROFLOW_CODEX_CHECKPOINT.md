@@ -465,6 +465,24 @@ A side request never replaces the active task. If a side request arrives, log it
 
 ## Latest completed and verified work
 
+### TEKANGO Repository Cleanup Phase 1 — Delete Two Orphaned Local Agent-Worktree Refs Only (2026-09-17, even later still than the entry immediately below, Owner-authorized "LOW effort" narrow cleanup task, Claude Builder)
+
+**First actual destructive action authorized and performed since preservation reached COMPLETE** — every task before this one was explicitly read-only/additive-only by its own boundary. Scope was exactly two named local branch refs, Owner-specified by exact name and expected SHA.
+
+**Pre-deletion gate, fresh-verified, not assumed**: both `refs/heads/worktree-agent-a6d256c256983321d` and `refs/heads/worktree-agent-a850cb97d0512b18f` resolved to exactly `61ea52ecc79a1b600e361865743007a50182d24b` (matching the Owner's stated expectation); neither appeared as an attached worktree in a fresh `git worktree list`; the same commit was independently confirmed still preserved by both `refs/remotes/origin/tekango-test-mirror-rc` and local `refs/heads/tekango-rc-freeze-20260915` (both `rev-parse` to the identical SHA); neither ref had any `branch.<name>.*` config (`git config --get-regexp` empty) or any reflog entry beyond its own trivial "branch: Created from origin/main" creation record. Baseline freshly captured: 27 local branches, 22 worktrees, 70 dirty paths (`git status --porcelain=v1 --untracked-files=all`).
+
+**Mutation**: `git branch -D worktree-agent-a6d256c256983321d worktree-agent-a850cb97d0512b18f` — the narrowest correct git operation for deleting two local branch refs; touches nothing else.
+
+**Post-deletion verification, fresh**: both refs confirmed gone (`git show-ref` no longer lists either). Local branch count: 27 → 25, exactly as expected. Worktree count unchanged (22). Dirty path count unchanged (70). `refs/heads/tekango-rc-freeze-20260915`, `refs/remotes/origin/tekango-test-mirror-rc`, `HEAD` (`06e29b1`), `refs/heads/release/landing-pages-clean-20260906` (`0893c91`), `refs/heads/preservation/2026-09-17-phase1-2` (`bf5e26f`), and `origin/main` (`7cd78e`) all independently re-`rev-parse`d identical to their pre-deletion values.
+
+**Nothing else touched**: no worktree removed, no directory deleted, no other branch deleted, no remote ref changed, no reset/restore/stash/clean, no prune, no Temp registration removed, landing branch untouched, preservation refs untouched, `main`'s own content/HEAD untouched (only its own local ref count context — `main` itself was never a delete target), nothing pushed, TEST/Production untouched.
+
+**NEXT STEP (not authorized or performed by this task)**: metadata preservation for the two remaining `prunable` `git worktree list` Temp registrations (`proflow_review_server_20260906`, `proflow_sharpness_proof_20260906`) — record what they are and why, before any future removal decision; removal itself remains a separate, future Owner-authorized cleanup phase.
+
+**COMMIT/PUSH/DEPLOY: no application commit (this was a ref-deletion-only task). PRODUCTION TOUCHED: NO. TEST DATA CHANGED: NO. REAL CUSTOMER DATA / DAVID ALUMINUM: NO.**
+
+**NEXT ACTION**: Owner reviews this result and separately authorizes the next cleanup phase (Temp-registration metadata preservation, then disposition).
+
 ### TEKANGO Hygiene Checker Malformed-Status Final Fix — Third Codex Re-Audit Closure (2026-09-17, even later still than the entry immediately below, Owner-authorized "MEDIUM effort" narrow final fix task, Claude Builder)
 
 **Scope**: close one final HIGH false-negative and one MEDIUM truncation gap a third independent Codex re-audit found in the `-z` porcelain status parser's rename/copy handling, specifically two exact adversarial counterexamples. Same explicit boundary honored: no repository cleanup, no continuity compaction, no destructive git operation, no push to `main`.
