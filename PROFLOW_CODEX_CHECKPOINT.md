@@ -465,6 +465,30 @@ A side request never replaces the active task. If a side request arrives, log it
 
 ## Latest completed and verified work
 
+### TEKANGO Evidence / Media Preservation Closure — Video Source, Pentest Package, Admin QA Screenshots, PARTIAL Upgraded to COMPLETE (2026-09-17, even later still, Owner-authorized "HIGH effort" task, Claude Builder)
+
+**Closes the sole gap the immediately-prior preservation task left open.** No new "completed cleanup/compaction audit" appeared in the meantime (checkpoint mtime/ACTIVE_TASK unchanged again before this task started) — proceeded the same way, via fresh targeted discovery rather than trusting an unverifiable claim.
+
+**Discovery, exhaustive within the stated scope**: canonical repo (`artifacts/`, `docs/`, `video-production/`, `pentest-source-review/`, `public/videos/`), all 8 `tk*` worktrees' top-level trees, the plan-identity-release and continuity worktrees, and every `.codex/visualizations/2026/09/{09,13,14,15,16,17}` session folder (each individually confirmed empty via `find -type f` before being excluded, except one). `C:\Users\sales\proflow-mcp-bridge` was noted again and again left out of scope (separate tool, own `.secrets/`).
+
+**Key finding**: `public/videos/*` (the final accepted EN/HE commercials) is **already `git`-tracked on `main`** — no additional preservation action needed beyond a hash record; this was the one class of "release evidence" that turned out to already be durable.
+
+**Preserved, additive only**: the ONE substantial Admin V1 HE browser-acceptance evidence folder from `.codex/visualizations/` (31 screenshots/logs/JSON — Overview/Users/Details/Plans/Activity × Desktop/390/360/320, the same evidence this checkpoint's own ACTIVE_TASK entry already cites); the entire `video-production/` tree (1.1G — narration audio, scripts, specs, screenplay, extracted UI frames, rejected/legacy backups, and every render/build intermediate — copied wholesale once local-disk copy speed proved trivial, rather than attempting manual triage of what's "truly irreplaceable" vs. regenerable); the full `pentest-source-review/` directory contents (86 files, closing the prior task's hash-only treatment — confirmed no real secrets, `.env.example` is an empty template); `tkrc2`'s Playwright `test-results/` (256 files, classified as rebuildable generated output, preserved anyway for completeness).
+
+**Real, disclosed finding, not hidden**: 3 pre-existing top-level entries in the **original** `video-production/` folder have mangled, embedded-newline filenames left over from an old mis-quoted `cp` command — confirmed pre-existing (seen on the very first read-only `ls -la`, untouched by this task), and the original files were **not renamed, moved, or deleted**. Only this task's own *copies* of those 3 files were renamed (byte-for-byte content unchanged, verified by matching size) so `git add` could stage them at all — a copy-only fix, not a cleanup action.
+
+**Privacy gate**: the only "David Aluminum" text matches found across the entire evidence payload were code comments explicitly guarding against using real customer data (e.g. `// real customer data, no David Aluminum`) — no actual customer data was found, copied, or newly created.
+
+**Committed to its own dedicated local branch, never `main`, never pushed**: `preservation/2026-09-17-evidence-media` (base `main`@`dd9ff398`, commit `f0446786`, 2,885 files, 118,984 insertions). Manifest: `preservation/2026-09-17-evidence/EVIDENCE_MEDIA_MANIFEST.md` on that branch. The convenience pointer file at repo root (`PRESERVATION_2026-09-17_POINTER.md`, still deliberately untracked on `main`) was updated to list this fifth branch alongside the four from the prior task.
+
+**Verification**: re-hashed `public/videos/proflow-en-commercial.mp4` after all preservation work — identical. Original `video-production/`/`pentest-source-review/`/`public/videos/` sizes re-confirmed unchanged (1.1G/1.4M/59M). The 3 mangled-filename entries confirmed still present, untouched, in the original. **NO-CLEANUP GATE: PASS.**
+
+**REPOSITORY PRESERVATION PHASES 1-2: upgraded from PARTIAL to COMPLETE** — every location this task and its predecessor were asked to cover has now been discovered, classified, and additively preserved (or proven already durable via existing `git` tracking).
+
+**COMMIT/PUSH/DEPLOY: local preservation commit only (`f0446786` on a dedicated non-`main` branch), NOT pushed anywhere. PRODUCTION TOUCHED: NO. PRODUCTION DATA CHANGED: NO. TEST DATA MUTATED: NO** (zero Supabase CLI/API calls). **REAL CUSTOMER DATA / DAVID ALUMINUM: NO — confirmed by inspection, not merely assumed.**
+
+**NEXT ACTION**: Owner reviews both preservation branches (`preservation/2026-09-17-phase1-2`, `preservation/2026-09-17-evidence-media`) and separately authorizes (a) the actual Repository Cleanup pass now that preservation is COMPLETE, (b) whether/how to push any of the five new local-only preservation branches to a remote for off-machine durability, (c) whether to now run a genuine read-only Repository Cleanup + Continuity Compaction Audit given no such artifact was ever found to exist across either preservation task.
+
 ### TEKANGO Repository Preservation Phases 1-2 — Full Worktree Inventory + Additive Backup, NO Cleanup Performed (2026-09-17, even later still, Owner-authorized "VERY HIGH effort" PRESERVE-FIRST task, Claude Builder)
 
 **No independently-discoverable "completed read-only Repository Cleanup + Continuity Compaction Audit" was found** — this checkpoint's own mtime and ACTIVE_TASK were unchanged since the immediately-prior governance-reconciliation task, and no audit report artifact exists anywhere searched (repo root, `docs/`, worktrees). Per the task's own instruction to "treat the audit as evidence, not authority," this task proceeded via **fresh independent verification** of every file/worktree path named in its prompt rather than trusting the claim — every path was confirmed to exist before being preserved. **CODEX AUDIT RECONCILIATION: PARTIAL** (audit document not locatable; fresh verification substituted, per the task's own required method).
