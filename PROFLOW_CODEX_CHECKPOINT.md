@@ -467,6 +467,32 @@ A side request never replaces the active task. If a side request arrives, log it
 
 ## Latest completed and verified work
 
+### TEKANGO Secure TEST OpenAI Key Enrollment — SCRIPT PREPARED, AWAITING OWNER'S OWN INTERACTIVE RUN (2026-09-17, even later still than the entry immediately below, Owner-authorized "HIGH effort" enrollment+provisioning+terminal-verification task, Claude Builder) — NO KEY VALUE SEEN OR HANDLED BY THE AGENT AT ANY POINT
+
+**CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `main`/`origin/main` unchanged (`06e29b1`/`7cd78ea`), canonical dirty unchanged (70), worktree count unchanged (6), local/remote continuity in exact sync at `d458b28`, `ACTIVE_TASK`/`SIDE_TASK` unchanged, `C:\tkaichat` unchanged (branch `tekango-ai-chat-hardening-2026-09-16`, HEAD `6a76f27`, clean), TEST secret list unchanged (`OPENAI_API_KEY` still absent). `BROWSER TABS AT START: 1` — compliant. `DIRECTORY ACCESS SCOPE: PASS` — only `C:\tkaichat`, the exact `.secrets\` file this task names, and canonical governance files were touched; the enrollment script itself was written to this session's own scratchpad, not the `.secrets\` directory.
+
+**TEST PROJECT IDENTITY: PASS. PRODUCTION PROJECT EXCLUDED: PASS.** Fresh `supabase projects list`: `ljfizgrdyzxddswcedwr` = `"quotecode-test"`, `ixabnzhjeqevtbhdfswv` = `"quotecode"` — confirmed distinct by name, matching every prior check.
+
+**DPAPI ENROLLMENT METHOD: OWNER LOCAL INPUT REQUIRED — a real, structural tooling limit, not a policy stop.** This agent's own shell tools run fully non-interactively (stdin bound to the null device); there is no way for this agent to itself hold open a masked `Read-Host -AsSecureString` prompt for the Owner to type into during a tool call — that interactive step can only happen in a terminal the Owner runs themselves, exactly as the existing `enroll-tunnel-credential.ps1` precedent was itself always "one-time, interactive, run by the Owner only" (per `PROFLOW_PROJECT_CONTEXT.md` §177). Per this task's own explicit scope, the parent `C:\Users\sales\proflow-mcp-bridge\` directory (where that original script lives) was not opened — this task's approved scope covers only the `.secrets\` subdirectory itself, narrowly, for the one exact entry named. **A new, equivalent one-time script was written instead** (to this session's own scratchpad, never to the `.secrets\` directory), reproducing the exact same mechanism already documented in governance (masked `Read-Host -AsSecureString` → sanitize per the §178 control-character rule → DPAPI `ConvertTo-SecureString`/`ConvertFrom-SecureString` `CurrentUser` scope → write to `C:\Users\sales\proflow-mcp-bridge\.secrets\test-openai-api-key.dpapi` → `icacls /inheritance:r` + `icacls /grant:r "<user>:(R,W)"` → round-trip decrypt-and-compare before reporting success, with the file deleted again on any mismatch → only a non-reversible SHA-256 hash of the plaintext ever printed, never the key itself). **The Owner was asked directly to run this script themselves, in their own terminal, and report back when done** — this task has not yet received that confirmation, so nothing further (provisioning, deployment, terminal verification) has been attempted.
+
+**TEST OPENAI DPAPI ENROLLMENT: NOT YET RUN.** No file exists yet at the target path (confirmed via directory listing, names/sizes only, no content read) — this is the correct, expected state before the Owner runs the script. **SECRET VALUE EXPOSURE: NO** — no key value has been typed into, seen by, or handled by this agent at any point; the script itself contains only logic, no secret.
+
+**TEST OPENAI SECRET PROVISIONING: NOT RUN. AI CHAT TEST DEPLOYMENT: CURRENT (unchanged, no action taken). PRODUCTION AI CHAT: UNCHANGED. AI CHAT HE/EN TERMINAL OUTCOME: BLOCKED, both, correctly not attempted** — all gated on the same single upstream step (the Owner's own local enrollment run), not yet complete.
+
+**APPLICATION CODE CHANGED: NO.**
+
+**FINAL DISK RESIDUAL AUDIT: DEFERRED — NO ACCESS PERFORMED.**
+
+**No unauthorized mutation of any kind occurred.** No secret provisioned, no value exposed, no code changed, no deploy performed, no Production command run, `main` unchanged and not pushed. The enrollment script was written only to this session's own scratchpad (not the application repo, not the `.secrets\` directory), and contains no secret of any kind.
+
+**CHECKPOINT END UPDATE: REQUIRED — satisfied by this entry.** Current `ACTIVE_TASK`/`SIDE_TASK`: both unchanged. Exact next action: **the Owner runs the prepared enrollment script themselves, in their own terminal**, then confirms completion — at which point this same task can resume: verify the DPAPI file structurally (ACL, existence, round-trip hash only), provision `OPENAI_API_KEY` to TEST only, and run the HE/EN real-terminal verification. Authorization boundary: unchanged; this task performed no code change, no secret provisioning, no deploy, no Production contact. Worktree count: 6 (unchanged). Browser hygiene end state: `BROWSER TABS AT END: 1`, `OWNER TABS CLOSED: NO`, `RESTORE ALL TABS USED: NO` (no new tab opened).
+
+**LOCAL CHECKPOINT READ-BACK: PASS** — this file re-read from disk after the edit, confirmed this entry present as written.
+
+**COMMIT/PUSH/DEPLOY: no application commit, no `main` push, no secret provisioning, no deploy of any kind.** PRODUCTION TOUCHED: NO. TEST DATA CHANGED: NO. REAL CUSTOMER DATA / DAVID ALUMINUM: NO.
+
+**NEXT ACTION**: Owner runs the prepared enrollment script in their own terminal, then confirms — this task resumes from that point.
+
 ### TEKANGO TEST OpenAI Key Provisioning + AI Chat Terminal Verification — STILL BLOCKED, NO KEY VALUE AVAILABLE ANYWHERE CHECKED (2026-09-17, even later still than the entry immediately below, Owner-authorized "HIGH effort" tightly-scoped task, Claude Builder) — ZERO CODE CHANGE, ZERO SECRET PROVISIONING, ZERO PRODUCTION CONTACT
 
 **CHECKPOINT START VALIDATION: PASS** — freshly re-verified: `main`/`origin/main` unchanged (`06e29b1`/`7cd78ea`), canonical dirty unchanged (70), worktree count unchanged (6), local/remote continuity in exact sync at `e41f9e7` (confirmed via fresh fetch, no lag this time), `ACTIVE_TASK`/`SIDE_TASK` unchanged, `C:\tkaichat` unchanged (branch `tekango-ai-chat-hardening-2026-09-16`, HEAD `6a76f27`, clean), TEST `chat-ai` deployment unchanged (`ACTIVE`, version 11), `OPENAI_API_KEY` freshly reconfirmed still absent from the TEST secrets list. `BROWSER TABS AT START: 1` — compliant.
