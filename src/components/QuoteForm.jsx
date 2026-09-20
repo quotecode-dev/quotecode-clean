@@ -7,6 +7,7 @@ import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } fr
 import { formatNumberLocal, calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
+import { computeItemWizardState } from '../utils/quoteWorkflowContext';
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -65,7 +66,8 @@ export default function QuoteForm({
   onOpenPricingModal,
   quoteFiles,
   setQuoteFiles,
-  allUserAttachments
+  allUserAttachments,
+  onWizardStateChange
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -149,6 +151,30 @@ export default function QuoteForm({
     }
     setItems([...items, savedItem]);
   };
+
+  // AI Chat Hardening overnight task, Track B/C: bubbles the item-wizard's
+  // own open/add-vs-edit/professional-vs-simple/measurements-present state
+  // up to Dashboard.jsx (the only place AIChatWidget is mounted) via a
+  // single optional callback prop - QuoteForm's own internal state
+  // (isAddWizardOpen/editingItemIndex) is not otherwise exposed. `items`
+  // itself is already Dashboard-owned lifted state, so this effect only
+  // needs to report the wizard's own two private fields; the derivation
+  // logic itself lives in the shared, independently-tested
+  // src/utils/quoteWorkflowContext.js, never duplicated here.
+  // Context-Driven AI Chat V3, §10: AddItemWizard's own live step/pricing-
+  // method/measurement-progress snapshot (see its `onLiveStateChange` prop)
+  // - merged into computeItemWizardState below, never re-derived here.
+  const [wizardLiveState, setWizardLiveState] = useState(null);
+
+  useEffect(() => {
+    if (!onWizardStateChange) return;
+    onWizardStateChange(computeItemWizardState({
+      isOpen: isAddWizardOpen,
+      editingItem: editingItemIndex != null ? items[editingItemIndex] : null,
+      liveState: wizardLiveState,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAddWizardOpen, editingItemIndex, items, wizardLiveState]);
 
   // חוק ברזל (Smart Quote Structure-First UX Correction task): כל יחידה
   // (unit/section) היא כעת קונטיינר-עבודה חי - Decision 10 (collapse/
@@ -451,7 +477,7 @@ export default function QuoteForm({
   };
 
   return (
-    <div style={{ background: 'transparent', padding: '4px 0 20px', borderRadius: 0, marginBottom: '20px', border: 'none', borderTop: editingQuoteId ? `3px solid ${NEON.violet}` : 'none', boxShadow: 'none', fontFamily: FONT_HE }}>
+    <div className="pf-screen" style={{ background: 'transparent', padding: '4px 0 20px', borderRadius: 0, marginBottom: '20px', border: 'none', borderTop: editingQuoteId ? `3px solid ${NEON.violet}` : 'none', boxShadow: 'none', fontFamily: FONT_HE }}>
       {/* V2 "boxes inside boxes" correction (Owner explicit): the outer form
           canvas no longer carries its own border+shadow when creating a new
           quote - every section already has its own card treatment (border+
@@ -478,6 +504,7 @@ export default function QuoteForm({
         canUseProfessionalQuotes={canUseProfessionalQuotes}
         recommendedMethod={recommendedPricingMethod}
         onRequestUpgrade={() => { setIsAddWizardOpen(false); setShowUpgradeConfirm('professional'); }}
+        onLiveStateChange={setWizardLiveState}
       />
 
       {/* מודל שדרוג PRO מעוצב */}
@@ -544,7 +571,7 @@ export default function QuoteForm({
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: `1px solid ${NEON.border}`, flexDirection: isHebrew ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: `1px solid ${NEON.border}`, flexDirection: 'row', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ marginTop: 0, fontSize: '1.3rem', fontWeight: '800', marginBottom: '4px', color: NEON.textPrimary }}>
             {editingQuoteId
@@ -564,7 +591,7 @@ export default function QuoteForm({
         </button>
       </div>
 
-      <form onSubmit={onSave}>
+      <form className="pf-screen-body" onSubmit={onSave}>
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid
             pattern already used everywhere else in this file for field rows -
@@ -858,8 +885,8 @@ export default function QuoteForm({
               (scrollWidth 78 מול clientWidth 65 על תווית הכותרת) - הפתרון
               הוא flexWrap:'wrap' (השורה השנייה נופלת לשורה משלה), לא
               הקטנת-טקסט/קיצוץ, כדי שהתווית המלאה תמיד תישאר קריאה. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexDirection: 'row', minWidth: 0 }}>
               <FileText size={14} strokeWidth={2.2} color={NEON.violetLight} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textPrimary }}>{isHebrew ? 'תנאים ואחריות' : 'Terms & Warranty'}</span>
             </div>
@@ -894,7 +921,7 @@ export default function QuoteForm({
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'אחריות' : 'Warranty'}</label>
                 <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
                 <button type="button" onClick={handleRestoreTermsWarrantyDefaults} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
                   <RotateCcw size={12} strokeWidth={2.4} />
                   {isHebrew ? 'שחזר ברירת מחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
@@ -935,7 +962,7 @@ export default function QuoteForm({
               <button
                 type="button"
                 onClick={() => setQuoteStructureMode('regular')}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
                   <LayoutList size={16} color={NEON.violetLight} />
@@ -948,7 +975,7 @@ export default function QuoteForm({
               <button
                 type="button"
                 onClick={handleSwitchToDivided}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.violetLight}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.violetLight}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
                   <Building2 size={16} color={NEON.violetLight} />
@@ -1110,7 +1137,7 @@ export default function QuoteForm({
         {unitRemovalTarget && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
             <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '22px', borderRadius: '14px', maxWidth: '380px', width: '90%', textAlign: isHebrew ? 'right' : 'left', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
-              <h3 style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle, flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+              <h3 style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle, flexDirection: 'row' }}>
                 <AlertTriangle size={18} color={NEON.red} />
                 {isHebrew ? `הסרת ${unitRemovalTarget.name}` : `Remove ${unitRemovalTarget.name}`}
               </h3>
@@ -1130,7 +1157,7 @@ export default function QuoteForm({
                   <option key={s.key} value={s.key}>{s.name || (isHebrew ? '(ללא שם)' : '(unnamed)')}</option>
                 ))}
               </select>
-              <div style={{ display: 'flex', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+              <div style={{ display: 'flex', gap: '8px', flexDirection: 'row' }}>
                 <button type="button" onClick={() => setUnitRemovalTarget(null)} style={{ flex: 1, background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
@@ -1296,7 +1323,7 @@ function CompactItemCard({
 
   return (
     <div style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '10px 12px', marginBottom: '6px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexDirection: 'row' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
@@ -1385,7 +1412,7 @@ function UnitCard({
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
   return (
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
         <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחב יחידה' : 'Expand unit') : (isHebrew ? 'כווץ יחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
           <ChevronDown size={16} style={{ transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
         </button>

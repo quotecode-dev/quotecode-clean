@@ -14,25 +14,30 @@ import { LIGHT } from '../theme/neonTheme';
 // cannot reliably guarantee for a financial/legal document. Shared between
 // PublicQuote.jsx (HE) and PublicQuoteEn.jsx (EN) so the two files can
 // never drift on this behavior.
-// חוק ברזל (Smart Quote End-to-End Structural Unification task, Locked
-// Decision 12): להצעה מחולקת יש משמעות שונה-לגמרי ל-Compact/Expanded
-// (יחידות-בלבד מול פירוט-מלא-לפי-יחידה) מאשר להצעה רגילה (פירוט-מידות
-// מכווץ/מורחב לכל פריט) - isDivided (אופציונלי, ברירת-מחדל false לשמירת
-// התנהגות-ברירת-המחדל הקיימת לכל קורא ישן) בוחר את הניסוח הנכון, בלי
-// מודל/כפתורים כפולים.
-export default function QuotePrintModeModal({ open, isHebrew, intent, isDivided = false, onClose, onChoose }) {
+// חוק ברזל (Public Quote Classic Table + Smart Quote Dropdown task,
+// supersedes the old Locked Decision 12 below): Compact/Expanded now mean
+// exactly the same thing for every quote, divided or not - the classic
+// commercial table (item rows + group headings for named sections) is
+// always visible; only the per-item measurement/specification dropdown is
+// what Compact/Expanded forces open or closed. The old isDivided-conditional
+// wording ("unit name+total only, no item breakdown") described a
+// unit-card-only presentation that no longer exists in the product - see
+// PublicQuote.jsx/PublicQuoteEn.jsx's own item-rendering comment for the
+// full rationale.
+// חוק ברזל (Smart Quote End-to-End Structural Unification task, original
+// Locked Decision 12, kept as historical context only - no longer in
+// effect): a divided quote used to have an entirely different Compact/
+// Expanded meaning (units-only vs. full per-unit breakdown) than a regular
+// quote (per-item measurement detail collapsed/expanded).
+export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, onChoose }) {
   if (!open) return null;
 
   const title = intent === 'pdf'
     ? (isHebrew ? 'הורדת PDF' : 'Download PDF')
     : (isHebrew ? 'הדפסת מסמך' : 'Print document');
 
-  const compactDesc = isDivided
-    ? (isHebrew ? 'שם כל יחידה וסה"כ שלה בלבד - ללא פירוט פריטים' : 'Each unit\'s name and total only - no item breakdown')
-    : (isHebrew ? 'שורות פריטים וסיכום בלבד - ללא פירוט מידות מורחב' : 'Item lines and totals only - no expanded measurement detail');
-  const expandedDesc = isDivided
-    ? (isHebrew ? 'כל יחידה עם כל הפריטים, המידות והמפרט שלה, וסכום-ביניים ליחידה' : 'Every unit with its full items, measurements & specifications, and its own subtotal')
-    : (isHebrew ? 'כולל פירוט מידות ומפרט מלא לכל פריט מקצועי' : 'Includes full measurements & specifications for every professional item');
+  const compactDesc = isHebrew ? 'שורות פריטים וסיכום בלבד - ללא פירוט מידות מורחב' : 'Item lines and totals only - no expanded measurement detail';
+  const expandedDesc = isHebrew ? 'כולל פירוט מידות ומפרט מלא לכל פריט מקצועי' : 'Includes full measurements & specifications for every professional item';
 
   return (
     <div

@@ -4,21 +4,12 @@
 // ==========================================
 
 import { useState } from 'react';
-import { supabase } from '../shared/supabase';
-import { wipeUserData } from '../shared/wipeUserData';
 import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
 import Toast from './Toast';
 import BrandName from './BrandName';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, currentPlan, isLifetime, userId, onPlanUpdated, currency }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, isLifetime, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
-  const [showCancelFlow, setShowCancelFlow] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [cancelOtherText, setCancelOtherText] = useState('');
-  const [dataPreference, setDataPreference] = useState('archive'); // 'archive' or 'delete'
-  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
-  const [cancelSubmitAttempted, setCancelSubmitAttempted] = useState(false);
-  const [checkoutInfo, setCheckoutInfo] = useState(null);
   const [toast, setToast] = useState(null);
 
   if (!isOpen) return null;
@@ -44,104 +35,21 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const proYearlyTotal = `${planSym}${proYearlyMonthlyNum * 12}`;
   const proMonthlyTotalYear = `${planSym}${proMonthlyNum * 12}`;
 
-  // מזהי תוכנית למערכת הסליקה (Billing Price IDs / SKUs)
-  const getSelectedPriceId = (planType) => {
-    const region = isLocalIsraeliBusiness ? 'il' : 'global';
-    if (planType === 'basic') {
-      return billingCycle === 'monthly' ? `price_basic_${region}_monthly` : `price_basic_${region}_yearly`;
-    } else {
-      return billingCycle === 'monthly' ? `price_pro_${region}_monthly` : `price_pro_${region}_yearly`;
-    }
-  };
-
-  const handleSelectPlan = (planType) => {
-    // צ'קאאוט אמיתי (Stripe) עדיין לא מחובר - ר' billing-checkout-stub.
-    // במקום alert() חוסם עם מזהה סליקה פנימי (לא מיועד למשתמש קצה), מוצג
-    // מצב מידע קטן וממותג בתוך המודאל עצמו; המודאל לא נסגר אוטומטית כדי
-    // שהמשתמש בפועל יראה את ההודעה.
-    setCheckoutInfo({ planType });
-  };
-
-  const handleConfirmCancellation = async (e) => {
-    e.preventDefault();
-    if (isLifetime) {
-      // הגנה שנייה, לצד הסתרת הכפתור למעלה: השרת ממילא דוחה כל ניסיון
-      // ביטול-עצמי על חשבון is_lifetime=true (guard_business_settings_plan_trial).
-      setShowCancelFlow(false);
-      return;
-    }
-    if (!cancelReason) {
-      setCancelSubmitAttempted(true);
-      return;
-    }
-
-    setIsSubmittingCancel(true);
-    try {
-      if (userId) {
-        const { error } = await supabase
-          .from('business_settings')
-          .update({
-            plan: 'free',
-            trial_ends_at: null,
-          })
-          .eq('user_id', userId);
-
-        if (error) throw error;
-
-        if (dataPreference === 'delete') {
-          await wipeUserData(userId);
-        }
-      }
-
-      setShowCancelFlow(false);
-      setToast({ type: 'success', message: isHebrew ? 'המנוי בוטל בהצלחה.' : 'Subscription canceled successfully.' });
-      // ההצלחה מוצגת כ-toast לא-חוסם; הסגירה בפועל מתעכבת קצת כדי שהיא
-      // תספיק להיראות במקום להיעלם מיד עם unmount של המודאל.
-      setTimeout(() => {
-        if (onPlanUpdated) onPlanUpdated();
-        onClose();
-      }, 1600);
-    } catch (err) {
-      // הפרטים הטכניים נשארים ב-console בלבד - לא נחשפים למשתמש כ-raw error.message.
-      console.error('Error canceling subscription:', err);
-      setToast({ type: 'error', message: isHebrew ? 'לא הצלחנו לבטל את המנוי. נסו שוב.' : "We couldn't cancel the subscription. Please try again." });
-    } finally {
-      setIsSubmittingCancel(false);
-    }
-  };
-
   return (
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
         
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={18} strokeWidth={2.5} /></button>
 
-        {!showCancelFlow ? (
+        {(
           <>
             <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.3rem', textAlign: 'center', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Rocket size={20} color="#4f46e5" />
-              {isHebrew ? <>שדרג את העסק שלך עם <BrandName onDark={false} /></> : <>Upgrade Your Business with <BrandName onDark={false} /></>}
+              {isHebrew ? <>חבילות <BrandName onDark={false} /></> : <><BrandName onDark={false} /> Plans</>}
             </h2>
             <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '16px', fontSize: '0.85rem' }}>
-              {isHebrew ? 'בחר את המסלול המתאים ביותר לצרכים שלך והתחל לעבוד ללא הגבלות' : 'Choose the best plan for your needs and work without limits'}
+              {isHebrew ? 'השוואת חבילות. שדרוג בתשלום אינו זמין כרגע.' : 'Plan comparison. Paid upgrades are not currently available.'}
             </p>
-
-            {checkoutInfo && (
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                <span>
-                  {isHebrew
-                    ? 'התשלום המקוון עדיין לא זמין - ניצור איתך קשר להשלמת ההרשמה למסלול שבחרת.'
-                    : "Online checkout isn't available yet - we'll be in touch to complete your signup for the plan you chose."}
-                </span>
-                <button
-                  onClick={() => setCheckoutInfo(null)}
-                  aria-label={isHebrew ? 'סגור' : 'Dismiss'}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', display: 'flex', flexShrink: 0 }}
-                >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
               <div style={{ background: '#f1f5f9', padding: '3px', borderRadius: '24px', display: 'flex', gap: '4px', border: '1px solid #cbd5e1' }}>
@@ -194,13 +102,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}><XCircle size={14} color="#ef4444" style={{ flexShrink: 0 }} />{isHebrew ? 'ללא שליחה ישירה בווצאפ' : 'No WhatsApp sending'}</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}><XCircle size={14} color="#ef4444" style={{ flexShrink: 0 }} />{isHebrew ? 'ללא צירוף קבצים ושרטוטים להצעות' : 'No file attachments or drawings'}</li>
                 </ul>
-                <button 
-                  data-price-id={getSelectedPriceId('basic')}
-                  onClick={() => handleSelectPlan('basic')} 
-                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  {isHebrew ? 'בחר מסלול Basic' : 'Select Basic'}
-                </button>
               </div>
 
               {/* PRO Plan */}
@@ -231,27 +132,9 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'ניהול הכנסות והוצאות מלא' : 'Full income and expense management'}</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'צירוף קבצים ושרטוטים להצעות (עד 30MB)' : 'File attachments & drawings to quotes (up to 30MB)'}</li>
                 </ul>
-                <button 
-                  data-price-id={getSelectedPriceId('pro')}
-                  onClick={() => handleSelectPlan('pro')} 
-                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)' }}
-                >
-                  {isHebrew ? 'בחר מסלול PRO' : 'Select PRO'}
-                </button>
               </div>
 
             </div>
-
-            {currentPlan && currentPlan !== 'free' && !isLifetime && (
-              <div style={{ textAlign: 'center', marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
-                <button
-                  onClick={() => setShowCancelFlow(true)}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline', fontWeight: '600' }}
-                >
-                  {isHebrew ? 'ביטול מנוי פעיל' : 'Cancel active subscription'}
-                </button>
-              </div>
-            )}
 
             {/* חוק ברזל (Explicit Lifetime Entitlement Model, migration
                 20260908000000): Lifetime הוא override מנהלתי, לא מנוי בתשלום -
@@ -262,8 +145,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             {isLifetime && (
               <div style={{ textAlign: 'center', marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px', color: '#64748b', fontSize: '0.8rem' }}>
                 {isHebrew
-                  ? 'לחשבון זה גישת Lifetime שהוענקה על ידי מנהל מערכת. לשינוי או ביטול יש לפנות אלינו.'
-                  : 'This account has a Lifetime access grant from an administrator. Contact us to change or cancel it.'}
+                  ? 'לחשבון זה גישת Lifetime שהוענקה על ידי מנהל מערכת.'
+                  : 'This account has a Lifetime access grant from an administrator.'}
               </div>
             )}
 
@@ -271,92 +154,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
               {isHebrew ? 'יש לך שאלות? צור איתנו קשר דרך עוזר ה-AI או במייל.' : 'Have questions? Contact us via AI assistant or email.'}
             </div>
           </>
-        ) : (
-          <form onSubmit={handleConfirmCancellation}>
-            <h2 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '8px' }}>
-              {isHebrew ? '💔 מצטערים לשמוע שאתה עוזב' : '💔 We are sorry to see you go'}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px', lineHeight: '1.4' }}>
-              {isHebrew 
-                ? 'נשמח אם תסביר לנו בקצרה למה בחרת לבטל את המנוי שלך, כדי שנוכל להשתפר:' 
-                : 'Please let us know why you are canceling so we can improve:'}
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', fontSize: '0.85rem', color: '#334155' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="cancelReason" value="price_high" checked={cancelReason === 'price_high'} onChange={(e) => setCancelReason(e.target.value)} required />
-                {isHebrew ? 'המחיר גבוה מדי' : 'Price is too high'}
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="cancelReason" value="better_alternative" checked={cancelReason === 'better_alternative'} onChange={(e) => setCancelReason(e.target.value)} />
-                {isHebrew ? 'מצאתי תוכנה טובה יותר' : 'Found a better software alternative'}
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="cancelReason" value="technical_issues" checked={cancelReason === 'technical_issues'} onChange={(e) => setCancelReason(e.target.value)} />
-                {isHebrew ? 'יש הרבה בעיות טכניות' : 'Too many technical issues'}
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="cancelReason" value="no_longer_needed" checked={cancelReason === 'no_longer_needed'} onChange={(e) => setCancelReason(e.target.value)} />
-                {isHebrew ? 'כבר אין לי צורך בתוכנה' : 'No longer need the software'}
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="cancelReason" value="other" checked={cancelReason === 'other'} onChange={(e) => setCancelReason(e.target.value)} />
-                {isHebrew ? 'אחר' : 'Other'}
-              </label>
-            </div>
-
-            {cancelSubmitAttempted && !cancelReason && (
-              <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginTop: '-10px', marginBottom: '16px' }}>
-                {isHebrew ? 'יש לבחור סיבת ביטול.' : 'Please select a cancellation reason.'}
-              </div>
-            )}
-
-            {cancelReason === 'other' && (
-              <div style={{ marginBottom: '16px' }}>
-                <textarea
-                  value={cancelOtherText}
-                  onChange={(e) => setCancelOtherText(e.target.value)}
-                  placeholder={isHebrew ? 'פרט כאן...' : 'Please specify...'}
-                  rows="2"
-                  style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  required
-                />
-              </div>
-            )}
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>
-                {isHebrew ? 'מה תרצה לעשות עם הנתונים שלך?' : 'What would you like to do with your data?'}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#475569' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="radio" name="dataPref" value="archive" checked={dataPreference === 'archive'} onChange={(e) => setDataPreference(e.target.value)} />
-                  {isHebrew ? 'ביטול מנוי - שמירת כל הנתונים בארכיון (לצפייה עתידית)' : 'Cancel subscription - Archive all data (Keep read-only access)'}
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="radio" name="dataPref" value="delete" checked={dataPreference === 'delete'} onChange={(e) => setDataPreference(e.target.value)} />
-                  {isHebrew ? 'ביטול מנוי - מחיקת כל הנתונים לצמיתות לאלתר' : 'Cancel subscription - Delete all data immediately'}
-                </label>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowCancelFlow(false)}
-                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isHebrew ? 'חזרה' : 'Back'}
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmittingCancel}
-                style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                {isSubmittingCancel ? (isHebrew ? 'מעבד ביטול...' : 'Processing...') : (isHebrew ? 'אישור ביטול סופי' : 'Confirm Final Cancellation')}
-              </button>
-            </div>
-          </form>
         )}
 
       </div>

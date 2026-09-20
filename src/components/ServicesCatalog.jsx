@@ -48,7 +48,7 @@ export default function ServicesCatalog({
   };
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* חוק ברזל (§H1): כותרת ברורה - "קטלוג שירותים ומוצרים"/"Services &
           Products Catalog" (הספק המדויק של המשימה). */}
       <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
@@ -136,8 +136,10 @@ export default function ServicesCatalog({
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+        <>
+        <div className="pf-head-gutter">
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+          <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
             <thead>
               <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <th style={{ padding: '6px' }}>{t.description}</th>
@@ -145,6 +147,11 @@ export default function ServicesCatalog({
                 <th style={{ padding: '6px' }}>{t.actions}</th>
               </tr>
             </thead>
+            </table>
+            </div>
+            <div className="pf-screen-body pf-screen-body--track">
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+            <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
             <tbody>
               {filteredServices.map((svc) => {
                 const isEditingThisSvc = editingServiceId === svc.id;
@@ -228,6 +235,7 @@ export default function ServicesCatalog({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

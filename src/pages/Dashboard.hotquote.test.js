@@ -47,12 +47,19 @@ describe('Hot Quote fixed geometry (source-level regression guard)', () => {
 
   it('renders the rotating client/quote message as a single truncated line, never a variable-height multi-line block', () => {
     expect(block).toMatch(/t\.hotQuoteAlert\(currentHotClientName, currentHotViewCount\)/);
-    expect(block).toMatch(/whiteSpace:\s*hotQuoteExpanded\s*\?\s*['"]normal['"]\s*:\s*['"]nowrap['"]/);
-    expect(block).toMatch(/textOverflow:\s*hotQuoteExpanded\s*\?\s*['"]clip['"]\s*:\s*['"]ellipsis['"]/);
+    expect(block).toMatch(/textOverflow:\s*['"]ellipsis['"],\s*whiteSpace:\s*['"]nowrap['"]/);
+    // Pre-live Header height law: no expand state - full text lives in title.
+    expect(block).not.toMatch(/hotQuoteExpanded/);
+    expect(block).toMatch(/title=\{t\.hotQuoteAlert\(currentHotClientName, currentHotViewCount\)\}/);
   });
 
   it('reserves a fixed minHeight on the alert row (real-quote branch) so a short vs. long client name never shifts surrounding layout', () => {
     expect(block).toMatch(/minHeight:\s*['"]28px['"]/);
+  });
+
+  it('both alert branches use the SAME fixed 42px height (Header height is constant regardless of alert state or text length)', () => {
+    const fixed = block.match(/height:\s*['"]42px['"],\s*boxSizing:\s*['"]border-box['"]/g) || [];
+    expect(fixed.length).toBe(2);
   });
 
   it('reserves the same fixed minHeight on the empty-state branch, so appearing/disappearing hot quotes never change Dashboard geometry', () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, ArrowUpCircle, XCircle, Ruler } from 'lucide-react';
+import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, ArrowUpCircle, Ruler } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { getDisplayIdentityLabel, shouldShowUpgradeCta } from '../utils/planCatalog';
 import { PROFESSIONAL_DOMAINS } from '../utils/professionalQuoteItem';
@@ -33,7 +33,6 @@ export default function SettingsTab({
   setBizAddress,
   bizLogoUrl,
   setBizLogoUrl,
-  bizPlan,
   effectivePlan,
   isLifetime,
   displayIdentity,
@@ -142,7 +141,7 @@ export default function SettingsTab({
   };
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Cross-Surface Visual Consolidation (§10): shadow-card pattern,
           matches Quote History/Dashboard - see ClientsTab.jsx for the full
           rationale comment. Container-level only. */}
@@ -150,6 +149,7 @@ export default function SettingsTab({
         <Settings size={18} color={NEON.violetLight} strokeWidth={2.2} />
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
+      <div className="pf-screen-body">
       <form onSubmit={handleSaveSettings}>
         {/* חוק ברזל (UI Composition Correction — Professional Business Type
             Placement, Owner-required, 2026-09-03): הועבר מסוף הטופס (אחרי
@@ -376,17 +376,9 @@ export default function SettingsTab({
                  {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
                </button>
              )}
-             {/* חוק ברזל (אותה משימה): "ביטול מנוי" אינו הגיוני עבור חשבון
-                 Lifetime (אין מנוי מתחדש לבטל) - נוסף !isLifetime, שאר
-                 ההתנהגות הקיימת (bizPlan !== 'free') לא נגעה. */}
-             {!isLifetime && bizPlan !== 'free' && (
-               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: NEON.red, padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(248, 113, 113, 0.35)', cursor: 'pointer', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <XCircle size={14} strokeWidth={2} />
-                  {isHebrew ? 'ביטול מנוי' : 'Cancel Subscription'}
-               </button>
-             )}
            </div>
         </div>
+      </div>
       </div>
     </div>
   );

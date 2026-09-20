@@ -2,12 +2,17 @@
 // 🚨 חוק ברזל קשוח (Dashboard.jsx): הודעות צפות מודרניות במרכז המסך ושמירה על יציבות.
 // ==============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
 import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
+import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
+import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
+import { formatHeaderDate } from '../utils/headerDateFormat';
+import { diagLog, diagBoot, idPrefix } from '../utils/returnDiag';
 import PlanIdentityBadge from '../components/PlanIdentityBadge';
 import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
@@ -22,6 +27,8 @@ import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney } from '../utils/money';
 import { compareClients } from '../utils/clientSort';
 import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
+import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
+import { getBusinessProfileGateMessage } from '../utils/businessProfileCompleteness';
 import { computeTransparentTrimBounds } from '../utils/logoTrim';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
@@ -31,7 +38,6 @@ import ExcelJS from 'exceljs';
 import PricingModal from '../components/PricingModal';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
-import UserDetailsModal from '../components/UserDetailsModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import SignOutModal from '../components/SignOutModal';
@@ -43,7 +49,10 @@ import QuotesTab from '../components/QuotesTab';
 import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
 import SettingsTab from '../components/SettingsTab';
-import AdminUsersTab from '../components/AdminUsersTab';
+import { AuthenticatedSidebarFrame } from '../components/AuthenticatedShellFrames';
+import AdminDestinationHost from '../components/AdminDestinationHost';
+import AdminSidebarNav from '../components/AdminSidebarNav';
+import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS, DEFAULT_ADMIN_SECTION } from '../utils/adminNavGroups';
 // חוק ברזל: ה-Dashboard (ה"קליפה" של בעל העסק - ניווט/KPI/היסטוריית הצעות/
 // טאבים) עבר לערכת הנושא הבהירה שאושרה ע"י הבעלים (LIGHT), דרך אותה טכניקת
 // alias-at-import שכבר משמשת ב-QuotesTab.jsx/ServicesCatalog.jsx - שינוי
@@ -55,8 +64,8 @@ import { LIGHT as NEON, NEON as DARK_ACCENT, FONT_HE, FONT_EN, lightHeadingTextS
 import {
   AlertTriangle, Shield, LogOut,
   PlusCircle, Flame,
-  MessagesSquare, Accessibility as AccessibilityIcon, X, Sparkles, Eye,
-  MessageCircle, ChevronDown, MoreHorizontal
+  Accessibility as AccessibilityIcon, Sparkles, Eye,
+  MessageCircle, MoreHorizontal
 } from 'lucide-react';
 
 // חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
@@ -102,6 +111,22 @@ const DEFAULT_TERMS_ENG = `General Terms:
 // (AppLocal/AppGlobal) שהציג את הדשבורד - הם נקבעים אך ורק ע"י geo טרי
 // מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
 // createNewBusinessSettings / handleRegionChoiceSelect למטה).
+// Stacked, centered Header date/time (DATE over HH:mm:ss). Mounts only when
+// the date/time slot replaces the greeting, and ticks every second itself.
+function HeaderClock({ country, isHebrew }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <>
+      <span className="dash-header-date">{formatHeaderDate(now, country)}</span>
+      <span className="dash-header-time">{now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
+    </>
+  );
+}
+
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
 
@@ -218,6 +243,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // for purity. A ref-based check is immune to that: refs are never
   // double-invoked the way updater functions are, so this reliably loads
   // data exactly once per distinct real user id, on every fresh login.
+  const lastAccessTokenRef = useRef(null);
   const lastLoadedUserIdRef = useRef(null);
   const [regionChoiceError, setRegionChoiceError] = useState(null);
   const [bizTaxId, setBizTaxId] = useState('');
@@ -297,6 +323,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [defaultWarranty, setDefaultWarranty] = useState('');
   const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [allAccounts, setAllAccounts] = useState([]);
+  const [adminAccountsStatus, setAdminAccountsStatus] = useState('loading');
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [activeTooltip] = useState({ quoteId: null, action: null });
@@ -313,17 +340,67 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Trial Notice). דסקטופ בלבד בפועל (ר' ה-CSS media query ב-QuotesTab.jsx
   // ו-.dash-upper-section למטה) - במובייל הערך הזה פשוט לא נצרך.
   const upperSectionRef = useRef(null);
+  const upperSectionObserverRef = useRef(null);
   const [upperSectionHeight, setUpperSectionHeight] = useState(0);
-  useEffect(() => {
-    const el = upperSectionRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
+  // TEKANGO — Sticky Filter Row Overlap Root-Cause Fix (2026-09-19): the
+  // prior `useEffect(..., [activeTab])`-keyed measurement (both the
+  // getBoundingClientRect pass and the ResizeObserver attach) assumed
+  // .dash-upper-section is present in the DOM by the time those effects
+  // first run. Live testing on the canonical TEST server proved that's
+  // false: two EARLIER conditional early-returns in this same component
+  // (`isInitializing || isPasswordRecoveryMode || !session`, and
+  // `needsRegionChoice` - the region-selection screen) can render a
+  // completely different tree on the first commit(s), during which
+  // upperSectionRef.current is null. Once those clear and the real
+  // dashboard JSX renders .dash-upper-section for the first time,
+  // `activeTab` has not changed value, so the `[activeTab]`-keyed effects
+  // never re-run and the ref is never (re)measured - confirmed live via a
+  // temporary debug global showing `hasEl: false` at the moment the old
+  // effect fired. A callback ref sidesteps this whole class of ordering
+  // bug entirely: it fires the instant React actually attaches the node,
+  // regardless of which gate delayed that first real mount, and (since
+  // .dash-upper-section itself never unmounts again after that - it is
+  // unconditional on `!isSuperAdmin`) the ResizeObserver it attaches stays
+  // live for the rest of the session, correctly catching later height
+  // changes (Hot Quote banner, Trial Notice) that the old per-activeTab
+  // recreate-on-every-change pattern could otherwise miss between
+  // attachments.
+  // A second, independently-confirmed defect on top of the mount-timing one
+  // above: even once correctly attached, this ResizeObserver instance does
+  // NOT reliably deliver follow-up callbacks when the section's height
+  // settles shortly after attach (Hot Quote banner/Trial Notice finishing
+  // their own async render) - live-reproduced by switching tabs away and
+  // back (captured 94px, real height already 124px, stayed wrong 3+
+  // seconds with zero self-correction) and again right here on a cold
+  // mount. Root cause of the missed callbacks themselves not conclusively
+  // identified (candidates: Chromium/CDP-automation-specific coalescing,
+  // or an interaction with this element's own `transition: height` inline
+  // style - not established either way) - rather than depend on a
+  // mechanism proven unreliable twice, a bounded set of direct
+  // getBoundingClientRect re-checks across the window late content
+  // typically settles in closes the gap without waiting on the observer.
+  const measureUpperSection = useCallback((el) => {
+    if (!el) return;
+    const h = el.getBoundingClientRect().height;
+    if (h > 0) setUpperSectionHeight((prev) => (prev === Math.round(h) ? prev : Math.round(h)));
+  }, []);
+  const setUpperSectionNode = useCallback((el) => {
+    upperSectionRef.current = el;
+    if (upperSectionObserverRef.current) {
+      upperSectionObserverRef.current.disconnect();
+      upperSectionObserverRef.current = null;
+    }
+    if (!el) return;
+    measureUpperSection(el);
+    [100, 300, 600, 1200, 2500].forEach((ms) => setTimeout(() => measureUpperSection(upperSectionRef.current), ms));
+    if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
-      const h = entries[0]?.contentRect?.height;
-      if (typeof h === 'number') setUpperSectionHeight(Math.round(h));
+      const oh = entries[0]?.contentRect?.height;
+      if (typeof oh === 'number' && oh > 0) setUpperSectionHeight((prev) => (prev === Math.round(oh) ? prev : Math.round(oh)));
     });
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [activeTab]);
+    upperSectionObserverRef.current = observer;
+  }, [measureUpperSection]);
 
   const [hotQuoteIndex, setHotQuoteIndex] = useState(0);
   // חוק ברזל (Authenticated UI Coherence task, Dashboard Header Compression):
@@ -331,7 +408,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // מורחבת (חושפת טקסט מלא, לא חתוך). מתאפס אוטומטית בכל רוטציה (ר'
   // ה-useEffect הקיים שמקדם hotQuoteIndex) כדי שמצב-הרחבה לא "ידבק"
   // להצעה-חמה הבאה שברוטציה, שהיא לרוב הצעה שונה לגמרי.
-  const [hotQuoteExpanded, setHotQuoteExpanded] = useState(false);
   // חוק ברזל (Authenticated UI Coherence task, Mobile Navigation Redesign):
   // ניווט-מובייל-תחתון צומצם מ-6 יעדים ל-5 (Owner-required limit) - Settings
   // ו-Catalog (שני היעדים בתדירות-הנמוכה יותר, לפי המבנה הקיים כבר - שניהם
@@ -339,7 +415,75 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // "More" יחיד, שנפתח כ-popover קומפקטי מעל שורת-הניווט - לא הוסתרו, רק
   // אורגנו מחדש. New Quote נשאר בדיוק כפי שהיה - בולט, לא הוזז לתוך "עוד".
   const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
+  const [shellDrawerOpen, setShellDrawerOpen] = useState(false);
+  const closeShellDrawer = useCallback(() => setShellDrawerOpen(false), []);
 
+  // TEKANGO — Owner Header Reference Correction task (2026-09-18): the ONE
+  // AI Chat entry point, rendered inside the canonical business Header
+  // (dash-upper-section's own rich card, now on every business screen - see
+  // its own call site further below). Defined once here so there is never a
+  // second, drifting implementation - every render site shares this exact
+  // function/handler/icon/label. Same open-proflow-ai-chat CustomEvent
+  // AIChatWidget.jsx has always listened for - no new chat mechanism,
+  // purely a placement change.
+  // Header Package/Chat Order Correction task (2026-09-18): gained a
+  // visible label - "Do not use icon-only Chat in this Header" - the exact
+  // same HE/EN copy ("צ׳אט AI"/"AI Chat") this project's own product copy
+  // already used for this identical action in every prior location
+  // (the now-retired sidebar/topbar buttons), not new wording.
+  const renderHeaderAIChatButton = () => (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'))}
+      className="dash-header-ai-btn"
+      title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
+      aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
+    >
+      <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+        <MessageCircle size={16} strokeWidth={2.2} />
+        <Sparkles size={8} strokeWidth={2.5} style={{ position: 'absolute', top: '-3px', [isHebrew ? 'left' : 'right']: '-4px', color: '#f0abfc' }} />
+      </span>
+      <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
+    </button>
+  );
+
+  // TEKANGO — Dynamic Greeting + Inner Table Scrollbar Top-Anchor task
+  // (2026-09-18), Part 1, CORRECTED (Owner fresh evidence: the first
+  // attempt below - opacity/transform driven by React state, triggered via
+  // a single requestAnimationFrame after mount - was not visibly
+  // perceptible live). Root cause: React's initial commit (opacity:0/
+  // translateY) and the RAF callback flipping it to opacity:1 both land
+  // within the same ~16ms window in practice, so the browser often never
+  // actually PAINTS the "before" frame at all before the transition target
+  // changes - a well-known React/CSS-transition race, not a CSS bug.
+  // Fixed by switching to a real CSS @keyframes animation (see
+  // .dash-header-greeting-text below), which the browser runs from its own
+  // 0% frame unconditionally the moment the element is inserted into the
+  // DOM - no React-render-timing race is possible. Combined with `key`-
+  // forced remounts (see the JSX below) so the SAME animation genuinely
+  // re-triggers, cleanly, exactly twice per page load (greeting enters,
+  // then date/time enters when it takes over) - never a third time, never
+  // looping.
+  // Deliberately still does NOT introduce any new first-login/returning-
+  // user inference (no localStorage read, no new heuristic) - the existing
+  // greeting text/logic (a plain, always-shown "ברוך שובך"/"Welcome back"
+  // string) is used completely unchanged - "GREETING SEMANTICS: PRESERVED"
+  // by construction.
+  const [showGreeting, setShowGreeting] = useState(true);
+  // The 10s Welcome-back window starts when the greeting is actually
+  // RENDERED (h1 ref callback), not at Dashboard mount - the header can
+  // appear seconds after mount while auth/data load, which would shorten
+  // the visible time.
+  const greetingTimerRef = useRef(null);
+  const greetingRef = useCallback((node) => {
+    if (node && greetingTimerRef.current === null) {
+      greetingTimerRef.current = setTimeout(() => setShowGreeting(false), 10000);
+    }
+  }, []);
+  useEffect(() => () => clearTimeout(greetingTimerRef.current), []);
+  // The seconds clock lives in its own component (HeaderClock) so its 1s tick
+  // re-renders only the date/time block, not the whole Dashboard.
+  const headerDateTimeText = <HeaderClock country={bizCountry} isHebrew={isHebrew} />;
   const [editingClient, setEditingClient] = useState(null);
   // חוק ברזל (Consolidated Open UI Corrections task, §G1): state נפרד
   // (לא "editingClient עם client.id ריק") כדי לשמור על ההבחנה המפורשת בין
@@ -355,13 +499,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [currency, setCurrency] = useState('ILS');
 
-  const [liveTick, setLiveTick] = useState(0);
-
-  const [lastSeenNewUsersTime, setLastSeenNewUsersTime] = useState(() => {
-    if (typeof window === 'undefined') return 0;
-    return Number(localStorage.getItem('proflow_last_seen_new_users') || 0);
-  });
-
   const [quoteSubject, setQuoteSubject] = useState('');
   const [attnName, setAttnName] = useState('');
   const [attnRole, setAttnRole] = useState('');
@@ -376,15 +513,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const upperCurr = (currency || '').toUpperCase();
   const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
 
-  const handleOpenNewUsersModal = (newUsersList) => {
-    const nowTime = Date.now();
-    localStorage.setItem('proflow_last_seen_new_users', nowTime.toString());
-    setLastSeenNewUsersTime(nowTime);
-    setSelectedUserDetails({ isNewUsersListModal: true, users: newUsersList });
-  };
-
+  // Keyed on session PRESENCE, not object identity: a token refresh (new object, same signed-in
+  // state) must not push another history entry. Behavior at sign-in/sign-out is unchanged.
+  const hasSession = !!session;
   useEffect(() => {
-    if (session) {
+    if (hasSession) {
       window.history.pushState({ dashboard: true }, '', window.location.href);
 
       const handlePopState = () => {
@@ -395,7 +528,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       window.addEventListener('popstate', handlePopState);
       return () => window.removeEventListener('popstate', handlePopState);
     }
-  }, [session]);
+  }, [hasSession]);
 
   // Item 25 - סנכרון אוטומטי חד-פעמי בין הבאנדל הנוכחי (bundleIsHebrew,
   // שנקבע אנונימית לפני ההתחברות ב-main.jsx: URL/localStorage/geo/שפת
@@ -421,17 +554,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       bundleIsHebrew,
       isHebrew,
     });
+    diagLog('market-routing-effect-run', { willRedirect: !!correctLang });
     if (correctLang) {
+      diagLog('market-routing-redirect', { to: correctLang });
       window.location.href = '/dashboard?lang=' + correctLang;
     }
   }, [session, isInitializing, isPasswordRecoveryMode, needsRegionChoice, settingId, bundleIsHebrew, isHebrew]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveTick(prev => prev + 1);
-    }, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // TEKANGO Admin V1 (Task 2): the 10-minute "liveTick" re-render interval
+  // that used to live here existed only to keep the old Admin table's
+  // last-sign-in-recency "online" dot ticking over live - that signal is
+  // removed outright (Owner-binding rule against "active now" inference),
+  // so the interval that forced re-renders for it is genuinely dead work
+  // now, not just an unused variable, and is removed rather than kept.
 
   // מאזין חי לעדכוני שורת quotes - כשה-Webhook של Resend (resend-email-webhook)
   // מסמן הצעה כ"הוחזרה" בעקבות כתובת לא קיימת, הנורית בטבלה הופכת לאדומה
@@ -507,8 +642,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
 
     const initAuth = async () => {
+      diagBoot();
       setIsInitializing(true);
       const { data: { session } } = await supabase.auth.getSession();
+      lastAccessTokenRef.current = session?.access_token;
+      diagLog('init-auth', { hasSession: !!session });
       setSession(session);
       if (session?.user?.id) {
         lastLoadedUserIdRef.current = session.user.id;
@@ -521,7 +659,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setSession(newSession);
+        diagLog('auth-event', {
+          event,
+          prevUser: idPrefix(lastLoadedUserIdRef.current),
+          nextUser: idPrefix(newSession?.user?.id),
+          tokenChanged: newSession?.access_token !== lastAccessTokenRef.current,
+          setSessionCalled: true,
+          loadDataTriggered: !!(newSession?.user?.id && newSession.user.id !== lastLoadedUserIdRef.current),
+        });
+        lastAccessTokenRef.current = newSession?.access_token;
+        // Returning to the app makes supabase-js re-emit SIGNED_IN for the SAME session.
+        // Replacing the session object then re-ran every [session] effect (incl. a
+        // history.pushState per return). Keep the existing object when user id AND access
+        // token are unchanged; a real token refresh, user switch or sign-out still updates.
+        setSession(prev => (
+          prev?.user?.id && prev.user.id === newSession?.user?.id && prev.access_token === newSession?.access_token
+            ? prev
+            : newSession
+        ));
         // Ref-based check (see lastLoadedUserIdRef's own declaration comment
         // above for why this replaced a fragile setSession-updater side
         // effect): synchronous and immune to React double-invoking anything,
@@ -557,12 +712,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // TEMP diagnostics: how often does the session OBJECT change identity, and was it
+  // the same user + same token (a redundant re-render) or a real change?
+  const prevSessionDiagRef = useRef(null);
+  useEffect(() => {
+    const prev = prevSessionDiagRef.current;
+    if (prev !== null || session) {
+      diagLog('session-object-changed', {
+        sameUser: prev?.user?.id === session?.user?.id,
+        sameToken: prev?.access_token === session?.access_token,
+      });
+    }
+    prevSessionDiagRef.current = session;
+  }, [session]);
+
   useEffect(() => {
     const hotQuotes = quotes.filter(q => (q.view_count || 0) >= 3 && q.status !== 'approved' && q.status !== 'paid');
     if (hotQuotes.length > 1) {
       const interval = setInterval(() => {
         setHotQuoteIndex(prev => (prev + 1) % hotQuotes.length);
-        setHotQuoteExpanded(false);
       }, 4000);
       return () => clearInterval(interval);
     }
@@ -594,7 +762,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   };
   
-  const [sortField, setSortField] = useState('default_online');
+  // Default: newest registration first (created_at desc) - see the
+  // filteredAdminAccounts comment above for why this replaced the prior
+  // 'default_online' (last-sign-in-recency) default.
+  const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
 
   const [clientSortField, setClientSortField] = useState('company_name');
@@ -632,11 +803,71 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const [selectedUserDetails, setSelectedUserDetails] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [editingQuoteId, setEditingQuoteId] = useState(null);
+
+  // AI Chat workflow-awareness wiring (AI Chat Hardening overnight
+  // continuation, Track B/C): the item-wizard's own open/add-vs-edit/
+  // professional-vs-simple/measurements-present state, bubbled up from
+  // QuoteForm.jsx's own private state via the new onWizardStateChange
+  // callback below. Everything else the workflow snapshot needs
+  // (editingQuoteId/clientName/projectName/sections/quoteStructureMode/
+  // items) is already Dashboard-owned lifted state - see quoteWorkflowContext
+  // just below showQuoteForm's own declaration.
+  const [itemWizardState, setItemWizardState] = useState(null);
+
+  // AI Chat safe-navigation wiring (AI Chat Hardening overnight task,
+  // Track H - "action guidance, never silent action"): the AI can only ever
+  // suggest one of a fixed, allowlisted set of destination ids (see
+  // src/utils/safeNavigation.js / supabase/functions/chat-ai/navigation.ts);
+  // this effect is the ONE place that maps a user-clicked suggestion to this
+  // component's own existing tab-switch/modal-open state - it never mutates
+  // any quote/client/business data itself.
+  useEffect(() => {
+    function handleAiNavigate(e) {
+      const action = e?.detail?.action;
+      switch (action) {
+        case 'open_quote_history':
+          setEditingQuoteId(null);
+          setIsCreatingQuote(false);
+          setActiveTab('main');
+          break;
+        case 'open_clients':
+          setActiveTab('clients');
+          break;
+        case 'open_business_settings':
+          setActiveTab('settings');
+          break;
+        case 'open_catalog':
+          setActiveTab('catalog');
+          break;
+        case 'open_finances':
+          setActiveTab('finances');
+          break;
+        case 'open_plan_information':
+          setShowPricingModal(true);
+          break;
+        case 'open_selected_quote': {
+          const quoteId = e?.detail?.meta?.quoteId;
+          const quote = quotes.find((q) => q.id === quoteId);
+          if (quote) {
+            setActiveTab('main');
+            handleEditClick(quote);
+          } else {
+            setAlertModalMsg(isHebrew ? 'ההצעה שנבחרה כבר אינה זמינה.' : 'The selected quote is no longer available.');
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    }
+    window.addEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
+    return () => window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quotes, isHebrew]);
 
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -691,6 +922,73 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const isSuperAdmin = bizRole === 'super_admin';
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // TEKANGO Admin V1 (Task 1, shared shell + URL-backed Admin routing):
+  // activeTab stays the single source of truth for which content renders
+  // (unchanged existing pattern, admin_clients is still one of its values) -
+  // adminSection is a second, admin-only piece of state for which Admin
+  // destination (Overview/Users/Plans/Activity) is showing. The URL
+  // (?view=admin&section=<id>) is kept in sync as a reflection of this
+  // state, not a competing source of truth, so an Admin link is
+  // bookmarkable/shareable without changing how activeTab itself works.
+  const isAdminMode = isSuperAdmin && activeTab === 'admin_clients';
+  const [adminSection, setAdminSectionState] = useState(DEFAULT_ADMIN_SECTION);
+  // Selected account for the shell-preserving User Details view (Task 2,
+  // §2.3) - session-scoped component state, not a URL param, so the URL
+  // stays clean while filters/sort/page/scroll are naturally preserved
+  // underneath (the Users list unmounts nothing when Details is shown).
+  const [adminSelectedUserId, setAdminSelectedUserId] = useState(null);
+  const navigateToAdminSection = (sectionId = DEFAULT_ADMIN_SECTION, selectedUserId = null) => {
+    setAdminSelectedUserId(selectedUserId);
+    setShellDrawerOpen(false);
+    setAdminSectionState(ADMIN_SECTION_IDS.has(sectionId) ? sectionId : DEFAULT_ADMIN_SECTION);
+    setActiveTab('admin_clients');
+  };
+  const openAdminUserDetails = account => navigateToAdminSection('users', account?.id ?? null);
+  // Reads a bookmarked/shared Admin deep link exactly once on mount.
+  const adminUrlSyncedRef = useRef(false);
+  useEffect(() => {
+    if (adminUrlSyncedRef.current) return;
+    adminUrlSyncedRef.current = true;
+    if (searchParams.get('view') === 'admin') {
+      const requested = searchParams.get('section');
+      setAdminSectionState(ADMIN_SECTION_IDS.has(requested) ? requested : DEFAULT_ADMIN_SECTION);
+      setActiveTab('admin_clients');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Reflects Admin mode/section into the URL whenever it changes.
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (isAdminMode) {
+        next.set('view', 'admin');
+        next.set('section', adminSection);
+      } else {
+        next.delete('view');
+        next.delete('section');
+      }
+      return next;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminMode, adminSection]);
+  // Non-admin URL-tamper guard (URL hygiene only, never the real
+  // authorization boundary - see is_super_admin()/is_admin() RLS + every
+  // privileged Edge Function's own independent server-side role check):
+  // a non-admin session can never gain Admin reachability by hand-crafting
+  // the URL, so a stray view=admin is silently stripped, never trusted.
+  useEffect(() => {
+    if (session && !isSuperAdmin && searchParams.get('view') === 'admin') {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('view');
+        next.delete('section');
+        return next;
+      }, { replace: true });
+    }
+  }, [session, isSuperAdmin, searchParams, setSearchParams]);
+
   // חוק ברזל (Stage 1 - Plan Identity / Trial / Lifetime Centralization,
   // PROFLOW_PROJECT_CONTEXT.md §148): קריאה נוספת לנקודת-האמת הקנונית
   // (resolveAccountEntitlement, כבר בשימוש ב-AdminUsersTab.jsx/
@@ -741,60 +1039,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // אחת בלבד לכל טעינת Dashboard, לא שוב רק כי המשתמש/ת עברו טאב).
   // isSuperAdmin אף פעם לא רואה אף אחד מהם. לוגיקת הזכאות עצמה
   // (effectivePlan/isPro למעלה) לא נגעה בה כלל בשום שלב - זו רק שכבת תצוגה.
-  const isExpiringSoon = trialDaysLeft !== null && trialDaysLeft <= 5 && trialDaysLeft > 0 && !isSuperAdmin;
-  const TRIAL_NOTICE_ENTER_MS = 1200;
-  const TRIAL_NOTICE_EXIT_MS = 1000;
-  const TRIAL_NOTICE_REST_MS = 6000;
-  const TRIAL_TICKER_DURATION_MS = 8200;
-  const [trialNoticeVisible, setTrialNoticeVisible] = useState(false);
-  // חוק ברזל (Slider Location Correction task - Exact Owner Target): כלל-
-  // הברזל הקודם כאן (Trial Notice Vertical Position) כבר לא רלוונטי - שתי
-  // הגרסאות עברו ל-QuotesTab.jsx (שורת-הבקרה של Quote History), כך שאין
-  // יותר מרווח-אנכי-מותנה בכותרת הסגולה בכלל לתחזק (ר' ה-JSX של dash-
-  // header-bar, marginBottom חזר לקבוע 14px). hasVisibleTrialNotice נמחק
-  // בהתאם - לא נדרש יותר.
-  const [trialNoticeExiting, setTrialNoticeExiting] = useState(false);
-  const trialNoticeShownRef = useRef(false);
-  const trialNoticeAutoHideRef = useRef(null);
-  const trialNoticeExitRef = useRef(null);
-  const startTrialNoticeExit = () => {
-    clearTimeout(trialNoticeAutoHideRef.current);
-    setTrialNoticeExiting(true);
-    trialNoticeExitRef.current = setTimeout(() => {
-      setTrialNoticeVisible(false);
-      setTrialNoticeExiting(false);
-    }, TRIAL_NOTICE_EXIT_MS);
-  };
-  useEffect(() => {
-    if (isSuperAdmin || trialNoticeShownRef.current || !trialEndsAt) return;
-    trialNoticeShownRef.current = true;
-    setTrialNoticeVisible(true);
-    // מצב הכרטיס (מתקרב לסיום/פג) משתמש בטיימר ה-JS הזה, בלי שינוי. מצב
-    // הטיקר (ניסיון פעיל רגיל) נעלם בעצמו דרך onAnimationEnd ברגע שהתנועה
-    // הרציפה מסתיימת (ר' render למטה) - אבל תחת prefers-reduced-motion
-    // (שם האנימציה מבוטלת לגמרי דרך CSS) onAnimationEnd לעולם לא היה נורה
-    // בלעדי גיבוי - לכן טיימר JS זהה-במשך משמש כרשת ביטחון בשני המקרים
-    // (קריאה כפולה ל-setTrialNoticeVisible(false) תמימה - idempotent).
-    if (isTrialExpired || isExpiringSoon) {
-      trialNoticeAutoHideRef.current = setTimeout(() => startTrialNoticeExit(), TRIAL_NOTICE_REST_MS);
-    } else {
-      trialNoticeAutoHideRef.current = setTimeout(() => setTrialNoticeVisible(false), TRIAL_TICKER_DURATION_MS);
-    }
-    return () => {
-      clearTimeout(trialNoticeAutoHideRef.current);
-      clearTimeout(trialNoticeExitRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trialEndsAt, isSuperAdmin]);
-  const dismissTrialNotice = () => {
-    if (isTrialExpired || isExpiringSoon) {
-      startTrialNoticeExit();
-    } else {
-      // מצב הטיקר: אין שלב-יציאה נפרד להפעיל - X סוגר מיידית.
-      clearTimeout(trialNoticeAutoHideRef.current);
-      setTrialNoticeVisible(false);
-    }
-  };
+  // (Trial-warning banner and its show/hide state machine were removed by Owner request; trial days/expiry/entitlement are computed above and shown by the compact plan badge.)
   const t = {
     appName: bizName || 'TEKANGO',
     appSub: isHebrew ? 'מערכת ניהול עסק והצעות מחיר' : 'Global SaaS Business & Quoting Platform',
@@ -1210,9 +1455,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }
 
   async function fetchAllAccounts() {
-    const { data, error } = await supabase.from('business_settings').select('*').order('created_at', { ascending: false });
-    if (!error && data) {
-      setAllAccounts(data);
+    setAdminAccountsStatus('loading');
+    try {
+      const { data, error } = await supabase.from('business_settings').select('*').order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        setAllAccounts(data);
+        setAdminAccountsStatus('ready');
+      } else {
+        setAdminAccountsStatus('unavailable');
+      }
+    } catch {
+      setAdminAccountsStatus('unavailable');
     }
   }
 
@@ -1224,41 +1477,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // עצמו (אישור-סיסמה + כתיבת is_lifetime מפורש בלבד + קריאה-חוזרת לאימות),
   // לא עוד callback דרך Dashboard.jsx.
 
-  async function handleExtendTrial14Days(accountId) {
-    const acc = allAccounts.find(a => a.id === accountId);
-    if (!acc) return;
-
-    const trialNow = new Date();
-    if (acc.trial_ends_at && new Date(acc.trial_ends_at) > trialNow) {
-      const daysLeft = Math.ceil(
-        (new Date(acc.trial_ends_at) - trialNow) /
-        (1000 * 60 * 60 * 24)
-      );
-
-      setAlertModalMsg(
-        isHebrew
-          ? `⚠️ לא ניתן להאריך! למשתמש יש עוד ${daysLeft} ימים פעילים בתקופת הניסיון.`
-          : `⚠️ Cannot extend! User has ${daysLeft} active days remaining.`
-      );
-
-      return;
-    }
-
-    const newEnd = new Date(
-      trialNow.getTime() + 14 * 24 * 60 * 60 * 1000
-    );
-
-    const { error } = await supabase
-      .from('business_settings')
-      .update({ trial_ends_at: newEnd.toISOString() })
-      .eq('id', accountId);
-
-    if (error) setAlertModalMsg('Error extending trial: ' + error.message);
-    else {
-      setStatusMsg({ text: isHebrew ? 'תקופת הניסיון הוארכה ב-14 יום בהצלחה!' : 'Trial extended by 14 days successfully!', type: 'success' });
-      fetchAllAccounts();
-    }
-  }
+  // TEKANGO Admin V1 (Task 3.4): this direct, un-authenticated
+  // business_settings.trial_ends_at write is removed - it had no re-auth
+  // at all (a real gap versus Reset/Delete/Lifetime, which already required
+  // a password). Trial extension now goes through AdminUsersTab's own
+  // handleExecuteTrialExtension, which calls the admin-reauth-verify +
+  // admin-extend-trial Edge Functions (server-side password check, proof
+  // binding, server-enforced 14-day/expired-only policy, authoritative
+  // read-back, audit log) - see AdminUsersTab.jsx.
 
   function emailEmailValidation(email) {
     if (!email || typeof email !== 'string') return false;
@@ -2546,6 +2772,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
+  // AI Chat workflow-awareness snapshot (Track B/C) - a small, pure,
+  // derived-only-when-on-the-quote-editor-screen object; never sent for any
+  // other tab, never containing client name/email/financial totals/item
+  // descriptions, see src/utils/quoteWorkflowContext.js for the full
+  // contract and its own dedicated tests.
+  const quoteWorkflowContext = computeQuoteWorkflowContext({
+    showQuoteForm, editingQuoteId, clientName, projectName, sections, quoteStructureMode, items, itemWizardState,
+  });
+
   // חוק ברזל (Professional Quotes Stage C, §158): נקודת-מיפוי משותפת אחת
   // מ-quote_items(+quote_item_measurements) הגולמיים (כפי שנשלפים כבר
   // מ-fetchQuotes, ר' quote_item_measurements(*) שנוסף לשם) אל צורת ה-item
@@ -2646,7 +2881,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // description בלבד על עריכה לא-פיננסית, בלי DELETE+INSERT ובלי להסתמך
       // על סדר המערך. פריטים חדשים שנוספים אחר-כך (addItem/מקטלוג) נשארים
       // בלי id בכוונה - הוספת/הסרת פריט היא ממילא שינוי פיננסי.
-      setItems(quote.quote_items.map(item => mapQuoteItemToFormItem(item, { keepId: true })));
+      // Overnight Test Hardening + Priority-1 Completion Pack, Night Task B
+      // (2026-09-16): quote.quote_items comes straight from the fetch with
+      // no guaranteed row order (Postgres/PostgREST never promises one
+      // without an explicit ORDER BY) - sections (above) and each item's
+      // own measurements (mapQuoteItemToFormItem) were already correctly
+      // sorted by sort_order before this task; the items array itself was
+      // the one remaining unsorted spot, the exact root cause of a real,
+      // reproduced item-order flip after edit/resave/refetch. Same
+      // established sort pattern as sections/measurements - no new sort
+      // semantics invented.
+      setItems(quote.quote_items
+        .slice()
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map(item => mapQuoteItemToFormItem(item, { keepId: true })));
     } else {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
@@ -2744,11 +2992,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
 
     if (quote.quote_items && quote.quote_items.length > 0) {
-      setItems(quote.quote_items.map(item => {
-        const mapped = mapQuoteItemToFormItem(item, { keepId: false });
-        mapped.section_key = item.section_id ? (sectionIdToNewKey.get(item.section_id) || null) : null;
-        return mapped;
-      }));
+      // Same missing-sort root cause and same fix as handleEditClick above -
+      // quote.quote_items has no guaranteed fetch order.
+      setItems(quote.quote_items
+        .slice()
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map(item => {
+          const mapped = mapQuoteItemToFormItem(item, { keepId: false });
+          mapped.section_key = item.section_id ? (sectionIdToNewKey.get(item.section_id) || null) : null;
+          return mapped;
+        }));
     } else {
       setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
     }
@@ -2788,6 +3041,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
       setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
       return;
+    }
+
+    // Post-LIVE Priority 1, Fix B (business profile completeness gate):
+    // narrowest safe point - only the FIRST real NEW quote (never an edit of
+    // an already-existing quote, and never account signup itself) is gated.
+    // See businessProfileCompleteness.js for the exact market-aware rule.
+    if (!editingQuoteId) {
+      const gateMessage = getBusinessProfileGateMessage({
+        phone: bizPhone,
+        taxId: bizTaxId,
+        isLocalIsraeliBusiness,
+        isHebrew,
+      });
+      if (gateMessage) {
+        setAlertModalMsg(gateMessage);
+        setActiveTab('settings');
+        return;
+      }
     }
 
     try {
@@ -3166,7 +3437,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // UPDATE ממוקד per-id בלבד, ר' descriptionUpdates למעלה) - כך שאין
       // שינוי quantity/unit_price/total_price ואין regeneration של
       // quote_item id-ים על עריכה שאינה משנה דבר פיננסי/מבני אמיתי.
-      let itemsForPersist = items;
+      // Post-LIVE Priority 1, Fix A (empty placeholder item persistence):
+      // strip only a genuinely untouched default placeholder row before it
+      // is ever written - see structuredQuoteItemPersistence.js for the
+      // exact conservative criteria. Forward-only: this only affects what
+      // THIS save call writes, never an already-persisted row (the filter
+      // itself never matches an item that already has an id).
+      let itemsForPersist = excludeUntouchedPlaceholderItems(items);
 
       // חוק ברזל (item 18 - Attn/לידי, חבילת יישום מקומית בלבד): attn_name/
       // attn_role עדיין לא קיימות בסביבה החיה (ה-migration המקומי לא הופעל
@@ -3512,24 +3789,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            (client.tax_id && client.tax_id.toLowerCase().includes(term));
   }).sort((a, b) => compareClients(a, b, { field: clientSortField, direction: clientSortDirection, isHebrew }));
 
+  // Admin Users Table - Truthful Data Only (Owner-binding V1 rule): the
+  // prior default sort ('default_online') ranked accounts by last-sign-in
+  // recency, an "active now" inference the Owner's Admin V1 spec explicitly
+  // forbids ("no active-now from weak timestamps", "no untrustworthy
+  // last-login/online indicators"). Default sort is now created_at desc
+  // (newest registration first, per spec §2.2) - plain string comparison
+  // below already sorts ISO 8601 timestamps correctly with no special case.
   const filteredAdminAccounts = allAccounts.filter(acc => {
     const term = adminSearchTerm.toLowerCase();
-    return (acc.email && acc.email.toLowerCase().includes(term)) || 
+    return (acc.email && acc.email.toLowerCase().includes(term)) ||
            (acc.business_name && acc.business_name.toLowerCase().includes(term));
   }).sort((a, b) => {
-    const nowMs = Date.now();
-    const isOnlineA = a.last_sign_in ? (nowMs - new Date(a.last_sign_in).getTime() < 10 * 60 * 1000) : false;
-    const isOnlineB = b.last_sign_in ? (nowMs - new Date(b.last_sign_in).getTime() < 10 * 60 * 1000) : false;
-
-    if (sortField === 'default_online') {
-      if (isOnlineA && !isOnlineB) return -1;
-      if (!isOnlineA && isOnlineB) return 1;
-
-      const timeA = a.last_sign_in ? new Date(a.last_sign_in).getTime() : 0;
-      const timeB = b.last_sign_in ? new Date(b.last_sign_in).getTime() : 0;
-      return timeB - timeA;
-    }
-
     let aVal = a[sortField];
     let bVal = b[sortField];
 
@@ -3667,7 +3938,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   return (
-    <div className="dash-app-shell" dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'hidden' }}>
+    <div className="dash-app-shell" dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'clip' }}>
 
       <style>{`
         @keyframes popupBounce {
@@ -3704,8 +3975,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           100% { left: 160%; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .dash-trial-slidebar { animation: none !important; }
-          .dash-trial-ticker-lane { display: flex !important; justify-content: center !important; align-items: center !important; }
           .dash-trial-ticker-text {
             animation: none !important;
             position: static !important;
@@ -3749,6 +4018,72 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-header-row > .dash-header-badge-mobile {
           justify-self: end;
         }
+        /* TEKANGO — Dynamic Greeting + Inner Table Scrollbar Top-Anchor
+           task (2026-09-18), Part 1 (Owner-corrected round): a real CSS
+           keyframes entrance, not a React-state-driven opacity transition
+           (the earlier attempt's own transition-based version compressed
+           into a single frame in practice and was never visibly
+           perceptible - a genuine timing race between React's commit and
+           requestAnimationFrame, not a CSS defect). This class is applied
+           unconditionally to whichever phase's span is currently mounted
+           (see the key-based remount in the JSX below) - a real
+           DOM-insertion event every time, which the browser's own
+           animation engine always starts from 0%, independent of React's
+           own render/commit timing. display:inline-block is required for
+           transform to actually apply to inline text content. 520ms,
+           ease-out-quint-shaped cubic-bezier (soft settle, zero bounce/
+           overshoot) - within the Owner's own 350-650ms recommended
+           range. The "both" fill-mode holds the 100% (settled) state after
+           the animation completes, rather than snapping back to the
+           un-animated default. */
+        @keyframes dashHeaderGreetingEnter {
+          from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .dash-header-greeting-text {
+          display: inline-block;
+          animation: dashHeaderGreetingEnter 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        /* Stacked date/time: DATE (DD.MM.YYYY or MM.DD.YYYY, full year) on the
+           top line, TIME below it, both smaller than the greeting. The block
+           stays inside the same header title slot - no extra header row. */
+        .dash-header-datetime {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          line-height: 1.1;
+          font-variant-numeric: tabular-nums;
+        }
+        .dash-header-datetime .dash-header-date {
+          font-size: 0.86rem;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+        .dash-header-datetime .dash-header-time {
+          font-size: 0.72rem;
+          font-weight: 700;
+          opacity: 0.8;
+          white-space: nowrap;
+        }
+        /* Narrow desktop/tablet (769-1000px): the 3-column header grid cannot
+           fit badge + KPI block + full-year date side by side (the columns
+           overflow into each other), so this band uses the same wrapped
+           composition as mobile: date + Chat + badge on row 1, KPI block
+           on row 2. Wide desktop (>1000px) keeps the original grid. */
+        @media (min-width: 769px) and (max-width: 1000px) {
+          .dash-header-row {
+            display: flex;
+            flex-wrap: wrap;
+            column-gap: 10px;
+            row-gap: 8px;
+          }
+          /* Zero geometry jump: the title slot always reserves the stacked
+             date/time block's height, so greeting -> date/time never resizes the row. */
+          .dash-header-title { order: 1; flex: 0 0 auto; min-height: 34px; display: flex; align-items: center; }
+          .dash-header-badge-desktop { order: 2; margin-inline-start: auto; }
+          .dash-header-stats { order: 3; flex-basis: 100%; justify-content: flex-start; }
+        }
         /* חוק ברזל (Authenticated UI Coherence task, Mobile Dashboard
            Header Recomposition, Owner mid-task correction): מובייל חוזר
            ל-flex+order (הרשת-3-העמודות היא אך ורק לדסקטופ) - כרטיס-סיכום
@@ -3771,9 +4106,51 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             order: 2;
             justify-self: auto;
           }
+          /* Mobile ONE-ROW contract: date/time (title) + AI Chat + plan
+             badge share ONE row; stats stay on their own row below (the
+             old separate badge row is gone). Sizes tighten, nothing wraps
+             or truncates. */
+          .dash-header-row {
+            flex-wrap: wrap;
+            column-gap: 6px !important;
+            row-gap: 8px;
+            align-items: center;
+          }
           .dash-header-title {
             order: 1;
-            flex: 1 1 auto;
+            flex: 0 0 auto;
+            overflow: visible !important;
+            /* Zero geometry jump: reserve the stacked date/time height from the start. */
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+          }
+          .dash-header-title .dash-header-datetime .dash-header-date { font-size: 0.76rem; }
+          .dash-header-title .dash-header-datetime .dash-header-time { font-size: 0.66rem; }
+          .dash-header-badge-mobile {
+            margin-inline-start: auto;
+            gap: 4px !important;
+            min-width: 0;
+          }
+          .dash-header-badge-mobile .dash-header-ai-btn {
+            height: 30px;
+            padding: 0 6px;
+            gap: 3px;
+            font-size: 0.68rem;
+          }
+          .dash-header-badge-mobile .dash-header-ai-btn > span:first-child {
+            width: 18px;
+          }
+          .dash-header-badge-mobile > span,
+          .dash-header-badge-mobile > button > span {
+            padding: 4px 5px !important;
+            gap: 3px !important;
+            min-height: 26px !important;
+          }
+          .dash-header-badge-mobile > span span,
+          .dash-header-badge-mobile > button > span span {
+            font-size: 0.62rem !important;
+            gap: 3px !important;
           }
           .dash-header-stats {
             order: 3;
@@ -4382,92 +4759,99 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            flex item's default min-height:auto is exactly what silently
            breaks nested flex+overflow scrolling (the parent would grow to
            fit content instead of the child scrolling) if omitted. */
-        @media (min-width: 769px) {
-          .dash-app-shell {
-            height: 100vh;
-            overflow: hidden;
-          }
-          .dash-shell-outer {
-            min-height: 0;
-            height: 100%;
-          }
-          .dash-shell-body {
-            min-height: 0;
-          }
-          /* Sidebar/Header Top Alignment Polish (Owner-approved, this
-             round): 16px below matches .dash-main-content's own inline
-             padding:'16px' exactly (same literal value, not a separate
-             guess) - that's the real, existing distance between
-             .dash-shell-main's top and .dash-upper-section's own top edge
-             (dash-content-container/dash-topbar add zero offset of their
-             own: dash-topbar is display:none here at >=769px, and
-             dash-content-container carries no padding/margin). Moving the
-             sidebar down by the identical amount, and shrinking its own
-             height by the same amount (not just adding margin on top of
-             the existing height, which would overflow the fixed-height
-             shell below and clip the footer against .dash-app-shell's own
-             overflow:hidden), keeps the sidebar's BOTTOM edge exactly where
-             it already was - only the top edge moves, matching the task's
-             own "shrink into the same composition" framing rather than
-             "add empty space above." Desktop-only (this whole block is
-             already >=769px) - Tablet Portrait/Mobile (<=768px) render the
-             entirely different bottom-nav shell and are unaffected (.dash-
-             sidebar is display:none there, see below). */
-          .dash-sidebar {
-            margin-top: 16px;
-            height: calc(100% - 16px);
-          }
-          .dash-shell-main {
-            min-height: 0;
-            height: 100%;
-          }
-          .dash-main-content {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-          }
-          /* חוק ברזל (UI Stability + Hot Quote Forensic Check task,
-             2026-09-08, "Quote History — Stable Scroll Contract"):
-             dash-upper-section (ברכה/סטטיסטיקות/הצעה-חמה) נדבק לראש
-             אזור-הגלילה (.dash-main-content) בדסקטופ בלבד - כך שהוא
-             נשאר גלוי תמיד בזמן גלילת שורות ההצעות, גם אם המדידה של
-             QuotesTab.jsx (top ל-stickyTopBase שלו, ר' שם) אי-פעם
-             לא מדויקת לחלוטין. position:relative המקורי (inline)
-             נדרש כדי ש-Trial Notice הפנימי (position:absolute) ימשיך
-             להתמקם ביחס אליו - !important כאן דורס רק את הערך הזה
-             בדסקטופ, לא נוגע בשום מאפיין אחר. רקע לבן אטום כבר קיים
-             (inline) כך שתוכן גולל מתחתיו לא "נראה דרכו". */
-          .dash-upper-section {
-            position: sticky !important;
-            top: 0;
-            z-index: 15;
-          }
-          /* Proportional Workspace Correction (Owner real-visual-review
-             correction, 2026-09-05): the immediately-prior "Desktop
-             Workspace Width" round added two rules, both removed here -
-             a .dash-shell-outer max-width:none!important (decoupling the
-             shell from --pf-dashboard-shell-total-width entirely) and a
-             separately max-width+margin:auto-centered .dash-content-
-             container - specifically to make the workspace wider. The
-             Owner's real-browser review found this both far too wide
-             (~1240px vs. an intended ~15-20% over the true ~748px
-             baseline) and, independently, reintroduced a blank gap between
-             the sidebar and the workspace: decoupling the content from the
-             shell's own bound meant the content centered itself in the
-             leftover viewport space instead of staying attached to the
-             sidebar as one contiguous shell - exactly the defect the
-             variable's own Round-2 history (src/index.css) was created to
-             prevent in the first place. Removing both overrides restores
-             the single-source-of-truth design: the shell's own inline
-             maxWidth (var(--pf-dashboard-shell-total-width), unchanged
-             below) is once again the only thing bounding+centering
-             sidebar+content together, now at that variable's new, smaller,
-             Owner-corrected 1120px value (src/index.css) instead of at
-             ~1240px with the shell bound removed - both wider than the
-             pre-existing 980px baseline (as intended) and contiguous with
-             the sidebar (as required), from one number instead of two
-             competing wrappers. */
+        /* ONE responsive static-block / inner-body scroll contract (all
+           viewports: desktop, tablet landscape/portrait, mobile). The app
+           shell is a fixed-height column; the canonical Header and each
+           screen's static block (title/controls/column header) never scroll;
+           ONLY the screen's inner body scrolls, and only when it overflows.
+           Responsive differences change layout (cards/columns/spacing) - never
+           what is sticky or what owns scroll. The former desktop-only media
+           query made compact viewports fall back to natural page scroll, which
+           let screen controls scroll away under a still-sticky Header.
+             .pf-screen       the screen card: flex column under the Header.
+             .pf-screen-body  the ONLY vertical scroll owner (begins exactly
+                              where the static block ends).
+             .pf-head-gutter  static column-header row aligned with the body.
+           min-height:0 on every flex link is required (default min-height:auto
+           would grow the parent instead of scrolling the child). */
+        .dash-app-shell {
+          height: 100vh;
+          height: 100dvh;
+          overflow: hidden;
         }
+        .dash-shell-outer {
+          min-height: 0;
+          height: 100%;
+        }
+        .dash-shell-body {
+          min-height: 0;
+        }
+        .dash-shell-main {
+          min-height: 0;
+          height: 100%;
+        }
+        .dash-main-content {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .pf-screen {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+        .pf-screen > * {
+          flex: 0 0 auto;
+        }
+        .pf-screen > .pf-screen-body {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          scrollbar-gutter: stable;
+          padding-top: 12px;
+        }
+        /* Children of the scroll body never shrink to fit - they scroll. (A flex
+           column body would otherwise squash overflow:hidden cards/rows to ~0px
+           when the body is height-constrained, making them untappable.) */
+        .pf-screen > .pf-screen-body > * {
+          flex-shrink: 0;
+        }
+        /* Content-dependent scrollbar: track always drawn only where a screen
+           explicitly opts in (e.g. a short Catalog). */
+        .pf-screen > .pf-screen-body.pf-screen-body--track {
+          overflow-y: scroll;
+        }
+        /* The gap between the static block and the body is the body's own
+           padding-top (scrolls with content), never a margin on the static
+           block - so body top == static block bottom exactly. */
+        .pf-screen > :has(+ .pf-screen-body),
+        .pf-screen > .pf-head-gutter {
+          margin-bottom: 0 !important;
+        }
+        .pf-screen > .pf-head-gutter + .pf-screen-body {
+          padding-top: 0;
+        }
+        .pf-screen > .pf-head-gutter {
+          overflow: hidden;
+          scrollbar-gutter: stable;
+        }
+        @media (min-width: 769px) {
+          /* Desktop-only: sidebar top alignment with the Header card (16px
+             = .dash-main-content's own inline padding). */
+          .dash-sidebar {
+            height: calc(100% - 16px);
+            margin-top: 16px;
+          }
+        }
+        @media (max-width: 768px) {
+          /* The fixed bottom nav overlays the viewport bottom: keep the
+             scroll body's last rows clear of it (the ONLY mobile bottom inset). */
+          .dash-main-content {
+            padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+        }
+
         /* Cross-Surface Visual Consolidation (§9): the topbar is the seam
            between the dark sidebar and the light workspace - previously a
            flat white card with a plain grey border, reading as a separate,
@@ -4485,22 +4869,39 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            the sidebar's own new per-language physical side instead of
            always starting from the left, or it would visually wash away
            from the sidebar under Hebrew instead of adjacent to it. */
+        /* TEKANGO — Critical Header Correction task (2026-09-18): the Owner
+           identified this element as reading like a "thin legacy top
+           strip" rather than a real business Header, now that it carries
+           real content (identity, plan/trial badge, AI Chat, dynamic info -
+           see the entitlement/dynamic props wired in the JSX below). The
+           gradient-wash/border-bottom "seam" treatment above (Cross-Surface
+           Visual Consolidation §9) is left untouched (it is cross-
+           referenced by the RTL/LTR sidebar-position logic and by real
+           visual-review history this task does not have the Owner's own
+           updated reference image to safely re-litigate) - padding is
+           increased and a real shadow added instead, the smallest safe
+           change that gives this element genuine header-level visual
+           weight without touching its established geometry/seam contract.
+           Final pixel-level visual acceptance is Owner-pending regardless
+           (see this task's own final report), same standing discipline as
+           every other UI change in this project. */
         .dash-topbar {
           position: relative;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
-          padding: 14px 20px;
-          background: linear-gradient(${isHebrew ? 'to left' : 'to right'}, rgba(124,58,237,0.06), ${NEON.bgCard} 60%);
-          border-bottom: 1px solid ${NEON.border};
-          box-shadow: 0 1px 0 rgba(124,58,237,0.05);
+          padding: 16px 20px;
+          background: ${SHELL.sidebarBg};
+          border-bottom: 1px solid ${SHELL.sidebarBorder};
+          box-shadow: ${SHADOW.sm};
           flex-wrap: wrap;
+          row-gap: 10px;
         }
         .dash-topbar-identity {
           font-weight: 800;
           font-size: 1rem;
-          color: ${NEON.textPrimary};
+          color: ${SHELL.sidebarTextActive};
           min-width: 0;
         }
         .dash-topbar-bizname {
@@ -4524,6 +4925,38 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 8px;
           flex-wrap: wrap;
         }
+        .dash-topbar-identity { order:0; }
+        .dash-topbar-actions { order:1; margin-inline-start:auto; }
+        /* Unified Header + Always-Available AI Chat task, §9 "Header
+           Contract": the new optional Dynamic/Entitlement regions, both
+           rendered inside the pre-existing .dash-topbar-trailing wrapper
+           (see AuthenticatedShellFrames.jsx's own comment on why it exists
+           - preserving the 2-region space-between layout regardless of how
+           many optional slots are filled). flex-shrink:0 on both matches
+           .dash-topbar-actions' own established convention (never let a
+           fixed-size chrome element get crushed before the flexible
+           identity text does). */
+        .dash-topbar-trailing { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+        .dash-topbar-dynamic { flex-shrink:0; }
+        .dash-topbar-dynamic-text {
+          font-size: 0.76rem;
+          font-weight: 600;
+          color: ${SHELL.sidebarTextMuted || SHELL.sidebarTextActive};
+          opacity: 0.75;
+          white-space: nowrap;
+        }
+        .dash-topbar-entitlement { flex-shrink:0; }
+        /* §11 "no Header height growth", real-estate discipline: the
+           Dynamic (clock/date) slot is the least essential of the new
+           regions when width is genuinely tight - hidden below this
+           breakpoint so the already-populated Mobile topbar (identity + AI
+           entry + entitlement badge) never risks horizontal overflow: the
+           Entitlement badge (real product information: plan/trial status)
+           and the AI Chat entry both stay visible at every width, only the
+           supplementary clock text is width-gated. */
+        @media (max-width: 640px) {
+          .dash-topbar-dynamic { display: none; }
+        }
         .dash-topbar-ghost-btn {
           display: flex;
           align-items: center;
@@ -4531,14 +4964,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 5px;
           padding: 6px 14px;
           border-radius: ${RADIUS.pill};
-          border: 1px solid ${NEON.border};
-          background: ${NEON.bgCardAlt};
-          color: ${NEON.textSecondary};
+          border: 1px solid ${SHELL.sidebarBorder};
+          background: rgba(255,255,255,0.06);
+          color: ${SHELL.sidebarText};
           font-weight: 700;
           font-size: 0.8rem;
           cursor: pointer;
           white-space: nowrap;
           font-family: inherit;
+        }
+        /* Already reachable, desktop-only, from the sidebar's own utility
+           zone (isSuperAdmin-gated) - hidden here on desktop so it is never
+           a second, duplicate "AI Support Logs" control once the topbar
+           itself becomes visible at every viewport (see below). */
+        @media (min-width: 769px) {
+          .dash-topbar-ghost-btn {
+            display: none;
+          }
         }
         /* Desktop Header Removal task, §G (status toast): was position:
            absolute, anchored to .dash-topbar's own position:relative box
@@ -4625,72 +5067,108 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-ai-chat-mount .ai-support-btn {
           display: none !important;
         }
-        .dash-topbar-ai-btn {
-          display: none;
+        /* TEKANGO — Header + Sidebar Correction task (2026-09-18): the ONE
+           AI Chat entry point's own button styling, rendered inside
+           dash-upper-section's rich card - the ONE canonical Header, now
+           rendered on every business screen (see its own gate below), not
+           a second reduced variant.
+           Header Package/Chat Order Correction task (2026-09-18): widened
+           from a round icon-only 36x36 button into a labeled pill (height
+           UNCHANGED at 36px, so the Header's own overall height is
+           unaffected - only width grows to fit the now-required visible
+           "צ׳אט AI"/"AI Chat" label - "Do not use icon-only Chat in this
+           Header"). border-radius switched from a fixed 50% circle to the
+           project's own existing pill token (RADIUS.pill, already used by
+           this exact same button in its prior, now-retired topbar/sidebar
+           locations) since a 36px-tall non-square button cannot be a true
+           circle. */
+        .dash-header-ai-btn {
+          display: inline-flex;
           align-items: center;
           gap: 6px;
           height: 36px;
           padding: 0 12px;
-          background: linear-gradient(135deg, rgba(167,139,250,0.14), rgba(236,72,153,0.10));
-          border: 1px solid rgba(139,92,246,0.30);
+          background: rgba(124,58,237,0.22);
+          border: 1px solid rgba(167,139,250,0.40);
           border-radius: ${RADIUS.pill};
-          color: ${NEON.violet};
+          color: #f0abfc;
           font-weight: 700;
           font-size: 0.78rem;
-          cursor: pointer;
           white-space: nowrap;
+          cursor: pointer;
           flex-shrink: 0;
         }
-        .dash-topbar-ai-btn:hover {
-          background: linear-gradient(135deg, rgba(167,139,250,0.22), rgba(236,72,153,0.16));
+        .dash-header-ai-btn:hover {
+          background: rgba(124,58,237,0.32);
         }
-        .dash-topbar-ai-btn:focus-visible {
-          outline: 2px solid ${NEON.violet};
+        .dash-header-ai-btn:focus-visible {
+          outline: 2px solid #a78bfa;
           outline-offset: 1px;
         }
-        @media (max-width: 768px) {
-          .dash-topbar-ai-btn {
-            display: inline-flex;
-          }
-        }
-        /* Desktop Header Removal task, §C (Owner-authorized): the separate
-           desktop workspace top strip is removed - business identity now
-           lives solely in the enhanced sidebar brand block (desktop), the
-           Admin AI-logs action and the AI Chat action both moved into the
-           new sidebar utility zone, and the status toast was re-anchored
-           above (fixed, decoupled from the topbar entirely). This rule
-           hides ONLY the topbar's own visible presentation on desktop -
-           the topbar's underlying JSX (business-identity/admin-button
-           markup) is intentionally left otherwise unchanged and REMAINS
-           FULLY VISIBLE ON MOBILE below 768px, since mobile has no other
-           on-screen business-identity display once the sidebar itself is
-           hidden there (display:none below 768px, unchanged) - removing it
-           on mobile too would have been a real informational regression
-           the Owner's own task scope never authorized ("desktop top
-           strip" / "desktop .dash-topbar presentation" throughout). The
-           AIChatWidget mount and the status toast were already extracted
-           out of the topbar's own JSX entirely (see above/below) precisely
-           because a display:none ancestor would otherwise have taken any
-           position:fixed descendant down with it - this hide rule alone,
-           without that extraction, would have silently broken AI Chat and
-           the status toast on desktop. */
-        @media (min-width: 769px) {
-          .dash-topbar {
-            display: none;
-          }
-        }
+        /* TEKANGO Admin V1 (Task 1, shared dark shell - Owner-corrected):
+           the prior "Desktop Header Removal" task hid this topbar entirely
+           above 768px, so My Business had no persistent Header on desktop
+           at all - only the sidebar. The Owner has since explicitly
+           corrected this: Admin and My Business must share ONE dark navy
+           Header, visible on desktop too ("Desktop: Header remains
+           visible. Sidebar remains visible."), not just on mobile. The
+           topbar is therefore no longer desktop-hidden - it is recolored
+           to the same SHELL navy as the sidebar (above) and stays mounted
+           at every viewport. The AIChatWidget mount and the status toast
+           remain the separate, position:fixed overlays they already were
+           (unaffected by this - they never depended on the topbar's own
+           visibility either way). */
 
         @media (max-width: 768px) {
           .dash-sidebar {
             display: none;
           }
-          .dash-topbar {
-            padding: 10px 12px;
-          }
           .dash-topbar-bizname {
             max-width: 140px;
             font-size: 0.9rem;
           }
+          /* ONE mobile/tablet-portrait shell top-anchor (root-cause closure):
+             the retired fixed .dash-topbar left a 72px spacer here that kept
+             reserving space above the canonical Header (a blank band). The
+             only external top inset is the real platform safe-area, owned in
+             this single place - no screen reserves space above the Header.
+             The Header itself is static above the inner scroll body on EVERY
+             viewport (see the one responsive scroll contract above). */
+          .dash-main-content {
+            padding-top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+          }
+        }
+
+
+        .dash-topbar-global { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-width:0; min-height:31px; }
+        .dash-topbar-identity { display:flex; align-items:center; gap:12px; flex:1; overflow:hidden; }
+        .dash-topbar-summary { width:100%; min-width:0; display:flex; flex-direction:column; gap:12px; }
+        .dash-drawer-toggle,.dash-drawer-close { display:none; }
+        @media (min-width:769px) { .dash-topbar-actions .dash-topbar-ghost-btn { display:none; } }
+        @media (max-width:768px) {
+          .dash-drawer-toggle,.dash-drawer-close { display:flex; min-height:44px; min-width:44px; align-items:center; justify-content:center; }
+          .dash-operator-sidebar { display:none; position:fixed; inset-block:0; inset-inline-start:0; width:min(280px,calc(100vw - 44px)); height:100dvh; z-index:10001; overflow-y:auto; border-radius:0; }
+          .dash-operator-sidebar.dash-sidebar-open { display:flex; }
+          .dash-operator-sidebar .dash-sidebar-btn { min-height:44px; }
+          .dash-topbar-global { gap:6px; }
+          .dash-topbar-identity { gap:6px; }
+          .dash-topbar-identity .dash-topbar-bizname { max-width:100%; }
+          .dash-topbar-actions { gap:6px; flex-shrink:0; }
+          /* Mobile/Tablet AI Entry Discoverability task (Owner correction,
+             2026-09-18): the prior rule below forced icon-only by hiding
+             the label span - the Owner found this unclear ("not obvious
+             it opens AI Chat") and asked for a visible label on Mobile/
+             Tablet, matching the Desktop sidebar's own "צ׳אט AI"/"AI Chat"
+             text exactly (same JSX span, same text, no new copy). Height
+             stays min-height:44px (touch target unchanged); padding grows
+             horizontally only, to fit the label - width is intentionally
+             no longer pinned to min-width:44px alone since the button now
+             needs to be wider than it is tall. .dash-topbar-actions'
+             existing flex-shrink:0 (unchanged) already lets .dash-topbar-
+             identity's bizname ellipsis absorb the extra width, exactly
+             as it already does for the ghost button beside it. */
+          .dash-topbar-ai-btn { min-height:44px; padding:6px 12px; }
+          .dash-topbar-ghost-btn { min-width:44px; min-height:44px; padding:6px; }
         }
       `}</style>
 
@@ -4733,7 +5211,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           trigger button on desktop - Landing/Contact/every other page's
           own separate AIChatWidget mount is untouched. */}
       <div className="dash-ai-chat-mount">
-        <AIChatWidget isHebrew={isHebrew} isDashboard={true} />
+        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} />
       </div>
 
       {/* Status toast: same statusMsg state/role="status"/aria-live="polite"/
@@ -4799,12 +5277,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew}
       />
 
-      <UserDetailsModal
-        isOpen={selectedUserDetails !== null}
-        onClose={() => setSelectedUserDetails(null)}
-        user={selectedUserDetails}
-        isHebrew={isHebrew}
-      />
 
       <EmailConfirmModal 
         isOpen={pendingEmailQuote !== null} 
@@ -4855,8 +5327,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           browser width behind it, so the shell visually "floats" centered,
           the same composition principle Public Quote's own document uses. */}
       <div className="dash-shell-outer" style={{ maxWidth: 'var(--pf-dashboard-shell-total-width)', margin: '0 auto', width: '100%', flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+      {shellDrawerOpen && <div className="dash-drawer-backdrop no-print" onClick={() => setShellDrawerOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:10000 }} />}
       <div className="dash-shell-body">
-        <aside className="dash-sidebar no-print">
+        <AuthenticatedSidebarFrame drawerEnabled={false} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
           {/* Sidebar Branding Hierarchy: business identity primary (logo if
               the business uploaded one, else an initial-letter mark in the
               same brand gradient the CTA/avatar already use elsewhere - no
@@ -4894,7 +5367,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             )}
           </div>
           <nav className="dash-sidebar-nav">
-            {!isSuperAdmin && (
+              <>
+            {(
               <button onClick={handleCreateNewQuoteClick} className="dash-sidebar-cta">
                 <PlusCircle size={17} strokeWidth={2.4} />
                 {isHebrew ? 'הצעת מחיר חדשה' : 'New Quote'}
@@ -4906,7 +5380,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 dashboardNavCapabilities.js) - בדיוק אותה רשימה, מסוננת לפי
                 אותו isSuperAdmin, נצרכת גם ע"י Mobile bottom-nav/More למטה.
                 סדר/תוכן/onClick זהים-בייט למערך הקודם שהיה מקומי כאן. */}
-            {navCapabilities.map(({ id, icon: TabIcon, label }) => (
+            {navCapabilities.filter(({ id }) => id !== 'admin_clients').map(({ id, icon: TabIcon, label }) => (
               <button
                 key={id}
                 className={activeTab === id ? 'dash-sidebar-btn dash-sidebar-btn-active' : 'dash-sidebar-btn'}
@@ -4917,52 +5391,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               </button>
             ))}
 
-            {/* Final Dashboard/Sidebar Polish task, §B (position/reuse):
-                the AI action sits INSIDE the primary nav's own top-down
-                flow, immediately after the nav-items map (below Catalog) -
-                a normal-flow child of .dash-sidebar-nav, not a floating
-                sibling with a large empty gap above it. Reuses the exact
-                same open-proflow-ai-chat CustomEvent as before (unchanged -
-                see the standalone AIChatWidget mount elsewhere in this
-                file) - no second chat implementation.
-                Authenticated UI Coherence task (label/icon correction,
-                supersedes the Final Dashboard/Sidebar Polish task's own
-                "AI"-only label): visible label restored to "AI Chat"/"צ׳אט
-                AI", the Owner's newest exact spec. Icon changed again -
-                plain Sparkles read as too abstract; now a composite modern
-                outline speech-bubble (MessageCircle, matching the same
-                icon family/size/stroke-weight as every other sidebar nav
-                icon) with a small sparkle accent badge in its corner
-                (same "medallion + small corner accent" composition already
-                established in PlanIdentityBadge.jsx elsewhere in this
-                project) - explicitly not the old boxy robot/computer icon,
-                not a monitor/terminal/DOS glyph, not emoji, not a raster
-                image. DOM order is still [icon, label] - under the
-                sidebar's own inherited direction (no isHebrew-conditional
-                branch needed here, same "single DOM order, mirrored by
-                dir" convention as the rest of this file) this already
-                places the icon at each language's true inline-start: RIGHT
-                of the label for Hebrew, LEFT of the label for English,
-                exactly the Owner's own explicit requirement. title/
-                aria-label unchanged (already the Owner's own exact
-                required strings from the prior round, not reopened here).
-                dash-sidebar-btn-ai (unchanged CSS) still adds a restrained
-                purple/pink wash+border - more visible than a plain nav
-                row, still deliberately secondary to the solid-purple New
-                Quote CTA above. */}
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'))}
-              className="dash-sidebar-btn dash-sidebar-btn-ai"
-              title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
-              aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
-            >
-              <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-                <MessageCircle size={17} strokeWidth={2.2} />
-                <Sparkles size={9} strokeWidth={2.5} style={{ position: 'absolute', top: '-3px', [isHebrew ? 'left' : 'right']: '-4px', color: '#f0abfc' }} />
-              </span>
-              <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
-            </button>
+            {/* TEKANGO — Critical Header Correction task (2026-09-18), §3.A
+                "SIDEBAR AI CHAT BUTTON REMOVAL": this sidebar AI Chat action
+                (added by the earlier Final Dashboard/Sidebar Polish/
+                Authenticated UI Coherence tasks) is retired - the Owner's
+                explicit correction is that the canonical business Header
+                (not the sidebar) is now the one global Chat entry point
+                across every authenticated viewport, including Desktop/
+                Tablet Landscape where this was previously the ONLY entry.
+                Removed entirely, not hidden/disabled - "no hidden, disabled,
+                duplicate, or secondary Sidebar Chat launcher". The
+                open-proflow-ai-chat CustomEvent itself, AIChatWidget's own
+                mount, and this button's identical admin-mode
+                counterpart (see below, also removed by this same task) are
+                the only other things this touches - no second chat
+                implementation ever existed here to begin with. */}
 
             {/* Owner-authorized David Aluminum professional-item demo entry
                 points - gated to exactly one real account via
@@ -4981,6 +5424,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 </a>
               </>
             )}
+            {isSuperAdmin && (
+              <AdminSidebarNav
+                section={isAdminMode ? adminSection : null}
+                onSelect={navigateToAdminSection}
+                isHebrew={isHebrew}
+              />
+            )}
+              </>
           </nav>
 
           {/* Desktop Header Removal task, §G, updated by Final Dashboard/
@@ -4993,6 +5444,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               explicit "do not move Super Admin utilities... merely to
               achieve this" instruction). */}
           <div className="dash-sidebar-utility">
+            {/* Header Correction task, §3.A: the admin-mode sidebar AI Chat
+                launcher is retired too - same reasoning as the business-nav
+                one removed above, no exception for Admin. */}
             {/* Relocated Super Admin "AI Support Logs" action (was inside
                 dash-topbar-actions, itself now hidden on desktop - see
                 .dash-topbar's own desktop-only display:none rule above).
@@ -5003,16 +5457,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 with the sidebar itself (display:none below 768px), so
                 there is no double-render at any single viewport width.
                 Same handler/destination/permission condition, unchanged. */}
-            {isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => { window.location.href = '/ai-logs'; }}
-                className="dash-sidebar-btn dash-sidebar-btn-ghost"
-              >
-                <MessagesSquare size={17} strokeWidth={2.2} />
-                <span>AI Support Logs</span>
-              </button>
-            )}
+            {/* AI Support Logs is a registry destination (Admin group above), not a utility breakout. */}
           </div>
 
           <div className="dash-sidebar-footer">
@@ -5077,84 +5522,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <ProFlowLogo size={13} />
             </div>
           </div>
-        </aside>
+        </AuthenticatedSidebarFrame>
 
         <div className="dash-shell-main">
-          {/* Topbar: everything that used to live inside the purple
-              dash-header-bar (business identity/plan badge/AI entry/upgrade
-              CTA/admin logs button/status toast) now renders here, on the
-              light V2 surface, instead of on a purple gradient - same
-              components/handlers/props, new visual container only. */}
-          <div className="dash-topbar no-print">
-            <div className="dash-topbar-identity">
-              {bizLogoUrl ? (
-                <img src={bizLogoUrl} alt={bizName} className="dash-topbar-logo-img" />
-              ) : (
-                <span className="dash-topbar-bizname">{bizName}</span>
-              )}
-            </div>
-            {/* V2 Visual Transformation Pass: the plan badge + Upgrade CTA
-                that used to render here moved into the sidebar's new plan
-                card (see dash-sidebar-footer above) - the Owner explicitly
-                rejected a standalone plan badge floating in the topbar
-                corner. isSuperAdmin never had a plan badge/upgrade CTA
-                either way (both were already conditional on it being
-                false/absent). */}
-            {/* Desktop Header Removal task: the AIChatWidget mount and the
-                status toast were extracted out of this container entirely
-                (see the standalone mount block near the other modals,
-                above the shell) - both are position:fixed overlays that
-                would otherwise be taken down by this container's own
-                desktop-only display:none rule. The Admin AI-logs button
-                stays here, preserved for its original mobile audience
-                (this whole .dash-topbar is desktop-hidden, mobile-visible
-                as of this task) - a separate, desktop-only equivalent now
-                lives in the sidebar's own utility zone above. */}
-            <div className="dash-topbar-actions">
-              {/* חוק ברזל (Authenticated UI Coherence task, Mobile AI
-                  Clarification, Owner correction): כפתור AI יציב בכותרת-
-                  המובייל, מחליף את המשגר-הצף שהוסר. אותו אייקון-מרוכב
-                  בדיוק (MessageCircle+Sparkles קטן בפינה) כמו כפתור ה-AI
-                  בסיידבר-הדסקטופ - עקביות אייקונוגרפית מלאה בין שני
-                  המיקומים, לא סמל שונה. אותו event בדיוק (open-proflow-
-                  ai-chat) - לא מימוש-צ'אט שני. ~36px גובה (ר' CSS
-                  dash-topbar-ai-btn), מוצג רק ≤768px (מובייל), אף פעם לא
-                  יוצר שורת-כותרת נוספת - יליד רגיל בתוך dash-topbar-actions
-                  הקיים כבר, לא overlay/position:fixed. */}
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'))}
-                className="dash-topbar-ai-btn"
-                title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
-                aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
-              >
-                <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-                  <MessageCircle size={16} strokeWidth={2.2} />
-                  <Sparkles size={8} strokeWidth={2.5} style={{ position: 'absolute', top: '-3px', [isHebrew ? 'left' : 'right']: '-4px', color: '#a855f7' }} />
-                </span>
-                <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
-              </button>
-              {isSuperAdmin && (
-                // חוק ברזל (Functional Parity Across Viewports task,
-                // 2026-09-08, תיקון פער-נגישות §211): .dash-admin-logs-text
-                // (הטקסט הגלוי) הוא display:none במובייל (ר' ה-CSS) - בלי
-                // aria-label נפרד, קורא-מסך היה מקבל כפתור-אייקון ללא שם
-                // נגיש בכלל. aria-label/title מוסיפים כאן בדיוק את אותו
-                // טקסט "AI Support Logs" הקיים כבר (זהה, לא מומצא) - אין
-                // תרגום עברי קיים לתווית הזו באף מקום בקובץ (גם בגרסת-
-                // Desktop, גם כאן) אז לא מומצא כזה חדש כאן לראשונה.
-                <button
-                  className="dash-topbar-ghost-btn"
-                  onClick={() => { window.location.href = '/ai-logs'; }}
-                  aria-label="AI Support Logs"
-                  title="AI Support Logs"
-                >
-                  <MessagesSquare size={14} />
-                  <span className="dash-admin-logs-text">AI Support Logs</span>
-                </button>
-              )}
-            </div>
-          </div>
+          {/* TEKANGO — Owner Header Reference Correction task (2026-09-18),
+              §2 "LEGACY TOP STRIP: RETIRE" / "LEGACY TOP STRIP DEPENDENCY:
+              ZERO": fully retired for the BUSINESS context - AI Chat, the
+              plan badge, and identity all live in the canonical business
+              Header now (dash-upper-section's rich card / dash-persistent-
+              header's compact one, see below), so this element has nothing
+              left to contribute there. Kept mounted for ADMIN ONLY, where
+              it still hosts real, not-yet-migrated functionality this
+              narrowly-scoped correction did not attempt to move (the Admin
+              title/KPI summary and the mobile Admin sidebar-drawer toggle -
+              Admin's own shell is a separate, actively-evolving lineage;
+              see this task's own final report for this disclosed, deliberate
+              scope boundary, not a silent gap). Admin itself is explicitly
+              still required to "keep the same outer Header architecture" -
+              this remains the same single AuthenticatedHeaderFrame
+              component either way, never a second one. */}
+          {/* Unified Admin: no Admin-specific Header. The canonical business Header
+              (dash-upper-section, below) renders for every authenticated screen,
+              Admin destinations included. */}
 
       <div className="dash-main-content" style={{ flex: '1 1 auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
         {/* Width history (condensed - full narrative now lives in
@@ -5192,6 +5581,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             גובה אמיתי מהשרשרת הקיימת) - עכשיו ה-footer באמת נדחף לתחתית
             כשהתוכן קצר, ומופיע אחרי סוף התוכן כשהוא ארוך, בלי מספר-קסם. */}
         <div className="dash-content-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
+
+          {/* TEKANGO — Header + Sidebar Correction task (2026-09-18): the
+              earlier "compact fallback header for every screen but
+              Overview" attempt (dash-persistent-header) is retired - the
+              Owner's explicit correction is that the SAME canonical
+              Header (not a reduced variant) must render on every business
+              screen. The rich card immediately below (dash-upper-section)
+              is now that one header everywhere - see its own gate,
+              widened from Overview-only to every non-Admin business
+              screen, immediately below this comment. */}
 
           {/* V2 Visual Completion Pass: greeting banner (Image 1 reference).
               Presentational only - greets the real business name already in
@@ -5305,8 +5704,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               readability is proven, not assumed: see the live HE/EN,
               Desktop/Mobile verification in this task's own report. No
               business logic changed anywhere in this block. */}
-          {activeTab === 'main' && !showQuoteForm && !isSuperAdmin && (
-          <div ref={upperSectionRef} className="dash-upper-section" style={{ position: 'relative', background: SHELL.sidebarBg, border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
+          {/* TEKANGO — Header + Sidebar Correction task (2026-09-18): gate
+              widened from Overview-only (activeTab==='main' && !showQuoteForm)
+              to every non-Admin business screen - the Owner's own explicit
+              correction that the SAME canonical Header (this exact block,
+              not a reduced variant) must appear on every business screen,
+              New Quote/Edit Quote/Clients/Settings/Finances/Catalog/Plans
+              included. isSuperAdmin is still excluded (Admin's own Header
+              treatment is a separate, out-of-scope lineage, unchanged by
+              this task). */}
+          {(
+          <div ref={setUpperSectionNode} className="dash-upper-section" style={{ position: 'relative', background: SHELL.sidebarBg, border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
 
           {/* חוק ברזל (Trial Bar Owner-Reference Correction task): מרווח-כותרת
               קבוע (14px) - אין עוד marginBottom מותנה כאן. ה-Trial Notice
@@ -5349,7 +5757,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               כבר מוצג בבירור בכותרת הסיידבר/לוגו, ר' .dash-sidebar-brand
               למעלה - חזרה נוספת עליו כאן במשפט-הסבר שלם הייתה בדיוק
               ה"long redundant explanatory sentence" שהמשימה מבקשת להסיר). */}
-          {activeTab === 'main' && !showQuoteForm && !isSuperAdmin && (() => {
+          {(() => {
             // חוק ברזל (Authenticated UI Coherence task, Mobile Dashboard
             // Header Recomposition, Owner mid-task correction): פונקציית-
             // עזר מקומית (לא state/hook - נבנית מחדש בכל render, בדיוק
@@ -5454,16 +5862,77 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     אין כאן שום תנאי isHebrew על מיקום-פיזי, אותו עיקרון
                     "סדר-DOM יחיד, משתקף ע"י dir" שמשמש בכל הקובץ הזה. */}
                 <div className="dash-header-row" style={{ gap: '14px', minHeight: '44px' }}>
-                  <h1 className="dash-header-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', lineHeight: 1.2, color: SHELL.sidebarTextActive, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {isHebrew ? `ברוך שובך` : `Welcome back`}
+                  {/* Dynamic Greeting task (2026-09-18, corrected round):
+                      same element/position/reserved grid column as before -
+                      the OUTER <h1> never animates and never changes size
+                      ("GREETING SLOT: SAME X/Y/WIDTH/HEIGHT"); only the
+                      INNER <span>, keyed per phase, actually animates. Each
+                      time `key` changes (mount → 'greeting'; swap →
+                      'datetime'), React inserts a genuinely NEW DOM node,
+                      which the .dash-header-greeting-text CSS class's own
+                      @keyframes animation (see the <style> block above)
+                      always runs from its real 0% frame - no JS timing
+                      race, no dependency on when React happens to commit. */}
+                  <h1
+                    ref={greetingRef}
+                    className="dash-header-title"
+                    style={{
+                      margin: 0,
+                      fontSize: '1.25rem',
+                      fontWeight: '800',
+                      lineHeight: 1.2,
+                      color: SHELL.sidebarTextActive,
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span key={showGreeting ? 'greeting' : 'datetime'} className={showGreeting ? 'dash-header-greeting-text' : 'dash-header-greeting-text dash-header-datetime'}>
+                      {showGreeting ? (isHebrew ? `ברוך שובך` : `Welcome back`) : headerDateTimeText}
+                    </span>
                   </h1>
 
                   {statsRow}
 
-                  <div className="dash-header-badge-desktop" style={{ display: 'flex', flexShrink: 0 }}>
+                  {/* TEKANGO — Owner Header Reference Correction task
+                      (2026-09-18): the Owner's own screenshot confirms THIS
+                      dark rounded card (Frame A / dash-upper-section) is the
+                      one canonical business Header - AI Chat now renders
+                      here, next to the plan badge, inside the SAME grid
+                      column (never as a 4th top-level grid child, which
+                      would break the "real 3-column grid, centered
+                      relative to the entire workspace" contract documented
+                      immediately above). Reuses renderHeaderAIChatButton,
+                      defined once at the top of this component and shared
+                      with every render site - no second implementation.
+                      TEKANGO — Header Package/Chat Order Correction task
+                      (2026-09-18): DOM order is chat-then-badge, not badge-
+                      then-chat - under this row's own inherited RTL
+                      direction, the FIRST DOM child lands at the
+                      container's own inline-start (physically the RIGHT
+                      edge of this small sub-group), so putting the badge
+                      SECOND in the DOM places it at the sub-group's
+                      inline-end (physically LEFT) - the header's own
+                      absolute outermost-left position, exactly the Owner's
+                      "PACKAGE BADGE LEFTMOST" requirement, with Chat
+                      immediately to its right (physically, between the
+                      badge and the rest of the header). Same single DOM
+                      order, mirrored by dir, convention used everywhere
+                      else in this file - no isHebrew-conditional branch:
+                      under EN/LTR the identical order places the badge at
+                      this sub-group's own inline-end (physically RIGHT,
+                      since LTR flips which physical side "end" is), the
+                      logically-equivalent "outermost, farthest from the
+                      greeting" position for that language, per the Owner's
+                      own explicit "logical/flex ordering, not a hardcoded
+                      direction-specific DOM order" instruction. */}
+                  <div className="dash-header-badge-desktop" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {renderHeaderAIChatButton()}
                     {renderPlanBadge(false)}
                   </div>
-                  <div className="dash-header-badge-mobile" style={{ display: 'none', flexShrink: 0 }}>
+                  <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {renderHeaderAIChatButton()}
                     {renderPlanBadge(true)}
                   </div>
                 </div>
@@ -5501,16 +5970,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   שינוי בנוסחת-הזכאות עצמה. */}
               {hotQuotesList.length > 0 && currentHotQuote ? (
                 <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setHotQuoteExpanded(prev => !prev)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHotQuoteExpanded(prev => !prev); } }}
-                  aria-expanded={hotQuoteExpanded}
-                  style={{ marginTop: '8px', background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', cursor: 'pointer' }}
+                  title={t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
+                  style={{ marginTop: '8px', background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: RADIUS.sm, padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', height: '42px', boxSizing: 'border-box', overflow: 'hidden' }}
                 >
                   <Flame size={15} color={DARK_ACCENT.red} fill={DARK_ACCENT.red} strokeWidth={1} style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '0.78rem', color: DARK_ACCENT.red, fontWeight: '800', flexShrink: 0 }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</span>
-                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarTextActive, fontWeight: '600', overflow: hotQuoteExpanded ? 'visible' : 'hidden', textOverflow: hotQuoteExpanded ? 'clip' : 'ellipsis', whiteSpace: hotQuoteExpanded ? 'normal' : 'nowrap' }}>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarTextActive, fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
                   </span>
                   <button
@@ -5522,18 +5987,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   >
                     <Eye size={13} strokeWidth={2.2} />
                   </button>
-                  <ChevronDown size={15} strokeWidth={2.4} color={DARK_ACCENT.red} style={{ flexShrink: 0, transform: hotQuoteExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 </div>
               ) : (
                 <div
-                  style={{ marginTop: '8px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.sm, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px' }}
+                  title={isHebrew ? 'אין כרגע הצעה חמה. כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'No hot quote right now. A quote will appear here after 3 or more views while it is still awaiting approval.'}
+                  style={{ marginTop: '8px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.sm, padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', height: '42px', boxSizing: 'border-box', overflow: 'hidden' }}
                 >
                   <Flame size={15} color={SHELL.sidebarTextMuted} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.6 }} />
-                  <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                    <span style={{ fontSize: '0.78rem', color: SHELL.sidebarText, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}
-                    </span>
-                    <span style={{ fontSize: '0.66rem', color: SHELL.sidebarTextMuted, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarText, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}
+                    <span style={{ fontSize: '0.66rem', color: SHELL.sidebarTextMuted, fontWeight: '500', marginInlineStart: '8px' }}>
                       {isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}
                     </span>
                   </span>
@@ -5570,58 +6033,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               zIndex:5 מבטיח שהבר מצויר מעל שכניו במקרה של חפיפה חזותית
               קלה בתוך המסלול הצר - "safe overlay strategy" לפי דרישת
               הבעלים המפורשת, לא תקלה. */}
-          {activeTab === 'main' && !showQuoteForm && trialNoticeVisible && (isTrialExpired || isExpiringSoon) && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="dash-trial-slidebar no-print"
-              style={{
-                position: 'absolute',
-                top: 'calc(100% - 6px)',
-                left: 0,
-                right: 0,
-                zIndex: 5,
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '8px 30px',
-                fontSize: '0.78rem',
-                fontWeight: '500',
-                color: '#ffffff',
-                background: NEON.gradient,
-                boxShadow: NEON.glow,
-                animation: `${isHebrew ? (trialNoticeExiting ? 'trialSlideOutRTL' : 'trialSlideInRTL') : (trialNoticeExiting ? 'trialSlideOutLTR' : 'trialSlideInLTR')} ${trialNoticeExiting ? TRIAL_NOTICE_EXIT_MS : TRIAL_NOTICE_ENTER_MS}ms ease-in-out forwards`
-              }}
-            >
-              <AlertTriangle size={14} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-              {/* חוק ברזל (A2 - Owner Product Decision, Trial Bar Corrections task):
-                  הודעת "פג-תוקף" עודכנה למדויק לפי החלטת-בעלים - הטקסט
-                  הישן כלל "אנא שדרג" (call-to-action לשדרוג) שהבעלים ביקש
-                  להסיר במפורש, בלי תחליף/CTA אחר. הניסוח החדש רק מציין את
-                  היעד בפועל (FREE) ללא הנעה-לפעולה. אנגלית תורגמה במבנה-
-                  משפט מקביל (שתי פסוקיות: הניסיון הסתיים + המעבר ל-FREE),
-                  גם בלי CTA. ה-branch השני (isExpiringSoon, "מסתיימת בעוד
-                  X ימים") לא נגע כלל - המשימה ביקשה לתקן רק את הודעת-הפג-
-                  תוקף. שינוי טקסט בלבד - לוגיקת-הזכאות/isTrialExpired/
-                  effectivePlan לא נגעו. */}
-              <span style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isTrialExpired
-                  ? (isHebrew ? 'תקופת הניסיון הסתיימה, הועברת למסלול FREE' : "Your trial has ended — you've been moved to the FREE plan.")
-                  : (isHebrew ? `תקופת הניסיון שלך מסתיימת בעוד ${trialDaysLeft} ימים!` : `Your trial period expires in ${trialDaysLeft} days!`)}
-              </span>
-              <button
-                onClick={dismissTrialNotice}
-                aria-label={isHebrew ? 'סגור' : 'Close'}
-                style={{ background: 'rgba(255,255,255,0.22)', border: 'none', color: '#ffffff', borderRadius: '50%', width: '18px', height: '18px', minWidth: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0, position: 'absolute', insetInlineEnd: '10px' }}
-              >
-                <X size={12} strokeWidth={3} />
-              </button>
-            </div>
-          )}
+          {/* Trial-warning banner removed (Owner): remaining trial days live in the compact plan badge; no separate row/overlay. */}
 
           {/* חוק ברזל (Authenticated UI Coherence task, Duplicate Trial
               Messaging Removal): הטיקר של "ניסיון פעיל רגיל" (isPlainActiveTrial)
@@ -5661,7 +6073,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
           {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
-                stickyTopBase={isSuperAdmin ? 0 : upperSectionHeight}
+                stickyTopBase={upperSectionHeight}
                 quotes={filteredQuotes}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
@@ -5757,6 +6169,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               quoteFiles={quoteFiles}
               setQuoteFiles={setQuoteFiles}
               allUserAttachments={allUserAttachments}
+              onWizardStateChange={setItemWizardState}
             />
           )}
 
@@ -5875,23 +6288,38 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             />
           )}
 
-          {isSuperAdmin && activeTab === 'admin_clients' && (
+          {/* TEKANGO Admin V1 (Task 2): Admin content router - one section
+              renders at a time inside this same light content outlet,
+              switched by adminSection (Overview/Users/Plans/Activity), with
+              a selected account short-circuiting Users into the
+              shell-preserving User Details view instead of a modal. Admin
+              destinations never mix in ordinary business tabs (those are
+              reachable only via the sidebar's own "My Workspace" exit). */}
+          {isAdminMode && adminAccountsStatus !== 'ready' && <p role="status">{adminAccountsStatus === 'loading' ? (isHebrew ? 'טוען נתוני ניהול…' : 'Loading Admin data…') : (isHebrew ? 'נתוני הניהול אינם זמינים כרגע' : 'Admin data currently unavailable')}</p>}
+          {isAdminMode && adminAccountsStatus === 'ready' && (
             <ErrorBoundary isHebrew={isHebrew}>
-              <AdminUsersTab
-                t={t}
-                isHebrew={isHebrew}
-                allAccounts={allAccounts}
-                filteredAdminAccounts={filteredAdminAccounts}
-                adminSearchTerm={adminSearchTerm}
-                setAdminSearchTerm={setAdminSearchTerm}
-                handleSort={handleSort}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                liveTick={liveTick}
-                handleExtendTrial14Days={handleExtendTrial14Days}
-                setSelectedUserDetails={setSelectedUserDetails}
-                handleOpenNewUsersModal={handleOpenNewUsersModal}
-                lastSeenNewUsersTime={lastSeenNewUsersTime}
+              <AdminDestinationHost
+                sectionId={adminSection}
+                host={{
+                  isHebrew,
+                  isSuperAdmin,
+                  accounts: allAccounts,
+                  navigate: navigateToAdminSection,
+                  openUser: openAdminUserDetails,
+                  selectedUserId: adminSelectedUserId,
+                  clearSelectedUser: () => setAdminSelectedUserId(null),
+                  usersTabProps: {
+                    t,
+                    isHebrew,
+                    allAccounts,
+                    filteredAdminAccounts,
+                    adminSearchTerm,
+                    setAdminSearchTerm,
+                    handleSort,
+                    sortField,
+                    sortDirection,
+                  },
+                }}
               />
             </ErrorBoundary>
           )}
@@ -5980,18 +6408,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         <div
           role="menu"
           aria-label={isHebrew ? 'עוד' : 'More'}
-          style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998 }}
+          style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998, maxHeight: '70vh', overflowY: 'auto' }}
         >
-          {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
-              אותו מקור getDashboardNavCapabilities שה-Desktop sidebar צורך
-              למעלה, מסונן ל-mobileGroup==='more' - זו בדיוק הסיבה
-              ש-admin_clients (Users Admin, super_admin-only) עכשיו מופיע
-              כאן אוטומטית לחשבון Super Admin, בלי תנאי-role שני ונפרד.
-              Settings/Catalog נשארים זהים-בייט (אותו onClick/style/icon/
-              טקסט-מוצג - mobileLabel שומר על "הגדרות"/"Settings" הקצר
-              הקיים, לא "הגדרות עסק" של ה-Desktop). */}
-          {navCapabilities
-            .filter((cap) => cap.mobileGroup === 'more')
+          {/* TEKANGO Admin V1 (Task 1, mobile nav parity): when in Admin
+              mode, this same, already-proven "More" popover mechanism
+              (compact, opens above the bottom nav, closes on selection)
+              carries the Admin section list + "My Workspace" instead of the
+              ordinary business overflow items - reusing one already-tested
+              mobile nav primitive rather than introducing a second,
+              parallel drawer implementation. Dark SHELL styling only
+              applies while isAdminMode, so the ordinary business "More"
+              menu (Settings/Catalog) is completely unchanged. */}
+          {
+          navCapabilities
+            .filter((cap) => cap.mobileGroup === 'more' && cap.id !== 'admin_clients')
             .map(({ id, icon: TabIcon, label, mobileLabel }) => (
               <button
                 key={id}
@@ -6003,6 +6433,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 {mobileLabel || label}
               </button>
             ))}
+          {isSuperAdmin && ADMIN_NAV_GROUPS.flatMap((group) => group.items).map(({ id, icon: AdminIcon, label }) => (
+            <button
+              key={`admin-${id}`}
+              role="menuitem"
+              onClick={() => { navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && adminSection === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && adminSection === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              <AdminIcon size={17} strokeWidth={2.2} />
+              {isHebrew ? label.he : label.en}
+            </button>
+          ))}
           {/* Task G (Owner-authorized, Mobile Sign Out): this menu had no
               account/session action at all before - Settings/Catalog above
               are byte-identical to before, untouched. Identity line reuses
@@ -6058,23 +6499,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           Quote נשאר בדיוק כפי שהיה - הכפתור הבולט, לא הוזז. Quotes/Clients/
           Finances נשארו יעדים ישירים ללא שינוי - שום התנהגות/handler/
           activeTab-target לא השתנו, רק ה-IA (מבנה-הניווט) עצמו. */}
+      {(
       <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: NEON.bgElevated, color: NEON.textPrimary, justifyContent: 'space-around', padding: '5px 4px calc(5px + env(safe-area-inset-bottom, 0px))', zIndex: 9998, boxShadow: '0 -4px 16px -6px rgba(31,27,46,0.12)', borderTop: `1px solid ${NEON.border}`, boxSizing: 'border-box' }}>
-        {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
-            אותו getDashboardNavCapabilities, מסונן ל-mobileGroup==='bottom' -
-            Quotes/Clients/Finances, סדר/handler/label זהים-בייט לשלושת
-            הכפתורים הנפרדים שהיו כאן קודם. 'main' שומר על תנאי-ה-active
-            המיוחד שלו (!showQuoteForm) - היחיד מבין השלושה שהיה שונה. */}
         {navCapabilities
-          .filter((cap) => cap.mobileGroup === 'bottom')
-          .map(({ id, icon: TabIcon, label }) => {
-            const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
-            return (
-              <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                <TabIcon size={16} style={{ marginBottom: '1px' }} />
-                {label}
-              </button>
-            );
-          })}
+            .filter((cap) => cap.mobileGroup === 'bottom')
+            .map(({ id, icon: TabIcon, label }) => {
+              const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
+              return (
+                <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                  <TabIcon size={16} style={{ marginBottom: '1px' }} />
+                  {label}
+                </button>
+              );
+            })}
         {/* "עוד"/"More" מדגיש את עצמו גם כש-activeTab הוא כל יעד מתוך קבוצת
             ה-more (Settings/Catalog/Admin) - נגזר מאותה רשימה, לא רשימת-
             מחרוזות שנייה ונפרדת שהייתה עלולה לצאת מסונכרנת שוב. */}
@@ -6082,7 +6519,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           onClick={() => setShowMobileMoreMenu(prev => !prev)}
           aria-haspopup="true"
           aria-expanded={showMobileMoreMenu}
-          style={{ background: (showMobileMoreMenu || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab)) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab)) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}
+          style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}
         >
           <MoreHorizontal size={16} style={{ marginBottom: '1px' }} />
           {isHebrew ? 'עוד' : 'More'}
@@ -6093,13 +6530,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             למעלה) - כפתור "חדש" כאן לא נשא תנאי מקביל בכלל, כך שחשבון Super
             Admin ראה יכולת-יצירת-הצעה ב-Mobile שה-Desktop שלו עצמו במפורש
             שולל. אותו isSuperAdmin המשותף בדיוק - לא תנאי-role שני/עצמאי. */}
-        {!isSuperAdmin && (
+        {(
           <button onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
             <PlusCircle size={16} strokeWidth={2.5} style={{ marginBottom: '1px' }} />
             {isHebrew ? 'חדש' : 'New'}
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

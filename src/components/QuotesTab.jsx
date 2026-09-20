@@ -107,8 +107,7 @@ export default function QuotesTab({
   t,
   setPendingEmailQuote,
   emailStatuses,
-  currency,
-  stickyTopBase = 0
+  currency
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
 
@@ -131,6 +130,46 @@ export default function QuotesTab({
   // ל-dash-upper-section+שורת-הכותרת הדביקים, ללא מספר-קסם), ו-thead
   // מקבל top:0 פשוט ביחס ל-wrapper המקומי שלו - לא עוד חישוב-קיזוז מצטבר.
   const headerRowRef = useRef(null);
+
+  // TEKANGO — Greeting Motion + Inner Scrollbar Top Anchor (Final) task
+  // (2026-09-18), Part 2 - SUPERSEDES the immediately-prior round's own
+  // fix (a live-measured but still SEPARATE, table-owned maxHeight/
+  // overflow-y). Fresh live DOM measurement this round (see this task's
+  // own report) proved that fix insufficient: every OTHER authenticated
+  // screen (Business Settings/Clients/Finances/Catalog) scrolls via
+  // .dash-main-content itself (top:0, the same element/position on every
+  // screen, by construction) - only Quote History had its OWN separate,
+  // nested overflow-y:'auto' scroll region (top: ~272px that round,
+  // regardless of how well-measured) - a real, structural "MIXED SCROLL
+  // OWNERSHIP" the Owner's own fresh evidence and explicit "ONE
+  // AUTHENTICATED CONTENT SCROLL CONTAINER CONTRACT" requirement both
+  // name directly. No per-screen number can close a gap that exists
+  // because two DIFFERENT elements own the scroll - the wrapper's own
+  // overflow-y is removed entirely below, so .dash-main-content becomes
+  // the one real vertical scroll owner here too, exactly like every other
+  // screen, making the top-position delta 0px by construction rather than
+  // by tuning.
+  // Real, disclosed trade-off this requires (audited, not glossed over):
+  // overflow-x:'auto' must stay on SOME ancestor of the <table> (real
+  // horizontal-overflow protection this codebase has relied on since the
+  // "Critical Signature Forensic Audit" task, still needed at narrower
+  // Desktop/Tablet widths) - and per the CSS Overflow spec itself
+  // (overflow-x/-y "visible" pairing rule), any element with overflow-x
+  // auto/scroll/hidden is *always* a scrolling ancestor for position:sticky
+  // purposes, regardless of its own overflow-y value or whether it ever
+  // actually needs to scroll. Concretely: thead's own "stick to the top of
+  // the local scroll region while scrolling" behavior (the immediately-
+  // prior "ONLY QUOTE DATA ROWS SCROLL" task's own design) cannot survive
+  // this change intact - it would need EITHER its own overflow-x wrapper
+  // (recreating the exact mixed-scroll-ownership defect this task exists
+  // to close) OR a header/body split into two synced non-table elements
+  // (a materially larger, higher-risk restructuring this MEDIUM-effort
+  // correction does not attempt). thead's sticky styling is removed below
+  // (it now scrolls with the rest of the table, like an ordinary table
+  // header) - the sticky FILTER/SEARCH ROW (headerRowRef, immediately
+  // below) is genuinely unaffected and stays sticky, since it always sat
+  // OUTSIDE this table-only wrapper, with nothing overflow-bearing between
+  // it and .dash-main-content.
 
   // רינדור מותנה אמיתי (JS), לא רק הסתרת CSS - כדי שלא יהיו שני עותקים
   // כפולים בו-זמנית בעץ ה-DOM (טבלת דסקטופ + כרטיסי מובייל) עבור אותן
@@ -434,7 +473,7 @@ export default function QuotesTab({
     // כבר קיים בקומפוננטה הזו בדיוק לצורך הזה (טבלה מול כרטיסים) - נעשה שימוש
     // חוזר בו כאן, לא נוסף מנגנון-CSS/media-query מקביל. דסקטופ (14px) לא נגע
     // בכלל - התנאי חל רק כש-isMobileView אמיתי.
-    <div style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
+    <div className="pf-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
       {/* חוק ברזל (תיקון בעלים מאושר): הוסר flexDirection: row-reverse עבור
           עברית - היה זה הבאג עצמו. במיכל עם dir="rtl" (יורש מה-Dashboard),
           'row' הרגיל כבר ממקם את הילד הראשון ב-DOM (כותרת+ייצוא) ב-"התחלה"
@@ -446,7 +485,6 @@ export default function QuotesTab({
         ref={headerRowRef}
         style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px',
-          ...(!isMobileView ? { position: 'sticky', top: stickyTopBase, zIndex: 14, background: NEON.bgCard, paddingTop: '2px', paddingBottom: '2px' } : {}),
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -619,7 +657,8 @@ export default function QuotesTab({
           נשאר המנגנון היחיד. overflow-x:'auto' (הגנה-אמיתית קיימת, ר'
           ההערה למעלה על 620-625px מתוך תקציב-980px) נשאר זהה. */}
       {!isMobileView && (
-      <div style={{ overflowX: 'auto', overflowY: 'auto', minHeight: '220px', maxHeight: 'calc(100vh - 420px)' }}>
+      <>
+      <div className="pf-head-gutter">
         {/* חוק ברזל (Owner Visual Correction task - Frame B Corners): הבעלים
             זיהה חזותית שפינות Frame B (המסגרת סביב שורת-הכותרות) חדות, לא
             מעוגלות - למרות ש-getComputedStyle דיווח '12px' על borderTopLeftRadius
@@ -648,15 +687,24 @@ export default function QuotesTab({
             יותר רוחב מקודם (ר' ה-minWidth שלו למטה), לא פחות, למרות
             ה-minWidth הכולל הנמוך יותר של הטבלה - ר' האריתמטיקה המלאה
             בהערה שלפני ה-<table>. */}
-        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
-          {/* חוק ברזל (UI Stability + Hot Quote Forensic Check task,
-              2026-09-08, "ONLY QUOTE DATA ROWS SCROLL"): thead נדבק ל-
-              top:0 *ביחס לאזור-הגלילה המקומי* (ה-wrapper מיד למעלה, ר'
-              ההערה שם - הוא, לא dash-main-content, הוא אזור-הגלילה
-              האמיתי של הטבלה מהסיבה שהוסברה שם) - לא עוד חישוב-קיזוז
-              מצטבר מ-Dashboard.jsx. רקע לבן אטום על כל תא (למטה) כדי
-              ששורות גוללות מתחתיו לא ייראו "דרכו". */}
-          <thead style={{ position: 'sticky', top: 0, zIndex: 12 }}>
+        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
+        <colgroup><col style={{ width: '36px' }} /><col /><col style={{ width: '72px' }} /><col style={{ width: '86px' }} /><col style={{ width: '78px' }} /><col style={{ width: '100px' }} /></colgroup>
+          {/* TEKANGO — Greeting Motion + Inner Scrollbar Top Anchor (Final)
+              task (2026-09-18): thead's own "sticky while scrolling" is
+              retired here - see this file's own real-cause note above
+              (const headerRowRef's own comment block) for exactly why this
+              is a genuine, disclosed, unavoidable trade-off of making
+              .dash-main-content the one true scroll owner (required for
+              the outer scrollbar's own top position to match every other
+              authenticated screen). thead now renders as an ordinary,
+              non-sticky table header - it scrolls with the rest of the
+              table, like any standard table. The solid white background
+              on every cell (below) is harmless leftover styling from the
+              prior sticky design (rows scrolling beneath a sticky thead
+              must not show through it) - left in place since it causes no
+              visible difference for a non-sticky thead and removing it is
+              outside this task's own narrow scope. */}
+          <thead>
             {/* חוק ברזל (Owner New Final Dashboard Structure task - FRAME B,
                 נשמר): אותו טוקן-סגול/עובי-גבול/radius כמו Frame A. Client
                 Name (ראשון ב-DOM עכשיו) בקצה הימני ב-HE/השמאלי ב-EN;
@@ -709,6 +757,11 @@ export default function QuotesTab({
               </th>
             </tr>
           </thead>
+          </table>
+          </div>
+          <div className="pf-screen-body">
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
+          <colgroup><col style={{ width: '36px' }} /><col /><col style={{ width: '72px' }} /><col style={{ width: '86px' }} /><col style={{ width: '78px' }} /><col style={{ width: '100px' }} /></colgroup>
           <tbody>
             {rowsMeta.length === 0 ? (
               <tr>
@@ -831,6 +884,7 @@ export default function QuotesTab({
           </tbody>
         </table>
       </div>
+      </>
       )}
 
 
@@ -852,7 +906,9 @@ export default function QuotesTab({
           quoteSortField/quoteSortDirection בדיוק, רק המיקום החזותי השתנה.
           יכולת-המיון עצמה (הרגרסיה שהמשימה הקודמת תיקנה) עדיין קיימת
           במלואה, לא נסוגה. */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* Responsive scroll contract: the card list is the screen's inner scroll body (same
+          .pf-screen-body owner as the desktop table) - title/search/filters above never scroll. */}
+      <div className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
             {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}

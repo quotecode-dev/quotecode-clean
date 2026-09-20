@@ -1,6 +1,7 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { claimReauthProof, writeAuditLog } from "../_shared/adminReauth.ts";
 
 // ==========================================
 // 🚨 חוק ברזל קשיח: זוהי הדרך הפריבילגית היחידה למחוק את עץ ההצעות (quotes +
@@ -10,6 +11,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // (auth.uid() = user_id) נשאר קשיח ובלתי-פגום - הפונקציה הזו היא הדרך
 // היחידה שמורשית לחצות בעלות, ורק אחרי אימות server-side אמיתי ש-הקורא
 // הוא super_admin. לעולם לא לסמוך על טענת "isAdmin" מהקליינט.
+//
+// TEKANGO Admin V1 (Task 3.6): this function's own scope was always
+// quote-tree data only, never a full "Reset Data" - the UI label now says
+// so precisely (see AdminUsersView.jsx). Now also requires a claimed
+// re-auth proof (admin-reauth-verify, action=reset_quotes) bound to this
+// exact target, and writes an admin_audit_log row after the action
+// resolves either way.
 // ==========================================
 
 const corsHeaders = {
@@ -26,8 +34,8 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 
 // deno-lint-ignore no-explicit-any
 async function deleteAndCount(adminClient: any, table: string, applyFilter: (q: any) => any, label: string): Promise<number> {
-  // .select('id') אחרי delete() מחזיר את השורות שבאמת נמחקו (לא רק "אין שגיאה") -
-  // זה בדיוק התיקון לבאג שגילינו: DELETE שמסונן ל-0 שורות (RLS/היקף שגוי) חוזר
+  // .select('id') אחרי delete() מחזיר את השורות שבאמת נמחקו (לא רק "אין
+  // שגיאה") - זה בדיוק התיקון לבאג שגילינו: DELETE שמסונן ל-0 שורות (RLS/היקף שגוי) חוזר
   // בלי error, ולכן אסור לעולם להסתפק בבדיקת error בלבד כדי לדווח הצלחה.
   const { data, error } = await applyFilter(adminClient.from(table).delete().select('id'));
   if (error) {
@@ -47,8 +55,13 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => null);
     const targetUserId = (body as { targetUserId?: unknown })?.targetUserId;
+    const proofToken = (body as { proofToken?: unknown })?.proofToken;
+    const reason = (body as { reason?: unknown })?.reason;
     if (!targetUserId || typeof targetUserId !== 'string') {
       return jsonResponse({ error: 'Missing or invalid targetUserId' }, 400);
+    }
+    if (typeof reason !== 'string' || !reason.trim()) {
+      return jsonResponse({ error: 'A reason is required for this protected action.' }, 400);
     }
 
     const authHeader = req.headers.get('Authorization');
@@ -93,6 +106,12 @@ serve(async (req) => {
       return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
     }
 
+    const action = 'reset_quotes';
+    const proof = await claimReauthProof({
+      adminClient, proofToken, actorUserId: callerUser.id, action, targetUserId, params: { reason },
+    });
+    if (!proof.ok) return jsonResponse({ error: proof.error }, 403);
+
     // שלב 1: מוצאים את מזהי ההצעות של המשתמש היעד - זה גם התוצאה "quotesFound"
     // וגם הבסיס למחיקת הילדים (quote_items/quote_attachments).
     const { data: userQuotes, error: quotesFetchErr } = await adminClient
@@ -109,6 +128,7 @@ serve(async (req) => {
 
     // אין הצעות למשתמש הזה - תוצאה תקינה, אידמפוטנטית, בלי לגעת בשום דבר אחר.
     if (quotesFound === 0) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, afterState: { quotesFound: 0 }, outcome: 'success' });
       return jsonResponse({
         success: true,
         targetUserId,
@@ -133,6 +153,7 @@ serve(async (req) => {
       // כישלון חלקי: לא מדווחים הצלחה בשום מקרה, ומחזירים בדיוק כמה נמחק עד כה
       // כדי שהקורא ידע את מצב הביניים המדויק (retry על אותו targetUserId בטוח -
       // כל שלב מסונן ל-quote_id-ים/user_id שכבר לא קיימים פשוט לא ימחק כלום שוב).
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, afterState: { quotesFound, quoteItemsDeleted, quoteAttachmentsDeleted, quotesDeleted }, outcome: 'error' });
       return jsonResponse({
         error: message,
         targetUserId,
@@ -152,6 +173,7 @@ serve(async (req) => {
       .eq('user_id', targetUserId);
 
     if (verifyErr) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, afterState: { quotesFound, quoteItemsDeleted, quoteAttachmentsDeleted, quotesDeleted }, outcome: 'error' });
       return jsonResponse({
         error: `Deletion completed but post-delete verification failed: ${verifyErr.message}`,
         targetUserId,
@@ -165,6 +187,7 @@ serve(async (req) => {
     const remainingQuotes = (remainingRows || []).length;
 
     if (remainingQuotes > 0) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, afterState: { quotesFound, quoteItemsDeleted, quoteAttachmentsDeleted, quotesDeleted, remainingQuotes }, outcome: 'error' });
       return jsonResponse({
         error: `Verification failed: ${remainingQuotes} quote(s) still remain for this user after deletion.`,
         targetUserId,
@@ -175,6 +198,8 @@ serve(async (req) => {
         remainingQuotes,
       }, 500);
     }
+
+    await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, afterState: { quotesFound, quoteItemsDeleted, quoteAttachmentsDeleted, quotesDeleted, remainingQuotes: 0 }, outcome: 'success' });
 
     return jsonResponse({
       success: true,

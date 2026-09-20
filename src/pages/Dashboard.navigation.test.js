@@ -28,7 +28,7 @@ describe('Dashboard navigation - Desktop and Mobile consume one shared capabilit
   });
 
   it('the Desktop sidebar maps over navCapabilities, not a second independent array literal', () => {
-    expect(dashboardSource).toMatch(/\{navCapabilities\.map\(\(\{ id, icon: TabIcon, label \}\) => \(/);
+    expect(dashboardSource).toMatch(/\{navCapabilities\.filter\(\(\{ id \}\) => id !== 'admin_clients'\)\.map\(\(\{ id, icon: TabIcon, label \}\) => \(/);
     // The old pattern - an inline array literal with its own isSuperAdmin
     // spread, defined only inside the Desktop sidebar block - must be gone.
     expect(dashboardSource).not.toMatch(/\{ key: 'admin_clients', icon: Shield, label: t\.usersAdminNav \}/);
@@ -38,8 +38,9 @@ describe('Dashboard navigation - Desktop and Mobile consume one shared capabilit
     expect(dashboardSource).toMatch(/navCapabilities\s*\n\s*\.filter\(\(cap\) => cap\.mobileGroup === 'bottom'\)/);
   });
 
-  it('the Mobile More menu filters navCapabilities by mobileGroup==="more" - this is exactly how admin_clients now reaches Mobile', () => {
-    expect(dashboardSource).toMatch(/navCapabilities\s*\n\s*\.filter\(\(cap\) => cap\.mobileGroup === 'more'\)/);
+  it('the Mobile More menu filters navCapabilities by mobileGroup==="more"; Admin destinations join it as an additive Super Admin group, never a second nav', () => {
+    expect(dashboardSource).toMatch(/navCapabilities\s*\n\s*\.filter\(\(cap\) => cap\.mobileGroup === 'more' && cap\.id !== 'admin_clients'\)/);
+    expect(dashboardSource).toMatch(/isSuperAdmin && ADMIN_NAV_GROUPS\.flatMap/);
   });
 
   it('every navCapabilities consumer shares the same setActiveTab-based onClick shape (action parity - no duplicate handler was written)', () => {
@@ -50,35 +51,30 @@ describe('Dashboard navigation - Desktop and Mobile consume one shared capabilit
   });
 });
 
-describe('Dashboard navigation - New Quote role parity (Super Admin hidden on both viewports)', () => {
-  it('the Desktop New Quote CTA remains gated by !isSuperAdmin', () => {
-    expect(dashboardSource).toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{handleCreateNewQuoteClick\} className="dash-sidebar-cta">/);
+describe('Dashboard navigation - New Quote is available to Super Admin (SUPER ADMIN = FULL BUSINESS USER + ADDITIVE ADMIN)', () => {
+  it('the Desktop New Quote CTA is NOT gated by !isSuperAdmin', () => {
+    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{handleCreateNewQuoteClick\} className="dash-sidebar-cta">/);
+    expect(dashboardSource).toMatch(/<button onClick=\{handleCreateNewQuoteClick\} className="dash-sidebar-cta">/);
   });
 
-  it('the Mobile "New" button is now also gated by the same !isSuperAdmin condition - the audit\'s gap 2 fix', () => {
-    expect(dashboardSource).toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); handleCreateNewQuoteClick\(\); \}\}/);
+  it('the Mobile "New" button is NOT gated by !isSuperAdmin', () => {
+    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); handleCreateNewQuoteClick\(\); \}\}/);
+    expect(dashboardSource).toMatch(/<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); handleCreateNewQuoteClick\(\); \}\}/);
   });
 });
 
-describe('Dashboard navigation - AI Support Logs accessibility (the audit\'s gap 3 fix)', () => {
-  it('the Mobile AI Support Logs icon-only button has a non-empty aria-label and title', () => {
-    const marker = "className=\"dash-topbar-ghost-btn\"";
-    const idx = dashboardSource.indexOf(marker);
-    expect(idx).toBeGreaterThan(-1);
-    const block = dashboardSource.slice(idx, idx + 300);
-    expect(block).toMatch(/aria-label="AI Support Logs"/);
-    expect(block).toMatch(/title="AI Support Logs"/);
+describe('Dashboard navigation - AI Support Logs is an in-shell Admin destination', () => {
+  it('reaches AI Support through the registry-driven Admin nav group (desktop sidebar + mobile More), never a /ai-logs breakout', () => {
+    expect(dashboardSource).not.toContain('/ai-logs');
+    expect(dashboardSource).toMatch(/<AdminSidebarNav\s+section=/);
+    expect(dashboardSource).toMatch(/isSuperAdmin && ADMIN_NAV_GROUPS\.flatMap/);
   });
 });
 
 describe('Dashboard navigation - existing Quotes/Clients/Finances/Settings/Catalog/AI Chat handlers unchanged', () => {
-  it('AI Chat still dispatches the same single CustomEvent on both Desktop and Mobile (untouched by this task)', () => {
+  it('AI Chat has exactly ONE shared dispatch implementation (renderHeaderAIChatButton), reused by every render site - Owner Header Reference Correction task (2026-09-18) consolidated the prior 2 independently hand-duplicated call sites (Desktop sidebar + Mobile topbar, both now retired) into this 1 shared one, closing a real drift-risk surface rather than widening it', () => {
     const occurrences = dashboardSource.match(/dispatchEvent\(new CustomEvent\('open-proflow-ai-chat'\)\)/g) || [];
-    expect(occurrences.length).toBe(2);
-  });
-
-  it('AI Support Logs still navigates to the same real route on both Desktop and Mobile (untouched by this task)', () => {
-    const occurrences = dashboardSource.match(/window\.location\.href = '\/ai-logs';/g) || [];
-    expect(occurrences.length).toBe(2);
+    expect(occurrences.length).toBe(1);
+    expect(dashboardSource).toContain('const renderHeaderAIChatButton');
   });
 });

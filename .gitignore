@@ -41,3 +41,5 @@ pentest-source-review.zip
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+dist-release-verify
+release-evidence/verify-result.json

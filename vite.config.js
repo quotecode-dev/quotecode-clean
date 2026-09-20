@@ -23,16 +23,36 @@ function getBuildSha() {
 function versionManifestPlugin() {
   const buildSha = getBuildSha();
   const buildTime = new Date().toISOString();
+  const manifest = JSON.stringify({ buildSha, buildTime }, null, 2);
   return {
     name: 'proflow-version-manifest',
-    apply: 'build',
+    // TEKANGO RTL Remediation Closure task (2026-09-16), Test Source
+    // Identity: this plugin previously only ran `apply: 'build'`, so
+    // `/version.json` never existed under `vite dev` - the canonical Owner
+    // TEST (5186) runs as a dev server, not a built/served static site, so
+    // that endpoint was simply unreachable there. Extending the SAME
+    // existing mechanism (same two fields, same getBuildSha() source of
+    // truth) to also serve during dev via `configureServer`, rather than
+    // inventing a second, competing identity framework. `buildSha` reflects
+    // the committed HEAD only (identical across sibling worktrees branched
+    // from the same base commit with different *uncommitted* diffs, e.g.
+    // C:\tkrtl1 vs C:\tkpost1) - `buildTime` (this dev server's own start
+    // timestamp) is what actually distinguishes "which process/start is
+    // currently answering on this port" for verification purposes; it does
+    // NOT by itself prove an exact uncommitted-file identity, which would
+    // require genuinely new, out-of-scope, working-tree-hashing
+    // architecture - disclosed here rather than overclaimed.
     writeBundle(options) {
       const outDir = options.dir || 'dist';
       if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-      writeFileSync(
-        `${outDir}/version.json`,
-        JSON.stringify({ buildSha, buildTime }, null, 2)
-      );
+      writeFileSync(`${outDir}/version.json`, manifest);
+    },
+    configureServer(server) {
+      server.middlewares.use('/version.json', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(manifest);
+      });
     },
   };
 }

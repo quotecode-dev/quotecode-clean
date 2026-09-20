@@ -9,7 +9,6 @@ import { formatMoney } from '../utils/money';
 // preview, never a write path.
 
 const KIND_LABEL = { simple: 'פשוט', measured: 'נמדד', repeating: 'מדידות חוזרות' };
-const KIND_COLOR = { simple: LIGHT.textMuted, measured: LIGHT.violet, emerald: LIGHT.emerald };
 
 // AUDIT-001 (PROFLOW_PROJECT_CONTEXT.md §128/§131): delegates to the
 // canonical formatMoney instead of an independent local reimplementation -

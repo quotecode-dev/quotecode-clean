@@ -1,6 +1,7 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { claimReauthProof, writeAuditLog } from "../_shared/adminReauth.ts";
 
 // ==========================================
 // 🚨 חוק ברזל קשיח: פונקציה זו היא הדרך היחידה למחוק משתמש לחלוטין מהמערכת.
@@ -8,6 +9,29 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // שורת business_settings, וחשבון ה-Auth עצמו - כדי שהאימייל יתפנה להרשמה חוזרת.
 // חובה להשתמש ב-Service Role Key (זמין רק כאן, בצד השרת) - supabase.auth.admin
 // אינו נגיש כלל מהקליינט עם ה-anon key.
+//
+// TEKANGO Admin V1 (Task 3.5, Delete Account lifecycle audit): two real
+// gaps found in the prior version of this function and closed here:
+// (1) uploaded quote attachments live in Storage bucket 'quote-files'
+// under `${userId}/...` (Dashboard.jsx's own upload path) and were never
+// removed - only the `quote_attachments` DB rows were; (2) `chat_logs` is
+// keyed by `user_email` (no FK/cascade to auth.users) and was never
+// cleaned, so it would survive deletion and could resurface under a
+// re-registered account with the same email - exactly the scenario this
+// function's own deletion exists to enable safely. `quotecode_documents`
+// (a separate, legacy, publicly-readable document-sharing table with a
+// free-text `user_id` column, no FK) is cleaned on a best-effort basis and
+// disclosed in the outcome - not silently skipped, not guaranteed.
+// `quote_sections`/`quote_item_measurements`/`business_quote_sequences`
+// are NOT handled here - all three already have `ON DELETE CASCADE`
+// foreign keys (into quotes/quote_items/auth.users respectively), so they
+// clean up automatically.
+//
+// Now also requires a claimed re-auth proof (admin-reauth-verify) for the
+// delete_user action bound to this exact target - see
+// _shared/adminReauth.ts. The DB-level protections already in place
+// (server-side role re-verification below, Super-Admin-target refusal)
+// are unchanged and remain in force independently of the proof check.
 // ==========================================
 
 const corsHeaders = {
@@ -36,9 +60,15 @@ serve(async (req) => {
   }
 
   try {
-    const { targetUserId } = await req.json();
+    const body = await req.json().catch(() => null);
+    const targetUserId = (body as { targetUserId?: unknown })?.targetUserId;
+    const proofToken = (body as { proofToken?: unknown })?.proofToken;
+    const reason = (body as { reason?: unknown })?.reason;
     if (!targetUserId || typeof targetUserId !== 'string') {
       return jsonResponse({ error: 'Missing or invalid targetUserId' }, 400);
+    }
+    if (typeof reason !== 'string' || !reason.trim()) {
+      return jsonResponse({ error: 'A reason is required for this protected action.' }, 400);
     }
 
     const authHeader = req.headers.get('Authorization');
@@ -77,10 +107,16 @@ serve(async (req) => {
       return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
     }
 
+    const action = 'delete_user';
+    const proof = await claimReauthProof({
+      adminClient, proofToken, actorUserId: callerUser.id, action, targetUserId, params: { reason },
+    });
+    if (!proof.ok) return jsonResponse({ error: proof.error }, 403);
+
     // הגנה מפני מחיקת חשבון Super Admin אחר
     const { data: targetBiz, error: targetBizErr } = await adminClient
       .from('business_settings')
-      .select('id, role')
+      .select('id, role, email')
       .eq('user_id', targetUserId)
       .maybeSingle();
 
@@ -88,7 +124,12 @@ serve(async (req) => {
       return jsonResponse({ error: `Failed to look up target account: ${targetBizErr.message}` }, 500);
     }
     if (targetBiz?.role === 'super_admin') {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, outcome: 'denied' });
       return jsonResponse({ error: 'Cannot delete a Super Admin account' }, 400);
+    }
+    if (!targetBiz) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, outcome: 'denied' });
+      return jsonResponse({ error: 'Target account not found.' }, 404);
     }
 
     // מחיקה מדורגת של כל נתוני העסק, באותו סדר תלות כמו src/shared/wipeUserData.js
@@ -102,6 +143,8 @@ serve(async (req) => {
     }
 
     const quoteIds = (userQuotes || []).map((q: { id: string }) => q.id);
+    let quoteFilesRemoved = 0;
+    let quotecodeDocumentsRemoved: number | 'unavailable' = 0;
 
     try {
       if (quoteIds.length > 0) {
@@ -113,12 +156,44 @@ serve(async (req) => {
       await deleteOrThrow(adminClient, 'services', (q) => q.eq('user_id', targetUserId), 'services');
       await deleteOrThrow(adminClient, 'expenses', (q) => q.eq('user_id', targetUserId), 'expenses');
 
+      // Storage: uploaded quote attachments live under `${userId}/...` in
+      // the 'quote-files' bucket (see Dashboard.jsx's own upload path) -
+      // DB rows above are gone, but the actual files were not, until now.
+      const { data: storedFiles, error: storageListErr } = await adminClient
+        .storage.from('quote-files').list(targetUserId, { limit: 1000 });
+      if (storageListErr) {
+        throw new Error(`Failed to list Storage objects for this user: ${storageListErr.message}`);
+      }
+      if (storedFiles && storedFiles.length > 0) {
+        const paths = storedFiles.map((f: { name: string }) => `${targetUserId}/${f.name}`);
+        const { error: storageRemoveErr } = await adminClient.storage.from('quote-files').remove(paths);
+        if (storageRemoveErr) {
+          throw new Error(`Failed to delete Storage objects: ${storageRemoveErr.message}`);
+        }
+        quoteFilesRemoved = paths.length;
+      }
+
+      // chat_logs has no FK to auth.users (keyed by user_email only) - best
+      // real join key available. Skipped gracefully if the target has no
+      // stored email (should not normally happen).
+      if (targetBiz.email) {
+        await deleteOrThrow(adminClient, 'chat_logs', (q) => q.eq('user_email', targetBiz.email), 'AI chat logs');
+      }
+
+      // quotecode_documents: legacy, separate document-sharing table with
+      // a free-text user_id column (no FK) - best-effort cleanup, disclosed
+      // in the response rather than silently attempted/ignored.
+      const { data: qcdRows, error: qcdErr } = await adminClient
+        .from('quotecode_documents').delete().eq('user_id', targetUserId).select('id');
+      quotecodeDocumentsRemoved = qcdErr ? 'unavailable' : (qcdRows || []).length;
+
       if (targetBiz?.id) {
         const { error: bizDelErr } = await adminClient.from('business_settings').delete().eq('id', targetBiz.id);
         if (bizDelErr) throw new Error(`Failed to delete business_settings: ${bizDelErr.message}`);
       }
     } catch (wipeErr: unknown) {
       const message = wipeErr instanceof Error ? wipeErr.message : 'Unknown error while deleting business data';
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, outcome: 'error' });
       return jsonResponse({ error: message }, 500);
     }
 
@@ -127,10 +202,16 @@ serve(async (req) => {
     // ועדיף להשאיר חשבון Auth "יתום" (שניתן לנסות למחוק שוב) מאשר להשאיר נתונים חלקיים.
     const { error: authDelErr } = await adminClient.auth.admin.deleteUser(targetUserId);
     if (authDelErr) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, outcome: 'error' });
       return jsonResponse({ error: `Business data deleted, but failed to delete the Auth account: ${authDelErr.message}` }, 500);
     }
 
-    return jsonResponse({ success: true }, 200);
+    await writeAuditLog({
+      adminClient, actorUserId: callerUser.id, targetUserId, action, reason,
+      afterState: { quoteFilesRemoved, quotecodeDocumentsRemoved }, outcome: 'success',
+    });
+
+    return jsonResponse({ success: true, quoteFilesRemoved, quotecodeDocumentsRemoved }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('admin-delete-user error:', message);

@@ -125,6 +125,7 @@ export default function AddItemWizard({
   canUseProfessionalQuotes,
   onRequestUpgrade,
   recommendedMethod,
+  onLiveStateChange,
 }) {
   const isEditMode = !!editingItem;
   const [step, setStep] = useState(STEPS.WHAT);
@@ -239,6 +240,36 @@ export default function AddItemWizard({
     }
     setErrors({});
   }, [isOpen, editingItem, defaultSectionKey, recommendedMethod]);
+
+  // Context-Driven AI Chat V3, §10 "Item Wizard Context": the wizard is the
+  // only place that actually knows its own live step/pricing-method/
+  // measurement-progress while the user is mid-flow - quoteWorkflowContext.js
+  // (consumed by QuoteForm.jsx) previously only ever saw the wizard's
+  // OPEN/CLOSED boundary and (on edit) the already-saved item shape, never
+  // this live in-progress state. Reports a small, bounded, non-PII snapshot
+  // upward on every change - no description/specification/measurement TEXT
+  // ever leaves this component, only counts/enums/booleans, matching the
+  // same trust level quoteWorkflowContext.js already documents for the rest
+  // of the workflow snapshot. `onLiveStateChange` is optional so this
+  // component still works standalone/in tests with no listener wired.
+  useEffect(() => {
+    if (!onLiveStateChange) return;
+    if (!isOpen) {
+      onLiveStateChange(null);
+      return;
+    }
+    const measurementCount = pricingMethod === 'area' || pricingMethod === 'linear'
+      ? (widthCm ? 1 : 0) + extraMeasureRows.filter((r) => r.widthCm).length
+      : 0;
+    onLiveStateChange({
+      step: step === STEPS.WHAT ? 'what' : step === STEPS.PRICING ? 'pricing' : step === STEPS.DETAILS ? 'details' : 'review',
+      pricingMethod,
+      measurementCount,
+      hasSpecification: specRows.length > 0,
+      hasQuantity: pricingMethod === 'units' ? Number(quantity) > 0 : true,
+      hasUnitPrice: Number(unitPrice) > 0,
+    });
+  }, [onLiveStateChange, isOpen, step, pricingMethod, widthCm, extraMeasureRows, specRows, quantity, unitPrice]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1090,7 +1121,7 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
         aria-valuetext={`${stepOfTotal(step, total)}: ${currentLabel}`}
         style={{ padding: '12px 20px 0', flexShrink: 0 }}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', flexDirection: 'row' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: '800', color: NEON.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentLabel}</span>
           <span style={{ fontSize: '0.72rem', fontWeight: '600', color: NEON.textSecondary, whiteSpace: 'nowrap', flexShrink: 0 }}>{stepOfTotal(step, total)}</span>
         </div>
@@ -1186,10 +1217,10 @@ function EditLink({ label, onClick }) {
   );
 }
 
-function ReviewGroup({ label, isHebrew, onEdit, editLabel, children }) {
+function ReviewGroup({ label, onEdit, editLabel, children }) {
   return (
     <div style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexDirection: isHebrew ? 'row-reverse' : 'row', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexDirection: 'row', gap: '8px' }}>
         <span style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.95rem' }}>{label}</span>
         <EditLink label={editLabel} onClick={onEdit} />
       </div>
@@ -1198,9 +1229,9 @@ function ReviewGroup({ label, isHebrew, onEdit, editLabel, children }) {
   );
 }
 
-function SummaryRow({ label, value, isHebrew }) {
+function SummaryRow({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '2px 0', flexDirection: isHebrew ? 'row-reverse' : 'row', gap: '8px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '2px 0', flexDirection: 'row', gap: '8px' }}>
       <span style={{ color: NEON.textSecondary }}>{label}</span>
       <span style={{ color: NEON.textPrimary, fontWeight: '600' }}>{value}</span>
     </div>

@@ -8,7 +8,7 @@ import {
   CheckCircle2, XCircle, Star, AlertTriangle,
   Zap, PenTool, BarChart3, ChevronDown, Mail, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb, Ruler,
-  FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness
+  FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness, MessagesSquare
 } from 'lucide-react';
 import { NEON, FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
@@ -107,7 +107,7 @@ export default function LandingLocal({ onForgotPassword }) {
       // into one question/answer with a single duration mention, per the
       // task's 3-location trial-message budget (hero / pricing / FAQ).
       q: 'מה כוללת תקופת הניסיון החינמית, ומה קורה בסיומה?',
-      a: 'לאורך 14 יום מקבלים גישה מלאה וחופשית לכל פיצ\'רי ה-PRO (הצעות מחיר ללא הגבלה, שליחת וואטסאפ, צירוף קבצים ושרטוטים ועוד), ללא שום התחייבות. אם לא רוכשים מנוי בתום התקופה, החשבון עובר אוטומטית למסלול החינמי (FREE) עם המגבלות שלו, כך שאפשר להמשיך להשתמש במערכת בראש שקט.'
+      a: 'לאורך 14 יום מקבלים גישה מלאה וחופשית לכל פיצ\'רי ה-PRO (הצעות מחיר ללא הגבלה, שליחת וואטסאפ, צירוף קבצים ושרטוטים ועוד), ללא שום התחייבות. בתום התקופה החשבון עובר אוטומטית למסלול החינמי (FREE) עם המגבלות שלו, כך שאפשר להמשיך להשתמש במערכת בראש שקט.'
     },
     {
       q: 'האם המערכת מותאמת לסמארטפון ולמחשב?',
@@ -532,6 +532,13 @@ export default function LandingLocal({ onForgotPassword }) {
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>הצעות מחיר מקצועיות עם מדידות ומפרט</h3>
               <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>בנה הצעה לפי מידות אמיתיות (שטח או אורך), עם כמה שורות-מדידה לכל פריט וחישוב כמות אוטומטי - מתאים לעבודות זכוכית ואלומיניום, ריצוף, חשמל, אינסטלציה ותחומי עבודה נוספים. פחות חישובים ידניים וטעויות, הצעות מדויקות יותר וחיסכון בזמן על הצעות חוזרות.</p>
             </div>
+            <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ marginBottom: '16px', background: 'rgba(167, 139, 250, 0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(167, 139, 250, 0.4)' }}>
+                <MessagesSquare size={26} color="#a78bfa" strokeWidth={2.5} />
+              </div>
+              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>עוזר AI בתוך העבודה</h3>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>עוזר ה-AI של TEKANGO זמין בתוך זרימות העבודה בחשבון - בעת יצירה ועריכה של הצעת מחיר, בעבודה עם לקוחות ובהגדרות. שאל שאלה על ההצעה שבפניך או בקש הכוונה, והשיחות הקודמות נשמרות.</p>
+            </div>
           </div>
 
           {/* Pricing Section - Israel */}
@@ -550,7 +557,7 @@ export default function LandingLocal({ onForgotPassword }) {
                 אמיתיות היום: הרשמה מתחילה ניסיון, בחירת מסלול/מחזור לא
                 מחייבת בהרשמה, השלמת תשלום היא צעד נפרד מאוחר יותר (ללא
                 פירוט מנגנון, שאינו קיים עדיין - ר' הדוח הסופי). */}
-            <p style={{ color: '#c4b5fd', marginBottom: '25px', fontSize: '0.85rem', fontWeight: '600' }}>כל הרשמה חדשה מתחילה בניסיון PRO מלא ל-14 יום, ללא תלות במסלול שבחרת להציג - בסיום התקופה תוכל/י להמשיך במסלול המתאים לך. בחירת מסלול/מחזור תשלום כאן אינה מבצעת שום חיוב בהרשמה - זו העדפה בלבד שתילקח בחשבון בהמשך; השלמת תשלום בפועל היא צעד נפרד ומאוחר יותר.</p>
+            <p style={{ color: '#c4b5fd', marginBottom: '25px', fontSize: '0.85rem', fontWeight: '600' }}>כל הרשמה חדשה מתחילה בניסיון PRO מלא ל-14 יום. בסיום הניסיון החשבון עובר למסלול החינמי (Free) עם המגבלות שלו. שדרוג למסלול בתשלום ותשלום מקוון אינם זמינים כרגע, והמחירים המוצגים כאן הם לידיעה בלבד.</p>
 
             {/* Root-cause fix (Two-Stage Completion Task, Stage 2D): found via
                 live 320/360px measurement that this row bled off both edges

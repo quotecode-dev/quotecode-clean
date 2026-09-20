@@ -23,6 +23,20 @@
 # config push` from this file silently reverting them. No hosted mutation
 # was needed or performed for this addition - preserves every existing
 # entry, does not touch site_url or any other Auth setting.
+#
+# Signup Callback Fix (2026-09-16, TEST-only task): the Owner's actual
+# canonical TEST URL is http://192.168.1.189:5186/ (the LAN IP, not
+# localhost/127.0.0.1) - absent from every entry above, confirmed via a
+# fresh, read-only `supabase config diff --project-ref ljfizgrdyzxddswcedwr`
+# showing this file already matches the live hosted state exactly. Any
+# emailRedirectTo/redirectTo built from window.location.origin while the
+# Owner is on that host (signup now, recovery already) was therefore being
+# silently rejected as untrusted and falling back to bare site_url - the
+# confirmed root cause of the signup-callback defect (see
+# PROFLOW_CODEX_CHECKPOINT.md). Four entries added below, mirroring the
+# existing localhost/127.0.0.1 shape exactly (bare origin, /dashboard, and
+# both explicit ?lang= variants) - no wildcard, no other origin, no other
+# Auth setting touched.
 [auth]
 site_url = "http://localhost:5186"
 additional_redirect_urls = [
@@ -33,7 +47,26 @@ additional_redirect_urls = [
   "http://localhost:5186/dashboard?lang=en",
   "http://127.0.0.1:5186/dashboard?lang=he",
   "http://127.0.0.1:5186/dashboard?lang=en",
+  "http://192.168.1.189:5186",
+  "http://192.168.1.189:5186/dashboard",
+  "http://192.168.1.189:5186/dashboard?lang=he",
+  "http://192.168.1.189:5186/dashboard?lang=en",
 ]
+
+# TEKANGO — Enable Auth Send Email Hook (TEST only) task, 2026-09-16.
+# ACTIVATED this task (continuation task, same day) - the Owner added the
+# missing RESEND_API_KEY secret to the TEST project, closing the one
+# blocker the prior task stopped at. The Edge Function was already
+# deployed to TEST and its shared webhook-signing secret already set (see
+# this file's own git history / PROFLOW_CODEX_CHECKPOINT.md for that
+# task's full detail) - this block is the final activation step, pushed
+# via `supabase config push --project-ref ljfizgrdyzxddswcedwr` (never
+# omit --project-ref - this worktree's own cached link previously pointed
+# at Production, see the Night Task A checkpoint entry).
+[auth.hook.send_email]
+enabled = true
+uri = "https://ljfizgrdyzxddswcedwr.supabase.co/functions/v1/auth-send-email-hook"
+secrets = "env(SEND_EMAIL_HOOK_SECRET)"
 
 [functions.chat-ai]
 enabled = true
@@ -108,3 +141,20 @@ enabled = true
 # לתגובה, ואין כתיבות DB.
 verify_jwt = false
 entrypoint = "./functions/get-public-quote/index.ts"
+
+[functions.auth-send-email-hook]
+enabled = true
+# TEST-only preparation (Post-LIVE Priority 1, Auth email localization
+# task, 2026-09-16) - a Supabase Auth "Send Email" Hook target, NOT yet
+# registered as a hook on any hosted project (see the function's own file
+# header for the full disclosure of why: no Management API access token
+# exists in this repo's env to enable it safely, and doing so is a
+# hosted-project-wide behavior change outside this task's authorization).
+# verify_jwt=false in the same spirit as resend-email-webhook above: the
+# real caller is Supabase Auth's own hook dispatcher, not a JWT-bearing
+# app request - the only authentication is the webhook-id/webhook-
+# timestamp/webhook-signature check against SEND_EMAIL_HOOK_SECRET,
+# verified inside the function itself using the identical Standard
+# Webhooks HMAC algorithm resend-email-webhook already uses successfully.
+verify_jwt = false
+entrypoint = "./functions/auth-send-email-hook/index.ts"

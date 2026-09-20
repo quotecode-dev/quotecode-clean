@@ -8,7 +8,7 @@ import {
   CheckCircle2, XCircle, Star, AlertTriangle,
   Zap, PenTool, BarChart3, ChevronDown, Mail, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb, Ruler,
-  FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness
+  FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness, MessagesSquare
 } from 'lucide-react';
 import { NEON, FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
@@ -124,7 +124,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       // repeated the trial duration - combined into one question/answer with
       // a single duration mention, per the task's 3-location budget.
       q: 'What does the free trial include, and what happens when it ends?',
-      a: 'For 14 days you get full and unrestricted access to all PRO features (unlimited quotes, digital client approvals, file attachments, and more), with no obligations. If you don\'t subscribe by the end of the trial, your account automatically moves to the FREE tier with its standard limitations, so you can keep using the platform without interruption.'
+      a: 'For 14 days you get full and unrestricted access to all PRO features (unlimited quotes, digital client approvals, file attachments, and more), with no obligations. When the trial ends, your account automatically moves to the FREE tier with its standard limitations, so you can keep using the platform without interruption.'
     },
     {
       q: 'Is the platform optimized for mobile and desktop?',
@@ -587,6 +587,13 @@ export default function LandingGlobal({ onForgotPassword }) {
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Professional Quotes with Measurements & Specs</h3>
               <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Build a quote from real measurements (area or length), with multiple measurement rows per item and automatic quantity calculation - suited for glass and aluminum work, flooring, electrical, plumbing, and other trades. Fewer manual calculations and errors, more accurate quotes, and time saved on repeat quoting.</p>
             </div>
+            <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ marginBottom: '16px', background: 'rgba(167, 139, 250, 0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(167, 139, 250, 0.4)' }}>
+                <MessagesSquare size={26} color="#a78bfa" strokeWidth={2.5} />
+              </div>
+              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>AI Assistant Inside Your Workflow</h3>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>The TEKANGO AI assistant is available inside your signed-in workflows - while you create or edit a quote, work with clients, and manage settings. Ask about the quote in front of you or get guided help, and your previous chats are kept.</p>
+            </div>
           </div>
 
           {/* Pricing Section - Global */}
@@ -605,7 +612,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 trial, selecting a plan/cycle does not charge at signup,
                 actual payment completion is a separate later step (mechanism
                 deliberately unspecified - it doesn't exist yet, see the final report). */}
-            <p style={{ color: '#c4b5fd', marginBottom: '25px', fontSize: '0.85rem', fontWeight: '600' }}>Every new signup starts with the same full 14-day PRO trial, regardless of which plan card you click - once the trial ends, you can continue on whichever plan best fits your business. Selecting a plan or billing cycle here does not charge you at signup - it's only a preference we'll take into account later; completing actual payment is a separate, later step.</p>
+            <p style={{ color: '#c4b5fd', marginBottom: '25px', fontSize: '0.85rem', fontWeight: '600' }}>Every new signup starts with a full 14-day PRO trial. When the trial ends, the account moves to the Free plan with its limits. Paid upgrades and online checkout are not currently available, and the prices shown here are for information only.</p>
 
             <div className="pricing-toggle-container">
               <button

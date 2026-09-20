@@ -275,7 +275,14 @@ export default function ClientsTab({
   };
 
   return (
-    <div style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+      {/* Kept as the first child: a non-visual node between the static block and the
+          .pf-screen-body would defeat the shared body-adjacent margin rule. */}
+      <style>{`
+        .cli-row-btn { outline: none; }
+        .cli-row-btn:focus-visible { outline: 2px solid #c4b5fd; outline-offset: -2px; }
+        .cli-row-expanded { background: rgba(139,92,246,0.06) !important; border-inline-start: 2px solid #c4b5fd; }
+      `}</style>
       {/* חוק ברזל (Consolidated Open UI Corrections task, §G1 - Clients
           page header): כותרת קצרה+ישירה (לקוחות/Clients, לא עוד "ניהול
           ספר לקוחות (CRM)" הארוך/הטכני-מדי), מספר-תומך בניסוח-משפט מלא
@@ -375,15 +382,10 @@ export default function ClientsTab({
           רק כשהפוקוס הגיע בפועל ממקלדת - התנהגות-נגישות תקנית, לא
           "תקוע" אחרי קליק עכבר. .cli-row-expanded (רקע לבנדר בהיר +
           מסגרת עדינה) הוא מצב-הרחבה ויזואלי נפרד, לא קשור לפוקוס כלל. */}
-      <style>{`
-        .cli-row-btn { outline: none; }
-        .cli-row-btn:focus-visible { outline: 2px solid #c4b5fd; outline-offset: -2px; }
-        .cli-row-expanded { background: rgba(139,92,246,0.06) !important; border-inline-start: 2px solid #c4b5fd; }
-      `}</style>
 
       {/* ============ DESKTOP: compact accordion rows ============ */}
       {!isMobileView && (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <>
           {/* חוק ברזל (Clients Table Completion task, §4 - מיון עצמאי):
               "שם חברה/לקוח" ו"סוג לקוח" היו כפתור-מיון אחד משותף (התג
               הצמוד לשם "נסע" עם מיון-השם בלי בקרה עצמאית משלו) - עכשיו שני
@@ -391,7 +393,7 @@ export default function ClientsTab({
               שמוצג *רק* כשהוא השדה הפעיל כרגע (לא "חץ אחד שנראה כאילו שולט
               בשני השדות"). רוחב-עמודת-הסוג (62px) זהה בדיוק לרוחב תא-הסוג
               בכל שורה למטה, כדי שהעמודות יתיישרו אנכית. */}
-          <div dir={dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: NEON.textSecondary, fontWeight: '700', borderBottom: `2px solid ${NEON.border}` }}>
+          <div className="pf-head-gutter" dir={dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: NEON.textSecondary, fontWeight: '700', borderBottom: `2px solid ${NEON.border}` }}>
             <span style={{ width: '20px', flexShrink: 0 }} />
             <button
               type="button"
@@ -413,6 +415,7 @@ export default function ClientsTab({
             <span style={{ width: '70px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'הצעות' : 'Quotes'}</span>
             <span style={{ width: '90px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'פעילות אחרונה' : 'Last activity'}</span>
           </div>
+          <div className="pf-screen-body">
           {rowsMeta.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem' }}>
               {isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.'}
@@ -492,12 +495,13 @@ export default function ClientsTab({
               );
             })
           )}
-        </div>
+          </div>
+        </>
       )}
 
       {/* ============ MOBILE: compact accordion cards ============ */}
       {isMobileView && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {rowsMeta.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
               {isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.'}

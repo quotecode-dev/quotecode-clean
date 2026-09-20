@@ -75,7 +75,7 @@ export default function FinancesTab({
   const currentPeriodLabel = periodLabelByType[financeReportType] || periodLabelByType.monthly;
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* חוק ברזל (§I1): כותרת פיננסים/Finances + טקסט-תומך על הכנסות/
           הוצאות/רווחיות, עם בורר-תקופה קומפקטי מיושר לצד הכותרת (לא שורה
           נפרדת). */}
@@ -116,6 +116,7 @@ export default function FinancesTab({
         </div>
       )}
 
+      <div className="pf-screen-body">
       {/* חוק ברזל (§I2): ארבעה כרטיסי-מדד עקביים, מבנה-כרטיס משותף אחד,
           צבע סמנטי בלבד (סגול=נייטרלי/מותג, ירוק=חיובי, אדום=שלילי). */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -316,6 +317,7 @@ export default function FinancesTab({
               </table>
             </div>
           )}
+      </div>
       </div>
     </div>
   );

@@ -4,42 +4,10 @@
 
 import { useState } from 'react';
 import { supabase } from '../shared/supabase';
-import {
-  Mail, Building2, CreditCard, Globe, Shield, ShieldCheck, Infinity as InfinityIcon, Clock, LogIn, SlidersHorizontal, CheckCircle2,
-  UserPlus, Activity, Home, Users2, Crown, Gem, Layers, CircleUser, RefreshCw, Trash2, Eye, RotateCw, AlertTriangle,
-  Send, XCircle, ChevronDown
-} from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Send, XCircle, ChevronDown } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
-import { resolveAccountEntitlement } from '../utils/accountEntitlement';
-import { getPlanDefinition, PLAN_CATALOG, getDisplayIdentityLabel } from '../utils/planCatalog';
 import { getFunctionErrorMessage } from '../utils/functionError';
-
-// חוק ברזל (Admin V2 Foundation — Phase 1.5, Plan Icon/Badge Wiring, Owner-
-// authorized): מקור-אמת יחיד לזהות ויזואלית של חבילה - planCatalog.js -
-// במקום שרשרת-ternary כפולה ובלתי-תלויה (טבלת-דסקטופ + כרטיסי-מובייל,
-// שתיהן באותו קובץ, שתי גרסאות-כמעט-זהות-אך-נפרדות של אותה לוגיקה).
-// אין שינוי חזותי מכוון - כל אייקון/צבע/רקע נשאר בדיוק זהה לקודם (מאומת
-// ע"י בדיקה חוזרת בדפדפן אחרי השינוי), רק המקור שממנו הם נגזרים השתנה.
-// Crown (Lifetime) נשאר case מיוחד מחוץ לקטלוג בכוונה - ר' planCatalog.js -
-// Lifetime הוא overlay-תצוגה, לא planId בקטלוג עצמו. שימור-מדויק של ההתנהגות
-// ההיסטורית: כש-isGrantedLifetimePro, הצבע/רקע תמיד היו (וממשיכים להיות)
-// אלה של PRO ללא תלות ב-planValue בפועל - זו ההתנהגות הקיימת, לא שינוי.
-const PLAN_ICON_RENDERERS = {
-  Gem: (size) => <Gem size={size} fill="currentColor" strokeWidth={1} />,
-  Layers: (size) => <Layers size={size} strokeWidth={2.2} />,
-  CircleUser: (size) => <CircleUser size={size} strokeWidth={2.2} />,
-};
-
-function getPlanBadgeVisual(planValue, isGrantedLifetimePro) {
-  const badge = isGrantedLifetimePro ? PLAN_CATALOG.pro.badge : getPlanDefinition(planValue).badge;
-  return {
-    bg: badge.bgTint,
-    color: NEON[badge.colorToken],
-    renderIcon: (size) => isGrantedLifetimePro
-      ? <Crown size={size} strokeWidth={2.2} />
-      : (PLAN_ICON_RENDERERS[badge.icon] || PLAN_ICON_RENDERERS.CircleUser)(size),
-  };
-}
+import AdminUsersView from './AdminUsersView';
 
 export default function AdminUsersTab({
   isHebrew,
@@ -50,16 +18,19 @@ export default function AdminUsersTab({
   handleSort,
   sortField,
   sortDirection,
-  liveTick,
-  setSelectedUserDetails,
-  handleOpenNewUsersModal,
-  lastSeenNewUsersTime,
-  handleExtendTrial14Days
+  onOpenUserDetails,
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
   const [lifetimeActionUser, setLifetimeActionUser] = useState(null);
+  const [trialActionUser, setTrialActionUser] = useState(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminReasonInput, setAdminReasonInput] = useState('');
+  // TEKANGO Admin V1 (Task 3.5): typed target confirmation for Delete
+  // Account specifically - the one irreversible action here, so it gets
+  // one extra safety layer beyond reason+password+re-auth: the admin must
+  // type the target's own exact email before the submit button enables.
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -74,19 +45,6 @@ export default function AdminUsersTab({
   const [testStage, setTestStage] = useState('3d');
   const [testStatus, setTestStatus] = useState({ type: null, msg: '' });
   const [sendingTestLang, setSendingTestLang] = useState(null);
-
-  // מזהי המשתמשים שהכרטיס שלהם פתוח (Accordion) בתצוגת המובייל בלבד -
-  // כל כרטיס נפתח/נסגר באופן עצמאי, וברירת המחדל היא סגור לכולם כדי
-  // שרשימה עם הרבה משתמשים תישאר קומפקטית וניתנת לסריקה מהירה
-  const [expandedMobileRows, setExpandedMobileRows] = useState(() => new Set());
-  const toggleMobileRow = (id) => {
-    setExpandedMobileRows(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const handleSendTestEmail = async (sendHebrew) => {
     if (!testEmail || !testEmail.includes('@')) {
@@ -137,87 +95,73 @@ export default function AdminUsersTab({
     }
   };
 
-  // Super Admin authority is role-based, not part of the managed-user/customer
-  // base - excluded here (table + every KPI below) so it can never appear as
-  // a "user" to manage or skew counts. Super Admin's own access to this tab
-  // and to every admin action is completely unrelated to this list/KPI logic.
-  const managedAccounts = Array.isArray(allAccounts) ? allAccounts.filter(a => a?.role !== 'super_admin') : [];
+  // TEKANGO Admin V1 (Task 2): the KPI/table markup that consumed
+  // totalU/localU/intlU/activeRecent/newUsersList/unreadNewUsersCount/
+  // activeAccountsList was removed below (replaced by AdminUsersView, with
+  // KPIs now owned by the shared Header/AdminOverview) - those derived
+  // values (including a last-sign-in-recency "active now" count the
+  // Owner's rule forbids outright) are removed with it, not left as dead
+  // code that still computed a forbidden signal.
 
-  const activeAccountsList = (filteredAdminAccounts || []).filter(acc => {
-    if (!acc) return false;
-    if (acc.role === 'super_admin') return false;
-    const email = (acc.email || '').toLowerCase();
-    const biz = (acc.business_name || '').toLowerCase();
-    return !email.startsWith('deleted_') && biz !== 'deleted';
-  });
+  // TEKANGO Admin V1 (Task 3.1/3.2, binding rule): "SENSITIVE ADMIN
+  // ACTIONS: RE-AUTH REQUIRED... A client-side password dialog alone is
+  // NOT sufficient." Every protected action below now goes through this
+  // one shared two-step flow instead of the prior client-only
+  // signInWithPassword-then-write pattern:
+  //   1. admin-reauth-verify: the password is checked SERVER-SIDE (never
+  //      just client-side), and mints a short-lived (5 min), single-use
+  //      proof row bound to this exact actor+action+target+{reason}.
+  //   2. the actual privileged Edge Function (admin-set-lifetime/
+  //      admin-extend-trial/admin-delete-user/admin-cleanup-user-quotes)
+  //      atomically claims that proof before doing anything else, then
+  //      performs the write, reads back the authoritative new state, and
+  //      writes an admin_audit_log row - see _shared/adminReauth.ts.
+  // A stale/replayed/mismatched proof is refused by the second call even
+  // if somehow forged/guessed - claiming is atomic and one-shot.
+  async function runProtectedAction({ action, targetUserId, reason, functionName, extraBody = {} }) {
+    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-reauth-verify', {
+      body: { action, targetUserId, params: { reason }, password: adminPasswordInput },
+    });
+    if (verifyError) {
+      throw new Error(await getFunctionErrorMessage(verifyError, isHebrew ? 'אימות הסיסמה נכשל.' : 'Password verification failed.'));
+    }
+    if (!verifyData?.success || !verifyData?.proofToken) {
+      throw new Error(verifyData?.error || (isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!'));
+    }
 
-  const totalU = managedAccounts.length;
-  const localU = managedAccounts.filter(a => (a?.country || 'Local') === 'Local').length;
-  const intlU = managedAccounts.filter(a => a?.country === 'International').length;
+    const { data: actionData, error: actionError } = await supabase.functions.invoke(functionName, {
+      body: { targetUserId, proofToken: verifyData.proofToken, reason, ...extraBody },
+    });
+    if (actionError) {
+      throw new Error(await getFunctionErrorMessage(actionError, isHebrew ? 'הפעולה נכשלה.' : 'Action failed.'));
+    }
+    if (!actionData?.success) {
+      throw new Error(actionData?.error || (isHebrew ? 'הפעולה נכשלה.' : 'Action failed.'));
+    }
+    return actionData;
+  }
 
-  const activeRecent = managedAccounts.filter(a => {
-    if (!a?.last_sign_in) return false;
-    const now = Date.now();
-    const diff = now - new Date(a.last_sign_in).getTime();
-    return diff < 10 * 60 * 1000;
-  }).length;
-
-  const newUsersList = managedAccounts.filter(a => {
-    if (!a?.created_at) return false;
-    const now = Date.now();
-    const diff = now - new Date(a.created_at).getTime();
-    return diff < 24 * 60 * 60 * 1000;
-  });
-
-  const unreadNewUsersCount = newUsersList.filter(a => {
-    if (!a?.created_at) return false;
-    return new Date(a.created_at).getTime() > lastSeenNewUsersTime;
-  }).length;
+  function validateReasonAndTarget(targetUserId) {
+    if (!targetUserId) {
+      throw new Error(isHebrew ? 'לא נמצא מזהה משתמש.' : 'No user id found.');
+    }
+    if (!adminReasonInput.trim()) {
+      throw new Error(isHebrew ? 'יש להזין סיבה לפעולה זו.' : 'A reason is required for this action.');
+    }
+  }
 
   const handleExecuteDataReset = async (e) => {
     e.preventDefault();
     if (!resetModalUser) return;
     setResetError('');
     setIsResetting(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !user.email) throw new Error('Admin session not found.');
-
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: adminPasswordInput
-      });
-
-      if (authError) {
-        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
-        setIsResetting(false);
-        return;
-      }
-
       const targetUserId = resetModalUser.user_id;
-      if (targetUserId) {
-        // ניקוי עץ ההצעות (quotes/quote_items/quote_attachments) של משתמש אחר
-        // חייב לרוץ בצד השרת (Service Role): ה-RLS הרגיל (auth.uid() = user_id)
-        // חוסם כל DELETE חוצה-משתמשים מהקליינט הרגיל, ובלי error גלוי - DELETE
-        // שמסונן ע"י RLS ל-0 שורות מוחזר כ"הצלחה" (אין error), מה שיצר בעבר
-        // הודעת "הצלחה" כוזבת בלי שנמחק בפועל שום דבר. הפונקציה הפריבילגית
-        // מאמתת server-side שהקורא הוא super_admin, ומאמתת בפועל (קריאה חוזרת
-        // מהמסד, לא רק "אין error") שההצעות אכן נמחקו לפני שהיא מדווחת הצלחה.
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-cleanup-user-quotes', {
-          body: { targetUserId }
-        });
-
-        if (fnError) {
-          throw new Error(await getFunctionErrorMessage(fnError, isHebrew ? 'ניקוי ההצעות נכשל.' : 'Failed to clean up quotes.'));
-        }
-        if (fnData?.error) {
-          throw new Error(fnData.error);
-        }
-      }
-
+      validateReasonAndTarget(targetUserId);
+      await runProtectedAction({ action: 'reset_quotes', targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-cleanup-user-quotes' });
       setResetModalUser(null);
       setAdminPasswordInput('');
+      setAdminReasonInput('');
       setShowSuccessModal(true);
     } catch (err) {
       setResetError(err.message);
@@ -231,47 +175,17 @@ export default function AdminUsersTab({
     if (!deleteModalUser) return;
     setResetError('');
     setIsResetting(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !user.email) throw new Error('Admin session not found.');
-
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: adminPasswordInput
-      });
-
-      if (authError) {
-        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
-        setIsResetting(false);
-        return;
-      }
-
       if (deleteModalUser.role === 'super_admin') {
         throw new Error(isHebrew ? 'לא ניתן למחוק משתמש Super Admin!' : 'Cannot delete Super Admin!');
       }
-
       const targetUserId = deleteModalUser.user_id;
-      if (!targetUserId) {
-        throw new Error(isHebrew ? 'לא נמצא מזהה משתמש למחיקה.' : 'No user id found to delete.');
-      }
-
-      // מחיקה מלאה חייבת לרוץ בצד השרת (Service Role): כל נתוני העסק + שורת
-      // business_settings + חשבון ה-Auth עצמו - כדי שהאימייל יתפנה להרשמה חוזרת.
-      // הקליינט (anon key) לעולם לא יכול לגשת ל-supabase.auth.admin.
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-delete-user', {
-        body: { targetUserId }
-      });
-
-      if (fnError) {
-        throw new Error(await getFunctionErrorMessage(fnError, isHebrew ? 'שגיאה במחיקת המשתמש.' : 'Failed to delete user.'));
-      }
-      if (fnData?.error) {
-        throw new Error(fnData.error);
-      }
-
+      validateReasonAndTarget(targetUserId);
+      await runProtectedAction({ action: 'delete_user', targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-delete-user' });
       setDeleteModalUser(null);
       setAdminPasswordInput('');
+      setAdminReasonInput('');
+      setDeleteConfirmInput('');
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Delete error:", err);
@@ -284,63 +198,27 @@ export default function AdminUsersTab({
   // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner
   // mandate: "No single-click Lifetime toggle... Grant Lifetime must
   // explicitly write the new Lifetime state. Revoke Lifetime must
-  // explicitly clear Lifetime state."): מחליף לגמרי את handleToggleLifetime
-  // הישן (Dashboard.jsx, שכתב רק trial_ends_at לפי ניחוש-ternary - השורש
-  // המוכח של הבאג "Lifetime→FREE", ר' PROFLOW_PROJECT_CONTEXT.md §204).
-  // הפעולה כאן כותבת אך ורק is_lifetime (עמודה מפורשת, migration
-  // 20260908000000) - שדה יחיד, אפס תופעות-לוואי על plan/trial_ends_at,
-  // באותה תבנית אימות-סיסמה+verify-server-side-role כמו Reset/Delete
-  // למעלה (guard_business_settings_plan_trial() המורחב מאמת מחדש
-  // server-side שהקורא הוא super_admin - לא נסמך על הקליינט). קריאה-חוזרת
-  // (read-back) אחרי הכתיבה מוודאת בפועל שהמצב החדש נכתב, לא רק "אין
-  // error" (אותו לקח בדיוק כמו admin-cleanup-user-quotes).
+  // explicitly clear Lifetime state."). Writes only is_lifetime (explicit
+  // column, migration 20260908000000) - plan/trial_ends_at untouched.
+  // Backend (admin-set-lifetime) does its own authoritative read-back
+  // after the write, on top of the guard_business_settings_plan_trial()
+  // trigger's own independent server-side role re-verification.
   const handleExecuteLifetimeAction = async (e) => {
     e.preventDefault();
     if (!lifetimeActionUser) return;
     setResetError('');
     setIsResetting(true);
-
-    const targetIsLifetime = lifetimeActionUser.is_lifetime === true;
-    const nextIsLifetime = !targetIsLifetime;
-
+    const nextIsLifetime = !(lifetimeActionUser.is_lifetime === true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !user.email) throw new Error('Admin session not found.');
-
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: adminPasswordInput
+      const targetUserId = lifetimeActionUser.user_id;
+      validateReasonAndTarget(targetUserId);
+      await runProtectedAction({
+        action: nextIsLifetime ? 'grant_lifetime' : 'revoke_lifetime',
+        targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-set-lifetime', extraBody: { grant: nextIsLifetime },
       });
-
-      if (authError) {
-        setResetError(isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!');
-        setIsResetting(false);
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from('business_settings')
-        .update({ is_lifetime: nextIsLifetime })
-        .eq('id', lifetimeActionUser.id);
-
-      if (updateError) throw updateError;
-
-      // Read-back verification: confirm the actual stored value, not just
-      // "no error" (an RLS-filtered UPDATE can silently affect 0 rows).
-      const { data: verifyRow, error: verifyError } = await supabase
-        .from('business_settings')
-        .select('is_lifetime')
-        .eq('id', lifetimeActionUser.id)
-        .maybeSingle();
-
-      if (verifyError || !verifyRow || verifyRow.is_lifetime !== nextIsLifetime) {
-        throw new Error(isHebrew
-          ? 'הכתיבה לא אומתה בשרת - ייתכן שהפעולה לא הושלמה. לא בוצע שינוי מאושר.'
-          : 'The write could not be verified against the server - the action may not have completed. No confirmed change was made.');
-      }
-
       setLifetimeActionUser(null);
       setAdminPasswordInput('');
+      setAdminReasonInput('');
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Lifetime action error:", err);
@@ -350,104 +228,44 @@ export default function AdminUsersTab({
     }
   };
 
-  // חשוב: Lifetime וניסיון פעיל הם היחידים שניתנים להוכחה אמיתית מהנתונים
-  // הקיימים. שדה plan הגולמי לבדו, לאחר תום הניסיון, אינו מוכיח תשלום בפועל -
-  // אין עדיין חיבור סליקה אמיתי, ולוגיקת ה-effectivePlan של Dashboard.jsx
-  // עצמה כבר מתייחסת לחשבון שתם ניסיונו כ-free אלא אם כן הוענק לו Lifetime.
-  // לכן, בכוונה, אין כאן יותר ניסוח "מנוי פעיל/בתשלום" עבור תום-ניסיון+plan
-  // בתשלום - זה היה ניסוח מטעה. פג תוקף מוצג באופן אחיד לכל מי שאינו Lifetime.
-  // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08): לפני התיקון
-  // הזה, כל trialEndsAt ריק תויג "(Lifetime)" - כולל חשבון FREE רגיל בלי
-  // ניסיון שהוקצה לו מעולם, וכולל (אחרי מודל ה-Lifetime המפורש החדש) חשבון
-  // pro/basic תקף שאינו Lifetime בכלל. עכשיו מקבל isLifetime מפורש (מ-
-  // business_settings.is_lifetime, ר' accountEntitlement.js) - התווית
-  // "(Lifetime)" מוצגת רק כש-isLifetime===true בפועל, לא עוד ניחוש מ-
-  // trial_ends_at ריק בלבד.
-  const getRemainingTimeFormatted = (trialEndsAt, role, isLifetime) => {
+  // TEKANGO Admin V1 (Task 3.4): Extend Trial by 14 days. The prior
+  // implementation (Dashboard.jsx's own handleExtendTrial14Days) had NO
+  // re-auth at all - a real gap versus Reset/Delete/Lifetime, closed here
+  // by routing it through the exact same protected-action flow. Backend
+  // (admin-extend-trial) independently re-enforces the "expired or no
+  // active trial only" eligibility rule server-side.
+  const handleExecuteTrialExtension = async (e) => {
+    e.preventDefault();
+    if (!trialActionUser) return;
+    setResetError('');
+    setIsResetting(true);
     try {
-      if (role === 'super_admin') return isHebrew ? 'ללא תפוגה (הרשאת Admin)' : 'No expiry (Admin authority)';
-      if (isLifetime) return isHebrew ? 'ללא תפוגה (Lifetime)' : 'No expiry (Lifetime)';
-      if (!trialEndsAt) return isHebrew ? 'אין ניסיון פעיל' : 'No trial set';
-
-      const diffMs = new Date(trialEndsAt).getTime() - Date.now();
-      if (diffMs > 0) {
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-        if (days > 0) {
-          return isHebrew ? `${days} ימים ו-${hours} שע'` : `${days}d ${hours}h left`;
-        }
-        return isHebrew ? `${hours} שע'` : `${hours}h left`;
-      }
-
-      return isHebrew ? 'פג תוקף' : 'Expired';
-    } catch {
-      return isHebrew ? 'לא ידוע' : 'N/A';
+      const targetUserId = trialActionUser.user_id;
+      validateReasonAndTarget(targetUserId);
+      await runProtectedAction({ action: 'extend_trial', targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-extend-trial' });
+      setTrialActionUser(null);
+      setAdminPasswordInput('');
+      setAdminReasonInput('');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error("Trial extension error:", err);
+      setResetError(err.message);
+    } finally {
+      setIsResetting(false);
     }
   };
 
-  const isHebrewText = (str) => /[֐-׿]/.test(str);
-
-  // חוק ברזל (Admin V2 Foundation — Phase 1, תיקון הבאג המאושר, ר' הערה
-  // מקבילה ב-UserDetailsModal.jsx לפירוט מלא): הגזירה הישנה כאן טעתה
-  // באותה מחלקת-באג - trial_ends_at===null כהוכחת-Lifetime בלבד, וגם
-  // planValue הציג rawPlan גולמי (לא effective) עבור ניסיון-שפג. שתי
-  // הבעיות מתוקנות עכשיו יחד דרך resolveAccountEntitlement() - נקודת-אמת
-  // משותפת עם Dashboard.jsx/SettingsTab.jsx. הצורה המוחזרת נשמרה זהה
-  // בכוונה (isSuperAdminUser/isLifetime/rawPlan/planValue/isGrantedLifetimePro)
-  // כדי שה-JSX הקיים (טבלת-דסקטופ + כרטיסי-מובייל) לא ידרוש שום שינוי.
-  const getAccountDerived = (acc) => {
-    const resolved = resolveAccountEntitlement({ plan: acc.plan, trialEndsAt: acc.trial_ends_at, role: acc.role, isLifetime: acc.is_lifetime });
-    const isSuperAdminUser = resolved.isSuperAdmin;
-    const isLifetime = resolved.isLifetime || isSuperAdminUser;
-    const rawPlan = resolved.rawPlan;
-    // planValue הופך ל-tier המחושב (נכון תמיד), לא ל-rawPlan הגולמי -
-    // מתקן את מחלקת-הבאג המלאה, כולל אייקון-החבילה בטבלה/בכרטיסי-המובייל.
-    const planValue = resolved.tier;
-    const isGrantedLifetimePro = resolved.isLifetime;
-    // חוק ברזל (Plan Identity - Admin trial-vs-PRO consistency fix, Owner Night
-    // Run task): planValue (=tier) הוא 'pro' גם בזמן ניסיון פעיל בכוונה (הניסיון
-    // מעניק זכאות ברמת-PRO זמנית) - אבל התווית המוצגת ל-Admin חייבת להבחין בין
-    // ניסיון-פעיל לבין PRO אמיתי, בדיוק כמו ש-Dashboard.jsx/SettingsTab.jsx כבר
-    // עושים. displayIdentity (מאותו resolveAccountEntitlement) הוא נקודת-האמת
-    // לתווית-הטקסט המוצגת; planValue/isGrantedLifetimePro ממשיכים לשמש רק
-    // לבחירת-אייקון/צבע (getPlanBadgeVisual), שלא השתנתה.
-    const displayIdentity = resolved.displayIdentity;
-    const currentCountry = acc.country || 'Local';
-    const isIntl = currentCountry === 'International';
-
-    let isRecentActive = false;
-    if (acc.last_sign_in) {
-      const now = Date.now();
-      const diffMs = now - new Date(acc.last_sign_in).getTime();
-      isRecentActive = diffMs < 10 * 60 * 1000;
-    }
-
-    const bizName = acc.business_name || 'עסק חדש';
-    const isBizHebrew = isHebrewText(bizName);
-
-    const lastSignInDateObj = acc.last_sign_in ? new Date(acc.last_sign_in) : null;
-    const lastSignInDateStr = lastSignInDateObj ? lastSignInDateObj.toLocaleDateString('en-GB') : 'N/A';
-    const lastSignInFullStr = lastSignInDateObj ? lastSignInDateObj.toLocaleString('en-GB') : 'N/A';
-
-    return {
-      isSuperAdminUser, isLifetime, rawPlan, planValue, isGrantedLifetimePro, displayIdentity,
-      currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
-      lastSignInDateStr, lastSignInFullStr,
-    };
-  };
+  // TEKANGO Admin V1 (Task 2): getRemainingTimeFormatted/isHebrewText/
+  // getAccountDerived were only consumed by the old inline table + mobile
+  // card list, both now replaced by AdminUsersView (which derives the same
+  // facts itself via resolveAccountEntitlement) - removed as genuinely dead
+  // code rather than left unused (isRecentActive in particular was a
+  // last-sign-in-recency "active" flag, which the Owner's Admin V1 rule
+  // forbids surfacing at all, so this is not just a cleanup but a removal
+  // of a forbidden derived signal).
 
   return (
-    <div style={{ background: NEON.bgCard, padding: '24px', borderRadius: '16px', border: `1px solid ${NEON.border}`, width: '100%', boxSizing: 'border-box' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-
-      <style>{`
-        .admin-table-desktop-wrap { display: block; }
-        .admin-mobile-cards { display: none; }
-        @media (max-width: 768px) {
-          .admin-table-desktop-wrap { display: none; }
-          .admin-mobile-cards { display: block; }
-        }
-      `}</style>
+    <div className="admin-screen-host" dir={isHebrew ? 'rtl' : 'ltr'}>
 
       {showSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
@@ -482,6 +300,29 @@ export default function AdminUsersTab({
             </p>
 
             <form onSubmit={handleExecuteUserDelete} autoComplete="off">
+              <label style={{ display: 'block', fontSize: '0.72rem', color: NEON.textMuted, marginBottom: '4px', fontWeight: '600' }}>
+                {isHebrew ? `הקלד/י את כתובת האימייל של החשבון לאישור: ${deleteModalUser?.email || ''}` : `Type the account's exact email to confirm: ${deleteModalUser?.email || ''}`}
+              </label>
+              <input
+                type="text"
+                name="admin_delete_confirm_target"
+                autoComplete="off"
+                dir="ltr"
+                placeholder={deleteModalUser?.email || ''}
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary }}
+                required
+              />
+              <textarea
+                name="admin_delete_reason"
+                placeholder={isHebrew ? 'סיבת הפעולה (חובה)...' : 'Reason for this action (required)...'}
+                value={adminReasonInput}
+                onChange={(e) => setAdminReasonInput(e.target.value)}
+                rows={2}
+                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.82rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary, resize: 'vertical', fontFamily: 'inherit' }}
+                required
+              />
               <input
                 type="password"
                 name="admin_delete_pwd_unique"
@@ -504,15 +345,15 @@ export default function AdminUsersTab({
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => { setDeleteModalUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                  onClick={() => { setDeleteModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setResetError(''); }}
                   style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  disabled={isResetting}
-                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 10px -2px rgba(239, 68, 68, 0.5)' }}
+                  disabled={isResetting || deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()}
+                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 10px -2px rgba(239, 68, 68, 0.5)', opacity: (deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()) ? 0.5 : 1 }}
                 >
                   {isResetting ? (isHebrew ? 'מוחק...' : 'Deleting...') : (isHebrew ? 'מחק משתמש' : 'Delete User')}
                 </button>
@@ -536,6 +377,15 @@ export default function AdminUsersTab({
             </p>
 
             <form onSubmit={handleExecuteDataReset} autoComplete="off">
+              <textarea
+                name="admin_reset_reason"
+                placeholder={isHebrew ? 'סיבת הפעולה (חובה)...' : 'Reason for this action (required)...'}
+                value={adminReasonInput}
+                onChange={(e) => setAdminReasonInput(e.target.value)}
+                rows={2}
+                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.82rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary, resize: 'vertical', fontFamily: 'inherit' }}
+                required
+              />
               <input
                 type="password"
                 name="admin_reset_pwd_unique"
@@ -558,7 +408,7 @@ export default function AdminUsersTab({
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                  onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
                   style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
@@ -610,6 +460,15 @@ export default function AdminUsersTab({
               </p>
 
               <form onSubmit={handleExecuteLifetimeAction} autoComplete="off">
+                <textarea
+                  name="admin_lifetime_reason"
+                  placeholder={isHebrew ? 'סיבת הפעולה (חובה)...' : 'Reason for this action (required)...'}
+                  value={adminReasonInput}
+                  onChange={(e) => setAdminReasonInput(e.target.value)}
+                  rows={2}
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.82rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary, resize: 'vertical', fontFamily: 'inherit' }}
+                  required
+                />
                 <input
                   type="password"
                   name="admin_lifetime_pwd_unique"
@@ -632,7 +491,7 @@ export default function AdminUsersTab({
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
-                    onClick={() => { setLifetimeActionUser(null); setAdminPasswordInput(''); setResetError(''); }}
+                    onClick={() => { setLifetimeActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
                     style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                   >
                     {isHebrew ? 'ביטול' : 'Cancel'}
@@ -655,59 +514,111 @@ export default function AdminUsersTab({
         );
       })()}
 
-      {/* Module title bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-        <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,58,237,0.10)', color: NEON.violet, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Shield size={19} strokeWidth={2.2} />
-        </span>
-        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: NEON.textPrimary }}>
-          {isHebrew ? 'ניהול משתמשים ועסקים' : 'User & Business Management'}
-        </h2>
-      </div>
+      {/* TEKANGO Admin V1 (Task 3.4): Extend Trial by 14 days - now goes
+          through the same protected-action re-auth flow as Reset/Delete/
+          Lifetime (previously had none at all). Only offered from the
+          action menu when the account is actually eligible (AdminUsersView
+          already filters this at the button-visibility level; the backend
+          independently re-enforces eligibility regardless). */}
+      {trialActionUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
+            <h3 style={{ marginTop: 0, color: NEON.violetLight, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={18} />
+              {isHebrew ? 'פעולה מוגנת: הארכת ניסיון ב-14 יום' : 'Protected Action: Extend Trial 14 Days'}
+            </h3>
+            <p style={{ color: NEON.textSecondary, fontSize: '0.82rem', marginBottom: '4px', lineHeight: '1.4' }}>
+              {isHebrew ? 'חשבון יעד:' : 'Target account:'} <strong style={{ color: NEON.textPrimary }}>{trialActionUser?.email || trialActionUser?.business_name || 'N/A'}</strong>
+            </p>
+            <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '4px', lineHeight: '1.4' }}>
+              {isHebrew ? 'תפוגה נוכחית:' : 'Current expiry:'} <strong>{trialActionUser?.trial_ends_at ? new Date(trialActionUser.trial_ends_at).toLocaleString(isHebrew ? 'he-IL' : 'en-GB') : (isHebrew ? 'אין ניסיון פעיל' : 'No active trial')}</strong>
+            </p>
+            <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>
+              {isHebrew ? 'זמין רק כשהניסיון פג או שאין ניסיון פעיל. הזכאות נבדקת שוב בשרת בזמן האישור.' : 'Only available when the trial is expired or none is active. Eligibility is re-checked server-side at confirmation time.'}
+            </p>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-        <div onClick={() => handleOpenNewUsersModal(newUsersList)} style={{ background: NEON.bgElevated, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <UserPlus size={12} strokeWidth={2.2} />
-          </span>
-          <div style={{ fontSize: '0.58rem', color: NEON.violetLight, fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'משתמשים חדשים (24 ש\')' : 'NEW USERS (24H)'}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: NEON.violetLight }}>{unreadNewUsersCount}</div>
+            <form onSubmit={handleExecuteTrialExtension} autoComplete="off">
+              <textarea
+                name="admin_trial_reason"
+                placeholder={isHebrew ? 'סיבת הפעולה (חובה)...' : 'Reason for this action (required)...'}
+                value={adminReasonInput}
+                onChange={(e) => setAdminReasonInput(e.target.value)}
+                rows={2}
+                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.82rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary, resize: 'vertical', fontFamily: 'inherit' }}
+                required
+              />
+              <input
+                type="password"
+                name="admin_trial_pwd_unique"
+                autoComplete="one-time-code"
+                data-lpignore="true"
+                data-form-type="other"
+                placeholder={isHebrew ? 'סיסמת אדמין (שלך) לאישור...' : 'Your admin password to confirm...'}
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary }}
+                required
+              />
+
+              {resetError && (
+                <div style={{ color: NEON.red, fontSize: '0.78rem', marginBottom: '10px', fontWeight: 'bold' }}>
+                  {resetError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setTrialActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  {isHebrew ? 'ביטול' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResetting}
+                  style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}
+                >
+                  {isResetting ? (isHebrew ? 'מבצע...' : 'Working...') : (isHebrew ? 'אשר הארכת ניסיון' : 'Confirm Trial Extension')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div style={{ background: NEON.bgElevated, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: NEON.emerald, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Activity size={12} strokeWidth={2.2} />
-          </span>
-          <div style={{ fontSize: '0.58rem', color: NEON.emerald, fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'פעילים (10 ד\')' : 'ACTIVE (10M)'}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: NEON.emerald }}>{activeRecent} <span style={{display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle'}}/></div>
-        </div>
-        <div style={{ background: NEON.bgElevated, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', color: NEON.textSecondary, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Home size={12} strokeWidth={2.2} />
-          </span>
-          <div style={{ fontSize: '0.58rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'מקומי (LCL)' : 'LOCAL (LCL)'}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: NEON.textPrimary }}>{localU}</div>
-        </div>
-        <div style={{ background: NEON.bgElevated, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Globe size={12} strokeWidth={2.2} />
-          </span>
-          <div style={{ fontSize: '0.58rem', color: NEON.red, fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'בינלאומי' : 'INTERNATIONAL'}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: NEON.red }}>{intlU}</div>
-        </div>
-        <div style={{ background: NEON.bgElevated, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', color: NEON.sky, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Users2 size={12} strokeWidth={2.2} />
-          </span>
-          <div style={{ fontSize: '0.58rem', color: NEON.textSecondary, fontWeight: '700', textTransform: 'uppercase' }}>{isHebrew ? 'סה"כ משתמשים' : 'TOTAL USERS'}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: NEON.textPrimary }}>{totalU}</div>
-        </div>
-      </div>
+      )}
+
+      {/* TEKANGO Admin V1 (Task 2): the section title/KPI row that used to
+          render here is removed - it duplicated the shared Header's own
+          Admin KPI slot (Dashboard.jsx) and AdminOverview.jsx, which the
+          Owner's binding rule forbids ("no duplicated KPI region"). It also
+          included an "ACTIVE (10M)" last-sign-in-recency tile, which the
+          Owner's rule separately forbids outright ("no active now from weak
+          timestamps"). "New in last 24h" is still reachable for real, via
+          AdminOverview's own Recently Registered card (created_at-based). */}
 
       {/* Diagnostics - collapsed by default. Live email-test capability, moved out
           of the primary user-management flow (see redesign spec). Functionally
           unchanged from before - only its position/visibility changed. */}
-      <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', marginBottom: '16px', overflow: 'hidden' }}>
+      {/* TEKANGO Admin V1 (Task 2): the search input + desktop table +
+          mobile card list that used to render inline here (below) are all
+          replaced by AdminUsersView - the real business-first directory
+          (Business+email/Plan/Trial-expiry/Registered/Market/Actions
+          columns, plan/trial/market filters, pagination), which owns its
+          own search box. This component (AdminUsersTab) keeps owning only
+          the protected-action dialogs (reset/delete/lifetime) below and
+          wires them into AdminUsersView's onReset/onDelete/onLifetime. */}
+      <AdminUsersView
+        accounts={allAccounts}
+        orderedAccounts={filteredAdminAccounts}
+        search={adminSearchTerm}
+        onSearch={setAdminSearchTerm}
+        onSort={handleSort}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        isHebrew={isHebrew}
+        onDetails={onOpenUserDetails}
+        bodyExtra={(
+      <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', marginTop: '16px', overflow: 'hidden' }}>
         <button
           type="button"
           onClick={() => setDiagnosticsOpen(o => !o)}
@@ -779,473 +690,8 @@ export default function AdminUsersTab({
           </div>
         )}
       </div>
-
-      <div style={{ marginBottom: '14px' }}>
-        <input
-          type="text"
-          placeholder={isHebrew ? 'חיפוש משתמש (אימייל או שם עסק)...' : 'Search user (email or business)...'}
-          value={adminSearchTerm}
-          onChange={(e) => setAdminSearchTerm(e.target.value)}
-          style={{ padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', width: '240px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary, outline: 'none' }}
-        />
-      </div>
-
-      {/* Desktop table - hidden below 768px in favor of the mobile card list further down */}
-      <div className="admin-table-desktop-wrap" style={{ background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}`, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', tableLayout: 'fixed' }}>
-          <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle' }}>
-              <th style={{ padding: '10px 6px', width: '21%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('email')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <Mail size={12} color="#4f46e5" />
-                  <span>{isHebrew ? 'אימייל' : 'Email'}</span>
-                  {sortField === 'email' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '15%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('business_name')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <Building2 size={12} color="#0ea5e9" />
-                  <span>{isHebrew ? 'עסק' : 'Business'}</span>
-                  {sortField === 'business_name' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '7%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('plan')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <CreditCard size={12} color="#7c3aed" />
-                  <span>{isHebrew ? 'חבילה' : 'Plan'}</span>
-                  {sortField === 'plan' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '7%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('country')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <Globe size={12} color="#10b981" />
-                  <span>{isHebrew ? 'אזור' : 'Region'}</span>
-                  {sortField === 'country' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '7%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('role')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <Shield size={12} color="#991b1b" />
-                  <span>{isHebrew ? 'הרשאה' : 'Role'}</span>
-                  {sortField === 'role' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '11%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_ends_at_status')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <InfinityIcon size={12} color="#7c3aed" />
-                  <span>Lifetime</span>
-                  {sortField === 'trial_ends_at_status' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '14%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('trial_extension')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <Clock size={12} color="#0284c7" />
-                  <span>{isHebrew ? 'הארכת ניסיון' : 'Trial Ext'}</span>
-                  {sortField === 'trial_extension' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', width: '10%', cursor: 'pointer', userSelect: 'none', verticalAlign: 'middle' }} onClick={() => handleSort('last_sign_in')}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', verticalAlign: 'middle' }}>
-                  <LogIn size={12} color="#22c55e" />
-                  <span>{isHebrew ? 'כניסה אחרונה' : 'Last Sign In'}</span>
-                  {sortField === 'last_sign_in' && <span>{sortDirection === 'asc' ? '▲' : '▼'}</span>}
-                </div>
-              </th>
-              <th style={{ padding: '10px 6px', textAlign: 'center', width: '8%', verticalAlign: 'middle' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <SlidersHorizontal size={12} color="#475569" />
-                  <span>{isHebrew ? 'פעולות' : 'Actions'}</span>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem' }}>
-                  {isHebrew ? 'לא נמצאו משתמשים התואמים לחיפוש.' : 'No users found matching your search.'}
-                </td>
-              </tr>
-            ) : (
-              activeAccountsList.map(acc => {
-                if (!acc) return null;
-                const {
-                  isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, displayIdentity,
-                  currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
-                  lastSignInDateStr, lastSignInFullStr,
-                } = getAccountDerived(acc);
-                const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
-                const planLabel = getDisplayIdentityLabel(displayIdentity, isHebrew);
-
-                return (
-                  <tr key={(acc.id || 'acc') + '_' + liveTick} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.78rem', height: '46px' }}>
-
-                    {/* Email */}
-                    <td style={{ padding: '6px 6px', fontWeight: '500', color: NEON.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={acc.email || ''}>
-                      {acc.email || 'N/A'}
-                    </td>
-
-                    {/* Business Name */}
-                    <td
-                      style={{ padding: '6px 6px', color: NEON.textSecondary, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }}
-                      title={bizName}
-                    >
-                      {bizName}
-                    </td>
-
-                    {/* Plan Icon */}
-                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: planBadge.bg, color: planBadge.color }}
-                        title={isHebrew ? `חבילה: ${planLabel}` : `Plan: ${planLabel}`}
-                      >
-                        {planBadge.renderIcon(12)}
-                      </span>
-                    </td>
-
-                    {/* Region Icon - read-only: the region is a binding tax rule (18%
-                        VAT local / 0% global) determined automatically at signup from
-                        the business's detected locale. It cannot be toggled from here
-                        on purpose, so currency/VAT can never drift out of sync with it. */}
-                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isIntl ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: isIntl ? NEON.red : NEON.emerald, cursor: 'default' }}
-                        title={isHebrew ? `אזור: ${currentCountry} (${isIntl ? '0%' : '18%'} מע"מ - נקבע אוטומטית ולא ניתן לשינוי)` : `Region: ${currentCountry} (${isIntl ? '0%' : '18%'} VAT - set automatically, cannot be changed)`}
-                      >
-                        {isIntl ? <Globe size={12} strokeWidth={2.2} /> : <Home size={12} strokeWidth={2.2} />}
-                      </span>
-                    </td>
-
-                    {/* Role Icon */}
-                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <span
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: isSuperAdminUser ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.08)', color: isSuperAdminUser ? NEON.red : NEON.textSecondary }}
-                        title={isHebrew ? `הרשאה: ${acc.role || 'user'}` : `Role: ${acc.role || 'user'}`}
-                      >
-                        {isSuperAdminUser ? <Shield size={12} strokeWidth={2.2} /> : <CircleUser size={12} strokeWidth={2.2} />}
-                      </span>
-                    </td>
-
-                    {/* Lifetime Status Column — חוק ברזל (Explicit Lifetime
-                        Entitlement Model, 2026-09-08, Owner mandate: "No
-                        single-click Lifetime toggle. No ambiguous infinity
-                        icon as the only affordance."): תצוגה בלבד עכשיו,
-                        קריאה-בלבד מ-business_settings.is_lifetime המפורש -
-                        אין עוד לחיצה-יחידה שמשנה מצב-זכאות מסחרי ישירות
-                        מהטבלה. הפעולה עצמה עברה ל"פעולות מוגנות" (ר' כפתור
-                        Shield בעמודת הפעולות למטה) - אישור-סיסמה + אימות
-                        server-side, לא עוד עמימות. */}
-                    <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                        title={isHebrew ? 'לשינוי מצב Lifetime, ר\' "פעולות מוגנות" בעמודת הפעולות' : 'To change Lifetime status, see "Protected Actions" in the Actions column'}
-                      >
-                        <span style={{
-                          background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
-                          color: isLifetime ? NEON.violetLight : NEON.textMuted,
-                          border: '1px solid',
-                          borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
-                          width: '24px', height: '24px',
-                          borderRadius: '50%',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <InfinityIcon size={11} strokeWidth={2.5} />
-                        </span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: '600', color: isLifetime ? NEON.violetLight : NEON.textSecondary }}>
-                          {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Trial Extension Column - Lifetime always wins the display here.
-                        Everyone else (regardless of the raw `plan` field) sees their real
-                        trial_ends_at date and status - "Expired" once it has passed, since
-                        the stored plan value alone is not proof of active paid access (see
-                        getRemainingTimeFormatted). */}
-                    <td style={{ padding: '6px 6px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {isLifetime ? (
-                          <span style={{ fontSize: '0.62rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }}>
-                            {isHebrew ? 'ללא תפוגה' : 'No expiry'}
-                          </span>
-                        ) : (
-                          <>
-                            {!isSuperAdminUser && (
-                              <button
-                                onClick={() => {
-                                  if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id);
-                                }}
-                                style={{
-                                  background: 'rgba(56, 189, 248, 0.15)',
-                                  color: NEON.sky,
-                                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                                  width: '24px', height: '24px',
-                                  borderRadius: '50%',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                                title={isHebrew ? 'הארך ניסיון ב-14 יום' : 'Extend Trial by 14 Days'}
-                              >
-                                <RotateCw size={11} strokeWidth={2.5} />
-                              </button>
-                            )}
-                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.1' }}>
-                              <span style={{ fontSize: '0.62rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }}>
-                                {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
-                              </span>
-                              <span style={{ fontSize: '0.55rem', color: NEON.sky, fontWeight: 'bold' }}>
-                                {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, isGrantedLifetimePro)}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Last Sign In (Date only with full timestamp on hover) */}
-                    <td style={{ padding: '6px 6px', fontSize: '0.7rem', color: NEON.textSecondary, direction: 'ltr', textAlign: 'left', whiteSpace: 'nowrap' }} title={lastSignInFullStr}>
-                      <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444', marginRight: '4px', verticalAlign: 'middle' }}></span>
-                      <span>{lastSignInDateStr}</span>
-                    </td>
-
-                    {/* Actions Column */}
-                    <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
-
-                        <button
-                          onClick={() => setSelectedUserDetails(acc)}
-                          style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          title={isHebrew ? 'צפה בפרטים' : 'View Details'}
-                        >
-                          <Eye size={11} strokeWidth={2.5} />
-                        </button>
-
-                        <button
-                          onClick={() => setResetModalUser(acc)}
-                          style={{ background: 'rgba(239, 68, 68, 0.12)', color: NEON.red, border: '1px solid rgba(248, 113, 113, 0.4)', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          title={isHebrew ? 'איפוס נתונים' : 'Reset Data'}
-                        >
-                          <RefreshCw size={11} strokeWidth={2.5} />
-                        </button>
-
-                        {!isSuperAdminUser && (
-                          <button
-                            onClick={() => setDeleteModalUser(acc)}
-                            style={{ background: NEON.redDark, color: 'white', border: 'none', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                            title={isHebrew ? 'מחק משתמש' : 'Delete User'}
-                          >
-                            <Trash2 size={11} strokeWidth={2.5} />
-                          </button>
-                        )}
-
-                        {!isSuperAdminUser && (
-                          <button
-                            onClick={() => setLifetimeActionUser(acc)}
-                            style={{ background: 'rgba(167, 139, 250, 0.12)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                            title={isHebrew ? 'פעולות מוגנות (Lifetime)' : 'Protected Actions (Lifetime)'}
-                          >
-                            <ShieldCheck size={11} strokeWidth={2.5} />
-                          </button>
-                        )}
-
-                      </div>
-                    </td>
-
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile card list - shown only below 768px (see .admin-mobile-cards media query
-          above). Built as a collapsible accordion so a long user list stays compact and
-          scannable: each row shows only identity + last-sign-in by default, and expands
-          on tap to reveal badges/lifetime/trial/actions - keeps things scalable instead
-          of rendering every user's full detail block on screen at once. */}
-      <div className="admin-mobile-cards">
-        {!Array.isArray(activeAccountsList) || activeAccountsList.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem', background: NEON.bgElevated, borderRadius: '12px', border: `1px solid ${NEON.border}` }}>
-            {isHebrew ? 'לא נמצאו משתמשים התואמים לחיפוש.' : 'No users found matching your search.'}
-          </div>
-        ) : (
-          activeAccountsList.map(acc => {
-            if (!acc) return null;
-            const {
-              isSuperAdminUser, isLifetime, planValue, isGrantedLifetimePro, displayIdentity,
-              currentCountry, isIntl, isRecentActive, bizName, isBizHebrew,
-              lastSignInDateStr, lastSignInFullStr,
-            } = getAccountDerived(acc);
-            const planBadge = getPlanBadgeVisual(planValue, isGrantedLifetimePro);
-            const planLabel = getDisplayIdentityLabel(displayIdentity, isHebrew);
-
-            const isExpanded = expandedMobileRows.has(acc.id);
-
-            const chipStyle = (bg, color) => ({
-              display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 9px',
-              borderRadius: '7px', fontSize: '0.68rem', fontWeight: '700', background: bg, color,
-              whiteSpace: 'nowrap',
-            });
-            const actionBtnStyle = (bg, color, border) => ({
-              background: bg, color, border: border || 'none', flex: '1 1 auto', minWidth: '84px',
-              padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex',
-              alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '0.72rem', fontWeight: '600',
-            });
-
-            return (
-              <div key={(acc.id || 'acc') + '_mobile_' + liveTick} style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '12px 14px', marginBottom: '10px' }}>
-
-                {/* Collapsed row: last-sign-in, business name (primary) / email (secondary), chevron */}
-                <div
-                  onClick={() => toggleMobileRow(acc.id)}
-                  role="button"
-                  aria-expanded={isExpanded}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, fontSize: '0.68rem', color: NEON.textSecondary, whiteSpace: 'nowrap' }} title={lastSignInFullStr}>
-                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isRecentActive ? '#22c55e' : '#ef4444' }} />
-                    {lastSignInDateStr}
-                  </div>
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: isBizHebrew ? 'rtl' : 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }}>
-                      {bizName}
-                    </div>
-                    <div style={{ color: NEON.textMuted, fontSize: '0.75rem', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: isBizHebrew ? 'right' : 'left' }} title={acc.email || ''}>
-                      {acc.email || 'N/A'}
-                    </div>
-                  </div>
-
-                  <ChevronDown
-                    size={18}
-                    color={NEON.textMuted}
-                    style={{ flexShrink: 0, transition: 'transform 0.25s ease', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                  />
-                </div>
-
-                {/* Expanded content: badges / lifetime / trial / actions */}
-                <div
-                  style={{
-                    maxHeight: isExpanded ? '700px' : '0px',
-                    opacity: isExpanded ? 1 : 0,
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease',
-                    marginTop: isExpanded ? '12px' : '0px',
-                  }}
-                >
-                {/* Plan / Region / Role badges */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                  <span
-                    style={chipStyle(planBadge.bg, planBadge.color)}
-                    title={isHebrew ? `חבילה: ${planLabel}` : `Plan: ${planLabel}`}
-                  >
-                    {planBadge.renderIcon(12)}
-                    {planLabel}
-                  </span>
-
-                  <span
-                    style={chipStyle(isIntl ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', isIntl ? NEON.red : NEON.emerald)}
-                    title={isHebrew ? `אזור: ${currentCountry} (${isIntl ? '0%' : '18%'} מע"מ - נקבע אוטומטית ולא ניתן לשינוי)` : `Region: ${currentCountry} (${isIntl ? '0%' : '18%'} VAT - automatic, cannot be changed)`}
-                  >
-                    {isIntl ? <Globe size={12} strokeWidth={2.2} /> : <Home size={12} strokeWidth={2.2} />}
-                    {currentCountry} · {isIntl ? '0%' : '18%'}
-                  </span>
-
-                  <span
-                    style={chipStyle(isSuperAdminUser ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.08)', isSuperAdminUser ? NEON.red : NEON.textSecondary)}
-                    title={isHebrew ? `הרשאה: ${acc.role || 'user'}` : `Role: ${acc.role || 'user'}`}
-                  >
-                    {isSuperAdminUser ? <Shield size={12} strokeWidth={2.2} /> : <CircleUser size={12} strokeWidth={2.2} />}
-                    {acc.role || 'user'}
-                  </span>
-                </div>
-
-                {/* Lifetime + Trial */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '10px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* חוק ברזל (Explicit Lifetime Entitlement Model,
-                      2026-09-08): תצוגה בלבד - אין עוד לחיצה-יחידה. הפעולה
-                      עברה ל"פעולות מוגנות" למטה (Shield). */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span
-                      style={{
-                        background: isLifetime ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255,255,255,0.04)',
-                        color: isLifetime ? NEON.violetLight : NEON.textMuted,
-                        border: '1px solid', borderColor: isLifetime ? 'rgba(167, 139, 250, 0.4)' : NEON.borderStrong,
-                        width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                    >
-                      <InfinityIcon size={13} strokeWidth={2.5} />
-                    </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: isLifetime ? NEON.violetLight : NEON.textSecondary }}>
-                      {isLifetime ? 'Lifetime' : (isHebrew ? 'רגיל' : 'Standard')}
-                    </span>
-                  </div>
-
-                  {isLifetime ? (
-                    <span style={{ fontSize: '0.72rem', color: NEON.textSecondary }}>
-                      {isHebrew ? 'ללא תפוגה' : 'No expiry'}
-                    </span>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {!isSuperAdminUser && (
-                        <button
-                          onClick={() => { if (handleExtendTrial14Days) handleExtendTrial14Days(acc.id); }}
-                          style={{ background: 'rgba(56, 189, 248, 0.15)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.35)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          title={isHebrew ? 'הארך ניסיון ב-14 יום' : 'Extend Trial by 14 Days'}
-                        >
-                          <RotateCw size={13} strokeWidth={2.5} />
-                        </button>
-                      )}
-                      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-                        <span style={{ fontSize: '0.72rem', color: NEON.textSecondary }}>
-                          {acc.trial_ends_at ? new Date(acc.trial_ends_at).toLocaleDateString('en-GB') : 'N/A'}
-                        </span>
-                        <span style={{ fontSize: '0.65rem', color: NEON.sky, fontWeight: 'bold' }}>
-                          {getRemainingTimeFormatted(acc.trial_ends_at, acc.role, isGrantedLifetimePro)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  <button onClick={() => setSelectedUserDetails(acc)} style={actionBtnStyle('rgba(139, 92, 246, 0.15)', NEON.violetLight)}>
-                    <Eye size={13} strokeWidth={2.5} />
-                    {isHebrew ? 'פרטים' : 'Details'}
-                  </button>
-
-                  <button onClick={() => setResetModalUser(acc)} style={actionBtnStyle('rgba(239, 68, 68, 0.12)', NEON.red, '1px solid rgba(248, 113, 113, 0.4)')}>
-                    <RefreshCw size={13} strokeWidth={2.5} />
-                    {isHebrew ? 'איפוס' : 'Reset'}
-                  </button>
-
-                  {!isSuperAdminUser && (
-                    <button onClick={() => setDeleteModalUser(acc)} style={actionBtnStyle(NEON.redDark, 'white')}>
-                      <Trash2 size={13} strokeWidth={2.5} />
-                      {isHebrew ? 'מחק' : 'Delete'}
-                    </button>
-                  )}
-
-                  {!isSuperAdminUser && (
-                    <button onClick={() => setLifetimeActionUser(acc)} style={actionBtnStyle('rgba(167, 139, 250, 0.12)', NEON.violetLight, '1px solid rgba(167, 139, 250, 0.4)')}>
-                      <ShieldCheck size={13} strokeWidth={2.5} />
-                      {isHebrew ? 'פעולות מוגנות' : 'Protected Actions'}
-                    </button>
-                  )}
-                </div>
-                </div>
-
-              </div>
-            );
-          })
         )}
-      </div>
+      />
     </div>
   );
 }

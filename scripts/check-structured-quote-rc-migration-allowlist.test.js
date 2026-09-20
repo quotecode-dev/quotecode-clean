@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, copyFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -18,7 +18,6 @@ import {
   ALLOWED_PRODUCTION_FORWARD_MIGRATIONS,
   EXCLUDED_PENDING_MIGRATIONS,
   LIFETIME_MIGRATION_FILE,
-  LIFETIME_MUST_ALREADY_BE_APPLIED_TO_PROD,
   KNOWN_ALREADY_APPLIED_FILES,
 } from './check-structured-quote-rc-migration-allowlist.js';
 

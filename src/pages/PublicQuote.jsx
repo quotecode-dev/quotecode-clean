@@ -16,7 +16,6 @@ import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuoteP
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
-import DividedQuoteUnits from '../components/DividedQuoteUnits';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -37,52 +36,33 @@ import DividedQuoteUnits from '../components/DividedQuoteUnits';
 // לקריאה ל-formatMoney אינה משנה שום התנהגות עיגול קיימת, רק מסירה שכפול.
 const formatNum = (val) => formatMoney(val);
 
-// עדכון 2026-09-14 (Final Smart Quote Merge + Rounding Remediation task,
-// Part 9 - "restore the approved whole-shekel display law" שהיה עד כה
-// ממומש רק בסה"כ-לתשלום הסופי למטה): הרחבה מפורשת-בעלים לכל סכום-כספי
-// אחר שהלקוח רואה בהצעה מחולקת - סכום-פריט/group, סה"כ-יחידה - דרך
-// formatMoneyDisplay (מוזרק ל-DividedQuoteUnits.jsx כאן בלבד, לעולם לא
-// ל-formatNum הכללי שממשיך לשרת גם ערכים לא-כספיים/מספרי-מדידה במקומות
-// אחרים). formatWholeMoney (utils/money.js) הוא display-only - Math.round
-// לתצוגה בלבד, אף פעם לא נכתב-חזרה ל-quotes.total/quote_items.total_price
-// ואינו נוגע בשום נוסחת-חישוב קיימת. בכוונה HE/ILS-בלעדי (אושר מפורשות
-// עבור המשימה הזו) - PublicQuoteEn.jsx ממשיך להזריק formatNum הרגיל
-// (דיוק-סנט/אירו/פאונד מלא, ללא שינוי), כדי לא להחזיר את הבאג שתוקן כבר
-// ב-Money Consolidation task (Global Surface Audit finding I-1 - "עיגול
-// שקט של International"). קופסת-הסה"כ הסופית למטה (finalTotalRounded/
-// netAmountDisplay/vatAmountDisplay) לא נגעה - כבר שלמה (finalTotalRounded)
-// עבור לקוח לא-אמביגואלי, ונטו/מע"מ נשארים במדויק-לאגורה בכוונה כדי לשמר
-// את חוק "הסכום סוגר בדיוק" שתועד למעלה - הרחבתם לשלם דורשת החלטת-בעלים
-// נפרדת אם ירצו זאת, ולא הייתה חלק מהדוגמה שהוצגה (דירה 33).
-const formatMoneyDisplayForDivided = formatWholeMoney;
 
-// חוק ברזל (Smart Quote End-to-End Structural Unification task, Part B/O -
-// "no UI component should independently rediscover grouping from raw
-// arrays"): במקום קיבוץ עצמאי, זהו כעת עטיפה דקה סביב
-// buildCustomerPresentationModel (quotePresentationModel.js) - נקודת-
-// הקיבוץ/סכום-ביניים היחידה שגם העורך (QuoteForm.jsx) בונה עליה (דרך
-// groupItemsBySection המשותפת). שומרת על אותה צורת-פלט בדיוק
-// ({item,index,groupName,isNewGroup,isGroupEnd,groupTotal}) שהטבלה
-// המורחבת (Expanded) כבר משתמשת בה - כדי שכל הרינדור/הבדיקות הקיימות
-// ימשיכו לעבוד ללא שינוי. index השמור הוא ה-index המקורי במערך items -
-// נדרש כדי ש-expandedItemDetails (state) ימשיך להתייחס לפריט הנכון גם
-// אחרי סידור-מחדש לפי קבוצה. יחידה ריקה (0 פריטים) מדולגת כאן בכוונה -
-// זהה להתנהגות הקודמת (אין טעם להציג כותרת-קבוצה ריקה בתוך פירוט-פריטים).
-function orderPublicItemsByGroup(items, sections) {
+// חוק ברזל (Public Quote Section-Level Smart Dropdown task, supersedes the
+// old orderPublicItemsByGroup/global-dropdown design entirely): one quote-
+// level dropdown is now WRONG per the Owner's own correction - each real
+// section/room is its own independently-collapsible commercial unit. Still
+// a thin wrapper around buildCustomerPresentationModel (quotePresentationModel
+// .js) - the one grouping/subtotal source QuoteForm.jsx's editor also builds
+// on - never a second independent grouping formula. Returns [] for a flat
+// (non-divided) quote - callers fall back to the plain classic table in
+// that case (§9: "do NOT invent fake sections"). Unassigned items (real
+// items with no section) are folded into one pseudo-section using the
+// EXISTING canonical label QuoteForm.jsx already uses for this exact bucket
+// (`section: { key: '__unassigned__', name: 'לא משויך' }`, QuoteForm.jsx
+// ~line 1100) - not an invented room name. Its subtotal formula matches
+// DividedQuoteUnits.jsx's own identical unassigned-subtotal reduce (line
+// ~425) - same authoritative data, not a third independent calculation.
+function buildDisplaySections(items, sections) {
   const model = buildCustomerPresentationModel(items, sections);
-  if (!model.isDivided) {
-    return items.map((item, index) => ({ item, index, groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null }));
+  if (!model.isDivided) return [];
+  const display = model.units
+    .filter((u) => u.itemCount > 0)
+    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal }));
+  if (model.unassignedItems.length > 0) {
+    const subtotal = model.unassignedItems.reduce((sum, it) => sum + Number(it.total_price ?? (Number(it.quantity || 1) * Number(it.price || 0))), 0);
+    display.push({ key: '__unassigned__', title: 'לא משויך', items: model.unassignedItems, subtotal });
   }
-  const ordered = [];
-  model.units.filter((u) => u.itemCount > 0).forEach((unit) => {
-    unit.items.forEach((item, i) => {
-      ordered.push({ item, index: items.indexOf(item), groupName: unit.title, isNewGroup: i === 0, isGroupEnd: i === unit.items.length - 1, groupTotal: unit.subtotal });
-    });
-  });
-  model.unassignedItems.forEach((item) => {
-    ordered.push({ item, index: items.indexOf(item), groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null });
-  });
-  return ordered;
+  return display;
 }
 
 const formatDisplayPhone = (phone) => {
@@ -108,22 +88,27 @@ const formatDisplayPhone = (phone) => {
 export default function PublicQuote({ quoteData }) {
   const navigate = useNavigate();
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
-  // חוק ברזל (Smart Quote End-to-End Structural Unification task, Locked
-  // Decision 10 - "one quote model, many views"): נקודת-חישוב יחידה,
-  // פעם אחת, לכל מה שהעמוד הזה צריך לדעת על מבנה ההצעה - Compact/Expanded,
-  // ברירת-מחדל של printMode, ורינדור-הטבלה (orderPublicItemsByGroup, עטיפה
-  // דקה סביב אותו מודל). quoteData.items/quoteSections הם props קבועים
-  // (לא state) - אין תלות ב-re-render מיותר.
-  const presentationModel = buildCustomerPresentationModel(items, quoteSections);
+  // חוק ברזל (Public Quote Section-Level Smart Dropdown task, §9 - "if a
+  // quote has no section/room hierarchy, keep the normal classic commercial
+  // table, do NOT invent fake sections"): [] for a flat quote - every
+  // rendering/state decision below branches on displaySections.length, never
+  // on whether individual items happen to be professional. quoteData.items/
+  // quoteSections are fixed props (not state), safe to recompute every render.
+  const displaySections = buildDisplaySections(items, quoteSections);
   const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
-  // חוק ברזל (Smart Quote Guided UX Completion task, Part E - customer-
-  // facing structured display): פירוט מקצועי (מידות/פרטים) מוצג מכווץ
-  // כברירת מחדל, ניתן להרחבה - החלטת-בעלים כבר תועדה ב-PROFLOW_TODO.md
-  // (item 30.C/§ Public Quote shows professional detail collapsed/
-  // expandable by default). מפתח לפי index הפריט.
-  const [expandedItemDetails, setExpandedItemDetails] = useState({});
+  // חוק ברזל (Public Quote Section-Level Smart Dropdown task, supersedes the
+  // old single global smartDetailsExpanded boolean below): the Owner
+  // corrected the presentation contract AGAIN - disclosure is owned per
+  // SECTION, not per quote and not per item. Keyed by section key
+  // (`__unassigned__` for the unassigned pseudo-section); a real section id
+  // never collides with it. Each section defaults to collapsed
+  // (`!!expandedSections[key]` is false until explicitly toggled) and
+  // expands fully independently of every other section - no accordion
+  // coupling, matching §4's own explicit requirement.
+  const [expandedSections, setExpandedSections] = useState({});
+  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // חוק ברזל (Owner-Approved Signature Record Improvement - audit-verified
   // gap): quotes.signature (data URL) הוא עמודת-החתימה היחידה שקיימת בפועל -
@@ -157,12 +142,6 @@ export default function PublicQuote({ quoteData }) {
   // - אף פעם לא ברירת-המחדל של הפתיחה הרגילה. הצעה רגילה ממשיכה עם
   // compact, זהה-בייט להתנהגות הקודמת.
   const [printMode, setPrintMode] = useState('compact');
-  // חוק ברזל (Final Smart Quote Correction task - Codex P0-4 "DETERMINISTIC
-  // COMPACT/EXPANDED EXPORT"): נספר בכל בחירה מפורשת ב-modal (גם אם הערך
-  // עצמו זהה לקודם, למשל Compact פעמיים ברצף) - DividedQuoteUnits מאפס
-  // לפיו, לא לפי printMode עצמו (ש-React לא בהכרח "משנה" כשהערך זהה) -
-  // כדי שמצב-קיפול ידני-של-המשתמש בין הבחירות לא ידלוף לתוך פלט מפורש.
-  const [outputModeNonce, setOutputModeNonce] = useState(0);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -179,30 +158,20 @@ export default function PublicQuote({ quoteData }) {
     setPrintModalOpen(true);
   };
 
-  // חוק ברזל (Locked Decision 12 - Compact/Expanded, המשמעות המקורית
-  // שכבר תועדה ב-QuotePrintModeModal.jsx עצמו אך מעולם לא מומשה בפועל:
-  // "Compact: no expanded measurement detail" / "Expanded: includes full
-  // measurements & specifications for every professional item" - printMode
-  // עצמו נשמר כ-data-attribute מאז §160 בלי אף לוגיקה שקוראת אותו).
-  // מיושם כאן כ"קביעה חד-פעמית ברגע הבחירה" - לא כ-binding מתמשך - כדי
-  // לשמר את יכולת-ההרחבה הידנית-לכל-פריט הקיימת (expandedItemDetails)
-  // לגלישה רגילה על-המסך, בלי לרגרס אותה: בחירת "Compact"/"Expanded"
-  // מה-modal קובעת את המצב לכל הפריטים-בעלי-פרטים באותו רגע (לצורך
-  // הלכידה/ההדפסה הבאה), אך לא כובלת אותם לצמיתות ל-printMode עצמו.
-  const buildItemDetailsMap = (allOpen) => {
-    const map = {};
-    items.forEach((item, index) => {
-      const hasMeasurements = Array.isArray(item.measurements) && item.measurements.length > 0;
-      const hasSpec = Array.isArray(item.specification) && item.specification.some((s) => s.label || s.value);
-      if (hasMeasurements || hasSpec) map[index] = allOpen;
-    });
-    return map;
-  };
-
+  // חוק ברזל (Public Quote Section-Level Smart Dropdown task, §12 - "Compact
+  // = every section in its collapsed commercial-summary form. Expanded =
+  // every section's summary PLUS its full Smart detail"): sets every real
+  // section (+ the unassigned pseudo-section, if any) to the same open/
+  // closed state at once, at the moment of explicit choice - not a
+  // continuous binding, so a manual on-screen per-section toggle afterward
+  // is never fought by this effect (same "one-time set" pattern the old
+  // per-item version used).
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
-    setOutputModeNonce((n) => n + 1);
-    setExpandedItemDetails(buildItemDetailsMap(mode === 'expanded'));
+    const allOpen = mode === 'expanded';
+    const map = {};
+    buildDisplaySections(items, quoteSections).forEach((s) => { map[s.key] = allOpen; });
+    setExpandedSections(map);
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
@@ -528,6 +497,44 @@ export default function PublicQuote({ quoteData }) {
             font-size: 0.7rem !important;
             gap: 4px !important;
           }
+          /* חוק ברזל (Public Quote Mobile 4-Column Geometry Correction task -
+             Owner explicitly REJECTED the stacked-card Mobile layout the
+             immediately preceding task shipped and required the same real
+             4-column commercial table back, fixed by geometry only). Root
+             cause of the ORIGINAL overflow (before either mobile fix): the
+             single desktop <colgroup> (40/18/21/21%, table-layout:fixed)
+             plus the desktop cell padding (12px/8px 10px) left too little
+             real width for the Total column's money token - which, being a
+             single unbreakable string (e.g. ₪1,250,000.00, no internal
+             spaces to wrap at), has nowhere to go but overflow once its 21%-
+             wide column minus 20px of horizontal padding is narrower than
+             the token itself on a ~340-380px usable Mobile width. Fixed with
+             geometry only, exactly as instructed: a Mobile-only <colgroup>
+             override (same 4 columns, different proportions - Total gets
+             more relative room, Quantity/Unit Price get less, matching this
+             file's own already-established pattern of overriding an
+             inline-styled element via a class + !important at this same
+             640px breakpoint, e.g. .pq-card above) and tighter cell padding.
+             table-layout:fixed means these <col> widths are still the ONLY
+             thing that determines column geometry (not content) - <col>
+             elements are targeted by their own class names since CSS
+             !important on a class selector overrides a plain (non-
+             important) inline style, the same mechanism already used
+             throughout this exact media-query block. */
+          .pq-commercial-table {
+            table-layout: fixed !important;
+          }
+          .pq-col-desc { width: 40% !important; }
+          .pq-col-qty { width: 15% !important; }
+          .pq-col-price { width: 18% !important; }
+          .pq-col-total { width: 27% !important; }
+          .pq-commercial-table th,
+          .pq-commercial-table td {
+            padding: 8px 4px !important;
+          }
+          .pq-commercial-table th {
+            font-size: 0.78rem !important;
+          }
         }
         /* Item 7 (Public Quote Print): .no-print (src/index.css) already
            hides the signature-input controls and the bottom action bar
@@ -850,28 +857,48 @@ export default function PublicQuote({ quoteData }) {
         )}
         </div>
 
-        {/* חוק ברזל (Smart Quote Final Visual Correction task - "ONE
-            DISCLOSURE CONTROL PER UNIT. ZERO ITEM-LEVEL DISCLOSURE
-            CONTROLS."): הצעה מחולקת (Compact או Expanded כאחד) עוברת
-            תמיד דרך DividedQuoteUnits (הרכיב המשותף היחיד, זהה ל-HE/EN) -
-            לעולם לא הטבלה המשותפת עם הצעה רגילה, כדי שאף בקר-גילוי פר-
-            פריט לא ידלוף לתוך תצוגת-יחידות. הצעה רגילה בלבד ממשיכה עם
-            הטבלה הקיימת למטה (שם ה-Compact/Expanded הפר-פריט הוא באמת
-            המשמעות הנכונה, ר' Locked Decision 12's המקורי ל-Regular). */}
-        {presentationModel.isDivided ? (
-          <DividedQuoteUnits
-            units={presentationModel.units}
-            unassignedItems={presentationModel.unassignedItems}
-            mode={printMode}
-            resetToken={outputModeNonce}
-            isHebrew={isHebrew}
-            currencySymbol={currencySymbol}
-            formatNum={formatNum}
-            formatMoneyDisplay={formatMoneyDisplayForDivided}
-          />
-        ) : (
+        {/* חוק ברזל (Public Quote Section-Level Smart Dropdown task, EXACT
+            Owner contract - supersedes the prior single global-dropdown
+            design entirely): a FLAT quote (displaySections.length===0, §9)
+            renders the exact same plain classic table this whole task
+            lineage started from - no dropdown, no disclosure, nothing
+            hidden, every item's own commercial row always fully visible
+            (including a professional item's quantity+pricing-unit label -
+            there is no per-item or per-quote control left anywhere to move
+            it behind, so it stays on the one row it has, same as the very
+            first "Classic Table" version of this table). A quote WITH real
+            sections instead renders each section as its own row-group,
+            independently collapsible (§4) - collapsed shows ONE commercial-
+            summary row per section (quantity=real item count, unit
+            price="—", total=section's own authoritative subtotal - see the
+            Section Summary Row Correction task below for the full
+            rationale); expanded shows that section's own item rows with
+            full inline Smart/Professional detail (no further per-item
+            toggle - forbidden per §6) plus its own subtotal footer. */}
+        {/* חוק ברזל (Public Quote Section Dropdown Column-Geometry Lock task,
+            root cause + fix): columns visibly shifted on expand because this
+            table used the browser's default table-layout:auto - column
+            widths are auto-computed from the WIDEST content across ALL rows
+            currently in the DOM. A collapsed section's own summary row has a
+            short Description cell; expanding it adds item rows whose
+            Description cell can be much wider (multi-line measurement/spec
+            text) - auto layout then recomputes every column's width across
+            the whole table, visibly shifting Quantity/Unit Price/Total.
+            Fixed with table-layout:fixed + one explicit <colgroup> - the
+            single canonical column-width contract for every row shape this
+            table ever renders (header, flat rows, section summary rows,
+            section item rows, section subtotal rows, unassigned group) -
+            content in any cell now wraps within its own fixed-width column
+            instead of resizing the table. No content/data/calculation
+            changed - purely a layout-algorithm fix. */}
         <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+          <table className="pq-commercial-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', textAlign: 'right' }}>
+            <colgroup>
+              <col className="pq-col-desc" style={{ width: '40%' }} />
+              <col className="pq-col-qty" style={{ width: '18%' }} />
+              <col className="pq-col-price" style={{ width: '21%' }} />
+              <col className="pq-col-total" style={{ width: '21%' }} />
+            </colgroup>
             <thead>
               <tr style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.85rem' }}>
                 <th style={{ padding: '10px', textAlign: 'right', borderRadius: '0 8px 8px 0' }}>תיאור פריט</th>
@@ -881,90 +908,112 @@ export default function PublicQuote({ quoteData }) {
               </tr>
             </thead>
             <tbody>
-              {items && items.length > 0 ? (
-                orderPublicItemsByGroup(items, quoteSections).map(({ item, index, groupName, isNewGroup, isGroupEnd, groupTotal }) => {
-                  const itemPrice = Number(item.price || 0);
-                  const rawQty = Number(item.quantity || 1);
-                  const isPro = Boolean(item.pricing_unit);
-                  const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : rawQty;
-                  const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, true) : '';
-                  const measurements = Array.isArray(item.measurements) ? item.measurements : [];
-                  const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
-                  const hasDetails = measurements.length > 0 || specRows.length > 0;
-                  const isDetailsOpen = !!expandedItemDetails[index];
-                  return (
-                    <Fragment key={index}>
-                    {isNewGroup && groupName && (
-                      <tr>
-                        <td colSpan="4" style={{ padding: '14px 10px 4px', fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem', textAlign: 'right' }}>{groupName}</td>
-                      </tr>
-                    )}
-                    <tr style={{ borderBottom: hasDetails && isDetailsOpen ? 'none' : '1px solid #f1f5f9', fontSize: '0.9rem' }}>
-                      <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>
-                        {item.description || item.name || 'פריט'}
-                        {hasDetails && (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedItemDetails((prev) => ({ ...prev, [index]: !prev[index] }))}
-                            style={{ display: 'block', marginTop: '2px', background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                          >
-                            {isDetailsOpen ? '▲ הסתר פרטים' : '▼ הצג פרטים'}
-                          </button>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : rawQty}</td>
-                      {/* חוק ברזל (Money Alignment Fix, סבב זה): textAlign:'left'
-                          כאן היה שגוי - עמודת המחיר/סה"כ כבר משותפת ברוחב
-                          בין שורות (טבלה רגילה, לא grid/flex עצמאי-לשורה),
-                          אז תיקון היישור בלבד (ל-'right', תואם לברירת
-                          המחדל textAlign:'right' של הטבלה עצמה בשורה 350)
-                          מספיק כדי שהספרות יתיישרו לפי ערך-מקום בין
-                          שורות פריטים - נמדד חי לפני התיקון: שתי שורות עם
-                          left=730.83/513.5 זהה, right משתנה - אחרי התיקון
-                          הימני (הנכון) הוא המשותף. */}
-                      <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
-                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
-                    </tr>
-                    {hasDetails && isDetailsOpen && (
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td colSpan="4" style={{ padding: '4px 10px 14px', background: '#f8fafc' }}>
-                          {measurements.length > 0 && (
-                            <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: specRows.length > 0 ? '6px' : 0 }}>
-                              {measurements.map((m, mi) => (
-                                <div key={mi}>{formatMeasurementLine(m, isHebrew, formatNum)}</div>
-                              ))}
-                            </div>
-                          )}
-                          {specRows.length > 0 && (
-                            <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                              {specRows.map((s, si) => (
-                                <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                    {isGroupEnd && groupName && (
-                      <tr>
-                        <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`סה"כ ${groupName}`}</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}><span className="pf-money">{currencySymbol}{formatNum(groupTotal)}</span></td>
-                      </tr>
-                    )}
-                    </Fragment>
-                  );
-                })
-              ) : (
+              {!items || items.length === 0 ? (
                 <tr>
                   <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
                     הצעת מחיר כללית בסך {formatNum(finalTotalRounded)} {currencySymbol}
                   </td>
                 </tr>
+              ) : displaySections.length === 0 ? (
+                items.map((item, index) => {
+                  const itemPrice = Number(item.price || 0);
+                  const rawQty = Number(item.quantity || 1);
+                  const isPro = Boolean(item.pricing_unit);
+                  const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : rawQty;
+                  const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, true) : '';
+                  return (
+                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
+                      <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>{item.description || item.name || 'פריט'}</td>
+                      <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : rawQty}</td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
+                    </tr>
+                  );
+                })
+              ) : (
+                displaySections.map((section) => {
+                  const isOpen = !!expandedSections[section.key];
+                  const chevron = isOpen ? '▲' : '▼';
+                  const toggleBtnStyle = { background: 'none', border: 'none', color: '#7c3aed', font: 'inherit', fontWeight: 800, cursor: 'pointer', padding: 0, textAlign: 'right' };
+                  if (!isOpen) {
+                    // חוק ברזל (Public Quote Section Summary Row Correction
+                    // task, Owner visual finding): a collapsed section is NOT
+                    // a single item - it may mix quantity-based/fixed-price/
+                    // area-based/linear items, each with its own real
+                    // quantity and unit price. Quantity=1/UnitPrice=Total was
+                    // misleading. Now: Quantity = real item count (same "N
+                    // פריטים"/"N item(s)" copy QuoteForm.jsx's own UnitHeader
+                    // already uses for this exact concept - reused verbatim,
+                    // not a new translation), Unit Price = "—" (no single
+                    // meaningful value across mixed pricing methods, never an
+                    // invented average), Total = the section's own
+                    // authoritative subtotal (unchanged).
+                    const itemCount = section.items.length;
+                    return (
+                      <tr key={section.key} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
+                        <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                          <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={false} style={toggleBtnStyle}>{`${section.title} ${chevron}`}</button>
+                        </td>
+                        <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{`${itemCount} פריטים`}</td>
+                        <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569' }}>—</td>
+                        <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                      </tr>
+                    );
+                  }
+                  return (
+                    <Fragment key={section.key}>
+                      <tr>
+                        <td colSpan="4" style={{ padding: '14px 10px 4px', textAlign: 'right' }}>
+                          <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={true} style={{ ...toggleBtnStyle, fontSize: '0.88rem' }}>{`${section.title} ${chevron}`}</button>
+                        </td>
+                      </tr>
+                      {section.items.map((item, i) => {
+                        const itemPrice = Number(item.price || 0);
+                        const rawQty = Number(item.quantity || 1);
+                        const isPro = Boolean(item.pricing_unit);
+                        const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : rawQty;
+                        const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, true) : '';
+                        const measurements = Array.isArray(item.measurements) ? item.measurements : [];
+                        const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
+                        return (
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.88rem' }}>
+                            <td style={{ padding: '8px 10px', color: '#1e293b', textAlign: 'right', verticalAlign: 'top' }}>
+                              {item.description || item.name || 'פריט'}
+                              {isPro && (
+                                <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: '2px' }}>{`כמות: ${formatNum(activeQty)} ${unitLabel}`}</div>
+                              )}
+                              {measurements.length > 0 && (
+                                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>
+                                  {measurements.map((m, mi) => (
+                                    <div key={mi}>{formatMeasurementLine(m, isHebrew, formatNum)}</div>
+                                  ))}
+                                </div>
+                              )}
+                              {specRows.length > 0 && (
+                                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>
+                                  {specRows.map((s, si) => (
+                                    <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center', color: '#475569', verticalAlign: 'top' }}>{isPro ? formatNum(activeQty) : rawQty}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
+                          </tr>
+                        );
+                      })}
+                      <tr>
+                        <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`סה"כ ${section.title}`}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                      </tr>
+                    </Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-        )}
 
         {/* Attachments Section - always visible (product awareness: the customer
             should see the system supports attachments even when none exist) */}
@@ -1316,7 +1365,6 @@ export default function PublicQuote({ quoteData }) {
           open={printModalOpen}
           isHebrew={isHebrew}
           intent={printIntent}
-          isDivided={presentationModel.isDivided}
           onClose={() => setPrintModalOpen(false)}
           onChoose={handleChooseOutputMode}
         />

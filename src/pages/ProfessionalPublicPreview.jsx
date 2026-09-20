@@ -5,7 +5,6 @@ import { LIGHT, FONT_HE } from '../theme/neonTheme';
 import { classifyQuoteItems } from '../utils/professionalItemClassifier';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import CustomerQuoteItemRow from '../components/CustomerQuoteItemRow';
-import { formatQuoteFallback } from '../utils/quoteNumber';
 import { formatMoney } from '../utils/money';
 import { setSeoMeta } from '../utils/seoMeta';
 

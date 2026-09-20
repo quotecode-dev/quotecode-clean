@@ -14,7 +14,6 @@ import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
-import DividedQuoteUnits from '../components/DividedQuoteUnits';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -26,34 +25,26 @@ import DividedQuoteUnits from '../components/DividedQuoteUnits';
 // Re-confirmed 2026-09-14 (Final Smart Quote Merge + Rounding Remediation
 // task, Part 9): that task explicitly asked whether whole-money display
 // should extend to International too - the Owner confirmed HE/ILS only.
-// This file's DividedQuoteUnits usage now passes formatMoneyDisplay={formatNum}
-// explicitly (same function as always) specifically so that decision is
-// visible and auditable here, not just "unchanged because nobody touched it."
 const formatNum = (val) => formatMoney(val);
 
-// חוק ברזל (Smart Quote End-to-End Structural Unification task, Part B/O) -
-// see PublicQuote.jsx's own copy of this function for full rationale. Kept
-// as its own local adapter (not a shared render helper - matching this
-// file's own established pattern of not sharing RENDER code with the HE
-// page) but now delegates all grouping/subtotal logic to the shared,
-// canonical buildCustomerPresentationModel (quotePresentationModel.js) -
-// the same one QuoteForm.jsx's own editor board is built on - never a
-// third, independently-reimplemented grouping predicate.
-function orderPublicItemsByGroup(items, sections) {
+// Public Quote Section-Level Smart Dropdown task - see PublicQuote.jsx/HE's
+// own copy of this function for the full rationale (kept as its own local
+// adapter, matching this file's established pattern of not sharing RENDER
+// code with the HE page, but delegating all grouping/subtotal logic to the
+// shared, canonical buildCustomerPresentationModel). Returns [] for a flat
+// (non-divided) quote. "Unassigned" is the existing canonical label
+// QuoteForm.jsx already uses for this exact bucket - not invented here.
+function buildDisplaySections(items, sections) {
   const model = buildCustomerPresentationModel(items, sections);
-  if (!model.isDivided) {
-    return items.map((item, index) => ({ item, index, groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null }));
+  if (!model.isDivided) return [];
+  const display = model.units
+    .filter((u) => u.itemCount > 0)
+    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal }));
+  if (model.unassignedItems.length > 0) {
+    const subtotal = model.unassignedItems.reduce((sum, it) => sum + Number(it.total_price ?? (Number(it.quantity || 1) * Number(it.price || 0))), 0);
+    display.push({ key: '__unassigned__', title: 'Unassigned', items: model.unassignedItems, subtotal });
   }
-  const ordered = [];
-  model.units.filter((u) => u.itemCount > 0).forEach((unit) => {
-    unit.items.forEach((item, i) => {
-      ordered.push({ item, index: items.indexOf(item), groupName: unit.title, isNewGroup: i === 0, isGroupEnd: i === unit.items.length - 1, groupTotal: unit.subtotal });
-    });
-  });
-  model.unassignedItems.forEach((item) => {
-    ordered.push({ item, index: items.indexOf(item), groupName: null, isNewGroup: false, isGroupEnd: false, groupTotal: null });
-  });
-  return ordered;
+  return display;
 }
 
 const formatDisplayPhone = (phone) => {
@@ -63,18 +54,19 @@ const formatDisplayPhone = (phone) => {
 
 export default function PublicQuoteEn({ quoteData }) {
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
-  // Smart Quote End-to-End Structural Unification task, Locked Decision 10
-  // ("one quote model, many views") - see PublicQuote.jsx's own copy of
-  // this comment for full rationale. Same shared model, same reasons.
-  const presentationModel = buildCustomerPresentationModel(items, quoteSections);
+  // Public Quote Section-Level Smart Dropdown task (same rule as
+  // PublicQuote.jsx/HE - see that file's own copy of this comment for the
+  // full rationale): [] for a flat quote.
+  const displaySections = buildDisplaySections(items, quoteSections);
   const [approved, setApproved] = useState(quote.status === 'approved' || Boolean(quote.signature));
   const [signatureWarning, setSignatureWarning] = useState(false);
   const [approveToast, setApproveToast] = useState(null);
-  // Smart Quote Guided UX Completion task, Part E - customer-facing
-  // structured display: professional detail (measurements/specification)
-  // shown collapsed by default, expandable - matches PublicQuote.jsx (HE)
-  // exactly, same already-recorded Owner decision.
-  const [expandedItemDetails, setExpandedItemDetails] = useState({});
+  // Public Quote Section-Level Smart Dropdown task, supersedes the old
+  // single global smartDetailsExpanded boolean below (same rule as
+  // PublicQuote.jsx/HE - see that file's own copy of this comment for the
+  // full rationale). Keyed by section key; independent per section.
+  const [expandedSections, setExpandedSections] = useState({});
+  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // Owner-Approved Signature Record Improvement - symmetric with
   // PublicQuote.jsx (HE); see that file's comment for the full audited-gap
@@ -100,11 +92,6 @@ export default function PublicQuoteEn({ quoteData }) {
   // via an explicit Print/PDF chooser selection, never the default on
   // normal open. A regular quote keeps the existing compact default.
   const [printMode, setPrintMode] = useState('compact');
-  // Final Smart Quote Correction task - Codex P0-4 "DETERMINISTIC
-  // COMPACT/EXPANDED EXPORT": bumped on every explicit chooser selection
-  // (even a repeat of the same value) - DividedQuoteUnits resets off this,
-  // not printMode alone (React won't "change" when the value is identical).
-  const [outputModeNonce, setOutputModeNonce] = useState(0);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -121,26 +108,16 @@ export default function PublicQuoteEn({ quoteData }) {
     setPrintModalOpen(true);
   };
 
-  // Locked Decision 12 - restores QuotePrintModeModal.jsx's own long-
-  // documented, never-implemented promise (see PublicQuote.jsx's identical
-  // comment for the full rationale): a one-time, explicit set at the
-  // moment of choice, not a continuous binding - preserves the existing,
-  // already-tested per-item manual expand/collapse for ordinary on-screen
-  // browsing.
-  const buildItemDetailsMap = (allOpen) => {
-    const map = {};
-    items.forEach((item, index) => {
-      const hasMeasurements = Array.isArray(item.measurements) && item.measurements.length > 0;
-      const hasSpec = Array.isArray(item.specification) && item.specification.some((s) => s.label || s.value);
-      if (hasMeasurements || hasSpec) map[index] = allOpen;
-    });
-    return map;
-  };
-
+  // Public Quote Section-Level Smart Dropdown task (same rule as
+  // PublicQuote.jsx/HE - see that file's own copy of this comment for the
+  // full rationale): sets every section to the same open/closed state at
+  // the moment of explicit choice.
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
-    setOutputModeNonce((n) => n + 1);
-    setExpandedItemDetails(buildItemDetailsMap(mode === 'expanded'));
+    const allOpen = mode === 'expanded';
+    const map = {};
+    buildDisplaySections(items, quoteSections).forEach((s) => { map[s.key] = allOpen; });
+    setExpandedSections(map);
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
@@ -363,6 +340,26 @@ export default function PublicQuoteEn({ quoteData }) {
             padding: 10px 4px !important;
             font-size: 0.7rem !important;
             gap: 4px !important;
+          }
+          /* Public Quote Mobile 4-Column Geometry Correction task - see
+             PublicQuote.jsx (HE)'s identical comment for the full root-cause
+             rationale and design notes (Owner rejected the prior task's
+             stacked-card Mobile layout - restored the real 4-column table,
+             fixed by geometry only: a Mobile-only colgroup override +
+             tighter cell padding). Mirrored exactly. */
+          .pq-commercial-table {
+            table-layout: fixed !important;
+          }
+          .pq-col-desc { width: 40% !important; }
+          .pq-col-qty { width: 15% !important; }
+          .pq-col-price { width: 18% !important; }
+          .pq-col-total { width: 27% !important; }
+          .pq-commercial-table th,
+          .pq-commercial-table td {
+            padding: 8px 4px !important;
+          }
+          .pq-commercial-table th {
+            font-size: 0.78rem !important;
           }
         }
         /* Item 7 (Public Quote Print): .no-print (src/index.css) already
@@ -690,37 +687,30 @@ export default function PublicQuoteEn({ quoteData }) {
             so the table shrinks/wraps naturally on narrow screens instead
             of forcing a horizontal scrollbar - true composition parity,
             not just a defensive safety net that behaves differently. */}
-        {/* Smart Quote Final Visual Correction task - "ONE DISCLOSURE
-            CONTROL PER UNIT. ZERO ITEM-LEVEL DISCLOSURE CONTROLS." (same
-            rule as PublicQuote.jsx/HE, identical shared component so the
-            two files can never drift): a divided quote (Compact or
-            Expanded alike) always goes through DividedQuoteUnits - never
-            the shared regular-quote table below, so no per-item disclosure
-            control can leak into unit content. Regular quotes only keep
-            the existing table (its own Compact/Expanded per-item meaning
-            is correct and unchanged for Regular). */}
-        {presentationModel.isDivided ? (
-          <DividedQuoteUnits
-            units={presentationModel.units}
-            unassignedItems={presentationModel.unassignedItems}
-            mode={printMode}
-            resetToken={outputModeNonce}
-            isHebrew={false}
-            currencySymbol={currencySymbol}
-            formatNum={formatNum}
-            // Final Smart Quote Merge + Rounding Remediation task, Part 9 -
-            // explicitly confirmed Owner-scoped to Local/ILS only. Passed
-            // explicitly (not just relying on DividedQuoteUnits.jsx's own
-            // formatNum fallback) so this file states its own money-display
-            // law in one visible place: International always keeps full
-            // cent precision - see money.js's formatWholeMoney doc comment
-            // for why reusing it here would reintroduce a previously-fixed
-            // defect (Global Surface Audit finding I-1).
-            formatMoneyDisplay={formatNum}
-          />
-        ) : (
+        {/* Public Quote Section-Level Smart Dropdown task, EXACT Owner
+            contract (same rule as PublicQuote.jsx/HE - see that file's own
+            copy of this comment for the full rationale, kept in sync
+            manually since these two files are hand-mirrored, not shared
+            components): a flat quote (displaySections.length===0) renders
+            the plain classic table, nothing hidden. A quote with real
+            sections renders each as its own independently-collapsible
+            row-group - collapsed = one commercial-summary row per section;
+            expanded = that section's own item rows with full inline Smart
+            detail + its own subtotal footer. */}
+        {/* Public Quote Section Dropdown Column-Geometry Lock task - see
+            PublicQuote.jsx (HE)'s identical comment for the full root-cause
+            rationale (default table-layout:auto recomputing column widths
+            from whichever rows happen to be in the DOM). Fixed the same way:
+            table-layout:fixed + one explicit <colgroup>, same proportions as
+            HE, governing every row shape in this table. */}
         <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="pq-commercial-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col className="pq-col-desc" style={{ width: '40%' }} />
+            <col className="pq-col-qty" style={{ width: '18%' }} />
+            <col className="pq-col-price" style={{ width: '21%' }} />
+            <col className="pq-col-total" style={{ width: '21%' }} />
+          </colgroup>
           <thead>
             <tr style={{ background: '#f1f5f9', color: '#475569' }}>
               <th style={{ padding: '10px', textAlign: 'left' }}>Description</th>
@@ -730,71 +720,96 @@ export default function PublicQuoteEn({ quoteData }) {
             </tr>
           </thead>
           <tbody>
-            {orderPublicItemsByGroup(items || [], quoteSections).map(({ item, index: i, groupName, isNewGroup, isGroupEnd, groupTotal }) => {
-              const isPro = Boolean(item.pricing_unit);
-              const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
-              const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, false) : '';
-              const measurements = Array.isArray(item.measurements) ? item.measurements : [];
-              const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
-              const hasDetails = measurements.length > 0 || specRows.length > 0;
-              const isDetailsOpen = !!expandedItemDetails[i];
-              return (
-                <Fragment key={i}>
-                {isNewGroup && groupName && (
-                  <tr>
-                    <td colSpan="4" style={{ padding: '14px 10px 4px', fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem' }}>{groupName}</td>
+            {displaySections.length === 0 ? (
+              (items || []).map((item, i) => {
+                const isPro = Boolean(item.pricing_unit);
+                const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
+                const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, false) : '';
+                return (
+                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px 10px' }}>{item.description || 'Item'}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'center' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : item.quantity}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.price)}</span></td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span></td>
                   </tr>
-                )}
-                <tr style={{ borderBottom: hasDetails && isDetailsOpen ? 'none' : '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 10px' }}>
-                    {item.description || 'Item'}
-                    {hasDetails && (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedItemDetails((prev) => ({ ...prev, [i]: !prev[i] }))}
-                        style={{ display: 'block', marginTop: '2px', background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                      >
-                        {isDetailsOpen ? '▲ Hide details' : '▼ Show details'}
-                      </button>
-                    )}
-                  </td>
-                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : item.quantity}</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right' }}><span className="pf-money">{currencySymbol}{formatNum(item.price)}</span></td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span></td>
-                </tr>
-                {hasDetails && isDetailsOpen && (
-                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td colSpan="4" style={{ padding: '4px 10px 14px', background: '#f8fafc' }}>
-                      {measurements.length > 0 && (
-                        <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: specRows.length > 0 ? '6px' : 0 }}>
-                          {measurements.map((m, mi) => (
-                            <div key={mi}>{formatMeasurementLine(m, false, formatNum)}</div>
-                          ))}
-                        </div>
-                      )}
-                      {specRows.length > 0 && (
-                        <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                          {specRows.map((s, si) => (
-                            <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )}
-                {isGroupEnd && groupName && (
-                  <tr>
-                    <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`Total ${groupName}:`}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #f1f5f9' }}><span className="pf-money">{currencySymbol}{formatNum(groupTotal)}</span></td>
-                  </tr>
-                )}
-                </Fragment>
-              );
-            })}
+                );
+              })
+            ) : (
+              displaySections.map((section) => {
+                const isOpen = !!expandedSections[section.key];
+                const chevron = isOpen ? '▲' : '▼';
+                const toggleBtnStyle = { background: 'none', border: 'none', color: '#7c3aed', font: 'inherit', fontWeight: 800, cursor: 'pointer', padding: 0 };
+                if (!isOpen) {
+                  // Public Quote Section Summary Row Correction task (same
+                  // rule as PublicQuote.jsx/HE - see that file's own copy of
+                  // this comment for the full rationale): Quantity = real
+                  // item count (same "N item(s)" copy QuoteForm.jsx's own
+                  // UnitHeader already uses), Unit Price = "—", Total =
+                  // unchanged authoritative subtotal.
+                  const itemCount = section.items.length;
+                  return (
+                    <tr key={section.key} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 10px' }}>
+                        <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={false} style={toggleBtnStyle}>{`${section.title} ${chevron}`}</button>
+                      </td>
+                      <td style={{ padding: '12px 10px', textAlign: 'center' }}>{`${itemCount} item${itemCount === 1 ? '' : 's'}`}</td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right' }}>—</td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                    </tr>
+                  );
+                }
+                return (
+                  <Fragment key={section.key}>
+                    <tr>
+                      <td colSpan="4" style={{ padding: '14px 10px 4px' }}>
+                        <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={true} style={{ ...toggleBtnStyle, fontSize: '0.88rem' }}>{`${section.title} ${chevron}`}</button>
+                      </td>
+                    </tr>
+                    {section.items.map((item, i) => {
+                      const isPro = Boolean(item.pricing_unit);
+                      const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
+                      const unitLabel = isPro ? getProfessionalUnitLabel(item.pricing_unit, false) : '';
+                      const measurements = Array.isArray(item.measurements) ? item.measurements : [];
+                      const specRows = Array.isArray(item.specification) ? item.specification.filter((s) => s.label || s.value) : [];
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.88rem' }}>
+                          <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
+                            {item.description || 'Item'}
+                            {isPro && (
+                              <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: '2px' }}>{`Quantity: ${formatNum(activeQty)} ${unitLabel}`}</div>
+                            )}
+                            {measurements.length > 0 && (
+                              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>
+                                {measurements.map((m, mi) => (
+                                  <div key={mi}>{formatMeasurementLine(m, false, formatNum)}</div>
+                                ))}
+                              </div>
+                            )}
+                            {specRows.length > 0 && (
+                              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>
+                                {specRows.map((s, si) => (
+                                  <div key={si}>{s.label}{s.label && s.value ? ': ' : ''}{s.value}</div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'center', verticalAlign: 'top' }}>{isPro ? formatNum(activeQty) : item.quantity}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.price)}</span></td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 'bold', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span></td>
+                        </tr>
+                      );
+                    })}
+                    <tr>
+                      <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`Total ${section.title}:`}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                    </tr>
+                  </Fragment>
+                );
+              })
+            )}
           </tbody>
         </table>
         </div>
-        )}
 
         {/* Attachments Section - always visible (product awareness: the customer
             should see the system supports attachments even when none exist) */}
@@ -1074,7 +1089,6 @@ export default function PublicQuoteEn({ quoteData }) {
           open={printModalOpen}
           isHebrew={false}
           intent={printIntent}
-          isDivided={presentationModel.isDivided}
           onClose={() => setPrintModalOpen(false)}
           onChoose={handleChooseOutputMode}
         />
