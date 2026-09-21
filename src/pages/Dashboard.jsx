@@ -4488,10 +4488,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           /* MOBILE WORKSPACE PRIORITY LAW (TEKANGO_AI_ARCHITECTURE.md §44): measured 178px (21% of an 844px
              viewport) for ~38px of text - 30px top padding + a marketing tagline + 100px bottom reserve. On mobile the
              authenticated workspace keeps ONLY the accessibility link (the tagline is redundant inside the signed-in
-             app and stays on desktop), with a smaller top padding and a bottom reserve that still clears the fixed
-             bottom nav (~58px) + safe area; the AI FAB floats over the page edge, not over the centred link. */
+             app and stays on desktop), with small top/bottom padding: clearance of the fixed bottom nav is already provided ONCE by
+             .dash-main-content's padding-bottom (the single mobile bottom inset), so the old 100px footer reserve
+             was a duplicate. */
           .dash-footer {
-            padding: 4px 12px calc(44px + env(safe-area-inset-bottom, 0px)) !important;
+            padding: 4px 12px 12px !important;
             border-top: none !important;
           }
           .dash-footer-brand {
@@ -5097,7 +5098,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           /* The fixed bottom nav overlays the viewport bottom: keep the
              scroll body's last rows clear of it (the ONLY mobile bottom inset). */
           .dash-main-content {
-            padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px)) !important;
+            padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
 

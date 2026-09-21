@@ -85,6 +85,12 @@ describe('IRON NUMERIC STATIC GATE', () => {
     expect(q).not.toMatch(/<span className="pf-money">\{quoteSym\}/);
   });
 
+  it('finance expense rows use the MoneyValue slot (no bare currency+formatNum table cell)', () => {
+    const f = read('components/FinancesTab.jsx');
+    expect(f).toMatch(/<MoneyValue slot symbol=\{sym\} text=\{formatNum\(exp\.amount\)\}/);
+    expect(f).not.toMatch(/<td[^>]*>\{sym\}\{formatNum\(exp\.amount\)\}<\/td>/);
+  });
+
   it('independent flex space-between rows holding .pf-money need a documented exemption', () => {
     // Documented exemption: PublicQuoteEn totals card is ONE LTR container (English/International never RTL) - flex
     // end == physical right for every row, verified by the browser coordinate gate's totals-grid equivalent.

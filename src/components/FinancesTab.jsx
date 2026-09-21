@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import { useState } from 'react';
+import { MoneyValue, NumericValue } from './NumericValue';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
@@ -275,7 +276,7 @@ export default function FinancesTab({
                     <th style={{ padding: '6px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'סוג' : 'Type'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'תאריך' : 'Date'}</th>
-                    <th style={{ padding: '6px' }}>{t.total}</th>
+                    <th style={{ padding: '6px', textAlign: 'right' }}>{t.total}</th>
                     <th style={{ padding: '6px' }}>{t.actions}</th>
                   </tr>
                 </thead>
@@ -290,8 +291,8 @@ export default function FinancesTab({
                           {exp.is_recurring ? (isHebrew ? 'קבועה' : 'Recurring') : (isHebrew ? 'חד פעמית' : 'One-time')}
                         </span>
                       </td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.expense_date}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.red, fontWeight: '400' }}>{sym}{formatNum(exp.amount)}</td>
+                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue>{exp.expense_date}</NumericValue></td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatNum(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
                       <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <button
                           onClick={() => setEditingExpense(exp)}

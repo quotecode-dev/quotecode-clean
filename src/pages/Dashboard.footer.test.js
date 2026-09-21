@@ -14,10 +14,10 @@ describe('authenticated workspace footer (mobile compaction)', () => {
     expect(src).not.toMatch(/Assignment Statement/);
     expect(src).toMatch(/setShowAccessibility\(true\)/);
   });
-  it('hides only the marketing tagline on mobile and keeps a small bottom reserve', () => {
+  it('hides only the marketing tagline on mobile and leaves the single bottom inset to .dash-main-content', () => {
     expect(src).toMatch(/\.dash-footer-brand \{\s*display: none !important;/);
     expect(src).toMatch(/className="dash-footer-brand"/);
-    expect(src).toMatch(/\.dash-footer \{\s*padding: 4px 12px calc\(44px \+ env\(safe-area-inset-bottom, 0px\)\) !important;/);
+    expect(src).toMatch(/\.dash-footer \{\s*padding: 4px 12px 12px !important;/);
     expect(src).not.toMatch(/\.dash-footer \{\s*padding-bottom: 100px/);
   });
 });
