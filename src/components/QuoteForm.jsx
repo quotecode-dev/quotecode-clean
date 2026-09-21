@@ -67,7 +67,10 @@ export default function QuoteForm({
   quoteFiles,
   setQuoteFiles,
   allUserAttachments,
-  onWizardStateChange
+  onWizardStateChange,
+  onStageAttachmentRemoval,
+  wizardResume = null,
+  onWizardDraftChange,
 }) {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
@@ -142,6 +145,17 @@ export default function QuoteForm({
   // אין עוד משטח-עריכה נפרד/טכני שני. openEditWizard הוא ה-onEdit היחיד
   // שכל כרטיס-פריט קורא לו עכשיו.
   const [editingItemIndex, setEditingItemIndex] = useState(null);
+  // Durable drafts: re-open an unfinished wizard from a restored draft (applied once per restored draft object)
+  const [wizardResumeState, setWizardResumeState] = useState(null);
+  const wizardResumeAppliedRef = useRef(null);
+  useEffect(() => {
+    if (!wizardResume || wizardResume === wizardResumeAppliedRef.current) return;
+    wizardResumeAppliedRef.current = wizardResume;
+    setWizardSectionKey(wizardResume.wizardSectionKey ?? null);
+    setEditingItemIndex(wizardResume.editingItemIndex ?? null);
+    setWizardResumeState(wizardResume.state || null);
+    setIsAddWizardOpen(true);
+  }, [wizardResume]);
   const openAddWizard = (sectionKey = null) => { setWizardSectionKey(sectionKey); setEditingItemIndex(null); setIsAddWizardOpen(true); };
   const openEditWizard = (index) => { setEditingItemIndex(index); setIsAddWizardOpen(true); };
   const handleWizardSave = (savedItem) => {
@@ -430,12 +444,11 @@ export default function QuoteForm({
     }
   };
 
-  const removeFile = async (index) => {
+  // Durable drafts (2026-09-21): removing an EXISTING attachment is only STAGED here (Dashboard deletes the row after a
+  // fully successful Save). Cancel/reload therefore never delete an attachment from the database.
+  const removeFile = (index) => {
     const targetFile = (quoteFiles || [])[index];
-    if (targetFile && targetFile.id) {
-      const { supabase } = await import('../shared/supabase');
-      await supabase.from('quote_attachments').delete().eq('id', targetFile.id);
-    }
+    if (targetFile && targetFile.id && onStageAttachmentRemoval) onStageAttachmentRemoval(targetFile.id);
     setQuoteFiles(prev => (prev || []).filter((_, i) => i !== index));
   };
 
@@ -492,7 +505,7 @@ export default function QuoteForm({
 
       <AddItemWizard
         isOpen={isAddWizardOpen}
-        onClose={() => setIsAddWizardOpen(false)}
+        onClose={() => { setIsAddWizardOpen(false); setWizardResumeState(null); }}
         onAdd={handleWizardSave}
         editingItem={editingItemIndex != null ? items[editingItemIndex] : null}
         isHebrew={isHebrew}
@@ -505,6 +518,8 @@ export default function QuoteForm({
         recommendedMethod={recommendedPricingMethod}
         onRequestUpgrade={() => { setIsAddWizardOpen(false); setShowUpgradeConfirm('professional'); }}
         onLiveStateChange={setWizardLiveState}
+        resumeState={wizardResumeState}
+        onDraftSnapshot={(st) => { if (onWizardDraftChange) onWizardDraftChange(st ? { open: true, editingItemIndex, wizardSectionKey, state: st } : null); }}
       />
 
       {/* מודל שדרוג PRO מעוצב */}

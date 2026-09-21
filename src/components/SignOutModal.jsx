@@ -1,5 +1,5 @@
 
-export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew }) {
+export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew, hasUnsavedDraft = false }) {
   if (!isOpen) return null;
 
   return (
@@ -8,6 +8,11 @@ export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew }) {
         <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.1rem', marginBottom: '12px', fontWeight: '700' }}>
           {isHebrew ? 'האם ברצונך להתנתק מהמערכת?' : 'Are you sure you want to sign out?'}
         </h3>
+        {hasUnsavedDraft && (
+          <p data-testid="signout-unsaved-warning" style={{ color: '#b45309', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px', padding: '8px 10px', fontSize: '0.88rem', margin: '0 0 8px' }}>
+            {isHebrew ? 'יש הצעה שלא נשמרה. התנתקות תמחק אותה (ואת הטיוטה) ממכשיר זה.' : 'You have an unsaved quote. Signing out will delete it (and its local draft) from this device.'}
+          </p>
+        )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
           <button 
             onClick={onClose}

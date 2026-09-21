@@ -126,8 +126,15 @@ export default function AddItemWizard({
   onRequestUpgrade,
   recommendedMethod,
   onLiveStateChange,
+  // Durable drafts (2026-09-21): `resumeState` re-opens an UNFINISHED wizard exactly where the user left it;
+  // `onDraftSnapshot` reports every value the wizard holds (or null when closed) so it can be persisted.
+  resumeState = null,
+  onDraftSnapshot,
 }) {
   const isEditMode = !!editingItem;
+  const resumeRef = useRef(resumeState);
+  resumeRef.current = resumeState;
+  const resumeConsumedRef = useRef(false);
   const [step, setStep] = useState(STEPS.WHAT);
   const [description, setDescription] = useState('');
   const [catalogServiceId, setCatalogServiceId] = useState('');
@@ -187,7 +194,31 @@ export default function AddItemWizard({
   }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { resumeConsumedRef.current = false; return; }
+    const rs = resumeRef.current;
+    if (rs && !resumeConsumedRef.current) {
+      // restoring an unfinished wizard from a durable draft: every field, not the blank/edit defaults
+      resumeConsumedRef.current = true;
+      setDescription(rs.description ?? '');
+      setCatalogServiceId(rs.catalogServiceId ?? '');
+      setShowManualEntry(!!rs.showManualEntry);
+      setPricingMethod(rs.pricingMethod ?? null);
+      setShowMoreMethods(!!rs.showMoreMethods);
+      setWidthCm(rs.widthCm ?? '');
+      setHeightCm(rs.heightCm ?? '');
+      setExtraMeasureRows(Array.isArray(rs.extraMeasureRows) ? rs.extraMeasureRows : []);
+      setQuantity(rs.quantity ?? '1');
+      setUnitPrice(rs.unitPrice ?? '');
+      setSectionKey(rs.sectionKey ?? '');
+      setSpecRows(Array.isArray(rs.specRows) ? rs.specRows : []);
+      setShowCustomerDetails(!!rs.showCustomerDetails);
+      methodAtOpenRef.current = rs.methodAtOpen ?? null;
+      hadMeasurementRowsAtOpenRef.current = !!rs.hadMeasurementRowsAtOpen;
+      conversionConfirmedRef.current = !!rs.conversionConfirmed;
+      setStep(rs.step ?? STEPS.WHAT);
+      setErrors({});
+      return;
+    }
     if (editingItem) {
       const s = stateFromItem(editingItem, defaultSectionKey);
       setDescription(s.description);
@@ -270,6 +301,19 @@ export default function AddItemWizard({
       hasUnitPrice: Number(unitPrice) > 0,
     });
   }, [onLiveStateChange, isOpen, step, pricingMethod, widthCm, extraMeasureRows, specRows, quantity, unitPrice]);
+
+  // Durable drafts: report the FULL serializable wizard state while open (null when closed). Contains user text, so
+  // it is only ever handed to the local draft persistence, never to diagnostics/AI context.
+  useEffect(() => {
+    if (!onDraftSnapshot) return;
+    if (!isOpen) { onDraftSnapshot(null); return; }
+    onDraftSnapshot({
+      step, description, catalogServiceId, showManualEntry, pricingMethod, showMoreMethods, widthCm, heightCm, extraMeasureRows,
+      quantity, unitPrice, sectionKey, specRows, showCustomerDetails,
+      methodAtOpen: methodAtOpenRef.current, hadMeasurementRowsAtOpen: hadMeasurementRowsAtOpenRef.current, conversionConfirmed: conversionConfirmedRef.current,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, step, description, catalogServiceId, showManualEntry, pricingMethod, showMoreMethods, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, showCustomerDetails]);
 
   useEffect(() => {
     if (!isOpen) return;

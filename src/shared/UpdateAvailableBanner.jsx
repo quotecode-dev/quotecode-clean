@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { startVersionPolling } from './versionAwareness';
+import { flushAllDrafts } from '../utils/quoteDraft';
 
 // חוק ברזל (Frontend Version Awareness, Gate F, systemic remediation
 // continuation task, 2026-09-09): a small, dismissible, non-blocking
@@ -43,7 +44,7 @@ export default function UpdateAvailableBanner({ isHebrew }) {
       </span>
       <button
         type="button"
-        onClick={() => window.location.reload()}
+        onClick={() => { flushAllDrafts(); window.location.reload(); }}
         style={{
           background: '#7c3aed',
           color: 'white',

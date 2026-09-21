@@ -12,7 +12,12 @@ import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatHeaderDate } from '../utils/headerDateFormat';
-import { diagLog, diagBoot, idPrefix } from '../utils/returnDiag';
+import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
+import useQuoteDraftPersistence from '../hooks/useQuoteDraftPersistence';
+import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, formHash, newDraftId, serverFingerprintFromQuote } from '../utils/quoteDraft';
+import { getBlobStore } from '../utils/draftAttachments';
+import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
+import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import PlanIdentityBadge from '../components/PlanIdentityBadge';
 import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
@@ -643,6 +648,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     const initAuth = async () => {
       diagBoot();
+      installLifecycleDiag();
       setIsInitializing(true);
       const { data: { session } } = await supabase.auth.getSession();
       lastAccessTokenRef.current = session?.access_token;
@@ -668,6 +674,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           loadDataTriggered: !!(newSession?.user?.id && newSession.user.id !== lastLoadedUserIdRef.current),
         });
         lastAccessTokenRef.current = newSession?.access_token;
+        if (newSession?.user?.id) allowDraftWrites(newSession.user.id);
         // Returning to the app makes supabase-js re-emit SIGNED_IN for the SAME session.
         // Replacing the session object then re-ran every [session] effect (incl. a
         // history.pushState per return). Keep the existing object when user id AND access
@@ -694,6 +701,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
+        // Unexpected expiry keeps the durable draft on disk (only an EXPLICIT logout purges it, see handleSignOut).
+        // Flush now: the state update above only takes effect on the NEXT render, so the persistence hook still holds the
+        // live editor state and the last debounced edits are written before the editor is disabled.
+        flushAllDrafts();
+        diagLog('auth-event', { event, explicit: explicitLogoutRef.current });
         lastLoadedUserIdRef.current = null;
         setQuotes([]);
         setClients([]);
@@ -900,6 +912,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // שכבר נשמרו (יש sections אמיתיות => divided; אין => regular).
   const [quoteStructureMode, setQuoteStructureMode] = useState(null);
   const [projectName, setProjectName] = useState('');
+  // ---- Durable drafts (2026-09-21) ----
+  const [newDraftUuid, setNewDraftUuid] = useState(null);            // draft UUID of the current NEW-quote editor
+  const [pendingAttachmentRemovals, setPendingAttachmentRemovals] = useState([]); // existing attachments staged for removal (deleted only on successful Save)
+  const [wizardDraft, setWizardDraft] = useState(null);               // live snapshot of an unfinished item wizard
+  const [wizardResume, setWizardResume] = useState(null);             // unfinished wizard to re-open after a restore
+  const [recoveredDraftInfo, setRecoveredDraftInfo] = useState(null); // { updatedAt, mode, missingAttachments, conflictCopy }
+  const [draftConflict, setDraftConflict] = useState(null);           // { envelope, quote, label, reason }
+  const [editBaselineFingerprint, setEditBaselineFingerprint] = useState(null);
+  const [editCleanHash, setEditCleanHash] = useState(null);
+  const [draftStorageProbe, setDraftStorageProbe] = useState(null);
+  const captureCleanRef = useRef(false);
+  const restoreAttemptedForRef = useRef(null);
+  const explicitLogoutRef = useRef(false);
+  const editorOwnerRef = useRef(null);
   const [newServiceName, setNewServiceName] = useState('');
   const [newServicePrice, setNewServicePrice] = useState('');
 
@@ -2214,7 +2240,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   const handleSignOut = async () => {
+    const uid = session?.user?.id;
+    explicitLogoutRef.current = true;
+    if (uid) {
+      suppressDraftWrites(uid); // the unmounting editor must not re-write what we are about to purge
+      const { draftIds } = quoteDraft.store.purgeUser(uid);
+      await getBlobStore().purgeUser(uid);
+      diagLog('draft-purge', { outcome: 'explicit-logout', count: draftIds.length });
+    }
+    setEditingQuoteId(null);
+    setIsCreatingQuote(false);
+    resetQuoteFormFields();
+    setRecoveredDraftInfo(null);
+    setDraftConflict(null);
+    setNewDraftUuid(null);
+    restoreAttemptedForRef.current = null;
+    editorOwnerRef.current = null;
     await supabase.auth.signOut();
+    explicitLogoutRef.current = false;
   };
 
   const handleItemChange = (index, field, value) => {
@@ -2772,6 +2815,31 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
 
+  // ---- Durable local quote drafts (see src/utils/quoteDraft.js for the contract and laws) ----
+  const draftUserId = session?.user?.id || null;
+  const draftPayload = {
+    clientName, clientEmail, clientPhone, clientType, clientTaxId, clientAddress, quoteSubject, attnName, attnRole, currency,
+    quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, quoteStructureMode, projectName,
+  };
+  const quoteDraft = useQuoteDraftPersistence({
+    // never persist an editor that belongs to a DIFFERENT user than the current session (account-switch isolation)
+    enabled: showQuoteForm && !!draftUserId && (!editorOwnerRef.current || editorOwnerRef.current === draftUserId) && (editingQuoteId !== null || !!newDraftUuid),
+    userId: draftUserId,
+    businessId: settingId || null,
+    locale: isHebrew ? 'he' : 'en',
+    market: bizCountry,
+    mode: editingQuoteId ? 'edit' : 'new',
+    quoteId: editingQuoteId,
+    draftId: newDraftUuid,
+    payload: draftPayload,
+    wizard: wizardDraft,
+    files: quoteFiles,
+    pendingRemovals: pendingAttachmentRemovals,
+    baseServerFingerprint: editBaselineFingerprint,
+    cleanFormHash: editCleanHash,
+    defaults: { defaultTerms, defaultWarranty },
+  });
+
   // AI Chat workflow-awareness snapshot (Track B/C) - a small, pure,
   // derived-only-when-on-the-quote-editor-screen object; never sent for any
   // other tab, never containing client name/email/financial totals/item
@@ -2839,6 +2907,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       return;
     }
 
+    captureCleanRef.current = true; // the clean baseline hash is captured on the render right after this state batch
+    setEditBaselineFingerprint(serverFingerprintFromQuote(quote));
+    setEditCleanHash(null);
+    setPendingAttachmentRemovals([]);
+    setWizardDraft(null);
+    setWizardResume(null);
+    setRecoveredDraftInfo(null);
+    setNewDraftUuid(null);
     setEditingQuoteId(quote.id);
     setIsCreatingQuote(false);
     setClientName(quote.clients?.company_name || '');
@@ -2912,32 +2988,36 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // activeTab === 'main' (ר' showQuoteForm למטה). בלי השורה הזו, לחיצה
   // מטאב שאינו 'main' עדכנה state פנימי (isCreatingQuote) בלי לרנדר שום
   // דבר גלוי - זה היה הפער שדווח ותוקן כאן, לא מומש טופס נפרד/כפול.
+  // ONE reset for every "start clean" path (new quote / cancel / after save / logout / account switch). Previously each path
+  // re-listed the fields by hand and two of them forgot quoteStatus and quoteStructureMode (state leaked between quotes).
+  const resetQuoteFormFields = () => {
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency });
+    setClientName(pr.clientName); setClientEmail(pr.clientEmail); setClientPhone(pr.clientPhone); setClientType(pr.clientType);
+    setClientTaxId(pr.clientTaxId); setClientAddress(pr.clientAddress); setQuoteSubject(pr.quoteSubject); setAttnName(pr.attnName);
+    setAttnRole(pr.attnRole); setValidUntil(pr.validUntil); setDiscount(pr.discount); setCurrency(pr.currency);
+    setTerms(pr.terms); setWarranty(pr.warranty); setNotes(pr.notes); setQuoteFiles([]); setItems(pr.items); setSections(pr.sections);
+    setProjectName(pr.projectName); setQuoteStatus(pr.quoteStatus); setQuoteStructureMode(pr.quoteStructureMode);
+    setPendingAttachmentRemovals([]); setWizardDraft(null); setWizardResume(null); setEditBaselineFingerprint(null); setEditCleanHash(null);
+    setItemWizardState(null);
+  };
+
   const handleCreateNewQuoteClick = () => {
     setActiveTab('main');
     setIsCreatingQuote(true);
     setEditingQuoteId(null);
-    setClientName('');
-    setClientEmail('');
-    setClientPhone('');
-    setClientType('');
-    setClientTaxId('');
-    setClientAddress('');
-    setQuoteSubject('');
-    setAttnName('');
-    setAttnRole('');
-    setValidUntil('');
-    setDiscount('');
-    setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
-    setTerms(defaultTerms);
-    setWarranty(defaultWarranty);
-    setNotes('');
-    setQuoteFiles([]);
-    setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
-    setSections([]);
-    setProjectName('');
+    resetQuoteFormFields();
+    setNewDraftUuid(newDraftId());
+    setRecoveredDraftInfo(null);
   };
 
   const handleDuplicateQuote = async (quote) => {
+    setNewDraftUuid(newDraftId());
+    setPendingAttachmentRemovals([]);
+    setWizardDraft(null);
+    setWizardResume(null);
+    setRecoveredDraftInfo(null);
+    setEditBaselineFingerprint(null);
+    setEditCleanHash(null);
     setEditingQuoteId(null); 
     setIsCreatingQuote(true);
     setClientName(quote.clients?.company_name || '');
@@ -3012,27 +3092,162 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const handleCancelEdit = () => {
     setEditingQuoteId(null);
     setIsCreatingQuote(false);
-    setClientName('');
-    setClientEmail('');
-    setClientPhone('');
-    setClientType('');
-    setClientTaxId('');
-    setClientAddress('');
-    setQuoteSubject('');
-    setAttnName('');
-    setAttnRole('');
-    setValidUntil('');
-    setDiscount('');
-    setTerms(defaultTerms);
-    setWarranty(defaultWarranty);
-    setNotes('');
-    setQuoteFiles([]);
-    setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
-    setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
-    setSections([]);
-    setProjectName('');
+    resetQuoteFormFields();
+    setRecoveredDraftInfo(null);
+    setNewDraftUuid(null);
     setStatusMsg({ text: isHebrew ? 'הפעולה בוטלה.' : 'Action cancelled.', type: 'success' });
   };
+
+  // Cancel with unsaved work asks first; the durable draft is deleted ONLY after this explicit discard.
+  const requestCancelEdit = async () => {
+    if (quoteDraft.isDirty()) {
+      const msg = isHebrew ? 'יש שינויים שלא נשמרו. לבטל ולמחוק את הטיוטה?' : 'You have unsaved changes. Discard them and delete the draft?';
+      if (!window.confirm(msg)) return;
+    }
+    await quoteDraft.discard();
+    handleCancelEdit();
+  };
+
+  // ---- Durable drafts: restore / conflict handling (2026-09-21) ----
+  const draftLabelFor = (q, env) => (q ? formatQuoteFallback(q) : (env?.quoteId ? String(env.quoteId).slice(0, 8) : ''));
+
+  const applyDraftPayload = (payload) => {
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency });
+    const g = (k) => (payload && payload[k] !== undefined && payload[k] !== null ? payload[k] : pr[k]);
+    setClientName(g('clientName')); setClientEmail(g('clientEmail')); setClientPhone(g('clientPhone')); setClientType(g('clientType'));
+    setClientTaxId(g('clientTaxId')); setClientAddress(g('clientAddress')); setQuoteSubject(g('quoteSubject')); setAttnName(g('attnName'));
+    setAttnRole(g('attnRole')); setCurrency(g('currency')); setQuoteStatus(g('quoteStatus')); setValidUntil(g('validUntil')); setDiscount(g('discount'));
+    setTerms(g('terms')); setWarranty(g('warranty')); setNotes(g('notes')); setProjectName(g('projectName'));
+    setItems(Array.isArray(payload?.items) && payload.items.length ? payload.items : pr.items);
+    setSections(Array.isArray(payload?.sections) ? payload.sections : []);
+    setQuoteStructureMode(payload?.quoteStructureMode ?? null);
+  };
+
+  const openDraftEditor = async (uid, env, { quote = null, asCopy = false, copyLabel = '' } = {}) => {
+    setActiveTab('main');
+    applyDraftPayload(env.payload);
+    const blobKey = env.mode === 'edit' ? `edit-${env.quoteId}` : env.draftId;
+    let existing = [];
+    if (env.mode === 'edit' && quote && !asCopy) {
+      const { data: attData } = await supabase.from('quote_attachments').select('*').eq('quote_id', quote.id);
+      existing = (attData || []).filter((f) => !(env.pendingAttachmentRemovals || []).includes(f.id)).map((f) => ({ ...f, size: f.file_size }));
+    }
+    const { files, missing } = await getBlobStore().restoreFiles(uid, blobKey, env.pendingAttachments);
+    if (!asCopy) quoteDraft.adopt(files); // the restored files already live in IndexedDB under this draft
+    setQuoteFiles([...existing, ...files.map((x) => x.file)]);
+    setPendingAttachmentRemovals(asCopy ? [] : (env.pendingAttachmentRemovals || []));
+    if (asCopy) {
+      // never overwrite the changed saved quote: the recovered edit opens as a NEW quote (copy); the old edit-draft is retired
+      quoteDraft.store.removeFor(uid, 'edit', env.quoteId);
+      await getBlobStore().deleteDraft(uid, blobKey);
+      setEditingQuoteId(null); setIsCreatingQuote(true); setNewDraftUuid(newDraftId());
+      setEditBaselineFingerprint(null); setEditCleanHash(null);
+    } else if (env.mode === 'edit') {
+      captureCleanRef.current = false;
+      setNewDraftUuid(null); setEditingQuoteId(quote.id); setIsCreatingQuote(false);
+      setEditBaselineFingerprint(env.baseServerFingerprint); setEditCleanHash(env.cleanFormHash);
+    } else {
+      setEditingQuoteId(null); setIsCreatingQuote(true); setNewDraftUuid(env.draftId);
+      setEditBaselineFingerprint(null); setEditCleanHash(null);
+    }
+    setWizardDraft(null);
+    setWizardResume(env.wizard && env.wizard.open ? { ...env.wizard } : null);
+    setRecoveredDraftInfo({
+      updatedAt: env.updatedAt, mode: env.mode,
+      missingAttachments: [...missing.map((m) => m.name), ...(env.attachmentsPersistFailed || [])],
+      conflictCopy: asCopy ? { label: copyLabel } : null,
+    });
+  };
+
+  const runDraftRestore = async (uid) => {
+    let list;
+    try { list = quoteDraft.store.listForUser(uid); } catch { diagLog('draft-restore', { outcome: 'storage-error' }); return; }
+    const top = list[0];
+    if (!top) { diagLog('draft-restore', { outcome: 'none' }); return; }
+    const env = top.envelope;
+    const q = env.mode === 'edit' ? quotes.find((x) => x.id === env.quoteId) : null;
+    const decision = decideRestore(env, q, { immutable: !!q && isQuoteImmutable(q) });
+    diagLog('draft-restore', { outcome: decision });
+    if (decision === 'restore-new') { await openDraftEditor(uid, env); return; }
+    if (decision === 'restore-edit') { await openDraftEditor(uid, env, { quote: q }); return; }
+    setDraftConflict({ envelope: env, quote: q || null, label: draftLabelFor(q, env), reason: decision === 'conflict-changed' ? 'changed' : (q ? 'immutable' : 'missing') });
+  };
+
+  const resolveDraftConflict = async (choice) => {
+    const c = draftConflict; const uid = session?.user?.id;
+    if (!c || !uid) return;
+    setDraftConflict(null);
+    if (choice === 'review') { await openDraftEditor(uid, c.envelope, { asCopy: true, copyLabel: c.label }); diagLog('draft-restore', { outcome: 'conflict-review-copy' }); return; }
+    quoteDraft.store.removeFor(uid, 'edit', c.envelope.quoteId);
+    await getBlobStore().deleteDraft(uid, `edit-${c.envelope.quoteId}`);
+    diagLog('draft-restore', { outcome: choice === 'saved' ? 'conflict-use-saved' : 'conflict-discard' });
+    if (choice === 'saved' && c.quote && !isQuoteImmutable(c.quote)) handleEditClick(c.quote);
+  };
+
+  // Explicit discard of a restored/current draft from the banner.
+  const discardRecoveredDraft = async () => {
+    if (!window.confirm(isHebrew ? 'למחוק את הטיוטה המשוחזרת ולבטל את העריכה?' : 'Delete the recovered draft and close the editor?')) return;
+    await quoteDraft.discard();
+    handleCancelEdit();
+  };
+
+  // Restore ONLY after the authenticated identity is known and the quotes are loaded (isInitializing false), once per user.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid || isInitializing) return;
+    if (restoreAttemptedForRef.current === uid) return;
+    restoreAttemptedForRef.current = uid;
+    allowDraftWrites(uid);
+    if (showQuoteForm) return; // an editor is already open in memory (e.g. re-login after expiry): nothing to restore over it
+    runDraftRestore(uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, isInitializing]);
+
+  // Account switch on a still-mounted dashboard: never render or persist the previous user's editor for the new user.
+  useEffect(() => {
+    const uid = session?.user?.id || null;
+    if (uid && editorOwnerRef.current && editorOwnerRef.current !== uid) {
+      setEditingQuoteId(null); setIsCreatingQuote(false); resetQuoteFormFields();
+      setRecoveredDraftInfo(null); setDraftConflict(null); setNewDraftUuid(null);
+      editorOwnerRef.current = null; restoreAttemptedForRef.current = null;
+    } else if (uid && showQuoteForm) {
+      editorOwnerRef.current = uid;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, showQuoteForm]);
+
+  // TTL (30 days) + corruption sweep; also purges the IndexedDB blobs of every draft it removes.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    try {
+      const { entries } = quoteDraft.store.cleanupExpired();
+      entries.forEach((e) => getBlobStore().deleteDraft(e.userId, e.draftId));
+    } catch { /* never break the dashboard for housekeeping */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!showQuoteForm) return;
+    const r = quoteDraft.store.probe();
+    setDraftStorageProbe(r.ok ? null : r.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQuoteForm]);
+
+  // Edit mode: capture the "clean" form hash once, on the first render after the server values were loaded into the editor.
+  useEffect(() => {
+    if (captureCleanRef.current && editingQuoteId) {
+      captureCleanRef.current = false;
+      setEditCleanHash(formHash(draftPayload));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingQuoteId, editBaselineFingerprint, editCleanHash]);
+  // ...and the baseline server fingerprint when the editor started from a just-saved quote (attachment-failure path).
+  useEffect(() => {
+    if (editingQuoteId && editBaselineFingerprint === null) {
+      const q = quotes.find((x) => x.id === editingQuoteId);
+      if (q) setEditBaselineFingerprint(serverFingerprintFromQuote(q));
+    }
+  }, [editingQuoteId, editBaselineFingerprint, quotes]);
 
   async function handleSaveQuote(e) {
     e.preventDefault();
@@ -3471,9 +3686,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const msg = String(err?.message || '');
         return msg.includes('attn_name') || msg.includes('attn_role');
       };
+      // quotes.project_name (professional project identity) was READ into the editor but never WRITTEN - the value typed by
+      // the user was silently lost on every save. Same "retry without the optional column" pattern as attn_* for
+      // environments that have not applied the column yet.
+      const projectFields = { project_name: projectNameForPersist(projectName) };
+      const isMissingProjectColumnError = (err) => String(err?.message || '').includes('project_name');
 
       if (editingQuoteId) {
-        let { error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields }).eq('id', editingQuoteId);
+        let { error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields, ...projectFields }).eq('id', editingQuoteId);
+        if (updateError && isMissingProjectColumnError(updateError)) {
+          ({ error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields }).eq('id', editingQuoteId));
+        }
         if (updateError && isMissingAttnColumnError(updateError)) {
           ({ error: updateError } = await supabase.from('quotes').update(quotePayload).eq('id', editingQuoteId));
         }
@@ -3523,7 +3746,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           // מכוון: שום דבר לא צריך לקרות כאן - ר' ההסבר למעלה.
         }
 
-        let { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields }]).select();
+        let { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields, ...projectFields }]).select();
+        if (quoteError && isMissingProjectColumnError(quoteError)) {
+          ({ data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields }]).select());
+        }
         if (quoteError && isMissingAttnColumnError(quoteError)) {
           ({ data: quoteData, error: quoteError } = await supabase.from('quotes').insert([quotePayload]).select());
         }
@@ -3659,23 +3885,49 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       }
 
+      const attachmentFailures = [];
       for (let file of quoteFiles) {
         if (!file.id) {
           const fileExt = file.name.split('.').pop();
           const fileName = `${quoteId}_${Date.now()}.${fileExt}`;
           const filePath = `${session.user.id}/${fileName}`;
           const { error: uploadErr } = await supabase.storage.from('quote-files').upload(filePath, file);
-          if (!uploadErr) {
-            const { data: { publicUrl } } = supabase.storage.from('quote-files').getPublicUrl(filePath);
-            await supabase.from('quote_attachments').insert([{
-              quote_id: quoteId,
-              file_name: file.name,
-              file_url: publicUrl,
-              file_size: file.size,
-              storage_path: filePath
-            }]);
-          }
+          if (uploadErr) { attachmentFailures.push(file.name); continue; }
+          const { data: { publicUrl } } = supabase.storage.from('quote-files').getPublicUrl(filePath);
+          const { error: attInsertErr } = await supabase.from('quote_attachments').insert([{
+            quote_id: quoteId,
+            file_name: file.name,
+            file_url: publicUrl,
+            file_size: file.size,
+            storage_path: filePath
+          }]);
+          if (attInsertErr) attachmentFailures.push(file.name);
         }
+      }
+      // EXISTING attachments the user removed were only STAGED in the editor; they are deleted now, after the quote itself saved.
+      let removalFailed = false;
+      if (pendingAttachmentRemovals.length > 0) {
+        const { error: removeErr } = await supabase.from('quote_attachments').delete().in('id', pendingAttachmentRemovals).eq('quote_id', quoteId);
+        if (removeErr) removalFailed = true; else setPendingAttachmentRemovals([]);
+      }
+
+      if (attachmentFailures.length > 0 || removalFailed) {
+        // The quote IS saved, but a required stage failed: keep the draft. The editor continues on the SAVED quote (so pressing
+        // Save again cannot create a duplicate) with only the failed files still pending.
+        await quoteDraft.discard();
+        captureCleanRef.current = true;
+        setEditBaselineFingerprint(null);
+        setEditCleanHash(null);
+        setNewDraftUuid(null);
+        setIsCreatingQuote(false);
+        setEditingQuoteId(quoteId);
+        const { data: attNow } = await supabase.from('quote_attachments').select('*').eq('quote_id', quoteId);
+        setQuoteFiles([...(attNow || []).map((f) => ({ ...f, size: f.file_size })), ...quoteFiles.filter((f) => !f.id && attachmentFailures.includes(f.name))]);
+        setAlertModalMsg(isHebrew
+          ? `ההצעה נשמרה, אך חלק מהצירופים לא הושלמו${attachmentFailures.length ? ` (העלאה נכשלה: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (מחיקת צירוף קיים נכשלה)' : ''}. הטיוטה נשמרה - אפשר לנסות שוב לשמור.`
+          : `The quote was saved, but some attachment steps did not complete${attachmentFailures.length ? ` (upload failed: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (removing an existing attachment failed)' : ''}. Your draft is kept - you can try saving again.`);
+        loadData(session.user.id, session.user.email);
+        return;
       }
 
       setStatusMsg({
@@ -3693,27 +3945,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         type: 'success'
       });
       
+      await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       setEditingQuoteId(null);
       setIsCreatingQuote(false);
-      setClientName('');
-      setClientEmail('');
-      setClientPhone('');
-      setClientType('');
-      setClientTaxId('');
-      setClientAddress('');
-      setQuoteSubject('');
-    setAttnName('');
-    setAttnRole('');
-      setValidUntil('');
-      setDiscount('');
-      setTerms(defaultTerms);
-      setWarranty(defaultWarranty);
-      setNotes('');
-      setQuoteFiles([]);
-      setCurrency(isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
-      setItems([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }]);
-      setSections([]);
-      setProjectName('');
+      resetQuoteFormFields();
+      setRecoveredDraftInfo(null);
+      setNewDraftUuid(null);
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -5250,8 +5487,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         currency={currency}
       />
 
+      <DraftConflictModal conflict={draftConflict} isHebrew={isHebrew} onReview={() => resolveDraftConflict('review')} onUseSaved={() => resolveDraftConflict('saved')} onDiscard={() => resolveDraftConflict('discard')} />
+
       <SignOutModal 
         isOpen={showSignOutModal} 
+        hasUnsavedDraft={showQuoteForm && quoteDraft.isDirty()}
         onClose={() => setShowSignOutModal(false)} 
         onConfirm={() => {
           setShowSignOutModal(false);
@@ -6107,11 +6347,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           )}
 
           {activeTab === 'main' && showQuoteForm && (
+            <>
+            <DraftStorageWarning show={!!draftStorageProbe || quoteDraft.status === 'error'} reason={quoteDraft.error || draftStorageProbe} isHebrew={isHebrew} />
+            <DraftAttachmentsWarning names={quoteDraft.attachmentsWarning} isHebrew={isHebrew} />
+            <DraftRecoveredBanner info={recoveredDraftInfo} isHebrew={isHebrew} onDiscard={discardRecoveredDraft} onDismiss={() => setRecoveredDraftInfo(null)} />
             <QuoteForm
               editingQuoteId={editingQuoteId}
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
-              onCancel={handleCancelEdit}
+              onCancel={requestCancelEdit}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
               clientPhone={clientPhone} setClientPhone={setClientPhone}
@@ -6170,7 +6414,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               setQuoteFiles={setQuoteFiles}
               allUserAttachments={allUserAttachments}
               onWizardStateChange={setItemWizardState}
+              onStageAttachmentRemoval={(id) => setPendingAttachmentRemovals((prev) => (prev.includes(id) ? prev : [...prev, id]))}
+              wizardResume={wizardResume}
+              onWizardDraftChange={setWizardDraft}
             />
+            </>
           )}
 
           {activeTab === 'clients' && (
