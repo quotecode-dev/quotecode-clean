@@ -5,11 +5,11 @@ import '../../src/fonts.css';
 import '../../src/index.css';
 import QuotesTab from '../../src/components/QuotesTab';
 import { MoneyValue } from '../../src/components/NumericValue';
-import { formatNumberLocal } from '../../src/utils/regionConfig';
+import { formatMoneyForCurrency } from '../../src/utils/money';
 
 const q = new URLSearchParams(location.search);
 const isHebrew = q.get('lang') !== 'en';
-const fmt = (n) => formatNumberLocal(n, isHebrew);
+const fmt = (n) => formatMoneyForCurrency(n, isHebrew ? 'ILS' : 'USD');
 const sym = isHebrew ? '₪' : '$';
 const totals = [0, 1, 9, 10, 99, 100, 333, 1300, 10000, -1300, 9999999.99];
 // ?legacy=1 reproduces the pre-fix geometry (auto-width amount, no protected slot) to prove the gate can fail.
@@ -27,7 +27,7 @@ const props = {
   quoteSortDirection: 'desc', handleQuoteSort: noop, handleCreateNewQuoteClick: noop, handleExportQuotes: noop,
   handleEditClick: noop, handleDuplicateQuote: noop, sendWhatsApp: noop, handleDeleteQuote: noop,
   handleProtectedAction: (id, a, fn) => fn(), activeTooltip: { quoteId: null, action: null }, openDropdownId: null,
-  isHebrew, isLocalIsraeliBusiness: isHebrew, formatNum: fmt, t: { recentHistory: 'History', searchQuote: 'Search', filterStatus: 'Status' },
+  isHebrew, isLocalIsraeliBusiness: isHebrew, formatNum: fmt, formatMoneyDisplay: fmt, t: { recentHistory: 'History', searchQuote: 'Search', filterStatus: 'Status' },
   setPendingEmailQuote: noop, emailStatuses: {}, currency: isHebrew ? 'ILS' : 'USD',
 };
 createRoot(document.getElementById('root')).render(

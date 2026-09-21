@@ -155,9 +155,9 @@ html {
 .pf-money-slot {
   display: inline-block;
   box-sizing: border-box;
-  inline-size: var(--pf-money-slot-size, 7.7em);
-  min-inline-size: var(--pf-money-slot-size, 7.7em);
-  flex: 0 0 var(--pf-money-slot-size, 7.7em);
+  inline-size: var(--pf-money-slot-size, 8.4em);
+  min-inline-size: var(--pf-money-slot-size, 8.4em);
+  flex: 0 0 var(--pf-money-slot-size, 8.4em);
   direction: ltr;
   text-align: right;
   white-space: nowrap;
