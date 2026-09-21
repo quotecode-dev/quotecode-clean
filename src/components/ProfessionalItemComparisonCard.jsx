@@ -1,5 +1,5 @@
 import { LIGHT, FONT_HE } from '../theme/neonTheme';
-import { formatMoney } from '../utils/money';
+import { formatWholeMoney } from '../utils/money';
 
 // David Aluminum demo only. Renders one classified quote item as an
 // OLD (today's simple description/qty/price row) vs NEW (professional
@@ -14,7 +14,7 @@ const KIND_LABEL = { simple: 'פשוט', measured: 'נמדד', repeating: 'מד�
 // canonical formatMoney instead of an independent local reimplementation -
 // same fix pattern as CustomerQuoteItemRow.jsx/ProfessionalPublicPreview.jsx.
 function money(n) {
-  return <span className="pf-money">₪{formatMoney(n)}</span>;
+  return <span className="pf-money">₪{formatWholeMoney(n)}</span>;
 }
 
 export default function ProfessionalItemComparisonCard({ item }) {

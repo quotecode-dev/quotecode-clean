@@ -20,7 +20,7 @@ export default function ServicesCatalog({
   handleSaveEditedService,
   handleDeleteService,
   sym,
-  formatNum
+  formatMoneyDisplay
 }) {
   // חוק ברזל: החיפוש הוא סינון client-side בלבד על הנתונים שכבר נטענו
   // (services), ללא כל פנייה נוספת למסד הנתונים ובלי לשנות סכימה. מודל
@@ -179,7 +179,7 @@ export default function ServicesCatalog({
                           style={{ padding: '4px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', width: '100px', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
                         />
                       ) : (
-                        `${sym}${formatNum(svc.price)}`
+                        `${sym}${formatMoneyDisplay(svc.price)}`
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>

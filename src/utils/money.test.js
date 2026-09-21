@@ -48,3 +48,46 @@ describe('formatWholeMoney - Local/ILS whole-shekel display law (round then alwa
     expect(formatWholeMoney(2505.49)).toBe('2,505.00');
   });
 });
+
+// IRON-ILS-001 boundary matrix (Owner-locked examples + .00/.01/.49/.50/.51, negatives, large values).
+import { roundHalfUpWhole, formatMoneyForCurrency } from './money';
+
+describe('IRON-ILS-001 whole-shekel half-up boundary matrix', () => {
+  const cases = [
+    [100.0, '100.00'], [100.01, '100.00'], [100.49, '100.00'], [100.5, '101.00'], [100.51, '101.00'],
+    [191.16, '191.00'], [324.5, '325.00'], [6532.48, '6,532.00'], [28346.16, '28,346.00'],
+    [0, '0.00'], [0.49, '0.00'], [0.5, '1.00'],
+    [1234567890.5, '1,234,567,891.00'], [999999999999.49, '999,999,999,999.00'],
+    // negatives: half away from zero, never "-0.00"
+    [-100.49, '-100.00'], [-100.5, '-101.00'], [-100.51, '-101.00'], [-0.49, '0.00'], [-0.5, '-1.00'],
+    // degenerate inputs never leak NaN / -0
+    [null, '0.00'], [undefined, '0.00'], ['', '0.00'], [NaN, '0.00'], ['191.16', '191.00'],
+  ];
+  it.each(cases)('formatWholeMoney(%s) -> %s', (input, expected) => {
+    expect(formatWholeMoney(input)).toBe(expected);
+  });
+
+  it('always renders exactly two decimals, and the decimals are always 00', () => {
+    for (const v of [0.01, 1.4999, 2.5, 99.995, 12345.678, -3.3]) {
+      expect(formatWholeMoney(v)).toMatch(/\.00$/);
+    }
+  });
+
+  it('roundHalfUpWhole is exact at the double boundary (0.49999999999999994 stays 0)', () => {
+    expect(roundHalfUpWhole(0.49999999999999994)).toBe(0);
+    expect(Object.is(roundHalfUpWhole(-0.2), -0)).toBe(false);
+  });
+
+  it('formatMoneyForCurrency: ILS is whole-shekel; USD/EUR/GBP keep full precision (market isolation)', () => {
+    expect(formatMoneyForCurrency(191.16, 'ILS')).toBe('191.00');
+    expect(formatMoneyForCurrency(191.16, 'ils')).toBe('191.00');
+    expect(formatMoneyForCurrency(191.16, 'USD')).toBe('191.16');
+    expect(formatMoneyForCurrency(191.16, 'EUR')).toBe('191.16');
+    expect(formatMoneyForCurrency(191.16, 'GBP')).toBe('191.16');
+    expect(formatMoneyForCurrency(191.16, undefined)).toBe('191.16');
+  });
+
+  it('does not mutate its input', () => {
+    const v = 100.5; formatMoneyForCurrency(v, 'ILS'); expect(v).toBe(100.5);
+  });
+});

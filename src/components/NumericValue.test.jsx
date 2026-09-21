@@ -37,7 +37,7 @@ describe.each([['HE', true, '₪'], ['EN', false, '$']])('QuotesTab mobile card 
     render(<QuotesTab quotes={quotes} searchTerm="" setSearchTerm={noop} statusFilter="All" setStatusFilter={noop} quoteSortField="date" quoteSortDirection="desc"
       handleQuoteSort={noop} handleCreateNewQuoteClick={noop} handleExportQuotes={noop} handleEditClick={noop} handleDuplicateQuote={noop} sendWhatsApp={noop}
       handleDeleteQuote={noop} handleProtectedAction={noop} activeTooltip={{ quoteId: null, action: null }} openDropdownId={null} isHebrew={isHebrew}
-      isLocalIsraeliBusiness={isHebrew} formatNum={(n) => formatNumberLocal(n, isHebrew)} t={{ recentHistory: 'H', searchQuote: 'S', filterStatus: 'F' }}
+      isLocalIsraeliBusiness={isHebrew} formatNum={(n) => formatNumberLocal(n, isHebrew)} formatMoneyDisplay={(n) => formatNumberLocal(n, isHebrew)} t={{ recentHistory: 'H', searchQuote: 'S', filterStatus: 'F' }}
       setPendingEmailQuote={noop} emailStatuses={{}} currency={isHebrew ? 'ILS' : 'USD'} />);
     const slots = screen.getAllByTestId('quote-card-amount');
     expect(slots).toHaveLength(VALUES.length);

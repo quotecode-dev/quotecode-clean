@@ -5,7 +5,7 @@ import { LIGHT, FONT_HE } from '../theme/neonTheme';
 import { classifyQuoteItems } from '../utils/professionalItemClassifier';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import CustomerQuoteItemRow from '../components/CustomerQuoteItemRow';
-import { formatMoney } from '../utils/money';
+import { formatWholeMoney } from '../utils/money';
 import { setSeoMeta } from '../utils/seoMeta';
 
 // Customer-facing preview: full-quote-context comparison of the CURRENT
@@ -30,7 +30,7 @@ const VARIANTS = [
 // canonical formatMoney, same fix pattern as the other Item 30.E preview
 // files.
 function money(n) {
-  return <span className="pf-money">₪{formatMoney(n)}</span>;
+  return <span className="pf-money">₪{formatWholeMoney(n)}</span>;
 }
 
 // B+ Mobile width refinement (Owner-approved, PROFLOW_PROJECT_CONTEXT.md

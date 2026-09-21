@@ -53,6 +53,14 @@ const CURRENCY_SYMBOLS: Readonly<Record<string, string>> = { ILS: '₪', USD: '$
 function formatAmount(ctx: SanitizedQuoteContext): string {
   if (ctx.total === null) return '';
   const symbol = ctx.currency ? (CURRENCY_SYMBOLS[ctx.currency.toUpperCase()] ?? '') : '';
+  // IRON-ILS-001: ILS => nearest whole shekel (half-up away from zero) rendered with ".00"; other currencies unchanged.
+  if (ctx.currency && ctx.currency.toUpperCase() === 'ILS') {
+    const a = Math.abs(ctx.total);
+    const f = Math.floor(a);
+    const r = a - f >= 0.5 ? f + 1 : f;
+    const whole = ctx.total < 0 && r !== 0 ? -r : r;
+    return `${symbol}${whole.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
   return `${symbol}${ctx.total.toFixed(2)}`;
 }
 

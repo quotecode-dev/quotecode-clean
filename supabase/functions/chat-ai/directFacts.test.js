@@ -99,3 +99,16 @@ describe('formatDirectFactAnswer', () => {
     expect(formatDirectFactAnswer(payload, false).toLowerCase()).toContain('total amount');
   });
 });
+
+// IRON-ILS-001 - deterministic AI money facts follow the Local/ILS whole-shekel law.
+import { resolveDirectFact as __resolveIls } from './directFacts.ts';
+describe('IRON-ILS-001 directFacts amount', () => {
+  const ctx = (total, currency) => ({ total, currency, status: null, quoteNumber: null, createdAt: null, validUntil: null, itemCount: null });
+  it.each([[191.16, 'ILS', '₪191.00'], [100.5, 'ILS', '₪101.00'], [6532.48, 'ILS', '₪6,532.00'], [28346.16, 'ILS', '₪28,346.00'], [-100.5, 'ILS', '₪-101.00']])('ILS %s -> %s', (t, c, exp) => {
+    const r = __resolveIls('amount', ctx(t, c), true);
+    expect(JSON.stringify(r)).toContain(exp);
+  });
+  it('USD keeps full precision (market isolation)', () => {
+    expect(JSON.stringify(__resolveIls('amount', ctx(191.16, 'USD'), false))).toContain('$191.16');
+  });
+});

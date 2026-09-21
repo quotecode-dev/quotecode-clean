@@ -67,6 +67,7 @@ function buildProps(isHebrew, quoteOverrides = {}, handlers = {}) {
     isHebrew,
     isLocalIsraeliBusiness: isHebrew,
     formatNum: (n) => String(n),
+    formatMoneyDisplay: (n) => String(n),
     t,
     setPendingEmailQuote: vi.fn(),
     emailStatuses: {},

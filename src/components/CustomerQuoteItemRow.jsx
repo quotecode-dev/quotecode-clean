@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { LIGHT, FONT_HE } from '../theme/neonTheme';
 import { buildCustomerFriendlySpec, buildCompactSummary } from '../utils/customerFriendlySpec';
-import { formatMoney } from '../utils/money';
+import { formatWholeMoney } from '../utils/money';
 
 // David Aluminum demo only - customer-facing item row, three presentation
 // variants (A/B/C) plus 'current' (today's plain row, for baseline
@@ -16,7 +16,7 @@ import { formatMoney } from '../utils/money';
 // tabular-nums + bidi isolation), not a plain string - every call site below
 // gets correct digit rendering for free without its own JSX wrapper.
 function money(n) {
-  return <span className="pf-money">₪{formatMoney(n)}</span>;
+  return <span className="pf-money">₪{formatWholeMoney(n)}</span>;
 }
 
 // AUDIT-004: a shared, fixed-width, right-anchored money column used at

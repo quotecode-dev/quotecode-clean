@@ -204,7 +204,10 @@ serve(async (req) => {
     // formatMoney; כל שינוי עתידי ל-formatMoney חייב להיות משוכפל ידנית גם
     // לכאן. תיקון זה הוא לוקאלי בלבד בקובץ זה - הפריסה (deploy) עצמה נשארת
     // צעד עתידי נפרד, לא בוצעה בסבב הזה.
-    const displayTotal = Number(quoteRow.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // IRON-ILS-001: ILS (₪) => nearest whole shekel, half-up away from zero, always ".00"; other currencies keep full precision.
+    const rawTotal = Number(quoteRow.total || 0)
+    const wholeAbs = Math.floor(Math.abs(rawTotal)) + (Math.abs(rawTotal) - Math.floor(Math.abs(rawTotal)) >= 0.5 ? 1 : 0)
+    const displayTotal = (resolvedSym === '₪' ? (rawTotal < 0 && wholeAbs !== 0 ? -wholeAbs : wholeAbs) : rawTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
     // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
     // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור

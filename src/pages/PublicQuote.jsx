@@ -911,7 +911,7 @@ export default function PublicQuote({ quoteData }) {
               {!items || items.length === 0 ? (
                 <tr>
                   <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                    הצעת מחיר כללית בסך {formatNum(finalTotalRounded)} {currencySymbol}
+                    הצעת מחיר כללית בסך {formatWholeMoney(finalTotalRounded)} {currencySymbol}
                   </td>
                 </tr>
               ) : displaySections.length === 0 ? (
@@ -925,8 +925,8 @@ export default function PublicQuote({ quoteData }) {
                     <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
                       <td style={{ padding: '12px 10px', color: '#1e293b', textAlign: 'right' }}>{item.description || item.name || 'פריט'}</td>
                       <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{isPro ? `${formatNum(activeQty)} ${unitLabel}` : rawQty}</td>
-                      <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
-                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(itemPrice)}</span></td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(item.total_price || (rawQty * itemPrice))}</span></td>
                     </tr>
                   );
                 })
@@ -956,7 +956,7 @@ export default function PublicQuote({ quoteData }) {
                         </td>
                         <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{`${itemCount} פריטים`}</td>
                         <td style={{ padding: '12px 10px', textAlign: 'right', color: '#475569' }}>—</td>
-                        <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                        <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span></td>
                       </tr>
                     );
                   }
@@ -998,14 +998,14 @@ export default function PublicQuote({ quoteData }) {
                               )}
                             </td>
                             <td style={{ padding: '8px 10px', textAlign: 'center', color: '#475569', verticalAlign: 'top' }}>{isPro ? formatNum(activeQty) : rawQty}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(itemPrice)}</span></td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(item.total_price || (rawQty * itemPrice))}</span></td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(itemPrice)}</span></td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', verticalAlign: 'top', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(item.total_price || (rawQty * itemPrice))}</span></td>
                           </tr>
                         );
                       })}
                       <tr>
                         <td colSpan="3" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontSize: '0.82rem', borderBottom: '1px solid #f1f5f9' }}>{`סה"כ ${section.title}`}</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span></td>
                       </tr>
                     </Fragment>
                   );

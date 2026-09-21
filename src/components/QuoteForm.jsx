@@ -4,7 +4,8 @@ import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
 import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
-import { formatNumberLocal, calculateQuoteFinancials } from '../utils/regionConfig';
+import { calculateQuoteFinancials } from '../utils/regionConfig';
+import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
 import { computeItemWizardState } from '../utils/quoteWorkflowContext';
@@ -52,6 +53,7 @@ export default function QuoteForm({
   t,
   sym,
   formatNum,
+  formatMoneyDisplay,
   subtotal,
   discountAmount,
   taxAmount,
@@ -72,6 +74,8 @@ export default function QuoteForm({
   wizardResume = null,
   onWizardDraftChange,
 }) {
+  // IRON-ILS-001: money is displayed ONLY through the canonical currency-keyed path (Dashboard injects it; the fallback derives from the account market, never from UI language).
+  const fmtMoney = formatMoneyDisplay || ((v) => formatMoneyForCurrency(v, isLocalIsraeliBusiness ? 'ILS' : undefined));
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
@@ -372,15 +376,15 @@ export default function QuoteForm({
     const activeQty = getActiveQuantity(item);
     const unitPriceLabel = getProfessionalUnitLabel(item.pricing_unit, isHebrew);
     const compactCalcSummary = isPro && isMeasurable
-      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${sym}${formatNum(item.unit_price || 0)}`
-      : `${formatNum(activeQty)} × ${sym}${formatNum(item.unit_price || 0)}`;
+      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${sym}${fmtMoney(item.unit_price || 0)}`
+      : `${formatNum(activeQty)} × ${sym}${fmtMoney(item.unit_price || 0)}`;
     const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
     return (
       <CompactItemCard
         isHebrew={isHebrew}
         name={item.isFromCatalog || item.description ? item.description : (isHebrew ? '(ללא שם)' : '(unnamed)')}
         calcSummary={compactCalcSummary}
-        total={`${sym}${formatNum(activeQty * Number(item.unit_price || 0))}`}
+        total={`${sym}${fmtMoney(activeQty * Number(item.unit_price || 0))}`}
         hasSpec={compactHasSpec}
         sectionName={null}
         onExpand={() => openEditWizard(index)}
@@ -510,7 +514,7 @@ export default function QuoteForm({
         editingItem={editingItemIndex != null ? items[editingItemIndex] : null}
         isHebrew={isHebrew}
         sym={sym}
-        formatNum={formatNum}
+        formatMoneyDisplay={fmtMoney}
         services={services}
         sections={sections}
         defaultSectionKey={wizardSectionKey}
@@ -1094,7 +1098,7 @@ export default function QuoteForm({
                 key={section.key}
                 isHebrew={isHebrew}
                 sym={sym}
-                formatNum={formatNum}
+                formatMoneyDisplay={fmtMoney}
                 section={section}
                 itemCount={indices.length}
                 subtotal={computeUnitSubtotal(indices)}
@@ -1118,7 +1122,7 @@ export default function QuoteForm({
               <UnitCard
                 isHebrew={isHebrew}
                 sym={sym}
-                formatNum={formatNum}
+                formatMoneyDisplay={fmtMoney}
                 section={{ key: '__unassigned__', name: isHebrew ? 'לא משויך' : 'Unassigned' }}
                 itemCount={unassignedIndices.length}
                 subtotal={computeUnitSubtotal(unassignedIndices)}
@@ -1209,37 +1213,37 @@ export default function QuoteForm({
           {!(isLocalIsraeliBusiness && isHebrew && clientType === 'private') && (
             <>
               <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNum(subtotal)}</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
             </>
           )}
           {discount > 0 && (
             <>
               <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span>
-              <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{formatNum(discountAmount)}</span>
+              <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
             </>
           )}
           {isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (
             // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
             // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
-            // רק תוויות/סדר שונים; אין נוסחה חדשה. formatNumberLocal (לא
-            // formatNum) כדי לא לאבד אגורות (254.24, לא 254.00).
+            // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
+            // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
             <>
               <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>סכום לפני מע"מ:</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNumberLocal(totalAmount - taxAmount, isHebrew)}</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
               <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>מע"מ (18%):</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNumberLocal(taxAmount, isHebrew)}</span>
+              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
             </>
           ) : (
             isLocalIsraeliBusiness && isHebrew && (
               <>
                 <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
-                <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{formatNum(taxAmount)}</span>
+                <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
               </>
             )
           )}
           <div style={{ gridColumn: '1 / -1', marginTop: '6px' }} />
           <span style={{ ...neonGlowTextStyle, fontSize: '1rem', fontWeight: '800' }}>{t.totalAmount}</span>
-          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{formatNum(totalAmount)}</span>
+          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
         </div>
 
         {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
@@ -1421,7 +1425,7 @@ function CompactItemCard({
 // כרטיס. isUnassigned: כרטיס "לא משויך" הגלוי (Decision 8) - שם קבוע,
 // לא ניתן לשינוי-שם/הסרה (אין section אמיתית מאחוריו).
 function UnitCard({
-  isHebrew, sym, formatNum, section, itemCount, subtotal, collapsed,
+  isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
   onToggleCollapse, onRename, onRemove, onAddItem, isUnassigned, children,
 }) {
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
@@ -1456,7 +1460,7 @@ function UnitCard({
         </span>
 
         {itemCount > 0 && (
-          <span className="pf-money" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatNum(subtotal)}</span>
+          <span className="pf-money" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatMoneyDisplay(subtotal)}</span>
         )}
 
         {!isUnassigned && (

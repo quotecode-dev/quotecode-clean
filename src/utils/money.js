@@ -53,11 +53,33 @@ export const formatMoney = (value, locale = 'en-US') => {
 // exact "silently discarding cents on International" defect the Money
 // Consolidation task (Global Surface Audit finding I-1) already fixed
 // once. Do not call this from PublicQuoteEn.jsx.
+// IRON-ILS-001 canonical rounding: conventional half-up, symmetric for negatives
+// (round half AWAY from zero: 100.50 -> 101, -100.50 -> -101). `Math.round` is NOT
+// used because it rounds -100.5 toward +infinity (-100). Exact for IEEE doubles
+// (a - floor(a) is exact), so 0.49999999999999994 stays 0. Never returns -0.
+export const roundHalfUpWhole = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const a = Math.abs(n);
+  const f = Math.floor(a);
+  const r = a - f >= 0.5 ? f + 1 : f;
+  return n < 0 && r !== 0 ? -r : r;
+};
+
 export const formatWholeMoney = (value, locale = 'en-US') => {
-  const rounded = Math.round(Number(value || 0));
+  const rounded = roundHalfUpWhole(value);
   try {
     return rounded.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   } catch {
     return rounded.toFixed(2);
   }
 };
+
+// IRON-ILS-001: the ONE canonical presentation path for every displayed money amount.
+// ILS (Local/HE market) -> whole-shekel half-up with ".00"; every other currency keeps
+// the approved International full-precision rule. Keyed on a CURRENCY code (the
+// authoritative account/quote signal), never on UI language. Display only: it never
+// mutates or persists the value, and VAT/discount/base math is untouched.
+export const formatMoneyForCurrency = (value, currency, locale = 'en-US') => (
+  String(currency || '').toUpperCase() === 'ILS' ? formatWholeMoney(value, locale) : formatMoney(value, locale)
+);

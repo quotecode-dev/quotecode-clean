@@ -21,7 +21,7 @@ const baseProps = {
   editingItem: null,
   isHebrew: false,
   sym: '$',
-  formatNum: (n) => Number(n).toFixed(2),
+  formatMoneyDisplay: (n) => Number(n).toFixed(2),
   services: [],
   sections: [],
   defaultSectionKey: null,

@@ -66,6 +66,7 @@ function baseProps(overrides = {}) {
     t,
     sym: '$',
     formatNum: (n) => Number(n || 0).toFixed(2),
+    formatMoneyDisplay: (n) => Number(n || 0).toFixed(2),
     subtotal: 300, discountAmount: 0, taxAmount: 0, totalAmount: 300,
     removeItem: vi.fn(),
     handleItemChange: vi.fn(),

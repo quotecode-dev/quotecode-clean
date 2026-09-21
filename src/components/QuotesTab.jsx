@@ -104,7 +104,7 @@ export default function QuotesTab({
   openDropdownId,
   isHebrew,
   isLocalIsraeliBusiness,
-  formatNum,
+  formatMoneyDisplay,
   t,
   setPendingEmailQuote,
   emailStatuses,
@@ -857,8 +857,8 @@ export default function QuotesTab({
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
-                  <td style={{ padding: '11px 12px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}>
-                    <MoneyValue slot symbol={quoteSym} text={formatNum(quote.total)} style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }} />
+                  <td style={{ padding: '11px 12px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
+                    <MoneyValue slot symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }} />
                   </td>
                   <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }}>
                     <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '700', display: 'inline-block' }}>
@@ -965,10 +965,10 @@ export default function QuotesTab({
                     <MoneyValue
                       slot
                       symbol={quoteSym}
-                      text={formatNum(quote.total)}
+                      text={formatMoneyDisplay(quote.total, quote.currency)}
                       data-testid="quote-card-amount"
                       style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem' }}
-                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}
+                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>

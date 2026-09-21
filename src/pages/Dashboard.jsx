@@ -29,7 +29,7 @@ import { normalizeAuthError } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
-import { formatMoney } from '../utils/money';
+import { formatMoney, formatMoneyForCurrency } from '../utils/money';
 import { compareClients } from '../utils/clientSort';
 import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
@@ -73,14 +73,9 @@ import {
   MessageCircle, MoreHorizontal
 } from 'lucide-react';
 
-// חוק ברזל (Money Consolidation - Global Surface Audit finding I-1): גרסה
-// קודמת עשתה Math.round() לפני העיצוב, ומחקה בשקט אגורות/סנטים מכל מקום
-// שקורא ל-formatNum כאן (KPI הכנסות, היסטוריית הצעות, טופס יצירת הצעה,
-// קטלוג, פיננסים, ייצוא CSV, וואטסאפ) - formatNum כאן נשאר אותו שם/חתימה
-// (כדי לא לגעת בעשרות נקודות קריאה ו-props בקבצי-הבן) אבל מאציל עכשיו
-// ל-formatMoney הקנוני (utils/money.js) שאינו מעגל בכלל - האגורות/סנטים
-// נשמרים בכל מקום שמשתמש ב-formatNum הזה, כולל בעקיפין דרך props ל-
-// QuoteForm.jsx/QuotesTab.jsx/ServicesCatalog.jsx/FinancesTab.jsx.
+// IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
+// amount goes through formatMoneyDisplay (defined in the component, currency-keyed) ->
+// utils/money.js formatMoneyForCurrency: ILS => whole shekel half-up ".00"; others full precision.
 const formatNum = (val) => formatMoney(val);
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
@@ -517,6 +512,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const upperCurr = (currency || '').toUpperCase();
   const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
+  // IRON-ILS-001: single money presentation path (account market authority: Local => ILS whole-shekel .00).
+  const formatMoneyDisplay = (val, cur) => formatMoneyForCurrency(val, cur || (isLocalIsraeliBusiness ? 'ILS' : currency));
 
   // Keyed on session PRESENCE, not object identity: a token refresh (new object, same signed-in
   // state) must not push another history entry. Behavior at sign-in/sign-out is unchanged.
@@ -1907,7 +1904,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       if (isLocalIsraeliBusiness) {
         statusLabel = localStatusLabels[statusKey] || statusKey;
-        amountText = `₪${formatNum(quote.total)}`;
+        amountText = `₪${formatMoneyForCurrency(quote.total, 'ILS')}`;
         validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, true) : '';
         createdAtText = quote.created_at ? formatDateLocal(quote.created_at, true) : '';
       } else {
@@ -1917,7 +1914,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const safeCurrency = INTL_CURRENCY_SYMBOLS[quoteCurrency]
           ? quoteCurrency
           : (INTL_CURRENCY_SYMBOLS[accountCurrency] ? accountCurrency : 'USD');
-        amountText = `${INTL_CURRENCY_SYMBOLS[safeCurrency]}${formatNum(quote.total)}`;
+        amountText = `${INTL_CURRENCY_SYMBOLS[safeCurrency]}${formatMoneyForCurrency(quote.total, safeCurrency)}`;
         validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, false, safeCurrency) : '';
         createdAtText = quote.created_at ? formatDateLocal(quote.created_at, false, safeCurrency) : '';
       }
@@ -2541,8 +2538,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // PROFLOW_TODO.md item 17), ונופל בבטחה למספר ה-UUID המקוצר אחרת.
     const proposalNumberDisplay = formatQuoteFallback(proposal);
     const text = isLocalQuote
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatNum(proposal.total)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
-      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatNum(proposal.total)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
+      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
+      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
     
     const url = phoneForUrl 
       ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
@@ -2579,7 +2576,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         to: clientEmailVal,
         clientName: clientNameVal,
         quoteId: quote.id,
-        total: formatNum(quote.total),
+        total: formatMoneyForCurrency(quote.total, quoteCurr),
         currencySymbol: quoteSym,
         quoteLink: quoteLink,
         businessName: bizName,
@@ -3941,7 +3938,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           // מציגים את הסכום שבאמת נשמר (newQuoteFinancials.total) ולא את
           // totalAmount המחושב בגוף הקומפוננטה - עבור הצעה מקומית פרטית חדשה
           // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
-          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatNum(newQuoteFinancials.total)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatNum(newQuoteFinancials.total)}`),
+          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`),
         type: 'success'
       });
       
@@ -6074,7 +6071,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     {isHebrew ? 'סך הכנסות:' : 'Total Revenue:'}
                   </span>
                   <span className="pf-money" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
-                    {sym}{formatNum(totalRevenue)}
+                    {sym}{formatMoneyDisplay(totalRevenue)}
                   </span>
                 </span>
               </div>
@@ -6351,7 +6348,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 isHebrew={isHebrew}
                 isLocalIsraeliBusiness={isLocalIsraeliBusiness}
                 sym={sym}
-                formatNum={formatNum}
+                formatMoneyDisplay={formatMoneyDisplay}
                 t={t}
                 setPendingEmailQuote={setPendingEmailQuote}
                 emailStatuses={emailStatuses}
@@ -6398,6 +6395,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               t={t}
               sym={sym}
               formatNum={formatNum}
+              formatMoneyDisplay={formatMoneyDisplay}
               subtotal={subtotal}
               discountAmount={discountAmount}
               taxAmount={taxAmount}
@@ -6521,7 +6519,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               handleDeleteExpense={requestDeleteExpense}
               isHebrew={isHebrew}
               sym={sym}
-              formatNum={formatNum}
+              formatMoneyDisplay={formatMoneyDisplay}
               t={t}
             />
           )}
@@ -6545,7 +6543,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               handleSaveEditedService={handleSaveEditedService}
               handleDeleteService={requestDeleteService}
               sym={sym}
-              formatNum={formatNum}
+              formatMoneyDisplay={formatMoneyDisplay}
             />
           )}
 

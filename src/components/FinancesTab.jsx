@@ -35,7 +35,7 @@ export default function FinancesTab({
   handleDeleteExpense,
   isHebrew,
   sym,
-  formatNum,
+  formatMoneyDisplay,
   t
 }) {
   // חוק ברזל (Consolidated Open UI Corrections task, §I5): שדות-יצירת-
@@ -127,15 +127,15 @@ export default function FinancesTab({
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color="#22c55e" />{t.totalRevenue}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatNum(adminTotalRevenue)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatMoneyDisplay(adminTotalRevenue)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatNum(adminTotalExpenses)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={adminNetProfit >= 0 ? '#22c55e' : NEON.red} />{t.netProfit}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? '#22c55e' : NEON.red }}>{sym}{formatNum(adminNetProfit)}</div>
+          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? '#22c55e' : NEON.red }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function FinancesTab({
                <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
                <YAxis stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
                <Tooltip
-                 formatter={(value) => `${sym}${formatNum(value)}`}
+                 formatter={(value) => `${sym}${formatMoneyDisplay(value)}`}
                  contentStyle={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textPrimary }}
                  labelStyle={{ color: NEON.textPrimary }}
                />
@@ -292,7 +292,7 @@ export default function FinancesTab({
                         </span>
                       </td>
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue>{exp.expense_date}</NumericValue></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatNum(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
                       <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <button
                           onClick={() => setEditingExpense(exp)}

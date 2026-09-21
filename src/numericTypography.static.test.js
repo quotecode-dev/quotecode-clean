@@ -85,10 +85,10 @@ describe('IRON NUMERIC STATIC GATE', () => {
     expect(q).not.toMatch(/<span className="pf-money">\{quoteSym\}/);
   });
 
-  it('finance expense rows use the MoneyValue slot (no bare currency+formatNum table cell)', () => {
+  it('finance expense rows use the MoneyValue slot (no bare currency+formatMoneyDisplay table cell)', () => {
     const f = read('components/FinancesTab.jsx');
-    expect(f).toMatch(/<MoneyValue slot symbol=\{sym\} text=\{formatNum\(exp\.amount\)\}/);
-    expect(f).not.toMatch(/<td[^>]*>\{sym\}\{formatNum\(exp\.amount\)\}<\/td>/);
+    expect(f).toMatch(/<MoneyValue slot symbol=\{sym\} text=\{formatMoneyDisplay\(exp\.amount\)\}/);
+    expect(f).not.toMatch(/<td[^>]*>\{sym\}\{formatMoneyDisplay\(exp\.amount\)\}<\/td>/);
   });
 
   it('independent flex space-between rows holding .pf-money need a documented exemption', () => {
