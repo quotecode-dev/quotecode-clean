@@ -120,9 +120,51 @@ html {
    paired with physical text-align:'right' and a shared-width column at
    the call site, not relied upon alone. */
 .pf-money {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+/* IRON NUMERIC TYPOGRAPHY CONTRACT (numeric-typography root fix).
+   ONE contract for every comparable business numeric atom (money, totals,
+   quantities, percentages, dates, quote/order ids, KPIs):
+   - .pf-money / .pf-num : tabular + lining figures (never proportional,
+     never "pnum"), LTR-isolated atom (narrowest bidi scope - never the
+     whole Hebrew row), font family inherited from the Rubik token.
+   - .pf-money-slot : the PROTECTED PHYSICAL AXIS slot. A list of
+     independent flex rows (e.g. mobile quote cards) cannot share a numeric
+     axis by itself - under RTL an auto-width flex "end" item pins the wrong
+     physical edge and the place-value columns drift with every width
+     change. The slot has a fixed inline size (a token expressed in em (NOT ch: ch is the proportional "0" width, narrower
+     than the tabular figure, which caused overflow) so it scales with the font, sized from the realistic range: 13 characters =
+     "₪9,999,999.99" = 13 characters incl. symbol; overridable via
+     --pf-money-slot-size only with a tested exception), never shrinks/grows, is physically LEFT-to-RIGHT
+     (direction:ltr) and right-aligned, so the right edge / decimal point /
+     ones column of every row land on the same x coordinate.
+   - .pf-money--hero : hierarchy variant (Grand Total). Size/weight may
+     differ; the slot/axis MUST be the same as the sibling rows.
+   Any local override needs a documented + tested exception in
+   TEKANGO_AI_ARCHITECTURE.md (Iron Numeric Typography Law). */
+.pf-num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.pf-money-slot {
+  display: inline-block;
+  box-sizing: border-box;
+  inline-size: var(--pf-money-slot-size, 7.7em);
+  min-inline-size: var(--pf-money-slot-size, 7.7em);
+  flex: 0 0 var(--pf-money-slot-size, 7.7em);
+  direction: ltr;
+  text-align: right;
+  white-space: nowrap;
+  unicode-bidi: isolate;
+}
+.pf-money--hero {
+  font-weight: 800;
 }
 
 /* Final Money Place-Value Alignment Fix (Codex-identified root cause: a

@@ -4,6 +4,7 @@
 // ==========================================
 
 import { useState, useEffect, useRef, Fragment } from 'react';
+import { MoneyValue } from './NumericValue';
 import { formatDateLocal } from '../utils/regionConfig';
 import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
@@ -856,10 +857,8 @@ export default function QuotesTab({
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
-                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}>
-                    <div style={{ display: 'inline-block', width: '70px', textAlign: 'right', fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }}>
-                      <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
-                    </div>
+                  <td style={{ padding: '11px 12px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}>
+                    <MoneyValue slot symbol={quoteSym} text={formatNum(quote.total)} style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }} />
                   </td>
                   <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }}>
                     <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '700', display: 'inline-block' }}>
@@ -959,12 +958,18 @@ export default function QuotesTab({
                     >
                       {quote.clients?.company_name || 'N/A'}
                     </span>
-                    <span
-                      style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+                    {/* Iron Numeric Typography: the amount lives in the protected
+                        physical-axis slot (.pf-money-slot: fixed inline size,
+                        LTR, right-aligned) so ones/tens/decimal positions share
+                        one x axis on every card in HE/RTL and EN/LTR. */}
+                    <MoneyValue
+                      slot
+                      symbol={quoteSym}
+                      text={formatNum(quote.total)}
+                      data-testid="quote-card-amount"
+                      style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem' }}
                       title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatNum(row.beforeVatAmount)}` : undefined}
-                    >
-                      <span className="pf-money">{quoteSym}{formatNum(quote.total)}</span>
-                    </span>
+                    />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
