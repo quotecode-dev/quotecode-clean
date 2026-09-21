@@ -48,10 +48,21 @@ function versionManifestPlugin() {
       writeFileSync(`${outDir}/version.json`, manifest);
     },
     configureServer(server) {
+      // OWNER TEST BINDING LAW: the dev server additionally reports WHICH tree it serves (branch, worktree path, dirty
+      // flag, mode) so the Owner-visible candidate on 5186 can be proven from the running process itself. These extra
+      // fields exist ONLY in the dev-server response - never in the production build manifest.
+      const git = (args) => { try { return execSync(`git ${args}`, { encoding: 'utf-8' }).trim(); } catch { return 'unknown'; } };
+      const devManifest = JSON.stringify({
+        buildSha, buildTime,
+        branch: git('rev-parse --abbrev-ref HEAD'),
+        worktree: process.cwd(),
+        dirty: git('status --porcelain --untracked-files=no').length > 0,
+        mode: server.config.mode,
+      }, null, 2);
       server.middlewares.use('/version.json', (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-store');
-        res.end(manifest);
+        res.end(devManifest);
       });
     },
   };

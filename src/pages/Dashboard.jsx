@@ -4485,8 +4485,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
              להישאר "תקוע" מאחורי הכפתור הצף לצמיתות. גובה מדוד בפועל:
              ניווט תחתון ~58px + כפתור AI Chat יושב כ-85px מהתחתית - 100px
              נוסף מבטיח מרווח בטוח. */
+          /* MOBILE WORKSPACE PRIORITY LAW (TEKANGO_AI_ARCHITECTURE.md §44): measured 178px (21% of an 844px
+             viewport) for ~38px of text - 30px top padding + a marketing tagline + 100px bottom reserve. On mobile the
+             authenticated workspace keeps ONLY the accessibility link (the tagline is redundant inside the signed-in
+             app and stays on desktop), with a smaller top padding and a bottom reserve that still clears the fixed
+             bottom nav (~58px) + safe area; the AI FAB floats over the page edge, not over the centred link. */
           .dash-footer {
-            padding-bottom: 100px !important;
+            padding: 4px 12px calc(44px + env(safe-area-inset-bottom, 0px)) !important;
+            border-top: none !important;
+          }
+          .dash-footer-brand {
+            display: none !important;
+          }
+          .dash-footer button {
+            min-height: 32px;
           }
           /* חוק ברזל (תיקון בעלים - העברה 2): הודעת "תקופת ניסיון" נמדדה
              בפועל בגובה 67px עם flex-wrap ל-2 שורות ב-390px, כי הטקסט
@@ -5085,7 +5097,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           /* The fixed bottom nav overlays the viewport bottom: keep the
              scroll body's last rows clear of it (the ONLY mobile bottom inset). */
           .dash-main-content {
-            padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+            padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
 
@@ -6604,12 +6616,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               כי כל השרשרת ההורה כבר flex-column עם minHeight:100vh
               מ-dash-app-shell). */}
           <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '16px', marginTop: 'auto', paddingTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
-            <div style={{ marginBottom: '6px' }}>
+            <div className="dash-footer-brand" style={{ marginBottom: '6px' }}>
               {isHebrew ? <>מערכת <BrandName /> - ניהול עסק והצעות מחיר</> : <><BrandName /> - Business & Quoting SaaS Platform</>}
             </div>
             <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <AccessibilityIcon size={14} />
-              {isHebrew ? 'הצהרת נגישות' : 'Assignment Statement'}
+              {isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}
             </button>
           </footer>
         </div>
