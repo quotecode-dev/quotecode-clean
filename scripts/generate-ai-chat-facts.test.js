@@ -62,6 +62,10 @@ describe('generateAiFacts - canonical facts parity', () => {
 
   it('never claims live checkout/billing integration exists (billing-checkout-stub is a scaffold only)', () => {
     expect(facts.billing.liveCheckoutAvailable).toBe(false);
+    // OD-C2: the whole negative-capability record derives from ONE flag and never claims a payment capability
+    expect(facts.billing.paymentProcessingAvailable).toBe(facts.billing.liveCheckoutAvailable);
+    expect(facts.billing.acceptedPaymentCurrencies).toEqual([]);
+    expect(facts.billing.paymentMethodsKnown).toBe(false);
   });
 
   it('the monthly price is never silently equal to the annual-effective price presented as "the" price (the exact pre-Gate-1 defect)', () => {

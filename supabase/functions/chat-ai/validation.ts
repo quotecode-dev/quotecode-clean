@@ -9,6 +9,7 @@ import { AI_FACTS } from "./aiFacts.generated.ts";
 import { isValidQuoteId } from "./quoteContext.ts";
 import type { VerifiedAccountContext } from "./accountContext.ts";
 import { CHAT_CONTRACT_VERSION } from "../_shared/aiChatContract.ts";
+import { buildPaymentTruthBlock } from "./paymentTruth.ts";
 
 // Context-Driven AI Chat V3, §18/§19: re-exported from the one shared
 // contract module (supabase/functions/_shared/aiChatContract.ts) so every
@@ -345,21 +346,21 @@ function buildPricingBlock(isHebrew: boolean, marketUncertain: boolean = false):
     : '';
 
   if (isHebrew) {
-    return `Pricing (ISRAEL/HEBREW CONTEXT ONLY — do not use these figures for international/English users; NEVER mention $, USD, EUR, or GBP as a price or as a payment/currency option here):
+    return `Pricing (ISRAEL/HEBREW CONTEXT ONLY — do not use these figures for international/English users; NEVER mention $, USD, EUR, or GBP as a price or display currency here):
 - חינם: ${sym}0 לחודש (${AI_FACTS.quoteLimits.free} הצעות מחיר בחודש).
-- בסיסי: ${sym}${basic.monthly} לחודש בחיוב חודשי, או ${sym}${basic.annualEffectiveMonthly} לחודש בפועל (${sym}${basic.annualTotal} לשנה) בחיוב שנתי - חיסכון של כ-${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} הצעות מחיר בחודש).
-- פרו: ${sym}${pro.monthly} לחודש בחיוב חודשי, או ${sym}${pro.annualEffectiveMonthly} לחודש בפועל (${sym}${pro.annualTotal} לשנה) בחיוב שנתי - חיסכון של כ-${pro.savingsPercent}% (הצעות מחיר ללא הגבלה, WhatsApp, והעלאת קבצים/שרטוטים עד ${AI_FACTS.attachments.maxTotalMb}MB סך הכל, מקסימום ${AI_FACTS.attachments.maxFileMb}MB לקובץ).
+- בסיסי: ${sym}${basic.monthly} לחודש במסלול חודשי, או ${sym}${basic.annualEffectiveMonthly} לחודש בפועל (${sym}${basic.annualTotal} לשנה) במסלול שנתי - חיסכון של כ-${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} הצעות מחיר בחודש).
+- פרו: ${sym}${pro.monthly} לחודש במסלול חודשי, או ${sym}${pro.annualEffectiveMonthly} לחודש בפועל (${sym}${pro.annualTotal} לשנה) במסלול שנתי - חיסכון של כ-${pro.savingsPercent}% (הצעות מחיר ללא הגבלה, WhatsApp, והעלאת קבצים/שרטוטים עד ${AI_FACTS.attachments.maxTotalMb}MB סך הכל, מקסימום ${AI_FACTS.attachments.maxFileMb}MB לקובץ).
 - תקופת ניסיון חינמית של ${AI_FACTS.trialDays} יום כוללת גישה מלאה לתוכנית ה-PRO.
-- אלו מחירי תצוגה בלבד - למערכת עדיין אין תהליך תשלום/סליקה חי, ואף מסלול אינו מחויב אוטומטית כיום.${uncertaintyNoteHe}`;
+- אלו מחירי תצוגה בלבד - למערכת עדיין אין תהליך תשלום/סליקה חי (ראה PAYMENT & CHECKOUT TRUTH), ואף מסלול אינו נגבה אוטומטית כיום.${uncertaintyNoteHe}`;
   }
 
-  return `Pricing (INTERNATIONAL/ENGLISH CONTEXT ONLY — do not use these figures for Hebrew/Israeli users; NEVER mention NIS, ILS, or ₪ as a price or as a payment/currency option here):
+  return `Pricing (INTERNATIONAL/ENGLISH CONTEXT ONLY — do not use these figures for Hebrew/Israeli users; NEVER mention NIS, ILS, or ₪ as a price or display currency here):
 - Free: ${sym}0/mo (${AI_FACTS.quoteLimits.free} quotes/mo).
-- Basic: ${sym}${basic.monthly}/mo billed monthly, or ${sym}${basic.annualEffectiveMonthly}/mo effective (${sym}${basic.annualTotal}/year total) when billed annually - save ~${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} quotes/mo).
-- Pro: ${sym}${pro.monthly}/mo billed monthly, or ${sym}${pro.annualEffectiveMonthly}/mo effective (${sym}${pro.annualTotal}/year total) when billed annually - save ~${pro.savingsPercent}% (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to ${AI_FACTS.attachments.maxTotalMb}MB total, max ${AI_FACTS.attachments.maxFileMb}MB per file).
+- Basic: ${sym}${basic.monthly}/mo on the monthly plan, or ${sym}${basic.annualEffectiveMonthly}/mo effective (${sym}${basic.annualTotal}/year total) on the annual plan - save ~${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} quotes/mo).
+- Pro: ${sym}${pro.monthly}/mo on the monthly plan, or ${sym}${pro.annualEffectiveMonthly}/mo effective (${sym}${pro.annualTotal}/year total) on the annual plan - save ~${pro.savingsPercent}% (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to ${AI_FACTS.attachments.maxTotalMb}MB total, max ${AI_FACTS.attachments.maxFileMb}MB per file).
 - ${AI_FACTS.trialDays}-day free trial gives full PRO access.
-- Figures above are shown in USD; your own account's currency setting (USD, EUR, or GBP) may display different equivalent figures for your own subscription - do not assume USD is the only supported display currency. Separately, when creating your own quotes for clients, you may choose USD, EUR, or GBP as that quote's currency.
-- These are DISPLAY prices only - TEKANGO does not yet have live payment/checkout processing for any currency, so no plan is actually billed automatically today.${uncertaintyNoteEn}`;
+- Figures above are shown in USD as the DISPLAY currency; your own account's display currency setting (USD, EUR, or GBP) may show different equivalent figures - do not assume USD is the only supported display currency. Separately, when creating your own quotes for clients, you may choose USD, EUR, or GBP as that quote's display/quote currency. A display or quote currency is never a payment currency (see PAYMENT & CHECKOUT TRUTH).
+- These are DISPLAY prices only - TEKANGO does not yet have live payment/checkout processing for any currency (see PAYMENT & CHECKOUT TRUTH), so no plan is actually charged automatically today.${uncertaintyNoteEn}`;
 }
 
 // §4 (Gate 2 - "Owner decision now binding"): STRICT in both directions.
@@ -527,6 +528,8 @@ SUPPORT EMAIL RULE:
 - For Hebrew users, use: ${AI_FACTS.supportEmail.he}
 - For English users, use: ${AI_FACTS.supportEmail.en}
 
+${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing)}
+
 ${pricingBlock}
 
 FILE ATTACHMENTS FEATURE (${attachmentsScope}):
@@ -543,6 +546,7 @@ Rules:
 - "Customer Twin" does not exist in the product yet, in any form - if asked about it, say plainly that it is not currently available, never describe it as if it already exists.
 - Admin is a separate, business-owner/Super-Admin-only internal area, not something an ordinary user has access to or should be told about as if it were part of their own workspace.
 - Keep answers under 3-4 short paragraphs.
+- Payments/checkout: PAYMENT & CHECKOUT TRUTH above is authoritative - never claim or imply TEKANGO processes payments while it says otherwise.
 - DO NOT make up features.`,
     READ_ONLY_BOUNDARY,
   ];

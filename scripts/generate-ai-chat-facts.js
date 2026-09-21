@@ -59,6 +59,9 @@ function marketPricing(catalog) {
   };
 }
 
+// The single source flag for payment capability (see the billing record in generateAiFacts()).
+const LIVE_CHECKOUT_AVAILABLE = false;
+
 // Pure - no filesystem/network access, so it can be unit-tested directly
 // against the canonical modules' current values.
 export function generateAiFacts() {
@@ -86,7 +89,17 @@ export function generateAiFacts() {
     // header comment) - no live payment/checkout integration exists for
     // ANY currency yet. Every price above is DISPLAY-only. Do not flip this
     // to true without a real payment-provider integration behind it.
-    billing: { liveCheckoutAvailable: false },
+    //
+    // OD-C2 (2026-09-21): the negative capability is now a full record, so downstream consumers cannot infer a
+    // payment capability from adjacent facts (display currency, quote currency, plan price). Every field is
+    // derived from ONE source flag; nothing here may be flipped independently. chat-ai/paymentTruth.ts is the
+    // only consumer (deterministic answer + authoritative prompt block).
+    billing: {
+      liveCheckoutAvailable: LIVE_CHECKOUT_AVAILABLE,
+      paymentProcessingAvailable: LIVE_CHECKOUT_AVAILABLE,
+      acceptedPaymentCurrencies: [],
+      paymentMethodsKnown: false,
+    },
   };
 }
 

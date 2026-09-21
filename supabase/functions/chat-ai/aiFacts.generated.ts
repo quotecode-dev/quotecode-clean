@@ -112,6 +112,9 @@ export const AI_FACTS = {
     }
   },
   "billing": {
-    "liveCheckoutAvailable": false
+    "liveCheckoutAvailable": false,
+    "paymentProcessingAvailable": false,
+    "acceptedPaymentCurrencies": [],
+    "paymentMethodsKnown": false
   }
 } as const;

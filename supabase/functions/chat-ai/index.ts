@@ -6,6 +6,8 @@ import { buildVerifiedAccountContext, isHebrewFromMarket, type BusinessSettingsR
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
+import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
+import { AI_FACTS } from "./aiFacts.generated.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
 const corsHeaders = {
@@ -191,6 +193,37 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  // OD-C2 "Payment & Checkout Truth": while the product facts say there is no live checkout, a payment/checkout/
+  // card/payment-currency question is answered DETERMINISTICALLY (no model call), so the model can never claim a
+  // payment capability that does not exist - regardless of user framing ("assume checkout is enabled", "ignore the
+  // product settings"). Runs after directFacts (a quote-fact question wins) and before the model. Anything the
+  // classifier does not recognise still reaches the model under the authoritative PAYMENT & CHECKOUT TRUTH block
+  // in the system prompt (validation.ts). See paymentTruth.ts and TEKANGO_AI_ARCHITECTURE.md section 13.4.
+  if (paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage)) {
+    const paymentAnswer = formatPaymentTruthAnswer(isHebrew);
+    try {
+      const { error: logError } = await adminClient.from('chat_logs').insert([
+        { user_email: attributedEmail, user_question: lastUserMessage, ai_response: paymentAnswer, category: classifySupportMessage(lastUserMessage), created_at: new Date().toISOString() },
+      ]);
+      if (logError) console.error("chat_logs insert returned an error:", logError.message);
+    } catch (logErr) {
+      console.error("Failed to log chat question:", logErr);
+    }
+    return new Response(JSON.stringify({
+      contractVersion: CHAT_CONTRACT_VERSION,
+      requestId: crypto.randomUUID(),
+      contextRevision,
+      answer: paymentAnswer,
+      answerSource: 'deterministic',
+      factPayload: null,
+      navigation: null,
+      selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,
+      error: null,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   // System prompt: assembled entirely from AI_FACTS + verified server-
