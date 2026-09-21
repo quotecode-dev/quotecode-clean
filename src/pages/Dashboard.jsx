@@ -3591,7 +3591,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       if (existingClient) {
         clientId = existingClient.id;
-        await supabase.from('clients').update(clientPayload).eq('id', clientId);
+        // IRON-QUOTE-001: this update's error used to be silently ignored; a failed client update now aborts the save before any quote write.
+        const { error: clientUpdateError } = await supabase.from('clients').update(clientPayload).eq('id', clientId);
+        if (clientUpdateError) throw clientUpdateError;
       } else {
         const { data: newClientData, error: clientError } = await supabase.from('clients').insert([clientPayload]).select();
         if (clientError) throw clientError;
@@ -3875,9 +3877,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               return;
             }
           }
-          setAlertModalMsg(isHebrew
-            ? 'לא ניתן היה לשמור את מבנה ההצעה (יחידות/פריטים/מידות) בסביבה הנוכחית. השמירה בוטלה במלואה כדי למנוע פגיעה בנתונים - שום שינוי חלקי לא נשמר.'
-            : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The entire save was cancelled to protect data - no partial change was persisted.');
+          // IRON-QUOTE-001 (narrowed, truthful contract): the structured RPC is atomic ON ITS OWN. On a NEW quote the shell is
+          // compensated (deleted) above, so nothing remains. On an EDIT the client + quote header were already written by
+          // separate statements, so we must NOT claim "nothing was saved".
+          setAlertModalMsg(editingQuoteId
+            ? (isHebrew
+              ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
+              : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.')
+            : (isHebrew
+              ? 'לא ניתן היה לשמור את מבנה ההצעה (יחידות/פריטים/מידות) בסביבה הנוכחית. ההצעה החדשה לא נוצרה - שום שינוי חלקי לא נשמר.'
+              : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The new quote was not created - no partial quote remains.'));
           return;
         }
       }
@@ -3898,7 +3907,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             file_size: file.size,
             storage_path: filePath
           }]);
-          if (attInsertErr) attachmentFailures.push(file.name);
+          if (attInsertErr) {
+            attachmentFailures.push(file.name);
+            // IRON-QUOTE-005: compensate the just-uploaded object so a metadata failure leaves no orphan file; if the
+            // cleanup itself fails the orphan is logged (reconciliation: storage_path with no quote_attachments row).
+            const { error: orphanCleanupErr } = await supabase.storage.from('quote-files').remove([filePath]);
+            if (orphanCleanupErr) console.error('[IRON-QUOTE-005] orphan upload cleanup failed', filePath, orphanCleanupErr);
+          }
         }
       }
       // EXISTING attachments the user removed were only STAGED in the editor; they are deleted now, after the quote itself saved.
