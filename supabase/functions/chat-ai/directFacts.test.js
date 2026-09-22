@@ -112,3 +112,13 @@ describe('IRON-ILS-001 directFacts amount', () => {
     expect(JSON.stringify(__resolveIls('amount', ctx(191.16, 'USD'), false))).toContain('$191.16');
   });
 });
+
+// OD-8 (2026-09-22): EUR and GBP deterministic AI money facts keep cents and never carry ₪.
+describe('OD-8 directFacts amount - EUR / GBP', () => {
+  const ctx = (total, currency) => ({ total, currency, status: null, quoteNumber: null, createdAt: null, validUntil: null, itemCount: null });
+  it.each([[191.16, 'EUR', '€191.16'], [100.5, 'GBP', '£100.50']])('%s %s -> %s', (t, c, exp) => {
+    const out = JSON.stringify(__resolveIls('amount', ctx(t, c), false));
+    expect(out).toContain(exp);
+    expect(out).not.toContain('₪');
+  });
+});
