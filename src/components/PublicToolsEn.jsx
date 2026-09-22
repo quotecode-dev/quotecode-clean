@@ -280,7 +280,7 @@ function PublicToolsEn() {
       <header style={{ background: NEON.gradient, color: 'white', padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 'bold' }}>Business Tools & Calculators Hub</h1>
         <p style={{ fontSize: '1.05rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
-          Smart, fast, and accurate tools for businesses, importers, and freelancers – live currency, unit, precious metals, and crypto conversions.
+          Smart, fast, and accurate tools for businesses, importers, and freelancers – live currency and crypto rates, unit conversions, and indicative precious-metals estimates.
         </p>
       </header>
 
@@ -398,7 +398,7 @@ function PublicToolsEn() {
               <div>
                 <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: NEON.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Coins size={20} color={NEON.amber} />
-                  Precious Metals Value Calculator (Live Rates)
+                  Precious Metals Value Estimator (indicative, not a live metals feed)
                 </h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>

@@ -26,6 +26,7 @@ import { PRICING_CATALOG, getAnnualTotal, getSavingsPercent } from '../src/utils
 import { PLAN_CATALOG } from '../src/utils/planCatalog.js';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../src/shared/brand.js';
 import { REGION_RULES } from '../src/utils/regionConfig.js';
+import { PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, CAPABILITY_STATES } from '../src/data/productTruthRegistry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = join(__dirname, '..', 'supabase', 'functions', 'chat-ai', 'aiFacts.generated.ts');
@@ -66,6 +67,68 @@ const LIVE_CHECKOUT_AVAILABLE = false;
 // tax document is issued by TEKANGO today. Do not flip without a live, verified integration.
 const LIVE_INVOICING_AVAILABLE = false;
 const INVOICING_PROVIDER_CANDIDATE = 'PayPlus';
+
+// Product Truth Registry (TEKANGO_AI_ARCHITECTURE.md v2.5 §52) — the Edge/AI-facing PROJECTION of
+// the curated registry (src/data/productTruthRegistry.js). Plan availability is DERIVED here from
+// PLAN_CATALOG, never hand-typed on the curated entry, so a future planCatalog.js change flows
+// through automatically (same discipline as `attachments.proOnly` above). This is the ONLY place
+// a capability's plan facts are computed; capabilityTruth.ts (the Edge Function's deterministic
+// router) only ever reads this projection, never re-derives entitlement itself.
+function derivePlanAvailability(entitlementKey) {
+  if (!entitlementKey || entitlementKey === 'monthlyQuoteLimit') {
+    // No boolean plan gate (or a numeric-limit capability that is available on every plan, just
+    // with a different limit — see AI_FACTS.quoteLimits) — available on every plan.
+    return { free: true, basic: true, pro: true };
+  }
+  return {
+    free: PLAN_CATALOG.free.entitlements[entitlementKey] === true,
+    basic: PLAN_CATALOG.basic.entitlements[entitlementKey] === true,
+    pro: PLAN_CATALOG.pro.entitlements[entitlementKey] === true,
+  };
+}
+
+function minimumPlanFor(planAvailability) {
+  if (planAvailability.free) return 'free';
+  if (planAvailability.basic) return 'basic';
+  if (planAvailability.pro) return 'pro';
+  return null; // no plan grants it — only valid for a capability with a non-plan gate (e.g. role-only)
+}
+
+function projectCapability(c) {
+  const planAvailability = derivePlanAvailability(c.entitlementKey);
+  return {
+    id: c.id,
+    heLabel: c.heLabel,
+    enLabel: c.enLabel,
+    heDescription: c.heDescription,
+    enDescription: c.enDescription,
+    state: c.state,
+    markets: c.markets,
+    currencies: c.currencies,
+    planAvailability,
+    minimumPlan: c.entitlementKey ? minimumPlanFor(planAvailability) : null,
+    aiMayExplain: c.aiMayExplain,
+    aiMayNavigate: c.aiMayNavigate,
+    safeNavigationId: c.safeNavigationId,
+    aiMayClaimExecution: false,
+    forbiddenClaimCodes: c.forbiddenClaimCodes,
+    deterministicFactKeys: c.deterministicFactKeys,
+  };
+}
+
+// The 2 non-current entries whose state tracks a live source flag (payment/invoicing) — never a
+// second hand-typed boolean; state is computed from the SAME flags the `billing`/`invoicing`
+// records above use. autonomous_email/ai_mutation pass their curated ROADMAP_POST_LIVE through
+// unchanged (no source flag exists for a roadmap item).
+function projectNonCurrentCapability(c) {
+  let state = c.state || CAPABILITY_STATES.ROADMAP_POST_LIVE;
+  if (c.id === 'payment_processing') state = LIVE_CHECKOUT_AVAILABLE ? CAPABILITY_STATES.LIVE_CURRENT : CAPABILITY_STATES.UNAVAILABLE;
+  if (c.id === 'invoicing') state = LIVE_INVOICING_AVAILABLE ? CAPABILITY_STATES.LIVE_CURRENT : CAPABILITY_STATES.UNAVAILABLE;
+  return {
+    id: c.id, heLabel: c.heLabel, enLabel: c.enLabel, heDescription: c.heDescription, enDescription: c.enDescription,
+    state, forbiddenClaimCodes: c.forbiddenClaimCodes,
+  };
+}
 
 // Pure - no filesystem/network access, so it can be unit-tested directly
 // against the canonical modules' current values.
@@ -114,6 +177,11 @@ export function generateAiFacts() {
       providerCandidate: INVOICING_PROVIDER_CANDIDATE,
       providerStatus: LIVE_INVOICING_AVAILABLE ? 'live' : 'candidate_not_integrated',
     },
+    // Product Truth Registry Edge/AI projection (TEKANGO_AI_ARCHITECTURE.md v2.5 §52). Curated
+    // source: src/data/productTruthRegistry.js. capabilityTruth.ts (chat-ai) is the only runtime
+    // consumer. Do not hand-maintain a second capability table anywhere else.
+    capabilities: PRODUCT_TRUTH_REGISTRY.map(projectCapability),
+    nonCurrentCapabilities: NON_CURRENT_REGISTRY.map(projectNonCurrentCapability),
   };
 }
 

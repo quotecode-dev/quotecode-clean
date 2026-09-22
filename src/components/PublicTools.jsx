@@ -299,7 +299,7 @@ function PublicTools() {
       <header style={{ background: NEON.gradient, color: 'white', padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 'bold' }}>מרכז הכלים והמחשבונים העסקיים</h1>
         <p style={{ fontSize: '1.05rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
-          כלים חכמים, מהירים ומדויקים לעסקים, יבואנים ופרילנסרים – המרות מטבעות, מידות, מתכות יקרות וקריפטו בזמן אמת.
+          כלים חכמים, מהירים ומדויקים לעסקים, יבואנים ופרילנסרים – המרות מטבעות וקריפטו בזמן אמת, המרת מידות, והערכת שווי משוערת למתכות יקרות.
         </p>
       </header>
 
@@ -417,7 +417,7 @@ function PublicTools() {
               <div>
                 <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: NEON.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Coins size={20} color={NEON.amber} />
-                  מחשבון שווי מתכות יקרות לפי שערים חיים
+                  מחשבון הערכת שווי מתכות יקרות (הערכה משוערת, לא הזנה חיה של שער מתכות)
                 </h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>

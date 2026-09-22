@@ -9,6 +9,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, formatInvoicingTruthAnswer } from "./invoicingTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, formatCapabilityTruthAnswer } from "./capabilityTruth.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
@@ -247,6 +248,32 @@ serve(async (req) => {
     const capabilityAnswer = asksInvoicing ? formatInvoicingTruthAnswer(isHebrew) : formatPaymentTruthAnswer(isHebrew);
     await logChat(capabilityAnswer);
     return deterministicResponse(capabilityAnswer);
+  }
+
+  // PRODUCT TRUTH REGISTRY (TEKANGO_AI_ARCHITECTURE.md v2.5 section 52): a "does the product have X"
+  // question is answered DETERMINISTICALLY from the registry (no model guessing), the same pattern
+  // as payment/invoicing truth above - closes the root cause of the wrong "no calculator" answer.
+  // Runs AFTER payment/invoicing (they keep first refusal on their own questions) and before AI
+  // Help V4. A capability question with a known nav destination gets a click-required suggestion,
+  // re-validated the same way any other navigation is (navAllowed / extractNavigationAction).
+  if (capabilityTruthApplies({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })) {
+    const capabilityId = classifyCapabilityIntent(lastUserMessage);
+    if (capabilityId) {
+      const capabilityAnswer = formatCapabilityTruthAnswer(
+        capabilityId,
+        { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities },
+        isHebrew,
+        accountContext?.tier ?? null,
+      );
+      if (capabilityAnswer) {
+        const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);
+        const navSuggestion = matched?.aiMayNavigate && matched.safeNavigationId && verifiedUserId && navAllowed.includes(matched.safeNavigationId)
+          ? { action: matched.safeNavigationId, focus: null }
+          : null;
+        await logChat(capabilityAnswer);
+        return deterministicResponse(capabilityAnswer, navSuggestion);
+      }
+    }
   }
 
   // AI HELP V4: "why is this blocked / what is missing" and "is my work saved" are answered deterministically from the reconciled

@@ -11,6 +11,7 @@ import type { VerifiedAccountContext } from "./accountContext.ts";
 import { CHAT_CONTRACT_VERSION } from "../_shared/aiChatContract.ts";
 import { buildPaymentTruthBlock } from "./paymentTruth.ts";
 import { buildInvoicingTruthBlock } from "./invoicingTruth.ts";
+import { buildCapabilityTruthBlock } from "./capabilityTruth.ts";
 import { sanitizeHelpContext, TRANSCRIPT_LIMITS } from "../_shared/aiHelpContract.js";
 
 // Context-Driven AI Chat V3, §18/§19: re-exported from the one shared
@@ -541,6 +542,8 @@ ${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing)}
 
 ${buildInvoicingTruthBlock(AI_FACTS.invoicing)}
 
+${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })}
+
 ${pricingBlock}
 
 FILE ATTACHMENTS FEATURE (${attachmentsScope}):
@@ -552,7 +555,7 @@ Rules:
 - VAT: ${Math.round(AI_FACTS.vatRate.il * 100)}% automatically applied to Israeli clients, ${Math.round(AI_FACTS.vatRate.international * 100)}% to international.
 - Operations: 100% digital SaaS cloud, no physical office.
 - Support Email: ${supportEmail}
-- Cancellation: Anytime from "Business Settings". Can archive data (read-only) or delete permanently.
+- Account/subscription cancellation, data export, or permanent deletion: NOT a self-service action anywhere in Business Settings today (fresh source check found no such UI flow) - if asked, say plainly that this is not self-service in the app and the user should contact ${supportEmail} for this request. Never describe a cancel/archive/delete-account flow as existing.
 - PDF/Print: quotes can be exported as a PDF or printed directly from the quote view - this is a real, currently-working feature, both Compact and Expanded modes.
 - "Customer Twin" does not exist in the product yet, in any form - if asked about it, say plainly that it is not currently available, never describe it as if it already exists.
 - Admin is a separate, business-owner/Super-Admin-only internal area, not something an ordinary user has access to or should be told about as if it were part of their own workspace.

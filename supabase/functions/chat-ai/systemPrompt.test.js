@@ -30,9 +30,10 @@ describe('buildSystemPrompt - HE (Israel/ILS) pricing correctness', () => {
     expect(prompt).toMatch(/ניסיון/);
   });
 
-  it('explains cancellation policy', () => {
-    expect(prompt).toMatch(/Cancellation/i);
-    expect(prompt).toMatch(/Business Settings/);
+  it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {
+    expect(prompt).toMatch(/cancellation/i);
+    expect(prompt).toMatch(/NOT a self-service action/i);
+    expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
   });
 
   it('never mentions $, USD, EUR, or GBP as an actual price figure in the HE/ILS pricing block (wrong-market currency trap)', () => {
@@ -72,9 +73,10 @@ describe('buildSystemPrompt - EN (International) pricing correctness', () => {
     expect(prompt).toContain(`${AI_FACTS.trialDays}-day`);
   });
 
-  it('explains cancellation policy', () => {
-    expect(prompt).toMatch(/Cancellation/);
-    expect(prompt).toMatch(/Business Settings/);
+  it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {
+    expect(prompt).toMatch(/cancellation/i);
+    expect(prompt).toMatch(/NOT a self-service action/i);
+    expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
   });
 
   it('never mentions ₪ as an actual price figure in the EN/international pricing block (wrong-market currency trap)', () => {

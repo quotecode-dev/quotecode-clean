@@ -8,6 +8,10 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  // Read inside the mount-scoped rate-fetch effect below without making it re-run/restart the
+  // 10-minute interval on every language toggle (same non-goal as before this fix).
+  const isHebrewRef = useRef(isHebrew);
+  isHebrewRef.current = isHebrew;
 
   const [display, setDisplay] = useState('0');
   const [memory, setMemory] = useState(null);
@@ -16,6 +20,11 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
 
   const [rates, setRates] = useState({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
   const [lastUpdated, setLastUpdated] = useState('');
+  // Product Truth Registry fix (TEKANGO_AI_ARCHITECTURE.md v2.5 §52.3/§52.6): "Live (Cached)" used to
+  // be shown even when the live fetch FAILED and hardcoded fallback constants were used - neither
+  // live nor a genuine cache of a prior successful fetch. This flag makes that state truthfully
+  // distinguishable from an actually-successful live fetch.
+  const [usingFallbackRates, setUsingFallbackRates] = useState(false);
   const [calcAmount, setCalcAmount] = useState('100');
   
   const isGlobal = currency && currency !== 'ILS';
@@ -41,10 +50,12 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
           setRates(data.rates);
           const now = new Date();
           setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          setUsingFallbackRates(false);
         }
       } catch {
         setRates({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
-        setLastUpdated('Live (Cached)');
+        setLastUpdated(isHebrewRef.current ? 'שערים קבועים (לא חי)' : 'Fallback rates (not live)');
+        setUsingFallbackRates(true);
       }
     };
 
@@ -218,11 +229,13 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         <div style={{ background: 'white', borderRadius: '10px', padding: '10px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>
-              {isGlobal 
-                ? (isHebrew ? 'שערים חיים מ-$ ל: (מתעדכן כל 10 דק\')' : 'Live rates from $ to: (updates every 10 min)')
-                : (isHebrew ? 'שערים יציגים מ-₪ ל: (מתעדכן כל 10 דק\')' : 'Live rates from ₪ to: (updates every 10 min)')}
+              {usingFallbackRates
+                ? (isHebrew ? 'שערים משוערים (לא חי, מתעדכן כל 10 דק\')' : 'Indicative rates (not live, refreshes every 10 min)')
+                : isGlobal
+                  ? (isHebrew ? 'שערים חיים מ-$ ל: (מתעדכן כל 10 דק\')' : 'Live rates from $ to: (updates every 10 min)')
+                  : (isHebrew ? 'שערים יציגים מ-₪ ל: (מתעדכן כל 10 דק\')' : 'Live rates from ₪ to: (updates every 10 min)')}
             </span>
-            <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
+            <span style={{ fontSize: '0.65rem', color: usingFallbackRates ? '#b45309' : '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
