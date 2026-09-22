@@ -212,7 +212,10 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['business_settings', [/\bbusiness settings\b/i, /הגדרות עסק/]],
   ['profile_prerequisites', [/\b(business )?(phone|tax id)\s+required\b/i, /(טלפון|ח\.?פ\.?).{0,10}(חובה|נדרש)/]],
   ['plan_trial', [/\bfree trial\b/i, /ניסיון חינם/]],
-  ['admin_console', [/\badmin (console|screen|area)\b/i, /מסך ניהול/]],
+  // Found via real-browser terminal testing (super_admin persona, 2026-09-23): "פאנל הניהול" (admin
+  // PANEL) is a real, distinct synonym from "מסך ניהול" (admin SCREEN) that fell through to the
+  // general model instead of the deterministic role-gated answer.
+  ['admin_console', [/\badmin (console|screen|area|panel)\b/i, /(מסך|פאנל|אזור) (ה)?ניהול/]],
   ['dashboard_overview', [/\bdashboard\b/i, /לוח.{0,5}בקרה/]],
   ['ai_chat', [/\bwhat can (the\s+)?ai\b.{0,25}\bdo\b/i, /מה ה-?ai (יכול|עוזר)/]],
 ];

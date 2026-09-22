@@ -177,6 +177,14 @@ describe('capabilityTruthApplies / buildCapabilityTruthBlock', () => {
   });
 });
 
+describe('admin_console: "panel" is a real synonym for "screen/console" (found via real-browser terminal testing, super_admin persona, 2026-09-23)', () => {
+  it('EN "admin panel" and HE "פאנל הניהול" both classify as admin_console, not falling through to the model', () => {
+    expect(classifyCapabilityIntent('Is there an admin panel?')).toBe('admin_console');
+    expect(classifyCapabilityIntent('יש לי גישה לפאנל הניהול?')).toBe('admin_console');
+    expect(classifyCapabilityIntent('יש אזור ניהול במערכת?')).toBe('admin_console');
+  });
+});
+
 describe('DEFECT-1 PDF / PRINT ROUTER (Codex, 2026-09-22)', () => {
   it('standalone "Can I download a PDF?" (no word "quote") now classifies as quote_pdf, exact and paraphrase', () => {
     expect(classifyCapabilityIntent('Can I download a PDF?')).toBe('quote_pdf');
