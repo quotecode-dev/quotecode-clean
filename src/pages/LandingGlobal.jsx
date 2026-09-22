@@ -5,7 +5,7 @@ import BrandName from '../components/BrandName';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
 import {
-  CheckCircle2, XCircle, Star, AlertTriangle,
+  CheckCircle2, XCircle, AlertTriangle,
   Zap, PenTool, BarChart3, ChevronDown, Mail, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb, Ruler,
   FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness, MessagesSquare
@@ -60,7 +60,7 @@ export default function LandingGlobal({ onForgotPassword }) {
 
     setSeoMeta({
       title: "TEKANGO - Business & Quoting SaaS Platform",
-      description: 'TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.',
+      description: 'TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.',
       canonicalPath,
       lang: 'en',
       hreflang: [
@@ -76,7 +76,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         applicationCategory: 'BusinessApplication',
         inLanguage: 'en',
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-        description: 'A smart business management SaaS: create quotes, manage clients, get digital signatures, and automate tax calculations - built for businesses worldwide.',
+        description: 'A smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.',
       },
     });
 
@@ -116,7 +116,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   const faqs = [
     {
       q: 'Do the displayed prices include taxes?',
-      a: 'Yes! All pricing tiers are structured for international standards with clear tax breakdowns where applicable.'
+      a: 'Plan prices are shown for information in your currency. Paid plans cannot be purchased yet; if any tax applies when they launch, it will be shown clearly before you pay anything.'
     },
     {
       // Root-cause fix (Final Landing Polish task, Part A, mirrors
@@ -367,7 +367,7 @@ export default function LandingGlobal({ onForgotPassword }) {
           </h1>
 
           <p style={{ fontSize: '1.15rem', color: '#a1a1aa', maxWidth: '700px', margin: '0 auto 28px auto', lineHeight: '1.5' }}>
-            An advanced global SaaS platform tailored for modern businesses (featuring automated tax handling, digital signatures, and streamlined client management).
+            An advanced global SaaS platform tailored for modern businesses (featuring automatic quote totals, customer e-signatures, and streamlined client management).
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -423,7 +423,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '10px', padding: '18px 20px' }}>
                 <div style={{ color: '#34d399', fontWeight: '700', fontSize: '0.85rem', marginBottom: '12px' }}>With <BrandName /></div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['A polished quote ready in a minute', 'Taxes calculated automatically', 'Instant digital signature & approval', 'Every client and quote in one place'].map((t, i) => (
+                  {['A polished quote in a few simple steps', 'Totals calculated automatically', 'Clients approve and sign from their phone', 'Every client and quote in one place'].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', fontSize: '0.9rem' }}>
                       <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
                       {t}
@@ -481,12 +481,12 @@ export default function LandingGlobal({ onForgotPassword }) {
               + public_approve_quote). */}
           <div style={{ marginBottom: '60px' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>How It Works</h2>
-            <p style={{ color: '#a1a1aa', marginBottom: '30px', fontSize: '1.05rem' }}>From a blank page to a signed quote in minutes.</p>
+            <p style={{ color: '#a1a1aa', marginBottom: '30px', fontSize: '1.05rem' }}>From a blank page to a signed quote in three clear steps.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', textAlign: 'center' }}>
               {[
-                { icon: <FilePlus2 size={26} color="#a78bfa" strokeWidth={2} />, glow: 'rgba(139, 92, 246, 0.4)', bg: 'rgba(139, 92, 246, 0.12)', n: '1', title: 'Create', desc: 'Build a guided quote - a simple item, calculated by measurements, or picked from your catalog. Totals and tax update as you type.' },
+                { icon: <FilePlus2 size={26} color="#a78bfa" strokeWidth={2} />, glow: 'rgba(139, 92, 246, 0.4)', bg: 'rgba(139, 92, 246, 0.12)', n: '1', title: 'Create', desc: 'Build a guided quote - a simple item, calculated by measurements, or picked from your catalog. Totals update as you type.' },
                 { icon: <Send size={24} color="#38bdf8" strokeWidth={2.2} />, glow: 'rgba(56, 189, 248, 0.4)', bg: 'rgba(56, 189, 248, 0.12)', n: '2', title: 'Send', desc: 'Share a personal link so the client can view the polished quote on any device - no printing, no heavy attachments.' },
-                { icon: <ShieldCheck size={24} color="#34d399" strokeWidth={2.2} />, glow: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.12)', n: '3', title: 'Approve & Sign', desc: 'The client approves and signs digitally right from their phone - and you get notified instantly.' },
+                { icon: <ShieldCheck size={24} color="#34d399" strokeWidth={2.2} />, glow: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.12)', n: '3', title: 'Approve & Sign', desc: 'The client approves and signs digitally right from their phone - and the status updates in your account.' },
               ].map((step) => (
                 <div key={step.n} style={{ position: 'relative', background: '#0c0c10', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '30px 22px 24px' }}>
                   <div style={{ position: 'absolute', top: '14px', insetInlineEnd: '18px', fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.25)' }}>{step.n}</div>
@@ -549,8 +549,8 @@ export default function LandingGlobal({ onForgotPassword }) {
               <div style={{ marginBottom: '16px', background: 'rgba(251, 191, 36, 0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(251, 191, 36, 0.35)' }}>
                 <Zap size={28} color="#fbbf24" fill="#fbbf24" strokeWidth={1} />
               </div>
-              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Quotes in Minutes</h3>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Create professional, beautiful price quotes including automated tax calculations, discounts, and items from your catalog.</p>
+              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Quotes Made Simple</h3>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Create professional, beautiful price quotes including automatic totals, discounts, and items from your catalog.</p>
             </div>
 
             <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
@@ -558,7 +558,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <PenTool size={26} color="#a78bfa" strokeWidth={2.5} />
               </div>
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Digital Signatures & Approvals</h3>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Send a direct link to your client to review, digitally sign, and approve orders from any smartphone or computer.</p>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Send a direct link to your client to review, print or save as PDF, digitally sign, and approve orders from any smartphone or computer.</p>
             </div>
 
             <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
@@ -566,7 +566,7 @@ export default function LandingGlobal({ onForgotPassword }) {
                 <BarChart3 size={26} color="#34d399" strokeWidth={2.5} />
               </div>
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Income & Expense Tracking</h3>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Track business profits, manage operating expenses, and view accurate financial reports in real time.</p>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.5' }}>Track business profits, manage operating expenses, and see an up-to-date financial overview of your business.</p>
             </div>
 
             {/* §C - Professional/trade capability messaging (PROFLOW_TODO.md
@@ -702,10 +702,6 @@ export default function LandingGlobal({ onForgotPassword }) {
 
               {/* Pro / Business Plan */}
               <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '2px solid #8b5cf6', boxShadow: '0 15px 35px -8px rgba(139, 92, 246, 0.4)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-12px', right: '16px', background: NEON.gradient, color: 'white', padding: '3px 10px', borderRadius: '16px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 14px -2px rgba(236, 72, 153, 0.5)' }}>
-                  Most Popular
-                  <Star size={12} fill="currentColor" strokeWidth={0} />
-                </div>
                 <div style={{ marginBottom: '10px', color: '#c4b5fd', display: 'inline-flex', width: 'fit-content' }}><Crown size={22} fill="#c4b5fd" strokeWidth={1.5} /></div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>Pro Business Plan</h3>
                 <p style={{ color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '16px' }}>For growing agencies and businesses with no limits.</p>
@@ -812,7 +808,7 @@ export default function LandingGlobal({ onForgotPassword }) {
               task's 3-location trial-message budget (hero / pricing / FAQ). */}
           <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.14), rgba(56,189,248,0.08))', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '18px', padding: '36px 24px', maxWidth: '750px', margin: '0 auto 60px auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ffffff', margin: 0 }}>Ready to create your first quote?</h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.92rem', margin: 0 }}>A professional quote, ready in minutes.</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.92rem', margin: 0 }}>A professional quote, one clear step at a time.</p>
             <button
               className="neon-btn"
               onClick={() => navigate('/dashboard?signup=true&lang=en')}

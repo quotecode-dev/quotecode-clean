@@ -5,7 +5,7 @@ import BrandName from '../components/BrandName';
 import AIChatWidget from '../AIChatWidget';
 import AccessibilityModal from '../components/AccessibilityModal';
 import {
-  CheckCircle2, XCircle, Star, AlertTriangle,
+  CheckCircle2, XCircle, AlertTriangle,
   Zap, PenTool, BarChart3, ChevronDown, Mail, LogIn, KeyRound,
   Gift, Layers, Crown, FileText, Wallet, Users, Lightbulb, Ruler,
   FilePlus2, Send, ShieldCheck, PlayCircle, ArrowUpRight, BriefcaseBusiness, MessagesSquare
@@ -98,7 +98,7 @@ export default function LandingLocal({ onForgotPassword }) {
   const faqs = [
     {
       q: 'האם המחירים המוצגים כוללים מע"מ?',
-      a: 'כן! כל המחירים במסלולים מותאמים לשוק הישראלי וכוללים מע"מ 18% כחוק (עם פירוט הסכום לפני מע"מ).'
+      a: 'כן! כל המחירים במסלולים מותאמים לשוק הישראלי וכוללים מע"מ 18% (עם פירוט הסכום לפני מע"מ).'
     },
     {
       // Root-cause fix (Final Landing Polish task, Part A): two overlapping
@@ -313,7 +313,7 @@ export default function LandingLocal({ onForgotPassword }) {
           </h1>
 
           <p style={{ fontSize: '1.15rem', color: '#a1a1aa', maxWidth: '750px', margin: '0 auto 25px auto', lineHeight: '1.6' }}>
-            פלטפורמת SaaS מתקדמת המותאמת במיוחד לשוק הישראלי (כולל ניהול מע"מ 18% כחוק, מטבע שקלי, חתימות דיגיטליות וניהול לקוחות).
+            פלטפורמת SaaS מתקדמת המותאמת במיוחד לשוק הישראלי (כולל חישוב מע"מ 18% בהצעות, מטבע שקלי, חתימה דיגיטלית של הלקוח וניהול לקוחות).
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -370,7 +370,7 @@ export default function LandingLocal({ onForgotPassword }) {
               <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '18px 20px' }}>
                 <div style={{ color: '#34d399', fontWeight: '800', fontSize: '0.85rem', marginBottom: '12px' }}>עם <BrandName /></div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['הצעת מחיר מוכנה ומעוצבת תוך דקה', 'מע"מ 18% מחושב אוטומטית', 'חתימה דיגיטלית ואישור מיידי', 'כל הלקוחות וההצעות במקום אחד'].map((t, i) => (
+                  {['הצעת מחיר מעוצבת בכמה צעדים פשוטים', 'מע"מ 18% מחושב אוטומטית', 'הלקוח מאשר וחותם ישירות מהטלפון', 'כל הלקוחות וההצעות במקום אחד'].map((t, i) => (
                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e4e4e7', fontSize: '0.9rem' }}>
                       <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
                       {t}
@@ -427,12 +427,12 @@ export default function LandingLocal({ onForgotPassword }) {
               לא תיאור-שיווקי גנרי. */}
           <div style={{ marginBottom: '60px' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#ffffff', marginBottom: '8px' }}>איך זה עובד?</h2>
-            <p style={{ color: '#a1a1aa', marginBottom: '30px', fontSize: '1.05rem' }}>משלוש דקות עד הצעה חתומה.</p>
+            <p style={{ color: '#a1a1aa', marginBottom: '30px', fontSize: '1.05rem' }}>מהצעה ראשונה ועד חתימת הלקוח - בשלושה צעדים ברורים.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', textAlign: 'center' }}>
               {[
                 { icon: <FilePlus2 size={26} color="#a78bfa" strokeWidth={2} />, glow: 'rgba(139, 92, 246, 0.4)', bg: 'rgba(139, 92, 246, 0.12)', n: '1', title: 'יצירה', desc: 'בונים הצעה מודרכת - פריט רגיל, לפי מידות או מהקטלוג. החישוב והמע"מ מתעדכנים תוך כדי הקלדה.' },
                 { icon: <Send size={24} color="#38bdf8" strokeWidth={2.2} />, glow: 'rgba(56, 189, 248, 0.4)', bg: 'rgba(56, 189, 248, 0.12)', n: '2', title: 'שליחה', desc: 'שולחים ללקוח לינק אישי לצפייה בהצעה המעוצבת, מכל מכשיר - בלי הדפסה, בלי מייל כבד.' },
-                { icon: <ShieldCheck size={24} color="#34d399" strokeWidth={2.2} />, glow: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.12)', n: '3', title: 'אישור וחתימה', desc: 'הלקוח מאשר וחותם דיגיטלית ישירות מהטלפון - ואתם מקבלים עדכון מיידי.' },
+                { icon: <ShieldCheck size={24} color="#34d399" strokeWidth={2.2} />, glow: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.12)', n: '3', title: 'אישור וחתימה', desc: 'הלקוח מאשר וחותם דיגיטלית ישירות מהטלפון - והסטטוס מתעדכן אצלכם בחשבון.' },
               ].map((step) => (
                 <div key={step.n} style={{ position: 'relative', background: '#0c0c10', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '30px 22px 24px' }}>
                   <div style={{ position: 'absolute', top: '14px', insetInlineEnd: '18px', fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.25)' }}>{step.n}</div>
@@ -494,7 +494,7 @@ export default function LandingLocal({ onForgotPassword }) {
               <div style={{ marginBottom: '16px', background: 'rgba(251, 191, 36, 0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '14px', boxShadow: '0 0 24px -6px rgba(251, 191, 36, 0.35)' }}>
                 <Zap size={28} color="#fbbf24" fill="#fbbf24" strokeWidth={1} />
               </div>
-              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>הפקת הצעות מחיר בדקה</h3>
+              <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>הפקת הצעות מחיר בקלות</h3>
               <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>צור הצעות מחיר מקצועיות ומהודרות הכוללות חישוב מע"מ אוטומטי, הנחות ומוצרים מהקטלוג שלך.</p>
             </div>
 
@@ -503,7 +503,7 @@ export default function LandingLocal({ onForgotPassword }) {
                 <PenTool size={26} color="#a78bfa" strokeWidth={2.5} />
               </div>
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>חתימה דיגיטלית ואישור לקוח</h3>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>שלח לינק ללקוח שיוכל לצפות במסמך, לחתום דיגיטלית ולאשר את ההזמנה מכל סמארטפון או מחשב.</p>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>שלח לינק ללקוח שיוכל לצפות במסמך, להדפיס או לשמור PDF, לחתום דיגיטלית ולאשר את ההזמנה מכל סמארטפון או מחשב.</p>
             </div>
 
             <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
@@ -511,7 +511,7 @@ export default function LandingLocal({ onForgotPassword }) {
                 <BarChart3 size={26} color="#34d399" strokeWidth={2.5} />
               </div>
               <h3 style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>ניהול הכנסות והוצאות</h3>
-              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>עקוב אחר רווחי העסק, נהל הוצאות שוטפות וצפה בדוחות פיננסיים מדויקים בזמן אמת.</p>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: '1.6' }}>עקוב אחר רווחי העסק, נהל הוצאות שוטפות ווקבל תמונת מצב פיננסית עדכנית של העסק.</p>
             </div>
 
             {/* חוק ברזל (§C - Professional/trade capability messaging,
@@ -660,10 +660,6 @@ export default function LandingLocal({ onForgotPassword }) {
 
               {/* Pro / Business Plan (Highlighted) */}
               <div className="hover-card" style={{ background: '#0c0c10', padding: '28px', borderRadius: '16px', border: '2px solid #8b5cf6', boxShadow: '0 15px 35px -8px rgba(139, 92, 246, 0.4)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-12px', right: '20px', background: NEON_GRADIENT, color: 'white', padding: '3px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 14px -2px rgba(236, 72, 153, 0.5)' }}>
-                  הפופולרי ביותר
-                  <Star size={12} fill="currentColor" strokeWidth={0} />
-                </div>
                 <div style={{ marginBottom: '10px', color: '#c4b5fd', display: 'inline-flex', width: 'fit-content' }}><Crown size={22} fill="#c4b5fd" strokeWidth={1.5} /></div>
                 <h3 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px', fontWeight: '700' }}>מסלול עסקי (Pro)</h3>
                 <p style={{ color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '16px' }}>לסוכנויות ועסקים צומחים ללא מגבלות.</p>
@@ -776,7 +772,7 @@ export default function LandingLocal({ onForgotPassword }) {
               outcome - no trial-duration mention. */}
           <div style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.14), rgba(56,189,248,0.08))', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '18px', padding: '36px 24px', maxWidth: '750px', margin: '0 auto 60px auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ffffff', margin: 0 }}>מוכנים ליצור את ההצעה הראשונה שלכם?</h2>
-            <p style={{ color: '#a1a1aa', fontSize: '0.92rem', margin: 0 }}>הצעה מקצועית, מוכנה תוך דקות.</p>
+            <p style={{ color: '#a1a1aa', fontSize: '0.92rem', margin: 0 }}>הצעה מקצועית וברורה - צעד אחר צעד.</p>
             <button
               className="neon-btn"
               onClick={() => navigate('/dashboard?signup=true&lang=he')}

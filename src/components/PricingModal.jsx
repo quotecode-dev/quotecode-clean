@@ -4,7 +4,8 @@
 // ==========================================
 
 import { useState } from 'react';
-import { X, Rocket, Star, CheckCircle2, XCircle } from 'lucide-react';
+import { X, Rocket, CheckCircle2, XCircle } from 'lucide-react';
+import { PRICING_CATALOG, getSavingsPercent } from '../utils/pricingCatalog';
 import Toast from './Toast';
 import BrandName from './BrandName';
 
@@ -19,11 +20,15 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const planSym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
 
   // חישוב מחירים דינמי לפי המטבע בפועל
-  const basicMonthlyNum = isLocalIsraeliBusiness ? 49 : (upperCurr === 'EUR' ? 35 : upperCurr === 'GBP' ? 30 : 39);
-  const basicYearlyMonthlyNum = isLocalIsraeliBusiness ? 39 : (upperCurr === 'EUR' ? 28 : upperCurr === 'GBP' ? 24 : 29);
-  
-  const proMonthlyNum = isLocalIsraeliBusiness ? 99 : (upperCurr === 'EUR' ? 79 : upperCurr === 'GBP' ? 69 : 89);
-  const proYearlyMonthlyNum = isLocalIsraeliBusiness ? 79 : (upperCurr === 'EUR' ? 62 : upperCurr === 'GBP' ? 55 : 69);
+  // Phase J (2026-09-22): the in-app comparison uses the ONE canonical price catalog (the landing pages use the same one). The previous
+  // hard-coded International numbers here (e.g. Basic $39 / Pro $89) contradicted the published landing prices ($15 / $29).
+  const tier = isLocalIsraeliBusiness ? PRICING_CATALOG.il
+    : (upperCurr === 'EUR' ? PRICING_CATALOG.global.eur : upperCurr === 'GBP' ? PRICING_CATALOG.global.gbp : PRICING_CATALOG.global.usd);
+  const basicMonthlyNum = tier.basic.monthly;
+  const basicYearlyMonthlyNum = tier.basic.annualMonthly;
+
+  const proMonthlyNum = tier.pro.monthly;
+  const proYearlyMonthlyNum = tier.pro.annualMonthly;
 
   const basicMonthlyPrice = `${planSym}${basicMonthlyNum}`;
   const basicYearlyMonthlyPrice = `${planSym}${basicYearlyMonthlyNum}`;
@@ -71,7 +76,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                     border: 'none', padding: '6px 16px', borderRadius: '20px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px'
                   }}
                 >
-                  {isHebrew ? 'חיוב שנתי (חודשיים מתנה! 20% הנחה)' : 'Yearly Billing (2 Months Free!)'}
+                  {isHebrew ? 'מסלול שנתי (חיסכון לעומת חודשי)' : 'Annual plan (save vs monthly)'}
                 </button>
               </div>
             </div>
@@ -92,7 +97,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 </div>
                 {billingCycle === 'yearly' && (
                   <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '700', marginBottom: '10px' }}>
-                    {isHebrew ? 'חיוב שנתי (חסוך 20% בשנה)' : 'Billed annually (Save 20%)'}
+                    {isHebrew ? `במסלול שנתי (חיסכון ${getSavingsPercent(tier.basic.monthly, tier.basic.annualMonthly)}%)` : `On the annual plan (save ${getSavingsPercent(tier.basic.monthly, tier.basic.annualMonthly)}%)`}
                   </div>
                 )}
                 
@@ -106,10 +111,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
               {/* PRO Plan */}
               <div style={{ border: '2px solid #4f46e5', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', background: 'white', boxShadow: '0 8px 12px -2px rgba(79, 70, 229, 0.1)' }}>
-                <div style={{ background: '#4f46e5', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Star size={11} fill="currentColor" />
-                  {isHebrew ? 'הפופולרי ביותר' : 'POPULAR'}
-                </div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '1.1rem' }}>{isHebrew ? 'מסלול עסקי (Pro)' : 'PRO Plan'}</h3>
                 <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#4f46e5', marginBottom: '2px' }}>
                   {billingCycle === 'monthly' ? proMonthlyPrice : proYearlyMonthlyPrice} 
@@ -122,14 +123,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 </div>
                 {billingCycle === 'yearly' && (
                   <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '700', marginBottom: '10px' }}>
-                    {isHebrew ? 'חיוב שנתי (חסוך 20% בשנה)' : 'Billed annually (Save 20%)'}
+                    {isHebrew ? `במסלול שנתי (חיסכון ${getSavingsPercent(tier.pro.monthly, tier.pro.annualMonthly)}%)` : `On the annual plan (save ${getSavingsPercent(tier.pro.monthly, tier.pro.annualMonthly)}%)`}
                   </div>
                 )}
 
                 <ul style={{ margin: '0 0 16px 0', padding: 0, listStyle: 'none', color: '#475569', fontSize: '0.8rem', lineHeight: '1.5', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'הצעות מחיר ללא הגבלה כלל' : 'Unlimited quotes without restrictions'}</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'שליחה ישירה בוואטסאפ (WhatsApp)' : 'Direct WhatsApp sending'}</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'ניהול הכנסות והוצאות מלא' : 'Full income and expense management'}</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} color="#4f46e5" style={{ flexShrink: 0 }} />{isHebrew ? 'צירוף קבצים ושרטוטים להצעות (עד 30MB)' : 'File attachments & drawings to quotes (up to 30MB)'}</li>
                 </ul>
               </div>
