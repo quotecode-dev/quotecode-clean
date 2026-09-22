@@ -187,6 +187,14 @@ export async function persistQuotePhased(supabase, plan) {
 
   // 2. quote row. An optional column that this environment lacks may be dropped ONLY when the user left it empty.
   let row = { ...plan.header, client_id: clientId, user_id: plan.userId, ...plan.attnFields, project_name: plan.projectName };
+  // Quote number (item 17): allocated per business when allocate_quote_number exists; best effort exactly as before the
+  // extraction - where it is absent the column default (if any) applies. Never retried with a different number.
+  if (plan.isNew) {
+    try {
+      const { data: allocated, error: allocErr } = await supabase.rpc('allocate_quote_number', { p_user_id: plan.userId });
+      if (!allocErr && typeof allocated === 'number') row.quote_number = allocated;
+    } catch { /* best effort - see above */ }
+  }
   const write = () => (plan.isNew
     ? supabase.from('quotes').insert([{ id: plan.quoteId, ...row }]).select()
     : supabase.from('quotes').update(row).eq('id', plan.quoteId));

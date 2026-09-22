@@ -2572,6 +2572,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     window.open(url, '_blank');
   };
 
+  // SMART-QUOTE-01: an unfinished draft is stopped BEFORE the send confirmation (executeEmailSend re-checks as a second guard).
+  const requestEmailSend = (quote) => {
+    if (quote && isUnfinishedSavedQuote(quote)) {
+      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      return;
+    }
+    setPendingEmailQuote(quote);
+  };
+
   const executeEmailSend = async (quote) => {
     if (isUnfinishedSavedQuote(quote)) {
       setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
@@ -6235,7 +6244,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 sym={sym}
                 formatMoneyDisplay={formatMoneyDisplay}
                 t={t}
-                setPendingEmailQuote={setPendingEmailQuote}
+                setPendingEmailQuote={requestEmailSend}
                 emailStatuses={emailStatuses}
                 currency={currency}
               />

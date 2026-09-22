@@ -300,3 +300,19 @@ describe('quote deletion', () => {
     expect(f.state.objects.has(path)).toBe(true);
   });
 });
+
+describe('quote number allocation (phased, regression found by the live flow gate)', () => {
+  it('a NEW quote carries the allocated per-business number; edits never allocate', async () => {
+    const f = makeFake();
+    f.rpc.mockImplementation(async (name) => {
+      f.state.calls.push(`rpc.${name}`);
+      if (name === 'save_quote_atomic_version') return { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } };
+      if (name === 'allocate_quote_number') return { data: 100777, error: null };
+      return { data: { ok: true }, error: null };
+    });
+    await persistQuotePhased(f, plan());
+    expect(f.state.quotes[0].quote_number).toBe(100777);
+    await persistQuotePhased(f, plan({ isNew: false, existingClientId: f.state.clients[0].id }));
+    expect(f.state.calls.filter((c) => c === 'rpc.allocate_quote_number')).toHaveLength(1);
+  });
+});
