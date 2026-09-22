@@ -15,9 +15,17 @@
 // (static /public files are served fresh, never held in an in-memory tab
 // the way the executing JS bundle itself is). Polling and comparing the
 // two is the entire mechanism - no service worker, no new infrastructure.
-/* global __PROFLOW_BUILD_SHA__ */
+/* global __PROFLOW_BUILD_SHA__, __PROFLOW_BUILD_IDENTITY__ */
 
 export const CURRENT_BUILD_SHA = typeof __PROFLOW_BUILD_SHA__ !== 'undefined' ? __PROFLOW_BUILD_SHA__ : 'unknown';
+
+// LOADED-TAB IDENTITY (5186 SERVED + LOADED IDENTITY): what THIS tab's JavaScript was built from - baked into the bundle at build
+// time, so an old tab that never reloaded keeps reporting the OLD identity (unlike /version.json, which reports what is served NOW).
+export const LOADED_BUILD_IDENTITY = Object.freeze(typeof __PROFLOW_BUILD_IDENTITY__ !== 'undefined' ? { ...__PROFLOW_BUILD_IDENTITY__ } : { buildSha: CURRENT_BUILD_SHA, buildInputDigest: 'unknown', dirty: null, mode: 'unknown' });
+export function exposeLoadedBuildIdentity(win = typeof window !== 'undefined' ? window : null) {
+  if (!win) return;
+  try { Object.defineProperty(win, '__TEKANGO_BUILD__', { value: LOADED_BUILD_IDENTITY, enumerable: false, configurable: false, writable: false }); } catch { /* already defined for this tab */ }
+}
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes - frequent enough to matter, rare enough to be free
 

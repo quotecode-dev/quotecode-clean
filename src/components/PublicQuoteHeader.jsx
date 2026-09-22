@@ -3,6 +3,7 @@ import { Phone } from 'lucide-react';
 import { LIGHT } from '../theme/neonTheme';
 import { formatQuoteNumber, formatQuoteFallback } from '../utils/quoteNumber';
 import { formatAddress } from '../utils/addressFormat';
+import { formatShortDate } from '../utils/shortDate';
 
 // חוק ברזל: "חייג/י אליי" הוא CTA טקסטואלי בלבד - המספר עצמו לעולם לא
 // מוצג *על גבי הכפתור* (מוצג כטקסט מידע נפרד למעלה, בדיוק כמו קודם) -
@@ -58,10 +59,12 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
     };
   }, []);
 
-  const dateStr = new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB');
+  // IRON-DATE-001: the HE public page IS the Local market page and the EN page the International one (same rule as OD-1 validity).
+  const dateMarket = isHebrew ? 'Local' : 'International';
+  const dateStr = formatShortDate(quote.created_at, dateMarket);
   // project_name (IRON-QUOTE-002): the issuer's project identity is part of the customer-facing quote when set.
   const projectName = String(quote.project_name || '').trim();
-  const validUntilStr = quote.valid_until ? new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB') : null;
+  const validUntilStr = quote.valid_until ? formatShortDate(quote.valid_until, dateMarket) : null;
   // עדכון 2026-08-28 (Quote Number Transition audit): quote כאן מגיע מ-
   // get-public-quote, וה-Edge Function הזו (בניגוד למקור הקודם שחשב
   // שהעמודה עצמה לא קיימת) פשוט לא נפרסה מחדש עם quote_number ב-select
@@ -268,11 +271,11 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
               <div className="pq-header-number" style={{ color: '#c4b5fd', fontWeight: '800', fontFamily: 'monospace', fontSize: '1.05rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '3px' }}>
-              {isHebrew ? 'תאריך:' : 'Date:'} {new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
+              {isHebrew ? 'תאריך:' : 'Date:'} {dateStr}
             </div>
             {quote.valid_until && (
               <div className="pq-header-valid" style={{ fontSize: '0.75rem', color: '#fca5a5', fontWeight: 'bold' }}>
-                {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
+                {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {validUntilStr}
                 {isExpired && <span data-testid="pq-header-expired"> · {isHebrew ? 'פג תוקף' : 'Expired'}</span>}
               </div>
             )}

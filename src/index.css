@@ -415,9 +415,38 @@ html {
   border: 0;
 }
 
-/* IRON-MOBILE-WIDTH-001 tokens (authenticated mobile work screens, <=768px). Recovered accepted values: workspace inset 6px/side
-   (Owner "Mobile Width Utilization" target 4-8px) + screen-card inner inset 8px (Owner QA correction on Quote History / Clients). */
+/* IRON-MOBILE-WIDTH-001 - ONE authenticated mobile workspace ownership model (<=768px). Codex root cause: viewport -> .dash-main-content
+   (6px) -> .pf-work-screen card (8px) -> list card -> card row padding (10px) stacked a SECOND outer gutter (the screen card), so the
+   primary cards sat 14px from the viewport and their content ~25px. Consolidated:
+     --pf-mobile-workspace-inset  the ONLY outer horizontal gutter (.dash-main-content). Primary cards/surfaces sit exactly here.
+     --pf-mobile-surface-pad      the ONLY inner horizontal padding of a primary card/surface (.pf-m-surface, card rows).
+   .pf-work-screen is FLAT on mobile (no surface, no inline padding): the screen card layer is REMOVED, not shrunk.
+   Result: card outer inset 6px/side, visible content 6 + 1 (border) + 10 = 17px/side. Gate: e2e/mobile-workspace-width.gate.mjs. */
 :root {
   --pf-mobile-workspace-inset: 6px;
-  --pf-mobile-screen-inset: 8px;
+  --pf-mobile-surface-pad: 10px;
+}
+/* KPI tiles (Finances): a money figure must FIT its tile at every width - never paint past the tile edge (found by the corrected
+   mobile geometry gate: a 7-8 digit amount overflowed a 2-column tile at 360px). The tile is an inline-size container and the
+   figure scales down with it (capped at the design size, so desktop is unchanged). Formatting/rounding are untouched. */
+.pf-kpi-card {
+  container-type: inline-size;
+}
+.pf-kpi-money {
+  font-size: clamp(0.85rem, 10cqi, 1.25rem) !important;
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .pf-m-surface {
+    padding-inline: var(--pf-mobile-surface-pad) !important;
+  }
+  /* an accent surface draws a 3px inline-start border (2px wider than the uniform 1px): its start padding gives those 2px back
+     so its content lands on the SAME visible inset as every other surface. */
+  .pf-m-surface.pf-m-surface--accent {
+    padding-inline-start: calc(var(--pf-mobile-surface-pad) - 2px) !important;
+  }
+  /* catalog rows: the action group ends on the row's trailing edge (no dead band beside the last column) */
+  .pf-cat-actions {
+    justify-content: flex-end;
+  }
 }

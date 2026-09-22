@@ -5,6 +5,7 @@ import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
+import { formatShortDateTime } from '../utils/shortDate';
 
 // TEKANGO Admin V1 (Task 2): a shell-preserving User Details VIEW (renders
 // inside the same Admin content outlet as every other Admin section - not
@@ -13,7 +14,7 @@ import './adminUsers.css';
 // on mount - if that query fails, it shows "unavailable", never a fake 0
 // (Owner-binding rule, §2.3).
 const dateTimeLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? new Date(value).toLocaleString(isHebrew ? 'he-IL' : 'en-GB')
+  ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International'))
   : (isHebrew ? 'לא זמין' : 'Not available');
 
 function parseAddress(raw) {

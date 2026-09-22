@@ -2,7 +2,7 @@
 // Iron Numeric Typography Law primitives. They only add the shared CSS
 // contract (see .pf-num / .pf-money / .pf-money-slot in index.css) - the text
 // is ALWAYS produced by the caller from the canonical formatters
-// (formatNum / formatNumberLocal / formatWholeMoney / formatDateLocal), so no
+// (formatNum / formatNumberLocal / formatWholeMoney / formatShortDate), so no
 // calculation, rounding or currency rule lives here.
 
 export function NumericValue({ children, className = '', style, as: Tag = 'span', ...rest }) {

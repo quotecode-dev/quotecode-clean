@@ -138,7 +138,7 @@ export default function ServicesCatalog({
       ) : (
         <>
         <div className="pf-head-gutter">
-          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: 'min(320px, 100%)' }}>
           <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
             <thead>
               <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -150,7 +150,7 @@ export default function ServicesCatalog({
             </table>
             </div>
             <div className="pf-screen-body pf-screen-body--track">
-            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '320px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: 'min(320px, 100%)' }}>
             <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
             <tbody>
               {filteredServices.map((svc) => {
@@ -182,7 +182,7 @@ export default function ServicesCatalog({
                         `${sym}${formatMoneyDisplay(svc.price)}`
                       )}
                     </td>
-                    <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <td className="pf-cat-actions" style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                       {isEditingThisSvc ? (
                         <>
                           <button

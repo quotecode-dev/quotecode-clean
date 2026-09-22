@@ -3,6 +3,7 @@ import { UserPlus, Info, History } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
+import { formatShortDateTime } from '../utils/shortDate';
 
 // TEKANGO Admin V1 (Task 2/3): System Activity. "If no trustworthy activity
 // source exists, do not synthesize history" - account registration
@@ -14,7 +15,7 @@ import './adminUsers.css';
 // below registrations. Older changes made before that table existed are
 // still not retained historically - a real, disclosed gap, not hidden.
 const dateTimeLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? new Date(value).toLocaleString(isHebrew ? 'he-IL' : 'en-GB') : '—';
+  ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 const ACTION_LABELS = {
   grant_lifetime: { he: 'הענקת Lifetime', en: 'Grant Lifetime' },

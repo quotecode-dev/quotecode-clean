@@ -8,6 +8,7 @@ import { ShieldCheck, CheckCircle2, AlertTriangle, Send, XCircle, ChevronDown } 
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { getFunctionErrorMessage } from '../utils/functionError';
 import AdminUsersView from './AdminUsersView';
+import { formatShortDateTime } from '../utils/shortDate';
 
 export default function AdminUsersTab({
   isHebrew,
@@ -531,7 +532,7 @@ export default function AdminUsersTab({
               {isHebrew ? 'חשבון יעד:' : 'Target account:'} <strong style={{ color: NEON.textPrimary }}>{trialActionUser?.email || trialActionUser?.business_name || 'N/A'}</strong>
             </p>
             <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '4px', lineHeight: '1.4' }}>
-              {isHebrew ? 'תפוגה נוכחית:' : 'Current expiry:'} <strong>{trialActionUser?.trial_ends_at ? new Date(trialActionUser.trial_ends_at).toLocaleString(isHebrew ? 'he-IL' : 'en-GB') : (isHebrew ? 'אין ניסיון פעיל' : 'No active trial')}</strong>
+              {isHebrew ? 'תפוגה נוכחית:' : 'Current expiry:'} <strong>{trialActionUser?.trial_ends_at ? formatShortDateTime(trialActionUser.trial_ends_at, (isHebrew ? 'Local' : 'International')) : (isHebrew ? 'אין ניסיון פעיל' : 'No active trial')}</strong>
             </p>
             <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>
               {isHebrew ? 'זמין רק כשהניסיון פג או שאין ניסיון פעיל. הזכאות נבדקת שוב בשרת בזמן האישור.' : 'Only available when the trial is expired or none is active. Eligibility is re-checked server-side at confirmation time.'}

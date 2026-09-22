@@ -27,7 +27,7 @@ describe('Owner locked Admin presentation', () => {
   it('recent registrations render real date/time and expired trial truth', () => {
     render(<AdminOverview accounts={[{id:'expired',business_name:'Test registration',email:'test@example.test',country:'International',plan:'free',created_at:'2026-09-01T10:00:00Z',trial_ends_at:'2026-09-02T10:00:00Z'}]} isHebrew={false} onOpenUser={vi.fn()} />);
     const recent=screen.getByRole('heading',{name:'Recently registered'}).closest('article');
-    expect(recent.textContent).toContain('01/09/2026');
+    expect(recent.textContent).toContain('09/01/2026 10:00'); // IRON-DATE-001: International viewer -> MM/DD/YYYY, UTC product zone
     expect(recent.textContent).toContain('Trial expired:');
     expect(recent.textContent).not.toContain('=>');
   });

@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { existsSync } from 'node:fs'
+import process from 'node:process'
+import { sourceIdentity } from './scripts/build-identity.js'
 
 // Frontend Version Awareness (Gate F, systemic remediation continuation
 // task, 2026-09-09): every build embeds its own git commit SHA both into
@@ -20,49 +22,27 @@ function getBuildSha() {
   }
 }
 
-function versionManifestPlugin() {
-  const buildSha = getBuildSha();
+// 5186 SERVED + LOADED IDENTITY (IRON-OWNERTEST-001 hardening, Codex review 2026-09-22): the former dev manifest was computed ONCE
+// at server start (a stale dirty flag / SHA while the working tree kept changing) and carried no source digest, so it could not prove
+// what a browser tab actually loaded. Now:
+//   - build: dist/version.json carries the full source identity (SHA, branch, worktree, build-input dirtiness, mode, NORMALIZED
+//     build-input digest identical to the release tooling) and the same identity is baked into the bundle (__PROFLOW_BUILD_IDENTITY__
+//     -> window.__TEKANGO_BUILD__), so the LOADED tab can be compared with the SERVED files and the candidate's git objects;
+//   - dev: /version.json is recomputed on EVERY request from the working tree (never a start-time snapshot) and says servesWorkingTree.
+function versionManifestPlugin(identity) {
   const buildTime = new Date().toISOString();
-  const manifest = JSON.stringify({ buildSha, buildTime }, null, 2);
   return {
     name: 'proflow-version-manifest',
-    // TEKANGO RTL Remediation Closure task (2026-09-16), Test Source
-    // Identity: this plugin previously only ran `apply: 'build'`, so
-    // `/version.json` never existed under `vite dev` - the canonical Owner
-    // TEST (5186) runs as a dev server, not a built/served static site, so
-    // that endpoint was simply unreachable there. Extending the SAME
-    // existing mechanism (same two fields, same getBuildSha() source of
-    // truth) to also serve during dev via `configureServer`, rather than
-    // inventing a second, competing identity framework. `buildSha` reflects
-    // the committed HEAD only (identical across sibling worktrees branched
-    // from the same base commit with different *uncommitted* diffs, e.g.
-    // C:\tkrtl1 vs C:\tkpost1) - `buildTime` (this dev server's own start
-    // timestamp) is what actually distinguishes "which process/start is
-    // currently answering on this port" for verification purposes; it does
-    // NOT by itself prove an exact uncommitted-file identity, which would
-    // require genuinely new, out-of-scope, working-tree-hashing
-    // architecture - disclosed here rather than overclaimed.
     writeBundle(options) {
       const outDir = options.dir || 'dist';
       if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-      writeFileSync(`${outDir}/version.json`, manifest);
+      writeFileSync(`${outDir}/version.json`, JSON.stringify({ ...identity, buildTime, servesWorkingTree: false }, null, 2));
     },
     configureServer(server) {
-      // OWNER TEST BINDING LAW: the dev server additionally reports WHICH tree it serves (branch, worktree path, dirty
-      // flag, mode) so the Owner-visible candidate on 5186 can be proven from the running process itself. These extra
-      // fields exist ONLY in the dev-server response - never in the production build manifest.
-      const git = (args) => { try { return execSync(`git ${args}`, { encoding: 'utf-8' }).trim(); } catch { return 'unknown'; } };
-      const devManifest = JSON.stringify({
-        buildSha, buildTime,
-        branch: git('rev-parse --abbrev-ref HEAD'),
-        worktree: process.cwd(),
-        dirty: git('status --porcelain --untracked-files=no').length > 0,
-        mode: server.config.mode,
-      }, null, 2);
       server.middlewares.use('/version.json', (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-store');
-        res.end(devManifest);
+        res.end(JSON.stringify({ ...sourceIdentity(process.cwd(), server.config.mode), buildTime, bundleBuildSha: identity.buildSha, servesWorkingTree: true }, null, 2));
       });
     },
   };
@@ -70,10 +50,13 @@ function versionManifestPlugin() {
 
 // https://vite.dev/config/
 // Deployment trigger: forces a fresh Vercel build to pick up vercel.json rewrites/crons.
-export default defineConfig({
-  plugins: [react(), versionManifestPlugin()],
+export default defineConfig(({ mode }) => {
+  const identity = sourceIdentity(process.cwd(), mode);
+  return {
+  plugins: [react(), versionManifestPlugin(identity)],
   define: {
     __PROFLOW_BUILD_SHA__: JSON.stringify(getBuildSha()),
+    __PROFLOW_BUILD_IDENTITY__: JSON.stringify({ buildSha: identity.buildSha, buildInputDigest: identity.buildInputDigest, dirty: identity.dirty, mode }),
   },
   test: {
     environment: 'jsdom',
@@ -84,4 +67,5 @@ export default defineConfig({
     // never be picked up by vitest's own default file globbing.
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
+  };
 })

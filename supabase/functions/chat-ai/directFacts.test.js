@@ -77,6 +77,14 @@ describe('resolveDirectFact', () => {
     expect(resolveDirectFact('validity_date', ctx, true).kind).toBe('validity_date');
   });
 
+  it('IRON-DATE-001: date facts use the ONE primitive - Local 13/09/2026, International 09/13/2026, no zone shift', () => {
+    const q = sanitizeQuoteContext({ ...BASE_ROW, valid_until: '2026-09-13', created_at: '2026-09-13T09:00:00Z' });
+    expect(resolveDirectFact('validity_date', q, true).value).toBe('13/09/2026');
+    expect(resolveDirectFact('validity_date', q, false).value).toBe('09/13/2026');
+    expect(resolveDirectFact('creation_date', q, true).value).toBe('13/09/2026');
+    expect(resolveDirectFact('creation_date', q, false).value).toBe('09/13/2026');
+  });
+
   it('resolves item_count as the real item array length', () => {
     expect(resolveDirectFact('item_count', ctx, true)).toEqual({ kind: 'item_count', value: '1', isDraft: false });
   });

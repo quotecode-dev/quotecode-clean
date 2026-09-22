@@ -47,7 +47,8 @@ const LIVE_COMPONENT_PATHS = [
   'src/components/PublicQuoteHeader.jsx',
   'src/pages/PublicQuote.jsx',
   'src/pages/PublicQuoteEn.jsx',
-  'src/utils/headerDateFormat.js',
+  'src/utils/shortDate.js',
+  'supabase/functions/_shared/shortDate.js',
   'src/index.css',
 ];
 

@@ -88,7 +88,8 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
   it('Quote History mobile cards are the inner scroll body (not a body-less list that lets the page scroll)', () => {
     // Line-ending independent (the file may be checked out CRLF).
     const src = read('src', 'components', 'QuotesTab.jsx').split(String.fromCharCode(13)).join('');
-    const mobile = src.slice(src.search(/\{isMobileView && \(\s*<>/));
+    // IRON-QH-LAYOUT-001: the card branch renders on mobile OR when the desktop slots cannot fit (useCards = isMobileView || compact).
+    const mobile = src.slice(src.search(/\{useCards && \(\s*<>/));
     expect(mobile.length).toBeGreaterThan(100);
     expect(mobile).toMatch(/<div (ref={cardListRef} )?className="pf-screen-body" style=\{\{ display: 'flex', flexDirection: 'column', gap: '6px' \}\}>/);
   });

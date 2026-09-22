@@ -18,6 +18,7 @@ import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import { formatDeviceShortDateTime } from '../utils/shortDate';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -1191,7 +1192,7 @@ export default function PublicQuote({ quoteData }) {
                           <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}>בשם: {signerCompany}{signerRole ? ` (${signerRole})` : ''}</div>
                         )}
                         <div style={{ fontSize: '0.82rem', color: '#166534', marginBottom: '2px' }}>
-                          תאריך ושעת חתימה: {justSignedAt.toLocaleDateString('he-IL')}, {justSignedAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          תאריך ושעת חתימה: {formatDeviceShortDateTime(justSignedAt, 'Local')}
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#166534', marginBottom: '8px' }}>
                           מס׳ הצעה: {formatQuoteNumber(quote.quote_number) || formatQuoteFallback(quote)}

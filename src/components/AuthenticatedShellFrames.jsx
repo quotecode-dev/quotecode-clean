@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 // Shared authenticated chrome. Context owns slots, never a second shell.
 //
 // Unified Header + Always-Available AI Chat task, §9 "Header Contract":
@@ -47,7 +48,8 @@ export function HeaderDynamicSlot({ message, isHebrew }) {
     return <span className="dash-topbar-dynamic-text" role="status">{message}</span>;
   }
   const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
-  const date = now.toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB', { day: '2-digit', month: '2-digit' });
+  // IRON-DATE-001: device day, market order, year omitted (DD/MM Local, MM/DD International).
+  const date = formatShortDate(deviceCalendarDate(now), (isHebrew ? 'Local' : 'International')).slice(0, 5);
   return <span className="dash-topbar-dynamic-text" aria-hidden="true">{date} · {time}</span>;
 }
 export function AuthenticatedSidebarFrame({ drawerEnabled, open, onClose, isHebrew, children }) {

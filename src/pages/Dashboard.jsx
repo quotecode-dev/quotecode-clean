@@ -11,7 +11,8 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
-import { formatHeaderDate } from '../utils/headerDateFormat';
+import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
+import { resolveAdminMarket } from '../utils/adminMarket';
 import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
 import useQuoteDraftPersistence from '../hooks/useQuoteDraftPersistence';
 import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, formHash, newDraftId, serverFingerprintFromQuote } from '../utils/quoteDraft';
@@ -19,7 +20,7 @@ import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import PlanIdentityBadge from '../components/PlanIdentityBadge';
-import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
+import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
@@ -124,7 +125,8 @@ function HeaderClock({ country, isHebrew }) {
   }, []);
   return (
     <>
-      <span className="dash-header-date">{formatHeaderDate(now, country)}</span>
+      {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
+      <span className="dash-header-date">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</span>
       <span className="dash-header-time">{now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
     </>
   );
@@ -1899,8 +1901,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     sheet.mergeCells(2, 1, 2, headers.length);
     const dateCell = sheet.getCell(2, 1);
     dateCell.value = isLocalIsraeliBusiness
-      ? `תאריך הפקה: ${formatDateLocal(new Date().toISOString(), true)}`
-      : `Export Date: ${formatDateLocal(new Date().toISOString(), false, INTL_CURRENCY_SYMBOLS[(currency || '').toUpperCase()] ? (currency || '').toUpperCase() : 'USD')}`;
+      ? `תאריך הפקה: ${formatShortDate(deviceCalendarDate(), 'Local')}`
+      : `Export Date: ${formatShortDate(deviceCalendarDate(), 'International')}`;
     dateCell.font = { size: 10, color: { argb: 'FF000000' } };
     dateCell.alignment = { horizontal: align, vertical: 'middle' };
 
@@ -1924,8 +1926,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (isLocalIsraeliBusiness) {
         statusLabel = localStatusLabels[statusKey] || statusKey;
         amountText = `₪${formatMoneyForCurrency(quote.total, 'ILS')}`;
-        validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, true) : '';
-        createdAtText = quote.created_at ? formatDateLocal(quote.created_at, true) : '';
+        validUntilText = quote.valid_until ? formatShortDate(quote.valid_until, 'Local') : '';
+        createdAtText = quote.created_at ? formatShortDate(quote.created_at, 'Local') : '';
       } else {
         statusLabel = intlStatusLabels[statusKey] || statusKey;
         const quoteCurrency = (quote.currency || '').toUpperCase();
@@ -1934,8 +1936,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           ? quoteCurrency
           : (INTL_CURRENCY_SYMBOLS[accountCurrency] ? accountCurrency : 'USD');
         amountText = `${INTL_CURRENCY_SYMBOLS[safeCurrency]}${formatMoneyForCurrency(quote.total, safeCurrency)}`;
-        validUntilText = quote.valid_until ? formatDateLocal(quote.valid_until, false, safeCurrency) : '';
-        createdAtText = quote.created_at ? formatDateLocal(quote.created_at, false, safeCurrency) : '';
+        validUntilText = quote.valid_until ? formatShortDate(quote.valid_until, 'International') : '';
+        createdAtText = quote.created_at ? formatShortDate(quote.created_at, 'International') : '';
       }
 
       [quoteNumber, clientName, clientEmail, statusLabel, amountText, validUntilText, createdAtText].forEach((v, idx) => {
@@ -4278,6 +4280,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             justify-content: flex-start;
             justify-self: auto;
             margin-top: 6px;
+            /* corrected mobile geometry gate (2026-09-22): an 8-digit revenue painted past the Header at 320px - the stats may
+               wrap onto a second line instead of overflowing (never clipped, never shrunk below legibility). */
+            flex-wrap: wrap;
+            row-gap: 2px;
           }
         }
         .dash-neon-btn {
@@ -4977,12 +4983,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             margin-top: 16px;
           }
         }
-        /* IRON-MOBILE-WIDTH-001: ONE canonical horizontal inset on authenticated mobile work screens. Viewport -> .dash-main-content
-           (--pf-mobile-workspace-inset, Owner target 4-8px/side) -> .pf-work-screen card padding (--pf-mobile-screen-inset). Nested
-           wrappers must not add another gutter; the bottom-nav clearance below is VERTICAL only. */
+        /* IRON-MOBILE-WIDTH-001 (see src/index.css): the work screen is FLAT on mobile - no surface and no inline padding - so
+           .dash-main-content's --pf-mobile-workspace-inset is the ONLY outer gutter and each primary card/surface carries the ONLY
+           inner one (--pf-mobile-surface-pad). The bottom-nav clearance below is VERTICAL only. */
         @media (max-width: 768px) {
           .pf-work-screen {
-            padding-inline: var(--pf-mobile-screen-inset, 8px) !important;
+            padding: 10px 0 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
           }
         }
         @media (max-width: 768px) {
@@ -6340,7 +6349,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               onCreateClient={() => setIsCreatingClient(true)}
               quotes={quotes}
               isHebrew={isHebrew}
-              currency={currency}
               t={t}
             />
           )}

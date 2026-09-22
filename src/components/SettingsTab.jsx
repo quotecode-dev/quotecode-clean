@@ -162,7 +162,7 @@ export default function SettingsTab({
             לא כמו שדה שהוצמד בחיפזון לראש המסך. בקרה יחידה-אחת קיימת - לא
             שכפול (הבקרה הישנה הוסרה במלואה מהמיקום הקודם). */}
         {canUseProfessionalQuotes && (
-          <div style={{ background: 'rgba(139, 92, 246, 0.06)', padding: '14px', borderRadius: '10px', border: `1px solid rgba(139, 92, 246, 0.25)`, marginBottom: '18px' }}>
+          <div className="pf-m-surface" style={{ background: 'rgba(139, 92, 246, 0.06)', padding: '14px', borderRadius: '10px', border: `1px solid rgba(139, 92, 246, 0.25)`, marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.85rem', color: NEON.violetLight, fontWeight: '700', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Ruler size={14} color={NEON.violetLight} />{isHebrew ? 'מה סוג העיסוק המקצועי של העסק?' : 'What kind of professional work does your business do?'}
             </h3>
@@ -237,7 +237,7 @@ export default function SettingsTab({
           </div>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
           <h3 style={{ fontSize: '0.85rem', color: NEON.textSecondary, fontWeight: '500', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <MapPin size={14} color={NEON.red} />{isHebrew ? 'כתובת העסק' : 'Business Address Details'}
           </h3>
@@ -343,7 +343,7 @@ export default function SettingsTab({
           <Shield size={16} color={NEON.violetLight} strokeWidth={2} />
           {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
         </h3>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <div style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, padding: '8px', borderRadius: '8px', display: 'flex' }}>
                <Users size={20} strokeWidth={2} />

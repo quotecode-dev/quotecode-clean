@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Users, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
-import { formatDateLocal } from '../utils/regionConfig';
+import { formatShortDate } from '../utils/shortDate';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §Clients Visual
 // Correction, Owner mid-task correction): ClientAvatar (מדליון-אות-ראשונה
@@ -75,8 +75,7 @@ export default function ClientsTab({
   handleDeleteClient,
   onCreateClient,
   quotes = [],
-  isHebrew,
-  currency
+  isHebrew
 }) {
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
   const [clientErrorMsg, setClientErrorMsg] = useState({ clientId: null, text: '' });
@@ -223,7 +222,7 @@ export default function ClientsTab({
           {latestQuote && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: NEON.textMuted, direction: 'ltr' }}>
-                {isHebrew ? 'הצעה אחרונה:' : 'Latest quote:'} {formatDateLocal(latestQuote.created_at, isHebrew, currency)}
+                {isHebrew ? 'הצעה אחרונה:' : 'Latest quote:'} {formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International'))}
               </span>
               {latestBadge && (
                 <span style={{ background: latestBadge.bg, color: latestBadge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
@@ -275,7 +274,7 @@ export default function ClientsTab({
   };
 
   return (
-    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Kept as the first child: a non-visual node between the static block and the
           .pf-screen-body would defeat the shared body-adjacent margin rule. */}
       <style>{`
@@ -475,7 +474,7 @@ export default function ClientsTab({
                       {quoteCount}
                     </span>
                     <span style={{ width: '90px', flexShrink: 0, fontSize: '0.72rem', lineHeight: 1.2, color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left', direction: 'ltr', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {latestQuote ? formatDateLocal(latestQuote.created_at, isHebrew, currency) : ''}
+                      {latestQuote ? formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International')) : ''}
                     </span>
                   </button>
                   {/* חוק ברזל (§Clients Visual Correction, real defect found
@@ -520,7 +519,7 @@ export default function ClientsTab({
                     aria-controls={detailId}
                     aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
                     className={`cli-row-btn${isExpanded ? ' cli-row-expanded' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '10px 10px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '10px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
                   >
                     <ChevronDown size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                     <div style={{ flex: '1 1 auto', minWidth: 0 }}>
@@ -550,7 +549,7 @@ export default function ClientsTab({
                           )}
                           {latestQuote && (
                             <span style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {formatDateLocal(latestQuote.created_at, isHebrew, currency)}
+                              {formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International'))}
                             </span>
                           )}
                         </div>
@@ -558,7 +557,7 @@ export default function ClientsTab({
                     </div>
                   </button>
                   {isExpanded && (
-                    <div id={detailId} style={{ padding: '2px 10px 12px', borderTop: `1px solid ${NEON.border}` }}>
+                    <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
                       {renderDetailPanel(row)}
                     </div>
                   )}

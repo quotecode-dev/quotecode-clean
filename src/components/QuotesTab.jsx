@@ -6,7 +6,8 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { MoneyValue } from './NumericValue';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
-import { formatDateLocal } from '../utils/regionConfig';
+import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
+import { formatShortDate } from '../utils/shortDate';
 import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
@@ -113,6 +114,8 @@ export default function QuotesTab({
   currency
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
+  // IRON-DATE-001: isHebrew here IS the account market (isHebrewEnv(stored country)); currency never orders dates.
+  const dateMarket = isHebrew ? 'Local' : 'International';
 
   // חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08,
   // "Quote History — Stable Scroll Contract"): כותרת+חיפוש+סינון+ייצוא
@@ -134,6 +137,7 @@ export default function QuotesTab({
   // מקבל top:0 פשוט ביחס ל-wrapper המקומי שלו - לא עוד חישוב-קיזוז מצטבר.
   const headerRowRef = useRef(null);
   const cardListRef = useRef(null);
+  const screenRef = useRef(null);
 
   // TEKANGO — Greeting Motion + Inner Scrollbar Top Anchor (Final) task
   // (2026-09-18), Part 2 - SUPERSEDES the immediately-prior round's own
@@ -259,6 +263,7 @@ export default function QuotesTab({
     return '$';
   };
 
+  const UNFINISHED_LABEL = isHebrew ? 'טיוטה לא גמורה' : 'Unfinished draft';
   const getStatusBadge = (st) => {
     switch(st) {
       case 'approved': return { bg: 'rgba(5, 150, 105, 0.12)', color: NEON.emerald, text: isHebrew ? 'אושר' : 'Approved' };
@@ -287,14 +292,26 @@ export default function QuotesTab({
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
     const baseBadge = getStatusBadge(currentStatus);
     const badge = currentStatus === 'draft' && isUnfinishedSavedQuote(quote)
-      ? { ...baseBadge, bg: 'rgba(234, 88, 12, 0.10)', color: '#c2410c', text: isHebrew ? 'טיוטה לא גמורה' : 'Unfinished draft' }
+      ? { ...baseBadge, bg: 'rgba(234, 88, 12, 0.10)', color: '#c2410c', text: UNFINISHED_LABEL }
       : baseBadge;
 
     return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge };
   });
 
-  // IRON-MOBILE-WIDTH-001: the mobile card amount slot is exactly as wide as the widest rendered amount (shared physical axis, no dead gap).
-  useMoneySlotSize(cardListRef, rowsMeta.map((r) => `${r.quoteSym}${formatMoneyDisplay(r.quote.total, r.quote.currency)}`), { enabled: isMobileView });
+  // IRON-QH-LAYOUT-001: ONE semantic slot geometry for the desktop header + body tables (see useQuoteHistoryGeometry). When the
+  // protected slots cannot leave the client its minimum, the list deliberately switches to the card layout.
+  const moneyTexts = rowsMeta.map((r) => `${r.quoteSym}${formatMoneyDisplay(r.quote.total, r.quote.currency)}`);
+  const { compact: qhCompact } = useQuoteHistoryGeometry(screenRef, {
+    enabled: !isMobileView,
+    numbers: rowsMeta.map((r) => formatQuoteFallback(r.quote)),
+    amounts: moneyTexts,
+    statuses: [...['draft', 'sent', 'approved', 'paid'].map((st) => getStatusBadge(st).text), UNFINISHED_LABEL],
+    dates: rowsMeta.map((r) => formatShortDate(r.quote.created_at, dateMarket)),
+    headers: { number: isHebrew ? 'מס׳ הצעה' : 'Quote #', amount: isHebrew ? 'הסכום' : 'Amount', status: isHebrew ? 'סטטוס' : 'Status', date: isHebrew ? 'תאריך' : 'Date' },
+  });
+  const useCards = isMobileView || qhCompact;
+  // IRON-MOBILE-WIDTH-001: the card amount slot is exactly as wide as the widest rendered amount (shared physical axis, no dead gap).
+  useMoneySlotSize(cardListRef, moneyTexts, { enabled: useCards });
 
   const renderEmailDot = (quote, emailStatus) => (
     quote.email_bounced ? (
@@ -484,7 +501,7 @@ export default function QuotesTab({
     // כבר קיים בקומפוננטה הזו בדיוק לצורך הזה (טבלה מול כרטיסים) - נעשה שימוש
     // חוזר בו כאן, לא נוסף מנגנון-CSS/media-query מקביל. דסקטופ (14px) לא נגע
     // בכלל - התנאי חל רק כש-isMobileView אמיתי.
-    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
+    <div ref={screenRef} className="pf-screen pf-work-screen" data-qh-layout={useCards ? 'cards' : 'table'} style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
       {/* חוק ברזל (תיקון בעלים מאושר): הוסר flexDirection: row-reverse עבור
           עברית - היה זה הבאג עצמו. במיכל עם dir="rtl" (יורש מה-Dashboard),
           'row' הרגיל כבר ממקם את הילד הראשון ב-DOM (כותרת+ייצוא) ב-"התחלה"
@@ -528,7 +545,7 @@ export default function QuotesTab({
             (there is room for both side by side). Mobile gets its own
             deliberate composition below instead - not this same row
             merely shrunk. */}
-        {!isMobileView && (
+        {!useCards && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%', maxWidth: '350px' }}>
             <input
               type="text"
@@ -561,7 +578,7 @@ export default function QuotesTab({
           control... equivalent accessible pattern." אותם state/handlers
           בדיוק (statusFilter/setStatusFilter/quoteSortField/
           quoteSortDirection/handleQuoteSort) - רק המיכל החזותי השתנה. */}
-      {isMobileView && (
+      {useCards && (
         <div style={{ marginBottom: '10px' }} dir={tableDir}>
           <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
             <input
@@ -667,7 +684,7 @@ export default function QuotesTab({
           להידחף ל-footer בעמודים קצרים - הוסר מהכרטיס, maxHeight כאן
           נשאר המנגנון היחיד. overflow-x:'auto' (הגנה-אמיתית קיימת, ר'
           ההערה למעלה על 620-625px מתוך תקציב-980px) נשאר זהה. */}
-      {!isMobileView && (
+      {!useCards && (
       <>
       <div className="pf-head-gutter">
         {/* חוק ברזל (Owner Visual Correction task - Frame B Corners): הבעלים
@@ -699,7 +716,7 @@ export default function QuotesTab({
             ה-minWidth הכולל הנמוך יותר של הטבלה - ר' האריתמטיקה המלאה
             בהערה שלפני ה-<table>. */}
         <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
-        <colgroup><col style={{ width: '36px' }} /><col /><col style={{ width: '72px' }} /><col style={{ width: '86px' }} /><col style={{ width: '78px' }} /><col style={{ width: '100px' }} /></colgroup>
+        <colgroup><col style={{ width: `${QH_ACTION_COL}px` }} /><col /><col style={{ width: 'var(--qh-col-number, 84px)' }} /><col style={{ width: 'var(--qh-col-amount, 134px)' }} /><col style={{ width: 'var(--qh-col-status, 112px)' }} /><col style={{ width: 'var(--qh-col-date, 90px)' }} /></colgroup>
           {/* TEKANGO — Greeting Motion + Inner Scrollbar Top Anchor (Final)
               task (2026-09-18): thead's own "sticky while scrolling" is
               retired here - see this file's own real-cause note above
@@ -736,7 +753,7 @@ export default function QuotesTab({
               {/* חוק ברזל (§5 Expandable Row): בקרת-הרחבה - ללא כותרת מילולית
                   (אייקון-בלבד, כמו Views/Email הישנים), aria-label על הכפתור
                   עצמו בכל שורה נותן את המשמעות הנגישה. */}
-              <th style={{ padding: '10px 3px', textAlign: 'center', width: '36px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
+              <th style={{ padding: '10px 3px', textAlign: 'center', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
               {/* חוק ברזל (Authenticated App Consolidation task): שם הלקוח -
                   עדיין ראשון בין העמודות ה"תוכניות" (מיד אחרי בקרת ההרחבה),
                   לפי "PRIMARY ROW CONTENT" ברשימת המשימה עצמה. minWidth
@@ -749,21 +766,21 @@ export default function QuotesTab({
                   available budget - a real ~55-60px safety margin, unaffected
                   by reordering columns since no width value changed here,
                   only DOM order. */}
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', minWidth: '200px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
                 {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 3px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '72px', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
                 {isHebrew ? 'מס׳ הצעה' : 'Quote #'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '86px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
                 {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '78px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
                 {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* Date is now the last/outer column (was the expand control) -
                   it gains the outer-edge border/corner-radius treatment. */}
-              <th style={{ padding: '10px 5px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', width: '100px', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
                 {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
             </tr>
@@ -772,7 +789,7 @@ export default function QuotesTab({
           </div>
           <div className="pf-screen-body">
           <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, textAlign: isHebrew ? 'right' : 'left', minWidth: '440px' }} dir={tableDir}>
-          <colgroup><col style={{ width: '36px' }} /><col /><col style={{ width: '72px' }} /><col style={{ width: '86px' }} /><col style={{ width: '78px' }} /><col style={{ width: '100px' }} /></colgroup>
+          <colgroup><col style={{ width: `${QH_ACTION_COL}px` }} /><col /><col style={{ width: 'var(--qh-col-number, 84px)' }} /><col style={{ width: 'var(--qh-col-amount, 134px)' }} /><col style={{ width: 'var(--qh-col-status, 112px)' }} /><col style={{ width: 'var(--qh-col-date, 90px)' }} /></colgroup>
           <tbody>
             {rowsMeta.length === 0 ? (
               <tr>
@@ -841,6 +858,7 @@ export default function QuotesTab({
                       aria-expanded={isExpanded}
                       aria-controls={detailId}
                       aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                      data-qh="action"
                       style={{ background: isExpanded ? 'rgba(124,58,237,0.1)' : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
                     >
                       <ChevronDown size={16} strokeWidth={2.4} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
@@ -857,26 +875,27 @@ export default function QuotesTab({
                       (inherited here) so this reduction lands on a
                       deterministic content height instead of guessing at the
                       browser/font's default "normal" line-height. */}
-                  <td className="pf-font-variable" style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={quote.clients?.company_name || ''}>
-                    {quote.clients?.company_name || 'N/A'}
+                  <td className="pf-font-variable" style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary }} title={quote.clients?.company_name || ''}>
+                    {/* the client is the one slot that intentionally ellipsizes (IRON-QH-LAYOUT-001) */}
+                    <span data-qh="client" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quote.clients?.company_name || 'N/A'}</span>
                   </td>
-                  <td style={{ padding: '11px 3px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: NEON.violet, direction: 'ltr', whiteSpace: 'nowrap' }}>
-                    {formatQuoteFallback(quote)}
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.violet, direction: 'ltr', whiteSpace: 'nowrap' }}>
+                    <span data-qh="number" style={QH_CELL_STYLE.number}>{formatQuoteFallback(quote)}</span>
                   </td>
                   {/* חוק ברזל (Final Quote-History Polish task - HE-Only Before-VAT
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
-                  <td style={{ padding: '11px 12px', verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
-                    <MoneyValue slot symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.9rem' }} />
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
+                    <MoneyValue slot data-qh="amount" symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
                   </td>
-                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '700', display: 'inline-block' }}>
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
+                    <span data-qh="status" style={{ ...QH_CELL_STYLE.status, background: badge.bg, color: badge.color }}>
                       {badge.text}
                     </span>
                   </td>
-                  <td style={{ padding: '11px 5px', verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, fontSize: '0.75rem', direction: 'ltr' }}>
-                    {formatDateLocal(quote.created_at, isHebrew, currency)}
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, direction: 'ltr', whiteSpace: 'nowrap' }}>
+                    <span data-qh="date" style={QH_CELL_STYLE.date}>{formatShortDate(quote.created_at, dateMarket)}</span>
                   </td>
                 </tr>
                 {isExpanded && (
@@ -906,7 +925,7 @@ export default function QuotesTab({
           הכרטיס לחיץ (כפתור אמיתי, לא div+onClick) - מטרת-מגע גדולה,
           מקלדת-נגישה חינם. dir={tableDir} הקיים ממשיך למקם/למרכז נכון
           בשתי השפות ללא תנאי isHebrew נוסף כלשהו, כמו בכל שאר הקובץ. */}
-      {isMobileView && (
+      {useCards && (
       <>
       {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
           Controls): פקד-המיון הנפרד שהיה כאן (select+כפתור-כיוון, שורה
@@ -956,15 +975,16 @@ export default function QuotesTab({
                 aria-expanded={isExpanded}
                 aria-controls={detailId}
                 aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px 10px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
               >
-                <ChevronDown size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, marginTop: '2px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                <ChevronDown data-qh="action" size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, marginTop: '2px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                     <span
                       className="pf-font-variable"
                       style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.9rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                       title={quote.clients?.company_name || 'N/A'}
+                      data-qh="client"
                     >
                       {quote.clients?.company_name || 'N/A'}
                     </span>
@@ -977,24 +997,25 @@ export default function QuotesTab({
                       symbol={quoteSym}
                       text={formatMoneyDisplay(quote.total, quote.currency)}
                       data-testid="quote-card-amount"
+                      data-qh="amount"
                       style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem' }}
                       title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
-                      <span style={{ fontWeight: '600', color: NEON.violet, direction: 'ltr' }}>{formatQuoteFallback(quote)}</span>
-                      <span>·</span>
-                      <span style={{ direction: 'ltr', whiteSpace: 'nowrap' }}>{formatDateLocal(quote.created_at, isHebrew, currency)}</span>
+                      <span data-qh="number" style={{ fontWeight: '600', color: NEON.violet, direction: 'ltr', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatQuoteFallback(quote)}</span>
+                      <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
+                      <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
                     </div>
-                    <span style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span data-qh="status" style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {badge.text}
                     </span>
                   </div>
                 </div>
               </button>
               {isExpanded && (
-                <div id={detailId} style={{ padding: '2px 10px 12px', borderTop: `1px solid ${NEON.border}` }}>
+                <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
                   {renderDetailPanel(row)}
                 </div>
               )}

@@ -16,6 +16,7 @@
 import type { DirectFactKind, DirectFactPayload } from "../_shared/aiChatContract.ts";
 import { DIRECT_FACT_KINDS } from "../_shared/aiChatContract.ts";
 import type { SanitizedQuoteContext } from "./quoteContext.ts";
+import { formatShortDate } from "../_shared/shortDate.js";
 
 // Keyword classification, same established style/precedent as
 // validation.ts's own classifySupportMessage (lowercased .includes checks,
@@ -64,10 +65,10 @@ function formatAmount(ctx: SanitizedQuoteContext): string {
   return `${symbol}${ctx.total.toFixed(2)}`;
 }
 
+// IRON-DATE-001: the shared product short-date primitive. isHebrew here is the server-derived account market
+// (isHebrewFromMarket), so Local -> DD/MM/YYYY and International -> MM/DD/YYYY; valid_until is a calendar date (no zone shift).
 function formatDate(iso: string, isHebrew: boolean): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB');
+  return formatShortDate(iso, isHebrew ? 'Local' : 'International');
 }
 
 // Returns null when the classified kind's own underlying data is genuinely

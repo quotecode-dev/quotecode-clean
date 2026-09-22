@@ -1,3 +1,4 @@
+import { formatShortDate, deviceCalendarDate } from './shortDate';
 // AI Chat History UX (timestamps + day separators) - pure, framework-agnostic
 // helpers so day-separator/legacy-compatibility logic is directly unit-
 // testable without mounting AIChatWidget. Mirrors this project's own
@@ -42,7 +43,8 @@ export function formatDaySeparatorLabel(isoString, isHebrew, now = new Date()) {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (isSameLocalDay(date, yesterday)) return isHebrew ? 'אתמול' : 'Yesterday';
-  return date.toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB');
+  // IRON-DATE-001: the device's own day (Today/Yesterday are device-relative), ordered by the market (DD/MM/YYYY | MM/DD/YYYY).
+  return formatShortDate(deviceCalendarDate(date), isHebrew ? 'Local' : 'International');
 }
 
 // Returns a boolean array (same length as `messages`) - true at index i means

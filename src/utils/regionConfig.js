@@ -243,25 +243,8 @@ export function calculateQuoteFinancials({ country, clientType, items, discount,
 }
 
 // פונקציות פירמוט מקומי (תאריכים ומספרים) לפי אזור/שפה
-export const formatDateLocal = (dateString, isHebrew, currency = 'USD') => {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    if (isHebrew) {
-      return date.toLocaleDateString('he-IL');
-    }
-
-    if (currency === 'USD') {
-      return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    }
-
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return dateString;
-  }
-};
+// IRON-DATE-001: the former formatDateLocal helper (currency-ordered EN dates, browser-zone parsing) was REMOVED; the one short-date primitive is
+// src/utils/shortDate.js (= supabase/functions/_shared/shortDate.js).
 
 export const formatNumberLocal = (val, isHebrew) => {
   const num = Number(val || 0);

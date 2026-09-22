@@ -43,7 +43,7 @@ export const REQUIRED_GUARD_TESTS = [
   'src/pages/Dashboard.hotquote.test.js',
   'src/pages/Dashboard.navigation.test.js',
   'src/pages/landingFirstLiveTruth.test.js',
-  'src/utils/headerDateFormat.test.js',
+  'src/utils/shortDate.test.js',
   'scripts/check-structured-quote-rc-migration-allowlist.test.js',
   'scripts/check-component-divergence.test.js',
 ];

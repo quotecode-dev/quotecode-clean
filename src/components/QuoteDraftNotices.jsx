@@ -1,9 +1,10 @@
+import { formatDeviceShortDateTime } from '../utils/shortDate';
 // Notices for durable quote drafts: recovered-draft banner, storage-failure warning, and the server-conflict dialog.
 // Text only - none of these ever prints draft field values.
 const box = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box' };
 
 const fmt = (ms, isHebrew) => {
-  try { return new Date(ms).toLocaleString(isHebrew ? 'he-IL' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }); } catch { return ''; }
+  return formatDeviceShortDateTime(ms, (isHebrew ? 'Local' : 'International'));
 };
 
 export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {

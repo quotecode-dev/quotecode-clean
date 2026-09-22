@@ -7,6 +7,7 @@ import { MoneyValue, NumericValue } from './NumericValue';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
+import { formatShortDate } from '../utils/shortDate';
 
 export default function FinancesTab({
   financeReportType,
@@ -105,7 +106,7 @@ export default function FinancesTab({
       </p>
 
       {financeReportType === 'custom' && (
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '10px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', border: `1px solid ${NEON.border}` }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '10px', borderRadius: '10px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', border: `1px solid ${NEON.border}` }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מתאריך:' : 'Start Date:'}</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
@@ -120,22 +121,22 @@ export default function FinancesTab({
       <div className="pf-screen-body">
       {/* חוק ברזל (§I2): ארבעה כרטיסי-מדד עקביים, מבנה-כרטיס משותף אחד,
           צבע סמנטי בלבד (סגול=נייטרלי/מותג, ירוק=חיובי, אדום=שלילי). */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.violet}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.violet}` }}>
+      <div className="pf-m-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.violet}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.violet}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} color={NEON.violetLight} />{t.totalQuotes}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.textPrimary }}>{adminTotalQuotesCount}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color="#22c55e" />{t.totalRevenue}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatMoneyDisplay(adminTotalRevenue)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatMoneyDisplay(adminTotalRevenue)}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` }}>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={adminNetProfit >= 0 ? '#22c55e' : NEON.red} />{t.netProfit}</div>
-          <div className="pf-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? '#22c55e' : NEON.red }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? '#22c55e' : NEON.red }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
         </div>
       </div>
 
@@ -147,7 +148,7 @@ export default function FinancesTab({
 
       {/* חוק ברזל (§I3): תרשים אמיתי כשיש נתונים; מצב-ריק קומפקטי ומכוון
           כשאין (לא צירי-תרשים ריקים וגדולים). */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '20px', height: hasChartData ? '260px' : 'auto' }} dir="ltr">
+      <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '12px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '20px', height: hasChartData ? '260px' : 'auto' }} dir="ltr">
          <h2 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0, marginBottom: '12px', textAlign: isHebrew ? 'right' : 'left', ...neonGlowTextStyle }}>{isHebrew ? 'סקירה שנתית - הכנסות מול הוצאות' : 'Yearly Overview - Income vs Expenses'}</h2>
          {hasChartData ? (
            <ResponsiveContainer width="100%" height="100%">
@@ -173,7 +174,7 @@ export default function FinancesTab({
          )}
       </div>
 
-      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
+      <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
           {/* חוק ברזל (§I4): "הוסף הוצאה"/"Add Expense" סגול-ראשי; ייצוא-CSV
               נשאר משני-ניטרלי ולא שולט בשורה. */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -291,7 +292,7 @@ export default function FinancesTab({
                           {exp.is_recurring ? (isHebrew ? 'קבועה' : 'Recurring') : (isHebrew ? 'חד פעמית' : 'One-time')}
                         </span>
                       </td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue>{exp.expense_date}</NumericValue></td>
+                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
                       <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
                       <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <button

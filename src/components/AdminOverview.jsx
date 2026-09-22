@@ -5,13 +5,14 @@ import AdminScreenFrame from './AdminScreenFrame';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import './adminUsers.css';
 import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
+import { formatShortDateTime } from '../utils/shortDate';
 
 // TEKANGO Admin V1 (Task 2): Admin Overview - recently registered / trials
 // ending soon / needs attention, derived only from real business_settings
 // rows already loaded elsewhere in Admin. No fabricated metric, no "active
 // now"/online inference.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? new Date(value).toLocaleString(isHebrew ? 'he-IL' : 'en-GB') : '—';
+  ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToPlans, onOpenUser }) {
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');

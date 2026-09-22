@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './fonts.css'
 import './index.css'
+import { exposeLoadedBuildIdentity } from './shared/versionAwareness'
+
+exposeLoadedBuildIdentity()
 
 // ייבוא שתי האפליקציות המבודדות שלנו
 import AppLocal from './local/AppLocal.jsx'

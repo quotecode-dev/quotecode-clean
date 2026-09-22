@@ -667,7 +667,7 @@ export default function QuoteForm({
             למינימום שלהם (רוחב זמין תמיד גדול מהמינימום), אז אינם צריכים
             את אותו תיקון. */}
         <div style={{ marginBottom: '14px' }}>
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
         <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי לקוח' : 'Client Details'}
         </div>
@@ -1033,7 +1033,7 @@ export default function QuoteForm({
         </button>
         {showMoreDetails && (
           <div data-testid="sq-more-details">
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
         <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
         </div>
@@ -1067,7 +1067,7 @@ export default function QuoteForm({
           />
         </div>
         </div>
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.currency}</label>
@@ -1129,7 +1129,7 @@ export default function QuoteForm({
             fully integrates Attachments into the same card system rather
             than a visually-lesser-tier box. Container-level only - upload/
             entitlement/file-list logic untouched. */}
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
           <label style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
             <Paperclip size={13} color={NEON.violetLight} />
             {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
@@ -1177,7 +1177,7 @@ export default function QuoteForm({
         {/* Cross-Surface Visual Consolidation / Create Quote §11: same
             card-system integration as the Attachments block above - see
             its comment for the full rationale. */}
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '8px' }}>
             <MapPin size={13} color={NEON.red} />
             {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
@@ -1197,7 +1197,7 @@ export default function QuoteForm({
             </div>
           </div>
         </div>
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
         {/* חוק ברזל (Two-Stage Completion Task, Stage 1D): תנאים+אחריות
             מקופלים כברירת מחדל - הערכים בפועל (terms/warranty) הם כבר
             snapshot אמיתי שהועתק מ-defaultTerms/defaultWarranty ברגע יצירת

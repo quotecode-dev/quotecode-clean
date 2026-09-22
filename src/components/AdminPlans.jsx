@@ -2,6 +2,7 @@ import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { getDisplayIdentityLabel } from '../utils/planCatalog';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
+import { formatShortDate } from '../utils/shortDate';
 
 // TEKANGO Admin V1 (Task 2): Plans/Subscriptions operational view - users
 // by package, trials ending soon, expired trials, Lifetime accounts. All
@@ -10,7 +11,7 @@ import './adminUsers.css';
 // integration exists yet), no fake plan-change UI where the capability
 // does not exist server-side.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? new Date(value).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB') : '—';
+  ? formatShortDate(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 export default function AdminPlans({ accounts, isHebrew, onOpenUser }) {
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');

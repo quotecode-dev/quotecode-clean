@@ -16,6 +16,7 @@ import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import { formatDeviceShortDateTime } from '../utils/shortDate';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -929,7 +930,7 @@ export default function PublicQuoteEn({ quoteData }) {
                       <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}>On behalf of: {signerCompany}{signerRole ? ` (${signerRole})` : ''}</div>
                     )}
                     <div style={{ fontSize: '0.82rem', color: '#166534', marginBottom: '2px' }}>
-                      Signed on: {justSignedAt.toLocaleDateString('en-GB')}, {justSignedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      Signed on: {formatDeviceShortDateTime(justSignedAt, 'International')}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#166534', marginBottom: '8px' }}>
                       Quote #: {formatQuoteNumber(quote.quote_number) || formatQuoteFallback(quote)}

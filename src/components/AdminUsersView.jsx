@@ -6,6 +6,7 @@ import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
+import { formatShortDateTime } from '../utils/shortDate';
 
 // TEKANGO Admin V1 (Task 2): the Users/Businesses directory - business-
 // first, real data only. Owner-binding rules this file follows:
@@ -16,7 +17,7 @@ import './adminUsers.css';
 // - Default sort (newest registration first) is owned by the caller
 //   (Dashboard.jsx's sortField/sortDirection default), not this component.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? new Date(value).toLocaleString(isHebrew ? 'he-IL' : 'en-GB') : '—';
+  ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 const PAGE_SIZE_OPTIONS = [25, 50];
 // First-LIVE profile: sensitive Admin actions (Lifetime grant/revoke, trial
