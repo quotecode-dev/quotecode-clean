@@ -86,8 +86,17 @@ function measure({ primary, cards: cardSel, isRtl }) {
     }
     return chain;
   };
-  const els = [...document.querySelectorAll(primary)].filter(visible).filter((e) => { const r = e.getBoundingClientRect(); return r.top < vh && r.bottom > 0; }).slice(0, 8);
-  const cardEls = cardSel ? [...document.querySelectorAll(cardSel)].filter(visible).filter((e) => { const r = e.getBoundingClientRect(); return r.top < vh && r.bottom > 0; }).slice(0, 8) : els;
+  // Only cards the user can SEE whole: inside the viewport, inside the scroll body's clip (for cards that live in it) and above the fixed
+  // bottom nav. A card cut by the fold has part of its content outside the region - measuring it is an artifact (the first canonical run
+  // flagged 4 such bottom-edge cards: "no visible content" / chevron below the fold). Tall surfaces (> 200px, forms/charts) are measured
+  // on their visible part as long as their top edge is visible.
+  const bodyEl = document.querySelector('.dash-main-content .pf-screen-body');
+  const navEl = document.querySelector('.mobile-bottom-nav');
+  const navTop = navEl && getComputedStyle(navEl).display !== 'none' ? navEl.getBoundingClientRect().top : vh;
+  const regionOf = (e) => { const inBody = bodyEl && bodyEl.contains(e); const br = inBody ? bodyEl.getBoundingClientRect() : null; return { top: Math.max(0, br ? br.top : 0), bottom: Math.min(vh, navTop, br ? br.bottom : vh) }; };
+  const inView = (e) => { const r = e.getBoundingClientRect(); const g = regionOf(e); if (r.top < g.top - 1 || r.top > g.bottom - 24) return false; return r.bottom <= g.bottom + 1 || r.height > 200; };
+  const els = [...document.querySelectorAll(primary)].filter(visible).filter(inView).slice(0, 8);
+  const cardEls = cardSel ? [...document.querySelectorAll(cardSel)].filter(visible).filter(inView).slice(0, 8) : els;
   const lists = els.map((e) => R(e.getBoundingClientRect()));
   const cards = cardEls.map((e) => {
     const rects = contentRects(e);
@@ -154,7 +163,8 @@ for (const [lang, market, persona, dateClient] of MARKETS) {
       const cell = { id: `${market}/${w}px/${s.id}`, lang, market, width: w, screen: s.id, loadedIdentity: loaded.build, loadedIdentityProblems: idProblems };
       try {
         await s.open(page, { dateClient }); await page.waitForTimeout(1300);
-        if (NEG) await page.addStyleTag({ content: '@media (max-width:768px){.pf-work-screen{padding-inline:8px!important}}' });
+        // the product rule lives in a later <style> element with equal specificity - the control must out-specify it to take effect
+        if (NEG) await page.addStyleTag({ content: '@media (max-width:768px){.dash-main-content .pf-screen.pf-work-screen{padding-inline:8px!important}}' });
         await page.evaluate(() => document.fonts.ready);
         cell.measured = await page.evaluate(measure, { primary: s.primary, cards: s.cards || null, isRtl: lang === 'he' });
         cell.fails = [...judge(cell.measured), ...idProblems.map((p) => `identity: ${p}`)];
