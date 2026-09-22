@@ -100,6 +100,10 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // Hebrew "can you <verb>" addressed at the assistant (implicit "you" = the AI), same reasoning
     // as the English pattern above.
     /(תוכלי?|אתה יכול|את יכולה)\s.{0,15}(לערוך|לשמור|לשלוח|לאשר|לשנות|למחוק|לעדכן|לבטל|ליצור|לחתום|לשכפל)/,
+    // "העוזר" (the assistant) as the AI-referring subject, with real-world verb conjugations
+    // (future tense "יבצע"/"יעשה" etc.) - a live paraphrase test found this subject/verb pairing
+    // fell through because the earlier patterns only recognized "ה-ai"/"הבוט"/"הצ'אט" by name.
+    /(העוזר|הסוכן)\s.{0,20}(יבצע|יעשה|יטפל|ישנה|יערוך|יעדכן|ימחק|ישלח|יאשר|בשבילי|עבורי)/,
   ]],
   ['autonomous_email', [
     /\b(can|does)\s+(the\s+)?(ai|assistant|bot)\s+.{0,30}send\s+.{0,20}(email|mail)\s+.{0,20}automatic/i,
@@ -108,7 +112,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ]],
   ['payment_processing', [
     /\b(can|do|does)\s+(tekango|you|the system)\s+(take|takes|accept|accepts|process|processes)\s+.{0,20}payment/i,
-    /(האם TEKANGO|האם המערכת) (גובה|מקבל|מעבד)ת? תשלום/,
+    // "תשלום" ends in a final-form מ; the plural "תשלומים" replaces it with a regular מ before the
+    // "ים" suffix, so "תשלום" is never a substring of "תשלומים" - both forms must be spelled out.
+    /(האם TEKANGO|האם המערכת|אתם) (גוב(ה|ים)|מקבל(ת|ים)?|מעבד(ת|ים)?) (תשלום|תשלומים)/,
   ]],
   ['invoicing', [/\bcan (tekango|you|the system) (issue|create|generate)\s+.{0,10}invoice/i, /(מפיק|מפיקה|יכולים להפיק) חשבונית/]],
   // Codex defect 1 (2026-09-22): "Is PDF the same as Print?" (and similar) must get a deterministic
@@ -138,11 +144,20 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['quote_csv', [/\bexport\s+.{0,15}(quotes?)\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}quotes?/i, /(יצוא|לייצא).{0,15}הצעות.{0,15}csv/i, /csv.{0,15}הצעות/i]],
   ['expense_csv', [/\bexport\s+.{0,15}expenses?\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}expenses?/i, /(יצוא|לייצא).{0,15}הוצאות.{0,15}csv/i, /csv.{0,15}הוצאות/i]],
 
-  ['owner_whatsapp_share', [/\b(share|send)\s+.{0,15}(quote|it)\s+.{0,10}whatsapp\b/i, /\bwhatsapp\b.{0,20}(share|send)\b/i, /שיתוף.{0,15}(הצעה|whatsapp)/, /לשלוח.{0,15}וואטסאפ/]],
+  ['owner_whatsapp_share', [
+    /\b(share|send)\s+.{0,15}(quote|it)\s+.{0,10}whatsapp\b/i,
+    /\bwhatsapp\b.{0,20}(share|send)\b/i,
+    /(שיתוף|לשתף|משתף).{0,20}(הצעה|whatsapp|וואטסאפ)/,
+    /(לשלוח|שולח).{0,15}וואטסאפ/,
+  ]],
   ['public_whatsapp_contact', [/\b(contact\s+.{0,10}whatsapp|whatsapp\s+.{0,10}contact)\b/i, /יצירת קשר.{0,15}וואטסאפ/]],
   ['public_call', [/\bcall\s+(button|option)\b.{0,20}(quote|public)/i, /כפתור.{0,10}התקשרות/]],
 
-  ['quote_email', [/\bemail\s+(a|the|my)?\s*quote\b/i, /\bsend\s+(a|the|my)?\s*quote\s+by\s+email\b/i, /לשלוח הצעה?.{0,10}(במייל|באימייל)/]],
+  ['quote_email', [
+    /\bemail\s+(a|the|my)?\s*quote\b/i,
+    /\bsend\s+(a|the|my)?\s*quote\s+by\s+email\b/i,
+    /(לשלוח|שולחים|שולח).{0,15}הצעה.{0,15}(במייל|באימייל)/,
+  ]],
   ['quote_pdf', [
     /\b(pdf|download)\b.{0,20}quote/i,
     /\bexport\s+.{0,10}pdf\b/i,
@@ -161,8 +176,13 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /להדפיס/,
   ]],
 
-  ['attachments', [/\b(attach|upload)\s+.{0,15}(files?|drawings?|photos?)\b/i, /לצרף.{0,15}קבצים/]],
-  ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצעה.{0,10}(מדודה|מקצועית)/]],
+  ['attachments', [
+    /\b(attach|upload)\s+.{0,15}(files?|drawings?|photos?)\b/i,
+    /(לצרף|להעלות|מעלה).{0,20}(קבצים|שרטוטים|תמונות)/,
+  ]],
+  // Hebrew plural of "הצעה" is "הצעות" (the final ה is replaced, not suffixed) - matching on the
+  // stem "הצע" + (ה|ות) is required, "הצעה(ות)?" never matches the real plural spelling.
+  ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/]],
   ['professional_reuse', [/\breuse\s+.{0,15}(professional\s+)?items?\b/i, /שימוש חוזר.{0,15}פריטים/]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
