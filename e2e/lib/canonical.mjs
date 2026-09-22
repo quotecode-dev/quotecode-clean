@@ -47,7 +47,10 @@ export async function servedIdentity(base) {
   const vr = await fetch(`${base}/version.json?t=${Date.now()}`, { cache: 'no-store' });
   const version = vr.ok ? await vr.json() : null;
   const u = new URL(base);
-  const out = { base, port: u.port, host: u.hostname, capturedAt: new Date().toISOString(), version, servedFingerprint: null, servedFiles: 0, servedMismatches: [] };
+  // §51.17 browser-observable identity: the same JSON the loaded document embeds, served under a second name (not only version.json)
+  const ir = await fetch(`${base}/tekango-build-identity.json?t=${Date.now()}`, { cache: 'no-store' }).catch(() => null);
+  const buildIdentity = ir && ir.ok ? await ir.json() : null;
+  const out = { base, port: u.port, host: u.hostname, capturedAt: new Date().toISOString(), version, buildIdentity: buildIdentity ? { buildSha: buildIdentity.buildSha, buildInputDigest: buildIdentity.buildInputDigest, assetsFingerprint: buildIdentity.assetsFingerprint, testProjectRef: buildIdentity.testProjectRef, mode: buildIdentity.mode, buildTime: buildIdentity.buildTime, assets: buildIdentity.assets.length } : null, servedFingerprint: null, servedFiles: 0, servedMismatches: [] };
   if (EXPECTED.distDir && fs.existsSync(EXPECTED.distDir)) {
     const local = localDistFingerprint(EXPECTED.distDir);
     const served = [];
@@ -73,6 +76,9 @@ export async function loadedIdentity(page) {
     return {
       href: location.href,
       build: window.__TEKANGO_BUILD__ ? { ...window.__TEKANGO_BUILD__ } : null,
+      // §51.17: the identity embedded in the LOADED document (readable from any browser world, unlike page globals)
+      dom: (() => { try { const el = document.getElementById('tekango-build-identity'); const j = el && JSON.parse(el.textContent); return j ? { buildSha: j.buildSha, buildInputDigest: j.buildInputDigest, assetsFingerprint: j.assetsFingerprint, testProjectRef: j.testProjectRef, mode: j.mode, assetFiles: j.assets.map((a) => a.file) } : null; } catch { return null; } })(),
+      metaSha: document.querySelector('meta[name="tekango-build-sha"]')?.content || null,
       loadedAssets: [...new Set(assets)].sort(),
       font: {
         ready: document.fonts.status === 'loaded',
@@ -102,7 +108,27 @@ export function identityProblems({ served, loaded }, expected = EXPECTED) {
   }
   if (!expected.distDir) p.push('no candidate dist to compare served bytes with');
   if (served && served.servedMismatches?.length) p.push(`${served.servedMismatches.length} served file(s) differ from the candidate build (${served.servedMismatches.slice(0, 3).join(', ')})`);
+  if (served) {
+    const bi = served.buildIdentity;
+    if (!bi) p.push('/tekango-build-identity.json unreachable');
+    else {
+      if (expected.sha && bi.buildSha !== expected.sha) p.push('served build identity SHA != candidate');
+      if (expected.digest && bi.buildInputDigest !== expected.digest) p.push('served build identity digest != candidate digest');
+      if (bi.testProjectRef !== 'ljfizgrdyzxddswcedwr') p.push(`served build identity TEST ref ${bi.testProjectRef} is not TEST`);
+      if (v && v.assetsFingerprint !== bi.assetsFingerprint) p.push('version.json and tekango-build-identity.json disagree on the asset fingerprint');
+    }
+  }
   if (loaded) {
+    const d = loaded.dom;
+    if (!d) p.push('loaded document exposes no DOM build identity (#tekango-build-identity)');
+    else {
+      if (expected.sha && d.buildSha !== expected.sha) p.push(`loaded document identity ${String(d.buildSha).slice(0, 12)} != candidate (stale/old tab)`);
+      if (loaded.metaSha !== d.buildSha) p.push('meta tekango-build-sha disagrees with the DOM identity');
+      if (served?.buildIdentity && d.assetsFingerprint !== served.buildIdentity.assetsFingerprint) p.push('loaded document asset fingerprint != currently served (stale tab or changed served assets)');
+      const listed = new Set(d.assetFiles || []);
+      const unlisted = (loaded.loadedAssets || []).filter((a) => !listed.has(a));
+      if (unlisted.length) p.push(`loaded tab executed ${unlisted.length} asset(s) outside its own build identity (${unlisted.slice(0, 2).join(', ')})`);
+    }
     if (!loaded.build) p.push('loaded tab exposes no build identity (window.__TEKANGO_BUILD__)');
     else {
       if (expected.sha && loaded.build.buildSha !== expected.sha) p.push(`loaded tab runs ${String(loaded.build.buildSha).slice(0, 12)} (stale/old tab)`);

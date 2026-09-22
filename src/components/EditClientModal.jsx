@@ -3,7 +3,7 @@
 // ==============================================================================
 
 import { useState, useEffect } from 'react';
-import AiHelpButton from './AiHelpButton';
+import AiModalHeader from './AiModalHeader';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §G1): isNew (חדש) -
 // אותו מודל/שדות/ולידציה בדיוק, רק כותרת+תווית-כפתור מתחלפות בין "עריכה"
@@ -84,12 +84,10 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '450px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left', position: 'relative' }}>
         
-        <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
 
-        <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
-          {isNew ? (isHebrew ? 'לקוח חדש' : 'New Client') : (isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details')}
-        </h3>
-        <div style={{ marginBottom: '12px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-edit-client" /></div>
+        {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close */}
+        <AiModalHeader titleAs="h3" title={isNew ? (isHebrew ? 'לקוח חדש' : 'New Client') : (isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details')}
+          onClose={onClose} closeLabel={isHebrew ? 'סגור' : 'Close'} closeContent="✕" isHebrew={isHebrew} testId="ai-help-edit-client" style={{ color: '#1e293b', marginBottom: '16px' }} />
 
         {errorMsg && (
           <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '14px', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>

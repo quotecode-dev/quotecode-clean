@@ -13,9 +13,23 @@ function openAiHelp() {
   window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: { source: 'in_context_help' } }));
 }
 
-export default function AiHelpButton({ isHebrew = false, long = false, style = null, testId = 'ai-help-in-context' }) {
-  const label = long ? (isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI') : (isHebrew ? 'שאל את AI' : 'Ask AI');
+export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context' }) {
+  const longLabel = isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI';
+  const shortLabel = isHebrew ? 'שאל את AI' : 'Ask AI';
+  const label = long ? longLabel : shortLabel;
   const accessible = isHebrew ? 'שאל את AI - פתיחת צ׳אט AI על המסך הזה' : 'Ask AI - open the AI Chat about this screen';
+  // header variant (AiModalHeader): the long label on desktop, the short one on mobile - chosen by CSS (.pf-ai-help-btn--header), so the
+  // visible text always matches the space and is never dropped to icon-only
+  if (header) {
+    return (
+      <button type="button" className="pf-ai-help-btn pf-ai-help-btn--header" data-testid={testId} aria-label={accessible} title={accessible} dir={isHebrew ? 'rtl' : 'ltr'}
+        onClick={(e) => { e.stopPropagation(); openAiHelp(); }} style={style || undefined}>
+        <AiChatIcon size={16} rtl={isHebrew} />
+        <span className="pf-ai-help-btn-label pf-ai-label-long">{longLabel}</span>
+        <span className="pf-ai-help-btn-label pf-ai-label-short">{shortLabel}</span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"

@@ -52,7 +52,7 @@ describe('one canonical assistant instance (§8)', () => {
     expect(btn).toContain("'open-proflow-ai-chat'");
     expect(btn).not.toMatch(/<AIChatWidget|import AIChatWidget/);
     for (const p of ['src/components/AddItemWizard.jsx', 'src/components/QuoteDraftNotices.jsx', 'src/components/EditClientModal.jsx', 'src/components/PricingModal.jsx']) {
-      expect(read(p)).toContain('<AiHelpButton');
+      expect(read(p)).toMatch(/<AiHelpButton|<AiModalHeader/);
       expect(read(p)).not.toMatch(/<AIChatWidget/);
     }
   });

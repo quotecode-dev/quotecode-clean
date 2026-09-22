@@ -9,7 +9,10 @@ import { chromium, personas, openAuthed, evidenceDir, writeEvidence, shot, serve
 const BASE = baseFromArgs();
 const arg = (k) => (process.argv.find((a) => a.startsWith(`--${k}=`)) || '').split('=')[1] || null;
 const LANGS = arg('lang') ? [arg('lang')] : ['he', 'en'];
-const WIDTHS = arg('w') ? [Number(arg('w'))] : [320, 360, 390, 412, 1366];
+const WIDTHS = arg('w') ? [Number(arg('w'))] : [320, 360, 390, 412, 1280, 1440];
+// §51.16 header surfaces: the AI action shares the title row; desktop = centred long label, mobile = same row, short label
+const HEADER = new Set(['wizard', 'plans']);
+const LONG = { he: 'צריך עזרה? שאל את AI', en: 'Need help? Ask AI' }; const SHORT = { he: 'שאל את AI', en: 'Ask AI' };
 const PERSONA = { he: personas.PERSONA_A, en: personas.PERSONA_EN };
 const LABEL = { he: /^(צריך עזרה\? )?שאל את AI$/, en: /^(Need help\? )?Ask AI$/ };
 const dir = evidenceDir('ai-help-entry');
@@ -71,11 +74,32 @@ async function cell(page, { surface, lang, width }) {
       const others = m ? [...m.querySelectorAll('h1,h2,h3,button,[role="button"],input,select,textarea')].filter((o) => o !== el && !el.contains(o) && !o.contains(el) && o.offsetParent !== null) : [];
       const hit = others.map((o) => ({ o, b: o.getBoundingClientRect() })).filter(({ b }) => b.width > 0 && b.height > 0 && b.left < r.right - 0.5 && r.left < b.right - 0.5 && b.top < r.bottom - 0.5 && r.top < b.bottom - 0.5)
         .map(({ o }) => `${o.tagName}:${(o.getAttribute('aria-label') || o.textContent || '').trim().slice(0, 30)}`);
-      return { rect: { x: r.x, y: r.y, width: r.width, height: r.height }, text: el.textContent.trim(), iconRendered: !!ir && ir.width > 0 && ir.height > 0 && !!icon.querySelector('svg'), aria: el.getAttribute('aria-label'), dirAttr: el.getAttribute('dir'),
+      // header geometry (§51.16): the header row, its title, its Close
+      const head = el.closest('.pf-modal-head'); let hg = null;
+      if (head) { const hb = head.getBoundingClientRect(); const t = head.querySelector('.pf-modal-head-title-text'); const cl = head.querySelector('.pf-modal-head-close-btn'); const tb = t && t.getBoundingClientRect(); const cb = cl && cl.getBoundingClientRect();
+        const lh = t ? parseFloat(getComputedStyle(t).lineHeight) || parseFloat(getComputedStyle(t).fontSize) * 1.3 : 0;
+        hg = { header: { x: hb.x, width: hb.width, height: hb.height, top: hb.top, bottom: hb.bottom }, headCenter: hb.x + hb.width / 2, aiCenter: r.x + r.width / 2, title: tb ? { top: tb.top, bottom: tb.bottom, height: tb.height, left: tb.left, right: tb.right, clipped: t.scrollWidth > t.clientWidth + 1, lines: Math.round(tb.height / lh), fontPx: parseFloat(getComputedStyle(t).fontSize) } : null,
+          close: cb ? { top: cb.top, bottom: cb.bottom, left: cb.left, right: cb.right } : null, aiFontPx: parseFloat(getComputedStyle(el).fontSize) }; }
+      return { hg, visibleText: el.innerText.trim(), rect: { x: r.x, y: r.y, width: r.width, height: r.height }, text: el.textContent.trim(), iconRendered: !!ir && ir.width > 0 && ir.height > 0 && !!icon.querySelector('svg'), aria: el.getAttribute('aria-label'), dirAttr: el.getAttribute('dir'),
         overlaps: hit, vw: window.innerWidth, vh: window.innerHeight, scrollW: document.documentElement.scrollWidth, inModal: !!m };
     });
-    rec.entry = { rect: rectOf(geo.rect), text: geo.text, aria: geo.aria };
-    c('visible label (שאל את AI / Ask AI)', LABEL[lang].test(geo.text), geo.text);
+    rec.entry = { rect: rectOf(geo.rect), text: geo.visibleText, aria: geo.aria, header: geo.hg };
+    c('visible label (שאל את AI / Ask AI)', LABEL[lang].test(geo.visibleText), geo.visibleText);
+    if (HEADER.has(surface)) {
+      const hg = geo.hg; const desktop = width >= 1000;
+      c('in the shared modal header row (.pf-modal-head)', !!hg);
+      if (hg) {
+        const vOverlap = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+        const ai = { top: geo.rect.y, bottom: geo.rect.y + geo.rect.height };
+        if (hg.title) c('same row as the title', vOverlap(ai, hg.title));
+        if (hg.close) c('same row as Close', vOverlap(ai, hg.close));
+        c('single compact header row', hg.header.height <= (desktop ? 76 : 60), hg.header.height);
+        if (hg.title) { c('title fully readable (not clipped)', !hg.title.clipped); c('title on one line (no wrap)', hg.title.lines <= 1, hg.title.lines); }
+        c(desktop ? 'desktop long label' : 'mobile short label', geo.visibleText === (desktop ? LONG[lang] : SHORT[lang]), geo.visibleText);
+        if (desktop) c('desktop: AI action visually centred in the modal header (<= 2px)', Math.abs(hg.aiCenter - hg.headCenter) <= 2, +(hg.aiCenter - hg.headCenter).toFixed(2));
+        else { c('mobile: reduced title font (<= 14.1px)', !hg.title || hg.title.fontPx <= 14.1, hg.title?.fontPx); c('mobile: reduced AI label font (< 13.6px)', hg.aiFontPx < 13.6, hg.aiFontPx); }
+      }
+    }
     c('canonical AI Chat icon rendered', geo.iconRendered);
     c('accessible name', /AI/.test(geo.aria || ''), geo.aria);
     c('direction matches language', geo.dirAttr === (lang === 'he' ? 'rtl' : 'ltr'));
@@ -83,7 +107,7 @@ async function cell(page, { surface, lang, width }) {
     c('fully inside the viewport', geo.rect.x >= -0.5 && geo.rect.y >= -0.5 && geo.rect.x + geo.rect.width <= geo.vw + 0.5 && geo.rect.y + geo.rect.height <= geo.vh + 0.5, rectOf(geo.rect));
     c('covers no title / Close / CTA / control', geo.overlaps.length === 0, geo.overlaps.join(' | '));
     c('no horizontal page overflow', geo.scrollW <= geo.vw + 1, `${geo.scrollW} > ${geo.vw}`);
-    c('44px touch target', geo.rect.height >= 43.5, geo.rect.height);
+    c(HEADER.has(surface) ? 'touch target >= 32px (compact header)' : '44px touch target', geo.rect.height >= (HEADER.has(surface) ? 31.5 : 43.5), geo.rect.height);
     rec.screenshot = await shot(page, dir, `entry-${surface}-${lang}-${width}.png`);
     // keyboard: focus + Enter opens the ONE assistant
     await entry.focus(); c('keyboard focusable', await entry.evaluate((el) => document.activeElement === el));

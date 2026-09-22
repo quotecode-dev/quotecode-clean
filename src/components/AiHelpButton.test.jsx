@@ -36,10 +36,16 @@ describe('one canonical AI Chat entry visual', () => {
     expect(read('src/components/AiHelpButton.jsx')).toMatch(/<AiChatIcon /);
     expect(read('src/components/AiHelpButton.jsx')).not.toMatch(/from 'lucide-react'/); // no private icon
   });
-  it.each(SITES)('%s: every workflow entry is the labelled AiHelpButton (never icon-only / compact)', (p) => {
-    const uses = read(p).match(/<AiHelpButton [^>]*\/>/g) || [];
-    expect(uses.length).toBeGreaterThan(0);
+  it.each(SITES)('%s: every workflow entry is the labelled AiHelpButton or the shared AiModalHeader (never icon-only / compact)', (p) => {
+    const src = read(p);
+    const uses = src.match(/<AiHelpButton [^>]*\/>/g) || [];
+    const headers = src.match(/<AiModalHeader[\s\S]*?\/>/g) || [];
+    expect(uses.length + headers.length).toBeGreaterThan(0);
     for (const u of uses) expect(u).not.toMatch(/\bcompact\b/);
+  });
+  it('modal/wizard headers use the ONE header primitive (wizard, client editor, plans)', () => {
+    for (const p of ['src/components/AddItemWizard.jsx', 'src/components/EditClientModal.jsx', 'src/components/PricingModal.jsx']) expect(read(p)).toMatch(/<AiModalHeader/);
+    expect(read('src/components/AiModalHeader.jsx')).toMatch(/<AiHelpButton isHebrew=\{isHebrew\} header /);
   });
   it('the authenticated floating trigger uses the canonical icon too', () => {
     expect(read('src/AIChatWidget.jsx')).toMatch(/isDashboard \? <AiChatIcon /);

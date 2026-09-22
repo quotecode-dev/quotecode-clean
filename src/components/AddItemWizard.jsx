@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import AiHelpButton from './AiHelpButton';
+import AiModalHeader from './AiModalHeader';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { LIGHT as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
@@ -785,16 +785,9 @@ export default function AddItemWizard({
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${NEON.border}`, flexShrink: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: NEON.textPrimary }}>{t.title}</h2>
-          <button type="button" onClick={onClose} aria-label={t.cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', padding: '4px' }}>
-            <X size={20} />
-          </button>
-        </div>
-        {/* AI HELP V4 §8 / §51.15: its own row under the title bar - the ONE assistant opens above this dialog; the wizard stays as-is. */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '10px 20px 0', flexShrink: 0 }}>
-          <AiHelpButton isHebrew={isHebrew} long testId="ai-help-wizard" />
-        </div>
+        {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close; the ONE assistant opens above this dialog, the wizard stays as-is */}
+        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={onClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
+          style={{ borderBottom: `1px solid ${NEON.border}`, flexShrink: 0, color: NEON.textPrimary }} />
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />
 
