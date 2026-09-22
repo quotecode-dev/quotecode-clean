@@ -60,3 +60,20 @@ for (const [name, p] of [['PERSONA_A', PERSONA_A], ['PERSONA_SUPER_ADMIN', PERSO
     throw new Error(`e2e/testPersonas.js: ${name} is missing from .env.localtest.local - critical-journey tests cannot run without it.`);
   }
 }
+
+// IRON-DATA-001 (fail-closed): automated acceptance may only log in as a persona whose sha256(email) is in the machine-readable
+// synthetic allowlist (scripts/iron-laws/synthetic-personas.json in the tooling checkout, path passed via IRON_SYNTHETIC_ALLOWLIST).
+// A missing/unreadable allowlist, a non-allowlisted account, or a denylisted (real-customer) identity aborts BEFORE any login.
+import { createHash } from 'node:crypto';
+{
+  const allowlistPath = process.env.IRON_SYNTHETIC_ALLOWLIST;
+  if (!allowlistPath) throw new Error('IRON-DATA-001: IRON_SYNTHETIC_ALLOWLIST is not set - refusing to run acceptance with unverified personas (fail-closed).');
+  let list;
+  try { list = JSON.parse(readFileSync(allowlistPath, 'utf-8')); } catch { throw new Error('IRON-DATA-001: synthetic allowlist unreadable - refusing to run (fail-closed).'); }
+  const allowed = new Set((list.testPersonas || []).map((p) => p.emailSha256));
+  for (const [name, p] of [['PERSONA_A', PERSONA_A], ['PERSONA_SUPER_ADMIN', PERSONA_SUPER_ADMIN], ['PERSONA_EN', PERSONA_EN]]) {
+    const email = String(p.email || '').trim().toLowerCase();
+    if ((list.denylistPatterns || []).some((re) => new RegExp(re, 'i').test(email))) throw new Error(`IRON-DATA-001: ${name} matches the real-customer denylist - refusing.`);
+    if (!allowed.has(createHash('sha256').update(email).digest('hex'))) throw new Error(`IRON-DATA-001: ${name} is not an allowlisted synthetic persona - refusing to run.`);
+  }
+}
