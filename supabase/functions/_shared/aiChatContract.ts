@@ -21,7 +21,10 @@
 // gained `contextRevision` (also additive/optional). This is a coordinated
 // bump: AIChatWidget.jsx (the only caller) is updated in the same task to
 // send/consume v3, so there is no stray older caller left behind.
-export const CHAT_CONTRACT_VERSION = 3;
+// Bumped 3 -> 4 for AI HELP V4 (AI-HELP-AVAILABILITY-001): the request gained `helpContext` (supabase/functions/_shared/
+// aiHelpContract.js, sanitized server-side) and the response gained `helpMode`, `blockerCodes`, `privateHelp` and a navigation
+// `focus` (all additive; a v3 caller that ignores them still works). AIChatWidget.jsx is updated in the same task.
+export const CHAT_CONTRACT_VERSION = 4;
 
 export const ANSWER_SOURCES = ['deterministic', 'model'] as const;
 export type AnswerSource = typeof ANSWER_SOURCES[number];
@@ -57,8 +60,12 @@ export type ChatResponseEnvelope = {
   answer: string | null;
   answerSource: AnswerSource | null;
   factPayload: DirectFactPayload | null;
-  navigation: { action: string } | null;
+  navigation: { action: string; focus?: string | null } | null;
   selectedQuoteContext: { requested: boolean; available: boolean } | null;
+  // AI HELP V4
+  helpMode?: 'NORMAL_HELP' | 'BLOCKED_WORKFLOW_HELP' | null;
+  blockerCodes?: string[];
+  privateHelp?: boolean;
   error: { code: ChatErrorCode; message: string } | null;
 };
 
@@ -72,6 +79,9 @@ export function buildErrorEnvelope(code: ChatErrorCode, message: string, context
     factPayload: null,
     navigation: null,
     selectedQuoteContext: null,
+    helpMode: null,
+    blockerCodes: [],
+    privateHelp: false,
     error: { code, message },
   };
 }

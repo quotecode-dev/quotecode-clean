@@ -12,6 +12,11 @@ import { computeItemWizardState } from '../utils/quoteWorkflowContext';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
 import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
+import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
+
+// AI HELP V4 §5: the browser's own required-field validation is the owner of these blockers; the product marks each required
+// control with data-help-field (never DOM text scraping) and the blocker resolves as soon as the field is filled.
+const INVALID_FIELD_BLOCKER = { client_name: 'QUOTE_MISSING_CLIENT', client_type: 'QUOTE_MISSING_CLIENT_TYPE' };
 
 // SMART-QUOTE first-use flow: a numbered step label (1 who / 2 what / 3 price / 4 review & save).
 function StepHeading({ n, title, hint }) {
@@ -212,6 +217,10 @@ export default function QuoteForm({
   // method/measurement-progress snapshot (see its `onLiveStateChange` prop)
   // - merged into computeItemWizardState below, never re-derived here.
   const [wizardLiveState, setWizardLiveState] = useState(null);
+
+  const hasClientNameForHelp = !!String(clientName || '').trim();
+  useEffect(() => { if (hasClientNameForHelp) resolveBlockers(['QUOTE_MISSING_CLIENT']); }, [hasClientNameForHelp]);
+  useEffect(() => { if (clientType) resolveBlockers(['QUOTE_MISSING_CLIENT_TYPE']); }, [clientType]);
 
   useEffect(() => {
     if (!onWizardStateChange) return;
@@ -641,7 +650,7 @@ export default function QuoteForm({
         </button>
       </div>
 
-      <form className="pf-screen-body" onSubmit={onSave}>
+      <form className="pf-screen-body" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
         {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
             (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
             attachments, terms) is unchanged - optional parts are progressive, never removed. */}
@@ -680,6 +689,7 @@ export default function QuoteForm({
               onChange={handleClientSelect}
               list="existing-clients-list"
               placeholder="e.g. Acme Corp"
+              data-help-field="client_name"
               required
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
             />
@@ -692,6 +702,7 @@ export default function QuoteForm({
             <select
               value={clientType}
               onChange={(e) => setClientType(e.target.value)}
+              data-help-field="client_type"
               required={!editingQuoteId}
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}
             >

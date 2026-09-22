@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import { useState } from 'react';
+import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import { supabase } from '../shared/supabase';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Send, XCircle, ChevronDown } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
@@ -123,6 +124,10 @@ export default function AdminUsersTab({
     const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-reauth-verify', {
       body: { action, targetUserId, params: { reason }, password: adminPasswordInput },
     });
+    if (verifyError || !verifyData?.success || !verifyData?.proofToken) {
+      // AI HELP V4 §5: the protected-action owner publishes the typed blocker (never the server text); resolved on the next success
+      publishBlocker('ADMIN_PROTECTED_ACTION', { scope: 'surface', surface: 'admin_clients' });
+    }
     if (verifyError) {
       throw new Error(await getFunctionErrorMessage(verifyError, isHebrew ? 'אימות הסיסמה נכשל.' : 'Password verification failed.'));
     }
@@ -139,6 +144,7 @@ export default function AdminUsersTab({
     if (!actionData?.success) {
       throw new Error(actionData?.error || (isHebrew ? 'הפעולה נכשלה.' : 'Action failed.'));
     }
+    resolveBlockers(['ADMIN_PROTECTED_ACTION']);
     return actionData;
   }
 

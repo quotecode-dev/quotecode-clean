@@ -10,8 +10,8 @@ describe('NAVIGATION_ACTIONS', () => {
     }
   });
 
-  it('has exactly the 7 allowlisted destinations, no more', () => {
-    expect(NAVIGATION_ACTION_IDS).toHaveLength(7);
+  it('has exactly the 13 AI HELP V4 allowlisted destinations (the shared NAV_ACTIONS), no more', () => {
+    expect(NAVIGATION_ACTION_IDS).toHaveLength(13);
   });
 });
 

@@ -61,6 +61,11 @@ function marketPricing(catalog) {
 
 // The single source flag for payment capability (see the billing record in generateAiFacts()).
 const LIVE_CHECKOUT_AVAILABLE = false;
+// The single source flag for invoicing capability (AI-HELP-AVAILABILITY-001 / First-LIVE truth, 2026-09-22). PayPlus is a documented
+// provider CANDIDATE only (INVOICING_INFRASTRUCTURE.md: offer received, not signed, integration not started) - no invoice / receipt /
+// tax document is issued by TEKANGO today. Do not flip without a live, verified integration.
+const LIVE_INVOICING_AVAILABLE = false;
+const INVOICING_PROVIDER_CANDIDATE = 'PayPlus';
 
 // Pure - no filesystem/network access, so it can be unit-tested directly
 // against the canonical modules' current values.
@@ -99,6 +104,15 @@ export function generateAiFacts() {
       paymentProcessingAvailable: LIVE_CHECKOUT_AVAILABLE,
       acceptedPaymentCurrencies: [],
       paymentMethodsKnown: false,
+    },
+    // Invoicing truth - as deterministic as payment truth. Distinct from: quote PDF (a quote document, not a tax invoice), quote email
+    // (sends the quote), and the quote "Paid" status (a label the business sets manually; it does not collect money or issue a receipt).
+    invoicing: {
+      liveInvoicingAvailable: LIVE_INVOICING_AVAILABLE,
+      invoiceIssuanceAvailable: LIVE_INVOICING_AVAILABLE,
+      receiptIssuanceAvailable: LIVE_INVOICING_AVAILABLE,
+      providerCandidate: INVOICING_PROVIDER_CANDIDATE,
+      providerStatus: LIVE_INVOICING_AVAILABLE ? 'live' : 'candidate_not_integrated',
     },
   };
 }

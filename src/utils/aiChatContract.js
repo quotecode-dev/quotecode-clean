@@ -9,7 +9,7 @@
 // statically, the same established pattern guidedChatIntents.test.js
 // already uses for its own Edge/frontend id parity check) and asserts both
 // sides match exactly.
-export const CHAT_CONTRACT_VERSION = 3;
+export const CHAT_CONTRACT_VERSION = 4;
 
 export const ANSWER_SOURCES = ['deterministic', 'model'];
 

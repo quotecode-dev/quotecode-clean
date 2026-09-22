@@ -10,6 +10,9 @@ import {
 } from './utils/aiChatSession';
 import { GUIDED_SECOND_STEPS, getGuidedIntentLabel, getGuidedIntentDescription, getGuidedGroupForIntent, getTopicGroupsForSurface, getContextualTopicGroups } from './utils/guidedChatIntents';
 import { getNavigationLabel, dispatchSafeNavigation } from './utils/safeNavigation';
+import { buildAiHelpContext } from './utils/aiHelpContext';
+import { getActiveBlockers, publishBlocker, resolveBlockers } from './utils/aiHelpBlockers';
+import { boundTranscript } from './utils/aiHelpContract';
 import { formatMessageTime, formatDaySeparatorLabel, computeDaySeparatorFlags } from './utils/aiChatHistoryFormat';
 import { resolveAIChatContext, allowsExistingQuoteReference } from './utils/aiChatContext';
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
@@ -136,7 +139,7 @@ function loadPublicMessages(isHebrew) {
   return [withCreatedAt({ role: 'assistant', content: computeDefaultWelcome(isHebrew, false) })];
 }
 
-export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null }) {
+export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null, helpSources = null }) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Context-Driven AI Chat V3, §5: the ONE canonical context resolver - a
@@ -418,6 +421,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     guardRef.current.reset();
     contextRevisionRef.current += 1;
     setLoading(false);
+    resolveBlockers(['AI_TRANSCRIPT_LIMIT']); // a new chat is the confirmed resolution of a too-long transcript
     // Deliberately always a fresh welcome, for both surfaces - never
     // `loadPublicMessages` here, which re-reads sessionStorage and would
     // just hand back the very conversation this action is meant to start
@@ -693,9 +697,24 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       // Only role/content ever leave this widget for the transcript itself
       // - any local-only note messages (e.g. "selected quote unavailable")
       // are never sent back as fake conversation history.
-      const apiMessages = newMessages
+      const fullTranscript = newMessages
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
+      // AI HELP V4 (AI-HELP-AVAILABILITY-001): a long chat never makes help unavailable - the oldest turns stop being sent
+      // (same shared limits the server enforces) and the user is told once.
+      const bounded = boundTranscript(fullTranscript);
+      const apiMessages = bounded.messages;
+      if (bounded.trimmed && isDashboard) {
+        publishBlocker('AI_TRANSCRIPT_LIMIT', { scope: 'session' });
+      }
+      // AI HELP V4 context: bounded structured UI facts + typed blocker codes only (never DOM text, never PII, never raw errors).
+      // The server re-derives identity/tenant/market/entitlement and reconciles every blocker against its own facts.
+      const activeHelpBlockers = isDashboard ? getActiveBlockers() : [];
+      const aiOwnBlocker = activeHelpBlockers.some((b) => b.code === 'AI_PROVIDER_FAILED' || b.code === 'AI_TRANSCRIPT_LIMIT');
+      const helpContext = isDashboard && helpSources
+        ? buildAiHelpContext({ ...helpSources, chat: { transcriptLength: fullTranscript.reduce((n, m) => n + m.content.length, 0), transcriptMessages: fullTranscript.length } },
+          { blockers: activeHelpBlockers, revision: contextRevisionRef.current, forceScreen: aiOwnBlocker && !activeHelpBlockers.some((b) => !b.code.startsWith('AI_')) ? 'ai_chat' : null })
+        : null;
 
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: {
@@ -725,6 +744,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
           // §18: round-tripped, not authoritative server-side - see this
           // ref's own header comment for exactly which boundaries bump it.
           contextRevision: contextRevisionRef.current,
+          helpContext,
         }
       });
 
@@ -748,6 +768,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
 
       const cleanAnswer = swapSupportEmail(data.answer, isHebrew);
       const navigationAction = data.navigation?.action || null;
+      const navigationFocus = data.navigation?.focus || null;
+      resolveBlockers(['AI_PROVIDER_FAILED']); // confirmed resolution: the assistant answered
 
       applyIfCurrent(() => {
         setMessages(prev => {
@@ -764,10 +786,19 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 : 'The selected quote is no longer available. Quote context was cleared.',
             }));
           }
+          if (bounded.trimmed) {
+            next.push(withCreatedAt({
+              role: 'system-note',
+              content: isHebrew
+                ? 'השיחה ארוכה - ההודעות הישנות ביותר כבר לא נשלחות לעוזר. אפשר להתחיל שיחה חדשה בכל רגע.'
+                : 'This chat is long - the oldest messages are no longer sent to the assistant. You can start a new chat at any time.',
+            }));
+          }
           next.push(withCreatedAt({
             role: 'assistant',
             content: cleanAnswer,
             navigationAction,
+            navigationFocus,
             navigationQuoteId: navigationAction === 'open_selected_quote' ? requestSelectedQuoteId : null,
           }));
           return next;
@@ -785,6 +816,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
 
     } catch (err) {
       console.error("AI Chat Error:", err);
+      if (isDashboard) publishBlocker('AI_PROVIDER_FAILED', { scope: 'session' });
       applyIfCurrent(() => setMessages(prev => [...prev, withCreatedAt({
         role: 'assistant',
         content: isHebrew
@@ -796,14 +828,14 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     }
   };
 
-  const handleNavigationClick = (action, boundQuoteId = null) => {
+  const handleNavigationClick = (action, boundQuoteId = null, boundFocus = null) => {
     // §25: reads ONLY the quote id bound onto this exact message at the
     // moment it was created (see handleSend's requestSelectedQuoteId) -
     // never the current live selectedQuoteId, which may have since changed
     // to a different quote (or been cleared) without this older message
     // disappearing. The model never supplied this id either way (it can
     // only choose the action).
-    const meta = action === 'open_selected_quote' ? { quoteId: boundQuoteId } : null;
+    const meta = action === 'open_selected_quote' ? { quoteId: boundQuoteId } : boundFocus ? { focus: boundFocus } : null;
     const dispatched = dispatchSafeNavigation(action, meta);
     if (!dispatched) return;
     // §8.3: "Mobile: chat may close after the user clicks navigation" /
@@ -1177,7 +1209,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           {msg.role === 'assistant' && msg.navigationAction && (
                             <button
                               type="button"
-                              onClick={() => handleNavigationClick(msg.navigationAction, msg.navigationQuoteId ?? null)}
+                              onClick={() => handleNavigationClick(msg.navigationAction, msg.navigationQuoteId ?? null, msg.navigationFocus ?? null)}
                               style={{
                                 minHeight: '38px',
                                 padding: '6px 12px',

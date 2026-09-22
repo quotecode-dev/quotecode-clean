@@ -7,10 +7,10 @@ describe('frontend/edge navigation allowlist parity', () => {
     expect([...NAVIGATION_ACTION_IDS]).toEqual(FRONTEND_NAVIGATION_ACTION_IDS);
   });
 
-  it('matches the exact §8.1 recommended allowlist', () => {
+  it('matches the exact AI HELP V4 §11 closed allowlist (the §8.1 seven plus the product-owned V4 destinations)', () => {
     expect([...NAVIGATION_ACTION_IDS]).toEqual([
-      'open_quote_history', 'open_clients', 'open_business_settings',
-      'open_catalog', 'open_finances', 'open_plan_information', 'open_selected_quote',
+      'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_clients', 'open_catalog', 'open_finances', 'open_business_settings',
+      'open_business_details', 'open_business_phone', 'open_business_tax_id', 'open_plan_information', 'open_selected_quote', 'open_admin',
     ]);
   });
 });

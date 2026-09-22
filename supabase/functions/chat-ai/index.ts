@@ -8,6 +8,8 @@ import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
 import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
+import { invoicingTruthApplies, classifyInvoicingIntent, formatInvoicingTruthAnswer } from "./invoicingTruth.ts";
+import { deriveTrustedFacts, reconcileBlockers, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
 const corsHeaders = {
@@ -38,7 +40,7 @@ serve(async (req) => {
   if (!validation.ok) {
     return errorResponse('invalid_request', validation.reason, 400);
   }
-  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision } = validation.value;
+  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision, helpContext: rawHelpContext } = validation.value;
   // Track B/C: a UX-hint-only snapshot, already strictly validated/shaped
   // by validateChatRequest above - only ever meaningful on the authenticated
   // Dashboard surface, same gating as accountContext/quoteContext below.
@@ -96,14 +98,23 @@ serve(async (req) => {
   // account is behind the request (only public chat, which has no
   // account, uses the caller-supplied locale signal).
   let accountContext = null;
+  let trustedFacts: TrustedServerFacts | null = null;
   let isHebrew = clientIsHebrew;
   if (verifiedUserId) {
     const { data: bizRow } = await adminClient
       .from('business_settings')
-      .select('plan, trial_ends_at, is_lifetime, role, country')
+      .select('plan, trial_ends_at, is_lifetime, role, country, phone, tax_id')
       .eq('user_id', verifiedUserId)
       .maybeSingle();
     accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea);
+    // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, this month's quote count).
+    let monthlyUsed: number | null = null;
+    try {
+      const { count } = await adminClient.from('quotes').select('id', { count: 'exact', head: true })
+        .eq('user_id', verifiedUserId).gte('created_at', monthStartIso(accountContext.market));
+      monthlyUsed = typeof count === 'number' ? count : null;
+    } catch { monthlyUsed = null; }
+    trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null, monthlyUsed);
     // §4 correction (Track C/I, "Unknown must not silently become
     // International"): only market 'Unknown' (no business_settings row yet)
     // falls back to the caller's own dashboard-bundle locale for reply
@@ -161,6 +172,28 @@ serve(async (req) => {
 
   const lastUserMessage = messages.filter((m) => m.role === 'user').pop()?.content || "";
 
+  // AI HELP V4 (AI-HELP-AVAILABILITY-001): browser help context is used ONLY behind a verified user (no private help otherwise);
+  // every blocker is reconciled against Layer 3 facts (contradicted/stale claims are dropped).
+  const helpContext = verifiedUserId && isDashboard ? rawHelpContext : null;
+  const { active: activeBlockers, dropped: droppedBlockers } = helpContext ? reconcileBlockers(helpContext, trustedFacts) : { active: [] as ReconciledBlocker[], dropped: [] as ReconciledBlocker[] };
+  const helpMode = helpContext ? (activeBlockers.length ? 'BLOCKED_WORKFLOW_HELP' : 'NORMAL_HELP') : null;
+  const navAllowed = verifiedUserId ? allowedNavigation({ ctx: helpContext ? { ...helpContext, blockers: activeBlockers } : null, isAdmin: !!trustedFacts?.isAdmin, hasSelectedQuote: selectedQuoteAvailable }) : [];
+  const helpEnvelope = { helpMode, blockerCodes: activeBlockers.map((b) => b.code), privateHelp: !!verifiedUserId };
+  const logChat = async (answerText: string) => {
+    try {
+      const { error: logError } = await adminClient.from('chat_logs').insert([
+        { user_email: attributedEmail, user_question: lastUserMessage, ai_response: answerText, category: classifySupportMessage(lastUserMessage), created_at: new Date().toISOString() },
+      ]);
+      if (logError) console.error("chat_logs insert returned an error:", logError.message);
+    } catch (logErr) {
+      console.error("Failed to log chat question:", logErr);
+    }
+  };
+  const deterministicResponse = (answerText: string, navigation: { action: string; focus: string | null } | null = null) => new Response(JSON.stringify({
+    contractVersion: CHAT_CONTRACT_VERSION, requestId: crypto.randomUUID(), contextRevision, answer: answerText, answerSource: 'deterministic', factPayload: null,
+    navigation, selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null, ...helpEnvelope, error: null,
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   // §22 "Direct Facts": deterministic fast path, tried BEFORE any model
   // call. Only ever triggers for an authenticated caller with a server-
   // authorized selected quote (never for a public/anonymous request, never
@@ -188,6 +221,7 @@ serve(async (req) => {
         factPayload,
         navigation: null,
         selectedQuoteContext: { requested: true, available: true },
+        ...helpEnvelope,
         error: null,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -201,29 +235,23 @@ serve(async (req) => {
   // product settings"). Runs after directFacts (a quote-fact question wins) and before the model. Anything the
   // classifier does not recognise still reaches the model under the authoritative PAYMENT & CHECKOUT TRUTH block
   // in the system prompt (validation.ts). See paymentTruth.ts and TEKANGO_AI_ARCHITECTURE.md section 13.4.
-  if (paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage)) {
-    const paymentAnswer = formatPaymentTruthAnswer(isHebrew);
-    try {
-      const { error: logError } = await adminClient.from('chat_logs').insert([
-        { user_email: attributedEmail, user_question: lastUserMessage, ai_response: paymentAnswer, category: classifySupportMessage(lastUserMessage), created_at: new Date().toISOString() },
-      ]);
-      if (logError) console.error("chat_logs insert returned an error:", logError.message);
-    } catch (logErr) {
-      console.error("Failed to log chat question:", logErr);
+  // AI HELP V4: invoicing truth is as deterministic as payment truth. A question about both gets both statements.
+  const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
+  const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
+  if (asksInvoicing || asksPayment) {
+    const capabilityAnswer = asksInvoicing ? formatInvoicingTruthAnswer(isHebrew) : formatPaymentTruthAnswer(isHebrew);
+    await logChat(capabilityAnswer);
+    return deterministicResponse(capabilityAnswer);
+  }
+
+  // AI HELP V4: "why is this blocked / what is missing" and "is my work saved" are answered deterministically from the reconciled
+  // blockers / draft provenance (no model guessing), with a safe, click-required navigation to the resolution when one exists.
+  if (helpContext) {
+    const det = deterministicHelpAnswer(classifyHelpIntent(lastUserMessage), helpContext, activeBlockers, trustedFacts, isHebrew, selectedQuoteAvailable);
+    if (det) {
+      await logChat(det.answer);
+      return deterministicResponse(det.answer, det.navigation && navAllowed.includes(det.navigation.action) ? det.navigation : null);
     }
-    return new Response(JSON.stringify({
-      contractVersion: CHAT_CONTRACT_VERSION,
-      requestId: crypto.randomUUID(),
-      contextRevision,
-      answer: paymentAnswer,
-      answerSource: 'deterministic',
-      factPayload: null,
-      navigation: null,
-      selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,
-      error: null,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   }
 
   // System prompt: assembled entirely from AI_FACTS + verified server-
@@ -231,7 +259,8 @@ serve(async (req) => {
   // guidedSubtopic/quoteContextBlock are transient request-scoped data
   // only: used here to build the prompt, never persisted (the chat_logs
   // insert below references none of them).
-  const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext });
+  const helpBlocks = helpContext ? buildHelpContextBlocks(helpContext, activeBlockers, droppedBlockers, trustedFacts, isHebrew) : null;
+  const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null });
 
   let data: Record<string, unknown>;
   try {
@@ -278,7 +307,8 @@ serve(async (req) => {
 
   // §8: parse and validate any trailing navigation marker - the visible
   // answer never contains the raw "NAVIGATE: ..." line either way.
-  const { answer, action: navigationAction } = extractNavigationAction(aiReply, selectedQuoteAvailable);
+  const { answer, action: navigationAction } = extractNavigationAction(aiReply, selectedQuoteAvailable, verifiedUserId ? navAllowed : []);
+  const NAV_FOCUS: Record<string, string> = { open_business_phone: 'business_phone', open_business_tax_id: 'business_tax_id', open_business_details: 'business_details' };
 
   const category = classifySupportMessage(lastUserMessage);
 
@@ -310,8 +340,9 @@ serve(async (req) => {
     answer,
     answerSource: 'model',
     factPayload: null,
-    navigation: navigationAction ? { action: navigationAction } : null,
+    navigation: navigationAction ? { action: navigationAction, focus: NAV_FOCUS[navigationAction] ?? null } : null,
     selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,
+    ...helpEnvelope,
     error: null,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

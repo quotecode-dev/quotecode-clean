@@ -7,17 +7,13 @@
 // below, and renders a PRODUCT-OWNED label for it (src/utils/
 // safeNavigation.js) - the model contributes only the choice of WHICH
 // destination, never the label or a destination outside this list.
-export const NAVIGATION_ACTION_IDS = [
-  'open_quote_history',
-  'open_clients',
-  'open_business_settings',
-  'open_catalog',
-  'open_finances',
-  'open_plan_information',
-  'open_selected_quote',
-] as const;
+// AI HELP V4 (AI-HELP-AVAILABILITY-001): the closed set is the shared contract's NAV_ACTIONS (one source for frontend + server). New
+// destinations (dashboard, new quote, business details / phone / tax ID focus targets, admin) stay product-owned and click-required;
+// per turn the server narrows the set further (allowedNavigation: blockers, verified admin role, authorized selected quote).
+import { NAV_ACTIONS } from "../_shared/aiHelpContract.js";
+export const NAVIGATION_ACTION_IDS = NAV_ACTIONS as readonly string[];
 
-export type NavigationActionId = typeof NAVIGATION_ACTION_IDS[number];
+export type NavigationActionId = string;
 
 const ALLOWED_SET: ReadonlySet<string> = new Set(NAVIGATION_ACTION_IDS);
 
@@ -37,7 +33,7 @@ export type NavigationExtractionResult = {
 // selected AND authorized this exact turn (see index.ts) - `open_selected_quote`
 // is rejected otherwise, so a stale/hallucinated suggestion can never point
 // at a quote the current turn was not actually authorized to discuss.
-export function extractNavigationAction(rawAnswer: string, hasSelectedQuoteContext: boolean): NavigationExtractionResult {
+export function extractNavigationAction(rawAnswer: string, hasSelectedQuoteContext: boolean, allowedThisTurn: readonly string[] | null = null): NavigationExtractionResult {
   const text = typeof rawAnswer === 'string' ? rawAnswer : '';
   const match = text.match(NAV_MARKER_RE);
   if (!match) {
@@ -51,6 +47,10 @@ export function extractNavigationAction(rawAnswer: string, hasSelectedQuoteConte
     return { answer: cleanAnswer, action: null };
   }
   if (candidate === 'open_selected_quote' && !hasSelectedQuoteContext) {
+    return { answer: cleanAnswer, action: null };
+  }
+  // a destination not offered for THIS turn (e.g. open_admin for a non-admin) is rejected even if it is in the closed set
+  if (allowedThisTurn && !allowedThisTurn.includes(candidate)) {
     return { answer: cleanAnswer, action: null };
   }
 

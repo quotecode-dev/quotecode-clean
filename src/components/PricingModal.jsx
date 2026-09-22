@@ -8,6 +8,7 @@ import { X, Rocket, CheckCircle2, XCircle } from 'lucide-react';
 import { PRICING_CATALOG, getSavingsPercent } from '../utils/pricingCatalog';
 import Toast from './Toast';
 import BrandName from './BrandName';
+import AiHelpButton from './AiHelpButton';
 
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, isLifetime, currency }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -45,6 +46,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
         
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={18} strokeWidth={2.5} /></button>
+        <div style={{ position: 'absolute', top: '8px', [isHebrew ? 'right' : 'left']: '14px' }}><AiHelpButton isHebrew={isHebrew} compact testId="ai-help-plans" /></div>
 
         {(
           <>

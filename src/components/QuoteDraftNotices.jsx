@@ -1,4 +1,5 @@
 import { formatDeviceShortDateTime } from '../utils/shortDate';
+import AiHelpButton from './AiHelpButton';
 // Notices for durable quote drafts: recovered-draft banner, storage-failure warning, and the server-conflict dialog.
 // Text only - none of these ever prints draft field values.
 const box = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box' };
@@ -55,6 +56,9 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
             ? (isHebrew ? `הצעה ${label} כבר אינה קיימת (או אינה ניתנת לעריכה). הטיוטה שלך נשמרה - היא לא תדרוס דבר.` : `Quote ${label} no longer exists (or can no longer be edited). Your draft is kept - it will not overwrite anything.`)
             : (isHebrew ? `הצעה ${label} השתנתה בשרת (במכשיר או בחלון אחר) אחרי שהטיוטה נשמרה. כדי לא לדרוס שינויים שנשמרו, בחר/י מה לעשות:` : `Quote ${label} changed on the server (another device or window) after your draft was saved. To avoid overwriting saved changes, choose:`)}
         </p>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+          <AiHelpButton isHebrew={isHebrew} testId="ai-help-draft-conflict" />
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button type="button" data-testid="draft-conflict-review" onClick={onReview} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
             {isHebrew ? 'סקור עותק משוחזר (ייפתח כהצעה חדשה)' : 'Review recovered copy (opens as a new quote)'}

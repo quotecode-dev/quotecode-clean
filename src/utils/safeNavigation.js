@@ -1,20 +1,19 @@
-// AI Chat Gate 2, §8: the frontend half of the safe-navigation allowlist.
+// AI Chat Gate 2, §8 + AI HELP V4 §11: the frontend half of the safe-navigation allowlist.
 // Labels here are PRODUCT copy, never model-authored text - the AI (see
-// supabase/functions/chat-ai/navigation.ts) can only choose WHICH of these
-// 7 fixed ids to suggest; this module owns what the button actually says
-// and does. No destination outside this list can ever be rendered, and no
-// free-form URL is ever accepted from a chat response.
-export const NAVIGATION_ACTIONS = [
-  { id: 'open_quote_history', he: 'פתיחת היסטוריית הצעות מחיר', en: 'Open quote history' },
-  { id: 'open_clients', he: 'פתיחת לקוחות', en: 'Open clients' },
-  { id: 'open_business_settings', he: 'פתיחת הגדרות עסק', en: 'Open business settings' },
-  { id: 'open_catalog', he: 'פתיחת קטלוג', en: 'Open catalog' },
-  { id: 'open_finances', he: 'פתיחת פיננסים', en: 'Open finances' },
-  { id: 'open_plan_information', he: 'מידע על המסלול שלי', en: 'View my plan information' },
-  { id: 'open_selected_quote', he: 'פתיחת ההצעה שנבחרה', en: 'Open the selected quote' },
-];
+// supabase/functions/chat-ai/navigation.ts) can only choose WHICH of the
+// closed NAV_ACTIONS ids (supabase/functions/_shared/aiHelpContract.js - the
+// ONE list both sides import) to suggest; this module owns what the button
+// actually says and does. No destination outside this list can ever be
+// rendered, and no free-form URL / selector / DOM id is ever accepted from a
+// chat response. The server filters per turn; this module re-checks.
+import { NAV_ACTIONS, NAV_LABELS } from './aiHelpContract';
+
+export const NAVIGATION_ACTIONS = NAV_ACTIONS.map((id) => ({ id, he: NAV_LABELS[id].he, en: NAV_LABELS[id].en }));
 
 export const NAVIGATION_ACTION_IDS = NAVIGATION_ACTIONS.map((a) => a.id);
+
+// Product-owned focus targets (Settings section ids rendered by SettingsTab as `pf-settings-<id>`).
+export const NAVIGATION_FOCUS_TARGETS = Object.freeze(['business_details', 'business_phone', 'business_tax_id']);
 
 export function isValidNavigationAction(actionId) {
   return NAVIGATION_ACTION_IDS.includes(actionId);
@@ -34,13 +33,16 @@ export const AI_NAVIGATE_EVENT = 'proflow-ai-navigate';
 // Returns false (and dispatches nothing) for any id outside the allowlist -
 // the one enforcement point between "a value came back from the Edge
 // Function" and "something on screen actually navigated". `meta` is
-// optional, narrow, caller-known data the destination itself needs (today:
-// only `open_selected_quote` uses it, carrying the exact quoteId the user
-// themselves already selected in this same chat session - never anything
-// the model supplied).
+// narrow, caller-known data the destination itself needs: `quoteId` only
+// for `open_selected_quote` (the id the user themselves selected in this
+// chat session - never model-supplied) and `focus` only from the closed
+// NAVIGATION_FOCUS_TARGETS list (anything else is dropped).
 export function dispatchSafeNavigation(actionId, meta = null) {
   if (!isValidNavigationAction(actionId)) return false;
   if (typeof window === 'undefined') return false;
-  window.dispatchEvent(new CustomEvent(AI_NAVIGATE_EVENT, { detail: { action: actionId, meta } }));
+  const safeMeta = {};
+  if (actionId === 'open_selected_quote' && meta?.quoteId) safeMeta.quoteId = meta.quoteId;
+  if (meta?.focus && NAVIGATION_FOCUS_TARGETS.includes(meta.focus)) safeMeta.focus = meta.focus;
+  window.dispatchEvent(new CustomEvent(AI_NAVIGATE_EVENT, { detail: { action: actionId, meta: Object.keys(safeMeta).length ? safeMeta : null } }));
   return true;
 }

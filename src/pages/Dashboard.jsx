@@ -10,6 +10,8 @@ import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
+import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
+import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
@@ -35,7 +37,7 @@ import { formatMoney, formatMoneyForCurrency } from '../utils/money';
 import { compareClients } from '../utils/clientSort';
 import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
-import { getBusinessProfileGateMessage } from '../utils/businessProfileCompleteness';
+import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
 import { computeTransparentTrimBounds } from '../utils/logoTrim';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
@@ -206,6 +208,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return () => clearTimeout(timer);
   }, [statusMsg.text]);
   const [alertModalMsg, setAlertModalMsg] = useState(null); // חלון צף מודרני במרכז המסך עבור הודעות שגיאה/התרעה
+  // AI HELP V4 (AI-HELP-AVAILABILITY-001): the owner of a blocked action shows its own message AND publishes the typed blocker code.
+  // Dismissing the alert never clears the blocker - only confirmed resolution or a context transition does (see the effects below).
+  const alertWithBlocker = (code, opts, msg) => { publishBlocker(code, { scope: 'surface', ...opts }); setAlertModalMsg(msg); };
   
   const [emailStatuses, setEmailStatuses] = useState({});
 
@@ -839,25 +844,69 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // this effect is the ONE place that maps a user-clicked suggestion to this
   // component's own existing tab-switch/modal-open state - it never mutates
   // any quote/client/business data itself.
+  // Latest editor/role facts for the navigation handler (declared further down; read at click time, never during render).
+  const aiNavStateRef = useRef({ showQuoteForm: false, isDirty: () => false, isSuperAdmin: false });
   useEffect(() => {
     function handleAiNavigate(e) {
       const action = e?.detail?.action;
+      const focus = e?.detail?.meta?.focus || null;
+      const { showQuoteForm, isDirty, isSuperAdmin } = aiNavStateRef.current;
+      // AI HELP V4 §11: a destination that leaves the quote editor goes through the SAME unsaved-work guard as Cancel.
+      const leavesEditor = showQuoteForm && action !== 'open_plan_information';
+      if (leavesEditor && isDirty()) {
+        const msg = isHebrew ? 'יש שינויים שלא נשמרו בהצעה. לעזוב את העורך? הטיוטה נשארת שמורה מקומית במכשיר הזה (לא בשרת).' : 'You have unsaved changes in this quote. Leave the editor? The draft stays stored locally on this device (not on the server).';
+        if (!window.confirm(msg)) return;
+      }
+      const closeEditor = () => { if (showQuoteForm) { setEditingQuoteId(null); setIsCreatingQuote(false); } };
+      const focusSettings = (target) => {
+        setActiveTab('settings');
+        // product-owned section ids only (SettingsTab renders them) - never a model-supplied selector
+        window.setTimeout(() => {
+          const el = document.getElementById(`pf-settings-${target}`);
+          if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const input = el.querySelector('input, textarea, select'); if (input) input.focus({ preventScroll: true }); }
+        }, 120);
+      };
       switch (action) {
-        case 'open_quote_history':
-          setEditingQuoteId(null);
-          setIsCreatingQuote(false);
+        case 'open_dashboard':
+          closeEditor();
+          setShowPricingModal(false);
           setActiveTab('main');
           break;
+        case 'open_quote_history':
+          closeEditor();
+          setActiveTab('main');
+          break;
+        case 'open_new_quote':
+          closeEditor();
+          setActiveTab('main');
+          handleCreateNewQuoteClick();
+          break;
         case 'open_clients':
+          closeEditor();
           setActiveTab('clients');
           break;
         case 'open_business_settings':
-          setActiveTab('settings');
+        case 'open_business_details':
+          closeEditor();
+          focusSettings('business_details');
+          break;
+        case 'open_business_phone':
+          closeEditor();
+          focusSettings(focus === 'business_phone' || !focus ? 'business_phone' : 'business_details');
+          break;
+        case 'open_business_tax_id':
+          closeEditor();
+          focusSettings('business_tax_id');
+          break;
+        case 'open_admin':
+          if (isSuperAdmin) { closeEditor(); setActiveTab('admin_clients'); }
           break;
         case 'open_catalog':
+          closeEditor();
           setActiveTab('catalog');
           break;
         case 'open_finances':
+          closeEditor();
           setActiveTab('finances');
           break;
         case 'open_plan_information':
@@ -1554,11 +1603,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
       if (error) {
         console.error('Error updating settings:', error);
-        setAlertModalMsg(classifyDashboardActionError(error.message, isHebrew, 'update_settings'));
+        alertWithBlocker(blockerCodeForActionError('update_settings', error.message), { scope: 'surface', surface: 'settings' }, classifyDashboardActionError(error.message, isHebrew, 'update_settings'));
       }
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
+        resolveBlockers(['SETTINGS_SAVE_FAILED']);
       }
     } else {
       // חוק ברזל: createNewBusinessSettings() היא הנקודה היחידה בקובץ הזה
@@ -1570,7 +1620,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // createNewBusinessSettings לפני שהדשבורד בכלל נגיש) - נכשלים
       // בבטחה במקום לנחש/ליצור.
       console.error('handleSaveSettings: missing settingId - refusing to insert a new business_settings row (see createNewBusinessSettings).');
-      setAlertModalMsg(isHebrew ? 'לא ניתן לשמור את ההגדרות כרגע. טען מחדש את העמוד ונסה שוב.' : 'Settings cannot be saved right now. Please reload the page and try again.');
+      alertWithBlocker('SETTINGS_SAVE_FAILED', { surface: 'settings' }, isHebrew ? 'לא ניתן לשמור את ההגדרות כרגע. טען מחדש את העמוד ונסה שוב.' : 'Settings cannot be saved right now. Please reload the page and try again.');
     }
   }
 
@@ -1594,7 +1644,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .eq('id', updatedClient.id);
 
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('update_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
@@ -1630,7 +1680,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }]);
 
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('create_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח נוצר בהצלחה!' : 'Client created successfully!', type: 'success' });
       fetchClients(session.user.id);
@@ -1649,7 +1699,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .eq('id', updatedExpense.id);
 
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('update_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
       if (session?.user?.id) fetchExpenses(session.user.id);
@@ -1670,7 +1720,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }]);
 
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('add_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message);
     } else {
       setExpenseDesc('');
       setExpenseAmount('');
@@ -1688,7 +1738,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // סדר הקריאות/השאילתות/הבדיקות המקוריות בכל execute* נשאר זהה לחלוטין.
   async function executeDeleteExpense(expenseId) {
     const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
-    if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message);
+    if (error) alertWithBlocker(blockerCodeForActionError('delete_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה במחיקת ההוצאה: ' + error.message : 'Error deleting expense: ' + error.message);
     else fetchExpenses(session.user.id);
   }
 
@@ -1722,7 +1772,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function executeDeleteQuote(quoteId) {
     const targetQuote = quotes.find(q => q.id === quoteId);
     if (isQuoteImmutable(targetQuote)) {
-      setAlertModalMsg(
+      alertWithBlocker('QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, 
         isHebrew
           ? 'לא ניתן למחוק הצעה חתומה.'
           : 'Cannot delete a signed quote.'
@@ -1735,7 +1785,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const error = delResult.ok ? null : delResult.error;
     if (delResult.cleanupPending?.length) console.warn('[IRON-QUOTE-005] storage cleanup pending after quote delete', delResult.cleanupPending);
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('delete_quote', error.message), { surface: 'main' }, isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הצעת המחיר נמחקה בהצלחה!' : 'Quote deleted successfully!', type: 'success' });
       if (session?.user?.id) {
@@ -1748,7 +1798,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   function requestDeleteQuote(quoteId, { number, clientName } = {}) {
     const targetQuote = quotes.find(q => q.id === quoteId);
     if (isQuoteImmutable(targetQuote)) {
-      setAlertModalMsg(
+      alertWithBlocker('QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, 
         isHebrew
           ? 'לא ניתן למחוק הצעה חתומה.'
           : 'Cannot delete a signed quote.'
@@ -1790,7 +1840,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .eq('client_id', clientId);
 
     if (fetchErr) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בבדיקת הצעות הלקוח: ' + fetchErr.message : 'Error checking client quotes: ' + fetchErr.message);
+      alertWithBlocker('DATA_LOAD_FAILED', { surface: 'clients' }, isHebrew ? 'שגיאה בבדיקת הצעות הלקוח: ' + fetchErr.message : 'Error checking client quotes: ' + fetchErr.message);
       return;
     }
 
@@ -1800,18 +1850,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     );
 
     if (hasSignedOrApproved) {
-      setAlertModalMsg(isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
+      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
       return;
     }
 
     if (clientQuotes && clientQuotes.length > 0) {
-      setAlertModalMsg(isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
       return;
     }
 
     const { error } = await supabase.from('clients').delete().eq('id', clientId);
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('delete_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה במחיקת הלקוח: ' + error.message : 'Error deleting client: ' + error.message);
     } else {
       setStatusMsg({ text: isHebrew ? 'הלקוח נמחק בהצלחה!' : 'Client deleted successfully!', type: 'success' });
       if (session?.user?.id) fetchClients(session.user.id);
@@ -2477,7 +2527,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     e.preventDefault();
     if (!session?.user?.id) return;
     const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
-    if (error) setAlertModalMsg(isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
+    if (error) alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
     else {
       setNewServiceName('');
       setNewServicePrice('');
@@ -2494,7 +2544,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .eq('id', serviceId);
 
     if (error) {
-      setAlertModalMsg(isHebrew ? 'שגיאה בעדכון השירות: ' + error.message : 'Error updating service: ' + error.message);
+      alertWithBlocker(blockerCodeForActionError('update_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בעדכון השירות: ' + error.message : 'Error updating service: ' + error.message);
     } else {
       setEditingServiceId(null);
       setEditServiceName('');
@@ -2506,7 +2556,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   async function executeDeleteService(id) {
     const { error } = await supabase.from('services').delete().eq('id', id);
-    if (error) setAlertModalMsg(isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message);
+    if (error) alertWithBlocker(blockerCodeForActionError('delete_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה במחיקת השירות: ' + error.message : 'Error deleting service: ' + error.message);
     else fetchServices(session.user.id);
   }
 
@@ -2526,7 +2576,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const sendWhatsApp = (proposal) => {
     // SMART-QUOTE-01: an unfinished draft is never sent as if it were a ready quote.
     if (isUnfinishedSavedQuote(proposal)) {
-      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
     const clientNameVal = proposal.clients?.company_name || (isHebrew ? 'לקוח' : 'Client');
@@ -2577,7 +2627,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // SMART-QUOTE-01: an unfinished draft is stopped BEFORE the send confirmation (executeEmailSend re-checks as a second guard).
   const requestEmailSend = (quote) => {
     if (quote && isUnfinishedSavedQuote(quote)) {
-      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
     setPendingEmailQuote(quote);
@@ -2585,14 +2635,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const executeEmailSend = async (quote) => {
     if (isUnfinishedSavedQuote(quote)) {
-      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה!' : '❌ Invalid client email address!');
+      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה!' : '❌ Invalid client email address!');
       return;
     }
 
@@ -2644,6 +2694,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, email_bounced: false, email_bounce_reason: null, email_bounced_at: null } : q));
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
+      resolveBlockers(['EMAIL_SEND_FAILED', 'EMAIL_SEND_NETWORK', 'EMAIL_CLIENT_NO_EMAIL']);
       setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
     } catch (err) {
       // חוק ברזל (LIVE Admin Email Failure root-cause task, 2026-09-08):
@@ -2660,7 +2711,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       console.error("Email send error:", err, "| resolved server message:", rawMessage);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
       const { userMessage } = classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse });
-      setAlertModalMsg(userMessage);
+      alertWithBlocker(blockerCodeForEmailError(rawMessage, hadReadableServerResponse), { surface: 'main' }, userMessage);
     }
   };
 
@@ -2672,12 +2723,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
       if (!entitlement.editDuplicate) {
+        publishBlocker('PLAN_FEATURE_LOCKED', { scope: 'surface', surface: 'main' });
         setShowPricingModal(true);
         return;
       }
     }
     if (actionType === 'whatsapp' || actionType === 'delete') {
       if (!entitlement.whatsappDelete) {
+        publishBlocker(actionType === 'whatsapp' ? 'WHATSAPP_REQUIRES_PRO' : 'PLAN_FEATURE_LOCKED', { scope: 'surface', surface: 'main' });
         setShowPricingModal(true);
         return;
       }
@@ -2885,6 +2938,30 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     showQuoteForm, editingQuoteId, clientName, projectName, sections, quoteStructureMode, items, itemWizardState,
   });
 
+  // AI HELP V4 §5: blockers whose truth is a STATE the draft engine / entitlement / profile already own. Published while true,
+  // resolved when the owner confirms it is no longer true; the editor scope is cleared when the editor closes (context transition).
+  const draftStorageFailed = showQuoteForm && (!!draftStorageProbe || quoteDraft.status === 'error');
+  const draftAttachmentsMissing = showQuoteForm && Array.isArray(quoteDraft.attachmentsWarning) && quoteDraft.attachmentsWarning.length > 0;
+  const creatingAtLimit = showQuoteForm && !editingQuoteId && !isSuperAdmin && monthlyQuotesCount >= entitlement.monthlyQuoteLimit;
+  const missingProfileKey = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness }).join(',');
+  useEffect(() => {
+    const sync = (code, on, opts) => (on ? publishBlocker(code, opts) : resolveBlockers([code]));
+    sync('DRAFT_RECOVERED_UNSAVED', showQuoteForm && !!recoveredDraftInfo, { scope: 'editor', persistence: 'local_only' });
+    sync('DRAFT_CONFLICT_SERVER_CHANGED', !!draftConflict, { scope: 'editor', persistence: 'local_only' });
+    sync('DRAFT_STORAGE_FAILED', draftStorageFailed, { scope: 'editor', persistence: 'local_write_failed' });
+    sync('DRAFT_ATTACHMENTS_MISSING', draftAttachmentsMissing, { scope: 'editor', persistence: 'local_only' });
+    sync('ATTACHMENT_REMOVAL_PENDING', showQuoteForm && pendingAttachmentRemovals.length > 0, { scope: 'editor', persistence: 'not_persisted' });
+    sync('MONTHLY_QUOTE_LIMIT_REACHED', creatingAtLimit, { scope: 'editor', persistence: 'not_attempted' });
+    // profile blockers are only ever raised by the save gate; the saved profile being complete is their confirmed resolution
+    const missing = missingProfileKey.split(',');
+    if (!missing.includes('phone')) resolveBlockers(['PROFILE_MISSING_PHONE']);
+    if (!missing.includes('taxId')) resolveBlockers(['PROFILE_MISSING_TAX_ID']);
+  }, [showQuoteForm, recoveredDraftInfo, draftConflict, draftStorageFailed, draftAttachmentsMissing, pendingAttachmentRemovals.length, creatingAtLimit, missingProfileKey]);
+  useEffect(() => { if (!showQuoteForm) clearScope('editor'); }, [showQuoteForm]);
+  aiNavStateRef.current = { showQuoteForm, isDirty: () => quoteDraft.isDirty(), isSuperAdmin };
+  useEffect(() => { if (needsRegionChoice) publishBlocker('REGION_NOT_SELECTED', { scope: 'session' }); else resolveBlockers(['REGION_NOT_SELECTED']); }, [needsRegionChoice]);
+  useEffect(() => { clearScope('surface'); }, [activeTab]);
+
   // חוק ברזל (Professional Quotes Stage C, §158): נקודת-מיפוי משותפת אחת
   // מ-quote_items(+quote_item_measurements) הגולמיים (כפי שנשלפים כבר
   // מ-fetchQuotes, ר' quote_item_measurements(*) שנוסף לשם) אל צורת ה-item
@@ -2939,7 +3016,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const handleEditClick = async (quote) => {
     if (isQuoteImmutable(quote)) {
-      setAlertModalMsg(isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
+      alertWithBlocker('QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
     }
 
@@ -3288,16 +3365,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleSaveQuote(e) {
     e.preventDefault();
     if (!session?.user?.id) return;
+    resolveBlockers(SAVE_ATTEMPT_CODES); // a new attempt re-evaluates the previous attempt's blockers (re-published below if still true)
+    const saveBlock = (code, msg, opts = {}) => alertWithBlocker(code, { scope: 'editor', ...opts }, msg);
     // SMART-QUOTE-01: an unfinished quote (no real priced item) can only be kept as a Draft - never saved as Sent/Approved/Paid.
     if (editingQuoteId && isUnfinishedQuoteForm({ items, totalAmount }) && String(quoteStatus || '').toLowerCase() !== 'draft') {
-      setAlertModalMsg(isHebrew
+      saveBlock('QUOTE_UNFINISHED_NON_DRAFT_STATUS', isHebrew
         ? 'לא ניתן לשמור הצעה לא גמורה בסטטוס נשלח / אושר / שולם. השלימו מוצר או עבודה עם מחיר, או החזירו את הסטטוס לטיוטה.'
         : 'An unfinished quote cannot be saved as Sent / Approved / Paid. Add a product or work item with a price, or set the status back to Draft.');
       return;
     }
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
-      setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
+      saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
       return;
     }
 
@@ -3313,6 +3392,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew,
       });
       if (gateMessage) {
+        const missingProfile = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness });
+        if (missingProfile.includes('phone')) publishBlocker('PROFILE_MISSING_PHONE', { scope: 'profile' });
+        if (missingProfile.includes('taxId')) publishBlocker('PROFILE_MISSING_TAX_ID', { scope: 'profile' });
         setAlertModalMsg(gateMessage);
         setActiveTab('settings');
         return;
@@ -3339,7 +3421,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           .select('id, name, sort_order')
           .eq('quote_id', editingQuoteId);
         if (fetchSectionsErr) {
-          setAlertModalMsg(isHebrew
+          saveBlock('QUOTE_SAVE_VERIFY_FAILED', isHebrew
             ? 'לא ניתן היה לאמת את מבנה היחידות הקיים מול השרת. השמירה בוטלה כדי למנוע פגיעה בנתונים.'
             : 'Could not verify the existing unit structure against the server. Save cancelled to protect data.');
           return;
@@ -3376,7 +3458,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
 
         if (fetchQuoteErr || !fetchedQuote || fetchItemsErr || !fetchedItems) {
-          setAlertModalMsg(isHebrew
+          saveBlock('QUOTE_SAVE_VERIFY_FAILED', isHebrew
             ? 'לא ניתן היה לאמת את מצב ההצעה הקיים מול השרת. השמירה בוטלה כדי למנוע פגיעה בנתונים פיננסיים.'
             : 'Could not verify the existing quote against the server. Save cancelled to protect financial data.');
           return;
@@ -3386,7 +3468,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         authoritativeItems = fetchedItems;
 
         if (isQuoteImmutable(authoritativeQuote)) {
-          setAlertModalMsg(isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
+          saveBlock('QUOTE_IMMUTABLE_SIGNED', isHebrew ? 'לא ניתן לעדכן הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
           return;
         }
       }
@@ -3398,7 +3480,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // ENTITLEMENT QUOTA).
         const limit = entitlement.monthlyQuoteLimit;
         if (monthlyQuotesCount >= limit) {
-          setAlertModalMsg(
+          saveBlock('MONTHLY_QUOTE_LIMIT_REACHED', 
             isHebrew ? `הגעת למכסת ההצעות החודשית לחבילה שלך (${limit} הצעות). שדרג כדי ליצור עוד!` : `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`
           );
           return;
@@ -3781,15 +3863,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         } else {
           msg = (isHebrew ? 'ההצעה לא נשמרה.' : 'The quote was not saved.') + clientNote + detail;
         }
-        setAlertModalMsg(msg);
+        // typed blocker from the orchestrator result (never from the message text shown above)
+        if (saveResult.stage === 'structure' && saveResult.compensationFailed) saveBlock('QUOTE_SAVE_RESULT_UNKNOWN', msg, { persistence: 'unknown' });
+        else if (saveResult.stage === 'upload') saveBlock('ATTACHMENT_UPLOAD_FAILED_PRE_SAVE', msg, { persistence: 'not_persisted' });
+        else {
+          const f = blockerCodeForSaveFailure(saveResult.error);
+          saveBlock(f.code === 'ATTACHMENT_UPLOAD_FAILED_PRE_SAVE' ? 'QUOTE_SAVE_SERVER_ERROR' : f.code, msg, { persistence: saveResult.wrote.includes('client') ? 'partial' : f.persistence });
+        }
         return;
       }
 
       const quoteId = saveResult.quoteId;
       if (saveResult.outcome === 'partial' && (saveResult.stage === 'structure' || saveResult.stage === 'items')) {
-        setAlertModalMsg(isHebrew
+        saveBlock('QUOTE_SAVE_SERVER_ERROR', isHebrew
           ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
-          : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.');
+          : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.', { persistence: 'partial' });
         return;
       }
 
@@ -3807,9 +3895,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         setEditingQuoteId(quoteId);
         const { data: attNow } = await supabase.from('quote_attachments').select('*').eq('quote_id', quoteId);
         setQuoteFiles([...(attNow || []).map((f) => ({ ...f, size: f.file_size })), ...quoteFiles.filter((f) => !f.id && attachmentFailures.includes(f.name))]);
-        setAlertModalMsg(isHebrew
+        saveBlock('ATTACHMENT_PARTIAL_AFTER_SAVE', isHebrew
           ? `ההצעה נשמרה, אך חלק מהצירופים לא הושלמו${attachmentFailures.length ? ` (העלאה נכשלה: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (מחיקת צירוף קיים נכשלה)' : ''}. הטיוטה נשמרה - אפשר לנסות שוב לשמור.`
-          : `The quote was saved, but some attachment steps did not complete${attachmentFailures.length ? ` (upload failed: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (removing an existing attachment failed)' : ''}. Your draft is kept - you can try saving again.`);
+          : `The quote was saved, but some attachment steps did not complete${attachmentFailures.length ? ` (upload failed: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (removing an existing attachment failed)' : ''}. Your draft is kept - you can try saving again.`, { persistence: 'partial' });
         loadData(session.user.id, session.user.email);
         return;
       }
@@ -3831,6 +3919,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       });
       
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
+      clearScope('editor'); // confirmed resolution: every save stage succeeded
       setEditingQuoteId(null);
       setIsCreatingQuote(false);
       resetQuoteFormFields();
@@ -3840,7 +3929,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      setAlertModalMsg((isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message);
+      const f = blockerCodeForSaveFailure(err);
+      saveBlock(f.code, (isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message, { persistence: f.persistence });
     }
   }
 
@@ -3997,6 +4087,35 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // כניסה רגילה, ולא בעמודי נחיתה/הצעות ציבוריות (הרכיב הזה קיים רק בתוך
   // Dashboard.jsx המאומת). שפת הטקסט/כיוון כאן היא תצוגה בלבד (isHebrew) -
   // הערך שנשמר בפועל נקבע אך ורק ע"י הכפתור שנלחץ (ר' handleRegionChoiceSelect).
+  const pricedItemCount = showQuoteForm ? items.filter((it) => Number(it?.unit_price) > 0 && String(it?.description || '').trim()).length : 0;
+  const aiHelpSources = {
+    authenticated: !!session?.user?.id,
+    regionChoice: !!needsRegionChoice,
+    wizard: itemWizardState ? { open: true, step: itemWizardState.step || null, action: itemWizardState.action, pricingMethod: itemWizardState.pricingMethod || null, measurementCount: itemWizardState.measurementCount, hasQuantity: itemWizardState.hasQuantity, hasUnitPrice: itemWizardState.hasUnitPrice, hasSpecification: itemWizardState.hasSpecification } : null,
+    editor: showQuoteForm ? {
+      open: true, mode: editingQuoteId ? 'edit' : 'new', quoteId: editingQuoteId, serverFingerprint: editBaselineFingerprint || null,
+      immutable: editingOriginalQuote ? isQuoteImmutable(editingOriginalQuote) : false, hasClientType: !!clientType,
+      pricedItemCount, unpricedItemCount: Math.max(0, (quoteWorkflowContext?.itemCount || 0) - pricedItemCount),
+      attachmentCount: quoteFiles.filter((q) => q.id).length, pendingAttachmentCount: quoteFiles.filter((q) => !q.id).length, pendingRemovalCount: pendingAttachmentRemovals.length,
+    } : null,
+    workflow: quoteWorkflowContext,
+    draft: showQuoteForm ? {
+      localDraftId: editingQuoteId ? null : (newDraftUuid || null), dirty: quoteDraft.isDirty(),
+      localWriteStatus: draftStorageFailed ? 'failed' : quoteDraft.status === 'saved' ? 'written' : 'none',
+      lastLocalWriteAt: typeof quoteDraft.lastSavedAt === 'number' ? quoteDraft.lastSavedAt : null, conflict: !!draftConflict, recovered: !!recoveredDraftInfo,
+    } : null,
+    pricingOpen: showPricingModal,
+    activeTab,
+    history: { searchActive: !!String(searchTerm || '').trim(), filterStatus: statusFilter, visible: filteredQuotes.length, total: quotes.length, selectedQuoteId: null },
+    plan: { monthlyUsed: monthlyQuotesCount, monthlyLimit: entitlement.monthlyQuoteLimit === Infinity ? 'unlimited' : entitlement.monthlyQuoteLimit },
+    profile: { phoneComplete: !missingProfileKey.split(',').includes('phone'), taxIdComplete: !missingProfileKey.split(',').includes('taxId'), taxIdRequired: isLocalIsraeliBusiness },
+    lists: { clientCount: clients.length, serviceCount: services.length, expenseCount: expenses.length, clientSearchActive: !!String(clientSearchTerm || '').trim() },
+    finance: { range: financeReportType },
+    admin: activeTab === 'admin_clients' ? { section: adminSection } : null,
+    modal: alertModalMsg ? 'alert' : draftConflict ? 'draft_conflict' : editingClient ? 'edit_client' : pendingEmailQuote ? 'email_confirm' : null,
+    section: pendingEmailQuote ? 'share_email' : null,
+  };
+
   if (needsRegionChoice) {
     return (
       <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -4039,6 +4158,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             </p>
           )}
         </div>
+        {/* AI HELP V4 §15 (region choice): identity is verified but the market is not chosen yet - restricted setup help only
+            (the server sees no business row, so it answers market-neutrally; no private business data exists yet). */}
+        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea="region_choice" helpSources={aiHelpSources} />
       </div>
     );
   }
@@ -5335,6 +5457,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             <p style={{ color: NEON.textSecondary, fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.4' }}>
               {alertModalMsg}
             </p>
+            {/* AI HELP V4 §8: help stays one click away while an action is blocked (the blocker is NOT cleared by closing this). */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+              <AiHelpButton isHebrew={isHebrew} testId="ai-help-alert" />
+            </div>
             <button
               className="dash-neon-btn"
               onClick={() => setAlertModalMsg(null)}
@@ -5361,7 +5487,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           trigger button on desktop - Landing/Contact/every other page's
           own separate AIChatWidget mount is untouched. */}
       <div className="dash-ai-chat-mount">
-        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} />
+        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} helpSources={aiHelpSources} />
       </div>
 
       {/* Status toast: same statusMsg state/role="status"/aria-live="polite"/

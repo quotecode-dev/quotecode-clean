@@ -116,5 +116,12 @@ export const AI_FACTS = {
     "paymentProcessingAvailable": false,
     "acceptedPaymentCurrencies": [],
     "paymentMethodsKnown": false
+  },
+  "invoicing": {
+    "liveInvoicingAvailable": false,
+    "invoiceIssuanceAvailable": false,
+    "receiptIssuanceAvailable": false,
+    "providerCandidate": "PayPlus",
+    "providerStatus": "candidate_not_integrated"
   }
 } as const;

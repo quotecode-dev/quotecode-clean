@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import AiHelpButton from './AiHelpButton';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { LIGHT as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
@@ -786,9 +787,13 @@ export default function AddItemWizard({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${NEON.border}`, flexShrink: 0 }}>
           <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: NEON.textPrimary }}>{t.title}</h2>
-          <button type="button" onClick={onClose} aria-label={t.cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', padding: '4px' }}>
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* AI HELP V4 §8: the ONE assistant opens above this dialog; the wizard state stays as-is. */}
+            <AiHelpButton isHebrew={isHebrew} compact testId="ai-help-wizard" />
+            <button type="button" onClick={onClose} aria-label={t.cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', padding: '4px' }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />

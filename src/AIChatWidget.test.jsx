@@ -729,7 +729,7 @@ describe('Gate 2 - request contract v2 (§10)', () => {
     await screen.findByText('AI reply');
 
     const body = mocks.invoke.mock.calls[0][1].body;
-    expect(body.contractVersion).toBe(3);
+    expect(body.contractVersion).toBe(4);
     expect(body.currentArea).toBe('main');
     expect(body.selectedQuoteId).toBeNull();
     expect(body.contextRevision).toBe(0);

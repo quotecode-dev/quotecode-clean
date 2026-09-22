@@ -9,7 +9,7 @@ import {
 describe('aiChatContract frontend/Edge parity (§19: FRONTEND/EDGE INTENT ID DRIFT: ZERO)', () => {
   it('CHAT_CONTRACT_VERSION matches the Edge Function contract exactly', () => {
     expect(CHAT_CONTRACT_VERSION).toBe(EDGE_CHAT_CONTRACT_VERSION);
-    expect(CHAT_CONTRACT_VERSION).toBe(3);
+    expect(CHAT_CONTRACT_VERSION).toBe(4);
   });
 
   it('ANSWER_SOURCES matches the Edge Function contract exactly', () => {
