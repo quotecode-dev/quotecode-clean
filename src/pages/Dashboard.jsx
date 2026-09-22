@@ -49,6 +49,7 @@ import SignOutModal from '../components/SignOutModal';
 import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
+import { persistQuote, deleteQuoteWithAttachments, createAttachmentAccessUrl, newUuid } from '../utils/quoteSaveOrchestrator';
 import QuotesTab from '../components/QuotesTab';
 
 import AuthScreen from '../components/AuthScreen';
@@ -77,6 +78,7 @@ import {
 // amount goes through formatMoneyDisplay (defined in the component, currency-keyed) ->
 // utils/money.js formatMoneyForCurrency: ILS => whole shekel half-up ".00"; others full precision.
 const formatNum = (val) => formatMoney(val);
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
 // שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
@@ -1700,6 +1702,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
   }
 
+  // OD-2: open a persisted attachment through an authorized, 60-second signed URL. The tab is opened synchronously (popup
+  // blockers allow it inside the click) and pointed at the URL once it has been minted.
+  async function openQuoteAttachment(file) {
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null;
+    const { url } = await createAttachmentAccessUrl(supabase, file, 60);
+    if (!url) {
+      if (win) win.close();
+      setAlertModalMsg(isHebrew ? 'לא ניתן לפתוח את הקובץ כרגע. נסו שוב.' : 'The file cannot be opened right now. Please try again.');
+      return;
+    }
+    if (win) win.location.href = url; else window.location.assign(url);
+  }
+
   async function executeDeleteQuote(quoteId) {
     const targetQuote = quotes.find(q => q.id === quoteId);
     if (isQuoteImmutable(targetQuote)) {
@@ -1710,9 +1726,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       );
       return;
     }
-    await supabase.from('quote_items').delete().eq('quote_id', quoteId);
-    await supabase.from('quote_attachments').delete().eq('quote_id', quoteId);
-    const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
+    // IRON-QUOTE-005: the quote row goes first (items/sections/measurements/attachment rows cascade); storage objects are removed
+    // only after that authoritative delete succeeded (deleteQuoteWithAttachments). A failed delete never touches storage.
+    const delResult = await deleteQuoteWithAttachments(supabase, quoteId);
+    const error = delResult.ok ? null : delResult.error;
+    if (delResult.cleanupPending?.length) console.warn('[IRON-QUOTE-005] storage cleanup pending after quote delete', delResult.cleanupPending);
     if (error) {
       setAlertModalMsg(isHebrew ? 'שגיאה במחיקת ההצעה: ' + error.message : 'Error deleting quote: ' + error.message);
     } else {
@@ -3575,9 +3593,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         };
       }
 
-      let clientId;
+      // IRON-QUOTE-001/002/005: the persistence stages live in utils/quoteSaveOrchestrator.js (failure-injection tested). ATOMIC
+      // (save_quote_atomic, when the prepared migration is applied) or PHASED (current schema, compensating + truthful reporting).
       const existingClient = clients.find(c => c.company_name?.toLowerCase() === clientName.toLowerCase() && c.user_id === session.user.id);
-      
       const clientPayload = {
         company_name: clientName,
         email: clientEmail ? clientEmail.trim() : '',
@@ -3588,344 +3606,170 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         notes: notes,
         user_id: session.user.id
       };
-
-      if (existingClient) {
-        clientId = existingClient.id;
-        // IRON-QUOTE-001: this update's error used to be silently ignored; a failed client update now aborts the save before any quote write.
-        const { error: clientUpdateError } = await supabase.from('clients').update(clientPayload).eq('id', clientId);
-        if (clientUpdateError) throw clientUpdateError;
-      } else {
-        const { data: newClientData, error: clientError } = await supabase.from('clients').insert([clientPayload]).select();
-        if (clientError) throw clientError;
-        clientId = newClientData[0].id;
-      }
-
-      // תשלום payload פיננסי: להצעה קיימת נובע *אך ורק* מ-financialQuotePatch
-      // (שכבר נגזר מהמצב האמין שנשלף מהשרת למעלה) - לעולם לא מ-subtotal/
-      // taxRate/totalAmount המחושבים בגוף הקומפוננטה (שעלולים להסתמך על
-      // quotes.find/bizCountry לא-רענן). להצעה חדשה ההתנהגות נשארת זהה
-      // לחלוטין להתנהגות הקודמת.
-      // חוק ברזל (SQ-F02 final closure task - single atomic server-side
-      // transactional save boundary): לעריכה קיימת, השדות הפיננסיים (client_
-      // type/currency/subtotal/tax_rate/total/discount) הוסרו מה-payload
-      // הזה בכוונה - הם עכשיו נכתבים אך ורק בתוך save_quote_structured
-      // (יחד עם sections/items/measurements, כטרנזקציה אחת), לא יותר כאן
-      // כעדכון-quotes נפרד ולא-תלוי. להצעה חדשה (branch ה-else) הם נשארים
-      // בדיוק כמו קודם - ה-INSERT הבודד עצמו כבר אטומי, אין צורך לנתב
-      // דרך ה-RPC כלל (p_financial מועבר null בהמשך לפריט זה).
-      const quotePayload = editingQuoteId
+      // SMART-QUOTE-03: a NEW quote is always created as Draft; Sent/Approved/Paid are later lifecycle actions (edit only).
+      const persistedStatus = editingQuoteId ? quoteStatus.toLowerCase() : 'draft';
+      // Edits leave the financial fields to the structure call (single financial write path); new quotes insert them.
+      const quoteHeader = editingQuoteId
         ? {
-            client_id: clientId,
-            status: quoteStatus.toLowerCase(),
+            status: persistedStatus,
             valid_until: validUntil || null,
             terms: terms,
             warranty: warranty,
             notes: notes,
             subject: quoteSubject || '',
             quote_subject: quoteSubject || '',
-            user_id: session.user.id
           }
         : {
-            client_id: clientId,
             client_type: clientType,
             currency: isLocalIsraeliBusiness ? 'ILS' : currency,
             subtotal: newQuoteFinancials.subtotal,
             tax_rate: newQuoteFinancials.tax_rate,
             total: newQuoteFinancials.total,
             discount: newQuoteFinancials.discount,
-            status: quoteStatus.toLowerCase(),
+            status: persistedStatus,
             valid_until: validUntil || null,
             terms: terms,
             warranty: warranty,
             notes: notes,
             subject: quoteSubject || '',
             quote_subject: quoteSubject || '',
-            user_id: session.user.id
           };
 
-      let quoteId;
-      // עריכה פיננסית, הצעה חדשה, או עריכה עם שינוי-מבנה עשיר
-      // (itemsStructurallyChanged - Codex P0-1 fix): delete+insert מלא
-      // מה-state הנוכחי של items. עריכה לא-פיננסית וללא שינוי-מבנה: **אין**
-      // delete+insert בכלל (איפס כתיבה אם אין שינוי description; אחרת
-      // UPDATE ממוקד per-id בלבד, ר' descriptionUpdates למעלה) - כך שאין
-      // שינוי quantity/unit_price/total_price ואין regeneration של
-      // quote_item id-ים על עריכה שאינה משנה דבר פיננסי/מבני אמיתי.
-      // Post-LIVE Priority 1, Fix A (empty placeholder item persistence):
-      // strip only a genuinely untouched default placeholder row before it
-      // is ever written - see structuredQuoteItemPersistence.js for the
-      // exact conservative criteria. Forward-only: this only affects what
-      // THIS save call writes, never an already-persisted row (the filter
-      // itself never matches an item that already has an id).
+      // Post-LIVE Priority 1, Fix A: an untouched default placeholder row is never written (structuredQuoteItemPersistence.js).
       let itemsForPersist = excludeUntouchedPlaceholderItems(items);
-
-      // חוק ברזל (item 18 - Attn/לידי, חבילת יישום מקומית בלבד): attn_name/
-      // attn_role עדיין לא קיימות בסביבה החיה (ה-migration המקומי לא הופעל
-      // שם - ר' supabase/migrations/20260828000000_add_quote_attn_contact.sql).
-      // בניגוד ל-quote_number (RPC נפרד שנכשל בשקט), כאן מדובר בעמודות רגילות
-      // בתוך אותו INSERT/UPDATE, שיגרמו לכל הבקשה להיכשל אם העמודה לא קיימת -
-      // לכן: ניסיון ראשון כולל attn, ורק אם השגיאה מפורשות מזכירה attn_name/
-      // attn_role (זיהוי מדויק, לא בליעת שגיאות אחרות) - ניסיון חוזר זהה
-      // בלי השדות האלה, זהה-בייט להתנהגות הקודמת. ברגע שה-migration יופעל
-      // בסביבה החיה, הניסיון הראשון יתחיל להצליח אוטומטית בלי שינוי קוד נוסף.
-      // חוק ברזל (item 27 - Attn/לידי Client-Name Fallback): אם איש-הקשר
-      // (attnName) ריק או רק-רווחים (trim), הנמען שנכתב בפועל ל-attn_name
-      // נופל חזרה לשם הלקוח עצמו (אותו clientName שנכתב הרגע ל-
-      // clientPayload.company_name למעלה, ר' שורה ~2209) - נכתב כערך אמיתי
-      // (snapshot) בזמן השמירה, לא מחושב ב-render. attn_name הוא כבר עמודת
-      // תוכן רגילה הנתונה לאותה נעילת guard_quote_immutability() כמו terms/
-      // warranty/notes (ר' supabase/migrations/20260830000000_capture_base_
-      // schema_tables.sql שורה 213-214) - שום שינוי DB/trigger לא נדרש כאן,
-      // ההצעה נשארת היסטורית-יציבה בדיוק כמו כל שדה-תוכן אחר. ערך attn
-      // מפורש (אחרי trim) תמיד משתמר כמות שהוא - לעולם לא נדרס בשקט.
+      let descriptionUpdatesForPersist = [];
+      // Non-financial, non-structural edit: no item rewrite at all, only targeted description updates (Codex P0-1 / SQ-F02).
+      if (editingQuoteId && !(isFinancialEdit || itemsStructurallyChanged)) {
+        descriptionUpdatesForPersist = descriptionUpdates;
+        itemsForPersist = null;
+      }
+      // item 27: an empty Attn falls back to the client name (a real snapshot value); only a TYPED Attn/role counts as user data.
       const trimmedAttnName = (attnName || '').trim();
-      const resolvedAttnName = trimmedAttnName || clientName || null;
-      const attnFields = { attn_name: resolvedAttnName, attn_role: attnRole || null };
-      const isMissingAttnColumnError = (err) => {
-        const msg = String(err?.message || '');
-        return msg.includes('attn_name') || msg.includes('attn_role');
-      };
-      // quotes.project_name (professional project identity) was READ into the editor but never WRITTEN - the value typed by
-      // the user was silently lost on every save. Same "retry without the optional column" pattern as attn_* for
-      // environments that have not applied the column yet.
-      const projectFields = { project_name: projectNameForPersist(projectName) };
-      const isMissingProjectColumnError = (err) => String(err?.message || '').includes('project_name');
+      const attnFields = { attn_name: trimmedAttnName || clientName || null, attn_role: attnRole || null };
 
-      if (editingQuoteId) {
-        let { error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields, ...projectFields }).eq('id', editingQuoteId);
-        if (updateError && isMissingProjectColumnError(updateError)) {
-          ({ error: updateError } = await supabase.from('quotes').update({ ...quotePayload, ...attnFields }).eq('id', editingQuoteId));
-        }
-        if (updateError && isMissingAttnColumnError(updateError)) {
-          ({ error: updateError } = await supabase.from('quotes').update(quotePayload).eq('id', editingQuoteId));
-        }
-        if (updateError) throw updateError;
-        quoteId = editingQuoteId;
+      const currentNamedSections = (sections || []).filter(s => (s.name || '').trim() !== '');
+      const authoritativeSectionIds = new Set((authoritativeSections || []).map(s => s.id));
+      const currentSectionIds = new Set(currentNamedSections.filter(s => s.id).map(s => s.id));
+      const removedSectionIds = [...authoritativeSectionIds].filter(id => !currentSectionIds.has(id));
+      const sectionsPayload = currentNamedSections.map((s, idx) => ({
+        client_key: s.key,
+        id: s.id || null,
+        name: s.name,
+        sort_order: s.sort_order != null ? s.sort_order : idx,
+      }));
+      const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
+      const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
+        client_key: item.id || `new_${idx}`,
+        id: item.id || null,
+        section_client_key: item.section_key || null,
+        description: item.description,
+        quantity: Number(item.quantity || 1),
+        unit_price: Number(item.unit_price || 0),
+        total_price: getActiveQuantity(item) * Number(item.unit_price || 0),
+        pricing_unit: item.pricing_unit || null,
+        calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== '' && item.calculated_quantity !== null) ? Number(item.calculated_quantity) : null,
+        quantity_source: item.quantity_source || null,
+        specification: normalizeSpecificationRows(item.specification),
+        calculation_method: item.calculation_method || null,
+        sort_order: idx,
+        measurements: (Array.isArray(item.measurements) ? item.measurements : [])
+          .filter((m) => !(m.width === '' && m.height === ''))
+          .map((m, mIdx) => ({
+            width: m.width !== '' && m.width != null ? Number(m.width) : null,
+            height: m.height !== '' && m.height != null ? Number(m.height) : null,
+            unit: m.unit || 'm',
+            calculated_area: m.calculated_area != null && m.calculated_area !== '' ? Number(m.calculated_area) : null,
+            label: m.label || '',
+            sort_order: mIdx,
+            is_pricing_driving: m.is_pricing_driving !== false,
+          })),
+      })) : [];
+      const currentItemIds = new Set((itemsForPersist || []).filter((it) => it.id).map((it) => it.id));
+      const removedItemIds = itemsForPersist ? [...authoritativeItemIds].filter((id) => !currentItemIds.has(id)) : [];
+      const financialForRpc = (editingQuoteId && isFinancialEdit) ? {
+        currency: financialQuotePatch.currency,
+        client_type: financialQuotePatch.client_type,
+        tax_rate: financialQuotePatch.tax_rate,
+        subtotal: financialQuotePatch.subtotal,
+        discount: financialQuotePatch.discount,
+        total: financialQuotePatch.total,
+      } : null;
 
-        // חוק ברזל (Codex P0-1 fix, ר' גם SQ-F02 למטה): שינוי-מבנה עשיר בלי
-        // שינוי quantity/unit_price עדיין חייב לגרום לכתיבת הפריטים - לעולם
-        // לא רק isFinancialEdit לבדו. בעבר כאן היה DELETE-הכל מוקדם על כל
-        // ה-quote_items לפני הכתיבה-מחדש; הוא הוסר (SQ-F02, "canonical-ID
-        // replacement risk") כי בלוק ה-UPSERT-לפי-id למטה (בתוך
-        // `if (itemsForPersist)`) כבר מטפל בעצמו, ובאופן בטוח יותר, בכל
-        // שלושת המקרים: עדכון-במקום לפריט קיים, הוספה לפריט חדש, ומחיקה
-        // ממוקדת (removedItemIds) רק לפריט שהוסר-בפועל - DELETE-הכל מוקדם
-        // כאן היה הורס בשקט את השורות שה-UPSERT מתכוון לעדכן, ומייצר בדיוק
-        // את שגיאת ה-foreign-key שגילה ה-e2e (quote_item_measurements
-        // מצביע ל-quote_item_id שכבר נמחק).
-        if (!(isFinancialEdit || itemsStructurallyChanged)) {
-          for (const upd of descriptionUpdates) {
-            const { error: descUpdateError } = await supabase
-              .from('quote_items')
-              .update({ description: upd.description })
-              .eq('id', upd.id)
-              .eq('quote_id', quoteId);
-            if (descUpdateError) throw descUpdateError;
-          }
-          itemsForPersist = null;
-        }
-      } else {
-        // עדכון 2026-08-28 (Quote Number Transition audit): ההערה הקודמת כאן
-        // הניחה ש-quote_number "יישאר ללא ערך" כשה-RPC הזה נכשל - זה שגוי.
-        // allocate_quote_number(uuid) אכן לא קיימת עדיין בסביבה החיה, אז
-        // הקריאה נכשלת בשקט כמתואר, אבל quotes.quote_number עצמה כבר קיימת
-        // שם כעמודה integer NOT NULL עם DEFAULT מ-global sequence משלה
-        // (מנגנון קיים-מראש, לא של המאגר הזה - ר' PROFLOW_TODO.md item 17
-        // לפרטי ה-audit) - כך שה-INSERT ממשיך להצליח, אבל מקבל מספר גלובלי
-        // לא-מתוכנן במקום ליפול פשוט בלי מספר בכלל (זו התגלית "A90" המתועדת
-        // שם). ההתנהגות כאן נשארת בכוונה ללא שינוי בסבב הזה - שינוי לכישלון
-        // מבוקר (fail-closed) יהיה חלק מהשחרור המתואם העתידי, לא נכפה כאן
-        // נגד הסכימה החיה הנוכחית שעדיין לא עברה migration.
-        try {
-          const { data: allocatedNumber, error: allocError } = await supabase.rpc('allocate_quote_number', { p_user_id: session.user.id });
-          if (!allocError && typeof allocatedNumber === 'number') {
-            quotePayload.quote_number = allocatedNumber;
-          }
-        } catch {
-          // מכוון: שום דבר לא צריך לקרות כאן - ר' ההסבר למעלה.
-        }
-
-        let { data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields, ...projectFields }]).select();
-        if (quoteError && isMissingProjectColumnError(quoteError)) {
-          ({ data: quoteData, error: quoteError } = await supabase.from('quotes').insert([{ ...quotePayload, ...attnFields }]).select());
-        }
-        if (quoteError && isMissingAttnColumnError(quoteError)) {
-          ({ data: quoteData, error: quoteError } = await supabase.from('quotes').insert([quotePayload]).select());
-        }
-        if (quoteError) throw quoteError;
-        quoteId = quoteData[0].id;
+      // Staged removals: the authoritative storage paths come from the DB rows themselves (read-only lookup).
+      let removedAttachments = [];
+      if (editingQuoteId && pendingAttachmentRemovals.length > 0) {
+        const { data: removedRows, error: removedLookupErr } = await supabase.from('quote_attachments').select('id, storage_path').in('id', pendingAttachmentRemovals).eq('quote_id', editingQuoteId);
+        if (removedLookupErr) throw removedLookupErr;
+        removedAttachments = removedRows || [];
       }
 
-      // חוק ברזל (SQ-F02 FINAL CLOSURE task, 2026-09-14 - "single server-side
-      // transactional save boundary"): sections/items/measurements now
-      // persist through exactly ONE atomic RPC call (`save_quote_structured`,
-      // TEST-only, applied via the isolated `supabase db query --linked`
-      // mechanism - see PROFLOW_PROJECT_CONTEXT.md §174 for the full
-      // isolation proof - never `supabase db push`, which would also apply
-      // an unrelated, out-of-scope pending migration). A single top-level
-      // Postgres function call is one implicit transaction - any exception
-      // anywhere inside it rolls back every statement the function has run
-      // so far, automatically. This REPLACES (not supplements) the prior
-      // pass's sequential upsert-by-id calls: that pass closed SQ-F02's
-      // canonical-ID-churn half but left a failure partway through able to
-      // leave partial persisted state (an UPDATE that succeeds followed by
-      // a later INSERT that fails was never rolled back) - the exact
-      // multi-statement client-side sequence this task's own instructions
-      // forbid ("the client must not perform a destructive pre-delete that
-      // can leave partial state outside the transaction"). No fallback to
-      // that old sequential path exists on purpose: falling back would
-      // silently reintroduce the exact non-atomic risk this closes - every
-      // error path here fails closed instead (a real RPC error rolls back
-      // server-side already; a "function not found" scenario means this
-      // environment truly cannot save safely, and must say so, not degrade
-      // silently). SQ-F01's financial-authority function
-      // (`calculateQuoteFinancials`) and SQ-F04's grouping engine are
-      // untouched - this only changes the WRITE mechanism, never the
-      // numbers/eligibility computed before it.
-      if (quoteId) {
-        const currentNamedSections = (sections || []).filter(s => (s.name || '').trim() !== '');
-        const authoritativeSectionIds = new Set((authoritativeSections || []).map(s => s.id));
-        const currentSectionIds = new Set(currentNamedSections.filter(s => s.id).map(s => s.id));
-        const removedSectionIds = [...authoritativeSectionIds].filter(id => !currentSectionIds.has(id));
+      // A new quote's id is its draft id (RFC 4122 v4): retries of the same draft - even after a reload - target the same quote.
+      const saveQuoteId = editingQuoteId || (UUID_V4_RE.test(String(newDraftUuid || '')) ? newDraftUuid : newUuid());
+      const saveResult = await persistQuote(supabase, {
+        userId: session.user.id,
+        isNew: !editingQuoteId,
+        quoteId: saveQuoteId,
+        existingClientId: existingClient ? existingClient.id : null,
+        clientPayload,
+        header: quoteHeader,
+        attnFields,
+        attnUserEntered: Boolean(trimmedAttnName || attnRole),
+        projectName: projectNameForPersist(projectName),
+        descriptionUpdates: descriptionUpdatesForPersist,
+        structured: { financial: financialForRpc, sections: sectionsPayload, items: itemsPayload, removedSectionIds, removedItemIds },
+        newFiles: quoteFiles.filter((f) => !f.id),
+        removedAttachments,
+        now: () => Date.now(),
+      });
+      if (saveResult.orphanedUploads?.length || saveResult.cleanupPending?.length) {
+        console.warn('[IRON-QUOTE-005] storage cleanup pending', { orphanedUploads: saveResult.orphanedUploads, cleanupPending: saveResult.cleanupPending });
+      }
 
-        const sectionsPayload = currentNamedSections.map((s, idx) => ({
-          client_key: s.key,
-          id: s.id || null,
-          name: s.name,
-          sort_order: s.sort_order != null ? s.sort_order : idx,
-        }));
-
-        const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
-        const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
-          client_key: item.id || `new_${idx}`,
-          id: item.id || null,
-          section_client_key: item.section_key || null,
-          description: item.description,
-          quantity: Number(item.quantity || 1),
-          unit_price: Number(item.unit_price || 0),
-          total_price: getActiveQuantity(item) * Number(item.unit_price || 0),
-          pricing_unit: item.pricing_unit || null,
-          calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== '' && item.calculated_quantity !== null) ? Number(item.calculated_quantity) : null,
-          quantity_source: item.quantity_source || null,
-          specification: normalizeSpecificationRows(item.specification),
-          calculation_method: item.calculation_method || null,
-          sort_order: idx,
-          measurements: (Array.isArray(item.measurements) ? item.measurements : [])
-            .filter((m) => !(m.width === '' && m.height === ''))
-            .map((m, mIdx) => ({
-              width: m.width !== '' && m.width != null ? Number(m.width) : null,
-              height: m.height !== '' && m.height != null ? Number(m.height) : null,
-              unit: m.unit || 'm',
-              calculated_area: m.calculated_area != null && m.calculated_area !== '' ? Number(m.calculated_area) : null,
-              label: m.label || '',
-              sort_order: mIdx,
-              is_pricing_driving: m.is_pricing_driving !== false,
-            })),
-        })) : [];
-        const currentItemIds = new Set((itemsForPersist || []).filter((it) => it.id).map((it) => it.id));
-        const removedItemIds = itemsForPersist ? [...authoritativeItemIds].filter((id) => !currentItemIds.has(id)) : [];
-
-        // הצעה חדשה: השדות הפיננסיים כבר נכתבו ב-INSERT הבודד (אטומי מטבעו)
-        // למעלה - p_financial=null כאן מדלג במפורש על כתיבה כפולה. עריכה
-        // לא-פיננסית: שום דבר פיננסי לא באמת השתנה (financialQuotePatch הוא
-        // עותק מדויק של authoritativeQuote) - null גם כאן מדלג על כתיבה
-        // מיותרת, בלי לשנות שום ערך בפועל.
-        const financialForRpc = (editingQuoteId && isFinancialEdit) ? {
-          currency: financialQuotePatch.currency,
-          client_type: financialQuotePatch.client_type,
-          tax_rate: financialQuotePatch.tax_rate,
-          subtotal: financialQuotePatch.subtotal,
-          discount: financialQuotePatch.discount,
-          total: financialQuotePatch.total,
-        } : null;
-
-        const { error: rpcError } = await supabase.rpc('save_quote_structured', {
-          p_quote_id: quoteId,
-          p_financial: financialForRpc,
-          p_sections: sectionsPayload,
-          p_items: itemsPayload,
-          p_removed_section_ids: removedSectionIds,
-          p_removed_item_ids: removedItemIds,
-        });
-
-        if (rpcError) {
-          // כל ענף-שגיאה כאן נכשל-בבטחה בתוך ה-RPC עצמו: הטרנזקציה בצד-השרת
-          // כבר ביטלה (rollback) כל מה שהפונקציה הספיקה לכתוב בקריאה הזו -
-          // לעולם אין כאן מצב-ביניים חלקי בתוך sections/items/measurements
-          // עצמם, גם כשהשגיאה היא "הפונקציה לא קיימת" בסביבה שעדיין לא
-          // הופעלה בה ה-migration.
-          //
-          // חוק ברזל (SQ-F02-B, "ONE-PASS SMART QUOTE FINAL REMEDIATION"
-          // task): זה עצמו לא מספיק להצעה **חדשה** - ה-quote row עצמו (עם
-          // quote_number/financial/status אמיתיים) כבר נוצר למעלה (INSERT
-          // נפרד, אטומי בפני עצמו) *לפני* קריאת ה-RPC הזו. אם ה-RPC נכשל,
-          // אותו שלד-הצעה כבר-קיים היה נשאר יתום לצמיתות: הצעה אמיתית,
-          // גלויה למשתמש (למשל ברשימת ההצעות), עם 0 sections/items - בדיוק
-          // מצב-הביניים החלקי שהמשימה אוסרת. פתרון: פעולת-פיצוי מפורשת
-          // (compensating delete) שמוחקת את שלד ההצעה החדש שזה עתה נוצר,
-          // אך ורק בענף ההצעה-החדשה (editingQuoteId היה null) - לעולם לא
-          // בעריכת הצעה קיימת (שם quoteId === editingQuoteId, הצעה אמיתית
-          // שהתקיימה כבר לפני הקריאה הזו, ואסור למחוק אותה). אם גם מחיקת-
-          // הפיצוי עצמה נכשלת (תרחיש קצה נדיר), זה מדווח בנפרד ובכנות - לא
-          // נבלע בשקט - כדי שלא תיווצר אשליית "בוטל במלואה" שגויה.
-          if (!editingQuoteId) {
-            const { error: compensatingDeleteError } = await supabase.from('quotes').delete().eq('id', quoteId);
-            if (compensatingDeleteError) {
-              setAlertModalMsg(isHebrew
-                ? 'לא ניתן היה לשמור את מבנה ההצעה החדשה, וגם ניקוי שלד ההצעה שנוצר בטעות נכשל. אנא פנה לתמיכה - ייתכן שנותרה הצעה ריקה/שגויה.'
-                : 'Could not save the new quote\'s structure, and cleaning up the accidentally-created quote shell also failed. Please contact support - an empty/invalid quote may remain.');
-              return;
-            }
-          }
-          // IRON-QUOTE-001 (narrowed, truthful contract): the structured RPC is atomic ON ITS OWN. On a NEW quote the shell is
-          // compensated (deleted) above, so nothing remains. On an EDIT the client + quote header were already written by
-          // separate statements, so we must NOT claim "nothing was saved".
-          setAlertModalMsg(editingQuoteId
-            ? (isHebrew
-              ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
-              : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.')
-            : (isHebrew
-              ? 'לא ניתן היה לשמור את מבנה ההצעה (יחידות/פריטים/מידות) בסביבה הנוכחית. ההצעה החדשה לא נוצרה - שום שינוי חלקי לא נשמר.'
-              : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The new quote was not created - no partial quote remains.'));
-          return;
+      if (saveResult.outcome === 'failed') {
+        // Nothing of the quote was saved; the local draft is kept so the user can retry. `wrote` names anything that remains.
+        const clientNote = saveResult.wrote.includes('client')
+          ? (isHebrew ? ' שימו לב: פרטי הלקוח כבר עודכנו.' : ' Note: the client details were already updated.')
+          : (isHebrew ? ' שום דבר לא נשמר או שונה.' : ' Nothing was saved or changed.');
+        const detail = saveResult.error?.message ? (isHebrew ? ` (פירוט: ${saveResult.error.message})` : ` (details: ${saveResult.error.message})`) : '';
+        let msg;
+        if (saveResult.stage === 'structure' && saveResult.compensationFailed) {
+          msg = isHebrew
+            ? 'לא ניתן היה לשמור את מבנה ההצעה החדשה, וגם ניקוי שלד ההצעה שנוצר בטעות נכשל. אנא פנה לתמיכה - ייתכן שנותרה הצעה ריקה/שגויה.'
+            : 'Could not save the new quote\'s structure, and cleaning up the accidentally-created quote shell also failed. Please contact support - an empty/invalid quote may remain.';
+        } else if (saveResult.stage === 'structure') {
+          msg = isHebrew
+            ? 'לא ניתן היה לשמור את מבנה ההצעה (יחידות/פריטים/מידות) בסביבה הנוכחית. ההצעה החדשה לא נוצרה - שום שינוי חלקי לא נשמר.'
+            : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The new quote was not created - no partial quote remains.';
+        } else if (saveResult.stage === 'upload') {
+          msg = isHebrew
+            ? `ההצעה לא נשמרה - העלאת הקובץ נכשלה (${saveResult.attachmentFailures.join(', ')}). שום דבר לא נשמר או שונה; הטיוטה נשמרה - אפשר לנסות שוב.`
+            : `The quote was not saved - uploading failed (${saveResult.attachmentFailures.join(', ')}). Nothing was saved or changed; your draft is kept - you can try again.`;
+        } else if (saveResult.stage === 'transaction') {
+          msg = (isHebrew ? 'ההצעה לא נשמרה - השמירה בוטלה במלואה, שום דבר לא שונה. הטיוטה נשמרה - אפשר לנסות שוב.' : 'The quote was not saved - the save was rolled back completely and nothing changed. Your draft is kept - you can try again.') + detail;
+        } else if (saveResult.stage === 'quote' && saveResult.missingColumn === 'project_name') {
+          msg = (isHebrew ? 'ההצעה לא נשמרה: הסביבה הנוכחית עדיין לא יכולה לשמור "שם פרויקט". הסירו את שם הפרויקט או נסו שוב מאוחר יותר.' : 'The quote was not saved: this environment cannot store the project name yet. Remove the project name or try again later.') + clientNote;
+        } else if (saveResult.stage === 'client') {
+          msg = (isHebrew ? 'ההצעה לא נשמרה - שמירת פרטי הלקוח נכשלה.' : 'The quote was not saved - saving the client details failed.') + clientNote + detail;
+        } else {
+          msg = (isHebrew ? 'ההצעה לא נשמרה.' : 'The quote was not saved.') + clientNote + detail;
         }
+        setAlertModalMsg(msg);
+        return;
       }
 
-      const attachmentFailures = [];
-      for (let file of quoteFiles) {
-        if (!file.id) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${quoteId}_${Date.now()}.${fileExt}`;
-          const filePath = `${session.user.id}/${fileName}`;
-          const { error: uploadErr } = await supabase.storage.from('quote-files').upload(filePath, file);
-          if (uploadErr) { attachmentFailures.push(file.name); continue; }
-          const { data: { publicUrl } } = supabase.storage.from('quote-files').getPublicUrl(filePath);
-          const { error: attInsertErr } = await supabase.from('quote_attachments').insert([{
-            quote_id: quoteId,
-            file_name: file.name,
-            file_url: publicUrl,
-            file_size: file.size,
-            storage_path: filePath
-          }]);
-          if (attInsertErr) {
-            attachmentFailures.push(file.name);
-            // IRON-QUOTE-005: compensate the just-uploaded object so a metadata failure leaves no orphan file; if the
-            // cleanup itself fails the orphan is logged (reconciliation: storage_path with no quote_attachments row).
-            const { error: orphanCleanupErr } = await supabase.storage.from('quote-files').remove([filePath]);
-            if (orphanCleanupErr) console.error('[IRON-QUOTE-005] orphan upload cleanup failed', filePath, orphanCleanupErr);
-          }
-        }
-      }
-      // EXISTING attachments the user removed were only STAGED in the editor; they are deleted now, after the quote itself saved.
-      let removalFailed = false;
-      if (pendingAttachmentRemovals.length > 0) {
-        const { error: removeErr } = await supabase.from('quote_attachments').delete().in('id', pendingAttachmentRemovals).eq('quote_id', quoteId);
-        if (removeErr) removalFailed = true; else setPendingAttachmentRemovals([]);
+      const quoteId = saveResult.quoteId;
+      if (saveResult.outcome === 'partial' && (saveResult.stage === 'structure' || saveResult.stage === 'items')) {
+        setAlertModalMsg(isHebrew
+          ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
+          : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.');
+        return;
       }
 
-      if (attachmentFailures.length > 0 || removalFailed) {
-        // The quote IS saved, but a required stage failed: keep the draft. The editor continues on the SAVED quote (so pressing
-        // Save again cannot create a duplicate) with only the failed files still pending.
+      if (saveResult.outcome === 'partial') {
+        const { attachmentFailures, removalFailed } = saveResult;
+        if (!removalFailed) setPendingAttachmentRemovals([]);
+        // Partial save: the quote exists. Leave the NEW-quote draft and continue as an edit of the saved quote so a
+        // retry is an UPDATE (never a duplicate); the failed files stay pending for the retry.
         await quoteDraft.discard();
         captureCleanRef.current = true;
         setEditBaselineFingerprint(null);
@@ -3941,6 +3785,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         loadData(session.user.id, session.user.email);
         return;
       }
+      setPendingAttachmentRemovals([]);
 
       setStatusMsg({
         // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
@@ -6449,6 +6294,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               allUserAttachments={allUserAttachments}
               onWizardStateChange={setItemWizardState}
               onStageAttachmentRemoval={(id) => setPendingAttachmentRemovals((prev) => (prev.includes(id) ? prev : [...prev, id]))}
+              onOpenAttachment={openQuoteAttachment}
               wizardResume={wizardResume}
               onWizardDraftChange={setWizardDraft}
             />

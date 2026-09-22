@@ -37,10 +37,9 @@ describe('PREVIOUS MOBILE NO-REFRESH FIX: PRESERVED', () => {
 
 describe('project_name and state-reset defects', () => {
   it('project_name is written on BOTH insert and update (it was read but never persisted)', () => {
-    expect(dash).toContain("const projectFields = { project_name: projectNameForPersist(projectName) };");
-    expect(dash).toMatch(/\.update\(\{ \.\.\.quotePayload, \.\.\.attnFields, \.\.\.projectFields \}\)/);
-    expect(dash).toMatch(/\.insert\(\[\{ \.\.\.quotePayload, \.\.\.attnFields, \.\.\.projectFields \}\]\)/);
-    expect(dash).toMatch(/isMissingProjectColumnError/); // safe retry for environments without the column
+    // 2026-09-22: persisted through utils/quoteSaveOrchestrator.js (atomic header / phased row); a typed value is never dropped
+    expect(dash).toMatch(/projectName: projectNameForPersist\(projectName\),/);
+    expect(dash).toMatch(/missingColumn === 'project_name'/);
   });
   it('every "start clean" path uses the ONE pristine reset (which resets quoteStatus and quoteStructureMode)', () => {
     const createFn = dash.slice(at('const handleCreateNewQuoteClick = () => {'), at('const handleDuplicateQuote = async'));
@@ -58,8 +57,8 @@ describe('project_name and state-reset defects', () => {
 describe('save / cancel / logout semantics', () => {
   it('the draft is deleted ONLY after every required save stage succeeded; a failed attachment stage keeps it', () => {
     const s = at('async function handleSaveQuote(e) {');
-    const rpc = at("supabase.rpc('save_quote_structured'", s);
-    const failGuard = at('if (attachmentFailures.length > 0 || removalFailed) {', s);
+    const rpc = at('const saveResult = await persistQuote(supabase, {', s);
+    const failGuard = at("if (saveResult.outcome === 'partial') {", s);
     const failReturn = at('return;', failGuard);
     const discardOk = at('await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded', s);
     expect(rpc).toBeLessThan(failGuard); expect(failGuard).toBeLessThan(failReturn); expect(failReturn).toBeLessThan(discardOk);
@@ -72,7 +71,10 @@ describe('save / cancel / logout semantics', () => {
     expect(form).not.toMatch(/quote_attachments'\)\.delete/);
     expect(form).toMatch(/onStageAttachmentRemoval\(targetFile\.id\)/);
     const s = at('async function handleSaveQuote(e) {');
-    expect(dash.indexOf("from('quote_attachments').delete().in('id', pendingAttachmentRemovals)", s)).toBeGreaterThan(dash.indexOf("supabase.rpc('save_quote_structured'", s));
+    // the staged ids reach the orchestrator only inside the Save handler; the orchestrator deletes them after the quote/structure
+    // stages (phased) or inside the single transaction (atomic)
+    expect(dash.indexOf("select('id, storage_path').in('id', pendingAttachmentRemovals)", s)).toBeLessThan(dash.indexOf('const saveResult = await persistQuote(supabase, {', s));
+    expect(dash.indexOf("select('id, storage_path').in('id', pendingAttachmentRemovals)", s)).toBeGreaterThan(s);
   });
   it('cancel with unsaved work asks for confirmation and clears the draft only after the explicit discard', () => {
     const fn = dash.slice(at('const requestCancelEdit = async () => {'), at('const draftLabelFor'));

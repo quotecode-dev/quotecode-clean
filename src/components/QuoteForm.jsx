@@ -71,6 +71,7 @@ export default function QuoteForm({
   allUserAttachments,
   onWizardStateChange,
   onStageAttachmentRemoval,
+  onOpenAttachment,
   wizardResume = null,
   onWizardDraftChange,
 }) {
@@ -791,9 +792,15 @@ export default function QuoteForm({
                 const displaySize = (rawBytes / (1024 * 1024)).toFixed(2);
                 return (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgInput, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, fontSize: '0.8rem' }}>
-                    <a href={file.file_url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violetLighter, textDecoration: 'underline' }}>
-                      {displayName} ({displaySize} MB)
-                    </a>
+                    {/* OD-2: a persisted attachment opens through a short-lived signed URL (onOpenAttachment); a file that is not
+                        uploaded yet has no link. The stored file_url is never used as a permanent public link. */}
+                    {file.id && onOpenAttachment ? (
+                      <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.violetLighter, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>
+                        {displayName} ({displaySize} MB)
+                      </button>
+                    ) : (
+                      <span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>
+                    )}
                     <button type="button" onClick={() => removeFile(idx)} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
                   </div>
                 );

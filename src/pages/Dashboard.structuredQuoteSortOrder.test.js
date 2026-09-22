@@ -29,8 +29,15 @@ const dashboardSource = readFileSync(
   'utf-8',
 );
 
+// 2026-09-22: the RPC call moved into utils/quoteSaveOrchestrator.js. Dashboard builds itemsPayload and hands it over as
+// structured.items; the orchestrator forwards it verbatim as p_items (phased save_quote_structured and atomic save_quote_atomic).
+const orchestratorSource = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', 'utils', 'quoteSaveOrchestrator.js'),
+  'utf-8',
+);
+
 function getItemsPayloadBlock() {
-  const rpcCallIndex = dashboardSource.indexOf("await supabase.rpc('save_quote_structured'");
+  const rpcCallIndex = dashboardSource.indexOf('const saveResult = await persistQuote(supabase, {');
   expect(rpcCallIndex).toBeGreaterThan(-1);
   const blockStart = dashboardSource.lastIndexOf('const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({');
   expect(blockStart).toBeGreaterThan(-1);
@@ -59,20 +66,20 @@ describe('save_quote_structured p_items payload - sort_order end-to-end (blocker
   });
 
   it('the RPC call itself still forwards itemsPayload verbatim as p_items - the field is not stripped before the network call', () => {
-    const rpcCallIndex = dashboardSource.indexOf("await supabase.rpc('save_quote_structured'");
-    const rpcCallEnd = dashboardSource.indexOf('});', rpcCallIndex);
-    const rpcCallBlock = dashboardSource.slice(rpcCallIndex, rpcCallEnd);
-    expect(rpcCallBlock).toMatch(/p_items:\s*itemsPayload,/);
+    expect(dashboardSource).toMatch(/structured: \{ financial: financialForRpc, sections: sectionsPayload, items: itemsPayload, removedSectionIds, removedItemIds \}/);
+    const phased = orchestratorSource.slice(orchestratorSource.indexOf("supabase.rpc('save_quote_structured'"));
+    expect(phased.slice(0, 400)).toMatch(/p_items:\s*plan\.structured\.items,/);
+    const atomic = orchestratorSource.slice(orchestratorSource.indexOf("supabase.rpc('save_quote_atomic'"));
+    expect(atomic.slice(0, 900)).toMatch(/p_items:\s*plan\.structured\.items,/);
   });
 
   it('no unrelated payload field was touched alongside this change - the existing financial/section/removed-id fields remain present', () => {
-    const rpcCallIndex = dashboardSource.indexOf("await supabase.rpc('save_quote_structured'");
-    const rpcCallEnd = dashboardSource.indexOf('});', rpcCallIndex);
-    const rpcCallBlock = dashboardSource.slice(rpcCallIndex, rpcCallEnd);
-    expect(rpcCallBlock).toMatch(/p_quote_id:\s*quoteId,/);
-    expect(rpcCallBlock).toMatch(/p_financial:\s*financialForRpc,/);
-    expect(rpcCallBlock).toMatch(/p_sections:\s*sectionsPayload,/);
-    expect(rpcCallBlock).toMatch(/p_removed_section_ids:\s*removedSectionIds,/);
-    expect(rpcCallBlock).toMatch(/p_removed_item_ids:\s*removedItemIds,/);
+    const rpcCallIndex = orchestratorSource.indexOf("supabase.rpc('save_quote_structured'");
+    const rpcCallBlock = orchestratorSource.slice(rpcCallIndex, orchestratorSource.indexOf('});', rpcCallIndex));
+    expect(rpcCallBlock).toMatch(/p_quote_id:\s*plan\.quoteId,/);
+    expect(rpcCallBlock).toMatch(/p_financial:\s*plan\.structured\.financial,/);
+    expect(rpcCallBlock).toMatch(/p_sections:\s*plan\.structured\.sections,/);
+    expect(rpcCallBlock).toMatch(/p_removed_section_ids:\s*plan\.structured\.removedSectionIds,/);
+    expect(rpcCallBlock).toMatch(/p_removed_item_ids:\s*plan\.structured\.removedItemIds,/);
   });
 });
