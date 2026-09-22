@@ -27,16 +27,16 @@ const more = async (p, name) => { await nav(p, /^(More|עוד)$/); await p.getBy
 const search = async (p, text) => { const s = p.getByPlaceholder(/Search client or quote #|חיפוש שם לקוח או מס׳ הצעה/).first(); await s.fill(text); await p.waitForTimeout(900); };
 const SCREENS = [
   { id: 'dashboard', primary: '.dash-upper-section', open: async (p) => { await goQuotes(p); await search(p, 'IRONSTRESS'); } },
-  { id: 'quote-history', primary: '.quote-card', open: async (p) => { await goQuotes(p); await search(p, 'IRONSTRESS'); } },
+  { id: 'quote-history', rowList: true, primary: '.quote-card', open: async (p) => { await goQuotes(p); await search(p, 'IRONSTRESS'); } },
   { id: 'new-quote', primary: '.pf-screen .pf-m-surface', open: async (p) => { await nav(p, /^(New|חדש)$/); await p.getByTestId('sq-step-1').waitFor({ timeout: 20000 }); } },
   { id: 'edit-quote', primary: '.pf-screen .pf-m-surface', open: async (p, m) => {
     await goQuotes(p); await search(p, m.dateClient);
     await p.locator('.quote-card').filter({ hasText: m.dateClient }).first().locator('button').first().click();
     await p.getByRole('button', { name: /^(Edit|ערוך)$/ }).first().click(); await p.getByTestId('sq-step-1').waitFor({ timeout: 20000 });
   } },
-  { id: 'clients', primary: '.client-card', open: async (p) => nav(p, /^(Clients|לקוחות)$/) },
+  { id: 'clients', rowList: true, primary: '.client-card', open: async (p) => nav(p, /^(Clients|לקוחות)$/) },
   { id: 'finances', primary: '.pf-screen .pf-m-grid, .pf-screen .pf-m-surface:not(.pf-m-grid .pf-m-surface)', cards: '.pf-screen .pf-m-surface', open: async (p) => nav(p, /^(Finances|פיננסים)$/) },
-  { id: 'catalog', primary: '.pf-screen-body table', open: async (p) => more(p, /^(Catalog|קטלוג)$/) },
+  { id: 'catalog', rowList: true, primary: '.pf-screen-body table', open: async (p) => more(p, /^(Catalog|קטלוג)$/) },
   { id: 'settings', primary: '.pf-screen .pf-m-surface', open: async (p) => more(p, /^(Settings|הגדרות)$/) },
 ];
 
@@ -115,7 +115,7 @@ function measure({ primary, cards: cardSel, isRtl }) {
   };
 }
 
-export function judge(m) {
+export function judge(m, { rowList = false } = {}) {
   const fails = [];
   if (!m.lists.length || !m.cards.length) fails.push('no primary list/card rendered (an empty screen never passes)');
   for (const [i, o] of m.lists.entries()) {
@@ -135,8 +135,18 @@ export function judge(m) {
     else { const inner = m.isRtl ? c.inner.right : c.inner.left; if (inner > LIMITS.cardInnerInsetMax + 0.01) fails.push(`${tag} (grid-interior) content starts ${inner}px inside the card > ${LIMITS.cardInnerInsetMax}px`); }
   }
   const trailSide = m.isRtl ? 'l' : 'r';
-  const trailing = m.cards.filter((c) => atEdge(c, trailSide)).map((c) => (m.isRtl ? c.content.left : c.content.right)).filter((v) => v !== null);
-  if (trailing.length && Math.min(...trailing) > LIMITS.contentInsetMax + 0.01) fails.push(`trailing visible content inset ${Math.min(...trailing)}px > ${LIMITS.contentInsetMax}px on every card`);
+  const edgeCards = m.cards.filter((c) => atEdge(c, trailSide));
+  if (rowList) {
+    // structured rows: the trailing field (amount / count / actions) must actually reach the trailing side on at least one row
+    const trailing = edgeCards.map((c) => (m.isRtl ? c.content.left : c.content.right)).filter((v) => v !== null);
+    if (trailing.length && Math.min(...trailing) > LIMITS.contentInsetMax + 0.01) fails.push(`trailing visible content inset ${Math.min(...trailing)}px > ${LIMITS.contentInsetMax}px on every row (dead band)`);
+  } else {
+    // free-form surfaces: the structural content box on the trailing side (outer inset + border + padding) stays within the limit
+    for (const [i, c] of edgeCards.entries()) {
+      const box = m.isRtl ? c.outer.l + c.internal.bL + c.internal.padL : c.outer.r + c.internal.bR + c.internal.padR;
+      if (box > LIMITS.contentInsetMax + 0.01) fails.push(`card[${i}] trailing content box starts ${box.toFixed(2)}px from the edge > ${LIMITS.contentInsetMax}px`);
+    }
+  }
   if (m.overflow.page > LIMITS.overflowMax) fails.push(`page horizontal overflow ${m.overflow.page}px`);
   if (m.overflow.screenBody > LIMITS.overflowMax) fails.push(`screen body horizontal overflow ${m.overflow.screenBody}px`);
   return fails;
@@ -167,7 +177,7 @@ for (const [lang, market, persona, dateClient] of MARKETS) {
         if (NEG) await page.addStyleTag({ content: '@media (max-width:768px){.dash-main-content .pf-screen.pf-work-screen{padding-inline:8px!important}}' });
         await page.evaluate(() => document.fonts.ready);
         cell.measured = await page.evaluate(measure, { primary: s.primary, cards: s.cards || null, isRtl: lang === 'he' });
-        cell.fails = [...judge(cell.measured), ...idProblems.map((p) => `identity: ${p}`)];
+        cell.fails = [...judge(cell.measured, { rowList: !!s.rowList }), ...idProblems.map((p) => `identity: ${p}`)];
         if (w === 390 || w === 412) shots.push({ cell: cell.id, ...(await shot(page, dir, `${lang}-${w}-${s.id}.png`)) });
       } catch (e) { cell.fails = [`screen not reachable: ${String(e.message).split('\n')[0].slice(0, 140)}`]; }
       cell.status = cell.fails.length ? 'FAIL' : 'PASS';
