@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { LIGHT as NEON } from '../theme/neonTheme';
+import { formatMoneyForCurrency } from '../utils/money';
 import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas } from '../utils/professionalQuoteItem';
 
 // חוק ברזל (Smart Quote Final UX Simplification task, Owner-authorized,
@@ -131,6 +132,9 @@ export default function AddItemWizard({
   resumeState = null,
   onDraftSnapshot,
 }) {
+  // IRON-ILS-001: every money amount goes through the injected canonical formatter; the fallback is the same canonical
+  // currency-keyed path ('₪' is only ever the Local/ILS symbol) - never a raw number or toFixed.
+  const money = formatMoneyDisplay || ((v) => formatMoneyForCurrency(v, sym === '₪' ? 'ILS' : undefined));
   const isEditMode = !!editingItem;
   const resumeRef = useRef(resumeState);
   resumeRef.current = resumeState;
@@ -728,9 +732,9 @@ export default function AddItemWizard({
   if (priceIsValid && total != null) {
     if (isMeasureMethod && calculatedValue != null) {
       const unitWord = pricingMethod === 'area' ? (isHebrew ? 'מ"ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
-      formulaText = `${calculatedValue.toFixed(2)} ${unitWord} × ${sym}${formatMoneyDisplay ? formatMoneyDisplay(unitPrice) : unitPrice} = ${sym}${formatMoneyDisplay ? formatMoneyDisplay(total) : total.toFixed(2)}`;
+      formulaText = `${calculatedValue.toFixed(2)} ${unitWord} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     } else if (pricingMethod === 'units' && Number(quantity) > 0) {
-      formulaText = `${quantity} × ${sym}${formatMoneyDisplay ? formatMoneyDisplay(unitPrice) : unitPrice} = ${sym}${formatMoneyDisplay ? formatMoneyDisplay(total) : total.toFixed(2)}`;
+      formulaText = `${quantity} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     }
   }
 
@@ -761,7 +765,7 @@ export default function AddItemWizard({
     : [];
 
   const methodResultLine = pricingMethod === 'fixed'
-    ? (total != null ? `${t.totalLabel}: ${sym}${formatMoneyDisplay ? formatMoneyDisplay(total) : total.toFixed(2)}` : null)
+    ? (total != null ? `${t.totalLabel}: ${sym}${money(total)}` : null)
     : formulaText;
 
   const activeGroupName = sections && sections.length > 0 && sectionKey ? (sections.find((s) => s.key === sectionKey)?.name || t.noGroup) : null;
@@ -818,7 +822,7 @@ export default function AddItemWizard({
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', boxSizing: 'border-box', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}
                       >
                         <span>{s.name}</span>
-                        <span className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{formatMoneyDisplay ? formatMoneyDisplay(s.price) : s.price}</span>
+                        <span className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(s.price)}</span>
                       </button>
                     ))}
                   </div>
@@ -1042,7 +1046,7 @@ export default function AddItemWizard({
               <div style={{ background: NEON.bgCardAlt, borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
                 {total != null && (
                   <div aria-live="polite" style={{ fontSize: '1rem', color: NEON.violet, fontWeight: '800' }}>
-                    {sym}{formatMoneyDisplay ? formatMoneyDisplay(total) : total.toFixed(2)}
+                    {sym}{money(total)}
                   </div>
                 )}
               </div>
@@ -1095,7 +1099,7 @@ export default function AddItemWizard({
                   </div>
                 )}
                 {pricingMethod === 'units' && (
-                  <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>{quantity} × {sym}{unitPrice || 0}</div>
+                  <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>{quantity} × {sym}{money(unitPrice || 0)}</div>
                 )}
                 {activeSpecRows.length > 0 && (
                   <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>
@@ -1103,7 +1107,7 @@ export default function AddItemWizard({
                   </div>
                 )}
                 {total != null && (
-                  <div style={{ fontWeight: '800', color: NEON.violet, marginTop: '6px' }}>{sym}{formatMoneyDisplay ? formatMoneyDisplay(total) : total.toFixed(2)}</div>
+                  <div style={{ fontWeight: '800', color: NEON.violet, marginTop: '6px' }}>{sym}{money(total)}</div>
                 )}
               </div>
             </div>

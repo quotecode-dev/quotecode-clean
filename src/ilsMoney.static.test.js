@@ -27,7 +27,41 @@ const MONEY_BYPASS = [
   /text=\{(?:formatNum|formatMoney|formatNumberLocal)\(/,
 ];
 
+// A currency symbol immediately followed by ANY interpolated expression that is not a canonical formatter call
+// (e.g. `{sym}{unitPrice || 0}` - the AddItemWizard review-line bypass found 2026-09-22) is a raw money render.
+const SYMBOL_THEN_EXPR = /(?:\{|\$\{)(sym|quoteSym|currencySymbol|proposalSym)\}\s*(?:\{|\$\{)([^}]{0,80})\}/g;
+const CANONICAL_CALL = /^(?:money|fmtMoney|formatMoneyDisplay|formatMoneyForCurrency|formatWholeMoney|moneyFmt)\(/;
+
 describe('IRON-ILS-001 static gate: protected Local money surfaces have no formatter bypass', () => {
+  for (const file of PROTECTED_LOCAL_MONEY_FILES) {
+    it(`${file}: every currency symbol is followed by a canonical formatter call (no raw amount)`, () => {
+      const offenders = [];
+      read(file).split('\n').forEach((l, i) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(l)) return;
+        for (const m of l.matchAll(SYMBOL_THEN_EXPR)) if (!CANONICAL_CALL.test(m[2].trim())) offenders.push(`${i + 1}: ${m[0]}`);
+      });
+      expect(offenders).toEqual([]);
+    });
+  }
+
+  it('the symbol rule itself catches the historical raw review-line render', () => {
+    const line = '<div>{quantity} × {sym}{unitPrice || 0}</div>';
+    const hits = [...line.matchAll(SYMBOL_THEN_EXPR)].filter((m) => !CANONICAL_CALL.test(m[2].trim()));
+    expect(hits).toHaveLength(1);
+  });
+
+  it('AddItemWizard has no raw-number fallback when the formatter is not injected', () => {
+    const w = read('src/components/AddItemWizard.jsx');
+    expect(w).not.toMatch(/formatMoneyDisplay \? formatMoneyDisplay\([^)]*\) : /);
+    expect(w).toMatch(/const money = formatMoneyDisplay \|\| \(\(v\) => formatMoneyForCurrency\(/);
+  });
+
+  it('the quote email total goes through the tested emailMoney module (no inline rounding)', () => {
+    const e = read('supabase/functions/send-quote-email/index.ts');
+    expect(e).toMatch(/const displayTotal = formatEmailTotal\(quoteRow\.total, resolvedSym\)/);
+    expect(e).not.toMatch(/wholeAbs/);
+  });
+
   for (const file of PROTECTED_LOCAL_MONEY_FILES) {
     it(`${file} has no money bypass`, () => {
       const lines = read(file).split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l));

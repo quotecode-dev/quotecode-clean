@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { formatEmailTotal } from "./emailMoney.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -205,9 +206,7 @@ serve(async (req) => {
     // לכאן. תיקון זה הוא לוקאלי בלבד בקובץ זה - הפריסה (deploy) עצמה נשארת
     // צעד עתידי נפרד, לא בוצעה בסבב הזה.
     // IRON-ILS-001: ILS (₪) => nearest whole shekel, half-up away from zero, always ".00"; other currencies keep full precision.
-    const rawTotal = Number(quoteRow.total || 0)
-    const wholeAbs = Math.floor(Math.abs(rawTotal)) + (Math.abs(rawTotal) - Math.floor(Math.abs(rawTotal)) >= 0.5 ? 1 : 0)
-    const displayTotal = (resolvedSym === '₪' ? (rawTotal < 0 && wholeAbs !== 0 ? -wholeAbs : wholeAbs) : rawTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const displayTotal = formatEmailTotal(quoteRow.total, resolvedSym) // unit-tested in emailMoney.test.js
 
     // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
     // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור
