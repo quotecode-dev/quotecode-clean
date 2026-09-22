@@ -197,6 +197,13 @@ describe('DEFECT-1 PDF / PRINT ROUTER (Codex, 2026-09-22)', () => {
     expect(classifyCapabilityIntent('האם pdf זהה להדפסה?')).toBe('quote_pdf_vs_print_comparison');
   });
 
+  it('"What\'s the difference between PDF and Print?" (found via real-browser terminal testing, 2026-09-23) also classifies as the comparison sentinel', () => {
+    expect(classifyCapabilityIntent("What's the difference between PDF and print?")).toBe('quote_pdf_vs_print_comparison');
+    expect(classifyCapabilityIntent('What is the difference between printing and PDF?')).toBe('quote_pdf_vs_print_comparison');
+    expect(classifyCapabilityIntent('מה ההבדל בין PDF להדפסה?')).toBe('quote_pdf_vs_print_comparison');
+    expect(classifyCapabilityIntent('מה ההבדל בין הדפסה ל-PDF?')).toBe('quote_pdf_vs_print_comparison');
+  });
+
   it('the comparison answer gives a factual distinction, never CLAIMS an invoice (a "not an invoice" clarification is fine), never claims execution', () => {
     const answerEn = formatCapabilityTruthAnswer('quote_pdf_vs_print_comparison', FACTS, false);
     expect(answerEn).toMatch(/different/i);

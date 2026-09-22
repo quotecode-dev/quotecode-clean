@@ -125,6 +125,16 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /\bprint\b.{0,30}\b(same as|vs\.?|versus|different from|or)\b.{0,10}\bpdf\b/i,
     /האם\s.{0,10}pdf\b.{0,20}(אותו דבר|זהה|כמו)\s.{0,10}הדפסה/i,
     /האם\s.{0,10}הדפסה\b.{0,20}(אותו דבר|זהה|כמו)\s.{0,10}pdf/i,
+    // "What's the DIFFERENCE between X and Y" is a distinct (and, per real-browser terminal testing,
+    // more common) comparison phrasing from the same-as/vs framing above - it must resolve to the
+    // same deterministic distinction, not fall through to just one of the two individual answers.
+    /\bdifference\b.{0,15}\bbetween\b.{0,10}\bpdf\b.{0,20}\bprint(ing)?\b/i,
+    /\bdifference\b.{0,15}\bbetween\b.{0,10}\bprint(ing)?\b.{0,20}\bpdf\b/i,
+    /(מה\s)?ה?הבדל\s.{0,5}בין\s.{0,10}pdf\b.{0,20}(ל-?)?הדפסה/i,
+    // No trailing \b after "הדפסה" - JS \b is ASCII-\w-only, so a boundary between a Hebrew letter
+    // and the following whitespace never fires (both are non-\w), the same recurring pitfall as
+    // every other Hebrew literal in this file.
+    /(מה\s)?ה?הבדל\s.{0,5}בין\s.{0,10}הדפסה.{0,20}(ל-?)?pdf/i,
   ]],
 
   ['editor_calculator', [
