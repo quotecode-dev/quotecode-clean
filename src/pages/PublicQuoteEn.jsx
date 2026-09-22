@@ -9,6 +9,7 @@ import PdfFileIcon from '../components/PdfFileIcon';
 import QuotePrintModeModal from '../components/QuotePrintModeModal';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { resolveQuoteExpired } from '../utils/quoteValidity';
+import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
@@ -175,12 +176,15 @@ export default function PublicQuoteEn({ quoteData }) {
   // OD-1: an expired quote stays viewable but cannot be accepted. International market: the validity day ends only when it has
   // ended everywhere (Anywhere on Earth); server truth `is_expired` wins when provided. The stored date is never changed.
   const isExpired = resolveQuoteExpired(quote, 'International');
+  // SMART-QUOTE-01: an unfinished draft never masquerades as a customer-ready quote (screen, print, PDF) and cannot be signed.
+  const isUnfinishedDraft = isUnfinishedSavedQuote(quote, items);
 
   const handleApprove = async () => {
     if (isExpired) {
       setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', false).userMessage });
       return;
     }
+    if (isUnfinishedDraft) return;
     let blocked = false;
     if (!signerName.trim()) { setSignerNameWarning(true); blocked = true; }
     if (!hasSigned) { setSignatureWarning(true); blocked = true; }
@@ -633,6 +637,11 @@ export default function PublicQuoteEn({ quoteData }) {
           special-cased exception for English's border being 0. */}
       <div ref={cardRef} className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
         <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} isExpired={isExpired && !approved} />
+        {isUnfinishedDraft && (
+          <div className="pq-unfinished-banner" data-testid="pq-unfinished" role="status" style={{ margin: '12px 16px 0', padding: '10px 14px', borderRadius: '10px', background: '#fff7ed', border: '2px dashed #fb923c', color: '#9a3412', fontWeight: 800, fontSize: '0.92rem', textAlign: 'center' }}>
+            Unfinished draft - this is not a final quote and cannot be approved.
+          </div>
+        )}
 
         {/* Iron rule (owner correction - recipient visual hierarchy): the
             label stays dark/normal - the recipient's own data (name, and
@@ -944,6 +953,10 @@ export default function PublicQuoteEn({ quoteData }) {
                 This quote has expired - your customer cannot sign it until you extend the validity date in the quote editor or send an updated quote.
               </div>
             )}
+          </div>
+        ) : isUnfinishedDraft ? (
+          <div className="pq-section" role="status" data-testid="pq-unfinished-nosign" style={{ background: '#fff7ed', color: '#9a3412', padding: '16px', borderRadius: '12px', fontSize: '0.92rem', fontWeight: '700', border: '1px solid #fed7aa', textAlign: 'center' }}>
+            This quote is still being prepared, so it is not available for signature.
           </div>
         ) : isExpired ? (
           <div className="pq-section" role="status" data-testid="pq-expired" style={{ background: '#fff7ed', color: '#9a3412', padding: '18px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '700', border: '1px solid #fed7aa', textAlign: 'center' }}>

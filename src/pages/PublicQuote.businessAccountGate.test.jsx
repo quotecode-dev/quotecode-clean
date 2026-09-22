@@ -30,11 +30,14 @@ function buildQuoteData(overrides = {}) {
       tax_rate: 0.18,
       client_type: 'business',
       is_owner_viewing: false,
+      // a FINISHED quote (SMART-QUOTE-01: a zero-total / item-less draft is an unfinished draft and is never signable)
+      subtotal: 1000,
+      total: 1180,
       ...overrides.quote,
     },
     business: { business_name: 'Test Business', ...overrides.business },
     client: { company_name: 'Test Client', ...overrides.client },
-    items: [],
+    items: overrides.items ?? [{ id: 'i1', description: 'Synthetic item', quantity: 1, unit_price: 1000, total_price: 1000 }],
     attachments: [],
   };
 }
@@ -131,5 +134,25 @@ describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', ()
   it('project_name is shown on the customer-facing header when set (HE + EN)', () => {
     render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { project_name: 'מגדל סינתטי' } })} /></MemoryRouter>);
     expect(screen.getAllByText(/פרויקט:\s*מגדל סינתטי/).length).toBeGreaterThan(0);
+  });
+});
+
+// SMART-QUOTE-01: an unfinished draft never masquerades as a customer-ready quote (banner inside the printable card, no signing).
+describe('SMART-QUOTE-01 unfinished draft on the public page (HE + EN)', () => {
+  it('HE: a zero-total draft shows the printable "not a final quote" banner and no signing UI', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { total: 0, subtotal: 0 }, items: [] })} /></MemoryRouter>);
+    expect(screen.getByTestId('pq-unfinished')).toHaveTextContent('טיוטה לא גמורה');
+    expect(screen.getByTestId('pq-unfinished').className).not.toMatch(/no-print/);
+    expect(screen.queryByText('חתימת לקוח לאישור ההצעה:')).not.toBeInTheDocument();
+    expect(screen.getByTestId('pq-unfinished-nosign')).toBeInTheDocument();
+  });
+  it('EN: an item-less quote is an unfinished draft', () => {
+    render(<MemoryRouter><PublicQuoteEn quoteData={buildQuoteData({ quote: { tax_rate: 0, currency: 'USD' }, items: [] })} /></MemoryRouter>);
+    expect(screen.getByTestId('pq-unfinished')).toHaveTextContent('Unfinished draft');
+    expect(screen.queryByText('Client Signature to Approve This Quote:')).not.toBeInTheDocument();
+  });
+  it('a finished quote shows no unfinished banner', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData()} /></MemoryRouter>);
+    expect(screen.queryByTestId('pq-unfinished')).not.toBeInTheDocument();
   });
 });

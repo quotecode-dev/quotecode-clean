@@ -80,7 +80,7 @@ describe('computeQuoteWorkflowContext', () => {
     const ctx = computeQuoteWorkflowContext(base);
     expect(ctx).toEqual({
       screen: 'quote_editor', mode: 'create', hasClient: false, hasProject: false,
-      structureMode: 'undecided', sectionCount: 0, itemCount: 0, itemWizard: null,
+      structureMode: 'regular', sectionCount: 0, itemCount: 0, itemWizard: null,
     });
   });
 
@@ -93,7 +93,7 @@ describe('computeQuoteWorkflowContext', () => {
     const ctx = computeQuoteWorkflowContext({ ...base, projectName: 'Renovation' });
     expect(ctx.hasProject).toBe(true);
     expect(ctx.sectionCount).toBe(0);
-    expect(ctx.structureMode).toBe('undecided');
+    expect(ctx.structureMode).toBe('regular'); // SMART-QUOTE-02: no undecided state in the UI
   });
 
   it('quote with a section present (divided structure)', () => {
@@ -104,7 +104,7 @@ describe('computeQuoteWorkflowContext', () => {
     expect(ctx.sectionCount).toBe(1);
   });
 
-  it('explicit regular (flat) structure is distinct from undecided', () => {
+  it('explicit regular (flat) structure reports regular (same as unset since SMART-QUOTE-02)', () => {
     const ctx = computeQuoteWorkflowContext({ ...base, quoteStructureMode: 'regular' });
     expect(ctx.structureMode).toBe('regular');
   });

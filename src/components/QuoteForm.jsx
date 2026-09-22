@@ -9,6 +9,22 @@ import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
 import { computeItemWizardState } from '../utils/quoteWorkflowContext';
+import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
+import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
+import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
+
+// SMART-QUOTE first-use flow: a numbered step label (1 who / 2 what / 3 price / 4 review & save).
+function StepHeading({ n, title, hint }) {
+  return (
+    <div className="sq-step" data-testid={`sq-step-${n}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '6px 0 10px' }}>
+      <span aria-hidden="true" style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '999px', background: NEON.violet, color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem' }}>{n}</span>
+      <div>
+        <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: NEON.textPrimary }}>{title}</h3>
+        {hint && <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: 1.4 }}>{hint}</p>}
+      </div>
+    </div>
+  );
+}
 
 const getDialByCurrency = (curr) => {
   if (curr === 'GBP') return { dial: '+44', label: 'GB (+44)' };
@@ -77,6 +93,18 @@ export default function QuoteForm({
 }) {
   // IRON-ILS-001: money is displayed ONLY through the canonical currency-keyed path (Dashboard injects it; the fallback derives from the account market, never from UI language).
   const fmtMoney = formatMoneyDisplay || ((v) => formatMoneyForCurrency(v, isLocalIsraeliBusiness ? 'ILS' : undefined));
+  // SMART-QUOTE-02: an undecided structure is simply the regular list (never a blocking first decision).
+  const structureMode = quoteStructureMode || 'regular';
+  // SMART-QUOTE-01: unfinished = no real priced item yet -> only an explicitly labelled unfinished draft can be saved.
+  const isUnfinished = isUnfinishedQuoteForm({ items, totalAmount });
+  // SMART-QUOTE-04: the same case-insensitive match the save uses (Dashboard.handleSaveQuote) - disclosed before saving.
+  const matchedClient = (clients || []).find((c) => (c.company_name || '').toLowerCase() === String(clientName || '').toLowerCase()) || null;
+  // OD-1 issuer path: a past validity date is shown with the fix (extend it) - the stored date is only changed by the user.
+  const validityExpired = isQuoteAcceptanceExpired(validUntil, isLocalIsraeliBusiness ? 'Local' : 'International');
+  const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole);
+  const [showMoreDetails, setShowMoreDetails] = useState(hasOptionalDetails);
+  // opens (never auto-closes) as soon as any optional value appears (e.g. a restored draft), so entered data is never hidden
+  useEffect(() => { if (hasOptionalDetails) setShowMoreDetails(true); }, [hasOptionalDetails]);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
@@ -363,6 +391,8 @@ export default function QuoteForm({
   }));
   const unassignedIndices = unsectionedItems.map((it) => items.indexOf(it));
   const orderedItemIndices = [...unitItemIndices.flatMap(g => g.indices), ...unassignedIndices];
+  // the untouched default placeholder row is not an item yet - no empty "(unnamed) 1 x 0.00" card on a fresh quote
+  const regularItemIndices = orderedItemIndices.filter((i) => !isUntouchedPlaceholderItem(items[i]));
 
   // חוק ברזל (Smart Quote Structure-First UX Correction task): נקודת-
   // רינדור משותפת יחידה לכרטיס-פריט קומפקטי - הרשימה השטוחה (Regular) וכל
@@ -612,6 +642,10 @@ export default function QuoteForm({
       </div>
 
       <form className="pf-screen-body" onSubmit={onSave}>
+        {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
+            (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
+            attachments, terms) is unchanged - optional parts are progressive, never removed. */}
+        <StepHeading n={1} title={isHebrew ? 'למי ההצעה?' : 'Who is it for?'} />
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid
             pattern already used everywhere else in this file for field rows -
@@ -632,7 +666,7 @@ export default function QuoteForm({
             נבדקו בפועל בכל 5 הרוחבים (320/360/375/390/430) ומעולם לא הגיעו
             למינימום שלהם (רוחב זמין תמיד גדול מהמינימום), אז אינם צריכים
             את אותו תיקון. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '14px', marginBottom: '14px' }}>
+        <div style={{ marginBottom: '14px' }}>
         <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
         <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי לקוח' : 'Client Details'}
@@ -718,309 +752,28 @@ export default function QuoteForm({
           </div>
         </div>
         </div>
-
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
-        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
-          {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
         </div>
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
-            {isHebrew ? 'נושא ההזמנה / ההצעה' : 'Order / Quote Subject'}
-          </label>
-          <input
-            type="text"
-            value={quoteSubject || ''}
-            onChange={(e) => setQuoteSubject(e.target.value)}
-            placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומניום לפרויקט' : 'e.g. Aluminum & Network Supply'}
-            style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
-          />
-        </div>
-
-        {/* חוק ברזל (§168 - Project/Section hierarchy, PROFLOW_TODO.md 30.C):
-            שדה אופציונלי-לגמרי, ריק כברירת מחדל - "Project ו-Section חייבים
-            להיות אופציונליים, לעולם לא מבנה כפוי". לקוח שלא צריך את זה
-            פשוט לא ממלא, ההצעה נשמרת שטוחה בדיוק כמו היום. */}
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
-            {isHebrew ? 'שם פרויקט (לא חובה)' : 'Project name (optional)'}
-          </label>
-          <input
-            type="text"
-            value={projectName || ''}
-            onChange={(e) => setProjectName(e.target.value)}
-            placeholder={isHebrew ? 'לדוגמה: פרויקט חולון' : 'e.g. Holon Project'}
-            style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
-          />
-        </div>
-        </div>
-        </div>
-
-        {/* Cross-Surface Visual Consolidation / Create Quote §11: matches
-            the established section-card pattern used by the Client/Quote
-            Details and Currency/Status/Discount cards elsewhere in this
-            form (16px radius, subtle shadow, NEON.bgCard) instead of this
-            block's own older, shallower bgCardAlt sub-panel treatment -
-            fully integrates Attachments into the same card system rather
-            than a visually-lesser-tier box. Container-level only - upload/
-            entitlement/file-list logic untouched. */}
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
-            <Paperclip size={13} color={NEON.violetLight} />
-            {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
-          </label>
-
-          {canUseAttachments && (
-            <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: '600', marginBottom: '8px' }}>
-              {isHebrew ? `נשארו לך ${remainingMb} מגה להעלאת קבצים` : `Remaining: ${remainingMb}MB`}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleAttachmentClick}
-            style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Paperclip size={13} strokeWidth={2.5} />
-            {isHebrew ? 'צרף קובץ (עד 3MB)' : 'Attach File (Max 3MB)'}
-          </button>
-
-          {(quoteFiles || []).length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-              {(quoteFiles || []).map((file, idx) => {
-                const displayName = file.name || file.file_name || `File #${idx + 1}`;
-                const rawBytes = file.size || file.file_size || 0;
-                const displaySize = (rawBytes / (1024 * 1024)).toFixed(2);
-                return (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgInput, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, fontSize: '0.8rem' }}>
-                    {/* OD-2: a persisted attachment opens through a short-lived signed URL (onOpenAttachment); a file that is not
-                        uploaded yet has no link. The stored file_url is never used as a permanent public link. */}
-                    {file.id && onOpenAttachment ? (
-                      <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.violetLighter, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>
-                        {displayName} ({displaySize} MB)
-                      </button>
-                    ) : (
-                      <span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>
-                    )}
-                    <button type="button" onClick={() => removeFile(idx)} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Cross-Surface Visual Consolidation / Create Quote §11: same
-            card-system integration as the Attachments block above - see
-            its comment for the full rationale. */}
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '8px' }}>
-            <MapPin size={13} color={NEON.red} />
-            {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'רחוב ומספר' : 'Street Address'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
-            <div>
-              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
-            <div>
-              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
-            <div>
-              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isHebrew ? 'מיקוד (ZIP)' : 'ZIP / Postal'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.currency}</label>
-            <select
-              value={currency}
-              disabled={true}
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgCardAlt, boxSizing: 'border-box', fontSize: '0.85rem', fontWeight: 'bold', color: NEON.violetLight, cursor: 'not-allowed' }}
-            >
-              <option value={currency}>{currency} ({sym})</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.status}</label>
-            <select value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}>
-              <option value="Draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-              <option value="Sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-              <option value="Approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-              <option value="Paid">{isHebrew ? 'שולם' : 'Paid'}</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
-              {t.validUntil} <span style={{ color: NEON.violetLight, fontWeight: 'bold' }}>({dateFormatLabel})</span>
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input
-                type="text"
-                value={getDisplayDate(validUntil)}
-                onChange={handleDisplayDateChange}
-                placeholder={dateFormatLabel}
-                style={{ width: '100%', padding: '7px 32px 7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }}
-              />
-              <input
-                type="date"
-                ref={dateInputRef}
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
-                    dateInputRef.current.showPicker();
-                  } else if (dateInputRef.current) {
-                    dateInputRef.current.click();
-                  }
-                }}
-                style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: NEON.textMuted, padding: 0, display: 'flex', alignItems: 'center' }}
-                title="Open calendar"
-              >
-                <Calendar size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.discount}</label>
-            <input type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-          </div>
-        </div>
-        </div>
-
-        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-        {/* חוק ברזל (Two-Stage Completion Task, Stage 1D): תנאים+אחריות
-            מקופלים כברירת מחדל - הערכים בפועל (terms/warranty) הם כבר
-            snapshot אמיתי שהועתק מ-defaultTerms/defaultWarranty ברגע יצירת
-            ההצעה (Dashboard.jsx, handleCreateNewQuoteClick) - זה כבר קיים
-            ונכון ברמת ה-state/DB (quotes.terms/quotes.warranty, migration
-            20260830000004). השינוי כאן הוא תצוגתי בלבד: לא לגלול טקסט גדול
-            תמיד, אלא לקפל אותו כשהוא כבר == ברירת-המחדל, עם אפשרות מפורשת
-            להתאמה + שחזור בטוח. אינו נוגע בשום migration/עמודה חדשה. */}
-        <div style={{ marginBottom: '12px', border: `1px solid ${NEON.border}`, borderRadius: '10px', background: NEON.bgCardAlt, padding: '10px 12px' }}>
-          {/* חוק ברזל (Stage 1B, נמצא חי - 320px English): "Terms & Warranty" +
-              "Customize for this quote" לא נכנסו יחד בשורה אחת ב-320px
-              (scrollWidth 78 מול clientWidth 65 על תווית הכותרת) - הפתרון
-              הוא flexWrap:'wrap' (השורה השנייה נופלת לשורה משלה), לא
-              הקטנת-טקסט/קיצוץ, כדי שהתווית המלאה תמיד תישאר קריאה. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexDirection: 'row', minWidth: 0 }}>
-              <FileText size={14} strokeWidth={2.2} color={NEON.violetLight} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textPrimary }}>{isHebrew ? 'תנאים ואחריות' : 'Terms & Warranty'}</span>
-            </div>
-            {!termsWarrantyExpanded && (
-              <button type="button" onClick={() => setTermsWarrantyExpanded(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.25)', color: NEON.violetLight, borderRadius: '999px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                <Pencil size={11} strokeWidth={2.5} />
-                {isHebrew ? 'התאמה להצעה זו' : 'Customize for this quote'}
-              </button>
-            )}
-          </div>
-          {!termsWarrantyExpanded && (
-            <div style={{ fontSize: '0.74rem', color: NEON.textSecondary, marginTop: '6px' }}>
-              {isTermsWarrantyCustomized
-                ? (isHebrew ? 'התנאים והאחריות הותאמו אישית עבור הצעה זו.' : 'Terms and warranty were customized for this quote.')
-                : (isHebrew ? 'התנאים והאחריות נטענו אוטומטית מהגדרות העסק.' : 'Default terms and warranty were loaded from Business Settings.')}
-            </div>
-          )}
-          {termsWarrantyExpanded && (
-            <div style={{ marginTop: '10px' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{currency === 'ILS' ? 'תקנון ותנאים' : 'Terms & Conditions'}</label>
-                <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
-              </div>
-              {/* חוק ברזל (Item 23 Warranty, TEST Acceptance Package 1): שדה נפרד
-                  מ"תנאים כלליים" בכוונה - עמודת quote.warranty נפרדת לחלוטין
-                  מ-quote.terms, לא הרחבה של אותו שדה. חסימת עריכה אחרי נעילת
-                  הצעה מטופלת כבר בכל ה-QuoteForm הזה במעלה הזרימה (handleEditClick
-                  ב-Dashboard.jsx מסרב לפתוח טופס עריכה כלל להצעה נעולה) ובאכיפה
-                  נוספת ברמת ה-DB (guard_quote_immutability) - בדיוק כמו terms/notes
-                  למעלה/למטה, בלי צורך ב-disabled ייעודי כאן. */}
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'אחריות' : 'Warranty'}</label>
-                <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
-                <button type="button" onClick={handleRestoreTermsWarrantyDefaults} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
-                  <RotateCcw size={12} strokeWidth={2.4} />
-                  {isHebrew ? 'שחזר ברירת מחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
-                </button>
-                <button type="button" onClick={() => setTermsWarrantyExpanded(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '5px 4px' }}>
-                  <ChevronDown size={13} style={{ transform: 'rotate(180deg)' }} />
-                  {isHebrew ? 'כווץ' : 'Collapse'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות נוספות' : 'Additional Notes'}</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="2" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
-        </div>
-        </div>
-
-        <div style={{ marginBottom: '10px' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: '0 0 10px', ...neonGlowTextStyle }}>{t.quoteItems}</h3>
-
-        {/* חוק ברזל (Smart Quote Structure-First UX Correction task,
-            Locked Decision 1/Part B): ההחלטה המבנית הראשונה - לפני כל
-            פעולת-הוספה - היא "איך תרצו לבנות את ההצעה?", לא עוד קישור-
-            אופציונלי אחרי שכבר אפשר להוסיף פריט. מוצג רק להצעה חדשה-
-            ריקה-לגמרי שעדיין לא הוכרעה (quoteStructureMode===null) -
-            הצעה קיימת (עריכה/שכפול) לעולם לא רואה את זה, ר' Dashboard.jsx
-            inferStructureModeFromQuote (Decision 9). "Smart Quote" לא
-            משמש כשם-הניגוד ל"הצעה רגילה" (Decision 1 - "the division
-            choice is about structure, not intelligence"). */}
-        {quoteStructureMode == null && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: NEON.textPrimary, textAlign: isHebrew ? 'right' : 'left' }}>
-              {isHebrew ? 'איך תרצו לבנות את ההצעה?' : 'How would you like to structure this quote?'}
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setQuoteStructureMode('regular')}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
-                  <LayoutList size={16} color={NEON.violetLight} />
-                  {isHebrew ? 'הצעה רגילה' : 'Regular quote'}
-                </span>
-                <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
-                  {isHebrew ? 'כל המוצרים והעבודות מופיעים ברשימה אחת.' : 'All products and work appear in one list.'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={handleSwitchToDivided}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgCardAlt, border: `1px solid ${NEON.violetLight}`, borderRadius: '12px', padding: '16px', cursor: 'pointer' }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '0.9rem', color: NEON.textPrimary }}>
-                  <Building2 size={16} color={NEON.violetLight} />
-                  {isHebrew ? 'הצעה לפי חלוקה' : 'Quote by units'}
-                </span>
-                <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
-                  {isHebrew ? 'מתאים לדירות, חדרים, קומות, אזורים או יחידות נפרדות.' : 'Ideal for apartments, rooms, floors, areas, or separate work units.'}
-                </span>
-              </button>
-            </div>
+        {/* SMART-QUOTE-04: automatic client creation on save stays - and is disclosed BEFORE saving (and an existing client's
+            saved details are updated from this form - also disclosed). */}
+        {clientName.trim() !== '' && (
+          <div data-testid="sq-client-disclosure" role="status" style={{ margin: '-6px 0 14px', padding: '8px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 600, background: matchedClient ? NEON.bgCardAlt : NEON.violetLighter, color: matchedClient ? NEON.textSecondary : NEON.violet, border: `1px solid ${matchedClient ? NEON.border : NEON.violetLight}` }}>
+            {matchedClient
+              ? (isHebrew ? '✓ לקוח קיים - בשמירה, הפרטים השמורים שלו יתעדכנו לפי הטופס.' : '✓ Existing client - their saved details will be updated from this form when you save.')
+              : (isHebrew ? '➕ לקוח חדש - בשמירה ייווצר כרטיס לקוח חדש ברשימת הלקוחות שלך.' : '➕ New client - a new client record will be created in your client list when you save.')}
           </div>
         )}
 
+        <StepHeading n={2} title={isHebrew ? 'מה העבודה או המוצר?' : 'What work or product?'} hint={isHebrew ? 'הוסיפו מוצר או עבודה - מהקטלוג, בכמות או לפי מידות.' : 'Add a product or work item - from your catalog, by quantity or by measurements.'} />
+        <div style={{ marginBottom: '10px' }}>
+
+        {/* SMART-QUOTE-02 (2026-09-22, Owner-locked): no compulsory structure-first decision. Every quote starts as one simple
+            list; grouping into rooms / areas / units is offered in context (secondary link below) and stays fully available. */}
         {/* חוק ברזל (Locked Decision 2 - "the regular path must remain
             fast"): כל מה שהיה קיים לפני המשימה הזו נשמר בייט-לבייט - כפתור
             הפעולה הראשי, המחשבון, האשף המפושט, ההמלצות מודעות-לעסק,
             ארבעת-השלבים, פרטי-לקוח אופציונליים, כל תיקוני-הבטיחות - שום
             UI לניהול-יחידות לא מוצג במצב הזה בכלל. */}
-        {quoteStructureMode === 'regular' && (
+        {structureMode === 'regular' && (
           <>
             <button
               type="button"
@@ -1043,7 +796,7 @@ export default function QuoteForm({
                   אוטומטית ל"לא משויך" הגלוי ברגע המעבר, בלי מוטציה כלל. */}
               <button type="button" onClick={handleSwitchToDivided} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
                 <Building2 size={13} strokeWidth={2.2} />
-                {isHebrew ? 'מעבר להצעה לפי חלוקה' : 'Switch to a divided quote'}
+                {isHebrew ? 'חלוקה לחדרים / אזורים / יחידות (לא חובה)' : 'Group by rooms / areas / units (optional)'}
               </button>
             </div>
 
@@ -1060,7 +813,7 @@ export default function QuoteForm({
             Add button"; "every unit is a live working container"): במצב
             מחולק אין כפתור-הוספה גלובלי בכלל - כל פעולת-הוספה שייכת
             ליחידה ספציפית (או ל"לא משויך" הגלוי), ר' לוח-היחידות למטה. */}
-        {quoteStructureMode === 'divided' && (
+        {structureMode === 'divided' && (
           <>
             <p style={{ margin: 0, fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
               {isHebrew
@@ -1075,7 +828,7 @@ export default function QuoteForm({
         )}
         </div>
 
-        {quoteStructureMode === 'regular' && items.length === 0 && (
+        {structureMode === 'regular' && regularItemIndices.length === 0 && (
           <div style={{ textAlign: 'center', padding: '20px 14px', color: NEON.textSecondary, fontSize: '0.82rem', background: NEON.bgCardAlt, borderRadius: '10px', border: `1px dashed ${NEON.borderStrong}`, marginBottom: '10px' }}>
             {isHebrew ? 'עדיין לא נוספו מוצרים או עבודות להצעה זו.' : 'No products or work added to this quote yet.'}
           </div>
@@ -1087,7 +840,7 @@ export default function QuoteForm({
             קלאסית+פאנל-מקצועי inline. renderItemCard משותף בין הרשימה
             השטוחה (Regular) לבין כל כרטיס-יחידה (Divided) - נקודת-רינדור
             יחידה לכל פריט, לא שני עותקים בלתי-תלויים. */}
-        {quoteStructureMode === 'regular' && orderedItemIndices.map((index) => (
+        {structureMode === 'regular' && regularItemIndices.map((index) => (
           <div key={index}>{renderItemCard(index)}</div>
         ))}
 
@@ -1098,7 +851,7 @@ export default function QuoteForm({
             נקודת-הקיבוץ הקנונית; כאן נדרשים אינדקסים (לא אובייקטי-פריט,
             ר' unitItemIndices למעלה) כדי שפעולות עריכה/מחיקה/שכפול
             הקיימות ימשיכו לפעול ללא שינוי. */}
-        {quoteStructureMode === 'divided' && (
+        {structureMode === 'divided' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
             {unitItemIndices.map(({ section, indices }) => (
               <UnitCard
@@ -1195,6 +948,13 @@ export default function QuoteForm({
           </div>
         )}
 
+        <StepHeading n={3} title={isHebrew ? 'מחיר' : 'Price'} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 180px))', gap: '10px', marginBottom: '10px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.discount}</label>
+            <input type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+          </div>
+        </div>
         {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
             כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
             משלה - כל שורה הייתה "קונטיינר flex" עצמאי, כך שרוחב עמודת הסכום
@@ -1253,6 +1013,290 @@ export default function QuoteForm({
           <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
         </div>
 
+        <StepHeading n={4} title={isHebrew ? 'בדיקה ושמירה' : 'Review and save'} />
+        {/* Optional details stay one tap away (progressive disclosure); they open automatically when editing or when any of them
+            already holds a value, so nothing the user entered is ever hidden. */}
+        <button
+          type="button"
+          data-testid="sq-more-details-toggle"
+          aria-expanded={showMoreDetails}
+          onClick={() => setShowMoreDetails((v) => !v)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', color: NEON.textPrimary, fontWeight: 700, fontSize: '0.86rem', marginBottom: '14px', textAlign: isHebrew ? 'right' : 'left' }}
+        >
+          <span>
+            {isHebrew ? 'פרטים נוספים (לא חובה)' : 'More details (optional)'}
+            <span style={{ display: 'block', fontWeight: 500, fontSize: '0.74rem', color: NEON.textSecondary, marginTop: '2px' }}>
+              {isHebrew ? 'נושא, שם פרויקט, תוקף, קבצים, כתובת, תנאים והערות' : 'Subject, project name, validity, files, address, terms and notes'}
+            </span>
+          </span>
+          <ChevronDown size={18} style={{ transform: showMoreDetails ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+        </button>
+        {showMoreDetails && (
+          <div data-testid="sq-more-details">
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+          {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
+        </div>
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
+            {isHebrew ? 'נושא ההזמנה / ההצעה' : 'Order / Quote Subject'}
+          </label>
+          <input
+            type="text"
+            value={quoteSubject || ''}
+            onChange={(e) => setQuoteSubject(e.target.value)}
+            placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומניום לפרויקט' : 'e.g. Aluminum & Network Supply'}
+            style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
+          />
+        </div>
+
+        {/* חוק ברזל (§168 - Project/Section hierarchy, PROFLOW_TODO.md 30.C):
+            שדה אופציונלי-לגמרי, ריק כברירת מחדל - "Project ו-Section חייבים
+            להיות אופציונליים, לעולם לא מבנה כפוי". לקוח שלא צריך את זה
+            פשוט לא ממלא, ההצעה נשמרת שטוחה בדיוק כמו היום. */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
+            {isHebrew ? 'שם פרויקט (לא חובה)' : 'Project name (optional)'}
+          </label>
+          <input
+            type="text"
+            value={projectName || ''}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder={isHebrew ? 'לדוגמה: פרויקט חולון' : 'e.g. Holon Project'}
+            style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
+          />
+        </div>
+        </div>
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.currency}</label>
+            <select
+              value={currency}
+              disabled={true}
+              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgCardAlt, boxSizing: 'border-box', fontSize: '0.85rem', fontWeight: 'bold', color: NEON.violetLight, cursor: 'not-allowed' }}
+            >
+              <option value={currency}>{currency} ({sym})</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
+              {t.validUntil} <span style={{ color: NEON.violetLight, fontWeight: 'bold' }}>({dateFormatLabel})</span>
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={getDisplayDate(validUntil)}
+                onChange={handleDisplayDateChange}
+                placeholder={dateFormatLabel}
+                style={{ width: '100%', padding: '7px 32px 7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }}
+              />
+              <input
+                type="date"
+                ref={dateInputRef}
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
+                    dateInputRef.current.showPicker();
+                  } else if (dateInputRef.current) {
+                    dateInputRef.current.click();
+                  }
+                }}
+                style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: NEON.textMuted, padding: 0, display: 'flex', alignItems: 'center' }}
+                title="Open calendar"
+              >
+                <Calendar size={16} strokeWidth={2} />
+              </button>
+            </div>
+            {validityExpired && (
+              <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.74rem', fontWeight: 600, color: '#9a3412' }}>
+                {isHebrew ? 'תאריך התוקף עבר - הלקוח לא יוכל לחתום עד שתאריכו את התוקף.' : 'The validity date has passed - the customer cannot sign until you extend it.'}
+              </div>
+            )}
+          </div>
+        </div>
+        </div>
+        {/* Cross-Surface Visual Consolidation / Create Quote §11: matches
+            the established section-card pattern used by the Client/Quote
+            Details and Currency/Status/Discount cards elsewhere in this
+            form (16px radius, subtle shadow, NEON.bgCard) instead of this
+            block's own older, shallower bgCardAlt sub-panel treatment -
+            fully integrates Attachments into the same card system rather
+            than a visually-lesser-tier box. Container-level only - upload/
+            entitlement/file-list logic untouched. */}
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+            <Paperclip size={13} color={NEON.violetLight} />
+            {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
+          </label>
+
+          {canUseAttachments && (
+            <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: '600', marginBottom: '8px' }}>
+              {isHebrew ? `נשארו לך ${remainingMb} מגה להעלאת קבצים` : `Remaining: ${remainingMb}MB`}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleAttachmentClick}
+            style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Paperclip size={13} strokeWidth={2.5} />
+            {isHebrew ? 'צרף קובץ (עד 3MB)' : 'Attach File (Max 3MB)'}
+          </button>
+
+          {(quoteFiles || []).length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+              {(quoteFiles || []).map((file, idx) => {
+                const displayName = file.name || file.file_name || `File #${idx + 1}`;
+                const rawBytes = file.size || file.file_size || 0;
+                const displaySize = (rawBytes / (1024 * 1024)).toFixed(2);
+                return (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgInput, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, fontSize: '0.8rem' }}>
+                    {/* OD-2: a persisted attachment opens through a short-lived signed URL (onOpenAttachment); a file that is not
+                        uploaded yet has no link. The stored file_url is never used as a permanent public link. */}
+                    {file.id && onOpenAttachment ? (
+                      <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.violetLighter, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>
+                        {displayName} ({displaySize} MB)
+                      </button>
+                    ) : (
+                      <span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>
+                    )}
+                    <button type="button" onClick={() => removeFile(idx)} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {/* Cross-Surface Visual Consolidation / Create Quote §11: same
+            card-system integration as the Attachments block above - see
+            its comment for the full rationale. */}
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '8px' }}>
+            <MapPin size={13} color={NEON.red} />
+            {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'רחוב ומספר' : 'Street Address'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            </div>
+            <div>
+              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isHebrew ? 'מיקוד (ZIP)' : 'ZIP / Postal'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
+        {/* חוק ברזל (Two-Stage Completion Task, Stage 1D): תנאים+אחריות
+            מקופלים כברירת מחדל - הערכים בפועל (terms/warranty) הם כבר
+            snapshot אמיתי שהועתק מ-defaultTerms/defaultWarranty ברגע יצירת
+            ההצעה (Dashboard.jsx, handleCreateNewQuoteClick) - זה כבר קיים
+            ונכון ברמת ה-state/DB (quotes.terms/quotes.warranty, migration
+            20260830000004). השינוי כאן הוא תצוגתי בלבד: לא לגלול טקסט גדול
+            תמיד, אלא לקפל אותו כשהוא כבר == ברירת-המחדל, עם אפשרות מפורשת
+            להתאמה + שחזור בטוח. אינו נוגע בשום migration/עמודה חדשה. */}
+        <div style={{ marginBottom: '12px', border: `1px solid ${NEON.border}`, borderRadius: '10px', background: NEON.bgCardAlt, padding: '10px 12px' }}>
+          {/* חוק ברזל (Stage 1B, נמצא חי - 320px English): "Terms & Warranty" +
+              "Customize for this quote" לא נכנסו יחד בשורה אחת ב-320px
+              (scrollWidth 78 מול clientWidth 65 על תווית הכותרת) - הפתרון
+              הוא flexWrap:'wrap' (השורה השנייה נופלת לשורה משלה), לא
+              הקטנת-טקסט/קיצוץ, כדי שהתווית המלאה תמיד תישאר קריאה. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexDirection: 'row', minWidth: 0 }}>
+              <FileText size={14} strokeWidth={2.2} color={NEON.violetLight} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textPrimary }}>{isHebrew ? 'תנאים ואחריות' : 'Terms & Warranty'}</span>
+            </div>
+            {!termsWarrantyExpanded && (
+              <button type="button" onClick={() => setTermsWarrantyExpanded(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.25)', color: NEON.violetLight, borderRadius: '999px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                <Pencil size={11} strokeWidth={2.5} />
+                {isHebrew ? 'התאמה להצעה זו' : 'Customize for this quote'}
+              </button>
+            )}
+          </div>
+          {!termsWarrantyExpanded && (
+            <div style={{ fontSize: '0.74rem', color: NEON.textSecondary, marginTop: '6px' }}>
+              {isTermsWarrantyCustomized
+                ? (isHebrew ? 'התנאים והאחריות הותאמו אישית עבור הצעה זו.' : 'Terms and warranty were customized for this quote.')
+                : (isHebrew ? 'התנאים והאחריות נטענו אוטומטית מהגדרות העסק.' : 'Default terms and warranty were loaded from Business Settings.')}
+            </div>
+          )}
+          {termsWarrantyExpanded && (
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{currency === 'ILS' ? 'תקנון ותנאים' : 'Terms & Conditions'}</label>
+                <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
+              </div>
+              {/* חוק ברזל (Item 23 Warranty, TEST Acceptance Package 1): שדה נפרד
+                  מ"תנאים כלליים" בכוונה - עמודת quote.warranty נפרדת לחלוטין
+                  מ-quote.terms, לא הרחבה של אותו שדה. חסימת עריכה אחרי נעילת
+                  הצעה מטופלת כבר בכל ה-QuoteForm הזה במעלה הזרימה (handleEditClick
+                  ב-Dashboard.jsx מסרב לפתוח טופס עריכה כלל להצעה נעולה) ובאכיפה
+                  נוספת ברמת ה-DB (guard_quote_immutability) - בדיוק כמו terms/notes
+                  למעלה/למטה, בלי צורך ב-disabled ייעודי כאן. */}
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'אחריות' : 'Warranty'}</label>
+                <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
+                <button type="button" onClick={handleRestoreTermsWarrantyDefaults} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
+                  <RotateCcw size={12} strokeWidth={2.4} />
+                  {isHebrew ? 'שחזר ברירת מחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
+                </button>
+                <button type="button" onClick={() => setTermsWarrantyExpanded(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '5px 4px' }}>
+                  <ChevronDown size={13} style={{ transform: 'rotate(180deg)' }} />
+                  {isHebrew ? 'כווץ' : 'Collapse'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות נוספות' : 'Additional Notes'}</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="2" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
+        </div>
+        </div>
+          </div>
+        )}
+
+        {/* SMART-QUOTE-03: a NEW quote is always a Draft (no status choice at creation). Sent / Approved / Paid are later lifecycle
+            actions, available when editing a saved quote. An unfinished quote (SMART-QUOTE-01) can only stay a Draft. */}
+        {!editingQuoteId ? (
+          <div data-testid="sq-status-draft" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px', fontSize: '0.8rem', color: NEON.textSecondary }}>
+            <span style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '999px', padding: '3px 10px', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'טיוטה' : 'Draft'}</span>
+            <span>{isHebrew ? 'כל הצעה חדשה נשמרת כטיוטה. אחרי השמירה אפשר לצפות, לשתף ולשלוח אותה.' : 'Every new quote is saved as a draft. After saving you can preview, share and send it.'}</span>
+          </div>
+        ) : (
+          <div style={{ marginBottom: '12px', maxWidth: '320px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'סטטוס ההצעה' : 'Quote status'}</label>
+            <select value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}>
+              <option value="Draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
+              <option value="Sent" disabled={isUnfinished}>{isHebrew ? 'נשלח' : 'Sent'}</option>
+              <option value="Approved" disabled={isUnfinished}>{isHebrew ? 'אושר' : 'Approved'}</option>
+              <option value="Paid" disabled={isUnfinished}>{isHebrew ? 'שולם' : 'Paid'}</option>
+            </select>
+          </div>
+          </div>
+        )}
+        {isUnfinished && (
+          <div data-testid="sq-unfinished-notice" role="status" style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: '0.8rem', fontWeight: 600 }}>
+            {isHebrew
+              ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). אפשר לשמור אותה רק כטיוטה לא גמורה - היא לא תוצג ללקוח כהצעה מוכנה.'
+              : 'This quote is not finished yet (no product or work with a price). It can only be saved as an unfinished draft - it will not be shown to a customer as a ready quote.'}
+          </div>
+        )}
         {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
             הכפתור הזה היה חסום לגמרי (disabled) כש-isTrialExpired, ללא תלות
             ב-plan/effectivePlan בכלל - כלומר חוסם גם יצירת ההצעה הראשונה/
@@ -1263,8 +1307,10 @@ export default function QuoteForm({
             כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
             QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
             ולא-מתואם, כאן. */}
-        <button type="submit" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
-           {editingQuoteId ? t.updateQuote : t.generateSave}
+        <button type="submit" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
+          {isUnfinished
+            ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
+            : (editingQuoteId ? t.updateQuote : t.generateSave)}
         </button>
       </form>
     </div>

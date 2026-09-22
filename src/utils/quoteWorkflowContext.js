@@ -38,10 +38,11 @@ export function computeItemWizardState({ isOpen, editingItem, liveState = null }
   };
 }
 
+// SMART-QUOTE-02 (2026-09-22): there is no structure-first decision any more - an unset structure IS the simple flat list the
+// user sees, so the assistant is told 'regular' (the server still accepts 'undecided' from older clients).
 function normalizeStructureMode(quoteStructureMode) {
   if (quoteStructureMode === 'divided') return 'divided';
-  if (quoteStructureMode === 'regular') return 'regular';
-  return 'undecided';
+  return 'regular';
 }
 
 // A brand-new quote's `items` state starts as one placeholder row with an

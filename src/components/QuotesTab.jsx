@@ -10,6 +10,7 @@ import { formatDateLocal } from '../utils/regionConfig';
 import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
+import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 
 // חוק ברזל (Client Type Badge, Item 26 - עודכן לעיצוב הסופי לפי סבב תיקון
@@ -283,7 +284,11 @@ export default function QuotesTab({
     const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
 
     const quoteSym = getQuoteCurrencySymbol(quote.currency);
-    const badge = getStatusBadge(currentStatus);
+    // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
+    const baseBadge = getStatusBadge(currentStatus);
+    const badge = currentStatus === 'draft' && isUnfinishedSavedQuote(quote)
+      ? { ...baseBadge, bg: 'rgba(234, 88, 12, 0.10)', color: '#c2410c', text: isHebrew ? 'טיוטה לא גמורה' : 'Unfinished draft' }
+      : baseBadge;
 
     return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge };
   });

@@ -149,41 +149,105 @@ describe('QuoteForm - compact card optional indicators only appear when present'
   });
 });
 
-describe('QuoteForm - Structure-First selector (Smart Quote Structure-First UX Correction task, Locked Decision 1)', () => {
-  it('shows the structure question before any Add Item action when the mode is undecided (null)', () => {
+// SMART-QUOTE-01..04 (2026-09-22, Owner-locked) SUPERSEDE the former "Structure-First selector" (Locked Decision 1): there is no
+// compulsory structure decision any more; grouping is offered in context and remains fully available.
+describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
+  it('SMART-QUOTE-02: an undecided (null) structure shows the simple list with the Add action immediately - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    expect(screen.getByText('How would you like to structure this quote?')).toBeTruthy();
-    expect(screen.getByText('Regular quote')).toBeTruthy();
-    expect(screen.getByText('All products and work appear in one list.')).toBeTruthy();
-    expect(screen.getByText('Quote by units')).toBeTruthy();
-    expect(screen.getByText('Ideal for apartments, rooms, floors, areas, or separate work units.')).toBeTruthy();
-    // Not "Smart Quote" as the opposite of "Regular" (Decision 1).
+    expect(screen.getByText('Add product or work')).toBeTruthy();
+    expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
+    expect(screen.queryByText('Regular quote')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
-    // No Add Item action reachable yet - structure comes first.
-    expect(screen.queryByText('Add product or work')).toBeNull();
   });
 
-  it('choosing "Regular quote" calls setQuoteStructureMode("regular")', () => {
-    const setQuoteStructureMode = vi.fn();
-    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], setQuoteStructureMode })} />);
-    fireEvent.click(screen.getByText('Regular quote'));
-    expect(setQuoteStructureMode).toHaveBeenCalledWith('regular');
+  it('the four numbered steps appear in the first-use order: who -> what -> price -> review & save', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
+    const order = ['sq-step-1', 'sq-step-2', 'sq-step-3', 'sq-step-4'].map((id) => screen.getByTestId(id));
+    expect(order[0]).toHaveTextContent('Who is it for?');
+    expect(order[1]).toHaveTextContent('What work or product?');
+    expect(order[2]).toHaveTextContent('Price');
+    expect(order[3]).toHaveTextContent('Review and save');
+    for (let i = 1; i < order.length; i += 1) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
   });
 
-  it('choosing "Quote by units" calls setQuoteStructureMode("divided")', () => {
+  it('the untouched placeholder row is not rendered as an "(unnamed)" card on a fresh quote', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }] })} />);
+    expect(screen.getByText('No products or work added to this quote yet.')).toBeTruthy();
+  });
+
+  it('SMART-QUOTE-02: grouping by rooms / areas / units stays available as an optional, contextual action', () => {
     const setQuoteStructureMode = vi.fn();
-    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], setQuoteStructureMode })} />);
-    fireEvent.click(screen.getByText('Quote by units'));
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode })} />);
+    fireEvent.click(screen.getByText('Group by rooms / areas / units (optional)'));
     expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
   });
 
-  it('HE copy matches exactly', () => {
-    render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [], isHebrew: true, sym: '₪' })} />);
-    expect(screen.getByText('איך תרצו לבנות את ההצעה?')).toBeTruthy();
-    expect(screen.getByText('הצעה רגילה')).toBeTruthy();
-    expect(screen.getByText('כל המוצרים והעבודות מופיעים ברשימה אחת.')).toBeTruthy();
-    expect(screen.getByText('הצעה לפי חלוקה')).toBeTruthy();
-    expect(screen.getByText('מתאים לדירות, חדרים, קומות, אזורים או יחידות נפרדות.')).toBeTruthy();
+  it('SMART-QUOTE-03: a NEW quote offers no status choice - it is a Draft; Sent/Approved/Paid are edit-time lifecycle actions', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: null })} />);
+    expect(screen.getByTestId('sq-status-draft')).toHaveTextContent('Draft');
+    expect(screen.queryByRole('option', { name: 'Paid' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Approved' })).toBeNull();
+  });
+
+  it('SMART-QUOTE-03: editing a saved, finished quote keeps the lifecycle status control', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q1', editingQuoteNumber: 100701, quoteStatus: 'Draft' })} />);
+    expect(screen.getByRole('option', { name: 'Sent' })).not.toBeDisabled();
+    expect(screen.getByRole('option', { name: 'Paid' })).not.toBeDisabled();
+  });
+
+  it('SMART-QUOTE-01: an unfinished quote can only be saved as a clearly labelled unfinished draft', () => {
+    render(<QuoteForm {...baseProps({ items: [], subtotal: 0, totalAmount: 0 })} />);
+    expect(screen.getByTestId('sq-unfinished-notice')).toHaveTextContent('not finished yet');
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Save as unfinished draft');
+  });
+
+  it('SMART-QUOTE-01: an unfinished quote being edited cannot be moved to Sent / Approved / Paid', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q1', items: [], subtotal: 0, totalAmount: 0, quoteStatus: 'Draft' })} />);
+    expect(screen.getByRole('option', { name: 'Sent' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'Approved' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'Paid' })).toBeDisabled();
+  });
+
+  it('a finished quote shows the normal save label and no unfinished notice', () => {
+    render(<QuoteForm {...baseProps()} />);
+    expect(screen.queryByTestId('sq-unfinished-notice')).toBeNull();
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Generate & Save');
+  });
+
+  it('SMART-QUOTE-04: a name with no matching client discloses that a NEW client record will be created on save', () => {
+    render(<QuoteForm {...baseProps({ clientName: 'Synthetic New Co', clients: [{ id: 'c1', company_name: 'Other Co' }] })} />);
+    expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('a new client record will be created');
+  });
+
+  it('SMART-QUOTE-04: a matching existing client (case-insensitive) discloses that its saved details will be updated', () => {
+    render(<QuoteForm {...baseProps({ clientName: 'other co', clients: [{ id: 'c1', company_name: 'Other Co' }] })} />);
+    expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('Existing client');
+  });
+
+  it('HE copy for the disclosure, the steps and the unfinished label is market-native', () => {
+    render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', clientName: 'לקוח סינתטי', items: [], subtotal: 0, totalAmount: 0 })} />);
+    expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('ייווצר כרטיס לקוח חדש');
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('שמירה כטיוטה לא גמורה');
+    expect(screen.getByTestId('sq-step-1')).toHaveTextContent('למי ההצעה?');
+  });
+
+  it('optional details are progressive: collapsed on a fresh quote, open when any optional value exists', () => {
+    const { unmount } = render(<QuoteForm {...baseProps()} />);
+    expect(screen.queryByTestId('sq-more-details')).toBeNull();
+    fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
+    expect(screen.getByTestId('sq-more-details')).toBeTruthy();
+    unmount();
+    render(<QuoteForm {...baseProps({ projectName: 'Synthetic Tower' })} />);
+    expect(screen.getByTestId('sq-more-details')).toBeTruthy();
+  });
+
+  it('OD-1 issuer path: a past validity date shows how to fix it (extend) without changing it', () => {
+    const setValidUntil = vi.fn();
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q1', validUntil: '2020-01-13', setValidUntil })} />);
+    expect(screen.getByTestId('sq-validity-expired')).toBeTruthy();
+    expect(setValidUntil).not.toHaveBeenCalled();
   });
 });
 
@@ -193,13 +257,6 @@ describe('QuoteForm - Regular quote flow (Locked Decision 2)', () => {
     expect(screen.getByText('Add product or work')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/No items added yet/)).toBeNull();
-  });
-
-  it('offers a "Switch to a divided quote" link that calls setQuoteStructureMode("divided")', () => {
-    const setQuoteStructureMode = vi.fn();
-    render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode })} />);
-    fireEvent.click(screen.getByText('Switch to a divided quote'));
-    expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
   });
 });
 

@@ -68,7 +68,8 @@ async function openNewQuote(page) {
   } else {
     await page.locator('.mobile-bottom-nav').getByRole('button', { name: /^(New|חדש)$/ }).click();
   }
-  await page.getByText(/How would you like to structure this quote|איך תרצו לבנות את ההצעה/).waitFor({ state: 'visible', timeout: 15000 });
+  // SMART-QUOTE-02 (2026-09-22): no structure-first question - the simple list and its Add action are ready immediately.
+  await page.getByRole('button', { name: /Add product or work|הוספת מוצר או עבודה/ }).first().waitFor({ state: 'visible', timeout: 15000 });
 }
 
 // Returns 'rtl' or 'ltr' as actually rendered (not assumed from lang param).
@@ -97,7 +98,7 @@ function assertInlineStartOrder(dir, firstBox, secondBox) {
 }
 
 async function switchToDivided(page) {
-  await page.getByRole('button', { name: /Quote by units|הצעה לפי חלוקה/ }).click();
+  await page.getByRole('button', { name: /Group by rooms \/ areas \/ units|חלוקה לחדרים \/ אזורים \/ יחידות/ }).click();
   await page.getByText(/Add the first unit|הוספת היחידה הראשונה/).waitFor({ state: 'visible', timeout: 10000 });
 }
 
@@ -138,34 +139,24 @@ async function openWizardToReview(page, unitAddButtonName, description) {
 
 for (const [label, persona, lang] of [['HE', PERSONA_A, 'he'], ['EN', PERSONA_EN, 'en']]) {
   test.describe(`Smart Quote RTL geometry (${label})`, () => {
-    test(`${label}: 1-2. Mode selector cards anchor to their own inline-start, DOM order preserved from inline-start`, async ({ page }) => {
+    test(`${label}: 1-2. First-use steps (who / what / price / review) anchor to inline-start in DOM order; no structure picker`, async ({ page }) => {
       await login(page, persona, lang);
       await openNewQuote(page);
       const dir = await currentDir(page);
       expect(dir).toBe(label === 'HE' ? 'rtl' : 'ltr');
+      await expect(page.locator('button').filter({ hasText: /Regular quote|Quote by units|הצעה רגילה|הצעה לפי חלוקה/ })).toHaveCount(0);
 
-      const cards = page.locator('button').filter({ hasText: /Regular quote|Quote by units|הצעה רגילה|הצעה לפי חלוקה/ });
-      await expect(cards).toHaveCount(2);
-
-      const boxes = [];
-      for (let i = 0; i < 2; i++) {
-        const card = cards.nth(i);
-        const cardBox = await card.boundingBox();
-        const titleBox = await card.locator('span').first().boundingBox();
-        boxes.push({ cardBox, titleBox });
+      const steps = [];
+      for (const n of [1, 2, 3, 4]) {
+        const step = page.getByTestId(`sq-step-${n}`);
+        const box = await step.boundingBox();
+        const chip = await step.locator('span').first().boundingBox();
+        steps.push({ box, chip });
       }
-
-      const [first, second] = boxes; // DOM order: [Regular, Units]
-      // The grid (`repeat(auto-fit, minmax(220px,1fr))`) collapses to a
-      // single column at narrow viewports (Mobile) - side-by-side order is
-      // only meaningful when the two cards actually share a row.
-      assertInlineStartOrder(dir, first.cardBox, second.cardBox);
-      if (dir === 'rtl') {
-        expect(Math.abs((first.cardBox.x + first.cardBox.width) - (first.titleBox.x + first.titleBox.width))).toBeLessThan(20);
-        expect(Math.abs((second.cardBox.x + second.cardBox.width) - (second.titleBox.x + second.titleBox.width))).toBeLessThan(20);
-      } else {
-        expect(Math.abs(first.cardBox.x - first.titleBox.x)).toBeLessThan(20);
-        expect(Math.abs(second.cardBox.x - second.titleBox.x)).toBeLessThan(20);
+      for (let i = 1; i < steps.length; i += 1) expect(steps[i].box.y).toBeGreaterThan(steps[i - 1].box.y); // top-to-bottom order
+      for (const { box, chip } of steps) {
+        if (dir === 'rtl') expect(Math.abs((box.x + box.width) - (chip.x + chip.width))).toBeLessThan(20);
+        else expect(Math.abs(box.x - chip.x)).toBeLessThan(20);
       }
     });
 

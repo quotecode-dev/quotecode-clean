@@ -15,6 +15,7 @@ import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { resolveQuoteExpired } from '../utils/quoteValidity';
+import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
 
@@ -232,12 +233,15 @@ export default function PublicQuote({ quoteData }) {
   // OD-1: an expired quote stays viewable but cannot be accepted. This page is the Local (HE/ILS) market, so the validity
   // day ends in Asia/Jerusalem (server truth `is_expired` wins when get-public-quote provides it). The stored date is never changed.
   const isExpired = resolveQuoteExpired(quote, 'Local');
+  // SMART-QUOTE-01: an unfinished draft never masquerades as a customer-ready quote (screen, print, PDF) and cannot be signed.
+  const isUnfinishedDraft = isUnfinishedSavedQuote(quote, items);
 
   const handleApprove = async () => {
     if (isExpired) {
       setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', true).userMessage });
       return;
     }
+    if (isUnfinishedDraft) return;
     let blocked = false;
     if (!signerName.trim()) {
       setSignerNameWarning(true);
@@ -815,6 +819,11 @@ export default function PublicQuote({ quoteData }) {
           quote={quote}
           isExpired={isExpired && !approved}
         />
+        {isUnfinishedDraft && (
+          <div className="pq-unfinished-banner" data-testid="pq-unfinished" role="status" style={{ margin: '12px 16px 0', padding: '10px 14px', borderRadius: '10px', background: '#fff7ed', border: '2px dashed #fb923c', color: '#9a3412', fontWeight: 800, fontSize: '0.92rem', textAlign: 'center' }}>
+            טיוטה לא גמורה - זו אינה הצעת מחיר סופית ואין לאשר אותה.
+          </div>
+        )}
 
         {/* Client & Business Info + Attn (item 18) - a flex row so the two
             blocks share the existing horizontal space instead of adding
@@ -1207,6 +1216,10 @@ export default function PublicQuote({ quoteData }) {
                   תוקף ההצעה הסתיים - הלקוח לא יוכל לחתום עליה עד שתעדכנו את תאריך התוקף בעריכת ההצעה או תפיקו הצעה מעודכנת.
                 </div>
               )}
+            </div>
+          ) : isUnfinishedDraft ? (
+            <div className="pq-section" role="status" data-testid="pq-unfinished-nosign" style={{ background: '#fff7ed', color: '#9a3412', padding: '16px', borderRadius: '12px', fontSize: '0.92rem', fontWeight: '700', border: '1px solid #fed7aa' }}>
+              ההצעה עדיין בהכנה ולכן אינה זמינה לחתימה.
             </div>
           ) : isExpired ? (
             <div className="pq-section" role="status" data-testid="pq-expired" style={{ background: '#fff7ed', color: '#9a3412', padding: '18px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '700', border: '1px solid #fed7aa' }}>

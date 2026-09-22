@@ -22,6 +22,7 @@ import PlanIdentityBadge from '../components/PlanIdentityBadge';
 import { isHebrewEnv, formatDateLocal, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
+import { isUnfinishedQuoteForm, isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { computeEffectivePlan } from '../utils/planEntitlements';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import { shouldShowUpgradeCta } from '../utils/planCatalog';
@@ -2521,6 +2522,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }
 
   const sendWhatsApp = (proposal) => {
+    // SMART-QUOTE-01: an unfinished draft is never sent as if it were a ready quote.
+    if (isUnfinishedSavedQuote(proposal)) {
+      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      return;
+    }
     const clientNameVal = proposal.clients?.company_name || (isHebrew ? 'לקוח' : 'Client');
     let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
@@ -2567,6 +2573,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   const executeEmailSend = async (quote) => {
+    if (isUnfinishedSavedQuote(quote)) {
+      setAlertModalMsg(isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      return;
+    }
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
@@ -3267,6 +3277,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleSaveQuote(e) {
     e.preventDefault();
     if (!session?.user?.id) return;
+    // SMART-QUOTE-01: an unfinished quote (no real priced item) can only be kept as a Draft - never saved as Sent/Approved/Paid.
+    if (editingQuoteId && isUnfinishedQuoteForm({ items, totalAmount }) && String(quoteStatus || '').toLowerCase() !== 'draft') {
+      setAlertModalMsg(isHebrew
+        ? 'לא ניתן לשמור הצעה לא גמורה בסטטוס נשלח / אושר / שולם. השלימו מוצר או עבודה עם מחיר, או החזירו את הסטטוס לטיוטה.'
+        : 'An unfinished quote cannot be saved as Sent / Approved / Paid. Add a product or work item with a price, or set the status back to Draft.');
+      return;
+    }
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
       setAlertModalMsg(isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
