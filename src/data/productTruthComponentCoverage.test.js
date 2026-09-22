@@ -11,8 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { PRODUCT_TRUTH_REGISTRY, getCapabilityById } from './productTruthRegistry.js';
-import { CAPABILITY_ANCHORS, classifyFileMarket } from './productTruthComponentAnchors.js';
-import { checkCoverage, checkAnchorPresence, wouldUnrelatedFileWronglyPass, deriveMarketEvidence, checkMarketParity } from './productTruthGateLib.js';
+import { CAPABILITY_ANCHORS } from './productTruthComponentAnchors.js';
+import { createFileMarketClassifier } from './productTruthMarketReachability.js';
+import { checkCoverage, checkAnchorPresence, wouldUnrelatedFileWronglyPass, deriveMarketEvidence, checkMarketParity, checkSourceAnchorJoin } from './productTruthGateLib.js';
+import { scanCapabilityMarkers, groupMarkersById } from './productTruthCapabilityScanner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
@@ -93,6 +95,10 @@ describe('DEFECT-7/9 NEGATIVE FIXTURES (synthetic - proves the checker catches e
 });
 
 describe('DEFECT-8 GENERALIZED MARKET AUTHORITY PARITY (real data, not hard-coded to one capability)', () => {
+  // Codex finding 2 (2026-09-24): classifyFileMarket is now a real, generalized derivation
+  // (naming-convention + import-graph reachability, computed once for the whole repo) rather than
+  // a 2-entry hard-coded Set - see productTruthMarketReachability.js.
+  const classifyFileMarket = createFileMarketClassifier(ROOT);
   // Independently derive REAL per-capability market evidence from the SAME anchor map used for
   // coverage (§ above) - never reading PRODUCT_TRUTH_REGISTRY's own `markets` field as an input.
   const evidence = Object.entries(CAPABILITY_ANCHORS).map(([id, anchors]) => ({
@@ -108,6 +114,26 @@ describe('DEFECT-8 GENERALIZED MARKET AUTHORITY PARITY (real data, not hard-code
     // No capability should show international-only via this file-naming convention today.
     expect(evidence.every((e) => e.localEvidence || e.internationalEvidence)).toBe(true);
     void localOnly;
+  });
+
+  it('the generalized classifier fails CLOSED to \'unknown\' for a file reachable from neither app entry point (never a silent \'both\')', () => {
+    // src/data files (this gate's own infrastructure) are never imported by the real app bundle.
+    expect(classifyFileMarket('src/data/productTruthGateLib.js')).toBe('unknown');
+    expect(classifyFileMarket('src/does/not/exist.jsx')).toBe('unknown');
+  });
+
+  it('the generalized classifier correctly distinguishes PublicQuote.jsx (local) from PublicQuoteEn.jsx (international) even though BOTH are import-graph-reachable from both app entries via the shared SmartPublicQuote.jsx router (naming convention must win over raw reachability here)', () => {
+    expect(classifyFileMarket('src/pages/PublicQuote.jsx')).toBe('local');
+    expect(classifyFileMarket('src/pages/PublicQuoteEn.jsx')).toBe('international');
+  });
+
+  it('a genuinely shared component (Dashboard.jsx) is derived as \'both\' via real reachability from BOTH app entries, not assumed', () => {
+    expect(classifyFileMarket('src/pages/Dashboard.jsx')).toBe('both');
+  });
+
+  it('Supabase Edge Functions classify \'both\' by directory convention (one deployment serves both markets identically - no Local/International function split exists)', () => {
+    expect(classifyFileMarket('supabase/functions/get-public-quote/index.ts')).toBe('both');
+    expect(classifyFileMarket('supabase/functions/send-quote-email/index.ts')).toBe('both');
   });
 
   it('every capability with real dual-market anchor evidence declares BOTH markets in the registry (generalized - not just WhatsApp)', () => {
@@ -157,6 +183,59 @@ describe('DEFECT-8 GENERALIZED MARKET AUTHORITY PARITY (real data, not hard-code
       for (const c of PRODUCT_TRUTH_REGISTRY) {
         expect(c.markets.length, `capability "${c.id}" has an empty markets array`).toBeGreaterThan(0);
       }
+    });
+  });
+});
+
+describe('DEFECT-9 depth: REGISTRY SOURCE-ANCHOR JOIN (Codex finding 3, 2026-09-24)', () => {
+  const discoveredById = groupMarkersById(scanCapabilityMarkers(ROOT, ['src', 'supabase/functions']));
+
+  it('every LIVE_CURRENT capability has at least one canonicalSources entry that carries its OWN scanned marker', () => {
+    const failures = checkSourceAnchorJoin(PRODUCT_TRUTH_REGISTRY, discoveredById);
+    expect(failures, `source-anchor join failures:\n${JSON.stringify(failures, null, 2)}`).toEqual([]);
+  });
+
+  describe('negative fixtures (synthetic - proves the join is checked by identity, not by mere co-existence)', () => {
+    it('fixture: canonicalSources names a real, EXISTING, unrelated file that carries a DIFFERENT capability\'s marker -> caught (not accepted just because some marker happens to be in that file)', () => {
+      const syntheticRegistry = [{ id: 'fake_cap', state: 'LIVE_CURRENT', canonicalSources: ['src/components/DraggableCalculator.jsx'] }];
+      // DraggableCalculator.jsx really does carry editor_calculator's marker, not fake_cap's.
+      const failures = checkSourceAnchorJoin(syntheticRegistry, discoveredById);
+      expect(failures.some((f) => f.id === 'fake_cap' && f.reason === 'no_source_carries_own_marker')).toBe(true);
+    });
+
+    it('fixture: a generic text match in an unrelated file is not a join - the discovered-marker set only ever contains REAL marker occurrences, never generic substrings', () => {
+      // wouldUnrelatedFileWronglyPass already proves generic substring search is not how discovery
+      // works; this proves the join-level consequence end-to-end for a capability id that has no
+      // real marker anywhere.
+      const syntheticRegistry = [{ id: 'never_marked_anywhere', state: 'LIVE_CURRENT', canonicalSources: ['src/utils/regionConfig.js'] }];
+      const failures = checkSourceAnchorJoin(syntheticRegistry, discoveredById);
+      expect(failures.some((f) => f.id === 'never_marked_anywhere')).toBe(true);
+    });
+
+    it('fixture: correct file, but this capability\'s marker was removed from the discovered set (simulating deletion) -> caught', () => {
+      const withoutOne = { ...discoveredById };
+      delete withoutOne.editor_calculator;
+      const syntheticRegistry = [{ id: 'editor_calculator', state: 'LIVE_CURRENT', canonicalSources: ['src/components/DraggableCalculator.jsx'] }];
+      const failures = checkSourceAnchorJoin(syntheticRegistry, withoutOne);
+      expect(failures.some((f) => f.id === 'editor_calculator' && f.reason === 'no_source_carries_own_marker')).toBe(true);
+    });
+
+    it('fixture: a dangling (nonexistent) canonicalSources path never joins (no discovered marker can ever come from a file that does not exist)', () => {
+      const syntheticRegistry = [{ id: 'editor_calculator', state: 'LIVE_CURRENT', canonicalSources: ['src/this/path/does/not/exist.jsx'] }];
+      const failures = checkSourceAnchorJoin(syntheticRegistry, discoveredById);
+      expect(failures.some((f) => f.id === 'editor_calculator' && f.reason === 'no_source_carries_own_marker')).toBe(true);
+    });
+
+    it('fixture: a LIVE_CURRENT capability with NO canonicalSources declared at all is caught as its own distinct reason', () => {
+      const syntheticRegistry = [{ id: 'nothing_declared', state: 'LIVE_CURRENT', canonicalSources: [] }];
+      const failures = checkSourceAnchorJoin(syntheticRegistry, discoveredById);
+      expect(failures.some((f) => f.id === 'nothing_declared' && f.reason === 'no_canonical_sources_declared')).toBe(true);
+    });
+
+    it('fixture: a non-LIVE_CURRENT capability (e.g. ROADMAP_POST_LIVE) is never checked at all - the join only governs claims about what exists TODAY', () => {
+      const syntheticRegistry = [{ id: 'future_thing', state: 'ROADMAP_POST_LIVE', canonicalSources: [] }];
+      const failures = checkSourceAnchorJoin(syntheticRegistry, discoveredById);
+      expect(failures).toEqual([]);
     });
   });
 });

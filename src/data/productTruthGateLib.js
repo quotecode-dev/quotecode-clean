@@ -121,3 +121,98 @@ export function checkMarketParity(evidence, registryMarketsById) {
   }
   return failures;
 }
+
+// Codex finding 6 (2026-09-24): the fixed, real, currently-declared set of "utility conversion
+// tool" capabilities (calculator/currency/metals/crypto converters) whose currency role must never
+// be promoted to 'quote' or 'payment' - a conversion tool's numbers are never a quote amount or a
+// subscription charge. This list is a TEST-LEVEL fact about today's real registry (cross-checked in
+// productTruthRegistry.test.js against the same 5 ids by their real `conversion_only` role), not a
+// second capability inventory - it exists only to give the negative-fixture mutation a fixed target.
+export const CONVERSION_ONLY_CAPABILITY_IDS = Object.freeze([
+  'editor_calculator', 'editor_currency_converter', 'public_currency_converter', 'public_metals_calculator', 'public_crypto_calculator',
+]);
+
+const VALID_CURRENCY_ROLES = new Set(['quote', 'payment', 'display', 'conversion_only']);
+// Real, supported currency codes across both markets (Local: ILS; International: USD/EUR/GBP - the
+// confirmed synthetic INTL_EUR/INTL_GBP personas), plus the one documented free-text descriptor
+// already used for metals' live-fetched-but-unenumerated currency list (prose, not a currency code
+// - allow-listed by exact string so a DIFFERENT stray value is still caught).
+const SUPPORTED_CURRENCY_CODES = new Set(['ILS', 'USD', 'EUR', 'GBP']);
+const ALLOWED_FREE_TEXT_CURRENCY_VALUES = new Set(['and other live-fetched currencies']);
+
+/**
+ * Codex finding 6: validates a capability's `currencies` field (when declared) is internally
+ * consistent, and that the fixed conversion-only tools never get promoted to a quote/payment role.
+ * @param {{id:string, currencies?: {role:string, values:readonly string[]} | null}[]} registryEntries
+ * @returns {{id:string, reason:'invalid_role'|'conversion_tool_promoted'|'unsupported_currency_value'}[]}
+ */
+export function checkCurrencyRoleIntegrity(registryEntries) {
+  const failures = [];
+  const conversionOnlySet = new Set(CONVERSION_ONLY_CAPABILITY_IDS);
+  for (const c of registryEntries) {
+    if (!c.currencies) continue;
+    const { role, values } = c.currencies;
+    if (!VALID_CURRENCY_ROLES.has(role)) {
+      failures.push({ id: c.id, reason: 'invalid_role' });
+      continue;
+    }
+    if (conversionOnlySet.has(c.id) && role !== 'conversion_only') {
+      failures.push({ id: c.id, reason: 'conversion_tool_promoted' });
+    }
+    for (const v of values || []) {
+      if (!SUPPORTED_CURRENCY_CODES.has(v) && !ALLOWED_FREE_TEXT_CURRENCY_VALUES.has(v)) {
+        failures.push({ id: c.id, reason: 'unsupported_currency_value' });
+      }
+    }
+  }
+  return failures;
+}
+
+/**
+ * Codex finding 6: a Local-market-only sub-requirement (e.g. a tax/business ID) must be described
+ * as scoped to the Local market whenever it is mentioned at all - never presented as if it also
+ * applies internationally. Structural, not exhaustive prose-parsing: checks that a description
+ * mentioning "tax" (EN) or "ח.פ" (HE) also mentions the Local-market qualifier nearby.
+ * @param {string} description
+ * @param {boolean} isHebrew
+ * @returns {boolean} true if the description is properly scoped (or does not mention the topic at all)
+ */
+export function isLocalPrerequisiteProperlyScoped(description, isHebrew) {
+  const text = String(description || '');
+  const mentionsTaxId = isHebrew ? /ח\.?פ\.?/.test(text) : /\btax(\/business)? id\b/i.test(text);
+  if (!mentionsTaxId) return true;
+  const mentionsLocalScope = isHebrew ? /ב-?שוק המקומי/.test(text) : /\bLocal market\b/i.test(text);
+  return mentionsLocalScope;
+}
+
+/**
+ * Codex finding 3 (2026-09-24): a registry capability's `canonicalSources` and its independently
+ * SCANNED, source-owned marker (productTruthCapabilityScanner.js) must be JOINED by identity, not
+ * merely both "exist" as separate, never-cross-checked facts. For every LIVE_CURRENT capability
+ * with declared canonicalSources, AT LEAST ONE of those source paths must be a file where this
+ * SAME capability's own marker was actually discovered - other canonicalSources entries may be
+ * legitimate supplementary evidence (an entitlement/config file, a caller, a role-check module)
+ * that never carries a UI-implementation marker itself, so "at least one" (not "every") is the
+ * correct join semantics; but a capability where NONE of its sources carry its own marker is
+ * exactly the failure class this exists to catch (an unrelated existing file, a generic text match
+ * that isn't really this capability, a correct file with the wrong/missing marker, or a dangling
+ * path all collapse to "no discovered-marker file among canonicalSources").
+ * @param {{id:string, state:string, canonicalSources?: readonly string[]}[]} registryEntries
+ * @param {Record<string, {file:string, line:number}[]>} discoveredById
+ * @returns {{id:string, reason:'no_source_carries_own_marker'|'no_canonical_sources_declared'}[]}
+ */
+export function checkSourceAnchorJoin(registryEntries, discoveredById) {
+  const failures = [];
+  for (const c of registryEntries) {
+    if (c.state !== 'LIVE_CURRENT') continue;
+    const sources = c.canonicalSources || [];
+    if (sources.length === 0) {
+      failures.push({ id: c.id, reason: 'no_canonical_sources_declared' });
+      continue;
+    }
+    const markerFiles = (discoveredById[c.id] || []).map((m) => m.file);
+    const joined = sources.some((s) => markerFiles.includes(s));
+    if (!joined) failures.push({ id: c.id, reason: 'no_source_carries_own_marker' });
+  }
+  return failures;
+}

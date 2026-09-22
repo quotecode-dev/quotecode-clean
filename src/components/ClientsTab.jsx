@@ -64,6 +64,7 @@ const getStatusBadge = (st, isHebrew) => {
   }
 };
 
+// PRODUCT_TRUTH_CAPABILITY: clients
 export default function ClientsTab({
   filteredClients = [],
   clientSearchTerm = '',

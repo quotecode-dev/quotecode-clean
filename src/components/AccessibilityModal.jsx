@@ -5,6 +5,7 @@
 
 import BrandName from './BrandName';
 
+// PRODUCT_TRUTH_CAPABILITY: accessibility_tools
 export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
   if (!isOpen) return null;
 

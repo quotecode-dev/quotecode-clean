@@ -284,6 +284,7 @@ serve(async (req) => {
     // (resend-email-webhook) יוכל לזהות איזו הצעת מחיר לסמן כ"נכשלה"
     const tags = quoteId ? [{ name: 'quote_id', value: String(quoteId) }] : undefined;
 
+    // PRODUCT_TRUTH_CAPABILITY: quote_email
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {

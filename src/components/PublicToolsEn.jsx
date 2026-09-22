@@ -33,6 +33,7 @@ function PublicToolsEn() {
   const [fromCurrency, setFromCurrency] = useState('USD');
   const [toCurrency, setToCurrency] = useState('EUR');
 
+  // PRODUCT_TRUTH_CAPABILITY: public_currency_converter
   const [rates, setRates] = useState({
     USD: 1,
     EUR: 0.92,
@@ -60,6 +61,7 @@ function PublicToolsEn() {
   const [purity, setPurity] = useState('24k');
   const [metalGrams, setMetalGrams] = useState('10');
 
+  // PRODUCT_TRUTH_CAPABILITY: public_metals_calculator
   const [metalPricesUSD, setMetalPricesUSD] = useState({
     gold: 75.6,
     silver: 0.88,
@@ -72,6 +74,7 @@ function PublicToolsEn() {
   const [cryptoCoin, setCryptoCoin] = useState('btc');
   const [cryptoAmount, setCryptoAmount] = useState('1');
 
+  // PRODUCT_TRUTH_CAPABILITY: public_crypto_calculator
   const [cryptoPricesUSD, setCryptoPricesUSD] = useState({
     btc: 65000,
     eth: 3500,
@@ -196,6 +199,7 @@ function PublicToolsEn() {
     in: 'Inches'
   };
 
+  // PRODUCT_TRUTH_CAPABILITY: public_unit_converter
   const convertUnits = () => {
     const val = parseFloat(unitValue) || 0;
     const inMeters = val * unitFactors[fromUnit];

@@ -15,6 +15,7 @@ const getDialByCurrency = (curr, isLocal) => {
   return { dial: '+972', label: 'IL (+972)' };
 };
 
+// PRODUCT_TRUTH_CAPABILITY: business_settings
 export default function SettingsTab({
   isHebrew,
   handleSaveSettings,
@@ -189,6 +190,7 @@ export default function SettingsTab({
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Building2 size={13} color={NEON.sky} />{isHebrew ? 'שם העסק' : 'Business Name'}</label>
             <input type="text" value={bizName} onChange={(e) => setBizName(e.target.value)} required style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
+          {/* PRODUCT_TRUTH_CAPABILITY: profile_prerequisites */}
           <div id="pf-settings-business_tax_id">
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Hash size={13} color={NEON.amber} />{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
             <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />

@@ -47,6 +47,7 @@ export function newDraftId() {
   return `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
 
+// PRODUCT_TRUTH_CAPABILITY: draft_recovery
 export function draftStorageKey({ project, userId, mode, draftId, quoteId }) {
   const id = mode === 'edit' ? quoteId : draftId;
   return `${DRAFT_KEY_PREFIX}:${project}:${userId}:${mode}:${id}`;

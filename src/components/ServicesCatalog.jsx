@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Package, PackagePlus, Pencil, Trash2, Save, X, Search } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 
+// PRODUCT_TRUTH_CAPABILITY: catalog
 export default function ServicesCatalog({
   t,
   isHebrew,

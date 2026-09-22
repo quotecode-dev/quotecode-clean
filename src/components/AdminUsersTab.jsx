@@ -183,6 +183,7 @@ export default function AdminUsersTab({
     setResetError('');
     setIsResetting(true);
     try {
+      // PRODUCT_TRUTH_CAPABILITY: admin_console
       if (deleteModalUser.role === 'super_admin') {
         throw new Error(isHebrew ? 'לא ניתן למחוק משתמש Super Admin!' : 'Cannot delete Super Admin!');
       }

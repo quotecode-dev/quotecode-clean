@@ -454,6 +454,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
 
   useEffect(() => {
     const handleOpenExternalChat = () => { captureReturnFocus(); setIsOpen(true); };
+    // PRODUCT_TRUTH_CAPABILITY: ai_chat
     window.addEventListener('open-proflow-ai-chat', handleOpenExternalChat);
     return () => window.removeEventListener('open-proflow-ai-chat', handleOpenExternalChat);
   }, []);

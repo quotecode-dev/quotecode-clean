@@ -88,6 +88,7 @@ const formatDisplayPhone = (phone) => {
   return clean;
 };
 
+// PRODUCT_TRUTH_CAPABILITY: public_quote_view
 export default function PublicQuote({ quoteData }) {
   const navigate = useNavigate();
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
@@ -178,6 +179,7 @@ export default function PublicQuote({ quoteData }) {
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
+      // PRODUCT_TRUTH_CAPABILITY: quote_print
       setTimeout(() => window.print(), 50);
       return;
     }
@@ -237,6 +239,7 @@ export default function PublicQuote({ quoteData }) {
   // SMART-QUOTE-01: an unfinished draft never masquerades as a customer-ready quote (screen, print, PDF) and cannot be signed.
   const isUnfinishedDraft = isUnfinishedSavedQuote(quote, items);
 
+  // PRODUCT_TRUTH_CAPABILITY: public_quote_sign
   const handleApprove = async () => {
     if (isExpired) {
       setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', true).userMessage });
@@ -397,6 +400,7 @@ export default function PublicQuote({ quoteData }) {
   // נורמליזציית-טלפון בדיוק (00→+, 0 מקומי→+972, ספרות-בלבד→+) כמו
   // sendWhatsApp הקיים כבר ב-Dashboard.jsx - לא נוסחה עצמאית שנייה. הודעה
   // קצרה עם מספר ההצעה - הצופה בעמוד הוא הלקוח עצמו, לא שולח-בשם-העסק.
+  // PRODUCT_TRUTH_CAPABILITY: public_whatsapp_contact
   const bizWhatsAppHref = (() => {
     const raw = business?.phone ? String(business.phone).trim() : '';
     if (!raw) return null;
@@ -1371,6 +1375,7 @@ export default function PublicQuote({ quoteData }) {
             <Printer size={26} strokeWidth={1.75} />
             <span>הדפס מסמך</span>
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}

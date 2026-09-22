@@ -33,6 +33,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   const defaultCurr = isGlobal ? currency : 'USD';
   const secondaryCurr = isGlobal ? (currency === 'GBP' ? 'USD' : 'GBP') : 'EUR';
 
+  // PRODUCT_TRUTH_CAPABILITY: editor_currency_converter
   const [fromCurr, setFromCurr] = useState(defaultCurr);
   const [toCurr, setToCurr] = useState(secondaryCurr);
 
@@ -124,6 +125,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
 
   if (!isOpen) return null;
 
+  // PRODUCT_TRUTH_CAPABILITY: editor_calculator
   const inputDigit = (digit) => {
     if (waitingForOperand) {
       setDisplay(String(digit));

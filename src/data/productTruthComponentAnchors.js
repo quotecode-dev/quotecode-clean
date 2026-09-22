@@ -92,16 +92,14 @@ export function anchorExistsInFile(fileText, anchor) {
   return typeof fileText === 'string' && fileText.includes(anchor);
 }
 
-// Defect 8 (generalized market authority parity): classifies a source file's market applicability
-// from its OWN naming convention (this codebase's real, project-wide pattern - confirmed against
-// src/pages/PublicQuote.jsx/PublicQuoteEn.jsx and src/components/PublicTools.jsx/PublicToolsEn.jsx:
-// a bare name with a known "*En.<ext>" sibling is the Local/Hebrew variant; the "*En.<ext>" file is
-// the International/English variant; a file with no market-specific sibling at all is shared code
-// used identically in both markets), never a hard-coded per-capability special case.
-const KNOWN_PAIRED_LOCAL_FILES = new Set(['src/pages/PublicQuote.jsx', 'src/components/PublicTools.jsx']);
-const KNOWN_PAIRED_INTERNATIONAL_FILES = new Set(['src/pages/PublicQuoteEn.jsx', 'src/components/PublicToolsEn.jsx']);
-export function classifyFileMarket(file) {
-  if (KNOWN_PAIRED_INTERNATIONAL_FILES.has(file)) return 'international';
-  if (KNOWN_PAIRED_LOCAL_FILES.has(file)) return 'local';
-  return 'both';
-}
+// Defect 8 (generalized market authority parity): market classification now lives in
+// productTruthMarketReachability.js's createFileMarketClassifier(). That module replaced the
+// original, hard-coded 2-pair Set implementation that used to live here - Codex (finding 2,
+// 2026-09-24) correctly identified that a Set of 2 known literal paths does not generalize to any
+// future file, and that everything outside those 2 pairs silently defaulted to 'both' (a fail-OPEN
+// default masquerading as "shared code"). The replacement derives market from the real filesystem
+// naming convention (generalized, fs-checked) plus real import-graph reachability from the two app
+// entry points, and fails CLOSED to 'unknown' for anything neither signal resolves - see that
+// module's own header for the full design. Re-exported here only for callers that already import
+// classifyFileMarket from this file; no logic lives in this module any more.
+export { createFileMarketClassifier } from './productTruthMarketReachability.js';

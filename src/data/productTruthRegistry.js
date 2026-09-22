@@ -112,7 +112,10 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     {
       surfaces: ['dashboard', 'quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_new_quote',
       entitlementKey: 'monthlyQuoteLimit', deterministicFactKeys: ['monthlyQuoteLimit'],
-      canonicalSources: ['src/components/QuoteForm.jsx', 'src/utils/planCatalog.js'],
+      // Codex finding 3 (2026-09-24): the real UI trigger (`isCreatingQuote`) lives in
+      // Dashboard.jsx, not QuoteForm.jsx (the form component it then renders) - added so this
+      // capability's own source-owned marker actually joins to a listed canonical source.
+      canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuoteForm.jsx', 'src/utils/planCatalog.js'],
     }),
 
   capability('quote_edit', 'עריכת הצעה שמורה', 'Edit a saved quote',
@@ -307,7 +310,10 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('quote_expiry', 'תפוגת הצעת מחיר', 'Quote expiry',
     'הצעה שפג תוקפה נשארת צפויה לצפייה אך אינה ניתנת לחתימה.',
     'An expired quote stays viewable but cannot be signed.',
-    { surfaces: ['public_quote_page', 'quote_editor'], deterministicFactKeys: ['isExpired'], canonicalSources: ['supabase/functions/get-public-quote/index.ts'] }),
+    // Codex finding 3 (2026-09-24): the real expiry rule (`isQuoteAcceptanceExpired`) is DEFINED in
+    // validity.ts; index.ts only imports and calls it - added so this capability's own source-owned
+    // marker actually joins to a listed canonical source, not just its caller.
+    { surfaces: ['public_quote_page', 'quote_editor'], deterministicFactKeys: ['isExpired'], canonicalSources: ['supabase/functions/get-public-quote/validity.ts', 'supabase/functions/get-public-quote/index.ts'] }),
 
   capability('draft_recovery', 'שחזור טיוטה מקומית', 'Local draft recovery',
     'שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון/מעבר אפליקציה - שמור מקומית בדפדפן בלבד, לא בענן.',

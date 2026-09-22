@@ -192,6 +192,7 @@ serve(async (req) => {
         client_type: quote.client_type,
         is_owner_viewing: isOwner,
         // OD-1: server truth for "may this quote still be accepted?" (the page falls back to the same rule when absent)
+        // PRODUCT_TRUTH_CAPABILITY: public_quote_sign
         is_expired: isQuoteAcceptanceExpired(quote.valid_until, bizRow?.country),
         // חוק ברזל (Part E): undefined כשה-select השטוח-בלבד רץ (עמודה
         // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים

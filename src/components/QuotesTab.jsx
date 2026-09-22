@@ -88,6 +88,7 @@ function ClientTypeBadge({ clientType, isHebrew }) {
   );
 }
 
+// PRODUCT_TRUTH_CAPABILITY: quote_history
 export default function QuotesTab({
   quotes,
   searchTerm,
@@ -264,6 +265,7 @@ export default function QuotesTab({
   };
 
   const UNFINISHED_LABEL = isHebrew ? 'טיוטה לא גמורה' : 'Unfinished draft';
+  // PRODUCT_TRUTH_CAPABILITY: quote_status
   const getStatusBadge = (st) => {
     switch(st) {
       case 'approved': return { bg: 'rgba(5, 150, 105, 0.12)', color: NEON.emerald, text: isHebrew ? 'אושר' : 'Approved' };
@@ -524,6 +526,7 @@ export default function QuotesTab({
               הוסר מכאן - נשאר רק הכפתור הראשי העצמאי בשורת הניווט העליונה
               (handleCreateNewQuoteClick ב-Dashboard.jsx). כפתור ייצוא ה-CSV
               נשאר, שכן הוא שייך לטבלה עצמה. */}
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_csv */}
           <button
             onClick={handleExportQuotes}
             style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 14px', borderRadius: RADIUS.pill, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}

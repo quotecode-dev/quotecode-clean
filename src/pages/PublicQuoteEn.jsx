@@ -55,6 +55,7 @@ const formatDisplayPhone = (phone) => {
   return phone.trim();
 };
 
+// PRODUCT_TRUTH_CAPABILITY: public_quote_view
 export default function PublicQuoteEn({ quoteData }) {
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
   // Public Quote Section-Level Smart Dropdown task (same rule as
@@ -124,6 +125,7 @@ export default function PublicQuoteEn({ quoteData }) {
     setPrintModalOpen(false);
 
     if (printIntent === 'print') {
+      // PRODUCT_TRUTH_CAPABILITY: quote_print
       setTimeout(() => window.print(), 50);
       return;
     }
@@ -180,6 +182,7 @@ export default function PublicQuoteEn({ quoteData }) {
   // SMART-QUOTE-01: an unfinished draft never masquerades as a customer-ready quote (screen, print, PDF) and cannot be signed.
   const isUnfinishedDraft = isUnfinishedSavedQuote(quote, items);
 
+  // PRODUCT_TRUTH_CAPABILITY: public_quote_sign
   const handleApprove = async () => {
     if (isExpired) {
       setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', false).userMessage });
@@ -235,6 +238,7 @@ export default function PublicQuoteEn({ quoteData }) {
   // normalization as sendWhatsApp (Dashboard.jsx) and PublicQuote.jsx (HE) -
   // not a third independent formula. The visitor here IS the client, so
   // this messages the business, not the client.
+  // PRODUCT_TRUTH_CAPABILITY: public_whatsapp_contact
   const bizWhatsAppHref = (() => {
     const raw = business?.phone ? String(business.phone).trim() : '';
     if (!raw) return null;
@@ -1094,6 +1098,7 @@ export default function PublicQuoteEn({ quoteData }) {
             <Printer size={26} strokeWidth={1.75} />
             <span>Print Document</span>
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}

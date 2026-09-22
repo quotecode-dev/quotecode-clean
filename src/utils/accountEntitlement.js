@@ -25,6 +25,7 @@
 import { computeEffectivePlan } from './planEntitlements';
 import { getEntitlementSet } from './planCatalog';
 
+// PRODUCT_TRUTH_CAPABILITY: plan_trial
 const TRIAL_EXPIRING_SOON_DAYS = 5;
 
 /**

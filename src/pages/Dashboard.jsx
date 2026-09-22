@@ -135,6 +135,7 @@ function HeaderClock({ country, isHebrew }) {
   );
 }
 
+// PRODUCT_TRUTH_CAPABILITY: dashboard_overview
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
 
@@ -216,6 +217,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
+  // PRODUCT_TRUTH_CAPABILITY: quote_create
   const [isCreatingQuote, setIsCreatingQuote] = useState(false);
   const [financeReportType, setFinanceReportType] = useState('monthly');
   const [startDate, setStartDate] = useState('');
@@ -823,6 +825,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  // PRODUCT_TRUTH_CAPABILITY: quote_edit
   const [editingQuoteId, setEditingQuoteId] = useState(null);
 
   // AI Chat workflow-awareness wiring (AI Chat Hardening overnight
@@ -2571,6 +2574,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
   }
 
+  // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
   const sendWhatsApp = (proposal) => {
     // SMART-QUOTE-01: an unfinished draft is never sent as if it were a ready quote.
     if (isUnfinishedSavedQuote(proposal)) {
@@ -3121,6 +3125,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setRecoveredDraftInfo(null);
   };
 
+  // PRODUCT_TRUTH_CAPABILITY: quote_duplicate
   const handleDuplicateQuote = async (quote) => {
     setNewDraftUuid(newDraftId());
     setPendingAttachmentRemovals([]);

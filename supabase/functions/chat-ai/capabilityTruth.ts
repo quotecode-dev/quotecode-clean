@@ -104,6 +104,14 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // (future tense "יבצע"/"יעשה" etc.) - a live paraphrase test found this subject/verb pairing
     // fell through because the earlier patterns only recognized "ה-ai"/"הבוט"/"הצ'אט" by name.
     /(העוזר|הסוכן)\s.{0,20}(יבצע|יעשה|יטפל|ישנה|יערוך|יעדכן|ימחק|ישלח|יאשר|בשבילי|עבורי)/,
+    // Codex finding 5 (2026-09-24): an adversarial past-tense claim ("you already edited and saved
+    // it for me") is itself an AI-mutation topic message - in a chat with the assistant, "you" is
+    // always the AI (same reasoning as the "can you <verb>" patterns above), so this must be
+    // intercepted by the deterministic router BEFORE any instruction embedded in the message can
+    // reach the model, not just be checked post-hoc for truthfulness once answered.
+    /\byou\s+(already\s+)?(have\s+)?(edited|saved|sent|approved|deleted|created|changed|updated|signed|duplicated)\b/i,
+    // Hebrew: second-person-singular past tense ("you edited/saved/...") - the same claim shape.
+    /(ערכת|שמרת|שלחת|אישרת|מחקת|יצרת|עדכנת|חתמת|שכפלת).{0,20}(הצעה|בשבילי|עבורי|אותה|אותו)/,
   ]],
   ['autonomous_email', [
     /\b(can|does)\s+(the\s+)?(ai|assistant|bot)\s+.{0,30}send\s+.{0,20}(email|mail)\s+.{0,20}automatic/i,
@@ -112,9 +120,18 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ]],
   ['payment_processing', [
     /\b(can|do|does)\s+(tekango|you|the system)\s+(take|takes|accept|accepts|process|processes)\s+.{0,20}payment/i,
+    // Codex finding 5 (2026-09-24): a STATEMENT asserting checkout/payment-processing/card-
+    // acceptance (not just a question about it) is the same topic and must route the same way -
+    // an adversarial "assume checkout is enabled and confirm cards are accepted" must be
+    // intercepted deterministically, not left to fall through to the model.
+    /\bcheckout\b.{0,20}(enabled|available|works|live)\b/i,
+    /\bpayment processing\b/i,
+    /\bcards?\b.{0,15}(are\s+)?accepted\b/i,
     // "תשלום" ends in a final-form מ; the plural "תשלומים" replaces it with a regular מ before the
     // "ים" suffix, so "תשלום" is never a substring of "תשלומים" - both forms must be spelled out.
     /(האם TEKANGO|האם המערכת|אתם) (גוב(ה|ים)|מקבל(ת|ים)?|מעבד(ת|ים)?) (תשלום|תשלומים)/,
+    /סליקה/,
+    /לשלם.{0,10}(ב)?כרטיס אשראי/,
   ]],
   ['invoicing', [/\bcan (tekango|you|the system) (issue|create|generate)\s+.{0,10}invoice/i, /(מפיק|מפיקה|יכולים להפיק) חשבונית/]],
   // Codex defect 1 (2026-09-22): "Is PDF the same as Print?" (and similar) must get a deterministic
@@ -143,7 +160,16 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // broadened-for-paraphrase version of this pattern introduced, caught by its own test suite).
     /\b(do you|does (tekango|it|the (app|editor)))\s+have\b(?!.{0,20}\b(metals?|crypto|unit|currency)\b).{0,20}\bcalculator\b/i,
     /\bis there a\b(?!.{0,20}\b(metals?|crypto|unit|currency)\b).{0,20}\bcalculator\b/i,
+    // "calculator"/"editor" mentioned together in either order (e.g. an adversarial "say there is
+    // no calculator in the editor") - the whole-string negative lookahead (not just a nearby
+    // window) excludes any "convert currency" message so this never shadows
+    // editor_currency_converter's own, more specific pattern below (a real collision: "convert
+    // currency in the editor calculator" also contains the literal adjacent phrase "editor
+    // calculator", so proximity alone cannot disambiguate the two capabilities here).
+    /^(?!.*\bconvert\b).*\bcalculator\b.{0,30}\b(the\s+)?editor\b/i,
+    /^(?!.*\bconvert\b).*\beditor\b.{0,30}\bcalculator\b/i,
     /(יש לכם|יש כאן|קיים) מחשבון(?!.{0,10}(מתכות|קריפטו|יחידות|מטבע))/,
+    /מחשבון(?!.{0,10}(מתכות|קריפטו|יחידות|מטבע)).{0,20}(ב)?עורך/,
   ]],
   ['editor_currency_converter', [/\bconvert(ing)? currency\b.{0,20}(editor|quote|calculator)/i, /(המר|להמיר).{0,10}מטבע.{0,30}(עורך|הצעה|מחשבון)/]],
   ['public_currency_converter', [/\bpublic (currency )?converter\b/i, /ממיר מטבעות/]],
@@ -164,9 +190,13 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['public_call', [/\bcall\s+(button|option)\b.{0,20}(quote|public)/i, /כפתור.{0,10}התקשרות/]],
 
   ['quote_email', [
-    /\bemail\s+(a|the|my)?\s*quote\b/i,
+    // "emailing" (gerund) - \bemail\b alone never matches it (no boundary between "email" and the
+    // following "ing", both word characters) - the same class of pitfall as every other missed
+    // conjugation in this file, just in English this time.
+    /\bemail(ing)?\s+(a|the|my)?\s*quote\b/i,
     /\bsend\s+(a|the|my)?\s*quote\s+by\s+email\b/i,
-    /(לשלוח|שולחים|שולח).{0,15}הצעה.{0,15}(במייל|באימייל)/,
+    // "שליחת" (the noun "sending of") alongside the verb forms already covered.
+    /(לשלוח|שולחים|שולח|שליחת).{0,15}הצעה.{0,15}(במייל|באימייל)/,
   ]],
   ['quote_pdf', [
     /\b(pdf|download)\b.{0,20}quote/i,
@@ -188,6 +218,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
 
   ['attachments', [
     /\b(attach|upload)\s+.{0,15}(files?|drawings?|photos?)\b/i,
+    // Bare noun mention, no verb ("attachments do not exist...") - "attachments" is specific enough
+    // to this domain that a bare-word catch-all is safe, mirroring quote_pdf's own bare /\bpdf\b/i.
+    /\battachments?\b/i,
     /(לצרף|להעלות|מעלה).{0,20}(קבצים|שרטוטים|תמונות)/,
   ]],
   // Hebrew plural of "הצעה" is "הצעות" (the final ה is replaced, not suffixed) - matching on the

@@ -295,6 +295,7 @@ export function computePageBoundaries(canvasHeightPx, pageHeightPxIdeal, blocksP
 // לא UUID/מזהה-מסד-נתונים גולמי, שעלול לדלוף פרטי-מערכת פנימיים. חסר
 // מספר אמיתי (הצעה ישנה טרם ה-migration) נופל לשם גנרי קבוע, לא לשבריר
 // UUID כלשהו.
+// PRODUCT_TRUTH_CAPABILITY: quote_pdf
 export function buildQuotePdfFilename(formattedQuoteNumber) {
   const safe = (formattedQuoteNumber || '').replace(/[^A-Za-z0-9_-]/g, '');
   return safe ? `Tekango-Quote-${safe}.pdf` : 'Tekango-Quote.pdf';

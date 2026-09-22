@@ -434,6 +434,7 @@ export default function QuoteForm({
         onEdit={() => { setOpenActionsMenu(null); openEditWizard(index); }}
         onDuplicate={() => {
           setOpenActionsMenu(null);
+          // PRODUCT_TRUTH_CAPABILITY: professional_reuse
           if (isPro && !canUseProfessionalQuoteReuse) { setShowUpgradeConfirm('reuse'); return; }
           duplicateItem(index);
         }}
@@ -455,6 +456,7 @@ export default function QuoteForm({
   // (Core Architectural Law: "component C guesses plan" - בדיוק המקרה
   // שתועד). כבר כולל super_admin (entitlement.attachments = isSuperAdmin ||
   // planDef.attachments) - לא נדרש תנאי נפרד.
+  // PRODUCT_TRUTH_CAPABILITY: attachments
   const handleAttachmentClick = () => {
     if (!canUseAttachments) {
       publishBlocker('ATTACHMENTS_REQUIRE_PRO', { scope: 'editor' });
@@ -792,6 +794,7 @@ export default function QuoteForm({
             הפעולה הראשי, המחשבון, האשף המפושט, ההמלצות מודעות-לעסק,
             ארבעת-השלבים, פרטי-לקוח אופציונליים, כל תיקוני-הבטיחות - שום
             UI לניהול-יחידות לא מוצג במצב הזה בכלל. */}
+        {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
         {structureMode === 'regular' && (
           <>
             <button
@@ -832,6 +835,7 @@ export default function QuoteForm({
             Add button"; "every unit is a live working container"): במצב
             מחולק אין כפתור-הוספה גלובלי בכלל - כל פעולת-הוספה שייכת
             ליחידה ספציפית (או ל"לא משויך" הגלוי), ר' לוח-היחידות למטה. */}
+        {/* PRODUCT_TRUTH_CAPABILITY: measured_quote */}
         {structureMode === 'divided' && (
           <>
             <p style={{ margin: 0, fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>

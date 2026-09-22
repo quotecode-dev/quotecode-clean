@@ -372,46 +372,39 @@ describe('OWNER SAMPLE TRUE ADVERSARIAL MATRIX (task section 6/12: every phrase,
     expect(classifyCapabilityIntent(he.paraphrase)).toBe(id);
   });
 
-  // The adversarial phrase is ACTUALLY run through classifier -> registry lookup -> formatter
-  // (never `void`-ed). Two real assertions, not a placeholder: (1) if the adversarial phrase
-  // resolves to any capability id at all, the FORMATTED ANSWER for that id must still be the
-  // truthful registry answer (the formatter reads only {id, facts}, never the request text, so an
-  // adversarial instruction embedded in the "question" cannot influence the answer content - this
-  // asserts that structural guarantee holds, not merely that it should); (2) it must never resolve
-  // to the WRONG sibling capability the adversarial phrasing was designed to conflate.
-  it.each(AREAS)('$label: EN adversarial never produces a false answer and never conflates with the sibling capability', ({ id, conflictId, semanticFamily, en }) => {
+  // Codex finding 5 (2026-09-24): the adversarial phrase is ACTUALLY run through classifier ->
+  // registry lookup -> formatter, and resolving to the EXPECTED capability id is now MANDATORY,
+  // not conditional. The prior shape (`if (resolvedId) {...}`) let 9 adversarial phrases that
+  // returned null skip their own conflict/semantic assertions entirely, and its unconditional
+  // fallback line called the formatter with the hand-typed EXPECTED id rather than the id the
+  // classifier actually produced - so a classifier that returned null for every adversarial phrase
+  // in existence would still have passed. Neither shortcut remains: every adversarial phrase must
+  // classify to its own capability's id, full stop, and every downstream check (conflict id,
+  // semantic family) runs unconditionally against that same resolved id.
+  it.each(AREAS)('$label: EN adversarial classifies to $id (hard requirement, never conditional) and never conflates with the sibling capability', ({ id, conflictId, semanticFamily, en }) => {
     const resolvedId = classifyCapabilityIntent(en.adversarial);
-    if (resolvedId) {
-      expect(resolvedId, `adversarial EN phrase for "${id}" wrongly conflated with sibling "${conflictId}"`).not.toBe(conflictId);
-      const answer = formatCapabilityTruthAnswer(resolvedId, FACTS, false);
-      expect(answer).toBeTruthy();
-      if (semanticFamily) {
-        for (const p of FORBIDDEN_CLAIM_FAMILIES[semanticFamily].en) {
-          expect(checkSemanticClaim(answer, p, false).claimed, `answer for "${resolvedId}" semantically asserts a forbidden "${semanticFamily}" claim: ${answer}`).toBe(false);
-        }
+    expect(resolvedId, `adversarial EN phrase for "${id}" did not classify at all (got null): "${en.adversarial}"`).toBe(id);
+    if (conflictId) expect(resolvedId).not.toBe(conflictId);
+    const answer = formatCapabilityTruthAnswer(resolvedId, FACTS, false);
+    expect(answer).toBeTruthy();
+    if (semanticFamily) {
+      for (const p of FORBIDDEN_CLAIM_FAMILIES[semanticFamily].en) {
+        expect(checkSemanticClaim(answer, p, false).claimed, `answer for "${resolvedId}" semantically asserts a forbidden "${semanticFamily}" claim: ${answer}`).toBe(false);
       }
     }
-    // Independent of whether the adversarial text itself classified, the TRUE fact for this area
-    // must still be obtainable and correct - the adversarial attempt must not have mutated any
-    // shared state (the registry/facts objects are frozen; this is a regression guard for that).
-    const truthAnswer = formatCapabilityTruthAnswer(id, FACTS, false);
-    expect(truthAnswer).toBeTruthy();
   });
 
-  it.each(AREAS)('$label: HE adversarial never produces a false answer and never conflates with the sibling capability', ({ id, conflictId, semanticFamily, he }) => {
+  it.each(AREAS)('$label: HE adversarial classifies to $id (hard requirement, never conditional) and never conflates with the sibling capability', ({ id, conflictId, semanticFamily, he }) => {
     const resolvedId = classifyCapabilityIntent(he.adversarial);
-    if (resolvedId) {
-      expect(resolvedId, `adversarial HE phrase for "${id}" wrongly conflated with sibling "${conflictId}"`).not.toBe(conflictId);
-      const answer = formatCapabilityTruthAnswer(resolvedId, FACTS, true);
-      expect(answer).toBeTruthy();
-      if (semanticFamily && FORBIDDEN_CLAIM_FAMILIES[semanticFamily].he) {
-        for (const p of FORBIDDEN_CLAIM_FAMILIES[semanticFamily].he) {
-          expect(checkSemanticClaim(answer, p, true).claimed, `answer for "${resolvedId}" semantically asserts a forbidden "${semanticFamily}" claim: ${answer}`).toBe(false);
-        }
+    expect(resolvedId, `adversarial HE phrase for "${id}" did not classify at all (got null): "${he.adversarial}"`).toBe(id);
+    if (conflictId) expect(resolvedId).not.toBe(conflictId);
+    const answer = formatCapabilityTruthAnswer(resolvedId, FACTS, true);
+    expect(answer).toBeTruthy();
+    if (semanticFamily && FORBIDDEN_CLAIM_FAMILIES[semanticFamily].he) {
+      for (const p of FORBIDDEN_CLAIM_FAMILIES[semanticFamily].he) {
+        expect(checkSemanticClaim(answer, p, true).claimed, `answer for "${resolvedId}" semantically asserts a forbidden "${semanticFamily}" claim: ${answer}`).toBe(false);
       }
     }
-    const truthAnswer = formatCapabilityTruthAnswer(id, FACTS, true);
-    expect(truthAnswer).toBeTruthy();
   });
 
   it('BASIC measured quote: account tier BASIC gets a plain yes (no restriction wording, since BASIC already has it)', () => {

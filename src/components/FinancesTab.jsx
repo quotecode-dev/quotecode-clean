@@ -9,6 +9,7 @@ import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wal
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatShortDate } from '../utils/shortDate';
 
+// PRODUCT_TRUTH_CAPABILITY: finance_views
 export default function FinancesTab({
   financeReportType,
   setFinanceReportType,
@@ -180,6 +181,7 @@ export default function FinancesTab({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, ...neonGlowTextStyle }}>{t.expensesManagement}</h2>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {/* PRODUCT_TRUTH_CAPABILITY: expense_csv */}
               <button
                 onClick={handleExportExpenses}
                 style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 12px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
@@ -187,6 +189,7 @@ export default function FinancesTab({
                 <Download size={13} strokeWidth={2.5} />
                 {isHebrew ? 'ייצוא CSV' : 'Export CSV'}
               </button>
+              {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
               <button
                 type="button"
                 onClick={() => setShowAddExpenseForm((prev) => !prev)}
