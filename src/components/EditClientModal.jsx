@@ -89,7 +89,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
         <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
           {isNew ? (isHebrew ? 'לקוח חדש' : 'New Client') : (isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details')}
         </h3>
-        <div style={{ marginBottom: '12px' }}><AiHelpButton isHebrew={isHebrew} compact testId="ai-help-edit-client" /></div>
+        <div style={{ marginBottom: '12px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-edit-client" /></div>
 
         {errorMsg && (
           <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '14px', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>

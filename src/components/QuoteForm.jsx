@@ -590,7 +590,7 @@ export default function QuoteForm({
                     ? 'אופציה זו הינה למשתמשי מסלול PRO בלבד. האם תרצה לשדרג את חשבונך כעת?'
                     : 'This option is for PRO plan users only. Would you like to upgrade your account now?')}
             </p>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-upgrade" /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-upgrade" /></div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 type="button"
@@ -626,7 +626,7 @@ export default function QuoteForm({
               {errorMessage}
             </p>
             {/* AI HELP V4 §8: help stays reachable while this overlay covers the app (closing it does not clear the blocker) */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-file-error" /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-file-error" /></div>
             <button
               type="button"
               onClick={() => setErrorMessage('')}

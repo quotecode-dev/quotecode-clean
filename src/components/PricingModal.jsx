@@ -46,7 +46,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
         
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={18} strokeWidth={2.5} /></button>
-        <div style={{ position: 'absolute', top: '8px', [isHebrew ? 'right' : 'left']: '14px' }}><AiHelpButton isHebrew={isHebrew} compact testId="ai-help-plans" /></div>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '10px', [isHebrew ? 'paddingLeft' : 'paddingRight']: '36px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-plans" /></div>
 
         {(
           <>

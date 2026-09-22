@@ -17,6 +17,7 @@ import { formatMessageTime, formatDaySeparatorLabel, computeDaySeparatorFlags } 
 import { resolveAIChatContext, allowsExistingQuoteReference } from './utils/aiChatContext';
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
+import AiChatIcon from './components/AiChatIcon';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
 // per top-level group (Section 7's own "small relevant icon" requirement).
@@ -989,7 +990,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <MessageCircleMore size={20} strokeWidth={2.2} />
+              {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages keep their approved landing mark */}
+              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <MessageCircleMore size={20} strokeWidth={2.2} />}
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צאט AI' : 'AI Chat'}</span>
               {/* Final Landing Polish task, Part B - "MessageCircleMore or
                   MessagesSquare with a small Sparkles accent - not
@@ -1000,12 +1002,12 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   own scrollWidth exceed its clientWidth (found via the
                   required overflow sweep) - kept fully inside the border
                   box instead, since nothing here required it to overhang. */}
-              <Sparkles
+              {!isDashboard && <Sparkles
                 aria-hidden="true"
                 size={11}
                 strokeWidth={2.5}
                 style={{ position: 'absolute', top: '2px', [isHebrew ? 'left' : 'right']: '2px', color: '#fde68a', background: NEON.bgElevated, borderRadius: '50%', padding: '2px', boxShadow: '0 0 0 1.5px rgba(255,255,255,0.15)' }}
-              />
+              />}
             </button>
           )}
 

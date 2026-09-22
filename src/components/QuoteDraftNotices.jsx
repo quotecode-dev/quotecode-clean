@@ -57,7 +57,7 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
             : (isHebrew ? `הצעה ${label} השתנתה בשרת (במכשיר או בחלון אחר) אחרי שהטיוטה נשמרה. כדי לא לדרוס שינויים שנשמרו, בחר/י מה לעשות:` : `Quote ${label} changed on the server (another device or window) after your draft was saved. To avoid overwriting saved changes, choose:`)}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-          <AiHelpButton isHebrew={isHebrew} testId="ai-help-draft-conflict" />
+          <AiHelpButton isHebrew={isHebrew} long testId="ai-help-draft-conflict" />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button type="button" data-testid="draft-conflict-review" onClick={onReview} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>

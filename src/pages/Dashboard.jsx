@@ -12,6 +12,7 @@ import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
+import AiChatIcon from '../components/AiChatIcon';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
@@ -75,7 +76,7 @@ import {
   AlertTriangle, Shield, LogOut,
   PlusCircle, Flame,
   Accessibility as AccessibilityIcon, Sparkles, Eye,
-  MessageCircle, MoreHorizontal
+  MoreHorizontal
 } from 'lucide-react';
 
 // IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
@@ -449,10 +450,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
-      <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-        <MessageCircle size={16} strokeWidth={2.2} />
-        <Sparkles size={8} strokeWidth={2.5} style={{ position: 'absolute', top: '-3px', [isHebrew ? 'left' : 'right']: '-4px', color: '#f0abfc' }} />
-      </span>
+      <AiChatIcon size={16} rtl={isHebrew} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
     </button>
   );
@@ -5459,7 +5457,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             </p>
             {/* AI HELP V4 §8: help stays one click away while an action is blocked (the blocker is NOT cleared by closing this). */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-              <AiHelpButton isHebrew={isHebrew} testId="ai-help-alert" />
+              <AiHelpButton isHebrew={isHebrew} long testId="ai-help-alert" />
             </div>
             <button
               className="dash-neon-btn"

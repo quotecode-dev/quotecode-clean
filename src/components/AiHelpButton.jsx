@@ -1,8 +1,10 @@
-// AI HELP V4 §8 (AI-HELP-AVAILABILITY-001): the in-context "Ask AI" launcher shown INSIDE blocking surfaces (alert modal, item
-// wizard, draft conflict, client editor, plans). It never creates a second assistant: it fires the same open-proflow-ai-chat event
-// the header button uses, so the ONE canonical AIChatWidget instance opens above the current layer (its popup sits above every
-// modal layer) with the blocker/context the owners already published. Keyboard reachable (native <button>), 44px touch target.
-import { Sparkles } from 'lucide-react';
+// AI HELP V4 §8 + §51.15 (AI-HELP-AVAILABILITY-001, "AI HELP ENTRY MUST BE SELF-EXPLANATORY"): the in-workflow entry to the ONE AI Chat.
+// It always shows the canonical AI Chat icon (AiChatIcon - the same one as the header "AI Chat" button) PLUS a visible text label
+// ("שאל את AI" / "Ask AI", or "צריך עזרה? שאל את AI" / "Need help? Ask AI" where space allows) - never an icon-only or generic
+// sparkle/magic affordance. It never creates a second assistant: it fires the same open-proflow-ai-chat event the header uses, so the
+// canonical AIChatWidget opens above the current modal/wizard with the blocker/context the owners already published; the modal/wizard
+// underneath is left exactly as it was. Native <button>: keyboard focusable, 44px touch target, visible hover/focus (.pf-ai-help-btn).
+import AiChatIcon from './AiChatIcon';
 
 const OPEN_AI_CHAT_EVENT = 'open-proflow-ai-chat';
 
@@ -11,23 +13,22 @@ function openAiHelp() {
   window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: { source: 'in_context_help' } }));
 }
 
-export default function AiHelpButton({ isHebrew = false, compact = false, style = null, testId = 'ai-help-in-context' }) {
-  const label = isHebrew ? 'שאל את ה-AI' : 'Ask AI';
+export default function AiHelpButton({ isHebrew = false, long = false, style = null, testId = 'ai-help-in-context' }) {
+  const label = long ? (isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI') : (isHebrew ? 'שאל את AI' : 'Ask AI');
+  const accessible = isHebrew ? 'שאל את AI - פתיחת צ׳אט AI על המסך הזה' : 'Ask AI - open the AI Chat about this screen';
   return (
     <button
       type="button"
       className="pf-ai-help-btn"
       data-testid={testId}
-      aria-label={isHebrew ? 'שאל את עוזר ה-AI על המסך הזה' : 'Ask the AI assistant about this screen'}
+      aria-label={accessible}
+      title={accessible}
+      dir={isHebrew ? 'rtl' : 'ltr'}
       onClick={(e) => { e.stopPropagation(); openAiHelp(); }}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '44px', minWidth: compact ? '44px' : undefined,
-        padding: compact ? '6px 10px' : '8px 14px', borderRadius: '10px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.08)',
-        color: '#6d28d9', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', ...(style || {}),
-      }}
+      style={style || undefined}
     >
-      <Sparkles size={16} strokeWidth={2.4} aria-hidden="true" />
-      {!compact && <span>{label}</span>}
+      <AiChatIcon size={16} rtl={isHebrew} />
+      <span className="pf-ai-help-btn-label">{label}</span>
     </button>
   );
 }

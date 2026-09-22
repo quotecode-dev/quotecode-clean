@@ -787,13 +787,13 @@ export default function AddItemWizard({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${NEON.border}`, flexShrink: 0 }}>
           <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: NEON.textPrimary }}>{t.title}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {/* AI HELP V4 §8: the ONE assistant opens above this dialog; the wizard state stays as-is. */}
-            <AiHelpButton isHebrew={isHebrew} compact testId="ai-help-wizard" />
-            <button type="button" onClick={onClose} aria-label={t.cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', padding: '4px' }}>
-              <X size={20} />
-            </button>
-          </div>
+          <button type="button" onClick={onClose} aria-label={t.cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', padding: '4px' }}>
+            <X size={20} />
+          </button>
+        </div>
+        {/* AI HELP V4 §8 / §51.15: its own row under the title bar - the ONE assistant opens above this dialog; the wizard stays as-is. */}
+        <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '10px 20px 0', flexShrink: 0 }}>
+          <AiHelpButton isHebrew={isHebrew} long testId="ai-help-wizard" />
         </div>
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />

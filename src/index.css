@@ -450,3 +450,18 @@ html {
     justify-content: flex-end;
   }
 }
+
+/* AI HELP ENTRY (TEKANGO_AI_ARCHITECTURE.md §51.15): every in-workflow "Ask AI" entry = canonical AI Chat icon (AiChatIcon) + visible
+   label, same violet pill identity as the header AI Chat button, readable on light and dark modal surfaces. Never icon-only. */
+.pf-ai-help-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; max-width: 100%; padding: 8px 14px; box-sizing: border-box;
+  border-radius: 999px; border: 1px solid rgba(167, 139, 250, 0.55);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff;
+  font-weight: 700; font-size: 0.85rem; line-height: 1.2; white-space: nowrap; cursor: pointer;
+  box-shadow: 0 4px 14px -6px rgba(124, 58, 237, 0.65); transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.pf-ai-help-btn:hover { filter: brightness(1.08); box-shadow: 0 6px 18px -6px rgba(124, 58, 237, 0.8); }
+.pf-ai-help-btn:active { transform: translateY(1px); }
+.pf-ai-help-btn:focus-visible { outline: 3px solid #f0abfc; outline-offset: 2px; }
+.pf-ai-help-btn-label { overflow: hidden; text-overflow: ellipsis; }
