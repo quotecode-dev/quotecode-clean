@@ -1,5 +1,21 @@
 # Invoicing & Billing Infrastructure
 
+> **Canonical payment/invoicing provider status (2026-09-22, Owner-directed) - READ FIRST**
+>
+> | Item | Status |
+> |---|---|
+> | PAYPLUS | **PROVIDER CANDIDATE** |
+> | COMMERCIAL OFFER | **RECEIVED** · **NOT SIGNED** |
+> | TECHNICAL INTEGRATION | **NOT STARTED** |
+> | CHECKOUT | **NOT LIVE** |
+> | INVOICING | **NOT LIVE** |
+> | PRODUCTION PROVIDER DECISION | **NOT FINAL** |
+>
+> The architecture stays **provider-neutral**. The Stripe-oriented material below (§2-§5, `billing-checkout-stub`) is **generic,
+> incomplete scaffolding written before any provider evaluation - it is NOT evidence that Stripe was selected** and must not be read as
+> a provider decision. PayPlus details, the commercial proposal and the open due-diligence questions: **§8**. No part of the product
+> processes card payments, issues invoices/receipts, or charges subscriptions today; signup starts the 14-day free trial only.
+
 Status: **scaffolding only**. Nothing in this document describes a live
 integration - no real Stripe account is connected, no invoicing API is
 called. This records the exact architecture, currency/VAT rules, and the
@@ -81,8 +97,10 @@ frozen/`Object.freeze`d specifically because they are not expected to).
 
 ## 2. Environment variables
 
-Added to `.env.example` (copy to `.env` locally, which is gitignored -
-see the "Security" section below for why this matters here specifically):
+Add these to your local `.env` (gitignored — see the "Security" section
+below for why this matters here specifically; the full root env variable
+reference lives in `PROFLOW_ARCHITECTURE.md` §21, which replaced the
+retired `.env.example` template):
 
 ```
 STRIPE_SECRET_KEY=
@@ -137,7 +155,7 @@ real money is involved:
   Israeli VAT" from "0% export exemption") using the business's real
   region - again, without calling any external invoicing API.
 
-## 4. Integration steps for a real Stripe connection
+## 4. Integration steps for a real Stripe connection (generic scaffold written before provider evaluation - Stripe is NOT selected; see §8)
 
 1. Create the Stripe product/price objects - **one price per currency**
    (Stripe prices are single-currency; you cannot charge USD and ILS off
@@ -189,8 +207,8 @@ real money is involved:
 
 - `.env` is now gitignored (it previously was not - see the repo history
   around this document's introduction). Real Stripe/invoicing keys must
-  never be committed; `.env.example` documents the variable *names*
-  only, with empty values.
+  never be committed; `PROFLOW_ARCHITECTURE.md` §21 documents the variable
+  *names* only, with empty values (replaces the retired `.env.example`).
 - Never read `STRIPE_SECRET_KEY`/`INVOICE_API_KEY` in any client-side
   (`VITE_*`) context - both must only ever be read via `Deno.env.get(...)`
   inside an Edge Function, exactly like `RESEND_API_KEY` today.
@@ -202,3 +220,148 @@ real money is involved:
   must verify the provider's signature before trusting the payload,
   exactly like `resend-email-webhook` does for Resend's Svix signatures.
   Never process a webhook body without first confirming who sent it.
+
+## 7. Customer-Facing vs. Internal Tax Presentation — Permanent Separation Rule (added 2026-09-15, Owner-approved product/governance decision)
+
+This section records a **product separation rule**, not a final legal
+determination of the tax treatment of any International transaction —
+see the Legal/Accounting Confirmation Boundary at the end of this
+section before implementing any automatic VAT/tax behavior.
+
+**HE / LOCAL / RTL / ILS TAX PRESENTATION MUST REMAIN ISOLATED FROM
+EN / INTERNATIONAL / LTR / INTERNATIONAL-CURRENCY TAX PRESENTATION.**
+This extends the existing §1 market-separation rule (already
+load-bearing throughout the app for language/direction/currency/VAT
+rate) to **customer-facing tax terminology** specifically. The Owner
+explicitly rejected exposing internal Israeli tax/legal classification
+text inside international customer documents.
+
+**INTERNAL TAX CLASSIFICATION MUST NEVER LEAK INTO CUSTOMER-FACING
+INTERNATIONAL DOCUMENTS.** For an International customer-facing
+invoice/receipt/subscription document, the implementation must:
+
+- display only customer-relevant tax information;
+- preserve EN / LTR;
+- preserve the customer's international currency;
+- not expose internal Israeli legal/tax reasoning unless a specific
+  legal requirement later proves such disclosure mandatory;
+- not show Israeli internal legal-basis wording merely because the
+  seller is Israeli;
+- never show internal phrases such as "Israeli zero-rated export of
+  services", "Section 30(a)(5)", internal Israeli VAT classification
+  notes, or internal jurisdiction/audit metadata.
+
+Customer-facing international presentation may use neutral
+customer-relevant fields such as **Subtotal**, **VAT**/**Tax** (label
+chosen per the final jurisdiction-specific invoicing policy — not
+hardcoded globally without legal/accounting approval), **Tax Amount**,
+**Total**.
+
+**Concrete existing gap this rule applies to**: §3's
+`billing-checkout-stub` `action: "invoice_line_item"` response already
+returns "a human-readable VAT note distinguishing '18% Israeli VAT'
+from '0% export exemption'" — that reasoning-shaped note is exactly the
+kind of internal-classification text this rule forbids from reaching an
+International customer directly. Before that stub (or any real
+invoicing integration replacing it) is ever wired into customer-facing
+output, its response shape must separate an internal field (e.g. a
+`taxTreatment`/reasoning note, for bookkeeping/audit/accountant review
+only) from the customer-facing field (a neutral `Subtotal`/`VAT`/`Tax`/
+`Total` breakdown only) — no shared rendering shortcut may let the
+internal note leak into the rendered document.
+
+**INTERNAL ACCOUNTING METADATA AND CUSTOMER-FACING INVOICE
+PRESENTATION ARE SEPARATE LAYERS.** TEKANGO may preserve internal
+tax/accounting metadata separately for bookkeeping, accountant review,
+audit trail, tax reporting, and compliance logic. Examples of
+internal-only metadata: Tax Treatment, Jurisdiction, Legal Basis,
+Customer Residency, Tax Decision Reason. These internal fields must not
+automatically appear in International customer-facing output. When
+this is implemented, the architecture must structurally separate
+INTERNAL TAX METADATA from CUSTOMER-FACING INVOICE PRESENTATION — no
+shared rendering shortcut may cause internal Israeli tax labels to leak
+into EN/International documents.
+
+**Local / Israel customers are unaffected**: Local Israeli
+customer-facing documents remain governed by the existing Local market
+separation (HE / Local / RTL / ILS, §1 above) and may show Israeli tax
+terminology that is legally/accountingly appropriate for Israeli
+customers. The International presentation rules above must never be
+used to weaken or overwrite the Local presentation rules.
+
+**NO GLOBAL TAX LABEL OR RATE MAY BE HARD-CODED FOR INTERNATIONAL
+CUSTOMERS WITHOUT JURISDICTION-SPECIFIC APPROVAL.**
+
+**Legal / Accounting Confirmation Boundary**: before implementing
+automatic VAT/tax behavior for International subscriptions, obtain (and
+account for) final professional confirmation on: Israeli VAT treatment;
+foreign digital-services VAT/GST/sales-tax obligations; B2B vs. B2C
+differences; country-specific invoice requirements; whether "VAT",
+"Tax", or another label is appropriate per jurisdiction. Do not
+hardcode a global 0% VAT rule into customer-facing invoices solely from
+this documentation — §1's existing `vatRate: 0.00` for International
+remains the current, already-enforced product rule for internal
+calculation purposes; this section governs *customer-facing
+presentation/labeling* on top of it, not a change to that rate.
+
+## 8. Payment / invoicing provider candidate: PayPlus (recorded 2026-09-22 - commercial evaluation only)
+
+**Status (canonical):** PAYPLUS: PROVIDER CANDIDATE · COMMERCIAL OFFER: RECEIVED · COMMERCIAL OFFER: NOT SIGNED · TECHNICAL INTEGRATION:
+NOT STARTED · CHECKOUT: NOT LIVE · INVOICING: NOT LIVE · PRODUCTION PROVIDER DECISION: NOT FINAL.
+
+This section records a received commercial proposal. **It is not implementation truth, not a signed agreement, and not a provider
+decision.** Nothing here authorizes code, credentials, webhooks, a merchant account, or any customer-facing payment claim. The integration
+contract stays provider-neutral (a provider adapter behind the existing region/currency/VAT accessor, §1), so a different provider can
+still be chosen without re-architecture.
+
+### 8.1 Services in the received proposal (all prices before VAT, as reported by the Owner)
+
+| Service | Proposal figure |
+|---|---|
+| Digital terminal setup | ILS 250 one-time, up to 1,000 transactions/month |
+| Website payment page | ILS 79 / month |
+| API permissions | ILS 29.90 / month |
+| Standing orders (recurring-payment capability) | ILS 85 / month |
+| Standing-order transaction charge | **preserve the proposal's exact wording and units until clarified with PayPlus** (not restated here to avoid inventing a unit) |
+| Token service | ILS 39.90 / month |
+| 3D Secure (optional / additional) | ILS 400 one-time + ILS 1.20 per transaction |
+| Digital invoices - Professional | up to 100 documents / month, ILS 29 / month |
+| Digital invoices - Enterprise | up to 250 documents / month, ILS 49 / month |
+| Digital invoices - Premium | up to 500 documents / month, ILS 79 / month |
+| Digital wallets | optional, for one-time payments |
+| Acquiring | a **separate acquiring-company / internet merchant number** is required (not part of the PayPlus fees) |
+
+### 8.2 Open due-diligence questions (must be answered before any provider decision or integration work)
+
+1. **Tenant / merchant model** - is TEKANGO the merchant (platform subscriptions only) or does each TEKANGO business need its own merchant
+   account to collect from its customers (marketplace/sub-merchant model)? Both flows must stay separable.
+2. **Per-tenant credentials** - how are per-business terminals/keys provisioned, stored and rotated; can TEKANGO hold them securely server-side only?
+3. **Onboarding** - merchant onboarding steps, KYC, lead time, who signs with the acquirer.
+4. **API authentication** - key types, scopes, IP allow-listing, key rotation.
+5. **Sandbox** - is there a full sandbox (payments, tokens, recurring, documents) usable from TEST without real money?
+6. **Webhook signatures** - signed callbacks? algorithm, secret rotation, replay protection.
+7. **Idempotency** - idempotency keys on charge/refund/document creation; behavior on retries/timeouts.
+8. **Reconciliation** - settlement reports, transaction status API, how to reconcile against our records.
+9. **Refunds / voids** - full/partial refunds, void windows, how refunds map to credit documents.
+10. **Tokenization** - token scope (per terminal/merchant), portability if we change provider, token lifetime.
+11. **PCI boundary** - hosted page / iframe / fields: does card data ever touch TEKANGO? (target: never - SAQ A scope).
+12. **Recurring billing** - standing-order semantics, schedule control, proration, retries.
+13. **Failed renewal** - retry schedule, dunning notifications, webhook events, grace period mapping to our entitlement model.
+14. **Invoice / receipt document APIs** - document types (tax invoice, receipt, tax invoice-receipt, credit note), numbering, legal validity.
+15. **Transaction <-> accounting document linkage** - automatic document per charge? one API call or two? atomicity/idempotency.
+16. **Local vs International document rules** - ILS Israeli VAT documents vs USD/EUR/GBP documents for foreign customers; language (HE/EN);
+    presentation must follow §7 (no internal Israeli tax classification text on International customer documents).
+17. **Hosted vs embedded checkout** - options, branding, redirect/return flows, mobile behavior.
+18. **Currencies** - which currencies can be charged and settled (ILS, USD, EUR, GBP), FX handling, settlement currency.
+19. **3DS** - when it is mandatory vs optional, liability shift, UX.
+20. **Wallets** - Apple Pay / Google Pay availability, one-time only vs recurring.
+21. **Accessibility** - hosted payment page accessibility conformance (Israeli standard IS 5568 / WCAG 2.x AA).
+22. **Subscription lifecycle** - upgrade, downgrade, cancel, renewal, proration and refunds for TEKANGO plans (monthly / annual).
+
+### 8.3 Rules until a provider is decided and an integration is separately authorized
+
+- No landing/pricing/marketing copy may claim live checkout, card processing, automatic invoices/receipts or recurring billing.
+  Plan prices and the annual plan stay visible (Owner decision: PRICING DISPLAY KEEP, ANNUAL PLAN KEEP, 14-DAY FREE TRIAL KEEP);
+  signup truthfully starts the 14-day free trial with no card and no payment step.
+- No payment/invoicing credentials in the repo or client bundle; server-side secrets only, when an integration is authorized.
+- A risky integration must ship behind a kill-switch (OD-5) and with forward-safe database changes only.
