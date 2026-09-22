@@ -414,3 +414,10 @@ html {
   white-space: nowrap;
   border: 0;
 }
+
+/* IRON-MOBILE-WIDTH-001 tokens (authenticated mobile work screens, <=768px). Recovered accepted values: workspace inset 6px/side
+   (Owner "Mobile Width Utilization" target 4-8px) + screen-card inner inset 8px (Owner QA correction on Quote History / Clients). */
+:root {
+  --pf-mobile-workspace-inset: 6px;
+  --pf-mobile-screen-inset: 8px;
+}

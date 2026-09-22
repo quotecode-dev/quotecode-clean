@@ -14,7 +14,7 @@ import { LIGHT as NEON, RADIUS, SHADOW } from '../theme/neonTheme';
 export default function AdminScreenFrame({ title, subtitle, actions, controls, head, label, children }) {
   return (
     <section
-      className="pf-screen admin-screen"
+      className="pf-screen pf-work-screen admin-screen"
       aria-label={label || title}
       style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}
     >

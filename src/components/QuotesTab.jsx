@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { MoneyValue } from './NumericValue';
+import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { formatDateLocal } from '../utils/regionConfig';
 import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
@@ -131,6 +132,7 @@ export default function QuotesTab({
   // ל-dash-upper-section+שורת-הכותרת הדביקים, ללא מספר-קסם), ו-thead
   // מקבל top:0 פשוט ביחס ל-wrapper המקומי שלו - לא עוד חישוב-קיזוז מצטבר.
   const headerRowRef = useRef(null);
+  const cardListRef = useRef(null);
 
   // TEKANGO — Greeting Motion + Inner Scrollbar Top Anchor (Final) task
   // (2026-09-18), Part 2 - SUPERSEDES the immediately-prior round's own
@@ -285,6 +287,9 @@ export default function QuotesTab({
 
     return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge };
   });
+
+  // IRON-MOBILE-WIDTH-001: the mobile card amount slot is exactly as wide as the widest rendered amount (shared physical axis, no dead gap).
+  useMoneySlotSize(cardListRef, rowsMeta.map((r) => `${r.quoteSym}${formatMoneyDisplay(r.quote.total, r.quote.currency)}`), { enabled: isMobileView });
 
   const renderEmailDot = (quote, emailStatus) => (
     quote.email_bounced ? (
@@ -474,7 +479,7 @@ export default function QuotesTab({
     // כבר קיים בקומפוננטה הזו בדיוק לצורך הזה (טבלה מול כרטיסים) - נעשה שימוש
     // חוזר בו כאן, לא נוסף מנגנון-CSS/media-query מקביל. דסקטופ (14px) לא נגע
     // בכלל - התנאי חל רק כש-isMobileView אמיתי.
-    <div className="pf-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
+    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
       {/* חוק ברזל (תיקון בעלים מאושר): הוסר flexDirection: row-reverse עבור
           עברית - היה זה הבאג עצמו. במיכל עם dir="rtl" (יורש מה-Dashboard),
           'row' הרגיל כבר ממקם את הילד הראשון ב-DOM (כותרת+ייצוא) ב-"התחלה"
@@ -907,7 +912,7 @@ export default function QuotesTab({
           במלואה, לא נסוגה. */}
       {/* Responsive scroll contract: the card list is the screen's inner scroll body (same
           .pf-screen-body owner as the desktop table) - title/search/filters above never scroll. */}
-      <div className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div ref={cardListRef} className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
             {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}

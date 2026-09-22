@@ -81,7 +81,7 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
   for (const [name, file] of Object.entries(screens)) {
     it(`${name}: pf-screen + pf-screen-body`, () => {
       const src = read('src', 'components', file);
-      expect(src).toContain('className="pf-screen"');
+      expect(src).toMatch(/className="pf-screen( pf-work-screen)?"/);
       expect(src).toMatch(/className="pf-screen-body/);
     });
   }
@@ -90,11 +90,11 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
     const src = read('src', 'components', 'QuotesTab.jsx').split(String.fromCharCode(13)).join('');
     const mobile = src.slice(src.search(/\{isMobileView && \(\s*<>/));
     expect(mobile.length).toBeGreaterThan(100);
-    expect(mobile).toMatch(/<div className="pf-screen-body" style=\{\{ display: 'flex', flexDirection: 'column', gap: '6px' \}\}>/);
+    expect(mobile).toMatch(/<div (ref={cardListRef} )?className="pf-screen-body" style=\{\{ display: 'flex', flexDirection: 'column', gap: '6px' \}\}>/);
   });
   it('Clients mobile list is the inner scroll body and no non-visual node separates the static block from it', () => {
     const src = read('src', 'components', 'ClientsTab.jsx');
-    const start = src.indexOf('className="pf-screen"');
+    const start = src.search(/className="pf-screen( pf-work-screen)?"/);
     expect(src.indexOf('<style>{`', start)).toBeLessThan(src.indexOf('<div style={{ display: \'flex\', justifyContent: \'space-between\'', start));
     expect(src).toMatch(/\{isMobileView && \(\s*<div className="pf-screen-body"/);
   });

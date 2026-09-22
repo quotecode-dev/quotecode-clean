@@ -4446,7 +4446,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
              תוכן). הוקטן כאן ל-6px רק מתחת ל-768px, בלי לגעת בערך
              הדסקטופ המקורי (10px, לא במדיה query זו). */
           .dash-main-content {
-            padding: 6px !important;
+            padding: var(--pf-mobile-workspace-inset, 6px) !important;
           }
           .dash-kpi-grid {
             gap: 8px !important;
@@ -5104,6 +5104,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           .dash-sidebar {
             height: calc(100% - 16px);
             margin-top: 16px;
+          }
+        }
+        /* IRON-MOBILE-WIDTH-001: ONE canonical horizontal inset on authenticated mobile work screens. Viewport -> .dash-main-content
+           (--pf-mobile-workspace-inset, Owner target 4-8px/side) -> .pf-work-screen card padding (--pf-mobile-screen-inset). Nested
+           wrappers must not add another gutter; the bottom-nav clearance below is VERTICAL only. */
+        @media (max-width: 768px) {
+          .pf-work-screen {
+            padding-inline: var(--pf-mobile-screen-inset, 8px) !important;
           }
         }
         @media (max-width: 768px) {

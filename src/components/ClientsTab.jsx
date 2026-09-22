@@ -275,7 +275,7 @@ export default function ClientsTab({
   };
 
   return (
-    <div className="pf-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: isMobileView ? '8px' : '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Kept as the first child: a non-visual node between the static block and the
           .pf-screen-body would defeat the shared body-adjacent margin rule. */}
       <style>{`

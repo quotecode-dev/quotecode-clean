@@ -141,7 +141,7 @@ export default function SettingsTab({
   };
 
   return (
-    <div className="pf-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Cross-Surface Visual Consolidation (§10): shadow-card pattern,
           matches Quote History/Dashboard - see ClientsTab.jsx for the full
           rationale comment. Container-level only. */}
