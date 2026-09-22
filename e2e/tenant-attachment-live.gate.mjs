@@ -109,6 +109,9 @@ try {
     fs.writeFileSync(tmp, '%PDF-1.4\n% synthetic attachment for the TEKANGO lifecycle gate\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     const page = await ctx.newPage();
+    const consoleErrors = [];
+    await ctx.addInitScript(() => { window.__errs = []; window.addEventListener('unhandledrejection', (e) => window.__errs.push(String(e.reason && (e.reason.stack || e.reason.message) || e.reason))); window.addEventListener('error', (e) => window.__errs.push(String(e.message))); const o = window.open; window.open = function (...a) { const w = o.apply(window, a); window.__opened = w; window.__openedAt = Date.now(); window.__openStack = new Error('open').stack; return w; }; });
+    page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(m.text().slice(0, 200)); });
     await login(page, PERSONA_EN, 'en');
     await page.getByRole('button', { name: /^New Quote$/ }).first().click();
     await page.getByTestId('sq-step-1').waitFor({ timeout: 15000 });
@@ -151,11 +154,24 @@ try {
     await row.getByRole('button', { name: /Show more details/ }).click();
     await page.getByRole('button', { name: /^Edit$/ }).first().click();
     await page.getByTestId('sq-step-1').waitFor({ timeout: 15000 });
+    // The tab opens synchronously (about:blank) and is then pointed at the minted signed URL. Headless Chromium DOWNLOADS a PDF
+    // response instead of rendering it, so the tab URL itself may stay about:blank - observe the navigation request instead.
+    const signedRequests = [];
+    ctx.on('request', (r) => { if (/\/storage\/v1\/object\/sign\/quote-files\/.+token=/.test(r.url())) signedRequests.push(r.url()); });
     const [popup] = await Promise.all([page.waitForEvent('popup', { timeout: 15000 }), page.getByRole('button', { name: /synthetic-plan\.pdf/ }).first().click()]);
-    // the tab opens synchronously (about:blank) and is pointed at the minted signed URL afterwards
-    await popup.waitForURL(/\/object\/sign\//, { timeout: 15000 }).catch(() => {});
-    check(c, 'open uses a short-lived signed URL', /\/object\/sign\/quote-files\/.+token=/.test(popup.url()), popup.url().slice(0, 120));
-    await popup.close();
+    for (let t = 0; t < 60 && !signedRequests.length && !/\/object\/sign\//.test(popup.url()); t += 1) await page.waitForTimeout(250); // up to 15 s
+    const opened = signedRequests[0] || popup.url();
+    check(c, 'open navigates the new tab to a short-lived signed URL (token, expires in 60 s)', /\/object\/sign\/quote-files\/.+token=/.test(opened), opened.slice(0, 120));
+    check(c, 'the signed URL targets exactly this attachment path', path0 && opened.includes(encodeURI(path0.split('/')[1])), path0);
+    if (!/\/object\/sign\//.test(popup.url())) {
+      c.debugAfterOpen = {
+        popupUrl: popup.url(),
+        popupClosed: popup.isClosed(),
+        pageAlert: (await page.locator('body').innerText()).match(/.{0,80}(cannot be opened|לא ניתן לפתוח).{0,40}/)?.[0] || null,
+        consoleErrors: consoleErrors.slice(-8),
+      };
+    }
+    await popup.close().catch(() => {});
     // the file row is [name button][remove (X) button]
     await page.locator('a, button, span').filter({ hasText: /synthetic-plan\.pdf/ }).first().locator('xpath=following::button[1]').click();
     await page.getByTestId('sq-save').click();
