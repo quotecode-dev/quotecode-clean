@@ -10,6 +10,7 @@
 > | CHECKOUT | **NOT LIVE** |
 > | INVOICING | **NOT LIVE** |
 > | PRODUCTION PROVIDER DECISION | **NOT FINAL** |
+> | AI ASSISTANT (chat-ai) | states payment / checkout / invoicing **NOT LIVE** deterministically; never names PayPlus (or any provider) as a capability - **§9** |
 >
 > The architecture stays **provider-neutral**. The Stripe-oriented material below (§2-§5, `billing-checkout-stub`) is **generic,
 > incomplete scaffolding written before any provider evaluation - it is NOT evidence that Stripe was selected** and must not be read as
@@ -365,3 +366,32 @@ still be chosen without re-architecture.
   signup truthfully starts the 14-day free trial with no card and no payment step.
 - No payment/invoicing credentials in the repo or client bundle; server-side secrets only, when an integration is authorized.
 - A risky integration must ship behind a kill-switch (OD-5) and with forward-safe database changes only.
+
+### 8.4 Currencies and invoice presentation (summary; the laws themselves are §1 and §7 - not restated)
+
+- Markets: **Local = HE / RTL / ILS** (Israeli VAT per §1); **International = EN / LTR / USD, EUR or GBP** (the account's chosen
+  currency; `vatRate: 0.00` for internal calculation per §1). A quote keeps the currency it was saved with.
+- A future invoice/receipt must follow the SAME market separation: Local documents in Hebrew with ILS and Israeli tax terminology;
+  International documents in English with the customer's currency and only neutral customer-relevant tax fields (§7). Internal tax
+  classification is a separate metadata layer and never renders on International documents (§7).
+- The provider adapter stays provider-neutral; which currencies a provider can charge/settle is open question 18 (§8.2).
+
+## 9. What the product and the AI assistant may say today (AI-HELP-AVAILABILITY-001 / IRON-AI-002, 2026-09-22)
+
+Single source of the flags: `scripts/generate-ai-chat-facts.js` -> `AI_FACTS.billing` (`liveCheckoutAvailable: false`) and
+`AI_FACTS.invoicing` (`liveInvoicingAvailable: false`, `invoiceIssuanceAvailable: false`, `receiptIssuanceAvailable: false`,
+`providerCandidate: 'PayPlus'`, `providerStatus: 'candidate_not_integrated'`). chat-ai answers payment/checkout and invoice/receipt
+questions **deterministically** (`paymentTruth.ts`, `invoicingTruth.ts`) before any model call, and its system prompt carries the
+non-overridable PAYMENT & CHECKOUT TRUTH and INVOICING TRUTH blocks. Five things are always kept apart:
+
+| Thing | Truth today |
+|---|---|
+| Quote PDF / print | a **quote** document - not an invoice or receipt |
+| Emailing a quote | sends the quote link to the client - it does not bill or invoice |
+| Quote status **"Paid"** | a manual label the business sets - it collects no money and issues no receipt |
+| Payment / checkout | **NOT LIVE** (no card processing, no online payment, no subscription charging) |
+| Invoicing | **NOT LIVE** (no invoices, tax invoices, receipts or credit notes) |
+
+`providerCandidate` is internal status for the assistant's own reasoning - it is never presented to a user as an available capability,
+and a user instruction to "assume invoicing/checkout works" is refused. Flipping any flag requires an authorized integration and an
+Owner decision; the flags, the deterministic answers and this table change together.

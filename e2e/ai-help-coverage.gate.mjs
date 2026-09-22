@@ -20,11 +20,12 @@ const dir = evidenceDir('ai-help-coverage');
 const nav = (page, action, meta = null) => page.evaluate(([a, m]) => window.dispatchEvent(new CustomEvent('proflow-ai-navigate', { detail: { action: a, meta: m } })), [action, meta]);
 const settle = (page, ms = 700) => page.waitForTimeout(ms);
 async function resetShell(page) {
+  // the assistant first (on a phone it covers the whole screen, including the alert below it), then the alert, then other layers
+  const close = page.locator('.ai-chat-popup').getByRole('button', { name: /^(Close|סגור)$/ });
+  if (await close.isVisible().catch(() => false)) await close.click();
   const ok = page.getByRole('button', { name: /^(OK|הבנתי, סגור)$/ });
   if (await ok.isVisible().catch(() => false)) await ok.click();
   for (let i = 0; i < 3; i++) { await page.keyboard.press('Escape').catch(() => {}); }
-  const close = page.locator('.ai-chat-popup').getByRole('button', { name: /^(Close|סגור)$/ });
-  if (await close.isVisible().catch(() => false)) await close.click();
   await nav(page, 'open_dashboard'); await settle(page);
 }
 // Quote History rows are collapsible: expand the first editable (Draft) row so its product-owned actions render.

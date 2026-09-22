@@ -102,7 +102,9 @@ export function buildAiHelpContext(sources, { blockers = [], revision = 0, now =
   // an active sharing / attachment blocker names the section the user is stuck in (structured, never DOM-derived)
   const blockerSection = codes.some((c) => c.startsWith('EMAIL_')) ? 'share_email' : codes.includes('PDF_GENERATION_FAILED') ? 'print_pdf' : codes.includes('WHATSAPP_REQUIRES_PRO') ? 'share_whatsapp'
     : codes.some((c) => c.startsWith('ATTACHMENT')) && sources.editor?.open ? 'attachments' : null;
-  if (!sources.section && blockerSection) sources = { ...sources, section: blockerSection };
+  // a forced screen (the assistant's own problem) owns its section/workflow - an older blocker elsewhere never re-labels it
+  if (!forceScreen && !sources.section && blockerSection) sources = { ...sources, section: blockerSection };
+  if (forceScreen && sources.section) sources = { ...sources, section: null };
   const screen = forceScreen || resolveHelpScreen(sources);
   const adapter = ADAPTERS[screen] || ADAPTERS.neutral;
   const a = adapter(sources);

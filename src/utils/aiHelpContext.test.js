@@ -80,6 +80,11 @@ describe('screen + provenance resolution', () => {
     expect(resolveProvenance({ editor: { open: true, mode: 'edit' }, draft: { conflict: true } })).toBe('STALE_SERVER_VERSION');
     expect(resolveProvenance({ editor: { open: true, mode: 'new' }, draft: {} }, ['QUOTE_SAVE_NETWORK_ERROR'])).toBe('UNKNOWN_SAVE_RESULT');
   });
+  it('a forced ai_chat screen keeps its own workflow even when an older email blocker is active', () => {
+    const raw = buildAiHelpContext(SOURCES.dashboard, { now: NOW, forceScreen: 'ai_chat', blockers: [{ id: 'EMAIL_SEND_FAILED', code: 'EMAIL_SEND_FAILED', occurredAt: NOW - 5000 }, { id: 'AI_PROVIDER_FAILED', code: 'AI_PROVIDER_FAILED', occurredAt: NOW }] });
+    expect(raw.screen).toBe('ai_chat'); expect(raw.workflowId).toBe('ai_chat'); expect(raw.section).toBe('transcript');
+    expect(raw.blockers.map((b) => b.code)).toEqual(['EMAIL_SEND_FAILED', 'AI_PROVIDER_FAILED']);
+  });
   it('published blockers are carried as codes only and turn the mode to BLOCKED_WORKFLOW_HELP', () => {
     const raw = buildAiHelpContext(SOURCES.quote_editor_new, { now: NOW, blockers: [{ id: 'PROFILE_MISSING_PHONE', code: 'PROFILE_MISSING_PHONE', occurredAt: NOW, fieldCodes: ['business_phone'] }] });
     const clean = sanitizeHelpContext(raw, NOW);
