@@ -18,7 +18,7 @@ const require = createRequire(process.env.PW_ROOT || 'C:/tkrtool/package.json');
 const { chromium } = require('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const { PERSONA_A, PERSONA_EN, SUPABASE_URL, SUPABASE_ANON_KEY } = await import(pathToFileURL(path.join(here, 'testPersonas.js')).href);
-const { createClient } = await import(pathToFileURL(path.join(here, '..', 'node_modules', '@supabase', 'supabase-js', 'dist', 'main', 'index.js')).href).catch(async () => import('@supabase/supabase-js'));
+const { createClient } = await import('@supabase/supabase-js');
 
 const STAMP = Date.now().toString(36).toUpperCase();
 const results = [];
