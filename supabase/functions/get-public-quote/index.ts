@@ -1,5 +1,6 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isQuoteAcceptanceExpired } from './validity.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -135,7 +136,7 @@ serve(async (req) => {
 
     const { data: bizRow } = await adminClient
       .from('business_settings')
-      .select('business_name, logo_url, tax_id, email, phone, address, currency')
+      .select('business_name, logo_url, tax_id, email, phone, address, currency, country')
       .eq('user_id', quote.user_id)
       .maybeSingle();
 
@@ -190,6 +191,8 @@ serve(async (req) => {
         currency: quote.currency,
         client_type: quote.client_type,
         is_owner_viewing: isOwner,
+        // OD-1: server truth for "may this quote still be accepted?" (the page falls back to the same rule when absent)
+        is_expired: isQuoteAcceptanceExpired(quote.valid_until, bizRow?.country),
         // חוק ברזל (Part E): undefined כשה-select השטוח-בלבד רץ (עמודה
         // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים
         // ל-undefined בדיוק כמו "אין פרויקט", לא שגיאה.

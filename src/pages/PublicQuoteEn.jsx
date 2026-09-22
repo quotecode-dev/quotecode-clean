@@ -8,6 +8,7 @@ import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lu
 import PdfFileIcon from '../components/PdfFileIcon';
 import QuotePrintModeModal from '../components/QuotePrintModeModal';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
+import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney } from '../utils/money';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
@@ -171,7 +172,15 @@ export default function PublicQuoteEn({ quoteData }) {
     document.documentElement.dir = 'ltr';
   }, []);
 
+  // OD-1: an expired quote stays viewable but cannot be accepted. International market: the validity day ends only when it has
+  // ended everywhere (Anywhere on Earth); server truth `is_expired` wins when provided. The stored date is never changed.
+  const isExpired = resolveQuoteExpired(quote, 'International');
+
   const handleApprove = async () => {
+    if (isExpired) {
+      setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', false).userMessage });
+      return;
+    }
     let blocked = false;
     if (!signerName.trim()) { setSignerNameWarning(true); blocked = true; }
     if (!hasSigned) { setSignatureWarning(true); blocked = true; }
@@ -623,7 +632,7 @@ export default function PublicQuoteEn({ quoteData }) {
           + 2*padding + 2*border) is accurate for both files without a
           special-cased exception for English's border being 0. */}
       <div ref={cardRef} className="pq-card pq-card-desktop-width" style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: 'var(--pf-doc-shell-border-width) solid #e2e8f0', width: '100%', maxWidth: '1100px', boxSizing: 'border-box' }}>
-        <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} />
+        <PublicQuoteHeader isHebrew={false} bizLogo={bizLogo} bizName={bizName} bizTaxId={bizTaxId} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} quote={quote} isExpired={isExpired && !approved} />
 
         {/* Iron rule (owner correction - recipient visual hierarchy): the
             label stays dark/normal - the recipient's own data (name, and
@@ -930,6 +939,16 @@ export default function PublicQuoteEn({ quoteData }) {
         ) : isOwnerViewing ? (
           <div className="pq-section" style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe', textAlign: 'center' }}>
             ℹ️ Admin View: Signature area is displayed to the client only.
+            {isExpired && (
+              <div data-testid="pq-owner-expired-hint" style={{ marginTop: '8px', fontWeight: '500' }}>
+                This quote has expired - your customer cannot sign it until you extend the validity date in the quote editor or send an updated quote.
+              </div>
+            )}
+          </div>
+        ) : isExpired ? (
+          <div className="pq-section" role="status" data-testid="pq-expired" style={{ background: '#fff7ed', color: '#9a3412', padding: '18px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '700', border: '1px solid #fed7aa', textAlign: 'center' }}>
+            ⏳ This quote has expired and can no longer be approved or signed.
+            <div style={{ marginTop: '6px', fontWeight: '500', fontSize: '0.88rem' }}>Please contact the business that sent it for an updated quote.</div>
           </div>
         ) : (
           <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>

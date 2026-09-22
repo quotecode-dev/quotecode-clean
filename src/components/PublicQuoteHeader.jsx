@@ -7,7 +7,7 @@ import { formatAddress } from '../utils/addressFormat';
 // חוק ברזל: "חייג/י אליי" הוא CTA טקסטואלי בלבד - המספר עצמו לעולם לא
 // מוצג *על גבי הכפתור* (מוצג כטקסט מידע נפרד למעלה, בדיוק כמו קודם) -
 // קישור ה-tel: מכיל אותו רק כפעולה טכנית, לא כתוכן גלוי.
-export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote }) {
+export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote, isExpired = false }) {
   const hasLogo = bizLogo && bizLogo.length > 5;
 
   // חוק ברזל (Faded PDF Logo Correction task - היפותזה שנבדקה ונשללה
@@ -59,6 +59,8 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   }, []);
 
   const dateStr = new Date(quote.created_at).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB');
+  // project_name (IRON-QUOTE-002): the issuer's project identity is part of the customer-facing quote when set.
+  const projectName = String(quote.project_name || '').trim();
   const validUntilStr = quote.valid_until ? new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB') : null;
   // עדכון 2026-08-28 (Quote Number Transition audit): quote כאן מגיע מ-
   // get-public-quote, וה-Edge Function הזו (בניגוד למקור הקודם שחשב
@@ -174,8 +176,9 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
               </div>
               <div>{isHebrew ? 'תאריך:' : 'Date:'} {dateStr}</div>
               {validUntilStr && (
-                <div className="pq-header-valid" style={{ color: '#fca5a5', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}</div>
+                <div className="pq-header-valid" style={{ color: '#fca5a5', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}{isExpired && <span data-testid="pq-header-expired"> · {isHebrew ? 'פג תוקף' : 'Expired'}</span>}</div>
               )}
+              {projectName && <div className="pq-header-project" style={{ fontWeight: '600' }}>{isHebrew ? 'פרויקט:' : 'Project:'} {projectName}</div>}
             </div>
             {bizPhone && (
               <a
@@ -270,6 +273,12 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
             {quote.valid_until && (
               <div className="pq-header-valid" style={{ fontSize: '0.75rem', color: '#fca5a5', fontWeight: 'bold' }}>
                 {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {new Date(quote.valid_until).toLocaleDateString(isHebrew ? 'he-IL' : 'en-GB')}
+                {isExpired && <span data-testid="pq-header-expired"> · {isHebrew ? 'פג תוקף' : 'Expired'}</span>}
+              </div>
+            )}
+            {projectName && (
+              <div className="pq-header-project" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: '2px' }}>
+                {isHebrew ? 'פרויקט:' : 'Project:'} {projectName}
               </div>
             )}
           </div>

@@ -14,6 +14,7 @@ import QuotePrintModeModal from '../components/QuotePrintModeModal';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
+import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
 
@@ -228,7 +229,15 @@ export default function PublicQuote({ quoteData }) {
     document.documentElement.dir = 'rtl';
   }, []);
 
+  // OD-1: an expired quote stays viewable but cannot be accepted. This page is the Local (HE/ILS) market, so the validity
+  // day ends in Asia/Jerusalem (server truth `is_expired` wins when get-public-quote provides it). The stored date is never changed.
+  const isExpired = resolveQuoteExpired(quote, 'Local');
+
   const handleApprove = async () => {
+    if (isExpired) {
+      setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Quote expired', true).userMessage });
+      return;
+    }
     let blocked = false;
     if (!signerName.trim()) {
       setSignerNameWarning(true);
@@ -804,6 +813,7 @@ export default function PublicQuote({ quoteData }) {
           bizEmail={bizEmail}
           bizAddress={bizAddress}
           quote={quote}
+          isExpired={isExpired && !approved}
         />
 
         {/* Client & Business Info + Attn (item 18) - a flex row so the two
@@ -1192,6 +1202,16 @@ export default function PublicQuote({ quoteData }) {
           ) : isOwnerViewing ? (
             <div className="pq-section" style={{ background: '#eff6ff', color: '#1e40af', padding: '15px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '600', border: '1px solid #bfdbfe' }}>
               ℹ️ תצוגת מנהל: אזור החתימה מוצג ללקוח בלבד.
+              {isExpired && (
+                <div data-testid="pq-owner-expired-hint" style={{ marginTop: '8px', fontWeight: '500' }}>
+                  תוקף ההצעה הסתיים - הלקוח לא יוכל לחתום עליה עד שתעדכנו את תאריך התוקף בעריכת ההצעה או תפיקו הצעה מעודכנת.
+                </div>
+              )}
+            </div>
+          ) : isExpired ? (
+            <div className="pq-section" role="status" data-testid="pq-expired" style={{ background: '#fff7ed', color: '#9a3412', padding: '18px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '700', border: '1px solid #fed7aa' }}>
+              ⏳ תוקף הצעת המחיר הסתיים, ולכן לא ניתן לאשר או לחתום עליה כעת.
+              <div style={{ marginTop: '6px', fontWeight: '500', fontSize: '0.88rem' }}>לקבלת הצעה מעודכנת פנו לעסק ששלח אותה.</div>
             </div>
           ) : (
             <div className="pq-section no-print" style={{ border: '1px solid #cbd5e1', padding: '20px', borderRadius: '12px', background: '#f8fafc', textAlign: 'center', boxSizing: 'border-box' }}>

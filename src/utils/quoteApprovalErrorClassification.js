@@ -19,10 +19,21 @@
 const PATTERNS = [
   {
     category: 'owner_cannot_self_approve',
-    test: (msg) => /business account cannot approve or sign/i.test(msg),
+    // 20260831/20260909 wording ("business account cannot approve or sign") and the 2026-09-22 OD-9 wording
+    // ("a member of the business that issued this quote cannot approve or sign").
+    test: (msg) => /(business account|member of the business that issued this quote) cannot approve or sign/i.test(msg),
     userMessage: {
       he: '❌ לא ניתן לחתום על הצעה זו מחשבון העסק ששלח אותה. אם את/ה הלקוח/ה, יש להיכנס עם החשבון שלך או בגלישה אנונימית.',
       en: '❌ This quote cannot be signed from the business account that sent it. If you are the customer, please sign in with your own account or use an anonymous/incognito window.',
+    },
+  },
+  {
+    // OD-1 (2026-09-22): an expired quote stays viewable but cannot be accepted.
+    category: 'quote_expired',
+    test: (msg) => /quote expired|validity date has passed/i.test(msg),
+    userMessage: {
+      he: '⏳ תוקף הצעת המחיר הסתיים, ולכן לא ניתן לאשר או לחתום עליה. לקבלת הצעה מעודכנת פנו לעסק ששלח אותה.',
+      en: '⏳ This quote has expired, so it can no longer be approved or signed. Please contact the business that sent it for an updated quote.',
     },
   },
   {

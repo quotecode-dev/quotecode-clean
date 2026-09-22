@@ -79,3 +79,57 @@ describe('PublicQuoteEn (EN) - corrected owner-only signing gate (symmetric with
     expect(screen.getByText('Client Signature to Approve This Quote:')).toBeInTheDocument();
   });
 });
+
+// OD-9 (issuer-tenant members cannot sign; other-tenant TEKANGO users may) + OD-1 (display + enforce acceptance expiry).
+describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', () => {
+  const past = '2020-01-13';
+  const future = '2099-12-13';
+
+  it('HE: an expired quote stays viewable but shows no signing UI - only the expired notice + header marker', () => {
+    const data = buildQuoteData({ quote: { valid_until: past } });
+    render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
+    expect(screen.getByTestId('pq-expired')).toHaveTextContent('תוקף הצעת המחיר הסתיים');
+    expect(screen.queryByText('חתימת לקוח לאישור ההצעה:')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /אשר וחתום/ })).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('pq-header-expired')[0]).toHaveTextContent('פג תוקף');
+  });
+
+  it('EN: an expired quote stays viewable but shows no signing UI', () => {
+    const data = buildQuoteData({ quote: { valid_until: past, tax_rate: 0, currency: 'USD' } });
+    render(<MemoryRouter><PublicQuoteEn quoteData={data} /></MemoryRouter>);
+    expect(screen.getByTestId('pq-expired')).toHaveTextContent('This quote has expired');
+    expect(screen.queryByText('Client Signature to Approve This Quote:')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('pq-header-expired')[0]).toHaveTextContent('Expired');
+  });
+
+  it('a quote before expiry keeps the full signing UI (HE + EN)', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { valid_until: future } })} /></MemoryRouter>);
+    expect(screen.getByText('חתימת לקוח לאישור ההצעה:')).toBeInTheDocument();
+    expect(screen.queryByTestId('pq-expired')).not.toBeInTheDocument();
+  });
+
+  it('server truth wins: is_expired=true blocks signing even with a future date', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { valid_until: future, is_expired: true } })} /></MemoryRouter>);
+    expect(screen.getByTestId('pq-expired')).toBeInTheDocument();
+  });
+
+  it('a signed (approved) historical quote whose validity later passed shows the approval record, not "expired"', () => {
+    const data = buildQuoteData({ quote: { valid_until: past, status: 'approved', signature: 'data:image/png;base64,iVBORw0KGgo=' } });
+    render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
+    expect(screen.getByText(/אושרה ונחתמה בהצלחה/)).toBeInTheDocument();
+    expect(screen.queryByTestId('pq-expired')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pq-header-expired')).not.toBeInTheDocument();
+  });
+
+  it('the issuer viewing its own expired quote gets the owner view + a hint to extend validity (never a signing UI)', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { valid_until: past, is_owner_viewing: true } })} /></MemoryRouter>);
+    expect(screen.getByText(/תצוגת מנהל/)).toBeInTheDocument();
+    expect(screen.getByTestId('pq-owner-expired-hint')).toHaveTextContent('תאריך התוקף');
+    expect(screen.queryByRole('button', { name: /אשר וחתום/ })).not.toBeInTheDocument();
+  });
+
+  it('project_name is shown on the customer-facing header when set (HE + EN)', () => {
+    render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { project_name: 'מגדל סינתטי' } })} /></MemoryRouter>);
+    expect(screen.getAllByText(/פרויקט:\s*מגדל סינתטי/).length).toBeGreaterThan(0);
+  });
+});

@@ -43,3 +43,17 @@ describe('classifyQuoteApprovalError', () => {
     expect(result.userMessage).toMatch(/no longer be approved/);
   });
 });
+
+describe('OD-9 / OD-1 server wording (migration 20260922000000)', () => {
+  it('the issuer-tenant rejection maps to the self-approval message', () => {
+    const r = classifyQuoteApprovalError("Not permitted: a member of the business that issued this quote cannot approve or sign it on the customer's behalf", false);
+    expect(r.category).toBe('owner_cannot_self_approve');
+  });
+  it('the expiry rejection maps to a market-native expired message', () => {
+    const he = classifyQuoteApprovalError('Quote expired: the validity date has passed, so it can no longer be approved or signed', true);
+    const en = classifyQuoteApprovalError('Quote expired: the validity date has passed, so it can no longer be approved or signed', false);
+    expect(he.category).toBe('quote_expired');
+    expect(he.userMessage).toMatch(/תוקף הצעת המחיר הסתיים/);
+    expect(en.userMessage).toMatch(/This quote has expired/);
+  });
+});
