@@ -13,6 +13,7 @@ import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersiste
 import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
 import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
+import AiHelpButton from './AiHelpButton';
 
 // AI HELP V4 §5: the browser's own required-field validation is the owner of these blockers; the product marks each required
 // control with data-help-field (never DOM text scraping) and the blocker resolves as soon as the field is filled.
@@ -456,6 +457,7 @@ export default function QuoteForm({
   // planDef.attachments) - לא נדרש תנאי נפרד.
   const handleAttachmentClick = () => {
     if (!canUseAttachments) {
+      publishBlocker('ATTACHMENTS_REQUIRE_PRO', { scope: 'editor' });
       setShowUpgradeConfirm('attachments');
     } else {
       const fileInput = document.createElement('input');
@@ -473,15 +475,18 @@ export default function QuoteForm({
 
         for (let file of files) {
           if (file.size > MAX_FILE_SIZE) {
+            publishBlocker('ATTACHMENT_FILE_TOO_LARGE', { scope: 'editor' });
             setErrorMessage(isHebrew ? `הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
             return;
           }
           if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
+            publishBlocker('ATTACHMENT_TOTAL_EXCEEDED', { scope: 'editor' });
             setErrorMessage(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת לעסק (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for your business.`);
             return;
           }
         }
         setErrorMessage('');
+        resolveBlockers(['ATTACHMENT_FILE_TOO_LARGE', 'ATTACHMENT_TOTAL_EXCEEDED']); // confirmed: an accepted selection
         setQuoteFiles(prev => [...(prev || []), ...files]);
       };
       fileInput.click();
@@ -585,6 +590,7 @@ export default function QuoteForm({
                     ? 'אופציה זו הינה למשתמשי מסלול PRO בלבד. האם תרצה לשדרג את חשבונך כעת?'
                     : 'This option is for PRO plan users only. Would you like to upgrade your account now?')}
             </p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-upgrade" /></div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 type="button"
@@ -619,6 +625,8 @@ export default function QuoteForm({
             <p style={{ color: NEON.textSecondary, fontSize: '0.9rem', marginBottom: '20px', lineHeight: '1.5' }}>
               {errorMessage}
             </p>
+            {/* AI HELP V4 §8: help stays reachable while this overlay covers the app (closing it does not clear the blocker) */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} testId="ai-help-file-error" /></div>
             <button
               type="button"
               onClick={() => setErrorMessage('')}

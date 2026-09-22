@@ -105,7 +105,7 @@ export function serverPrerequisites(ctx: HelpContext, facts: TrustedServerFacts 
 // ---------------------------------------------------------------------------------------------- deterministic help intents
 const WHY_EN = /(\bwhy\b|what('?s| is) (missing|wrong|blocking)|what do i need|how (do|can) i (fix|solve|continue|proceed)|(can'?t|cannot|won'?t|unable to|not able to|isn'?t working|doesn'?t work|failed|blocked|disabled|greyed|grayed))/i;
 const WHY_HE = /(למה|מדוע|מה חסר|מה הבעיה|לא מצליח|לא מצליחה|לא נשמר|לא נשמרת|לא עובד|נחסם|חסום|שגיאה|נכשל|נכשלה|איך (אני )?מתקנ|איך ממשיכ|מה לעשות)/;
-const SAVED_EN = /(\bis (it|this|my (quote|draft|work)) saved\b|\bdid (it|this) save\b|\bwas (it|this|my (quote|draft)) saved\b|saved (in|to) the (cloud|server)|will i lose|is (my|this) draft (saved|safe)|where is (my|this) draft)/i;
+const SAVED_EN = /(\b(is|was|are|were|has|have) (it|this|that|my|the|these)( (quote|draft|work|change|changes|edits?))? (been )?saved\b|\bdid (it|this|that|my (quote|draft|work|changes)) (get )?saved?\b|saved (in|to) the (cloud|server)|will i lose|is (my|this) draft (saved|safe)|where is (my|this) draft)/i;
 // Hebrew letters are not regex word characters, so no \b here (it never matches after a Hebrew letter).
 const SAVED_HE = /(זה נשמר|האם .{0,30}נשמר|(ה)?(הצעה|טיוטה|עבודה|שינויים)( שלי)? נשמר(ה|ו)?\s*[?？]|נשמר(ה|ו)? בענן|שמור(ה|ים)? בענן|שמור(ה|ים)? בשרת|אאבד|יאבד|הטיוטה שמורה|איפה הטיוטה)/;
 // "why was it not saved" is a blocked-workflow question, not a status question

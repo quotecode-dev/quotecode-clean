@@ -150,6 +150,10 @@ describe('boundTranscript (help never becomes unavailable because a chat is long
     const m = [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }, { role: 'user', content: 'why?' }];
     expect(boundTranscript(m)).toEqual({ messages: m, trimmed: false });
   });
+  it('a normal chat that opens with the assistant greeting is NOT trimmed (regression: false AI_TRANSCRIPT_LIMIT)', () => {
+    const m = [{ role: 'assistant', content: 'Welcome!' }, { role: 'user', content: 'How do I add a client?' }];
+    expect(boundTranscript(m)).toEqual({ messages: m, trimmed: false });
+  });
   it('over the limits: keeps the newest turns, starts with a user turn, fits every server limit', () => {
     const m = Array.from({ length: 70 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(900) }));
     const r = boundTranscript(m);

@@ -374,7 +374,9 @@ export function boundTranscript(messages, limits = TRANSCRIPT_LIMITS) {
     if (out.length >= limits.maxMessages || total + content.length > limits.maxTotalLength) break;
     out.unshift({ role: m.role, content }); total += content.length;
   }
-  // a bounded transcript never starts with a dangling assistant turn
-  while (out.length > 1 && out[0].role !== 'user') out.shift();
-  return { messages: out, trimmed: truncated || out.length < list.length };
+  const cut = out.length < list.length;
+  // only a CUT transcript is re-aligned to start at a user turn (an intact chat keeps its opening assistant greeting, which the
+  // server has always accepted); a chat within the limits is never reported as trimmed
+  if (cut) while (out.length > 1 && out[0].role !== 'user') out.shift();
+  return { messages: out, trimmed: truncated || cut };
 }
