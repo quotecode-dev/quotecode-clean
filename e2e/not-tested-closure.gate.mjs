@@ -12,6 +12,9 @@
 import process from 'node:process';
 import { chromium, personas, baseFromArgs, openAuthed, login, servedIdentity, identityProblems, evidenceDir, shot, writeEvidence, extraPersona } from './lib/canonical.mjs';
 
+// §51.17: the browser-observable identity of the LOADED document (read from any world), captured alongside the page-global one
+const domIdentity = (page) => page.evaluate(() => { try { const el = document.getElementById('tekango-build-identity'); const j = el && JSON.parse(el.textContent); return j ? { identity: { buildSha: j.buildSha, buildInputDigest: j.buildInputDigest, assetsFingerprint: j.assetsFingerprint, testProjectRef: j.testProjectRef, mode: j.mode, assetFiles: j.assets.map((a) => a.file) }, metaSha: document.querySelector('meta[name="tekango-build-sha"]')?.content || null } : null; } catch { return null; } });
+
 const base = baseFromArgs();
 const want = (process.argv.find((a) => a.startsWith('--cells=')) || '--cells=A,B,C,D,E').slice(8).split(',');
 const { PERSONA_A, PERSONA_EN, SUPABASE_URL, SUPABASE_ANON_KEY } = personas;
@@ -184,7 +187,8 @@ if (want.includes('D')) {
       const s2 = await snap(); judge(s2, 'after-reload');
       await page.goto(`${base}/dashboard`, { waitUntil: 'domcontentloaded' }); await page.getByRole('button', { name: /^(Quotes|הצעות מחיר)$/ }).first().waitFor({ timeout: 60000 }); await page.waitForTimeout(2500);
       judge(await snap(), 'plain-visit');
-      rec('D', `${label}/identity`, identityProblems({ served: identity.before, loaded: { build: s2.build, loadedAssets: ['_'], font: { ready: true, productFontLoaded: true, erroredFaces: 0 } } }).filter((p) => !/asset/.test(p)).length === 0, 'served + loaded build identity');
+      const dom2 = await domIdentity(page);
+      rec('D', `${label}/identity`, identityProblems({ served: identity.before, loaded: { build: s2.build, dom: dom2?.identity ?? null, metaSha: dom2?.metaSha ?? null, loadedAssets: [], font: { ready: true, productFontLoaded: true, erroredFaces: 0 } } }).filter((p) => !/asset/.test(p)).length === 0, 'served + loaded build identity');
       shots.push({ cell: `D/${label}`, ...(await shot(page, dir, `D-${label.replace('/', '-')}.png`)) });
       await ctx.close();
     } catch (e) { rec('D', `${label}/flow`, false, String(e.message).split('\n')[0].slice(0, 160)); }
@@ -257,7 +261,8 @@ if (want.includes('E')) {
         const db2 = (await api.call('GET', `quotes?select=project_name&id=eq.${qid}`)).json?.[0]?.project_name;
         rec('E', `${tag}/edit/discard-clears-draft-db-untouched`, (await page.getByTestId('sq-step-1').count()) === 0 && (await draftCount(page)) === 0 && db2 === project, { editorOpen: await page.getByTestId('sq-step-1').count(), drafts: await draftCount(page), db: db2 });
         const loaded = await page.evaluate(() => window.__TEKANGO_BUILD__ || null);
-        rec('E', `${tag}/identity`, identityProblems({ served: identity.before, loaded: { build: loaded, loadedAssets: ['_'], font: { ready: true, productFontLoaded: true, erroredFaces: 0 } } }).filter((p) => !/asset/.test(p)).length === 0, 'served + loaded build identity');
+        const domE = await domIdentity(page);
+        rec('E', `${tag}/identity`, identityProblems({ served: identity.before, loaded: { build: loaded, dom: domE?.identity ?? null, metaSha: domE?.metaSha ?? null, loadedAssets: [], font: { ready: true, productFontLoaded: true, erroredFaces: 0 } } }).filter((p) => !/asset/.test(p)).length === 0, 'served + loaded build identity');
       } catch (e) {
         const where = await page.evaluate(() => location.href).catch(() => '?');
         const sh = await shot(page, dir, `E-FAIL-${lang}-${vp}.png`).catch(() => null);
