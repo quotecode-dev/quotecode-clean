@@ -20,11 +20,13 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
 
   const [rates, setRates] = useState({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
   const [lastUpdated, setLastUpdated] = useState('');
-  // Product Truth Registry fix (TEKANGO_AI_ARCHITECTURE.md v2.5 §52.3/§52.6): "Live (Cached)" used to
-  // be shown even when the live fetch FAILED and hardcoded fallback constants were used - neither
-  // live nor a genuine cache of a prior successful fetch. This flag makes that state truthfully
-  // distinguishable from an actually-successful live fetch.
-  const [usingFallbackRates, setUsingFallbackRates] = useState(false);
+  // Product Truth Registry fix (TEKANGO_AI_ARCHITECTURE.md v2.5 §52.3/§52.6, hardened for the Codex
+  // fail-open finding, 2026-09-22): "Live (Cached)" used to be shown even when the live fetch FAILED
+  // and hardcoded fallback constants were used - neither live nor a genuine cache of a prior
+  // successful fetch. This flag makes that state truthfully distinguishable from an actually-
+  // successful, validated live fetch. Starts `true` (fail-closed): the initial hardcoded state above
+  // is never labelled "live" until a real, validated fetch proves otherwise.
+  const [usingFallbackRates, setUsingFallbackRates] = useState(true);
   const [calcAmount, setCalcAmount] = useState('100');
   
   const isGlobal = currency && currency !== 'ILS';
@@ -42,20 +44,38 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
   }, [currency]);
 
   useEffect(() => {
+    const FALLBACK_RATES = { USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 };
+    // Codex fail-open finding (2026-09-22): the previous version never checked `res.ok` and treated
+    // "response has a truthy .rates" as the only success signal - a non-OK HTTP status whose body
+    // still parsed as JSON, or a malformed/non-numeric rates object, silently left the PREVIOUS
+    // (possibly still-hardcoded) state in place with no fallback flag ever set. Every currency this
+    // widget actually offers (USD/EUR/GBP/ILS, §52.5/registry `currencies.values`) must be a real,
+    // finite, positive number before a response is trusted as live.
+    const REQUIRED_CURRENCIES = ['USD', 'EUR', 'GBP', 'ILS'];
+    const isValidRatesPayload = (data) => {
+      if (!data || typeof data !== 'object' || !data.rates || typeof data.rates !== 'object') return false;
+      return REQUIRED_CURRENCIES.every((code) => {
+        const v = data.rates[code];
+        return typeof v === 'number' && Number.isFinite(v) && v > 0;
+      });
+    };
+    const applyFallback = () => {
+      setRates(FALLBACK_RATES);
+      setLastUpdated(isHebrewRef.current ? 'שערים קבועים (לא חי)' : 'Fallback rates (not live)');
+      setUsingFallbackRates(true);
+    };
     const fetchRates = async () => {
       try {
         const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        if (!res.ok) { applyFallback(); return; }
         const data = await res.json();
-        if (data && data.rates) {
-          setRates(data.rates);
-          const now = new Date();
-          setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-          setUsingFallbackRates(false);
-        }
+        if (!isValidRatesPayload(data)) { applyFallback(); return; }
+        setRates(data.rates);
+        const now = new Date();
+        setLastUpdated(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        setUsingFallbackRates(false);
       } catch {
-        setRates({ USD: 1, EUR: 0.92, GBP: 0.79, ILS: 3.75, CAD: 1.35 });
-        setLastUpdated(isHebrewRef.current ? 'שערים קבועים (לא חי)' : 'Fallback rates (not live)');
-        setUsingFallbackRates(true);
+        applyFallback();
       }
     };
 

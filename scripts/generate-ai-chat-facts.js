@@ -107,6 +107,11 @@ function projectCapability(c) {
     currencies: c.currencies,
     planAvailability,
     minimumPlan: c.entitlementKey ? minimumPlanFor(planAvailability) : null,
+    // Codex defect 6 (2026-09-22): role authority is a separate axis from plan availability above —
+    // passed through as curated (never derived from a plan flag; there is no source-of-truth
+    // function for "is this a role capability", it is a structural fact about the capability itself).
+    authorityType: c.authorityType,
+    requiredRole: c.requiredRole,
     aiMayExplain: c.aiMayExplain,
     aiMayNavigate: c.aiMayNavigate,
     safeNavigationId: c.safeNavigationId,

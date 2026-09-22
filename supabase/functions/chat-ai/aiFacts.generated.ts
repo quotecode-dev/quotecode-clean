@@ -143,6 +143,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_dashboard",
@@ -168,6 +170,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_quote_history",
@@ -193,6 +197,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "free",
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_new_quote",
@@ -220,6 +226,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "basic",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_selected_quote",
@@ -245,6 +253,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "basic",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -270,6 +280,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -297,6 +309,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -322,6 +336,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "basic",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -347,6 +363,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "pro",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -372,6 +390,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_clients",
@@ -397,6 +417,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_catalog",
@@ -422,6 +444,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_finances",
@@ -447,6 +471,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -472,6 +498,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -497,6 +525,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -530,6 +560,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -566,6 +598,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -603,6 +637,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -630,6 +666,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -660,6 +698,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -694,6 +734,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -719,6 +761,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_business_settings",
@@ -744,6 +788,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_business_phone",
@@ -769,6 +815,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_plan_information",
@@ -796,6 +844,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "pro",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -824,6 +874,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -851,6 +903,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -878,6 +932,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -906,6 +962,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": "pro",
+      "authorityType": "plan",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -925,7 +983,8 @@ export const AI_FACTS = {
       "enDescription": "A WhatsApp contact button for the quote recipient on the public quote page - a different capability from the owner's quote share.",
       "state": "LIVE_CURRENT",
       "markets": [
-        "local"
+        "local",
+        "international"
       ],
       "currencies": null,
       "planAvailability": {
@@ -934,6 +993,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -961,6 +1022,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -986,6 +1049,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -1011,6 +1076,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -1036,6 +1103,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -1063,6 +1132,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -1092,6 +1163,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
@@ -1117,6 +1190,8 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "none",
+      "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": null,
@@ -1128,8 +1203,8 @@ export const AI_FACTS = {
       "id": "admin_console",
       "heLabel": "מסך ניהול",
       "enLabel": "Admin console",
-      "heDescription": "מסך ניהול פנימי לבעל עסק/Super Admin בלבד - לא חלק ממרחב העבודה של משתמש רגיל.",
-      "enDescription": "An internal admin screen for the business owner/Super Admin only - not part of an ordinary user's workspace.",
+      "heDescription": "מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי בתוכנית/Lifetime ואינו חלק ממרחב העבודה של משתמש רגיל.",
+      "enDescription": "An internal admin screen restricted to a server-verified Super Admin role - independent of plan/Lifetime entitlement, not part of an ordinary user's workspace.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1142,11 +1217,15 @@ export const AI_FACTS = {
         "pro": true
       },
       "minimumPlan": null,
+      "authorityType": "role",
+      "requiredRole": "super_admin",
       "aiMayExplain": true,
       "aiMayNavigate": true,
       "safeNavigationId": "open_admin",
       "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
+      "forbiddenClaimCodes": [
+        "NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE"
+      ],
       "deterministicFactKeys": []
     }
   ],

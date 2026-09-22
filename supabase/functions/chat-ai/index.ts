@@ -264,6 +264,7 @@ serve(async (req) => {
         { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities },
         isHebrew,
         accountContext?.tier ?? null,
+        verifiedUserId ? !!trustedFacts?.isAdmin : null,
       );
       if (capabilityAnswer) {
         const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);

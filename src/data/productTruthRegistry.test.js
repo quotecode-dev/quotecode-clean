@@ -11,10 +11,12 @@ import { PLAN_CATALOG, getEntitlementSet } from '../utils/planCatalog.js';
 
 const REQUIRED_FIELDS = [
   'id', 'heLabel', 'enLabel', 'heDescription', 'enDescription', 'state', 'surfaces', 'markets', 'currencies',
-  'entitlementKey', 'minimumPlan', 'trialAvailable', 'operationType', 'userActionAvailable', 'aiMayExplain',
+  'entitlementKey', 'minimumPlan', 'authorityType', 'requiredRole', 'authoritySource', 'trialAvailable',
+  'operationType', 'userActionAvailable', 'aiMayExplain',
   'aiMayNavigate', 'aiMayClaimExecution', 'safeNavigationId', 'deterministicFactKeys', 'forbiddenClaimCodes',
   'canonicalSources', 'tests', 'lastVerifiedRevision', 'releaseEnvironment',
 ];
+const VALID_AUTHORITY_TYPES = new Set(['plan', 'role', 'none']);
 
 const VALID_STATES = new Set(Object.values(CAPABILITY_STATES));
 const VALID_OPERATION_TYPES = new Set(['read', 'mutate']);
@@ -154,5 +156,50 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
   it('payment_processing / invoicing are the only non-current entries payment/invoicing modules own; never routed by the capability classifier (see capabilityTruth.ts)', () => {
     expect(NON_CURRENT_IDS).toContain('payment_processing');
     expect(NON_CURRENT_IDS).toContain('invoicing');
+  });
+
+  it.each(PRODUCT_TRUTH_REGISTRY)('capability "$id" has a valid authorityType', (c) => {
+    expect(VALID_AUTHORITY_TYPES.has(c.authorityType)).toBe(true);
+  });
+
+  it.each(PRODUCT_TRUTH_REGISTRY)('capability "$id" never sets BOTH a plan gate and a role gate on the same entry', (c) => {
+    expect(!(c.entitlementKey && c.requiredRole)).toBe(true);
+  });
+
+  it.each(PRODUCT_TRUTH_REGISTRY.filter((c) => c.authorityType === 'role'))('role-gated capability "$id" has a requiredRole and an authoritySource, never inferred from plan', (c) => {
+    expect(c.requiredRole).toBeTruthy();
+    expect(c.authoritySource).toBeTruthy();
+    expect(c.minimumPlan).toBeNull();
+    expect(c.entitlementKey).toBeNull();
+  });
+});
+
+describe('DEFECT-6 ADMIN AUTHORITY PARITY (Codex, 2026-09-22)', () => {
+  it('admin_console is role-gated, not plan-gated (Lifetime/PRO entitlement != Admin authority)', () => {
+    const admin = getCapabilityById('admin_console');
+    expect(admin.authorityType).toBe('role');
+    expect(admin.requiredRole).toBe('super_admin');
+    expect(admin.minimumPlan).toBeNull();
+    expect(admin.entitlementKey).toBeNull();
+  });
+
+  it('admin_console authoritySource points at the real server-side role check (accountContext.ts)', () => {
+    const admin = getCapabilityById('admin_console');
+    expect(admin.authoritySource).toBe('supabase/functions/chat-ai/accountContext.ts');
+    expect(admin.canonicalSources).toContain('supabase/functions/chat-ai/accountContext.ts');
+  });
+
+  it('admin_console carries a forbidden-claim code against inferring Admin from plan/Lifetime', () => {
+    expect(getCapabilityById('admin_console').forbiddenClaimCodes).toContain('NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE');
+  });
+});
+
+describe('DEFECT-5 PUBLIC WHATSAPP MARKET PARITY (Codex, 2026-09-22)', () => {
+  it('public_whatsapp_contact is available in BOTH markets (real source: PublicQuote.jsx (HE) and PublicQuoteEn.jsx (EN) both render a bizWhatsAppHref button)', () => {
+    const c = getCapabilityById('public_whatsapp_contact');
+    expect(c.markets).toContain('local');
+    expect(c.markets).toContain('international');
+    expect(c.canonicalSources).toContain('src/pages/PublicQuote.jsx');
+    expect(c.canonicalSources).toContain('src/pages/PublicQuoteEn.jsx');
   });
 });

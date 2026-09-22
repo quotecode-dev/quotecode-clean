@@ -14,6 +14,8 @@
 // patterns exist only as a documented, tested defence-in-depth backstop and are NEVER reached in
 // the live deterministic chain — see capabilityTruth.test.js).
 
+import { AI_FACTS } from "./aiFacts.generated.ts";
+
 export type CapabilityFact = {
   readonly id: string;
   readonly heLabel: string;
@@ -25,6 +27,8 @@ export type CapabilityFact = {
   readonly currencies?: { readonly role: string; readonly values: readonly string[] } | null;
   readonly planAvailability?: { readonly free: boolean; readonly basic: boolean; readonly pro: boolean };
   readonly minimumPlan?: string | null;
+  readonly authorityType?: 'plan' | 'role' | 'none';
+  readonly requiredRole?: string | null;
   readonly aiMayExplain?: boolean;
   readonly aiMayNavigate?: boolean;
   readonly safeNavigationId?: string | null;
@@ -56,23 +60,75 @@ export function capabilityTruthApplies(facts: CapabilityFacts | undefined | null
 // for me") patterns are checked first so "can the AI edit my quote" never gets swallowed by the
 // generic "quote_edit" pattern meant for "can I edit a quote myself".
 const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
+  // Codex defect 3 (2026-09-22): cancellation/archive/permanent-deletion questions about the
+  // ACCOUNT/BUSINESS/SUBSCRIPTION itself were falling through to the generic `business_settings`
+  // capability match (e.g. "Can I cancel in Business Settings?" contains the literal phrase
+  // "Business Settings" and was answered a bare deterministic YES for that capability, bypassing
+  // the truthful correction entirely). This sentinel is checked FIRST, before any generic
+  // capability, and is answered directly in formatCapabilityTruthAnswer (not a registry lookup —
+  // it is not one of the 38 capability IDs, and deliberately not a new one; see validation.ts's
+  // matching prompt-level fix for the free-text/model path).
+  ['account_lifecycle_not_self_service', [
+    /\bcancel(l?ation)?\b.{0,20}(subscription|account|business)\b/i,
+    /\barchive\b.{0,20}(account|business|my data|the data)\b/i,
+    /\b(permanently )?delet(e|ing)\b.{0,20}(account|business|my data|the data)\b/i,
+    /\bclose\b.{0,20}(my\s+)?account\b/i,
+    // Hebrew: `\b` is unreliable around Hebrew script (JS regex word boundaries are ASCII-\w-only,
+    // so a boundary before a Hebrew letter preceded by whitespace never fires) - every verb form
+    // below is listed explicitly (root ב-ט-ל/א-ר-כ/מ-ח-ק/ס-ג-ר across common conjugations) instead
+    // of relying on \b + a single stem, which is what silently failed to match live phrasing.
+    /(לבטל|מבטלים|מבטלת|מבטל|ביטול|בטלי|בטל).{0,20}(מנוי|חשבון|עסק)/,
+    /(ארכיון|לארכב|מארכב).{0,20}(חשבון|עסק|נתונים)/,
+    /(למחוק|מוחקים|מוחקת|מוחק|מחיקה).{0,20}(לצמיתות\s?)?(חשבון|עסק|נתונים)/,
+    /(לסגור|סוגרים|סוגרת|סוגר|סגירה).{0,20}(את\s+)?ה?חשבון/,
+  ]],
   ['ai_mutation', [
     /\b(can|could|will|does)\s+(the\s+)?(ai|assistant|bot|chat)\s+.{0,30}(edit|change|modify|update|delete|mutate|do (it|that|this) for me)\b/i,
     /\bcan you (edit|change|modify|update|delete)\s+(my|this|the)\s+(quote|client|item|price)\s+for me\b/i,
+    // Codex defect 2 (2026-09-22): "Can you edit my quote?" (no explicit "AI/assistant" naming, no
+    // "for me" suffix) was falling through this module entirely and matching the generic
+    // `quote_edit` capability instead, so it was wrongly answered a bare YES. In a chat with the
+    // assistant, an unqualified "you" IS the assistant — "can you <mutating verb>" always means
+    // "will YOU (the AI) perform this", never "does the product support this for me to do myself"
+    // (that phrasing is "can I <verb>", already a separate, correct classifier). Restricted to real
+    // mutation verbs so "can you tell/explain/show/help..." (informational) is never swept in.
+    /\bcan you\s+(edit|save|send|approve|delete|change|update|modify|cancel|create|mutate|sign|duplicate)\b/i,
     // Both the participle ("עורך") and the infinitive ("לערוך") forms are covered - a live-browser
     // check found the infinitive alone fell through to the model (root cause of a real classifier gap).
     /(האם ה-?ai|האם הבוט|האם הצ'?אט)\s.{0,20}(עורך|לערוך|משנה|לשנות|מוחק|למחוק|מעדכן|לעדכן)/,
     /תעשה? (את זה|עבורי|בשבילי)/,
+    // Hebrew "can you <verb>" addressed at the assistant (implicit "you" = the AI), same reasoning
+    // as the English pattern above.
+    /(תוכלי?|אתה יכול|את יכולה)\s.{0,15}(לערוך|לשמור|לשלוח|לאשר|לשנות|למחוק|לעדכן|לבטל|ליצור|לחתום|לשכפל)/,
   ]],
   ['autonomous_email', [
     /\b(can|does)\s+(the\s+)?(ai|assistant|bot)\s+.{0,30}send\s+.{0,20}(email|mail)\s+.{0,20}automatic/i,
     /\bautomatically (send|reply to|answer)\s+(my\s+)?(emails?|customers?|clients?)\b/i,
     /(שולח|עונה)\s.{0,20}(מייל|אימייל)\s.{0,20}(אוטומטית|לבד)/,
   ]],
-  ['payment_processing', [/\b(can (tekango|you|the system) (take|accept|process)|does tekango (take|accept|process))\s+.{0,20}payment/i, /(האם TEKANGO|האם המערכת) (גובה|מקבל|מעבד)ת? תשלום/]],
+  ['payment_processing', [
+    /\b(can|do|does)\s+(tekango|you|the system)\s+(take|takes|accept|accepts|process|processes)\s+.{0,20}payment/i,
+    /(האם TEKANGO|האם המערכת) (גובה|מקבל|מעבד)ת? תשלום/,
+  ]],
   ['invoicing', [/\bcan (tekango|you|the system) (issue|create|generate)\s+.{0,10}invoice/i, /(מפיק|מפיקה|יכולים להפיק) חשבונית/]],
+  // Codex defect 1 (2026-09-22): "Is PDF the same as Print?" (and similar) must get a deterministic
+  // factual DISTINCTION, not fall through to the model and not silently resolve to just one of the
+  // two individual capabilities. Checked before the individual quote_pdf/quote_print patterns below.
+  ['quote_pdf_vs_print_comparison', [
+    /\bpdf\b.{0,30}\b(same as|vs\.?|versus|different from|or)\b.{0,10}\bprint\b/i,
+    /\bprint\b.{0,30}\b(same as|vs\.?|versus|different from|or)\b.{0,10}\bpdf\b/i,
+    /האם\s.{0,10}pdf\b.{0,20}(אותו דבר|זהה|כמו)\s.{0,10}הדפסה/i,
+    /האם\s.{0,10}הדפסה\b.{0,20}(אותו דבר|זהה|כמו)\s.{0,10}pdf/i,
+  ]],
 
-  ['editor_calculator', [/\b(do you|does (tekango|it|the (app|editor))) have a calculator\b/i, /\bis there a calculator\b/i, /(יש לכם|יש כאן|קיים) מחשבון/]],
+  ['editor_calculator', [
+    // Negative lookahead excludes "metals/crypto/unit/currency calculator" so this generic pattern
+    // never shadows the more specific public_* calculator patterns below it (a real collision the
+    // broadened-for-paraphrase version of this pattern introduced, caught by its own test suite).
+    /\b(do you|does (tekango|it|the (app|editor)))\s+have\b(?!.{0,20}\b(metals?|crypto|unit|currency)\b).{0,20}\bcalculator\b/i,
+    /\bis there a\b(?!.{0,20}\b(metals?|crypto|unit|currency)\b).{0,20}\bcalculator\b/i,
+    /(יש לכם|יש כאן|קיים) מחשבון(?!.{0,10}(מתכות|קריפטו|יחידות|מטבע))/,
+  ]],
   ['editor_currency_converter', [/\bconvert(ing)? currency\b.{0,20}(editor|quote|calculator)/i, /(המר|להמיר).{0,10}מטבע.{0,30}(עורך|הצעה|מחשבון)/]],
   ['public_currency_converter', [/\bpublic (currency )?converter\b/i, /ממיר מטבעות/]],
   ['public_unit_converter', [/\bunit converter\b/i, /ממיר יחידות/]],
@@ -87,11 +143,26 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['public_call', [/\bcall\s+(button|option)\b.{0,20}(quote|public)/i, /כפתור.{0,10}התקשרות/]],
 
   ['quote_email', [/\bemail\s+(a|the|my)?\s*quote\b/i, /\bsend\s+(a|the|my)?\s*quote\s+by\s+email\b/i, /לשלוח הצעה?.{0,10}(במייל|באימייל)/]],
-  ['quote_pdf', [/\b(pdf|download)\b.{0,20}quote/i, /\bexport\s+.{0,10}pdf\b/i, /(pdf.{0,15}הצעה|הצעה.{0,15}pdf)/i]],
-  ['quote_print', [/\bprint\s+.{0,10}(a|the|my)?\s*quote\b/i, /להדפיס.{0,10}הצעה/]],
+  ['quote_pdf', [
+    /\b(pdf|download)\b.{0,20}quote/i,
+    /\bexport\s+.{0,10}pdf\b/i,
+    // Codex defect 1: a standalone "Can I download a PDF?" (no literal word "quote") was falling
+    // through entirely in this single-purpose quoting product context - broadened to catch the
+    // bare download/PDF phrasing without requiring "quote" adjacency.
+    /\b(can i |can you |how do i )?(download|get|save|export)\s+(a |the |my )?pdf\b/i,
+    /(pdf.{0,15}הצעה|הצעה.{0,15}pdf)/i,
+    /\bpdf\b/i,
+  ]],
+  ['quote_print', [
+    /\bprint\s+.{0,10}(a|the|my)?\s*quote\b/i,
+    // Same broadening as quote_pdf above for a bare "Can I print it?"/"How do I print?" question.
+    /\b(can i |can you |how do i )?print\b(?!.{0,10}(same as|vs\.?|versus))/i,
+    /להדפיס.{0,10}הצעה/,
+    /להדפיס/,
+  ]],
 
   ['attachments', [/\b(attach|upload)\s+.{0,15}(files?|drawings?|photos?)\b/i, /לצרף.{0,15}קבצים/]],
-  ['measured_quote', [/\b(measured|professional)\s+quote\b/i, /הצעה.{0,10}(מדודה|מקצועית)/]],
+  ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצעה.{0,10}(מדודה|מקצועית)/]],
   ['professional_reuse', [/\breuse\s+.{0,15}(professional\s+)?items?\b/i, /שימוש חוזר.{0,15}פריטים/]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
@@ -138,7 +209,26 @@ function description(fact: CapabilityFact | NonCurrentCapabilityFact, isHebrew: 
 // The AI capability answer contract (§52.8 / task step 8) — the STATE dictates the framing; the
 // model never chooses it. Plan-gated: the capability exists, the account restriction is explained
 // (never "TEKANGO does not have X"). Mutating: may explain how the user can do it; never "I did it".
-export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null): string | null {
+export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null, isAdmin: boolean | null = null): string | null {
+  // Codex defect 3: cancellation/archive/permanent-deletion of the account/business/subscription
+  // itself is NOT one of the 38 registered capabilities (it is the false claim being corrected, not
+  // a real feature) - answered directly here, matching validation.ts's system-prompt-level wording
+  // exactly, so the deterministic and model paths never disagree.
+  if (id === 'account_lifecycle_not_self_service') {
+    const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
+    return isHebrew
+      ? `ביטול מנוי/עסק, ארכוב נתונים או מחיקה לצמיתות אינם פעולות עצמאיות (self-service) בהגדרות העסק כיום - בדיקת המקור לא מצאה תהליך כזה בממשק. לבקשה כזו יש לפנות ל-${supportEmail}.`
+      : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today - a fresh source check found no such UI flow. For this request, please contact ${supportEmail}.`;
+  }
+  // Codex defect 1: a comparison question must get a deterministic, factual DISTINCTION between
+  // the two real capabilities, never a guess and never a silent pick of just one of them.
+  if (id === 'quote_pdf_vs_print_comparison') {
+    const pdf = facts.capabilities.find((c) => c.id === 'quote_pdf');
+    const print = facts.capabilities.find((c) => c.id === 'quote_print');
+    return isHebrew
+      ? `לא, PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מייצא את ההצעה כקובץ להורדה/שמירה, בעוד ${print ? label(print, true) : 'הדפסה'} שולחת אותה ישירות למדפסת. שתיהן יוצרות את אותו מסמך הצעה - לא חשבונית - רק ביעד שונה.`
+      : `No, PDF and Print are two different actions: ${pdf ? label(pdf, false) : 'PDF export'} downloads/saves the quote as a file, while ${print ? label(print, false) : 'Print'} sends it directly to a printer. Both produce the same quote document - not an invoice - just to a different destination.`;
+  }
   const current = facts.capabilities.find((c) => c.id === id);
   const nonCurrent = facts.nonCurrentCapabilities.find((c) => c.id === id);
   const fact = current || nonCurrent;
@@ -165,6 +255,22 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
     case 'LIVE_CURRENT':
     default: {
       if (!current) return isHebrew ? `כן - ${name} קיימת. ${desc}` : `Yes - ${name} exists. ${desc}`;
+      // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — must be
+      // phrased distinctly from the plan-gated branch below, and never inferred from accountTier
+      // (a PRO or Lifetime account without the role still does not have it).
+      if (current.authorityType === 'role' && current.requiredRole) {
+        if (isAdmin === false) {
+          return isHebrew
+            ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${current.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
+            : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${current.requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
+        }
+        if (isAdmin === true) {
+          return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
+        }
+        return isHebrew
+          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${current.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${current.requiredRole} role - not a paid plan or Lifetime. ${desc}`;
+      }
       // Plan-gated: say the capability exists and explain the restriction — never deny existence.
       if (current.minimumPlan && current.minimumPlan !== 'free' && accountTier) {
         const hasIt = current.planAvailability ? current.planAvailability[accountTier as 'free' | 'basic' | 'pro'] === true : null;

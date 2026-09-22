@@ -72,6 +72,13 @@ function capability(id, heLabel, enLabel, heDescription, enDescription, opts = {
     currencies: opts.currencies || null,
     entitlementKey: opts.entitlementKey ?? null, // a real src/utils/planCatalog.js entitlements field name, or null
     minimumPlan: opts.minimumPlan ?? null, // 'free'|'basic'|'pro'|null — cross-checked at generation time against entitlementKey
+    // Codex defect 6 (2026-09-22): a capability's restriction axis is either a PLAN entitlement
+    // (minimumPlan/entitlementKey above) or a server-verified ROLE (independent of plan/Lifetime —
+    // never inferred from tier). 'none' = no restriction beyond being signed in. Exactly one of
+    // {minimumPlan, requiredRole} may be set on a given entry; both null means unrestricted.
+    authorityType: opts.authorityType ?? (opts.minimumPlan ? 'plan' : opts.requiredRole ? 'role' : 'none'),
+    requiredRole: opts.requiredRole ?? null, // a real verified `business_settings.role` value (e.g. 'super_admin'), or null
+    authoritySource: opts.authoritySource ?? null, // where the role is verified server-side (file path), for role-gated entries only
     trialAvailable: opts.trialAvailable ?? true, // whether the 14-day trial grants this (trial = temporary PRO entitlement, §5 L-none/AI_FACTS.trialDays)
     operationType: opts.operationType || 'read', // 'read'|'mutate'
     userActionAvailable: opts.userActionAvailable ?? true,
@@ -273,7 +280,14 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('public_whatsapp_contact', 'יצירת קשר ב-WhatsApp (צד מקבל)', 'Public quote WhatsApp contact',
     'כפתור יצירת קשר ב-WhatsApp עבור מקבל ההצעה בעמוד ההצעה הציבורי - שונה משיתוף ההצעה של בעל העסק.',
     'A WhatsApp contact button for the quote recipient on the public quote page - a different capability from the owner\'s quote share.',
-    { surfaces: ['public_quote_page'], markets: ['local'], forbiddenClaimCodes: ['NO_OWNER_PUBLIC_WHATSAPP_CONFLATION'], canonicalSources: ['src/pages/PublicQuote.jsx'] }),
+    {
+      // Codex defect 5 (2026-09-22): fresh source check found PublicQuoteEn.jsx (International) has
+      // the SAME bizWhatsAppHref-driven WhatsApp button as PublicQuote.jsx (Local) - this was
+      // wrongly marked Local-only. Both markets confirmed live in real source, not inferred.
+      surfaces: ['public_quote_page'], markets: ['local', 'international'],
+      forbiddenClaimCodes: ['NO_OWNER_PUBLIC_WHATSAPP_CONFLATION'],
+      canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx'],
+    }),
 
   capability('public_call', 'התקשרות מעמוד ההצעה', 'Public quote call action',
     'כפתור התקשרות טלפונית עבור מקבל ההצעה בעמוד ההצעה הציבורי.',
@@ -311,9 +325,22 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts'] }),
 
   capability('admin_console', 'מסך ניהול', 'Admin console',
-    'מסך ניהול פנימי לבעל עסק/Super Admin בלבד - לא חלק ממרחב העבודה של משתמש רגיל.',
-    'An internal admin screen for the business owner/Super Admin only - not part of an ordinary user\'s workspace.',
-    { surfaces: ['admin_screen'], aiMayNavigate: true, safeNavigationId: 'open_admin', canonicalSources: ['src/components/AdminUsersTab.jsx', 'src/components/UserDetailsModal.jsx'] }),
+    'מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי בתוכנית/Lifetime ואינו חלק ממרחב העבודה של משתמש רגיל.',
+    'An internal admin screen restricted to a server-verified Super Admin role - independent of plan/Lifetime entitlement, not part of an ordinary user\'s workspace.',
+    {
+      // Codex defect 6 (2026-09-22): Admin is a ROLE restriction (`business_settings.role ===
+      // 'super_admin'`, verified server-side), never a plan/Lifetime restriction - a PRO or
+      // Lifetime account with an ordinary role has no Admin access, and a super_admin's `tier` is
+      // forced to 'pro' as a side effect of admin status, never the other way around (accountContext.ts).
+      surfaces: ['admin_screen'], authorityType: 'role', requiredRole: 'super_admin',
+      authoritySource: 'supabase/functions/chat-ai/accountContext.ts',
+      forbiddenClaimCodes: ['NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE'],
+      aiMayNavigate: true, safeNavigationId: 'open_admin',
+      // Corrected (Codex defect 9, 2026-09-22): the original reference here, "UserDetailsModal.jsx",
+      // does not exist anywhere in real source - the actual component is AdminUserDetails.jsx. Found
+      // by the new exhaustive canonical-source-exists gate, not by inspection.
+      canonicalSources: ['src/components/AdminUsersTab.jsx', 'src/components/AdminUserDetails.jsx', 'supabase/functions/chat-ai/accountContext.ts'],
+    }),
 ]);
 
 // Non-current entries (§52.2) — curated shape only; their `state`/facts are computed at
