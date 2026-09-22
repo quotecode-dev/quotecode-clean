@@ -65,8 +65,9 @@ for (const [name, p] of [['PERSONA_A', PERSONA_A], ['PERSONA_SUPER_ADMIN', PERSO
 // synthetic allowlist (scripts/iron-laws/synthetic-personas.json in the tooling checkout, path passed via IRON_SYNTHETIC_ALLOWLIST).
 // A missing/unreadable allowlist, a non-allowlisted account, or a denylisted (real-customer) identity aborts BEFORE any login.
 import { createHash } from 'node:crypto';
+import { env as procEnv } from 'node:process';
 {
-  const allowlistPath = process.env.IRON_SYNTHETIC_ALLOWLIST;
+  const allowlistPath = procEnv.IRON_SYNTHETIC_ALLOWLIST;
   if (!allowlistPath) throw new Error('IRON-DATA-001: IRON_SYNTHETIC_ALLOWLIST is not set - refusing to run acceptance with unverified personas (fail-closed).');
   let list;
   try { list = JSON.parse(readFileSync(allowlistPath, 'utf-8')); } catch { throw new Error('IRON-DATA-001: synthetic allowlist unreadable - refusing to run (fail-closed).'); }
