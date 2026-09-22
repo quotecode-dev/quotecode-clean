@@ -9,7 +9,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, formatInvoicingTruthAnswer } from "./invoicingTruth.ts";
-import { deriveTrustedFacts, reconcileBlockers, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
+import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
 const corsHeaders = {
@@ -178,6 +178,11 @@ serve(async (req) => {
   const { active: activeBlockers, dropped: droppedBlockers } = helpContext ? reconcileBlockers(helpContext, trustedFacts) : { active: [] as ReconciledBlocker[], dropped: [] as ReconciledBlocker[] };
   const helpMode = helpContext ? (activeBlockers.length ? 'BLOCKED_WORKFLOW_HELP' : 'NORMAL_HELP') : null;
   const navAllowed = verifiedUserId ? allowedNavigation({ ctx: helpContext ? { ...helpContext, blockers: activeBlockers } : null, isAdmin: !!trustedFacts?.isAdmin, hasSelectedQuote: selectedQuoteAvailable }) : [];
+  // Layer 3 prerequisites open their own product-owned resolution even before the browser reported a blocker
+  if (helpContext) for (const f of serverPrerequisites(helpContext, trustedFacts)) {
+    if (f === 'business_phone' && !navAllowed.includes('open_business_phone')) navAllowed.push('open_business_phone');
+    if (f === 'business_tax_id' && !navAllowed.includes('open_business_tax_id')) navAllowed.push('open_business_tax_id');
+  }
   const helpEnvelope = { helpMode, blockerCodes: activeBlockers.map((b) => b.code), privateHelp: !!verifiedUserId };
   const logChat = async (answerText: string) => {
     try {
