@@ -59,7 +59,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['ai_mutation', [
     /\b(can|could|will|does)\s+(the\s+)?(ai|assistant|bot|chat)\s+.{0,30}(edit|change|modify|update|delete|mutate|do (it|that|this) for me)\b/i,
     /\bcan you (edit|change|modify|update|delete)\s+(my|this|the)\s+(quote|client|item|price)\s+for me\b/i,
-    /(האם ה-?ai|האם הבוט|האם הצ'?אט)\s.{0,20}(עורך|משנה|מוחק|מעדכן)/,
+    // Both the participle ("עורך") and the infinitive ("לערוך") forms are covered - a live-browser
+    // check found the infinitive alone fell through to the model (root cause of a real classifier gap).
+    /(האם ה-?ai|האם הבוט|האם הצ'?אט)\s.{0,20}(עורך|לערוך|משנה|לשנות|מוחק|למחוק|מעדכן|לעדכן)/,
     /תעשה? (את זה|עבורי|בשבילי)/,
   ]],
   ['autonomous_email', [

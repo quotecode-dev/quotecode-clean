@@ -86,6 +86,10 @@ describe('classifyCapabilityIntent — direct questions (§52 answer matrix)', (
     expect(classifyCapabilityIntent('Can the AI edit my quote for me?')).toBe('ai_mutation');
     expect(classifyCapabilityIntent('Can I edit a saved quote?')).toBe('quote_edit');
   });
+
+  it('regression (found via live 5186 browser verification): the Hebrew infinitive form "לערוך" also classifies as ai_mutation, not just the participle "עורך"', () => {
+    expect(classifyCapabilityIntent('האם ה-ai יכול לערוך את ההצעה שלי בעצמו?')).toBe('ai_mutation');
+  });
 });
 
 describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 / task step 8)', () => {
