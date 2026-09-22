@@ -153,7 +153,7 @@ try {
     await page.getByTestId('sq-step-1').waitFor({ timeout: 15000 });
     const [popup] = await Promise.all([page.waitForEvent('popup', { timeout: 15000 }), page.getByRole('button', { name: /synthetic-plan\.pdf/ }).first().click()]);
     // the tab opens synchronously (about:blank) and is pointed at the minted signed URL afterwards
-    await popup.waitForURL(//object/sign//, { timeout: 15000 }).catch(() => {});
+    await popup.waitForURL(/\/object\/sign\//, { timeout: 15000 }).catch(() => {});
     check(c, 'open uses a short-lived signed URL', /\/object\/sign\/quote-files\/.+token=/.test(popup.url()), popup.url().slice(0, 120));
     await popup.close();
     // the file row is [name button][remove (X) button]
