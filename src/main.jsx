@@ -44,6 +44,11 @@ try {
   localStorage.setItem('proflow_lang', isEnglishEnv ? 'en' : 'he');
 } catch { /* ignore (private browsing / storage disabled) */ }
 
+// Market direction before the FIRST paint: pages still set lang/dir in their own effects, but without this the Hebrew bundle painted
+// left-to-right until those effects ran (a visible LTR flash, caught by the WebKit leg of the browser matrix, 2026-09-22).
+document.documentElement.lang = isEnglishEnv ? 'en' : 'he';
+document.documentElement.dir = isEnglishEnv ? 'ltr' : 'rtl';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     {isEnglishEnv ? <AppGlobal /> : <AppLocal />}
