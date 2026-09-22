@@ -107,7 +107,8 @@ const WHY_EN = /(\bwhy\b|what('?s| is) (missing|wrong|blocking)|what do i need|h
 const WHY_HE = /(למה|מדוע|מה חסר|מה הבעיה|לא מצליח|לא מצליחה|לא נשמר|לא נשמרת|לא עובד|נחסם|חסום|שגיאה|נכשל|נכשלה|איך (אני )?מתקנ|איך ממשיכ|מה לעשות)/;
 const SAVED_EN = /(\b(is|was|are|were|has|have) (it|this|that|my|the|these)( (quote|draft|work|change|changes|edits?))? (been )?saved\b|\bdid (it|this|that|my (quote|draft|work|changes)) (get )?saved?\b|saved (in|to) the (cloud|server)|will i lose|is (my|this) draft (saved|safe)|where is (my|this) draft)/i;
 // Hebrew letters are not regex word characters, so no \b here (it never matches after a Hebrew letter).
-const SAVED_HE = /(זה נשמר|האם .{0,30}נשמר|(ה)?(הצעה|טיוטה|עבודה|שינויים)( שלי)? נשמר(ה|ו)?\s*[?？]|נשמר(ה|ו)? בענן|שמור(ה|ים)? בענן|שמור(ה|ים)? בשרת|אאבד|יאבד|הטיוטה שמורה|איפה הטיוטה)/;
+// both verb forms: "נשמר/ה/ו" (was saved) and the adjective "שמור/ה/ים" (is saved)
+const SAVED_HE = /(זה נשמר|זה שמור|האם .{0,30}(נשמר|שמור)|(ה)?(הצעה|טיוטה|עבודה|שינויים)( הזו| הזאת| שלי)? (נשמר(ה|ו)?|שמור(ה|ים)?)\s*[?？]|נשמר(ה|ו)? בענן|שמור(ה|ים)? בענן|שמור(ה|ים)? בשרת|אאבד|יאבד|הטיוטה שמורה|איפה הטיוטה)/;
 // "why was it not saved" is a blocked-workflow question, not a status question
 const WHY_FIRST_HE = /(למה|מדוע|לא נשמר|לא מצליח|נחסם|חסום)/;
 

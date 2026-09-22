@@ -66,7 +66,7 @@ describe('reconcileBlockers (browser claims vs server truth)', () => {
 
 describe('classifyHelpIntent', () => {
   it.each(['Why can\'t I save this quote?', 'What is missing?', 'Save is blocked, what do I need?', 'למה אני לא מצליח לשמור?', 'מה חסר?', 'למה ההצעה לא נשמרת?'])('why_blocked: %s', (m) => expect(classifyHelpIntent(m)).toBe('why_blocked'));
-  it.each(['Is my draft saved?', 'Is it saved in the cloud?', 'Will I lose my work?', 'Is this quote saved?', 'Have my changes been saved?', 'Did my quote save?', 'האם הטיוטה שמורה?', 'זה נשמר בענן?', 'האם ההצעה נשמרה?', 'ההצעה נשמרה?', 'אני אאבד את השינויים?'])('save_status: %s', (m) => expect(classifyHelpIntent(m)).toBe('save_status'));
+  it.each(['Is my draft saved?', 'Is it saved in the cloud?', 'Will I lose my work?', 'Is this quote saved?', 'Have my changes been saved?', 'Did my quote save?', 'האם הטיוטה שמורה?', 'זה נשמר בענן?', 'האם ההצעה נשמרה?', 'ההצעה נשמרה?', 'אני אאבד את השינויים?', 'האם ההצעה הזו שמורה?', 'ההצעה שלי שמורה?', 'האם הטיוטה שלי שמורה?'])('save_status: %s', (m) => expect(classifyHelpIntent(m)).toBe('save_status'));
   it('a Hebrew "why was it not saved" stays a why-blocked question', () => expect(classifyHelpIntent('למה ההצעה לא נשמרה?')).toBe('why_blocked'));
   it.each(['How do I add a client?', 'What does the PRO plan include?', 'איך מוסיפים לקוח?'])('neither: %s', (m) => expect(classifyHelpIntent(m)).toBeNull());
 });

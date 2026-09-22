@@ -16,6 +16,7 @@ import { boundTranscript } from './utils/aiHelpContract';
 import { formatMessageTime, formatDaySeparatorLabel, computeDaySeparatorFlags } from './utils/aiChatHistoryFormat';
 import { resolveAIChatContext, allowsExistingQuoteReference } from './utils/aiChatContext';
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
+import { formatQuoteFallback } from './utils/quoteNumber';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
 // per top-level group (Section 7's own "small relevant icon" requirement).
@@ -710,10 +711,12 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       // AI HELP V4 context: bounded structured UI facts + typed blocker codes only (never DOM text, never PII, never raw errors).
       // The server re-derives identity/tenant/market/entitlement and reconciles every blocker against its own facts.
       const activeHelpBlockers = isDashboard ? getActiveBlockers() : [];
-      const aiOwnBlocker = activeHelpBlockers.some((b) => b.code === 'AI_PROVIDER_FAILED' || b.code === 'AI_TRANSCRIPT_LIMIT');
+      // the assistant itself is the screen when its OWN problem is the most recent blocker (an older blocker elsewhere is still sent)
+      const newestBlocker = activeHelpBlockers.reduce((a, b) => (!a || (b.occurredAt || 0) >= (a.occurredAt || 0) ? b : a), null);
+      const aiOwnBlocker = newestBlocker?.code === 'AI_PROVIDER_FAILED' || newestBlocker?.code === 'AI_TRANSCRIPT_LIMIT';
       const helpContext = isDashboard && helpSources
         ? buildAiHelpContext({ ...helpSources, chat: { transcriptLength: fullTranscript.reduce((n, m) => n + m.content.length, 0), transcriptMessages: fullTranscript.length } },
-          { blockers: activeHelpBlockers, revision: contextRevisionRef.current, forceScreen: aiOwnBlocker && !activeHelpBlockers.some((b) => !b.code.startsWith('AI_')) ? 'ai_chat' : null })
+          { blockers: activeHelpBlockers, revision: contextRevisionRef.current, forceScreen: aiOwnBlocker ? 'ai_chat' : null })
         : null;
 
       const { data, error } = await supabase.functions.invoke('chat-ai', {
@@ -1528,7 +1531,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               {isDashboard && selectedQuoteId && (
                 <div style={{ padding: '0 10px', display: 'flex', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: NEON.bgCard, border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', padding: '4px 8px', fontSize: '0.75rem', color: NEON.textPrimary, marginBottom: '8px' }}>
-                    <span>{isHebrew ? `הצעה: #${selectedQuoteSummary?.quote_number ?? ''}` : `Quote: #${selectedQuoteSummary?.quote_number ?? ''}`}</span>
+                    <span>{(() => { const n = selectedQuoteSummary?.quote_number != null ? `#${selectedQuoteSummary.quote_number}` : formatQuoteFallback({ id: selectedQuoteId }); return isHebrew ? `הצעה: ${n}` : `Quote: ${n}`; })()}</span>
                     <button
                       type="button"
                       onClick={() => { setSelectedQuoteId(null); setSelectedQuoteSummary(null); }}

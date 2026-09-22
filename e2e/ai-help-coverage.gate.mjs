@@ -73,8 +73,9 @@ const RECIPES = {
       await expandDraftRow(page, lang);
       const btn = page.getByRole('button', { name: lang === 'he' ? /^(שלח במייל|שליחה במייל|אימייל|מייל)$/ : /^(Email|Send Email|Send by Email)$/ }).first();
       await btn.waitFor({ state: 'visible', timeout: 15000 }); await btn.click();
-      const confirm = page.getByRole('button', { name: lang === 'he' ? /^(שלח|אישור ושליחה|כן, שלח)/ : /^(Yes, Send|Send|Confirm)/i }).last();
-      if (await confirm.isVisible({ timeout: 5000 }).catch(() => false)) await confirm.click();
+      // the product's own confirmation button (EmailConfirmModal) - never the assistant's Send button
+      const confirm = page.getByRole('button', { name: lang === 'he' ? /^כן, שלח מייל$/ : /^Yes, Send$/ });
+      await confirm.waitFor({ state: 'visible', timeout: 10000 }); await confirm.click();
       await page.locator('text=/⚠|Attention|שים לב/').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
     },
     launcher: 'ai-help-alert',
@@ -202,9 +203,13 @@ const applicable = (s, l) => !RECIPES[s].langs || RECIPES[s].langs.includes(l);
 const notApplicable = []; for (const s of surfaces) for (const l of LANGS) for (const v of VPS) if (!applicable(s, l)) notApplicable.push({ cell: [s, l, v].join('/'), reason: 'no International super-admin persona exists; Admin chat language follows the account market (market isolation) - not a product state' });
 const expectedCells = surfaces.reduce((n, s) => n + LANGS.filter((l) => applicable(s, l)).length * VPS.length, 0);
 const missing = []; for (const s of surfaces) for (const l of LANGS) for (const v of VPS) if (applicable(s, l) && !cells.some((x) => x.surface === s && x.lang === l && x.viewport === v)) missing.push(`${s}/${l}/${v}`);
-const identity = { servedBefore: { version: servedBefore.version, servedFingerprint: servedBefore.servedFingerprint, mismatches: servedBefore.servedMismatches }, servedAfter: { version: servedAfter.version, servedFingerprint: servedAfter.servedFingerprint }, problemsBefore: identityProblems({ served: servedBefore }), problemsAfter: identityProblems({ served: servedAfter }), loaded: loadedIds };
-const identityOk = !identity.problemsBefore.length && !identity.problemsAfter.length && loadedIds.every((l) => !l.problems.length);
+// identity in the registry's canonical-evidence schema (validateCanonicalEvidence): before/after served snapshots + every problem
+const snap = (s) => ({ base: s.base, capturedAt: s.capturedAt, version: s.version, servedFingerprint: s.servedFingerprint, servedFiles: s.servedFiles, servedMismatches: s.servedMismatches });
+const problems = [...identityProblems({ served: servedBefore }).map((p) => `before: ${p}`), ...identityProblems({ served: servedAfter }).map((p) => `after: ${p}`), ...loadedIds.flatMap((l) => l.problems.map((p) => `loaded ${l.persona}/${l.lang}/${l.vp}: ${p}`))];
+const identity = { before: snap(servedBefore), after: snap(servedAfter), problems, loaded: loadedIds };
+const identityOk = problems.length === 0;
 const pass = identityOk && !missing.length && cells.length === expectedCells && cells.every((x) => x.result === 'PASS');
-writeEvidence(dir, 'gate-ai-help-coverage.json', { gate: 'AI HELP V4 FULL-INTERFACE BROWSER COVERAGE', law: 'AI-HELP-AVAILABILITY-001', url: BASE, candidate: { sha: EXPECTED.sha, digest: EXPECTED.digest }, start: t0, end: new Date().toISOString(), identity, expectedCells, missing, notApplicable, cells, verdict: pass ? 'PASS' : 'FAIL' });
+const screenshots = cells.map((x) => x.screenshot).filter(Boolean);
+writeEvidence(dir, 'gate-ai-help-coverage.json', { gate: 'AI HELP V4 FULL-INTERFACE BROWSER COVERAGE', law: 'AI-HELP-AVAILABILITY-001', url: BASE, candidate: { sha: EXPECTED.sha, digest: EXPECTED.digest }, start: t0, end: new Date().toISOString(), identity, expectedCells, missing, notApplicable, cells, screenshots, verdict: pass ? 'PASS' : 'FAIL' });
 console.log(`AI HELP COVERAGE GATE: ${pass ? 'PASS' : 'FAIL'} (${cells.filter((x) => x.result === 'PASS').length}/${expectedCells} cells${missing.length ? `, missing ${missing.length}` : ''}${identityOk ? '' : ', IDENTITY PROBLEM'})`);
 process.exit(pass ? 0 : 1);
