@@ -24,7 +24,7 @@
 import { getCapabilityById, PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY } from './productTruthRegistry.js';
 import { PLAN_IDS } from '../utils/planCatalog.js';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
-import { clauseScopeAt, extractClaims, resolveTekangoClaims } from './productTruthScopeClaims.js';
+import { clauseScopeAt, extractClaims, flipClaims, isRetractionSentence, resolveTekangoClaims } from './productTruthScopeClaims.js';
 
 export const TRUTH_KINDS = Object.freeze({
   AVAILABLE: 'AVAILABLE', // exists / supported for this account (gated-but-entitled counts)
@@ -159,6 +159,8 @@ const PATTERNS = Object.freeze({
       /\b(?:there\s+(?:is|are)\s+no|there['’]s\s+no|no\s+such)\b/i,
       /\bnon-?existent\b|\bunavailable\b/i,
       /\bneither\b/i,
+      // retired / removed / discontinued = not available now
+      /\b(?:no\s+longer|not\s+anymore|(?:was|were|has\s+been|have\s+been)\s+(?:removed|discontinued|retired|withdrawn|dropped)|removed\s+from|discontinued)\b/i,
       // elliptical, clause-terminal bare negation (the predicate is the neighbouring clause's): "in TEKANGO, it is not" / "it doesn't"
       /\b(?:is|are|does|do|can|will)\s+not\s*$|\b(?:isn|aren|doesn|don|can|won)['’]t\s*$/i,
       /\b(?:absent|omits?|not\s+found|(?:won['’]t|will\s+not|cannot|can['’]t)\s+(?:find|see|get))\b/i,
@@ -248,6 +250,7 @@ const PATTERNS = Object.freeze({
       /(?:אפשר|ניתן)\s+ל/,
       /(?:^|\s)(?:כולל|כוללת|כוללים|כוללות|תומך|תומכת|תומכים|מציע|מציעה|מציעים)\s/,
       /(?:^|\s)(?:תמצא|נמצא|נמצאת|נמצאים|נמצאות|מצוי|מצויה|תקבל)(?:\s|$|[.,])/,
+      /(?:^|\s)(?:היה|הייתה|היתה|היו|יהיה|תהיה|יהיו)(?:\s|$|[.,])/,
       /(?:^|\s)יש\s+(?!לך)/,
     ],
     affirmExistenceWeak: [/(?:^|[\s-])כן(?:[\s.,-]|$)/],
@@ -285,8 +288,8 @@ function denyCue(text, lang, named) {
 }
 
 /** CUE detector - an existence-affirming cue that is not itself under a negation ("does not include" is not an affirmation). 'strong' | 'weak' (interjection) | null. */
-function affirmCue(text, lang) {
-  const neg = lang === 'en' ? NEG_BEFORE_EN : NEG_BEFORE_HE;
+function affirmCue(text, lang, ignoreNegation = false) {
+  const neg = ignoreNegation ? /(?!)/ : (lang === 'en' ? NEG_BEFORE_EN : NEG_BEFORE_HE);
   const scan = (patterns) => {
     for (const re of patterns) {
       const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
@@ -303,7 +306,7 @@ function affirmCue(text, lang) {
   return null;
 }
 
-const detectors = (lang) => ({ deny: (t, named) => denyCue(t, lang, named), affirm: (t) => affirmCue(t, lang) });
+const detectors = (lang) => ({ deny: (t, named) => denyCue(t, lang, named), affirm: (t) => affirmCue(t, lang), affirmAny: (t) => affirmCue(t, lang, true) !== null });
 
 /**
  * Extracts what the response CLAIMS about a capability, sentence by sentence.
@@ -339,6 +342,13 @@ export function analyzeCapabilityProse(response, language, focus = { labels: [],
       roleGate: anyMatch(P.roleGate, text),
       universal: anyMatch(P.universal, text),
     };
+  });
+  sentences.forEach((s, i) => {
+    if (i === 0 || !isRetractionSentence(s.text, language)) return;
+    const p = sentences[i - 1];
+    [p.denied, p.affirmed] = [p.affirmed, p.denied];
+    p.claims = flipClaims(p.claims);
+    s.retraction = true;
   });
   const rel = sentences.filter((s) => s.relevant);
   return {

@@ -175,7 +175,7 @@ describe('PROPERTY / ADVERSARIAL - combinatorial semantic cases with by-construc
     expect([...dims('boundary')].sort()).toEqual(expect.arrayContaining(['comma', 'semicolon', 'colon', 'em-dash', 'en-dash', 'spaced-hyphen', 'period', 'but', 'though', 'while', 'aval', 'af-she', 'beod', 'slash', 'pipe', 'ellipsis', 'arrow', 'bullet', 'parentheses']));
     expect(dims('order')).toEqual(new Set(['tek-first', 'ext-first']));
     expect(dims('noun').size).toBeGreaterThanOrEqual(12);
-    expect(new Set(all.map((c) => c.family))).toEqual(new Set(['pair', 'tek-only', 'ext-only', 'except-positive', 'except-negative', 'only-outside', 'only-tekango', 'special']));
+    expect(new Set(all.map((c) => c.family))).toEqual(new Set(['pair', 'tek-only', 'ext-only', 'except-positive', 'except-negative', 'only-outside', 'only-tekango', 'special', 'composition', 'temporal']));
     expect([...dims('exclusivity')]).toEqual(expect.arrayContaining(['except TEKANGO', 'other than TEKANGO', 'apart from TEKANGO', 'besides TEKANGO', 'excluding TEKANGO', 'מלבד TEKANGO', 'חוץ מ-TEKANGO', 'פרט ל-TEKANGO', 'למעט TEKANGO']));
     expect(dims('gender')).toEqual(new Set(['m', 'f']));
   });
@@ -331,5 +331,54 @@ describe('ANTI-PATCH guards (source level)', () => {
     expect(src).toMatch(/'implicit-tekango'/);
     const resolve = src.slice(src.indexOf('export function resolveTekangoClaims'), src.indexOf('export function clauseScopeAt'));
     expect(resolve).not.toMatch(/clauseIndex|span|\.sort\(|\[0\]|\[i/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+describe('POLARITY COMPOSITION - negation operators, retraction, negated-quantifier exceptions, TIME and MODALITY', () => {
+  const N = truthFor('NOT_AVAILABLE');
+  const cases = [
+    // [truth, lang, expect-accept, text]
+    ['A', 'en', true, 'It is not true that TEKANGO lacks the in-editor calculator.'],
+    ['A', 'en', true, "It isn't true that the in-editor calculator is missing from TEKANGO."],
+    ['A', 'en', false, 'It is not true that the in-editor calculator exists in TEKANGO.'],
+    ['A', 'en', false, 'Some say the in-editor calculator exists in TEKANGO, but that is wrong.'],
+    ['A', 'en', false, 'Some say TEKANGO includes the in-editor calculator. That is false.'],
+    ['A', 'en', true, 'Some say TEKANGO lacks the in-editor calculator, but that is wrong.'],
+    ['A', 'en', true, 'No other product has the in-editor calculator except TEKANGO.'],
+    ['A', 'en', true, 'No platform apart from TEKANGO has the in-editor calculator.'],
+    ['A', 'he', true, 'לא נכון ש-TEKANGO חסרה מחשבון מובנה בעורך.'],
+    ['A', 'he', false, 'יש אומרים שהמחשבון המובנה בעורך זמין ב-TEKANGO, אבל זה לא נכון.'],
+    ['A', 'he', false, 'יש אומרים שהמחשבון המובנה בעורך קיים ב-TEKANGO. זה שגוי.'],
+    ['A', 'he', false, 'לא נכון שהמחשבון המובנה בעורך זמין ב-TEKANGO.'],
+    // time: availability is a claim about NOW
+    ['A', 'en', false, 'TEKANGO will have the in-editor calculator next year.'],
+    ['A', 'en', false, 'TEKANGO used to have the in-editor calculator.'],
+    ['A', 'en', false, 'The in-editor calculator is coming soon to TEKANGO.'],
+    ['A', 'en', false, 'The in-editor calculator is planned for TEKANGO.'],
+    ['A', 'en', false, 'The in-editor calculator was in TEKANGO but is no longer there.'],
+    ['A', 'en', true, 'Yes - In-editor calculator exists in TEKANGO. It has been there since launch.'],
+    ['A', 'he', false, 'המחשבון המובנה בעורך יהיה זמין ב-TEKANGO בקרוב.'],
+    ['A', 'he', false, 'ב-TEKANGO היה פעם מחשבון מובנה בעורך.'],
+    ['N', 'en', true, 'AI-executed data mutation will be available in TEKANGO soon.'],
+    ['N', 'en', true, 'AI-executed data mutation is not available yet, but it will be.'],
+    ['N', 'en', true, 'AI-executed data mutation was in TEKANGO but is no longer there.'],
+    // modality: a hedge asserts nothing (insufficient either way)
+    ['A', 'en', false, 'TEKANGO may have the in-editor calculator.'],
+    ['A', 'en', false, 'TEKANGO might have an in-editor calculator, I am not sure.'],
+    ['A', 'en', false, 'Supposedly, TEKANGO has the in-editor calculator.'],
+    ['N', 'en', false, 'Perhaps AI-executed data mutation is not available in TEKANGO.'],
+    ['A', 'he', false, 'אולי יש ב-TEKANGO מחשבון מובנה בעורך.'],
+    ['A', 'he', false, 'כנראה שהמחשבון המובנה בעורך קיים ב-TEKANGO.'],
+  ];
+  it.each(cases)('%s %s accept=%s: %s', (k, lang, accept, text) => {
+    expect(passes(k === 'A' ? CALC : N, text, lang), text).toBe(accept);
+  });
+  it('the claim objects record the composition (qualifiers): operator negation, retraction, negated quantifier, non-present tense', () => {
+    const q = (text) => claimsOf(text, 'en').flatMap((c) => c.qualifiers);
+    expect(q('It is not true that TEKANGO lacks the in-editor calculator.')).toContain('negated-by-operator');
+    expect(q('Some say TEKANGO lacks the in-editor calculator, but that is wrong.')).toContain('retracted');
+    expect(q('No other product has the in-editor calculator except TEKANGO.')).toContain('negated-quantifier');
+    expect(q('TEKANGO will have the in-editor calculator next year.')).toContain('non-present');
   });
 });

@@ -40,8 +40,8 @@ const HE_BOUNDARIES = [
 ];
 const HE_EXC = ['מלבד TEKANGO', 'חוץ מ-TEKANGO', 'פרט ל-TEKANGO', 'למעט TEKANGO'];
 const HE_GENDER = {
-  m: { pron: 'הוא', avail: ['זמין', 'קיים', 'נתמך'], neg: 'אינו' },
-  f: { pron: 'היא', avail: ['זמינה', 'קיימת', 'נתמכת'], neg: 'אינה' },
+  m: { pron: 'הוא', avail: ['זמין', 'קיים', 'נתמך'], neg: 'אינו', missing: 'חסר', fut: 'יהיה', past: 'היה' },
+  f: { pron: 'היא', avail: ['זמינה', 'קיימת', 'נתמכת'], neg: 'אינה', missing: 'חסרה', fut: 'תהיה', past: 'הייתה' },
 };
 const PREFIX_HE = ['', 'כן, ', 'בקיצור: '];
 
@@ -118,6 +118,16 @@ export function generateScopeCases(lang, subject, opts = {}) {
       `only other ${Np} have ${S}`, `${S} is offered exclusively by other ${Np}`, `${S} is available solely elsewhere`, `${S} is available outside of TEKANGO only`,
     ]) push('only-outside', finish(cap(f)), 'negative', { noun: Np });
     for (const f of [`${S} is available only in TEKANGO`, `only TEKANGO has ${S}`, `${S} is available in TEKANGO only`]) push('only-tekango', finish(cap(f)), 'positive', {});
+    // family 7: polarity COMPOSITION (negation operators, retraction clause / sentence, negated-quantifier exception)
+    for (const [Np, sing] of EN_N) {
+      for (const f of [`It is not true that TEKANGO lacks ${S}`, `It isn't true that ${S} is missing from TEKANGO`, `Some say TEKANGO lacks ${S}, but that is wrong`, `Some say ${S} is missing from TEKANGO. That is not true`,
+        `No other ${sing} has ${S} except TEKANGO`, `No ${sing} apart from TEKANGO has ${S}`, `Some say ${S} is unavailable in TEKANGO - that is false`]) push('composition', finish(f), 'positive', { noun: Np });
+      for (const f of [`It is not true that ${S} exists in TEKANGO`, `It is false that TEKANGO has ${S}`, `Some say ${S} exists in TEKANGO, but that is wrong`, `Some say TEKANGO includes ${S}. That is false`,
+        `Some say ${S} is available in TEKANGO; this is a myth`, `Other ${Np} say TEKANGO supports ${S}, but that is incorrect`]) push('composition', finish(f), 'negative', { noun: Np });
+    }
+    // family 8: TIME and MODALITY - availability is a claim about NOW: future / past = not available now; hedges assert nothing
+    for (const f of [`TEKANGO will have ${S} next year`, `TEKANGO used to have ${S}`, `${S} will be available in TEKANGO soon`, `TEKANGO is going to include ${S} in the future`, `${S} was in TEKANGO but is no longer there`]) push('temporal', finish(f), 'negative', {});
+    for (const f of [`TEKANGO may have ${S}`, `TEKANGO might include ${S}, I am not sure`, `Perhaps ${S} exists in TEKANGO`, `TEKANGO probably supports ${S}`, `${S} is coming soon to TEKANGO`, `${S} is planned for TEKANGO`, `Supposedly, TEKANGO has ${S}`]) push('temporal', finish(f), 'none', {});
     // family 6: SPECIAL constructions - fronted scope, exception-first / parenthetical / 'but' exception, neither-nor, terminal negation, comparatives
     for (const [Np, sing] of EN_N) {
       for (const f of [`Elsewhere, ${S} is available; in TEKANGO, it is not`, `In other ${Np}, it exists; in TEKANGO, ${S} does not exist`, `Outside TEKANGO, ${S} is available. In TEKANGO, it is not`, `In competing ${Np}, ${S} is available - in TEKANGO, it is unavailable`,
@@ -158,6 +168,10 @@ export function generateScopeCases(lang, subject, opts = {}) {
         `${S} ${g.avail[1]} רק במקום אחר`, `${S} ${g.avail[0]} ב${Np} ${adj} בלבד`, `${S} ${g.avail[2]} רק מחוץ ל-TEKANGO`,
       ]) push('only-outside', finish(f), 'negative', { noun: Np, gender });
       for (const f of [`${S} ${g.avail[0]} רק ב-TEKANGO`, `${S} ${g.avail[0]} ב-TEKANGO בלבד`]) push('only-tekango', finish(f), 'positive', { gender });
+      for (const f of [`לא נכון ש${S} ${g.missing} ב-TEKANGO`, `יש אומרים ש${S} ${g.missing} ב-TEKANGO, אבל זה לא נכון`, `יש אומרים ש${S} ${g.missing} ב-TEKANGO. זה שגוי`]) push('composition', finish(f), 'positive', { gender });
+      for (const f of [`לא נכון ש${S} ${g.avail[0]} ב-TEKANGO`, `יש אומרים ש${S} ${g.avail[0]} ב-TEKANGO, אבל זה לא נכון`, `יש אומרים ש${S} ${g.avail[1]} ב-TEKANGO. זה שגוי`, `שגוי ש${S} ${g.avail[2]} ב-TEKANGO`]) push('composition', finish(f), 'negative', { gender });
+      for (const f of [`${S} ${g.fut} ${g.avail[0]} ב-TEKANGO בקרוב`, `ב-TEKANGO ${g.past} פעם ${S}`, `${S} ${g.fut} ${g.avail[1]} ב-TEKANGO בעתיד`]) push('temporal', finish(f), 'negative', { gender });
+      for (const f of [`אולי ${S} ${g.avail[0]} ב-TEKANGO`, `ייתכן ש${S} ${g.avail[1]} ב-TEKANGO`, `כנראה ש${S} ${g.avail[2]} ב-TEKANGO`, `לכאורה ${S} ${g.avail[0]} ב-TEKANGO`]) push('temporal', finish(f), 'none', { gender });
       for (const [Np, sing, adj] of HE_N) {
         const av = g.avail;
         for (const f of [`ב${Np} ${adj}, ${S} ${av[0]}; ב-TEKANGO, ${g.pron} ${g.neg} ${av[0]}`, `${S} ${av[0]} בכל ${sing} (למעט TEKANGO)`, `למעט ב-TEKANGO, ${S} ${av[0]} בכל מקום`, `${S} ${av[0]} בכל ${sing} חוץ מ-TEKANGO`, `אף ש${S} ${av[1]} ב${Np} ${adj}, ב-TEKANGO ${g.pron} לא ${av[1]}`]) push('special', finish(f), 'negative', { noun: sing, gender });
