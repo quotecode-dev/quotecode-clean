@@ -201,6 +201,7 @@ export default function App() {
           alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: closes the forgot-password modal in this unmounted, unreachable file (main.jsx renders only AppLocal/AppGlobal; no file imports src/App.jsx) */}
             <button 
               onClick={() => setForgotPasswordOpen(false)}
               style={{ position: 'absolute', top: '15px', [!isHebrew ? 'right' : 'left']: '15px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}
@@ -221,6 +222,7 @@ export default function App() {
                 autoComplete="email"
                 style={{ width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '16px', boxSizing: 'border-box', textAlign: !isHebrew ? 'left' : 'right' }}
               />
+              {/* PRODUCT_TRUTH_DECORATIVE: submits the forgot-password email form in the same unmounted file; dead code, and password recovery is not one of the 38 registered capabilities regardless */}
               <button
                 type="submit"
                 disabled={forgotLoading}
@@ -261,6 +263,7 @@ export default function App() {
                 autoComplete="new-password"
                 style={{ width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '16px', boxSizing: 'border-box', textAlign: !isHebrew ? 'left' : 'right' }}
               />
+              {/* PRODUCT_TRUTH_DECORATIVE: submits the new-password form in the same unmounted file; dead code */}
               <button
                 type="submit"
                 disabled={updateLoading}

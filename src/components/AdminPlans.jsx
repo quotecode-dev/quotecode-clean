@@ -41,6 +41,7 @@ export default function AdminPlans({ accounts, isHebrew, onOpenUser }) {
         <ul className="admin-overview-list">
           {groupRows.map(r => (
             <li key={r.account.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
               <button className="admin-overview-row" onClick={() => onOpenUser(r.account)}>
                 <span className="admin-overview-row-name" dir="auto">{r.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
                 <span className="admin-overview-row-meta" dir="ltr">{r.account.email}</span>

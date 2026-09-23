@@ -79,6 +79,7 @@ export default function ProfessionalQuotePreview() {
   return (
     <div dir="rtl" style={{ fontFamily: FONT_HE, background: LIGHT.bg, minHeight: '100vh', padding: '20px' }}>
       <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: 'back to dashboard' navigation on this internal, allowlist-gated owner preview tool */}
         <button
           onClick={() => navigate('/dashboard')}
           style={{ background: 'none', border: 'none', color: LIGHT.violet, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '16px', padding: 0 }}
@@ -104,6 +105,7 @@ export default function ProfessionalQuotePreview() {
 
         <div style={{ background: LIGHT.bgCardAlt, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', padding: '14px 18px', marginTop: '10px', fontSize: '0.8rem', color: LIGHT.textSecondary }}>
           רוצה לראות איך זה נראה ללקוח שלך?{' '}
+          {/* PRODUCT_TRUTH_DECORATIVE: opens the app's existing public quote view page in a new tab for comparison; the destination page carries public_quote_view */}
           <a href={publicUrl} target="_blank" rel="noreferrer" style={{ color: LIGHT.violet, fontWeight: '700' }}>
             פתח את התצוגה ללקוח
           </a>

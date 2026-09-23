@@ -22,9 +22,11 @@ export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
           {isHebrew ? `לא ניתן היה לשחזר את הקבצים המצורפים הבאים - יש לבחור אותם מחדש: ${info.missingAttachments.join(', ')}` : `These attachments could not be recovered - please select them again: ${info.missingAttachments.join(', ')}`}
         </span>
       )}
+      {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
       <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
         {isHebrew ? 'מחק טיוטה' : 'Discard draft'}
       </button>
+      {/* PRODUCT_TRUTH_DECORATIVE: x dismiss button only hides the recovered-draft banner; does not touch the draft itself */}
       <button type="button" onClick={onDismiss} aria-label={isHebrew ? 'סגור' : 'Dismiss'} style={{ background: 'transparent', color: '#065f46', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
     </div>
   );
@@ -60,14 +62,17 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
           <AiHelpButton isHebrew={isHebrew} long testId="ai-help-draft-conflict" />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           <button type="button" data-testid="draft-conflict-review" onClick={onReview} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
             {isHebrew ? 'סקור עותק משוחזר (ייפתח כהצעה חדשה)' : 'Review recovered copy (opens as a new quote)'}
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           {!deleted && (
             <button type="button" data-testid="draft-conflict-use-saved" onClick={onUseSaved} style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
               {isHebrew ? 'השתמש בגרסה השמורה (הטיוטה תימחק)' : 'Use saved version (the draft is deleted)'}
             </button>
           )}
+          {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           <button type="button" data-testid="draft-conflict-discard" onClick={onDiscard} style={{ background: 'white', color: '#b91c1c', border: '1px solid #fecaca', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
             {isHebrew ? 'מחק טיוטה משוחזרת' : 'Discard recovered draft'}
           </button>

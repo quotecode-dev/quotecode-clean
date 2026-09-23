@@ -9,7 +9,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, formatInvoicingTruthAnswer } from "./invoicingTruth.ts";
-import { capabilityTruthApplies, classifyCapabilityIntent, formatCapabilityTruthAnswer } from "./capabilityTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, formatBroadCapabilityClarification, formatCapabilityTruthAnswer } from "./capabilityTruth.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
@@ -281,6 +281,18 @@ serve(async (req) => {
         await logChat(capabilityAnswer);
         return deterministicResponse(capabilityAnswer, navSuggestion);
       }
+    }
+    // Codex "deterministic product-capability-question guard" (2026-09-2X, blocker 3 §4.3): the
+    // specific classifier above found no unique capability id, but the message clearly still ASKS
+    // whether a product feature exists/is available/is supported/is allowed (an explicit existence-
+    // verb phrasing the specific per-capability patterns did not happen to match). Such a message
+    // must NEVER be allowed to reach the free-form model, which could otherwise guess at capability
+    // availability - the exact defect class this entire subsystem exists to close. A bounded,
+    // deterministic clarification is returned instead; the model is never invoked for this turn.
+    else if (classifyBroadCapabilityQuestionSignal(lastUserMessage)) {
+      const clarification = formatBroadCapabilityClarification(isHebrew);
+      await logChat(clarification);
+      return deterministicResponse(clarification);
     }
   }
 

@@ -976,6 +976,7 @@ export default function PublicQuote({ quoteData }) {
                     return (
                       <tr key={section.key} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
                         <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                          {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
                           <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={false} style={toggleBtnStyle}>{`${section.title} ${chevron}`}</button>
                         </td>
                         <td style={{ padding: '12px 10px', textAlign: 'center', color: '#475569' }}>{`${itemCount} פריטים`}</td>
@@ -988,6 +989,7 @@ export default function PublicQuote({ quoteData }) {
                     <Fragment key={section.key}>
                       <tr>
                         <td colSpan="4" style={{ padding: '14px 10px 4px', textAlign: 'right' }}>
+                          {/* PRODUCT_TRUTH_DECORATIVE: collapses an expanded line-item section back to its summary row */}
                           <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={true} style={{ ...toggleBtnStyle, fontSize: '0.88rem' }}>{`${section.title} ${chevron}`}</button>
                         </td>
                       </tr>
@@ -1309,6 +1311,7 @@ export default function PublicQuote({ quoteData }) {
                   onTouchEnd={stopDrawing}
                   style={{ display: 'block', touchAction: isActive ? 'none' : 'pan-y', cursor: isActive ? 'crosshair' : 'default', maxWidth: '100%', height: 'auto' }}
                 />
+                {/* PRODUCT_TRUTH_DECORATIVE: activates the signature-drawing canvas; sub-step of the already-marked public_quote_sign flow */}
                 {!isActive && !hasSigned && (
                   <button
                     type="button"
@@ -1320,11 +1323,13 @@ export default function PublicQuote({ quoteData }) {
                 )}
               </div>
               <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: clears the currently drawn signature before submission */}
                 {(isActive || hasSigned) && (
                   <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
                     נקה חתימה
                   </button>
                 )}
+                {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
                 {isActive && (
                   <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
                     סיום
@@ -1337,6 +1342,7 @@ export default function PublicQuote({ quoteData }) {
                 </div>
               )}
               <div>
+                {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
                 <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
                   אשר וחתום על הצעת המחיר ✓
                 </button>
@@ -1356,6 +1362,7 @@ export default function PublicQuote({ quoteData }) {
             וואטסאפ מוסתרים לגמרי אם אין טלפון עסק תקין. כל הקבוצה + המודל
             מסומנים no-print. */}
         <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_pdf */}
           <button
             type="button"
             onClick={() => openPrintChooser('pdf')}
@@ -1366,6 +1373,7 @@ export default function PublicQuote({ quoteData }) {
             {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
             <span>{pdfGenerating ? 'מפיק PDF...' : 'הורד כ-PDF'}</span>
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_print */}
           <button
             type="button"
             onClick={() => openPrintChooser('print')}
@@ -1412,6 +1420,7 @@ export default function PublicQuote({ quoteData }) {
         <div style={{ textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '25px', color: '#64748b', fontSize: '0.9rem' }}>
           <span>
             מסמך זה נערך ע"י{' '}
+            {/* PRODUCT_TRUTH_DECORATIVE: footer TEKANGO branding link navigating to the main marketing homepage */}
             <span onClick={() => navigate('/he')} dir="ltr" style={{ color: LIGHT.violet, cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline', unicodeBidi: 'isolate' }}>
               TEKANGO
             </span>

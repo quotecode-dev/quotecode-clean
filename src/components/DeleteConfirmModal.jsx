@@ -6,6 +6,7 @@ import { LIGHT as NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
 // window.confirm() המובנים של הדפדפן כדי לשמור על עיצוב אחיד (NEON כהה)
 // ולאפשר טקסט/מזהה ישות דינמיים. ר' Dashboard.jsx לזרימת ה-request/confirm
 // בפועל - הרכיב עצמו נשאר "טיפש" (props בלבד), לא מבצע שום קריאת מחיקה.
+// PRODUCT_TRUTH_DECORATIVE: modal backdrop click cancels the pending delete, same as the Cancel button; generic click-outside-to-close chrome
 export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, confirmLabel, cancelLabel, isDeleting, onCancel, onConfirm }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -25,6 +26,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
       style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}
       dir={isHebrew ? 'rtl' : 'ltr'}
     >
+      {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the modal panel preventing the backdrop cancel from firing on inner clicks */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '14px', padding: '20px', width: '100%', maxWidth: '340px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.55)', fontFamily: isHebrew ? FONT_HE : FONT_EN, boxSizing: 'border-box' }}
@@ -43,6 +45,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
         </p>
 
         <div style={{ display: 'flex', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: Cancel button of the shared, entity-agnostic delete-confirmation modal */}
           <button
             onClick={onCancel}
             disabled={isDeleting}
@@ -50,6 +53,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
           >
             {cancelLabel}
           </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: Confirm button of the shared delete-confirmation modal, reused for quotes/clients/expenses/services; per the registry's own documented discrepancy, entity deletion has no dedicated capability id among the 38 */}
           <button
             onClick={onConfirm}
             disabled={isDeleting}

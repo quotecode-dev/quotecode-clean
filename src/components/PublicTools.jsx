@@ -313,18 +313,22 @@ function PublicTools() {
 
           {/* Tabs */}
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', borderBottom: `1px solid ${NEON.border}`, flexWrap: 'wrap' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the currency converter (already-marked public_currency_converter) */}
             <button onClick={() => setActiveTab('currency')} style={tabBtnStyle('currency')}>
               <ArrowLeftRight size={18} strokeWidth={2.2} />
               המרת מטבעות
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the unit converter */}
             <button onClick={() => setActiveTab('units')} style={tabBtnStyle('units')}>
               <Ruler size={18} strokeWidth={2.2} />
               מידות ומרחקים
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the precious metals calculator */}
             <button onClick={() => setActiveTab('metals')} style={tabBtnStyle('metals')}>
               <Gem size={18} strokeWidth={2.2} />
               מתכות יקרות
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the crypto calculator */}
             <button onClick={() => setActiveTab('crypto')} style={tabBtnStyle('crypto')}>
               <Bitcoin size={18} strokeWidth={2.2} />
               ממיר קריפטו
@@ -347,6 +351,7 @@ function PublicTools() {
                     </select>
                   </div>
 
+                  {/* PRODUCT_TRUTH_DECORATIVE: swaps the from/to currency selections within the currency converter tool */}
                   <button onClick={handleSwapCurrencies} title="החלף מטבעות (SWAP)" style={swapBtnStyle}>
                     <ArrowRightLeft size={18} strokeWidth={2.2} />
                   </button>
@@ -389,6 +394,7 @@ function PublicTools() {
                     </select>
                   </div>
 
+                  {/* PRODUCT_TRUTH_DECORATIVE: swaps the from/to unit selections within the unit converter tool */}
                   <button onClick={handleSwapUnits} title="החלף יחידות (SWAP)" style={swapBtnStyle}>
                     <ArrowRightLeft size={18} strokeWidth={2.2} />
                   </button>
@@ -558,6 +564,7 @@ function PublicTools() {
           </div>
           <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 'bold' }}>רוצה לנהל את העסק שלך ברמה הבאה?</h3>
           <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>הפק הצעות מחיר חכמות, נהל לקוחות ופתח את העסק לעולם עם TEKANGO.</p>
+          {/* PRODUCT_TRUTH_DECORATIVE: marketing CTA navigating to the app home/signup page; not itself a distinct product capability */}
           <button
             onClick={() => navigate('/')}
             style={{ background: 'white', color: NEON.violet, padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'inline-block' }}

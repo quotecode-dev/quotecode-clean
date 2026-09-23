@@ -42,6 +42,7 @@ export default function UpdateAvailableBanner({ isHebrew }) {
       <span style={{ flex: '1 1 auto' }}>
         {isHebrew ? 'גרסה חדשה זמינה. רענן/י לקבלת העדכון.' : 'A new version is available. Refresh to update.'}
       </span>
+      {/* PRODUCT_TRUTH_DECORATIVE: flushes local drafts and reloads to pick up a newly deployed app version; not a registered product capability */}
       <button
         type="button"
         onClick={() => { flushAllDrafts(); window.location.reload(); }}
@@ -59,6 +60,7 @@ export default function UpdateAvailableBanner({ isHebrew }) {
       >
         {isHebrew ? 'רענן' : 'Refresh'}
       </button>
+      {/* PRODUCT_TRUTH_DECORATIVE: dismisses the 'new version available' banner without reloading */}
       <button
         type="button"
         onClick={() => setNewVersionAvailable(false)}

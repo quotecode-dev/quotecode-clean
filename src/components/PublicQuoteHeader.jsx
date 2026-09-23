@@ -183,6 +183,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
               )}
               {projectName && <div className="pq-header-project" style={{ fontWeight: '600' }}>{isHebrew ? 'פרויקט:' : 'Project:'} {projectName}</div>}
             </div>
+            {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
             {bizPhone && (
               <a
                 href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
@@ -286,6 +287,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
             )}
           </div>
 
+          {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
           {bizPhone && (
             <a
               href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}

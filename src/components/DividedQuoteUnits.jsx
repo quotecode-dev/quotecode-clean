@@ -358,6 +358,7 @@ export default function DividedQuoteUnits({ units, unassignedItems, mode, resetT
             {/* חוק ברזל (Final Public Quote Restoration task - "RTL SIDE
                 OWNERSHIP - HARD LOCK"): שם-יחידה = ימין, סה"כ-יחידה = שמאל
                 ב-HE. */}
+            {/* PRODUCT_TRUTH_DECORATIVE: expand/collapse toggle for a unit section header within the customer-facing divided quote layout (rendered inside PublicQuote.jsx); a disclosure control within the already-documented public_quote_view screen */}
             <button
               type="button"
               onClick={() => toggleUnit(unit.id)}

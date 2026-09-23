@@ -13,6 +13,7 @@ function openAiHelp() {
   window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: { source: 'in_context_help' } }));
 }
 
+// PRODUCT_TRUTH_CAPABILITY: ai_chat
 export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context' }) {
   const longLabel = isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI';
   const shortLabel = isHebrew ? 'שאל את AI' : 'Ask AI';

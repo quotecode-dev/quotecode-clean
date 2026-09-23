@@ -125,7 +125,6 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
 
   if (!isOpen) return null;
 
-  // PRODUCT_TRUTH_CAPABILITY: editor_calculator
   const inputDigit = (digit) => {
     if (waitingForOperand) {
       setDisplay(String(digit));
@@ -238,6 +237,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
             {isHebrew ? 'מחשבון פיננסי חכם' : 'Smart Financial Calculator'}
           </span>
         </div>
+        {/* PRODUCT_TRUTH_DECORATIVE: closes the draggable calculator/currency-converter popup, no calculation performed */}
         <button
           onClick={onClose}
           onMouseDown={(e) => e.stopPropagation()}
@@ -325,32 +325,55 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator 'C' clear-all key */}
           <button onClick={clearAll} style={btnStyle('#ef4444', '#fee2e2')}>C</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator square-root function key */}
           <button onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))} style={btnStyle('#10b981', '#d1fae5')}>√</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator percent function key */}
           <button onClick={() => setDisplay(String(parseFloat(display) / 100))} style={btnStyle('#10b981', '#d1fae5')}>%</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator division operator key */}
           <button onClick={() => performOperation('÷')} style={btnStyle('#3b82f6', '#dbeafe')}>÷</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator backspace key */}
           <button onClick={() => setDisplay(display.slice(0, -1) || '0')} style={btnStyle('#64748b', '#e2e8f0')}>⌫</button>
 
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '7' */}
           <button onClick={() => inputDigit(7)} style={btnStyle('#334155', '#ffffff')}>7</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '8' */}
           <button onClick={() => inputDigit(8)} style={btnStyle('#334155', '#ffffff')}>8</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '9' */}
           <button onClick={() => inputDigit(9)} style={btnStyle('#334155', '#ffffff')}>9</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator multiplication operator key */}
           <button onClick={() => performOperation('×')} style={btnStyle('#3b82f6', '#dbeafe')}>×</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator memory-store key */}
           <button onClick={() => setMemory(parseFloat(display))} style={btnStyle('#8b5cf6', '#ede9fe')}>M+</button>
 
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '4' */}
           <button onClick={() => inputDigit(4)} style={btnStyle('#334155', '#ffffff')}>4</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '5' */}
           <button onClick={() => inputDigit(5)} style={btnStyle('#334155', '#ffffff')}>5</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '6' */}
           <button onClick={() => inputDigit(6)} style={btnStyle('#334155', '#ffffff')}>6</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator subtraction operator key */}
           <button onClick={() => performOperation('-')} style={btnStyle('#3b82f6', '#dbeafe')}>-</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator memory-clear key */}
           <button onClick={() => setMemory(null)} style={btnStyle('#8b5cf6', '#ede9fe')}>MC</button>
 
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '1' */}
           <button onClick={() => inputDigit(1)} style={btnStyle('#334155', '#ffffff')}>1</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '2' */}
           <button onClick={() => inputDigit(2)} style={btnStyle('#334155', '#ffffff')}>2</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '3' */}
           <button onClick={() => inputDigit(3)} style={btnStyle('#334155', '#ffffff')}>3</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator addition operator key */}
           <button onClick={() => performOperation('+')} style={btnStyle('#3b82f6', '#dbeafe')}>+</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator equals key */}
           <button onClick={handleEquals} style={{ ...btnStyle('#ffffff', '#10b981', 'bold'), gridRow: 'span 2', height: '100%' }}>=</button>
 
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator digit key '0' */}
           <button onClick={() => inputDigit(0)} style={{ ...btnStyle('#334155', '#ffffff'), gridColumn: 'span 2' }}>0</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator decimal point key */}
           <button onClick={inputDot} style={btnStyle('#334155', '#ffffff')}>.</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: calculator sign-toggle key */}
           <button onClick={() => setDisplay(String(parseFloat(display) * -1))} style={btnStyle('#334155', '#ffffff')}>±</button>
         </div>
 

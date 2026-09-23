@@ -123,13 +123,13 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     'Edit a quote that has already been saved.',
     {
       surfaces: ['quote_editor'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'editDuplicate',
-      aiMayNavigate: true, safeNavigationId: 'open_selected_quote', canonicalSources: ['src/components/QuoteForm.jsx', 'src/pages/Dashboard.jsx'],
+      aiMayNavigate: true, safeNavigationId: 'open_selected_quote', canonicalSources: ['src/components/QuoteForm.jsx', 'src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'],
     }),
 
   capability('quote_duplicate', 'שכפול הצעת מחיר', 'Duplicate a quote',
     'שכפול הצעת מחיר קיימת ליצירת הצעה חדשה מבוססת עליה.',
     'Duplicate an existing quote to start a new one from it.',
-    { surfaces: ['quote_history_screen'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'editDuplicate', canonicalSources: ['src/pages/Dashboard.jsx'] }),
+    { surfaces: ['quote_history_screen'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'editDuplicate', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'] }),
 
   capability('quote_status', 'סטטוס הצעת מחיר', 'Quote status',
     'סימון/צפייה בסטטוס הצעה (טיוטה/נשלח/אושר/שולם) - תווית ידנית, אינה גובה תשלום.',
@@ -169,7 +169,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('expenses', 'ניהול הוצאות', 'Expense management',
     'הוספה ועריכה של הוצאות עסקיות.',
     'Adding and editing business expenses.',
-    { surfaces: ['finances_screen'], operationType: 'mutate', canonicalSources: ['src/components/FinancesTab.jsx'] }),
+    { surfaces: ['finances_screen'], operationType: 'mutate', canonicalSources: ['src/components/FinancesTab.jsx', 'src/components/EditExpenseModal.jsx'] }),
 
   capability('quote_csv', 'ייצוא הצעות ל-CSV', 'Quote CSV export',
     'ייצוא רשימת הצעות המחיר לקובץ CSV.',
@@ -187,7 +187,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     {
       surfaces: ['quote_editor'], currencies: { role: 'conversion_only', values: ['USD', 'EUR', 'GBP', 'ILS'] },
       forbiddenClaimCodes: ['NO_LIVE_RATE_CLAIM_WITHOUT_TIMESTAMP', 'NO_CONVERSION_CURRENCY_AS_PAYMENT_CURRENCY'],
-      canonicalSources: ['src/components/DraggableCalculator.jsx'],
+      canonicalSources: ['src/components/DraggableCalculator.jsx', 'src/components/QuoteForm.jsx'],
     }),
 
   capability('editor_currency_converter', 'המרת מטבע בעורך ההצעה', 'In-editor currency converter',
@@ -243,7 +243,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('plan_trial', 'ניסיון חינם', '14-day free trial',
     'ניסיון חינם של 14 יום המעניק זכאות PRO זמנית - אינו תוכנית נמכרת בפני עצמה.',
     'A 14-day free trial granting temporary PRO entitlement - not a sellable plan in its own right.',
-    { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['trialDays'], canonicalSources: ['src/utils/accountEntitlement.js', 'src/components/PricingModal.jsx'] }),
+    { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['trialDays'], canonicalSources: ['src/utils/accountEntitlement.js', 'src/components/PricingModal.jsx', 'src/components/SettingsTab.jsx', 'src/pages/Dashboard.jsx'] }),
 
   capability('attachments', 'צירוף קבצים', 'File attachments',
     'צירוף קבצים/שרטוטים להצעת מחיר.',
@@ -256,7 +256,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('quote_pdf', 'PDF של הצעת מחיר', 'Quote PDF export',
     'ייצוא הצעת מחיר כקובץ PDF - מסמך הצעה, לא חשבונית.',
     'Exporting a quote as a PDF file - a quote document, not an invoice.',
-    { surfaces: ['quote_editor', 'public_quote_page'], forbiddenClaimCodes: ['NO_INVOICE_CONFLATION'], canonicalSources: ['src/utils/generateQuotePdf.js'] }),
+    { surfaces: ['quote_editor', 'public_quote_page'], forbiddenClaimCodes: ['NO_INVOICE_CONFLATION'], canonicalSources: ['src/utils/generateQuotePdf.js', 'src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx'] }),
 
   capability('quote_print', 'הדפסת הצעת מחיר', 'Quote print',
     'הדפסה ישירה של הצעת מחיר.',
@@ -266,7 +266,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('quote_email', 'שליחת הצעה במייל', 'Emailing a quote',
     'שליחת הצעת מחיר ללקוח במייל - שולחת את ההצעה, אינה מבצעת חיוב.',
     'Sending a quote to a client by email - sends the quote, does not bill or invoice.',
-    { surfaces: ['quote_editor'], operationType: 'mutate', forbiddenClaimCodes: ['NO_INVOICE_CONFLATION', 'NO_PAYMENT_COLLECTION_CLAIM'], canonicalSources: ['supabase/functions/send-quote-email/index.ts'] }),
+    { surfaces: ['quote_editor'], operationType: 'mutate', forbiddenClaimCodes: ['NO_INVOICE_CONFLATION', 'NO_PAYMENT_COLLECTION_CLAIM'], canonicalSources: ['supabase/functions/send-quote-email/index.ts', 'src/components/EmailConfirmModal.jsx', 'src/components/QuotesTab.jsx'] }),
 
   capability('owner_whatsapp_share', 'שיתוף הצעה ב-WhatsApp (בעל העסק)', 'Owner WhatsApp share',
     'שיתוף הצעת מחיר ב-WhatsApp על ידי בעל העסק - שונה מפעולת יצירת הקשר של הצד המקבל בהצעה הציבורית.',
@@ -277,7 +277,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
       // Known discrepancy (see file header): the same entitlementKey also gates quote deletion in real
       // source (src/pages/Dashboard.jsx handleProtectedAction), which has no dedicated id among the 38.
       deterministicFactKeys: ['quoteDeletionSharesThisEntitlement'],
-      canonicalSources: ['src/pages/Dashboard.jsx', 'src/utils/planCatalog.js'],
+      canonicalSources: ['src/pages/Dashboard.jsx', 'src/utils/planCatalog.js', 'src/components/QuotesTab.jsx'],
     }),
 
   capability('public_whatsapp_contact', 'יצירת קשר ב-WhatsApp (צד מקבל)', 'Public quote WhatsApp contact',
@@ -295,12 +295,12 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('public_call', 'התקשרות מעמוד ההצעה', 'Public quote call action',
     'כפתור התקשרות טלפונית עבור מקבל ההצעה בעמוד ההצעה הציבורי.',
     'A call button for the quote recipient on the public quote page.',
-    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx'] }),
+    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'src/components/PublicQuoteHeader.jsx'] }),
 
   capability('public_quote_view', 'צפייה בהצעה ציבורית', 'Public quote viewing',
     'צפייה בהצעת מחיר על ידי הלקוח, ללא צורך בהתחברות, דרך קישור ייחודי.',
     'Viewing a quote as the client, no login required, via a unique link.',
-    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx'] }),
+    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'src/components/QuotesTab.jsx', 'src/pages/Dashboard.jsx'] }),
 
   capability('public_quote_sign', 'חתימה על הצעה ציבורית', 'Public quote signing',
     'אישור/חתימה על הצעת מחיר על ידי הלקוח, בכפוף לתוקף ההצעה ולזהות המאשר.',
@@ -321,17 +321,17 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('draft_recovery', 'שחזור טיוטה מקומית', 'Local draft recovery',
     'שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון/מעבר אפליקציה - שמור מקומית בדפדפן בלבד, לא בענן.',
     'Restoring unsaved editor work after a refresh/app switch - stored locally in the browser only, never in the cloud.',
-    { surfaces: ['quote_editor'], forbiddenClaimCodes: ['NO_LOCAL_DRAFT_AS_CLOUD_SAVED'], deterministicFactKeys: ['draftProvenance'], canonicalSources: ['src/utils/quoteDraft.js'] }),
+    { surfaces: ['quote_editor'], forbiddenClaimCodes: ['NO_LOCAL_DRAFT_AS_CLOUD_SAVED'], deterministicFactKeys: ['draftProvenance'], canonicalSources: ['src/utils/quoteDraft.js', 'src/components/QuoteDraftNotices.jsx'] }),
 
   capability('accessibility_tools', 'כלי נגישות', 'Accessibility tools',
     'תפריט נגישות (גודל טקסט, ניגודיות ועוד) הזמין בכל מסך.',
     'An accessibility menu (text size, contrast, and more) available on every screen.',
-    { surfaces: ['dashboard', 'public_quote_page', 'public_tools_page'], canonicalSources: ['src/components/AccessibilityModal.jsx'] }),
+    { surfaces: ['dashboard', 'public_quote_page', 'public_tools_page'], canonicalSources: ['src/components/AccessibilityModal.jsx', 'src/pages/Dashboard.jsx'] }),
 
   capability('ai_chat', 'צ׳אט AI', 'AI Chat assistant',
     'עוזר AI זמין בתוך האפליקציה, שמסביר את המוצר ומנווט לפי בקשה - קריאה בלבד, לעולם לא מבצע פעולה בעצמו.',
     'An in-app AI assistant that explains the product and navigates on request - read-only, it never performs an action itself.',
-    { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts'] }),
+    { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts', 'src/components/AiHelpButton.jsx', 'src/pages/Dashboard.jsx'] }),
 
   capability('admin_console', 'מסך ניהול', 'Admin console',
     'מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי בתוכנית/Lifetime ואינו חלק ממרחב העבודה של משתמש רגיל.',
@@ -348,7 +348,11 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
       // Corrected (Codex defect 9, 2026-09-22): the original reference here, "UserDetailsModal.jsx",
       // does not exist anywhere in real source - the actual component is AdminUserDetails.jsx. Found
       // by the new exhaustive canonical-source-exists gate, not by inspection.
-      canonicalSources: ['src/components/AdminUsersTab.jsx', 'src/components/AdminUserDetails.jsx', 'supabase/functions/chat-ai/accountContext.ts'],
+      canonicalSources: [
+        'src/components/AdminUsersTab.jsx', 'src/components/AdminUserDetails.jsx', 'supabase/functions/chat-ai/accountContext.ts',
+        'src/components/AISupportLogsContent.jsx', 'src/components/AdminOverview.jsx', 'src/components/AdminPlans.jsx',
+        'src/components/AdminSidebarNav.jsx', 'src/components/AdminUsersView.jsx', 'src/pages/Dashboard.jsx',
+      ],
     }),
 ]);
 

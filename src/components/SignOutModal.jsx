@@ -14,12 +14,14 @@ export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew, has
           </p>
         )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: Cancel button closes the sign-out confirmation dialog without signing out */}
           <button 
             onClick={onClose}
             style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}
           >
             {isHebrew ? 'ביטול' : 'Cancel'}
           </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: Confirm button signs the user out; session/auth management, not a registered product capability */}
           <button 
             onClick={onConfirm}
             style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}

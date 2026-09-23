@@ -49,6 +49,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
       dir={isHebrew ? 'rtl' : 'ltr'}
     >
       <div style={{ background: 'white', padding: '22px', borderRadius: '14px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', boxSizing: 'border-box' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: closes the print/PDF detail-level chooser modal without selecting an option */}
         <button
           type="button"
           onClick={onClose}
@@ -64,6 +65,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: chooses 'compact' detail level before proceeding with the already-marked quote_print/quote_pdf action */}
           <button
             type="button"
             onClick={() => onChoose('compact')}
@@ -75,6 +77,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{compactDesc}</span>
             </span>
           </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: chooses 'expanded' detail level before proceeding with the already-marked quote_print/quote_pdf action */}
           <button
             type="button"
             onClick={() => onChoose('expanded')}

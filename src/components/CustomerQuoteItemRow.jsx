@@ -97,6 +97,7 @@ export default function CustomerQuoteItemRow({ item, variant, index, isLast }) {
         </div>
         {detailRows.length > 0 && (
           <>
+            {/* PRODUCT_TRUTH_DECORATIVE: 'show details' toggle for variant B, expanding size/spec breakdown rows under an item in the customer-facing quote preview */}
             <button
               onClick={() => setExpanded((v) => !v)}
               style={{
@@ -145,6 +146,7 @@ export default function CustomerQuoteItemRow({ item, variant, index, isLast }) {
         </div>
         {detailRows.length > 0 && (
           <div style={{ marginInlineStart: '28px' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: same show/hide details toggle as above, for the denser row-list rendering variant */}
             <button
               onClick={() => setExpanded((v) => !v)}
               style={{

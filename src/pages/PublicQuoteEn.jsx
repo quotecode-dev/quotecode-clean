@@ -773,6 +773,7 @@ export default function PublicQuoteEn({ quoteData }) {
                   return (
                     <tr key={section.key} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 10px' }}>
+                        {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
                         <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={false} style={toggleBtnStyle}>{`${section.title} ${chevron}`}</button>
                       </td>
                       <td style={{ padding: '12px 10px', textAlign: 'center' }}>{`${itemCount} item${itemCount === 1 ? '' : 's'}`}</td>
@@ -785,6 +786,7 @@ export default function PublicQuoteEn({ quoteData }) {
                   <Fragment key={section.key}>
                     <tr>
                       <td colSpan="4" style={{ padding: '14px 10px 4px' }}>
+                        {/* PRODUCT_TRUTH_DECORATIVE: collapses an expanded line-item section back to its summary row */}
                         <button type="button" onClick={() => toggleSection(section.key)} aria-expanded={true} style={{ ...toggleBtnStyle, fontSize: '0.88rem' }}>{`${section.title} ${chevron}`}</button>
                       </td>
                     </tr>
@@ -1035,6 +1037,7 @@ export default function PublicQuoteEn({ quoteData }) {
                 returns to normal scroll without erasing the signature. */}
             <div style={{ position: 'relative', width: '100%', maxWidth: '350px', margin: '0 auto 10px', border: '1px dashed #94a3b8', background: 'white', borderRadius: '8px', boxSizing: 'border-box', overflow: 'hidden' }}>
               <canvas ref={canvasRef} width={350} height={150} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', touchAction: isActive ? 'none' : 'pan-y', cursor: isActive ? 'crosshair' : 'default', maxWidth: '100%', height: 'auto' }} />
+              {/* PRODUCT_TRUTH_DECORATIVE: activates the signature-drawing canvas; sub-step of the already-marked public_quote_sign flow */}
               {!isActive && !hasSigned && (
                 <button
                   type="button"
@@ -1046,9 +1049,11 @@ export default function PublicQuoteEn({ quoteData }) {
               )}
             </div>
             <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {/* PRODUCT_TRUTH_DECORATIVE: clears the currently drawn signature before submission */}
               {(isActive || hasSigned) && (
                 <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
               )}
+              {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
               {isActive && (
                 <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done</button>
               )}
@@ -1059,6 +1064,7 @@ export default function PublicQuoteEn({ quoteData }) {
               </div>
             )}
             <div>
+              {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
               <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
                 Approve & Sign This Quote ✓
               </button>
@@ -1079,6 +1085,7 @@ export default function PublicQuoteEn({ quoteData }) {
             own CTA. WhatsApp hidden under the same condition. Whole group +
             modal are no-print. */}
         <div className={`pq-action-tiles no-print ${bizPhone ? '' : 'pq-action-tiles-two'}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingTop: '10px', paddingBottom: '5px' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_pdf */}
           <button
             type="button"
             onClick={() => openPrintChooser('pdf')}
@@ -1089,6 +1096,7 @@ export default function PublicQuoteEn({ quoteData }) {
             {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
             <span>{pdfGenerating ? 'Generating PDF...' : 'Download PDF'}</span>
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_print */}
           <button
             type="button"
             onClick={() => openPrintChooser('print')}

@@ -594,6 +594,7 @@ export default function QuoteForm({
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-upgrade" /></div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {/* PRODUCT_TRUTH_DECORATIVE: confirms the PRO/BASIC upgrade dialog and opens the pricing modal; an upsell CTA inside an existing modal */}
               <button
                 type="button"
                 onClick={() => {
@@ -604,6 +605,7 @@ export default function QuoteForm({
               >
                 {isHebrew ? 'כן, שדרג עכשיו' : 'Yes, Upgrade Now'}
               </button>
+              {/* PRODUCT_TRUTH_DECORATIVE: dismisses the upgrade-confirmation modal without any action */}
               <button
                 type="button"
                 onClick={() => setShowUpgradeConfirm(null)}
@@ -629,6 +631,7 @@ export default function QuoteForm({
             </p>
             {/* AI HELP V4 §8: help stays reachable while this overlay covers the app (closing it does not clear the blocker) */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-file-error" /></div>
+            {/* PRODUCT_TRUTH_DECORATIVE: dismisses the file-upload-error modal ('OK' button) */}
             <button
               type="button"
               onClick={() => setErrorMessage('')}
@@ -651,6 +654,7 @@ export default function QuoteForm({
             {isHebrew ? 'הזן את פרטי ההצעה ושמור את השינויים' : 'Enter the quote details and save changes'}
           </p>
         </div>
+        {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}
         <button
           type="button"
           onClick={onCancel}
@@ -807,6 +811,7 @@ export default function QuoteForm({
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
               <button type="button" onClick={() => setIsCalcOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
                 <Calculator size={13} strokeWidth={2.2} />
                 {isHebrew ? 'מחשבון' : 'Calculator'}
@@ -816,6 +821,7 @@ export default function QuoteForm({
                   been divided"): קישור-טקסט משני קבוע, לא רק בזמן-יצירה -
                   פריטים קיימים (section_key===null תמיד במצב Regular) נופלים
                   אוטומטית ל"לא משויך" הגלוי ברגע המעבר, בלי מוטציה כלל. */}
+              {/* PRODUCT_TRUTH_DECORATIVE: text link that switches structure mode from flat list to room/unit grouping; a UI-mode toggle within the already-documented smart_quote/measured_quote flow */}
               <button type="button" onClick={handleSwitchToDivided} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
                 <Building2 size={13} strokeWidth={2.2} />
                 {isHebrew ? 'חלוקה לחדרים / אזורים / יחידות (לא חובה)' : 'Group by rooms / areas / units (optional)'}
@@ -843,6 +849,7 @@ export default function QuoteForm({
                 ? 'צרו את היחידות בהצעה, ואז הוסיפו לכל יחידה את המוצרים והעבודות שלה.'
                 : 'Create the units in the quote, then add the relevant products and work to each one.'}
             </p>
+            {/* PRODUCT_TRUTH_DECORATIVE: text link that switches structure mode back to a regular flat item list; inverse of the mode-switch link above */}
             <button type="button" onClick={handleSwitchToRegular} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0 0' }}>
               <LayoutList size={13} strokeWidth={2.2} />
               {isHebrew ? 'מעבר להצעה רגילה' : 'Switch to a regular quote'}
@@ -920,6 +927,7 @@ export default function QuoteForm({
               </UnitCard>
             )}
 
+            {/* PRODUCT_TRUTH_DECORATIVE: creates a new empty unit/room container in divided mode; sub-control of the already-documented measured_quote unit-board UI */}
             <button type="button" onClick={addSection} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px dashed ${NEON.borderStrong}`, color: NEON.violetLight, borderRadius: '10px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
               <Plus size={15} strokeWidth={3} />
               {sections.length === 0
@@ -960,9 +968,11 @@ export default function QuoteForm({
                 ))}
               </select>
               <div style={{ display: 'flex', gap: '8px', flexDirection: 'row' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel' button in the unit-removal confirmation dialog; closes without removing the unit */}
                 <button type="button" onClick={() => setUnitRemovalTarget(null)} style={{ flex: 1, background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: confirms unit removal, reassigning the unit's items and deleting the now-empty container; a data-safe sub-action of unit management */}
                 <button type="button" onClick={confirmRemoveSection} style={{ flex: 1, background: NEON.red, border: 'none', color: 'white', borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                   {isHebrew ? 'הסר יחידה' : 'Remove unit'}
                 </button>
@@ -1039,6 +1049,7 @@ export default function QuoteForm({
         <StepHeading n={4} title={isHebrew ? 'בדיקה ושמירה' : 'Review and save'} />
         {/* Optional details stay one tap away (progressive disclosure); they open automatically when editing or when any of them
             already holds a value, so nothing the user entered is ever hidden. */}
+        {/* PRODUCT_TRUTH_DECORATIVE: toggles visibility of the 'More details (optional)' progressive-disclosure section of the quote form */}
         <button
           type="button"
           data-testid="sq-more-details-toggle"
@@ -1121,6 +1132,7 @@ export default function QuoteForm({
                 onChange={(e) => setValidUntil(e.target.value)}
                 style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
               />
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the 'Valid until' field; a generic form-field interaction helper */}
               <button
                 type="button"
                 onClick={() => {
@@ -1183,6 +1195,7 @@ export default function QuoteForm({
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgInput, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, fontSize: '0.8rem' }}>
                     {/* OD-2: a persisted attachment opens through a short-lived signed URL (onOpenAttachment); a file that is not
                         uploaded yet has no link. The stored file_url is never used as a permanent public link. */}
+                    {/* PRODUCT_TRUTH_DECORATIVE: opens an already-uploaded attachment via a signed URL; sub-action of the already-documented attachments capability */}
                     {file.id && onOpenAttachment ? (
                       <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.violetLighter, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>
                         {displayName} ({displaySize} MB)
@@ -1190,6 +1203,7 @@ export default function QuoteForm({
                     ) : (
                       <span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>
                     )}
+                    {/* PRODUCT_TRUTH_DECORATIVE: removes a single file from the in-progress attachments list before save; a list-item delete control */}
                     <button type="button" onClick={() => removeFile(idx)} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
                   </div>
                 );
@@ -1240,6 +1254,7 @@ export default function QuoteForm({
               <FileText size={14} strokeWidth={2.2} color={NEON.violetLight} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textPrimary }}>{isHebrew ? 'תנאים ואחריות' : 'Terms & Warranty'}</span>
             </div>
+            {/* PRODUCT_TRUTH_DECORATIVE: 'Customize for this quote' button that expands the Terms & Warranty card for editing; a disclosure toggle */}
             {!termsWarrantyExpanded && (
               <button type="button" onClick={() => setTermsWarrantyExpanded(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.25)', color: NEON.violetLight, borderRadius: '999px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 <Pencil size={11} strokeWidth={2.5} />
@@ -1272,10 +1287,12 @@ export default function QuoteForm({
                 <textarea value={warranty} onChange={(e) => setWarranty(e.target.value)} rows="3" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: currency === 'ILS' ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', flexDirection: 'row' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: resets the terms/warranty textareas to the business's saved default text; a convenience reset on a form field */}
                 <button type="button" onClick={handleRestoreTermsWarrantyDefaults} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
                   <RotateCcw size={12} strokeWidth={2.4} />
                   {isHebrew ? 'שחזר ברירת מחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: re-collapses the expanded Terms & Warranty card back to its summary view */}
                 <button type="button" onClick={() => setTermsWarrantyExpanded(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '5px 4px' }}>
                   <ChevronDown size={13} style={{ transform: 'rotate(180deg)' }} />
                   {isHebrew ? 'כווץ' : 'Collapse'}
@@ -1330,6 +1347,7 @@ export default function QuoteForm({
             כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
             QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
             ולא-מתואם, כאן. */}
+        {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
         <button type="submit" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
           {isUnfinished
             ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
@@ -1432,14 +1450,17 @@ function CompactItemCard({
             "replace ambiguous chevrons with explicit visible edit
             affordance"): טקסט "עריכה"/"Edit" גלוי, לא רק חץ-כיוון ללא
             הסבר; יעד-מגע 44px לפחות (Part N - מובייל כמעמד ראשון). */}
+        {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' button on an item's compact card that opens the AddItemWizard in edit mode; sub-control of the already-documented smart_quote/measured_quote add/edit-item flow */}
         <button type="button" onClick={onExpand} aria-label={isHebrew ? 'עריכה' : 'Edit'} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', padding: '0 10px', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary, flexShrink: 0, fontSize: '0.76rem', fontWeight: '600' }}>
           <Pencil size={13} />
           <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
         </button>
         <div style={{ position: 'relative', flexShrink: 0 }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: three-dot 'More actions' button that opens the per-item actions menu; a menu-toggle */}
           <button ref={triggerRef} type="button" onClick={onToggleMenu} aria-label={isHebrew ? 'פעולות נוספות' : 'More actions'} aria-haspopup="menu" aria-expanded={menuOpen} style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary }}>
             <MoreVertical size={15} />
           </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the portal-rendered menu container to keep inner clicks from closing the menu; not a user-facing action */}
           {menuOpen && createPortal(
             <div
               ref={menuRef}
@@ -1454,6 +1475,7 @@ function CompactItemCard({
                 boxShadow: '0 8px 24px -8px rgba(0,0,0,0.25)', minWidth: '190px', zIndex: 2000, overflow: 'hidden',
               }}
             >
+              {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' entry in the item actions menu; same destination as the Edit button above */}
               <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'ערוך' : 'Edit'} onClick={onEdit} />
               {canDuplicate && (
                 <MenuItem
@@ -1462,9 +1484,11 @@ function CompactItemCard({
                   onClick={onDuplicate}
                 />
               )}
+              {/* PRODUCT_TRUTH_DECORATIVE: 'Move to unit...' menu entry that opens an inline select to reassign the item's section; sub-action of quote-item organization */}
               {sections && sections.length > 0 && (
                 <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העבר ליחידה...' : 'Move to unit...'} onClick={() => setMovingSectionOpen((v) => !v)} />
               )}
+              {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the 'move to unit' select wrapper, preventing it from closing the parent menu */}
               {movingSectionOpen && (
                 <div style={{ padding: '4px 10px 8px' }} onClick={(e) => e.stopPropagation()}>
                   <select
@@ -1481,6 +1505,7 @@ function CompactItemCard({
               {canDelete && (
                 <>
                   <div style={{ borderTop: `1px solid ${NEON.border}` }} />
+                  {/* PRODUCT_TRUTH_DECORATIVE: 'Delete item' entry in the item actions menu; removes the line item from the quote */}
                   <MenuItem icon={<Trash2 size={13} />} label={isHebrew ? 'מחק פריט' : 'Delete item'} onClick={onDelete} destructive />
                 </>
               )}
@@ -1508,6 +1533,7 @@ function UnitCard({
   return (
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: chevron that expands/collapses a unit card's item list in divided mode */}
         <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחב יחידה' : 'Expand unit') : (isHebrew ? 'כווץ יחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
           <ChevronDown size={16} style={{ transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
         </button>
@@ -1539,6 +1565,7 @@ function UnitCard({
           <span className="pf-money" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatMoneyDisplay(subtotal)}</span>
         )}
 
+        {/* PRODUCT_TRUTH_DECORATIVE: 'X' on a unit card that triggers the remove-unit confirmation flow, covered by the same non-destructive dialog as the unit-removal controls above */}
         {!isUnassigned && (
           <button type="button" onClick={onRemove} title={isHebrew ? 'הסר יחידה' : 'Remove unit'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <X size={14} strokeWidth={3} />
@@ -1552,6 +1579,7 @@ function UnitCard({
           בגוף-המורחב - הקשר-היחידה כבר ידוע (הצטרפות אוטומטית לאשף, ר'
           defaultSectionKey/wizardSectionKey ב-QuoteForm.jsx). */}
       <div style={{ padding: '0 12px 10px' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: 'Add product or work to <unit>' button inside a unit card; opens the already-documented AddItemWizard pre-targeted at this unit */}
         <button type="button" onClick={onAddItem} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
           <Plus size={14} strokeWidth={3} />
           {isHebrew ? `הוסף מוצר או עבודה ל${unitLabel}` : `Add product or work to ${unitLabel}`}
@@ -1575,6 +1603,7 @@ function CardBadge({ icon, label }) {
   );
 }
 
+// PRODUCT_TRUTH_DECORATIVE: generic reusable MenuItem component definition; behavior is entirely determined by its callers, each already assessed above
 function MenuItem({ icon, label, onClick, destructive }) {
   return (
     <button

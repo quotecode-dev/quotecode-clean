@@ -234,6 +234,7 @@ export default function ClientsTab({
           )}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: clients */}
           <button
             onClick={() => setEditingClient(client)}
             style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: 'rgba(124,58,237,0.10)', color: NEON.violet }}
@@ -241,6 +242,7 @@ export default function ClientsTab({
             <Pencil size={14} color={NEON.violet} strokeWidth={2.2} />
             <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: clients */}
           <button
             onClick={() => handleClientDeleteAttempt(client.id, client.company_name)}
             title={row.hasSignedOrApproved ? (isHebrew ? 'לא ניתן למחוק לקוח עם הצעה חתומה או מאושרת' : 'Cannot delete client with signed/approved quote') : (row.quoteCount > 0 ? (isHebrew ? 'לא ניתן למחוק לקוח עם הצעות פעילות' : 'Cannot delete client with active quotes') : '')}
@@ -301,6 +303,7 @@ export default function ClientsTab({
             {isHebrew ? `${safeClients.length} לקוחות במערכת` : `${safeClients.length} client${safeClients.length === 1 ? '' : 's'}`}
           </span>
         </div>
+        {/* PRODUCT_TRUTH_CAPABILITY: clients */}
         <button
           type="button"
           onClick={onCreateClient}
@@ -330,6 +333,7 @@ export default function ClientsTab({
             אין צורך בתפריט כפול. */}
         {isMobileView && (
           <div ref={mobileSortMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: opens/closes the mobile sort-options dropdown menu */}
             <button
               type="button"
               onClick={() => setMobileSortMenuOpen(prev => !prev)}
@@ -350,6 +354,7 @@ export default function ClientsTab({
                   { field: 'client_type', label: isHebrew ? 'מיין לפי סוג לקוח' : 'Sort by Client Type' },
                 ].map((opt) => {
                   const isActive = clientSortField === opt.field;
+                  {/* PRODUCT_TRUTH_DECORATIVE: selects a sort field/direction from the mobile sort menu */}
                   return (
                     <button
                       key={opt.field}
@@ -395,6 +400,7 @@ export default function ClientsTab({
               בכל שורה למטה, כדי שהעמודות יתיישרו אנכית. */}
           <div className="pf-head-gutter" dir={dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: NEON.textSecondary, fontWeight: '700', borderBottom: `2px solid ${NEON.border}` }}>
             <span style={{ width: '20px', flexShrink: 0 }} />
+            {/* PRODUCT_TRUTH_DECORATIVE: desktop header sorts the client list by client type */}
             <button
               type="button"
               onClick={() => handleClientSort('client_type')}
@@ -403,6 +409,7 @@ export default function ClientsTab({
             >
               {isHebrew ? 'סוג' : 'Type'} {clientSortField === 'client_type' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: desktop header sorts the client list by company/name */}
             <button
               type="button"
               onClick={() => handleClientSort('company_name')}
@@ -436,6 +443,7 @@ export default function ClientsTab({
                       אנכי אחד. לא הוסר min-height/line-height מיושן - מעולם
                       לא היה כזה על השורה הזו (רק ה-padding עצמו קבע את
                       הגובה). נמדד חי ותועד ב-PROFLOW_CODEX_CHECKPOINT.md. */}
+                  {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a desktop client row's detail panel */}
                   <button
                     type="button"
                     onClick={() => toggleExpanded(client.id)}
@@ -513,6 +521,7 @@ export default function ClientsTab({
               const detailId = `client-detail-mobile-${client.id}`;
               return (
                 <div key={client.id} className="client-card" style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', overflow: 'hidden' }} dir={dir}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a mobile client card's detail panel */}
                   <button
                     type="button"
                     onClick={() => toggleExpanded(client.id)}

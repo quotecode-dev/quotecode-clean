@@ -11,6 +11,7 @@ export default function AiModalHeader({ title = null, titleAs: TitleTag = 'h2', 
       <div className="pf-modal-head-title">{title != null && <TitleTag className="pf-modal-head-title-text">{title}</TitleTag>}</div>
       <div className="pf-modal-head-ai"><AiHelpButton isHebrew={isHebrew} header testId={testId} /></div>
       <div className="pf-modal-head-close">
+        {/* PRODUCT_TRUTH_DECORATIVE: generic modal-header close button used by whichever modal/wizard renders this shared header */}
         {onClose && (
           <button type="button" className="pf-modal-head-close-btn" onClick={onClose} aria-label={closeLabel}>{closeContent}</button>
         )}

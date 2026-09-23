@@ -75,6 +75,7 @@ export function AuthenticatedSidebarFrame({ drawerEnabled, open, onClose, isHebr
     return () => { document.body.style.overflow = priorOverflow; document.removeEventListener('keydown', handleKey); media.removeEventListener('change', onResize); previous?.focus(); };
   }, [open, onClose]);
   return <aside ref={frame} id="authenticated-sidebar" className={`dash-sidebar no-print ${drawerEnabled ? 'dash-operator-sidebar' : ''} ${open ? 'dash-sidebar-open' : ''}`} onClickCapture={event => { if (open && event.target.closest('button,a')) onClose(); }}>
+    {/* PRODUCT_TRUTH_DECORATIVE: closes the mobile sidebar drawer; generic authenticated-shell chrome */}
     {drawerEnabled && <button type="button" className="dash-drawer-close dash-sidebar-btn" onClick={onClose} aria-label={isHebrew ? 'סגירת תפריט' : 'Close menu'}><X size={20} /></button>}
     {children}
   </aside>;

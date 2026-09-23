@@ -30,6 +30,7 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
           </div>
         )}
 
+        {/* PRODUCT_TRUTH_DECORATIVE: closes the accessibility statement modal; a dismiss control for the informational dialog already marked accessibility_tools */}
         <button onClick={onClose} style={{ marginTop: '25px', width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
           {isHebrew ? 'סגור' : 'Close'}
         </button>

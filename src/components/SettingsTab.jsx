@@ -335,6 +335,7 @@ export default function SettingsTab({
         </div>
 
 
+        {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
         <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
           {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
         </button>
@@ -372,6 +373,7 @@ export default function SettingsTab({
                  אותו כלל-ראייה קנוני בדיוק כמו Dashboard.jsx -
                  shouldShowUpgradeCta (planCatalog.js), לא עוד שני כללים
                  סותרים לאותו מושג. */}
+             {/* PRODUCT_TRUTH_CAPABILITY: plan_trial */}
              {shouldShowUpgradeCta({ tier: effectivePlan, isLifetime, isSuperAdmin }) && (
                <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: NEON.gradient, color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: NEON.glowSoft }}>
                  <ArrowUpCircle size={14} strokeWidth={2} />

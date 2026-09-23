@@ -15,6 +15,7 @@ export default function AdminSidebarNav({ section, onSelect, isHebrew }) {
       {ADMIN_NAV_GROUPS.map((group) => (
         <div className="admin-sidebar-group" key={t(group.label)}>
           <div className="admin-sidebar-group-label">{t(group.label)}</div>
+          {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
           {group.items.map(({ id, icon: Icon, label }) => (
             <button
               key={id}

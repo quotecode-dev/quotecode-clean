@@ -37,6 +37,7 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSave, isH
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', textAlign: isHebrew ? 'right' : 'left', position: 'relative' }}>
         
+        {/* PRODUCT_TRUTH_DECORATIVE: top-right close icon closes the edit-expense modal without saving changes */}
         <button onClick={onClose} style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
 
         <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.2rem', marginBottom: '16px', fontWeight: '800' }}>
@@ -69,9 +70,11 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSave, isH
           </div>
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: Cancel button discards the in-progress expense edit without saving */}
             <button type="button" onClick={onClose} style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem' }}>
               {isHebrew ? 'ביטול' : 'Cancel'}
             </button>
+            {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
             <button type="submit" style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
               {isHebrew ? 'שמור שינויים' : 'Save Changes'}
             </button>

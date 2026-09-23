@@ -284,6 +284,7 @@ export default function AdminUsersTab({
             <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800', ...neonGlowTextStyle }}>
               {isHebrew ? 'הפעולה בוצעה בהצלחה!' : 'Action Successful!'}
             </h3>
+            {/* PRODUCT_TRUTH_DECORATIVE: dismisses the generic 'Action Successful' modal shown after a protected admin action completes */}
             <button
               onClick={() => { setShowSuccessModal(false); window.location.reload(); }}
               style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}
@@ -351,6 +352,7 @@ export default function AdminUsersTab({
               )}
 
               <div style={{ display: 'flex', gap: '8px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the delete-user confirmation dialog */}
                 <button
                   type="button"
                   onClick={() => { setDeleteModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setResetError(''); }}
@@ -358,6 +360,7 @@ export default function AdminUsersTab({
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: submits the delete-user confirmation form, executing the already-covered admin_console protected action */}
                 <button
                   type="submit"
                   disabled={isResetting || deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()}
@@ -414,6 +417,7 @@ export default function AdminUsersTab({
               )}
 
               <div style={{ display: 'flex', gap: '8px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the reset-user-data confirmation dialog */}
                 <button
                   type="button"
                   onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
@@ -421,6 +425,7 @@ export default function AdminUsersTab({
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: submits the reset-user-data confirmation form */}
                 <button
                   type="submit"
                   disabled={isResetting}
@@ -497,6 +502,7 @@ export default function AdminUsersTab({
                 )}
 
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the grant/revoke-Lifetime confirmation dialog */}
                   <button
                     type="button"
                     onClick={() => { setLifetimeActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
@@ -504,6 +510,7 @@ export default function AdminUsersTab({
                   >
                     {isHebrew ? 'ביטול' : 'Cancel'}
                   </button>
+                  {/* PRODUCT_TRUTH_DECORATIVE: submits the grant/revoke-Lifetime confirmation form */}
                   <button
                     type="submit"
                     disabled={isResetting}
@@ -575,6 +582,7 @@ export default function AdminUsersTab({
               )}
 
               <div style={{ display: 'flex', gap: '8px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the extend-trial confirmation dialog */}
                 <button
                   type="button"
                   onClick={() => { setTrialActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
@@ -582,6 +590,7 @@ export default function AdminUsersTab({
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: submits the 14-day trial extension confirmation form */}
                 <button
                   type="submit"
                   disabled={isResetting}
@@ -627,6 +636,7 @@ export default function AdminUsersTab({
         onDetails={onOpenUserDetails}
         bodyExtra={(
       <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: '12px', marginTop: '16px', overflow: 'hidden' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses the diagnostics 'test expiration emails' panel */}
         <button
           type="button"
           onClick={() => setDiagnosticsOpen(o => !o)}
@@ -670,6 +680,7 @@ export default function AdminUsersTab({
                 <option value="3d">{isHebrew ? '3 ימים לפני' : '3 days before'}</option>
                 <option value="24h">{isHebrew ? '24 שעות לפני' : '24 hours before'}</option>
               </select>
+              {/* PRODUCT_TRUTH_DECORATIVE: sends a real Hebrew test expiration-reminder email; internal admin diagnostic tool */}
               <button
                 type="button"
                 onClick={() => handleSendTestEmail(true)}
@@ -679,6 +690,7 @@ export default function AdminUsersTab({
                 <Send size={12} strokeWidth={2.5} />
                 {sendingTestLang === 'he' ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח בעברית' : 'Send Hebrew Test')}
               </button>
+              {/* PRODUCT_TRUTH_DECORATIVE: sends a real English test expiration-reminder email; internal admin diagnostic tool */}
               <button
                 type="button"
                 onClick={() => handleSendTestEmail(false)}

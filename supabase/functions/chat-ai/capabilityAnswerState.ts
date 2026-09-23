@@ -23,6 +23,50 @@ export type AvailabilityState =
   | 'LIVE_CURRENT' | 'FIRST_LIVE_CANDIDATE' | 'TEST_ONLY' | 'IMPLEMENTED_NOT_RELEASED'
   | 'ROADMAP_POST_LIVE' | 'UNAVAILABLE' | 'DEPRECATED' | 'UNKNOWN_CAPABILITY';
 
+// Codex "fail-closed structured runtime contract" (2026-09-2X): the canonical state SET, mirrored
+// from src/data/productTruthRegistry.js's CAPABILITY_STATES (an Edge Function cannot import
+// frontend src/ modules across the deploy boundary - see generate-ai-chat-facts.js's own header -
+// so this is the one place that enum is re-declared for runtime validation, deliberately not
+// re-derived from a second independent guess). UNKNOWN_CAPABILITY is this module's OWN sentinel
+// for "no fact found at all" - never a value a real registry entry's `state` field can legitimately
+// carry, so it is excluded from the set a real fact's state is validated against.
+const KNOWN_REGISTRY_STATES: ReadonlySet<string> = new Set([
+  'LIVE_CURRENT', 'FIRST_LIVE_CANDIDATE', 'TEST_ONLY', 'IMPLEMENTED_NOT_RELEASED',
+  'ROADMAP_POST_LIVE', 'UNAVAILABLE', 'DEPRECATED',
+]);
+
+/** Thrown when a real registry/non-current fact carries a `state` value outside the canonical set
+ * - malformed, missing, or unknown. A hard runtime failure (Codex 4.1): this must NEVER default to
+ * LIVE_CURRENT/available: a corrupted or unrecognized state is exactly the shape of bug that could
+ * otherwise cause a withdrawn/roadmap/deprecated capability to be silently announced as live. */
+export class UnknownProductTruthStateError extends Error {
+  readonly capabilityId: string;
+  readonly rawState: unknown;
+  constructor(capabilityId: string, rawState: unknown) {
+    super(`Capability "${capabilityId}" carries a state value outside the canonical set: ${JSON.stringify(rawState)}. This is a hard failure - an unknown state must never be treated as available.`);
+    this.name = 'UnknownProductTruthStateError';
+    this.capabilityId = capabilityId;
+    this.rawState = rawState;
+  }
+}
+
+/** Validates a raw `state` value against the canonical registry state set. Throws
+ * UnknownProductTruthStateError for anything missing, malformed, or unrecognized - never returns a
+ * fallback/default state. This is the ONLY function permitted to assert a value is a real
+ * AvailabilityState; every other consumer must go through it rather than casting directly. */
+function validateAvailabilityState(capabilityId: string, rawState: unknown): AvailabilityState {
+  if (typeof rawState !== 'string' || rawState.length === 0 || !KNOWN_REGISTRY_STATES.has(rawState)) {
+    throw new UnknownProductTruthStateError(capabilityId, rawState);
+  }
+  return rawState as AvailabilityState;
+}
+
+// Codex 4.4: an account's plan tier / role must be validated against the real, known values before
+// being trusted for entitlement math - an unrecognized tier/role must fail closed (never resolve to
+// "has the entitlement"), not merely be passed through as an opaque string.
+const KNOWN_PLAN_TIERS: ReadonlySet<string> = new Set(['free', 'basic', 'pro']);
+const KNOWN_ROLES: ReadonlySet<string> = new Set(['user', 'super_admin']);
+
 export type PlanRestriction = { readonly minimumPlan: string; readonly accountHasIt: boolean | null } | null;
 export type RoleRestriction = { readonly requiredRole: string; readonly accountHasRole: boolean | null } | null;
 export type MarketRestriction = { readonly markets: readonly string[] } | null;
@@ -130,16 +174,29 @@ export function resolveCapabilityAnswerState(
 
   const current = isCurrentFact(fact) ? fact : undefined;
 
+  // Codex 4.4: an unrecognized accountTier value must fail closed to "unknown" (null), never be
+  // coerced into a truthy/falsy entitlement lookup - an invalid tier string indexing
+  // planAvailability would otherwise silently read `undefined` (falsy, i.e. "does not have it"),
+  // which is the WRONG failure direction for a value that is actually just malformed/unrecognized
+  // input rather than a genuine, verified "no entitlement" fact.
+  const validatedAccountTier = accountTier !== null && KNOWN_PLAN_TIERS.has(accountTier) ? accountTier : null;
   let planRestriction: PlanRestriction = null;
   if (current?.minimumPlan && current.minimumPlan !== 'free') {
-    const accountHasIt = accountTier && current.planAvailability
-      ? current.planAvailability[accountTier as 'free' | 'basic' | 'pro'] === true
+    const accountHasIt = validatedAccountTier && current.planAvailability
+      ? current.planAvailability[validatedAccountTier as 'free' | 'basic' | 'pro'] === true
       : null;
     planRestriction = { minimumPlan: current.minimumPlan, accountHasIt };
   }
 
   let roleRestriction: RoleRestriction = null;
   if (current?.authorityType === 'role' && current.requiredRole) {
+    // Codex 4.4: requiredRole itself comes from the curated registry (trusted), but isAdmin is a
+    // server-derived boolean|null already (never an opaque unvalidated string) - validate the
+    // requiredRole value defensively too, since a future registry typo/unknown role must never be
+    // silently treated as "no restriction" or "granted".
+    if (!KNOWN_ROLES.has(current.requiredRole)) {
+      throw new UnknownProductTruthStateError(id, `requiredRole=${JSON.stringify(current.requiredRole)}`);
+    }
     roleRestriction = { requiredRole: current.requiredRole, accountHasRole: isAdmin };
   }
 
@@ -155,7 +212,10 @@ export function resolveCapabilityAnswerState(
 
   return Object.freeze({
     capabilityId: id,
-    availabilityState: (fact.state as AvailabilityState) || 'UNKNOWN_CAPABILITY',
+    // Codex 4.1: real runtime validation against the canonical state set - never a type cast.
+    // Throws UnknownProductTruthStateError (a hard failure) for anything malformed/unrecognized;
+    // never silently defaults to LIVE_CURRENT or any other value.
+    availabilityState: validateAvailabilityState(id, fact.state),
     userActionAvailable: current ? (current as any).userActionAvailable ?? true : false,
     // Hard invariant, never conditional on any per-capability data: the AI never itself performs
     // a mutating action (§52.8). Structural, not a value that could ever be flipped by a fact.

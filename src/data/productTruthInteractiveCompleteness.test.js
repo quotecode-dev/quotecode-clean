@@ -1,8 +1,18 @@
 // PRODUCT TRUTH — ENFORCEABLE SOURCE INVENTORY gate (Codex "enforceable source inventory" finding,
 // 2026-09-2X). Closes the gap the marker-only scanner cannot close on its own: a scan for markers
 // can only ever report what a human already marked - it cannot, by construction, detect a NEW
-// interactive control introduced with no marker at all. This file proves, with real data AND
-// synthetic negative fixtures, that:
+// interactive control introduced with no marker at all.
+//
+// Product Truth final closure (2026-09-23, Blocker 1 §3): the PRIMARY, authoritative coverage
+// guarantee is now productTruthControlScanner.js - real AST-based, per-control resolution (every
+// discovered control resolves to exactly one capability mapping or one control-specific decorative
+// exemption; see productTruthControlScanner.test.js for its own mutation-test suite). The file-level
+// count/gap system below (countInteractiveSurface/scanInteractiveSurface/checkInteractiveCompleteness
+// + the committed baseline snapshot) is retained only as a cheap, DEFENSE-IN-DEPTH regression tripwire
+// (a whole file's interactive-vs-marker ratio moving is a useful smoke signal) - it is NOT relied on as
+// proof of control-level coverage, since it cannot distinguish "one marker legitimately covering three
+// controls" from "one marker accidentally covering three controls it doesn't actually apply to." This
+// file proves, with real data AND synthetic negative fixtures, that:
 //   (a) every real, scannable file's interactive-vs-marker gap matches its committed baseline
 //       (no undetected regression today);
 //   (b) a NEW unmarked interactive control - in a brand-new file, or added to an existing one -
@@ -51,7 +61,7 @@ describe('ENFORCEABLE SOURCE INVENTORY — real data (no undetected regression t
     }
   });
 
-  it('no discovered marker is ambiguous: no duplicate-in-file, no undeclared marker location', () => {
+  it('no discovered marker is ambiguous: no undeclared marker location (source-location join holds for every declared capability)', () => {
     const markers = scanCapabilityMarkers(ROOT, ['src', 'supabase/functions']);
     const failures = checkMarkerAmbiguity(markers, PRODUCT_TRUTH_REGISTRY);
     expect(failures, `marker ambiguity failures:\n${JSON.stringify(failures, null, 2)}`).toEqual([]);
@@ -90,13 +100,13 @@ describe('ENFORCEABLE SOURCE INVENTORY — negative fixtures (proves a visible c
     expect(failures.some((f) => f.file === 'src/components/Modal.jsx')).toBe(false);
   });
 
-  it('fixture: duplicate capability marker (same id, same file, twice - accidental copy-paste) is caught', () => {
+  it('fixture: the SAME capability id legitimately marked on two DIFFERENT controls in the same file (control-level coverage, not a copy-paste accident) is NOT flagged - superseded by productTruthControlScanner.js per-control identity tracking', () => {
     const markers = [
       { id: 'editor_calculator', file: 'src/components/DraggableCalculator.jsx', line: 10 },
       { id: 'editor_calculator', file: 'src/components/DraggableCalculator.jsx', line: 40 },
     ];
     const failures = checkMarkerAmbiguity(markers, PRODUCT_TRUTH_REGISTRY);
-    expect(failures.some((f) => f.id === 'editor_calculator' && f.reason === 'duplicate_in_file')).toBe(true);
+    expect(failures).toEqual([]);
   });
 
   it('fixture: a marker discovered in a file the registry never declared as a canonicalSource for that id (undeclared/ambiguous placement) is caught', () => {

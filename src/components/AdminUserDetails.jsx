@@ -72,6 +72,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack }) {
       subtitle={account.email || undefined}
       label={isHebrew ? 'פרטי משתמש' : 'User details'}
       actions={(
+        // PRODUCT_TRUTH_CAPABILITY: admin_console
         <button type="button" className="admin-details-back" onClick={onBack}>
           {isHebrew ? <ArrowRight size={15} /> : <ArrowLeft size={15} />}
           {isHebrew ? 'חזרה לרשימת המשתמשים' : 'Back to Users'}

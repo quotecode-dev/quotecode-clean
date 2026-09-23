@@ -967,6 +967,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             }
           `}</style>
 
+          {/* PRODUCT_TRUTH_DECORATIVE: launcher pill that opens the AI Chat popup; open/close toggle for the already-marked ai_chat widget */}
           {!isOpen && (
             <button
               onClick={() => { captureReturnFocus(); setIsOpen(true); }}
@@ -1070,6 +1071,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                       read-only panel above; `aria-pressed` reflects the
                       panel's own open/closed state (a real in-place toggle,
                       not a navigate-away action). */}
+                  {/* PRODUCT_TRUTH_DECORATIVE: toggles the in-widget 'Previous chats' read-only panel */}
                   <button
                     type="button"
                     onClick={handleTogglePreviousChats}
@@ -1080,6 +1082,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   >
                     <History size={18} strokeWidth={2.2} />
                   </button>
+                  {/* PRODUCT_TRUTH_DECORATIVE: starts a fresh visible chat thread in the same widget */}
                   <button
                     type="button"
                     onClick={handleNewChat}
@@ -1089,6 +1092,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   >
                     <MessageSquarePlus size={18} strokeWidth={2.2} />
                   </button>
+                  {/* PRODUCT_TRUTH_DECORATIVE: closes the ai_chat popup */}
                   <button
                     onClick={() => setIsOpen(false)}
                     aria-label={isHebrew ? 'סגור' : 'Close'}
@@ -1124,6 +1128,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                         const isExpanded = expandedThreadId === thread.id;
                         return (
                           <div key={thread.id} style={{ border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden' }}>
+                            {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses one archived thread's messages */}
                             <button
                               type="button"
                               onClick={() => setExpandedThreadId(isExpanded ? null : thread.id)}
@@ -1212,6 +1217,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               only ever chose WHICH of the 7 allowlisted
                               destinations to suggest (validated server-side in
                               navigation.ts), never the label or a URL. */}
+                          {/* PRODUCT_TRUTH_DECORATIVE: follows one of the AI's server-validated navigation suggestions to an existing app screen */}
                           {msg.role === 'assistant' && msg.navigationAction && (
                             <button
                               type="button"
@@ -1272,6 +1278,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           {computeGuidedGreeting(isHebrew, isDashboard ? businessDisplayName : null)}
                         </div>
                         <div style={guidedGridStyle}>
+                          {/* PRODUCT_TRUTH_DECORATIVE: selects a top-level guided-topic tile */}
                           {topicGroups.map((group) => {
                             const Icon = groupIconFor(group.id);
                             return (
@@ -1300,6 +1307,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               public list already has "Something else" as one
                               of its flat top-level entries (this level IS its
                               only level), so no duplicate tile is added there. */}
+                          {/* PRODUCT_TRUTH_DECORATIVE: 'Something else' escape tile at guided Level 1 */}
                           {isDashboard && (
                             <button
                               type="button"
@@ -1331,6 +1339,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                       return (
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                            {/* PRODUCT_TRUTH_DECORATIVE: back button from guided Level 2 to Level 1 */}
                             <button
                               type="button"
                               onClick={() => setGuidedGroup(null)}
@@ -1345,6 +1354,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                             </span>
                           </div>
                           <div style={guidedGridStyle}>
+                            {/* PRODUCT_TRUTH_DECORATIVE: selects a Level-2 guided subtopic tile */}
                             {group.children.map((intentId) => (
                               <button
                                 key={intentId}
@@ -1364,6 +1374,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                                 Skipped only when this group's own children
                                 already include 'other' (feedback_questions),
                                 so the same escape never renders twice. */}
+                            {/* PRODUCT_TRUTH_DECORATIVE: 'Something else' escape tile at guided Level 2 */}
                             {!group.children.includes('other') && (
                               <button
                                 type="button"
@@ -1395,6 +1406,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                       const Icon = parentGroup ? groupIconFor(parentGroup.id) : null;
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+                          {/* PRODUCT_TRUTH_DECORATIVE: back button resetting the chosen guided topic */}
                           <button
                             type="button"
                             onClick={handleChangeGuidedTopic}
@@ -1438,6 +1450,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                     </div>
                     {GUIDED_SECOND_STEPS[guidedIntent].options.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {/* PRODUCT_TRUTH_DECORATIVE: selects a guided second-step option */}
                         {GUIDED_SECOND_STEPS[guidedIntent].options.map((opt) => (
                           <button
                             key={opt.id}
@@ -1482,6 +1495,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           style={{ padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.8rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                         />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
+                          {/* PRODUCT_TRUTH_DECORATIVE: picks one existing quote to attach as context for the conversation */}
                           {availableQuotes
                             .filter((q) => {
                               const term = quoteSearchTerm.trim().toLowerCase();
@@ -1535,6 +1549,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 <div style={{ padding: '0 10px', display: 'flex', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: NEON.bgCard, border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', padding: '4px 8px', fontSize: '0.75rem', color: NEON.textPrimary, marginBottom: '8px' }}>
                     <span>{(() => { const n = selectedQuoteSummary?.quote_number != null ? `#${selectedQuoteSummary.quote_number}` : formatQuoteFallback({ id: selectedQuoteId }); return isHebrew ? `הצעה: ${n}` : `Quote: ${n}`; })()}</span>
+                    {/* PRODUCT_TRUTH_DECORATIVE: removes the currently-attached quote context chip */}
                     <button
                       type="button"
                       onClick={() => { setSelectedQuoteId(null); setSelectedQuoteSummary(null); }}
@@ -1556,6 +1571,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   placeholder={isHebrew ? 'שאל משהו...' : 'Ask something...'}
                   style={{ flex: 1, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                 />
+                {/* PRODUCT_TRUTH_DECORATIVE: submits the typed message to the AI chat */}
                 <button
                   type="submit"
                   aria-label={isHebrew ? 'שלח' : 'Send'}

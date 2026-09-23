@@ -262,31 +262,27 @@ export function checkSourceAnchorJoin(registryEntries, discoveredById) {
 }
 
 /**
- * Codex "enforceable source inventory" (2026-09-2X): a discovered marker occurrence must be
- * unambiguous - the same capability id must not appear twice in the SAME file (an accidental
- * copy-paste duplicate, almost never intentional), and a marker's file must be one of that
- * capability's own DECLARED canonicalSources whenever the registry declares any at all (a marker
- * discovered somewhere the registry never listed is an undeclared/ambiguous placement - either the
- * canonicalSources list is stale, or the marker was pasted into the wrong file).
+ * Codex "enforceable source inventory" (2026-09-2X): a discovered marker's file must be one of
+ * that capability's own DECLARED canonicalSources whenever the registry declares any at all (a
+ * marker discovered somewhere the registry never listed is an undeclared/ambiguous placement -
+ * either the canonicalSources list is stale, or the marker was pasted into the wrong file).
+ *
+ * Product Truth final closure (2026-09-23, Blocker 1 §3.4): the same capability id legitimately
+ * appearing MORE THAN ONCE in the same file is no longer, by itself, a failure - control-level
+ * coverage (productTruthControlScanner.js) intentionally attaches one capability id to several
+ * distinct controls in the same file (e.g. separate Add/Edit/Delete buttons all mapped to
+ * `clients`). The old file-level "duplicate_in_file" rule collapsed under this legitimate pattern
+ * and is superseded by the control scanner's own per-control identity/signature tracking, which
+ * catches the real failure class (an accidental duplicate marker ON THE SAME CONTROL, or two
+ * controls colliding on one structural signature) at the correct granularity. This function keeps
+ * only the still-valid source-location join check.
  * @param {{id:string, file:string, line:number}[]} markers - flat scanner output (scanCapabilityMarkers)
  * @param {{id:string, canonicalSources?: readonly string[]}[]} registryEntries
- * @returns {{id:string, file:string, reason:'duplicate_in_file'|'undeclared_marker_location'}[]}
+ * @returns {{id:string, file:string, reason:'undeclared_marker_location'}[]}
  */
 export function checkMarkerAmbiguity(markers, registryEntries) {
   const failures = [];
   const registryById = new Map(registryEntries.map((c) => [c.id, c]));
-
-  const countByIdFile = new Map();
-  for (const m of markers) {
-    const key = `${m.id}::${m.file}`;
-    countByIdFile.set(key, (countByIdFile.get(key) || 0) + 1);
-  }
-  for (const [key, count] of countByIdFile) {
-    if (count > 1) {
-      const [id, file] = key.split('::');
-      failures.push({ id, file, reason: 'duplicate_in_file' });
-    }
-  }
 
   const seenIdFile = new Set();
   for (const m of markers) {

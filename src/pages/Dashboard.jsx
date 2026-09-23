@@ -444,6 +444,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // same HE/EN copy ("צ׳אט AI"/"AI Chat") this project's own product copy
   // already used for this identical action in every prior location
   // (the now-retired sidebar/topbar buttons), not new wording.
+  // PRODUCT_TRUTH_CAPABILITY: ai_chat
   const renderHeaderAIChatButton = () => (
     <button
       type="button"
@@ -4140,6 +4141,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             </p>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: onboarding 'Local market' choice button; performs the one-time creation of the account's first business_settings row (market/currency/VAT) - a distinct onboarding step, not the ongoing business_settings editing capability - resolved by Claude after an agent flag */}
             <button
               onClick={() => handleRegionChoiceSelect('Local')}
               disabled={isCreatingBusinessSettings}
@@ -4147,6 +4149,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             >
               {isHebrew ? 'ישראל' : 'Israel'}
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: onboarding 'International market' choice button; same one-time business_settings row creation as the Local choice above - resolved by Claude after an agent flag */}
             <button
               onClick={() => handleRegionChoiceSelect('International')}
               disabled={isCreatingBusinessSettings}
@@ -5464,6 +5467,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
               <AiHelpButton isHebrew={isHebrew} long testId="ai-help-alert" />
             </div>
+            {/* PRODUCT_TRUTH_DECORATIVE: OK button dismisses the generic blocked-action alert modal; performs no product action itself */}
             <button
               className="dash-neon-btn"
               onClick={() => setAlertModalMsg(null)}
@@ -5609,6 +5613,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           browser width behind it, so the shell visually "floats" centered,
           the same composition principle Public Quote's own document uses. */}
       <div className="dash-shell-outer" style={{ maxWidth: 'var(--pf-dashboard-shell-total-width)', margin: '0 auto', width: '100%', flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+      {/* PRODUCT_TRUTH_DECORATIVE: click on the mobile drawer backdrop closes the shell drawer overlay; generic click-outside-to-close chrome */}
       {shellDrawerOpen && <div className="dash-drawer-backdrop no-print" onClick={() => setShellDrawerOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:10000 }} />}
       <div className="dash-shell-body">
         <AuthenticatedSidebarFrame drawerEnabled={false} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
@@ -5650,6 +5655,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           </div>
           <nav className="dash-sidebar-nav">
               <>
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
             {(
               <button onClick={handleCreateNewQuoteClick} className="dash-sidebar-cta">
                 <PlusCircle size={17} strokeWidth={2.4} />
@@ -5662,6 +5668,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 dashboardNavCapabilities.js) - בדיוק אותה רשימה, מסוננת לפי
                 אותו isSuperAdmin, נצרכת גם ע"י Mobile bottom-nav/More למטה.
                 סדר/תוכן/onClick זהים-בייט למערך הקודם שהיה מקומי כאן. */}
+            {/* PRODUCT_TRUTH_DECORATIVE: generic sidebar nav button template rendered once per nav entry; each real destination (clients/finances/catalog/settings) is independently marked at its own screen, so this shared template control cannot truthfully carry a single capability id - resolved by Claude after an agent flag */}
             {navCapabilities.filter(({ id }) => id !== 'admin_clients').map(({ id, icon: TabIcon, label }) => (
               <button
                 key={id}
@@ -5696,10 +5703,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 per PROFLOW_TODO.md item 30.F - not final product navigation. */}
             {isProfessionalPreviewEnabled(session?.user?.id) && (
               <>
+                {/* PRODUCT_TRUTH_DECORATIVE: owner-authorized, allowlist-gated professional-preview demo link, explicitly documented in-code as temporary/not final product navigation */}
                 <a href="/professional-preview" className="dash-sidebar-btn dash-sidebar-btn-ghost">
                   <Sparkles size={17} strokeWidth={2.2} />
                   <span>{isHebrew ? 'תצוגה מקדימה: חוויה חדשה' : 'New Experience Preview'}</span>
                 </a>
+                {/* PRODUCT_TRUTH_DECORATIVE: same temporary, allowlist-gated QA/demo link pair as the professional-preview link above */}
                 <a href="/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he" className="dash-sidebar-btn dash-sidebar-btn-ghost">
                   <Eye size={17} strokeWidth={2.2} />
                   <span>{isHebrew ? 'בדיקת תצוגה חדשה' : 'QA: New Quote View'}</span>
@@ -5784,6 +5793,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <div className="dash-sidebar-user-text">
                 <div className="dash-sidebar-user-name" title={session.user.email}>{session.user.email}</div>
               </div>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the SignOutModal confirmation dialog; session/account sign-out is generic auth chrome, not a registered capability */}
               <button onClick={() => setShowSignOutModal(true)} className="dash-sidebar-signout" title={isHebrew ? 'התנתק' : 'Sign Out'} aria-label={isHebrew ? 'התנתק' : 'Sign Out'}>
                 <LogOut size={15} strokeWidth={2.3} />
               </button>
@@ -6048,6 +6058,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // דו-שורתית + גרסת-מובייל חד-שורתית) - אותו handler/gating
             // בדיוק, רק singleLine (prop חדש ב-PlanIdentityBadge, אותו
             // רכיב קנוני יחיד) משתנה בין שתי הקריאות.
+            // PRODUCT_TRUTH_CAPABILITY: plan_trial
             const renderPlanBadge = (singleLine) => (
               showUpgradeCta ? (
                 <button
@@ -6260,6 +6271,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarTextActive, fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
                   </span>
+                  {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); window.open(getHotQuoteViewLink(currentHotQuote), '_blank'); }}
@@ -6650,6 +6662,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             <div className="dash-footer-brand" style={{ marginBottom: '6px' }}>
               {isHebrew ? <>מערכת <BrandName /> - ניהול עסק והצעות מחיר</> : <><BrandName /> - Business & Quoting SaaS Platform</>}
             </div>
+            {/* PRODUCT_TRUTH_CAPABILITY: accessibility_tools */}
             <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <AccessibilityIcon size={14} />
               {isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}
@@ -6711,6 +6724,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               applies while isAdminMode, so the ordinary business "More"
               menu (Settings/Catalog) is completely unchanged. */}
           {
+          // PRODUCT_TRUTH_DECORATIVE: generic mobile 'More' popover button template rendered once per nav entry (settings/catalog); each real destination is independently marked at its own screen - resolved by Claude after an agent flag
           navCapabilities
             .filter((cap) => cap.mobileGroup === 'more' && cap.id !== 'admin_clients')
             .map(({ id, icon: TabIcon, label, mobileLabel }) => (
@@ -6724,6 +6738,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 {mobileLabel || label}
               </button>
             ))}
+          {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
           {isSuperAdmin && ADMIN_NAV_GROUPS.flatMap((group) => group.items).map(({ id, icon: AdminIcon, label }) => (
             <button
               key={`admin-${id}`}
@@ -6762,6 +6777,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               {session.user.email}
             </div>
           </div>
+          {/* PRODUCT_TRUTH_DECORATIVE: mobile 'More' popover Sign Out entry; opens the same SignOutModal as the desktop sign-out button */}
           <button
             role="menuitem"
             className="dash-mobile-signout-btn"
@@ -6774,6 +6790,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           </button>
         </div>
       )}
+      {/* PRODUCT_TRUTH_DECORATIVE: invisible backdrop closing the mobile 'More' popover on outside click */}
       {showMobileMoreMenu && (
         <div
           className="no-print"
@@ -6796,6 +6813,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             .filter((cap) => cap.mobileGroup === 'bottom')
             .map(({ id, icon: TabIcon, label }) => {
               const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
+              {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
                 <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
                   <TabIcon size={16} style={{ marginBottom: '1px' }} />
@@ -6806,6 +6824,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         {/* "עוד"/"More" מדגיש את עצמו גם כש-activeTab הוא כל יעד מתוך קבוצת
             ה-more (Settings/Catalog/Admin) - נגזר מאותה רשימה, לא רשימת-
             מחרוזות שנייה ונפרדת שהייתה עלולה לצאת מסונכרנת שוב. */}
+        {/* PRODUCT_TRUTH_DECORATIVE: toggles the mobile 'More' popover open/closed; the destinations inside are handled separately */}
         <button
           onClick={() => setShowMobileMoreMenu(prev => !prev)}
           aria-haspopup="true"
@@ -6821,6 +6840,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             למעלה) - כפתור "חדש" כאן לא נשא תנאי מקביל בכלל, כך שחשבון Super
             Admin ראה יכולת-יצירת-הצעה ב-Mobile שה-Desktop שלו עצמו במפורש
             שולל. אותו isSuperAdmin המשותף בדיוק - לא תנאי-role שני/עצמאי. */}
+        {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
         {(
           <button onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
             <PlusCircle size={16} strokeWidth={2.5} style={{ marginBottom: '1px' }} />

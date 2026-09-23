@@ -359,6 +359,7 @@ export default function QuotesTab({
     const neutralIconColor = NEON.textSecondary;
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
         <button
           onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
           style={{ ...chipBase, background: 'rgba(124,58,237,0.10)', color: NEON.violet }}
@@ -368,6 +369,7 @@ export default function QuotesTab({
         </button>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_edit */}
           <button
             disabled={isLocked}
             title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
@@ -385,6 +387,7 @@ export default function QuotesTab({
         </span>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_duplicate */}
           <button
             onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))}
             style={{ ...chipBase, ...neutralChip }}
@@ -400,6 +403,7 @@ export default function QuotesTab({
         </span>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
+          {/* PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share */}
           <button
             onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote))}
             style={{ ...chipBase, ...neutralChip }}
@@ -414,6 +418,7 @@ export default function QuotesTab({
           )}
         </span>
 
+        {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
         <button
           onClick={() => setPendingEmailQuote(quote)}
           style={{ ...chipBase, ...neutralChip }}
@@ -423,6 +428,7 @@ export default function QuotesTab({
         </button>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: deletes a quote; per the registry's own header comment, quote deletion has no dedicated id among the 38 */}
           <button
             disabled={isLocked}
             title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
@@ -591,6 +597,7 @@ export default function QuotesTab({
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ flex: '1 1 auto', minWidth: 0, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
             />
+            {/* PRODUCT_TRUTH_DECORATIVE: opens/closes the mobile Filters sheet; a compact-view UI affordance */}
             <button
               type="button"
               onClick={() => setShowMobileFilters(prev => !prev)}
@@ -631,6 +638,7 @@ export default function QuotesTab({
                       <option key={f.value} value={f.value}>{isHebrew ? f.he : f.en}</option>
                     ))}
                   </select>
+                  {/* PRODUCT_TRUTH_DECORATIVE: toggles ascending/descending sort direction for the current mobile sort field */}
                   <button
                     type="button"
                     onClick={() => handleQuoteSort(quoteSortField)}
@@ -642,6 +650,7 @@ export default function QuotesTab({
                   </button>
                 </div>
               </div>
+              {/* PRODUCT_TRUTH_DECORATIVE: closes the mobile filters/sort panel */}
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(false)}
@@ -769,20 +778,25 @@ export default function QuotesTab({
                   available budget - a real ~55-60px safety margin, unaffected
                   by reordering columns since no width value changed here,
                   only DOM order. */}
+              {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by client name; a column sort toggle */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
                 {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
+              {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by quote number */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
                 {isHebrew ? 'מס׳ הצעה' : 'Quote #'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
+              {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by amount */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
                 {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
+              {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by status */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
                 {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* Date is now the last/outer column (was the expand control) -
                   it gains the outer-edge border/corner-radius treatment. */}
+              {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by date */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
                 {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
@@ -856,6 +870,7 @@ export default function QuotesTab({
                       is a harmless, arguably-helpful larger "active" cue,
                       not a visual regression. */}
                   <td style={{ padding: '10px 3px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a desktop quote-history row's detail panel */}
                     <button
                       onClick={() => toggleExpanded(quote.id)}
                       aria-expanded={isExpanded}
@@ -972,6 +987,7 @@ export default function QuotesTab({
                   under dir={tableDir} the chevron (first DOM child) lands at
                   the card's true inline-start: physically RIGHT for Hebrew,
                   physically LEFT for English. */}
+              {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a mobile quote card's detail panel */}
               <button
                 type="button"
                 onClick={() => toggleExpanded(quote.id)}

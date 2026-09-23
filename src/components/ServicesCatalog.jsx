@@ -71,6 +71,7 @@ export default function ServicesCatalog({
             style={{ width: '100%', padding: isHebrew ? '8px 32px 8px 12px' : '8px 12px 8px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
           />
         </div>
+        {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
         <button
           type="button"
           onClick={() => setShowAddForm((prev) => !prev)}
@@ -114,9 +115,11 @@ export default function ServicesCatalog({
             />
           </div>
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
             <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}>
               {isHebrew ? 'שמור' : 'Save'}
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the inline 'Add Item' form without saving */}
             <button type="button" onClick={() => setShowAddForm(false)} style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
               {isHebrew ? 'ביטול' : 'Cancel'}
             </button>
@@ -186,6 +189,7 @@ export default function ServicesCatalog({
                     <td className="pf-cat-actions" style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                       {isEditingThisSvc ? (
                         <>
+                          {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             onClick={() => handleSaveEditedService(svc.id)}
                             style={{ background: NEON.emeraldDark, color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
@@ -193,6 +197,7 @@ export default function ServicesCatalog({
                             <Save size={11} strokeWidth={2.5} />
                             {isHebrew ? 'שמור' : 'Save'}
                           </button>
+                          {/* PRODUCT_TRUTH_DECORATIVE: cancels an in-progress inline edit of a catalog row without saving */}
                           <button
                             onClick={() => setEditingServiceId(null)}
                             style={{ background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
@@ -203,6 +208,7 @@ export default function ServicesCatalog({
                         </>
                       ) : (
                         <>
+                          {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             onClick={() => {
                               setEditingServiceId(svc.id);
@@ -219,6 +225,7 @@ export default function ServicesCatalog({
                               ("מחק הצעה"/"Delete Quote") - אותה תקלה כמו זו
                               שכבר תוקנה ב-ClientsTab.jsx, כאן על פריט-קטלוג.
                               תוקן לתווית נקודתית-לקטלוג. */}
+                          {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             title={isHebrew ? 'מחק פריט' : 'Delete item'}
                             onClick={() => handleDeleteService(svc.id, svc.name)}

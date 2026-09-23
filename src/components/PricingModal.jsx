@@ -60,6 +60,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
               <div style={{ background: '#f1f5f9', padding: '3px', borderRadius: '24px', display: 'flex', gap: '4px', border: '1px solid #cbd5e1' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: toggles the displayed price basis to monthly billing; a local display-state toggle within the plan comparison */}
                 <button
                   onClick={() => setBillingCycle('monthly')}
                   style={{
@@ -70,6 +71,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 >
                   {isHebrew ? 'חיוב חודשי' : 'Monthly Billing'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: toggles the displayed price basis to annual billing; same as the monthly toggle */}
                 <button
                   onClick={() => setBillingCycle('yearly')}
                   style={{

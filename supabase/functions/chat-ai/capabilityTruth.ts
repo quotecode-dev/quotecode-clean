@@ -224,10 +224,31 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /\battachments?\b/i,
     /(לצרף|להעלות|מעלה).{0,20}(קבצים|שרטוטים|תמונות)/,
   ]],
+  // Codex "professional reuse regression" (2026-09-2X, blocker 3 §4.5): the recovered historical
+  // failure phrase "אפשר להשתמש בפריטים מקצועיים בין הצעות שונות?" (real prompt from this task
+  // lineage's own prior terminal evidence, 2026-09-23-blocker-5-terminal-evidence.md §3, cell
+  // B5-105's original attempt) uses "להשתמש...בפריטים...בין...הצעות" (to use...items...between...
+  // quotes) - NOT the "שימוש חוזר" (reuse) stem the original pattern required - and fell through to
+  // the free-form model, which produced an outright-denial-sounding answer instead of the truthful
+  // "exists, requires PRO" one. The added patterns require no specific verb stem at all - just
+  // "items...between/across...quotes", the actual shape of the capability regardless of which verb
+  // (use/reuse) a paraphrase happens to choose.
+  // Checked BEFORE 'measured_quote' below (moved earlier in this array on purpose) -
+  // "professional...items...across quotes" would otherwise also satisfy measured_quote's own broad
+  // /\bprofessional\b.{0,20}\bquotes?\b/i pattern; a reuse-across-quotes phrase is specifically
+  // about professional_reuse, not the measured-structure capability, so this classifier must win
+  // the collision by running first (classifyCapabilityIntent returns the FIRST array match).
+  ['professional_reuse', [
+    /\breuse\s+.{0,15}(professional\s+)?items?\b/i,
+    /שימוש חוזר.{0,15}פריטים/,
+    /פריטים.{0,25}(בין|במספר).{0,10}הצעות/,
+    /(להשתמש|משתמשים).{0,15}(שוב\s+)?בפריטים.{0,25}(בין|במספר).{0,10}הצעות/,
+    /\bitems?\b.{0,25}\b(across|between|in\s+more\s+than\s+one)\b.{0,10}\bquotes?\b/i,
+    /\bsame\b.{0,20}\bitems?\b.{0,25}\bquotes?\b/i,
+  ]],
   // Hebrew plural of "הצעה" is "הצעות" (the final ה is replaced, not suffixed) - matching on the
   // stem "הצע" + (ה|ות) is required, "הצעה(ות)?" never matches the real plural spelling.
   ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/]],
-  ['professional_reuse', [/\breuse\s+.{0,15}(professional\s+)?items?\b/i, /שימוש חוזר.{0,15}פריטים/]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
   ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/]],
@@ -264,6 +285,40 @@ export function classifyCapabilityIntent(lastUserMessage: unknown): string | nul
     if (patterns.some((re) => re.test(text))) return id;
   }
   return null;
+}
+
+// Codex "deterministic product-capability-question guard" (2026-09-2X, blocker 3 §4.3): a message
+// can clearly be ASKING WHETHER A TEKANGO PRODUCT FEATURE EXISTS/IS AVAILABLE/IS SUPPORTED/IS
+// ALLOWED without matching any single specific capability's own classifier pattern above (the
+// exact wording differs from every known phrasing, or names something not among the 38 ids at
+// all). Letting such a message fall through to the free-form model would let the MODEL decide
+// capability availability by guesswork - exactly the root-cause class of defect this whole
+// subsystem exists to close (the historical false "no calculator" denial). This guard requires an
+// explicit existence/support/availability VERB shape (have/support/include/available/possible/
+// allowed/exist) - not a bare "can I ...?", which is too broad and would misroute ordinary support
+// requests - so it stays conservative while still closing the "classifier misses the exact
+// phrasing" gap.
+const BROAD_CAPABILITY_QUESTION_PATTERNS: readonly RegExp[] = [
+  /\b(do|does)\s+(tekango|it|you|this|the\s+(app|system|product|editor|platform))\b.{0,25}\b(have|support|include|offer|provide)\b/i,
+  /\bis\s+(there|it|this)\b.{0,25}\b(available|supported|possible|allowed|included|a\s+feature)\b/i,
+  /\b(can|could)\s+(tekango|it|the\s+(app|system|product|editor|platform))\b.{0,25}\b(support|allow|offer|provide|handle)\b/i,
+  /(יש לכם|יש אפשרות|האם.{0,20}(יש|אפשר|ניתן|תומכ(ת|ים)?|כולל(ת)?|נתמכ(ת)?|קיימ(ת|ים)?))/,
+];
+
+export function classifyBroadCapabilityQuestionSignal(lastUserMessage: unknown): boolean {
+  const text = String(lastUserMessage ?? '').trim();
+  if (!text) return false;
+  return BROAD_CAPABILITY_QUESTION_PATTERNS.some((re) => re.test(text));
+}
+
+/** Deterministic, bounded clarification for a message that CLEARLY asks about product-capability
+ * existence/availability but did not resolve to any single specific capability id - never a guess,
+ * never routed to the free-form model. Lists a handful of real example areas (drawn from the
+ * registry, not invented) and asks the user to name the specific feature. */
+export function formatBroadCapabilityClarification(isHebrew: boolean): string {
+  return isHebrew
+    ? `אני רוצה לוודא שאני עונה נכון - איזו יכולת ספציפית ב-TEKANGO את/ה שואל/ת עליה? לדוגמה: מחשבון בעורך, ייצוא PDF, שיתוף בוואטסאפ, צירוף קבצים, הצעה מדודה, תשלומים/חשבוניות, או משהו אחר. ציין/ציני את שם היכולת ואשמח לתת תשובה מדויקת מתוך רשימת היכולות האמיתית של המוצר.`
+    : `I want to make sure I answer correctly - which specific TEKANGO feature are you asking about? For example: the in-editor calculator, PDF export, WhatsApp sharing, file attachments, measured quotes, payments/invoicing, or something else. Name the specific feature and I'll answer precisely from the product's real capability list.`;
 }
 
 function label(fact: CapabilityFact | NonCurrentCapabilityFact, isHebrew: boolean): string {
@@ -358,8 +413,7 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
         : `${name} exists in a verified TEST/candidate environment only - this does not imply availability in Production.`;
     case 'DEPRECATED':
       return isHebrew ? `${name} הוחלפה. ${desc}` : `${name} has been replaced. ${desc}`;
-    case 'LIVE_CURRENT':
-    default: {
+    case 'LIVE_CURRENT': {
       if (!current) return isHebrew ? `כן - ${name} קיימת. ${desc}` : `Yes - ${name} exists. ${desc}`;
       // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — must be
       // phrased distinctly from the plan-gated branch below, and never inferred from accountTier
@@ -381,19 +435,37 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
       }
       // Plan-gated: say the capability exists and explain the restriction — never deny existence.
       // Read from state.planRestriction, never from current.minimumPlan/current.planAvailability
-      // directly.
-      if (state.planRestriction && accountTier) {
+      // directly. Codex 4.4: branches on state.planRestriction.accountHasIt's real tri-state value
+      // (false/true/null) - never on the raw accountTier string's truthiness. This closes a real
+      // fail-open gap: a truthy but UNRECOGNIZED accountTier used to fall through both branches
+      // below into the unqualified "Yes - exists" line further down, silently dropping the plan-
+      // restriction context; now any accountHasIt !== false path that still has a real restriction
+      // states the minimum plan explicitly (accountHasIt === null covers both "no account context"
+      // and "an invalid/unrecognized tier was rejected upstream", both fail-closed to "unknown").
+      if (state.planRestriction) {
         if (state.planRestriction.accountHasIt === false) {
           return isHebrew
             ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${state.planRestriction.minimumPlan.toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
             : `Yes - ${name} exists in TEKANGO, but it requires the ${state.planRestriction.minimumPlan.toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
         }
-      } else if (state.planRestriction && !accountTier) {
-        return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${state.planRestriction.minimumPlan.toUpperCase()}. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, from the ${state.planRestriction.minimumPlan.toUpperCase()} plan. ${desc}`;
+        if (state.planRestriction.accountHasIt === null) {
+          return isHebrew
+            ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${state.planRestriction.minimumPlan.toUpperCase()}. ${desc}`
+            : `Yes - ${name} exists in TEKANGO, from the ${state.planRestriction.minimumPlan.toUpperCase()} plan. ${desc}`;
+        }
+        // accountHasIt === true: the account already has it - no restriction to disclose.
       }
       return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
+    }
+    default: {
+      // Codex 4.2: exhaustive formatter - any state value reaching here would mean
+      // validateAvailabilityState (capabilityAnswerState.ts) admitted something outside the
+      // canonical set, which it structurally cannot do (it throws first). This branch exists so a
+      // FUTURE new state added to AvailabilityState without a case here fails loudly at review/CI
+      // time (a real thrown error, never silently falling into LIVE_CURRENT's available-prose) and
+      // at runtime, rather than ever emitting capability-available text for an unhandled state.
+      const _exhaustiveCheck: never = state.availabilityState;
+      throw new CapabilityAnswerInvariantError(id, [{ code: 'UNKNOWN_AVAILABILITY_STATE', reason: `Unhandled availabilityState "${String(_exhaustiveCheck)}" reached the formatter's default branch.` }]);
     }
   }
 }

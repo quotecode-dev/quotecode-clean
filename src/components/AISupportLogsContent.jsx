@@ -118,6 +118,7 @@ export default function AISupportLogsContent({ isHebrew }) {
                 <tr>
                   {columns.map(([field, label, Icon]) => (
                     <th key={field} scope="col" aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}>
+                      {/* PRODUCT_TRUTH_DECORATIVE: sorts the AI support logs table by the clicked column */}
                       <button className="admin-sort" onClick={() => handleSort(field)}>
                         <Icon size={12} aria-hidden="true" /> {label}{sortField === field ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : ''}
                       </button>
@@ -139,6 +140,7 @@ export default function AISupportLogsContent({ isHebrew }) {
               <table>
                 {colgroup}
                 <tbody>
+                  {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
                   {filteredLogs.map((log) => (
                     <tr key={log.id} className="admin-support-row" onClick={() => setSelectedLog(log)} title={isHebrew ? 'לחץ לצפייה במלוא המלל' : 'Click to read the full text'}>
                       <td><span className="admin-date" dir="ltr">{when(log)}</span></td>
@@ -152,6 +154,7 @@ export default function AISupportLogsContent({ isHebrew }) {
               </table>
             </div>
             <div className="admin-user-cards">
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
               {filteredLogs.map((log) => (
                 <article className="admin-user-card admin-support-row" key={log.id} onClick={() => setSelectedLog(log)}>
                   <div className="admin-card-heading">
@@ -166,10 +169,13 @@ export default function AISupportLogsContent({ isHebrew }) {
         )}
       </AdminScreenFrame>
 
+      {/* PRODUCT_TRUTH_DECORATIVE: clicking the dialog backdrop dismisses the open log-detail dialog */}
       {selectedLog && (
         <div className="admin-dialog-backdrop" onClick={() => setSelectedLog(null)}>
+          {/* PRODUCT_TRUTH_DECORATIVE: stops click propagation inside the log-detail dialog */}
           <section role="dialog" aria-modal="true" aria-label={isHebrew ? 'פרטי לוג מלאים' : 'Full log details'} className="admin-action-dialog" style={{ maxWidth: 650 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') setSelectedLog(null); }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bot size={20} color="#7c3aed" />{isHebrew ? 'פרטי לוג מלאים' : 'Full log details'}
+              {/* PRODUCT_TRUTH_DECORATIVE: X button closes the log-detail dialog */}
               <button className="admin-icon-button" style={{ marginInlineStart: 'auto' }} aria-label={isHebrew ? 'סגירה' : 'Close'} onClick={() => setSelectedLog(null)}><X size={16} /></button>
             </h2>
             {detail(isHebrew ? 'זמן' : 'Time', Clock, '#7c3aed', when(selectedLog), true)}

@@ -811,6 +811,7 @@ export default function AddItemWizard({
                 <div>
                   <FieldLabel>{t.catalogFirstHeading}</FieldLabel>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: selects a saved catalog service/product as the wizard item; step-1 sub-control of the already-documented add-item wizard flow */}
                     {services.map((s, idx) => (
                       <button
                         key={s.id}
@@ -824,6 +825,7 @@ export default function AddItemWizard({
                       </button>
                     ))}
                   </div>
+                  {/* PRODUCT_TRUTH_DECORATIVE: 'Enter manually instead' link switching step 1 from the catalog list to a free-text field */}
                   <button type="button" onClick={() => setShowManualEntry(true)} style={{ marginTop: '12px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
                     {t.manualFallbackLink}
                   </button>
@@ -843,6 +845,7 @@ export default function AddItemWizard({
                   />
                   {errors.description && <ErrorText id="wiz-description-error">{errors.description}</ErrorText>}
 
+                  {/* PRODUCT_TRUTH_DECORATIVE: 'Back to catalog' link switching step 1 back from manual entry to the catalog list */}
                   {services && services.length > 0 && (
                     <button type="button" onClick={() => setShowManualEntry(false)} style={{ marginTop: '14px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
                       {t.backToCatalogLink}
@@ -857,6 +860,7 @@ export default function AddItemWizard({
             <div>
               <StepHeading title={t.step2Title} explanation={t.step2Explanation} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: selects one of the primary/recommended pricing methods in step 2 */}
                 {visibleMethods.map((m) => (
                   <MethodCard
                     key={m}
@@ -873,12 +877,14 @@ export default function AddItemWizard({
                   />
                 ))}
               </div>
+              {/* PRODUCT_TRUTH_DECORATIVE: 'More options' link revealing additional pricing methods in step 2 */}
               {!showMoreMethods ? (
                 <button type="button" onClick={() => setShowMoreMethods(true)} style={{ marginTop: '10px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
                   {t.moreOptions}
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: selects one of the additional pricing methods revealed by the toggle above */}
                   {moreMethods.map((m) => (
                     <MethodCard
                       key={m}
@@ -972,6 +978,7 @@ export default function AddItemWizard({
                           </div>
                         )}
                       </div>
+                      {/* PRODUCT_TRUTH_DECORATIVE: removes one measurement row in the area/linear measuring step */}
                       <button type="button" onClick={() => removeMeasureRow(idx)} aria-label={t.removeSize} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, padding: '10px', marginTop: '18px', minWidth: '40px', minHeight: '40px' }}>
                         <X size={18} />
                       </button>
@@ -987,6 +994,7 @@ export default function AddItemWizard({
                 );
               })}
               <div style={{ marginTop: '14px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: 'Add another size' button appending a new measurement row */}
                 <button type="button" onClick={addMeasureRow} style={{ background: 'none', border: `1px dashed ${NEON.violet}`, color: NEON.violet, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px' }}>
                   {t.addAnotherSize}
                 </button>
@@ -1036,7 +1044,9 @@ export default function AddItemWizard({
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: review-step edit link jumping back to the sizes/pricing details step */}
                   <EditLink label={t.changePricingAndSizes} onClick={() => goToStep(STEPS.DETAILS)} />
+                  {/* PRODUCT_TRUTH_DECORATIVE: review-step edit link jumping back to the pricing-method step */}
                   <EditLink label={t.changePricingMethod} onClick={() => goToStep(STEPS.PRICING)} />
                 </div>
               </ReviewGroup>
@@ -1049,6 +1059,7 @@ export default function AddItemWizard({
                 )}
               </div>
 
+              {/* PRODUCT_TRUTH_DECORATIVE: 'Add customer details' toggle revealing optional spec rows and a unit/group picker */}
               {!showCustomerDetails ? (
                 <button type="button" onClick={() => setShowCustomerDetails(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: 0, marginBottom: '14px', display: 'block' }}>
                   {t.addCustomerDetailsToggle}
@@ -1063,9 +1074,11 @@ export default function AddItemWizard({
                       <div key={i} style={{ display: 'flex', gap: '8px' }}>
                         <input aria-label={t.detailLabel} placeholder={t.detailPlaceholder} value={row.label} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, label: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
                         <input aria-label={isHebrew ? 'ערך' : 'Value'} placeholder={t.detailValuePlaceholder} value={row.value} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, value: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
+                        {/* PRODUCT_TRUTH_DECORATIVE: removes one optional detail row from the item's spec list */}
                         <button type="button" onClick={() => setSpecRows((rows) => rows.filter((_, ri) => ri !== i))} aria-label={isHebrew ? 'הסר שורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '40px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
                       </div>
                     ))}
+                    {/* PRODUCT_TRUTH_DECORATIVE: adds a new blank optional detail row to the item's spec list */}
                     <button type="button" onClick={() => setSpecRows((rows) => [...rows, { label: '', value: '' }])} style={{ background: 'none', border: `1px dashed ${NEON.borderStrong}`, borderRadius: '8px', padding: '10px', color: NEON.textSecondary, fontSize: '0.8rem', cursor: 'pointer', minHeight: '40px' }}>{t.addSpecRow}</button>
                   </div>
                   {sections && sections.length > 0 && (
@@ -1118,13 +1131,16 @@ export default function AddItemWizard({
             fixed לכל המסך, כדי לא לשבור containment/overlay) - כפתורי
             הבא/חזרה תמיד נגישים בלי גלילה נוספת, גם עם 4+ שורות-מידה. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderTop: `1px solid ${NEON.border}`, background: NEON.bgCard, position: 'sticky', bottom: 0, flexShrink: 0 }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: footer 'Back' button; closes the wizard on the first step or steps back one page otherwise */}
           <button type="button" onClick={step === STEPS.WHAT ? onClose : goBack} style={secondaryBtnStyle}>
             {isHebrew ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             {step === STEPS.WHAT ? t.cancel : t.back}
           </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: 'Add item' confirm button on the final review step; completes the already-documented add-item wizard */}
           {step === STEPS.REVIEW ? (
             <button type="button" onClick={handleConfirm} style={primaryBtnStyle}>{t.addItem}</button>
           ) : (
+            // PRODUCT_TRUTH_DECORATIVE: footer 'Next' button advancing the wizard, disabled until a pricing method is chosen
             <button
               type="button"
               onClick={goNext}
@@ -1215,6 +1231,7 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
   );
 }
 
+// PRODUCT_TRUTH_DECORATIVE: MethodCard's own selectable div; a generic reusable pricing-method-selection card whose behavior is supplied by its callers (already assessed above)
 function MethodCard({ icon, title, example, recommended, recommendedLabel, onClick, selected, locked, lockedLabel, onKeyDown }) {
   return (
     <div
@@ -1254,6 +1271,7 @@ function ErrorText({ id, children }) {
   return <div id={id} role="alert" style={{ color: NEON.red, fontSize: '0.75rem', marginTop: '4px' }}>{children}</div>;
 }
 
+// PRODUCT_TRUTH_DECORATIVE: EditLink's own generic reusable text-link button; renders whatever label/onClick its caller supplies
 function EditLink({ label, onClick }) {
   return (
     <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '6px 4px', minHeight: '32px' }}>
@@ -1268,6 +1286,7 @@ function ReviewGroup({ label, onEdit, editLabel, children }) {
     <div style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexDirection: 'row', gap: '8px' }}>
         <span style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.95rem' }}>{label}</span>
+        {/* PRODUCT_TRUTH_DECORATIVE: EditLink usage inside the description/name review group; jumps back to step 1 to change the name/description */}
         <EditLink label={editLabel} onClick={onEdit} />
       </div>
       {children}

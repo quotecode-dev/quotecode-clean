@@ -143,6 +143,7 @@ export default function ProfessionalPublicPreview() {
             תצוגה מקדימה להשוואה — בחר גרסה
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: switches between internal layout variants on an owner-only comparison tool explicitly documented as never shown to a real customer */}
             {VARIANTS.map((v) => (
               <button
                 key={v.key}

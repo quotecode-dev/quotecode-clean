@@ -74,6 +74,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     </div>
   );
   const registered = a => <span className="admin-date">{dateLabel(a.created_at, isHebrew)}</span>;
+  // PRODUCT_TRUTH_CAPABILITY: admin_console
   const actions = a => <button className="admin-icon-button" aria-label={isHebrew ? `פרטי משתמש: ${a.business_name || a.email}` : `User details: ${a.business_name || a.email}`} onClick={() => onDetails(a)}>{isHebrew ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</button>;
 
   const columns = [
@@ -128,6 +129,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
               <tr>
                 {columns.map(([label, field]) => (
                   <th key={label} scope="col" aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: sorts the users table by the clicked column */}
                     {field && onSort ? <button className="admin-sort" onClick={() => onSort(field)}>{label}{sortField === field ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : ''}</button> : label}
                   </th>
                 ))}
@@ -174,9 +176,11 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
             <select aria-label={isHebrew ? 'שורות בעמוד' : 'Rows per page'} value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}>
               {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} / {isHebrew ? 'עמוד' : 'page'}</option>)}
             </select>
+            {/* PRODUCT_TRUTH_DECORATIVE: goes to the previous page of the users table */}
             <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} aria-label={isHebrew ? 'עמוד קודם' : 'Previous page'}>
               {isHebrew ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
+            {/* PRODUCT_TRUTH_DECORATIVE: goes to the next page of the users table */}
             <button type="button" onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))} disabled={safePage >= pageCount - 1} aria-label={isHebrew ? 'עמוד הבא' : 'Next page'}>
               {isHebrew ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
             </button>

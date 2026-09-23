@@ -250,9 +250,11 @@ export default function FinancesTab({
                 {isHebrew ? 'הוצאה חודשית קבועה' : 'Recurring monthly'}
               </label>
               <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                 <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}>
                   {isHebrew ? 'שמור' : 'Save'}
                 </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the inline 'Add Expense' form without saving */}
                 <button type="button" onClick={() => setShowAddExpenseForm(false)} style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
@@ -298,6 +300,7 @@ export default function FinancesTab({
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
                       <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
                       <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => setEditingExpense(exp)}
                           style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
@@ -308,6 +311,7 @@ export default function FinancesTab({
                         {/* חוק ברזל (§K, real defect found+fixed): {t.delete}
                             הוחלף בתווית נקודתית - אותה תקלה שכבר תוקנה
                             ב-ClientsTab.jsx/ServicesCatalog.jsx. */}
+                        {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => handleDeleteExpense(exp.id, exp.description)}
                           style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}

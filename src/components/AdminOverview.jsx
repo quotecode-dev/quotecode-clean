@@ -84,6 +84,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
           <h3><UserPlus size={16} />{isHebrew ? 'נרשמו לאחרונה' : 'Recently registered'}</h3>
           {list(recentlyRegistered, isHebrew ? 'אין הרשמות אחרונות.' : 'No recent registrations.', a => (
             <li key={a.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
               <button className="admin-overview-row" onClick={() => onOpenUser(a)}>
                 <span className="admin-overview-row-name" dir="auto">{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
                 <span className="admin-overview-row-meta" dir="ltr">{a.email}</span>
@@ -99,6 +100,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
           <h3><AlertTriangle size={16} />{isHebrew ? 'ניסיון מסתיים בקרוב' : 'Trials ending soon'}</h3>
           {list(trialsEndingSoon, isHebrew ? 'אין ניסיונות שמסתיימים בקרוב.' : 'No trials ending soon.', a => (
             <li key={a.account.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
               <button className="admin-overview-row" onClick={() => onOpenUser(a.account)}>
                 <span className="admin-overview-row-name" dir="auto">{a.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
                 <span className="admin-overview-row-meta" dir="ltr">{a.account.email}</span>
@@ -113,6 +115,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
           <p className="admin-overview-hint">{isHebrew ? 'ניסיון פג · חבילת FREE' : 'Expired trial · FREE entitlement'}</p>
           {list(needsAttention, isHebrew ? 'אין פריטים הדורשים תשומת לב כרגע.' : 'Nothing needs attention right now.', a => (
             <li key={a.account.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
               <button className="admin-overview-row" onClick={() => onOpenUser(a.account)}>
                 <span className="admin-overview-row-name" dir="auto">{a.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
                 <span className="admin-overview-row-meta" dir="ltr">{a.account.email}</span>
@@ -139,9 +142,11 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
       </div>
 
       <div className="admin-overview-actions">
+        {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
         <button className="admin-overview-quick-action" onClick={onGoToUsers}>
           {isHebrew ? 'עבור לרשימת המשתמשים' : 'Go to Users'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </button>
+        {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
         <button className="admin-overview-quick-action" onClick={onGoToPlans}>
           {isHebrew ? 'עבור לחבילות ומנויים' : 'Go to Plans / Subscriptions'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </button>

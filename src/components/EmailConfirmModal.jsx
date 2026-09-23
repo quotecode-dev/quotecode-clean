@@ -25,9 +25,11 @@ export default function EmailConfirmModal({ isOpen, onClose, onConfirm, clientEm
         </p>
 
         <div style={{ display: 'flex', gap: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+          {/* PRODUCT_TRUTH_DECORATIVE: Cancel button closes the email-send confirmation without sending anything */}
           <button onClick={onClose} style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
             {isHebrew ? 'ביטול' : 'Cancel'}
           </button>
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
           <button onClick={onConfirm} style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
             {isHebrew ? 'כן, שלח מייל' : 'Yes, Send'}
           </button>
