@@ -178,7 +178,7 @@ describe('BLOCKER 3 §4.5 — professional_reuse regression: full HE/EN x direct
     expect(classifyCapabilityIntent(phrase)).toBe('professional_reuse');
   });
 
-  it.each(Object.entries(CELLS))('%s: formatCapabilityTruthAnswer never denies the capability exists, EN+HE', (label, phrase) => {
+  it.each(Object.entries(CELLS))('%s: formatCapabilityTruthAnswer never denies the capability exists, EN+HE', (label) => {
     const isHebrew = label.endsWith('He');
     const answer = formatCapabilityTruthAnswer('professional_reuse', FACTS, isHebrew);
     expect(answer).toBeTruthy();
