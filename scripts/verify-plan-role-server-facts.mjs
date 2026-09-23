@@ -74,7 +74,6 @@ async function verifyPersona(alias, def) {
 
 const results = [];
 for (const [alias, def] of Object.entries(PERSONAS)) {
-  // eslint-disable-next-line no-await-in-loop
   const r = await verifyPersona(alias, def);
   results.push(r);
   console.log(`${alias}: http=${r.http} plan=${r.serverPlan} role=${r.serverRole} country=${r.serverCountry}`);
