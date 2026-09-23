@@ -1,0 +1,19 @@
+{
+  "readAtUtc": "2026-09-23T15:03:05.768Z",
+  "method": "npx --no-install supabase functions list --project-ref ljfizgrdyzxddswcedwr (Supabase Management API, authenticated, READ-ONLY; supabase CLI 2.117.0)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "functionName": "chat-ai",
+  "slug": "chat-ai",
+  "status": "ACTIVE",
+  "version": 32,
+  "createdAtUtc": "2026-09-08T22:55:25.156Z",
+  "updatedAtEpochMs": 1790166258530,
+  "updatedAtUtc": "2026-09-23T12:24:18.530Z",
+  "verifyJwt": true,
+  "importMap": true,
+  "entrypointPath": "file:///tkrc-pt-deploy-scratch/supabase/functions/chat-ai/index.ts",
+  "ezbrSha256": "e9af41d03217857711d56d37ae596bf0b2ddaa3079c8457ca44e7e8529af2cc9",
+  "expectedVersion": 32,
+  "matchesExpected": true
+}
