@@ -1,0 +1,12 @@
+{
+  "readAtUtc": "2026-09-23T18:19:32.300Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 32,
+  "updatedAtUtc": "2026-09-23T12:24:18.530Z",
+  "ezbrSha256": "e9af41d03217857711d56d37ae596bf0b2ddaa3079c8457ca44e7e8529af2cc9",
+  "expectedVersion": 32,
+  "matchesExpected": true
+}
