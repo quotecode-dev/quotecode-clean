@@ -187,7 +187,17 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /(שיתוף|לשתף|משתף).{0,20}(הצעה|whatsapp|וואטסאפ)/,
     /(לשלוח|שולח).{0,15}וואטסאפ/,
   ]],
-  ['public_whatsapp_contact', [/\b(contact\s+.{0,10}whatsapp|whatsapp\s+.{0,10}contact)\b/i, /יצירת קשר.{0,15}וואטסאפ/]],
+  // Product Truth final closure (2026-09-23, live terminal verification): the Hebrew pattern only
+  // checked one word order ("יצירת קשר...וואטסאפ") - a real live paraphrase, "כפתור וואטסאפ ליצירת
+  // קשר" (a WhatsApp button for contact), puts "וואטסאפ" BEFORE "יצירת קשר" and fell through to the
+  // free-form model, which produced a false denial ("אין כפתור וואטסאפ...") even though the
+  // capability is real and live in both markets. Mirrors the English pattern's own bidirectional
+  // design (contact-then-whatsapp OR whatsapp-then-contact) rather than assuming only one order.
+  ['public_whatsapp_contact', [
+    /\b(contact\s+.{0,10}whatsapp|whatsapp\s+.{0,10}contact)\b/i,
+    /יצירת קשר.{0,15}וואטסאפ/,
+    /וואטסאפ.{0,15}יצירת קשר/,
+  ]],
   ['public_call', [/\bcall\s+(button|option)\b.{0,20}(quote|public)/i, /כפתור.{0,10}התקשרות/]],
 
   ['quote_email', [

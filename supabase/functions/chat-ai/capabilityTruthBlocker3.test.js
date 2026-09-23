@@ -230,3 +230,18 @@ describe('BLOCKER 3 §4.6 — free-form model fallback attempt for capability av
     expect(modelCallIndex).toBeGreaterThan(blockStart);
   });
 });
+
+describe('BLOCKER 5 live-verification finding (2026-09-23): public_whatsapp_contact bidirectional Hebrew word order', () => {
+  // Found via real live terminal verification (Blocker 5 rebuild, not a synthetic guess): the
+  // Hebrew classifier pattern only checked "יצירת קשר...וואטסאפ" (contact-then-whatsapp). A real
+  // paraphrase, "כפתור וואטסאפ ליצירת קשר" (a WhatsApp button for contact), puts the words in the
+  // OPPOSITE order and fell through to the free-form model, which produced a false denial - the
+  // capability is real and live. Mirrors the English pattern's own bidirectional design.
+  it('a Hebrew paraphrase with "וואטסאפ" BEFORE "יצירת קשר" still classifies to public_whatsapp_contact (the live-found failure)', () => {
+    expect(classifyCapabilityIntent('האם ללקוח שמקבל את ההצעה יש כפתור וואטסאפ ליצירת קשר בעמוד הציבורי?')).toBe('public_whatsapp_contact');
+  });
+
+  it('the original word order ("יצירת קשר" before "וואטסאפ") still classifies correctly too - the fix is additive, not a replacement', () => {
+    expect(classifyCapabilityIntent('יש יצירת קשר בוואטסאפ ללקוח?')).toBe('public_whatsapp_contact');
+  });
+});
