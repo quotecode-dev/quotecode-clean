@@ -104,15 +104,22 @@ const CUR_HE = new RegExp(`${HS}${HP}(?:דולר(?:ים|ית)?|יורו|אירו
 
 // TARGET 2 - a market word (Local / International) and the shapes it takes when it describes the ACCOUNT
 const MKT_EN = '(?:international|foreign|overseas|non-israeli|local|israeli|domestic)';
-const NOUN_EN = '(?:account|customer|user|client|market|business|pricing|prices?|version|edition|mode|one|person|company)';
+// Identity / account nouns come in SINGULAR and PLURAL forms ("an international customer" / "overseas customers"). The plural forms are
+// only valid where the noun is the PREDICATE of an identity claim ("we are overseas customers", "treat us as local users") - never where it
+// is the OBJECT of another request ("add international customers"), so MKT_TAIL_EN / MKT_ATTR_EN keep the singular list.
+const NOUN_SG_EN = 'account|customer|user|client|market|business|pricing|prices?|version|edition|mode|one|person|company|owner';
+const NOUN_PL_EN = 'accounts|customers|users|clients|businesses|companies|people|persons|owners|ones|entities';
+const NOUN_EN = `(?:${NOUN_SG_EN}|${NOUN_PL_EN})`;
 const FILL_EN = '(?:actually|really|truly|in\\s+fact|just|now|still|also|basically|technically|an?|the|customer|user|client|business|account|company|owner|business\\s+owner)';
 const SUBJ_EN = "(?:(?:i|we)\\s+(?:am|are|was|were|be)|i'm|we're|(?:my|our)\\s+(?:account|business|company|profile)\\s+(?:is|was|were|should\\s+be|would\\s+be)|(?:the|this)\\s+(?:account|business|company)\\s+(?:is|was|were|should\\s+be|would\\s+be)|this\\s+(?:is|was|were)|(?:it|account)\\s+(?:is|was|were))";
-const EN_TAIL_OK = '(?=\\s*(?:$|[.,;!?]|\\b(?:and|so|but|please|too|now|then|since|because)\\b))';
+// what may follow an identity claim: the end, punctuation, a conjunction, or a scope complement ("... users of this dashboard", "... clients in your app")
+const EN_TAIL_OK = '(?=\\s*(?:$|[.,;!?]|\\b(?:and|so|but|please|too|now|then|since|because)\\b|\\b(?:of|on|in|for|at|with)\\s+(?:this|the|your|tekango|our)\\b))';
 const MKT_ASSERT_EN = new RegExp(`\\b${SUBJ_EN}(?:\\s+${FILL_EN})*\\s+${MKT_EN}(?:\\s+${NOUN_EN})?${EN_TAIL_OK}`);
-const MKT_TAIL_EN = new RegExp(`\\b(?:as|to|into|like)\\s+(?:an?\\s+|the\\s+)?${MKT_EN}(?:\\s+${NOUN_EN})?${EN_TAIL_OK}`);
+// after as / like the noun is a PREDICATE, so the plural is valid there ("treat us as overseas clients"); after to / into it is not
+const MKT_TAIL_EN = new RegExp(`\\b(?:(?:as|to|into|like)\\s+(?:an?\\s+|the\\s+)?${MKT_EN}(?:\\s+(?:${NOUN_SG_EN}))?|(?:as|like)\\s+${MKT_EN}\\s+(?:${NOUN_PL_EN}))${EN_TAIL_OK}`);
 const MKT_ATTR_EN = new RegExp(`\\b(?:an?\\s+|the\\s+)?${MKT_EN}\\s+(?:account|customer|user|client|market|business|pricing|version|edition|mode)\\b`);
 // "<verb> <me / my account> [as|to] <market>" - the verb + object + market word form ("make my account <market>")
-const MKT_OBJ_EN = new RegExp(`\\b(?:make|set|turn|mark|classify|count|consider|treat|regard|switch|move|change)\\s+(?:me|us|my\\s+\\w+|our\\s+\\w+|the\\s+account|this\\s+account)\\s+(?:as\\s+|to\\s+|into\\s+)?(?:an?\\s+|the\\s+)?${MKT_EN}(?:\\s+${NOUN_EN})?${EN_TAIL_OK}`);
+const MKT_OBJ_EN = new RegExp(`\\b(?:make|set|turn|mark|classify|count|consider|treat|regard|switch|move|change)\\s+(?:(?:all|both|each)\\s+of\\s+)?(?:me|us|my\\s+\\w+|our\\s+\\w+|the\\s+account|this\\s+account)\\s+(?:as\\s+|to\\s+|into\\s+)?(?:an?\\s+|the\\s+)?${MKT_EN}(?:\\s+${NOUN_EN})?${EN_TAIL_OK}`);
 const MKT_QUERY_EN: readonly RegExp[] = [
   new RegExp(`\\b(?:is|are)\\s+(?:my|our|this|the)\\s+(?:account|business|profile)\\s+(?:an?\\s+)?${MKT_EN}\\b`),
   new RegExp(`\\bam\\s+i\\s+(?:an?\\s+)?(?:in\\s+)?(?:the\\s+)?${MKT_EN}\\b`),
@@ -121,9 +128,12 @@ const MKT_QUERY_EN: readonly RegExp[] = [
 
 const MKT_HE = `(?:${HP}ה?(?:בינלאומי(?:ת)?|בין-לאומי|בינ"ל|זר(?:ה)?|מקומי(?:ת)?|ישראלי(?:ת)?)|(?:מ|ב)?חו"ל)`;
 const NOUN_HE = `(?:${HP}(?:חשבון|לקוח|לקוחה|משתמש|משתמשת|שוק|עסק|מחירון|גרסה|מצב|אזור))`;
-const FILL_HE = `(?:בעצם|למעשה|ממש|כרגע|עכשיו|גם|באמת|בכלל|פשוט|כן|בעל\\s+עסק|בעלת\\s+עסק|חברה|${NOUN_HE})`;
+// plural identity nouns / market words ("אנחנו לקוחות בינלאומיים") - valid only as the PREDICATE of an identity claim, like the English plural above
+const NOUN_HE_PL = `(?:${HP}(?:לקוחות|משתמשים|משתמשות|עסקים|חברות))`;
+const MKT_HE_PL = `(?:${HP}ה?(?:בינלאומי(?:ים|ות)|מקומי(?:ים|ות)|ישראלי(?:ים|ות)|זר(?:ים|ות)))`;
+const FILL_HE = `(?:בעצם|למעשה|ממש|כרגע|עכשיו|גם|באמת|בכלל|פשוט|כן|בעל\\s+עסק|בעלת\\s+עסק|חברה|${NOUN_HE}|${NOUN_HE_PL})`;
 const SUBJ_HE = '(?:אני|אנחנו|אנו|הוא|היא|זה|זו|החשבון(?:\\s+שלי|\\s+שלנו)?|חשבוני|העסק(?:\\s+שלי|\\s+שלנו)?)';
-const MKT_ASSERT_HE = new RegExp(`${HS}[שוכלב]{0,2}${SUBJ_HE}(?:\\s+${FILL_HE})*\\s+${MKT_HE}${HE_}`);
+const MKT_ASSERT_HE = new RegExp(`${HS}[שוכלב]{0,2}${SUBJ_HE}(?:\\s+${FILL_HE})*\\s+(?:${MKT_HE}|${MKT_HE_PL})${HE_}`);
 const MKT_ATTR_HE = new RegExp(`${HS}${NOUN_HE}\\s+${MKT_HE}${HE_}`);
 const MKT_TAIL_HE = new RegExp(`${HS}(?:כ|ל)(?:ה)?(?:בינלאומי(?:ת)?|בין-לאומי|בינ"ל|זר(?:ה)?|מקומי(?:ת)?|ישראלי(?:ת)?)${HE_}`);
 const MKT_QUERY_HE: readonly RegExp[] = [
@@ -149,23 +159,36 @@ const SIMULATION_HE = he('נניח|נגיד|תדמיין|דמיין|תדמיינ
 
 // ACCOUNT anchors / display objects / working verbs
 const ACCT_STRONG_EN = en("(?:my|our|this|the)\\s+(?:(?:whole|entire)\\s+)?(?:account|business|company|profile|plan|subscription|dashboard|app|application|system|workspace)");
-const ACCT_STRONG_HE = he('חשבון|החשבון|חשבוני|העסק\\s+שלי|האפליקציה|המערכת|הדשבורד|המנוי|הפרופיל');
+// Hebrew nouns take attached prefixes (ב in / ל to / מ from / כ as / ו and / ש that) and the article ה, in EVERY combination ("בדשבורד", "לחשבון",
+// "מהמערכת", "כדשבורד", "שהחשבון"). The lexicon therefore lists each noun ONCE, bare, and the prefix rule below is applied around it - a definite
+// form is a preposition (with an optional article) or the article alone, optionally preceded by ו / ש. A bare noun without any prefix / article
+// ("מערכת") is not an account anchor, except "חשבון" itself, which is the account word. The token-end guard keeps unrelated longer words out
+// ("חשבונית" invoice, "מחשבון" calculator - the latter is also a knowledge guard).
+const HE_DEFINITE_PREFIX = '[וש]?(?:[בלמכ]ה?|ה)';
+const heDefinite = (nouns: string): string => `${HE_DEFINITE_PREFIX}(?:${nouns})`;
+const ACCT_STRONG_HE = new RegExp(`${HS}(?:${HP}(?:חשבון|חשבוני)|${heDefinite('אפליקציה|מערכת|דשבורד|מנוי|פרופיל|עסק\\s+שלי')})${HE_}`);
 const FIRST_EN = en("i|we|me|my|our|us|i'm|i'd|we're");
 const FIRST_HE = he('אני|אנחנו|אנו|אותי|אותנו|אליי|אלי|לי|לנו|שלי|שלנו|אצלי|אצלנו|הייתי|היינו');
 const ME_OBJ_EN = en('me|us|my|our');
 const ME_OBJ_HE = he('אותי|אותנו|לי|לנו|שלי|שלנו');
 const DISP_EN = en("prices?|pricing|price\\s+list|plans?|costs?|fees?|amounts?|totals?|figures|everything|currency|currencies|the\\s+(?:whole\\s+)?(?:app|dashboard|site|system|interface|ui)|all\\s+(?:the\\s+)?(?:prices|amounts)");
-const DISP_HE = new RegExp(`${HS}${HP}(?:מחירים|מחיר|תמחור|מחירון|תוכניות|עלויות|סכומים|הכל|ממשק|האפליקציה|המערכת|הדשבורד|מטבע)${HE_}`);
+const DISP_HE = new RegExp(`${HS}(?:${HP}(?:מחירים|מחיר|תמחור|מחירון|תוכניות|עלויות|סכומים|הכל|ממשק|מטבע)|${heDefinite('אפליקציה|מערכת|דשבורד|ממשק')})${HE_}`);
 const WORK_EN = en("work|working|operate|run|use|using|used|display|displayed|show|shown|see|view|support|handle|be\\s+(?:shown|displayed|used|set)|switch");
 const WORK_HE = he('לעבוד|לפעול|להציג|הצגה|להראות|לראות|ראות|להשתמש|להגדיר|לתמוך|מוצג|מוצגים|לעבור|להעביר');
 
 // GUARDS
 // generic currency KNOWLEDGE / calculation - never an account intent
 const KNOWLEDGE_EN = new RegExp(
-  "exchange\\s+rate|conversion\\s+rate|\\brates?\\b|stands?\\s+for|abbreviat\\w*|\\bsymbols?\\b|\\bsigns?\\b|how\\s+(?:do\\s+(?:i|you)\\s+|to\\s+|can\\s+i\\s+)?(?:write|spell|type|say|pronounce|abbreviate)|\\bworth\\b|\\bhistory\\b|\\borigin\\b|\\bmeaning\\b|\\bmeans?\\b|\\bcalculator\\b|\\bconverter\\b|\\b(?:ounces?|lbs?|kilograms?|kilos?|grams?|weigh\\w*)\\b"
+  "exchange\\s+rate|conversion\\s+rate|\\brates?\\b|stands?\\s+for|abbreviat\\w*|\\bsymbols?\\b|\\bsigns?\\b|how\\s+(?:do\\s+(?:i|you)\\s+|to\\s+|can\\s+i\\s+)?(?:write|spell|type|say|pronounce|abbreviate)|\\bworth\\b|\\bhistory\\b|\\borigin\\b|\\bmeaning\\b|\\bmeans?\\b|\\bcalculator\\b|\\bconverter\\b|\\b(?:ounces?|lbs?|kilograms?|kilos?|grams?|weigh\\w*)\\b|\\b(?:charts?|graphs?|plots?|widgets?)\\b"
   + "|\\bconvert(?:ing|s|ed)?\\b(?!\\s+(?:me|my|our|us|the\\s+account|this\\s+account|prices?|pricing|everything|all))",
 );
-const KNOWLEDGE_HE = he('שער|שערי|סמל|קיצור|נוסחה|איך\\s+(?:כותבים|אומרים|מקצרים|מבטאים|מאייתים)|כמה\\s+(?:שווה|עלה)|היסטוריה|מקור|משמעות|מה\\s+זה|ממיר|מחשבון|המרה\\s+של');
+const KNOWLEDGE_HE = he('שער|שערי|סמל|קיצור|נוסחה|איך\\s+(?:כותבים|אומרים|מקצרים|מבטאים|מאייתים)|כמה\\s+(?:שווה|עלה)|היסטוריה|מקור|משמעות|מה\\s+זה|ממיר|מחשבון|המרה\\s+של|גרף|גרפים|תרשים|תרשימים|וידג\'ט');
+// the user's OWN customers / clients / users / contacts as the subject of a market classification (a CRM request), and the first-person words that would make it self-referential
+const THIRD_PARTY_EN = /\b(?:my|our)\s+(?:customers?|clients?|users?|contacts?|leads?|suppliers?|employees?|members?)\b/;
+const THIRD_PARTY_HE = he('(?:לקוח|לקוחה|לקוחות|משתמש|משתמשים|ספק|ספקים|עובד|עובדים)\\s+(?:שלי|שלנו)');
+const SELF_EN = en("i|we|me|us|i'm|we're|i'd");
+// prefix-STRICT on purpose: with the general prefix rule "שלי" (mine) would read as ש + "לי" (to me) and turn a third-party phrase into a self-reference
+const SELF_HE = new RegExp(`${HS}(?:ש?(?:אני|אנחנו)|אותי|אותנו|אליי|אלינו|הייתי|היינו|לי|לנו)${HE_}`);
 // creating / sending a quote-type document in a currency is a quote-content question with its own route, not an account-market intent
 const DOC_CREATION_EN = /\b(?:creat\w*|mak(?:e|ing)|issu\w*|writ(?:e|ing)|send\w*|generat\w*|build\w*|prepar\w*|draft\w*|add\w*|sav(?:e|ing))\b[^.?!]{0,30}\b(?:quotes?|proposals?|invoices?|offers?|estimates?|documents?|pdfs?|items?|services?)\b/;
 const DOC_CREATION_HE = he('ליצור|יצירת|לעשות|להוציא|הוצאת|לכתוב|כתיבת|לשלוח|שליחת|להפיק|הפקת|להכין|הכנת|להוסיף|הוספת|לשמור|לחייב');
@@ -187,8 +210,10 @@ function marketIntentKind(t: string): AccountMarketIntentKind | null {
   if (any(t, ...MKT_QUERY_EN, ...MKT_QUERY_HE)) return 'ACCOUNT_MARKET_QUERY';
   // an assertion of the account's / the user's market (a customer or account described as international or local)
   const framed = any(t, DESIRE_EN, DESIRE_HE, POSSIBILITY_EN, POSSIBILITY_HE, INSTRUCTION_EN_RE, INSTRUCTION_HE, SIMULATION_EN, SIMULATION_HE);
-  const asserted = any(t, MKT_ASSERT_EN, MKT_ASSERT_HE, MKT_OBJ_EN);
-  const referred = any(t, MKT_TAIL_EN, MKT_ATTR_EN, MKT_TAIL_HE, MKT_ATTR_HE) && any(t, FIRST_EN, FIRST_HE) && framed;
+  // the user's OWN customers / clients / users being classified ("treat our customers as international users") are a CRM request, not the account's market
+  const thirdParty = any(t, THIRD_PARTY_EN, THIRD_PARTY_HE) && !any(t, SELF_EN, SELF_HE);
+  const asserted = !thirdParty && any(t, MKT_ASSERT_EN, MKT_ASSERT_HE, MKT_OBJ_EN);
+  const referred = !thirdParty && any(t, MKT_TAIL_EN, MKT_ATTR_EN, MKT_TAIL_HE, MKT_ATTR_HE) && any(t, FIRST_EN, FIRST_HE, ACCT_STRONG_EN, ACCT_STRONG_HE) && framed;
   if (!asserted && !referred) return null;
   return any(t, SIMULATION_EN, SIMULATION_HE, INSTRUCTION_EN_RE, INSTRUCTION_HE, DESIRE_EN, DESIRE_HE, POSSIBILITY_EN, POSSIBILITY_HE)
     ? 'ACCOUNT_MARKET_OVERRIDE_REQUEST'

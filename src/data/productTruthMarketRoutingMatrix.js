@@ -97,3 +97,78 @@ export const SELF_BREAK_TEST = Object.freeze({
     'I want to open a USD bank account', 'I want to wire dollars to my supplier', 'אני רוצה להעביר דולרים לבנק', 'אני רוצה לפתוח חשבון בנק בדולרים',
   ]),
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// MICRO-CLOSURE (Hebrew attached prefixes + English plural identity nouns). Two CLASS-level gaps found by Codex's fresh 50-intent review:
+//   (1) the Hebrew account / display nouns were listed only in the article-bearing form ("הדשבורד"), so "בדשבורד" / "לדשבורד" / "כדשבורד" did not match;
+//   (2) the English identity nouns were singular only ("customer"), so "We are truly overseas customers" did not match.
+// Data only - the classifier never reads these. The generators below are the PROPERTY-CLASS coverage; the named lists are the locked live prompts.
+
+/** the two prompts Codex proved fell through to the free-form model */
+export const MICRO_CODEX_GAPS = Object.freeze([
+  { lang: 'he', persona: 'LOCAL_PRO', family: 'possibility', prompt: 'אפשרי לראות בדשבורד EUR?' },
+  { lang: 'en', persona: 'INTL_PRO', family: 'assertion', prompt: 'We are truly overseas customers.' },
+]);
+
+/** Hebrew prefix class: nouns x attached-prefix forms x frames. {X} = prefix + noun. */
+export const HEBREW_PREFIX_CLASS = Object.freeze({
+  nouns: ['דשבורד', 'חשבון', 'מערכת', 'אפליקציה'],
+  // preposition (in / to / from + article / as), the article alone, and conjunction / complementizer + preposition
+  prefixes: ['ב', 'ל', 'מה', 'כ', 'ה', 'וב', 'שב'],
+  templates: {
+    possibility: ['אפשרי לראות {X} EUR?', 'אפשר לעבוד {X} עם דולר?', 'האם ניתן להציג {X} מחירים ביורו?'],
+    desire: ['אני רוצה לראות {X} מחירים בדולר', 'הייתי רוצה לעבוד {X} עם ליש"ט'],
+    instruction: ['תציג לי {X} מחירים ביורו', 'תגדיר {X} מטבע דולר'],
+  },
+  // market target with a prefixed account noun ("אפשר לעבור לחשבון בינלאומי?")
+  marketTemplates: ['אפשר לעבור {L}חשבון בינלאומי?', 'תעביר אותי {L}חשבון מקומי'],
+  marketPrefixes: ['ל'],
+});
+
+/** English plural identity class: singular / plural nouns x market words x assertion / simulation / instruction frames. */
+export const ENGLISH_PLURAL_IDENTITY_CLASS = Object.freeze({
+  nouns: ['customer', 'customers', 'client', 'clients', 'user', 'users'],
+  markets: ['overseas', 'international', 'foreign', 'local', 'Israeli'],
+  adverbs: ['', 'truly ', 'actually ', 'really '],
+  templates: {
+    assertion: ['We are {a}{m} {n}', "We're {a}{m} {n}", 'I am {a}{m} {n}'],
+    simulation: ['Pretend we are {m} {n}', 'Act as if we were {m} {n}', 'Suppose we are {m} {n}'],
+    instruction: ['Treat us as {m} {n}', 'Consider us {m} {n}', 'Please treat all of us as {m} {n}'],
+  },
+});
+
+/** Fresh unseen paraphrases written AFTER the micro-closure implementation and NOT used to design it. FIRST-PASS result is recorded in the evidence record. */
+export const MICRO_UNSEEN_PARAPHRASES = Object.freeze({
+  he: Object.freeze([
+    'אפשר לראות ביורו את המחירים בממשק?', 'האם אפשרי להציג בדשבורד שלי מחירים בליש"ט?', 'הייתי רוצה שבמערכת יוצגו הסכומים בדולרים', 'תעביר את המערכת לדולר בבקשה',
+    'אנחנו לקוחות בינלאומיים, תתייחס אלינו בהתאם', 'האם ניתן לעבור מהחשבון הנוכחי לחשבון בינלאומי?', 'בא לי לעבוד בדשבורד עם יורו', 'תגדיר לי בחשבון מטבע דולר',
+    'נניח שהחשבון שלי הוא חשבון מקומי, מה היית עונה?', 'אני מעדיפה שהמחירים במערכת יוצגו בדולרים', 'אפשר להציג לי את הדשבורד בדולר?', 'אנחנו משתמשים ישראלים, תציג לנו מחירים בשקלים',
+  ]),
+  en: Object.freeze([
+    'We are actually foreign clients, so please treat us that way.', 'Could our account show prices in euros?', 'Is it possible to switch the dashboard to GBP?', 'Suppose we were local users, what would you say?',
+    'We are international customers.', 'I would prefer to see amounts in dollars in the app.', 'Please treat all of us as overseas clients.', 'Can we display the app in pounds?',
+    'Let us pretend our business is a domestic one.', 'Are we able to see prices in USD in this account?', 'We are truly foreign users of this dashboard.', 'Kindly consider us as local business owners.',
+  ]),
+});
+
+/** First-pass result of MICRO_UNSEEN_PARAPHRASES right after the plural / prefix rules were written (before any tuning against them). Honest record. */
+export const MICRO_UNSEEN_FIRST_PASS = Object.freeze({
+  routed: 22, total: 24,
+  missed: ['Please treat all of us as overseas clients.', 'We are truly foreign users of this dashboard.'],
+  fixedByGeneralRules: ['a quantified object phrase ("all / both / each of us")', 'a plural predicate after "as / like"', 'a scope-complement tail ("... of this dashboard")'],
+});
+
+/** Negative controls for the two new rules: must stay OFF the account-market route. */
+export const MICRO_NEGATIVE_CONTROLS = Object.freeze([
+  // Hebrew: dashboard / account / system mentioned without a market / currency intent, ordinary navigation, same-prefix look-alikes
+  'איך אני מחפש לקוח בדשבורד?', 'אפשר לראות בדשבורד את הלקוחות?', 'מה הסטטוס של החשבון שלי?', 'איפה המערכת מציגה הצעות?', 'אפשר לשנות את הסיסמה בחשבון?',
+  'למה המערכת איטית היום?', 'האם הדשבורד תומך במצב כהה?', 'אפשר להשתמש במחשבון עם דולר?', 'אפשר לייצא מהדשבורד את הלקוחות לקובץ?', 'תראה לי בדשבורד את ההצעות האחרונות',
+  'בדשבורדים אחרים אין את זה', 'אפשר לראות בדשבורד את שער הדולר?', 'אפשר להוסיף בדשבורד גרף של דולר מול שקל?',
+  // Hebrew: the user's OWN customers classified (CRM), customers looked for / added
+  'תתייחס ללקוח שלי כאילו הוא בינלאומי', 'תסמן את הלקוחות שלי כלקוחות בינלאומיים', 'אנחנו מחפשים לקוחות בינלאומיים', 'אני רוצה להוסיף לקוחות בינלאומיים לחשבון',
+  // English: customers / clients / users in business / CRM / permissions context, no market-currency intent about the account
+  'How do I add customers to my account?', 'Can users see the customer list?', 'Which clients are overseas?', 'We are looking for local clients', 'Do you support international customers?',
+  'Can I filter clients by country?', 'Our users need permission to edit customers', 'We are customers of your competitor', 'Show me my international customers', 'Add these clients as local contacts',
+  'I want to sell to international customers', 'Treat clients as overseas users', 'Please treat our customers as international users', 'Mark my clients as local customers',
+  'I want to add international customers to my account', 'Can my account list users from overseas?', 'Can I add a chart of USD versus EUR to the dashboard?', 'Is there a widget for GBP in my dashboard?',
+]);
