@@ -27,6 +27,7 @@ export const REQUIRED_EVIDENCE_ROW_FIELDS = [
   'supportCategory', // classifySupportMessage's own category for this row
   'resolvedResult', // what the system actually returned/decided (capability id, or a named outcome)
   'expectedResult', // what this cell's own definition says the correct outcome is
+  'expectationSource', // WHERE expectedResult came from - never the same computation as resolvedResult (see checkExpectationIndependence)
   'implementationSourceSha', // the git commit the runtime CODE was at when this row was captured
   'testProjectRef', // Supabase TEST project ref the call was made against
   'deployedFunctionVersion', // the deployed chat-ai function version/revision live at capture time
@@ -35,8 +36,46 @@ export const REQUIRED_EVIDENCE_ROW_FIELDS = [
 
 // Optional, present only when they legitimately differ from a row's own implementationSourceSha
 // (task §6: "evidence-only HEAD if different") or apply ("immutable TEST row ID where applicable" -
-// e.g. a chat_logs primary key, only when the evidence method actually reads one back).
-export const OPTIONAL_EVIDENCE_ROW_FIELDS = ['evidenceOnlyHead', 'immutableTestRowId', 'historicalVersion'];
+// e.g. a chat_logs primary key, only when the evidence method actually reads one back) or when the
+// cell has its own independent entitlement dimension (plan/role-gated cells).
+export const OPTIONAL_EVIDENCE_ROW_FIELDS = [
+  'evidenceOnlyHead', 'immutableTestRowId', 'historicalVersion',
+  'expectedEntitlement', 'resolvedEntitlement', 'serverVerified',
+];
+
+// Codex final independent review (2026-09-2X): "some expectations were derived from the same
+// computed result they were supposed to validate" (expectedResult = resolvedResult). A row's
+// `expectationSource` declares WHERE its expectedResult really came from - only these sources
+// count as genuinely independent of the runtime call this row's own resolvedResult came from.
+// 'computed_result'/'resolved_result'/'self' and any other value are explicitly REJECTED by
+// checkExpectationIndependence below - not merely undocumented, actively disallowed.
+export const ALLOWED_EXPECTATION_SOURCES = Object.freeze([
+  'static_fixture', // a hand-authored, committed fixture file (e.g. productTruthOwnerMatrixExpectedFixture.js)
+  'canonical_registry', // src/data/productTruthRegistry.js's own declared fields (minimumPlan, requiredRole, ...)
+  'canonical_entitlement_rules', // planCatalog.js/accountEntitlement.js's own canonical rules
+  'server_verified_fact', // a real read-only server query result (e.g. business_settings), independent of the chat-ai call
+  'predeclared_acceptance_fixture', // an Owner/task-author-approved fixed matrix design field (e.g. the historical matrix's own `area`/`category` label, authored before any call ran)
+]);
+
+/**
+ * Mechanically rejects a row whose expectedResult cannot be proven independent of its own
+ * resolvedResult: a missing/disallowed expectationSource, OR (defense in depth) a row that
+ * literally carries no expectationSource at all while resolvedResult/expectedResult happen to be
+ * identical strings pointing at the same field name in the row object (the exact self-fulfilling
+ * shape Codex found: `expectedResult: resolvedResult` in source).
+ * @param {object} row
+ * @returns {string[]} violations (empty = independence proven)
+ */
+export function checkExpectationIndependence(row) {
+  const violations = [];
+  if (!row || typeof row !== 'object') return ['row_not_an_object'];
+  if (!isNonEmptyString(row.expectationSource)) {
+    violations.push('missing_expectation_source');
+  } else if (!ALLOWED_EXPECTATION_SOURCES.includes(row.expectationSource)) {
+    violations.push(`disallowed_expectation_source:${row.expectationSource}`);
+  }
+  return violations;
+}
 
 /**
  * "Row tied to stale runtime version/SHA" (task §6): a row whose implementationSourceSha is NOT
@@ -128,7 +167,34 @@ export function checkEvidenceRowSemantics(row, expectation = {}) {
     violations.push(`wrong_result: expected "${expectation.expectedResult}", got "${row.resolvedResult ?? 'null'}"`);
   }
   if (isNonEmptyString(row.expectedResult) && isNonEmptyString(row.resolvedResult) && row.expectedResult !== row.resolvedResult) {
-    violations.push(`self_inconsistent_row: own expectedResult "${row.expectedResult}" != own resolvedResult "${row.resolvedResult}"`);
+    violations.push(`wrong_result_self_recorded: row's own expectedResult "${row.expectedResult}" != row's own resolvedResult "${row.resolvedResult}"`);
+  }
+  // Wrong entitlement (task §6/§3.4): a plan/role-gated cell carries its own INDEPENDENTLY-derived
+  // expectedEntitlement (canonical registry rule + real server fact) and resolvedEntitlement (the
+  // real entitlement-resolver's own output against the same real server fact) - both present on
+  // rows that have an entitlement dimension at all; absent on rows that don't (e.g. Owner Matrix
+  // cells with no plan/role gate), never flagged as missing for those.
+  if (isNonEmptyString(row.expectedEntitlement) || isNonEmptyString(row.resolvedEntitlement)) {
+    if (!isNonEmptyString(row.expectedEntitlement) || !isNonEmptyString(row.resolvedEntitlement)) {
+      violations.push('incomplete_entitlement_pair');
+    } else if (row.expectedEntitlement !== row.resolvedEntitlement) {
+      violations.push(`wrong_entitlement: expected "${row.expectedEntitlement}", got "${row.resolvedEntitlement}"`);
+    }
+  }
+  // Server-fact mismatch: when a row carries a server-verified market/plan/role, it must agree
+  // with the row's own claimed market/plan/role (an evidence row cannot claim one persona context
+  // while its own server read-back proves a different real account state).
+  if (row.serverVerified && typeof row.serverVerified === 'object' && row.serverVerified.serverPlan) {
+    if (isNonEmptyString(row.market) && isNonEmptyString(row.serverVerified.serverMarket) && row.market !== row.serverVerified.serverMarket) {
+      violations.push(`server_fact_mismatch_market: row claims "${row.market}", server says "${row.serverVerified.serverMarket}"`);
+    }
+    if (isNonEmptyString(row.role) && isNonEmptyString(row.serverVerified.serverRole) && row.role !== row.serverVerified.serverRole) {
+      violations.push(`server_fact_mismatch_role: row claims "${row.role}", server says "${row.serverVerified.serverRole}"`);
+    }
+  }
+  // Unjoinable TEST row: a chat_logs-readback row must carry the real immutable row id it read back.
+  if (row.evidenceMethod === 'chat_logs_readback' && !isNonEmptyString(row.immutableTestRowId)) {
+    violations.push('unjoinable_test_row_missing_immutable_id');
   }
   const response = typeof row.response === 'string' ? row.response : '';
   for (const pattern of expectation.forbiddenResponsePatterns || []) {
@@ -176,7 +242,7 @@ export function checkEvidenceMatrixSlots(rows, requiredSlots, slotOf) {
  * @returns {{ valid: boolean, schemaViolations: string[], semanticViolations: string[] }}
  */
 export function validateEvidenceRow(row, expectation = {}) {
-  const schemaViolations = checkEvidenceRowSchema(row);
+  const schemaViolations = [...checkEvidenceRowSchema(row), ...checkExpectationIndependence(row)];
   const semanticViolations = schemaViolations.length === 0 ? checkEvidenceRowSemantics(row, expectation) : [];
   return { valid: schemaViolations.length === 0 && semanticViolations.length === 0, schemaViolations, semanticViolations };
 }

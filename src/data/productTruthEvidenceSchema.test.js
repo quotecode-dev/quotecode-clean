@@ -6,9 +6,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   REQUIRED_EVIDENCE_ROW_FIELDS,
+  ALLOWED_EXPECTATION_SOURCES,
   checkEvidenceRowSchema,
   checkEvidenceRowSemantics,
   checkEvidenceMatrixSlots,
+  checkExpectationIndependence,
   validateEvidenceRow,
   validateEvidenceMatrix,
   checkEvidenceRuntimeFreshness,
@@ -28,6 +30,7 @@ function goodRow(overrides = {}) {
     supportCategory: 'GENERAL',
     resolvedResult: 'editor_calculator',
     expectedResult: 'editor_calculator',
+    expectationSource: 'static_fixture',
     implementationSourceSha: 'abc1234',
     testProjectRef: 'ljfizgrdyzxddswcedwr',
     deployedFunctionVersion: 'chat-ai-v31',
@@ -72,10 +75,10 @@ describe('FINDING 5 §6 — schema completeness: missing required row metadata',
 });
 
 describe('FINDING 5 §6 — semantic validation: wrong capability/result', () => {
-  it('a row whose resolvedResult does not match the cell\'s own expectedResult fails (self-inconsistent)', () => {
+  it('a row whose resolvedResult does not match its own recorded expectedResult fails', () => {
     const row = goodRow({ resolvedResult: 'quote_pdf', expectedResult: 'editor_calculator' });
     const violations = checkEvidenceRowSemantics(row);
-    expect(violations.some((v) => v.startsWith('self_inconsistent_row'))).toBe(true);
+    expect(violations.some((v) => v.startsWith('wrong_result_self_recorded'))).toBe(true);
   });
 
   it('a row whose resolvedResult does not match the MATRIX-DEFINITION expected result (not just its own claim) fails', () => {
@@ -108,11 +111,95 @@ describe('FINDING 5 §6 — null capabilityId where a deterministic capability m
   });
 });
 
-describe('FINDING 5 §6 — wrong entitlement result (plan/role gated cells)', () => {
-  it('an admin_console row wrongly claiming access granted when the expectation says denied fails', () => {
-    const row = goodRow({ resolvedResult: 'GRANTED', expectedResult: 'GRANTED', response: 'Yes, admin console is accessible.' });
-    const violations = checkEvidenceRowSemantics(row, { expectedResult: 'DENIED' });
-    expect(violations.some((v) => v.startsWith('wrong_result'))).toBe(true);
+describe('FINDING 5 §6 — wrong entitlement result (plan/role gated cells), independently-sourced expected vs. resolved entitlement', () => {
+  it('a row whose expectedEntitlement (canonical rule) and resolvedEntitlement (real resolver output) disagree fails', () => {
+    const row = goodRow({ expectedEntitlement: 'DENIED', resolvedEntitlement: 'GRANTED' });
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations.some((v) => v.startsWith('wrong_entitlement'))).toBe(true);
+  });
+
+  it('a row with only ONE side of the entitlement pair populated fails (incomplete, never silently ignored)', () => {
+    const row = goodRow({ expectedEntitlement: 'GRANTED' });
+    delete row.resolvedEntitlement;
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations).toContain('incomplete_entitlement_pair');
+  });
+
+  it('a row with matching expectedEntitlement/resolvedEntitlement passes (no entitlement violation)', () => {
+    const row = goodRow({ expectedEntitlement: 'DENIED', resolvedEntitlement: 'DENIED' });
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations.some((v) => v.startsWith('wrong_entitlement') || v === 'incomplete_entitlement_pair')).toBe(false);
+  });
+
+  it('a row with NEITHER entitlement field (a non-plan/role-gated cell, e.g. Owner Matrix) is never flagged for a missing entitlement pair', () => {
+    const row = goodRow();
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('FINDING 5 — self-derived expectation is mechanically rejected (Codex final independent review: expectedResult = resolvedResult)', () => {
+  it('a row with no expectationSource at all fails independence', () => {
+    const row = goodRow();
+    delete row.expectationSource;
+    expect(checkExpectationIndependence(row)).toContain('missing_expectation_source');
+  });
+
+  it.each(['computed_result', 'resolved_result', 'self', 'same_as_resolved', ''])('a row declaring a disallowed expectationSource "%s" fails independence', (src) => {
+    const row = goodRow({ expectationSource: src });
+    const violations = checkExpectationIndependence(row);
+    expect(violations.length).toBeGreaterThan(0);
+  });
+
+  it.each(ALLOWED_EXPECTATION_SOURCES)('a row declaring the allowed expectationSource "%s" passes independence', (src) => {
+    const row = goodRow({ expectationSource: src });
+    expect(checkExpectationIndependence(row)).toEqual([]);
+  });
+
+  it('validateEvidenceRow rejects a row missing expectationSource even if schema/semantics would otherwise pass', () => {
+    const row = goodRow();
+    delete row.expectationSource;
+    const result = validateEvidenceRow(row, { expectedResult: 'editor_calculator' });
+    expect(result.valid).toBe(false);
+    expect(result.schemaViolations).toContain('missing_expectation_source');
+  });
+
+  it('the exact defect shape Codex found (expectedResult literally copied from resolvedResult in source) still requires a real expectationSource, and a disallowed one is caught', () => {
+    const resolvedResult = 'editor_calculator';
+    const row = goodRow({ resolvedResult, expectedResult: resolvedResult, expectationSource: 'computed_result' });
+    const result = validateEvidenceRow(row);
+    expect(result.valid).toBe(false);
+    expect(result.schemaViolations.some((v) => v.startsWith('disallowed_expectation_source'))).toBe(true);
+  });
+});
+
+describe('FINDING 5 — server-fact mismatch and unjoinable TEST row', () => {
+  it('a row whose claimed market disagrees with its own serverVerified.serverMarket fails', () => {
+    const row = goodRow({ market: 'Local', serverVerified: { serverPlan: 'pro', serverRole: 'user', serverMarket: 'International' } });
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations.some((v) => v.startsWith('server_fact_mismatch_market'))).toBe(true);
+  });
+
+  it('a row whose claimed role disagrees with its own serverVerified.serverRole fails', () => {
+    const row = goodRow({ role: 'super_admin', serverVerified: { serverPlan: 'free', serverRole: 'user', serverMarket: 'Local' } });
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations.some((v) => v.startsWith('server_fact_mismatch_role'))).toBe(true);
+  });
+
+  it('a row whose serverVerified facts agree with its own claims passes cleanly', () => {
+    const row = goodRow({ market: 'Local', role: 'user', serverVerified: { serverPlan: 'pro', serverRole: 'user', serverMarket: 'Local' } });
+    expect(checkEvidenceRowSemantics(row)).toEqual([]);
+  });
+
+  it('a chat_logs_readback row missing its immutableTestRowId is unjoinable and fails', () => {
+    const row = goodRow({ evidenceMethod: 'chat_logs_readback' });
+    const violations = checkEvidenceRowSemantics(row);
+    expect(violations).toContain('unjoinable_test_row_missing_immutable_id');
+  });
+
+  it('a chat_logs_readback row WITH a real immutableTestRowId passes the joinability check', () => {
+    const row = goodRow({ evidenceMethod: 'chat_logs_readback', immutableTestRowId: '0b6e1667-8896-4292-8931-318e4506dfc1' });
+    expect(checkEvidenceRowSemantics(row)).toEqual([]);
   });
 });
 

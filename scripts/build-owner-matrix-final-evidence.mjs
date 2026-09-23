@@ -4,25 +4,40 @@
 // backfilled from the CURRENT classifiers - never left null). The 2 Print cells (OM-11/OM-12) are
 // REPLACED with this round's fresh live rerun against the redeployed v32 (not backfilled onto the
 // old semantically-invalid capture) - see 2026-09-24-final-delta-closure-affected-cells-rerun-v32.json.
+//
+// Codex final independent review (2026-09-2X): the PRIOR version of this script set
+// `expectedResult = resolvedResult` - the exact same classifier call's own output, used twice, a
+// self-fulfilling comparison that could never fail. Fixed: `expectedResult` is now looked up from
+// `productTruthOwnerMatrixExpectedFixture.js`, a STATIC, hand-authored fixture written by reading
+// each cell's own real prompt text independent of ever calling the classifier - a genuinely
+// separate source, compared against the classifier's real, freshly-computed `resolvedResult`.
 import { classifyCapabilityIntent } from '../supabase/functions/chat-ai/capabilityTruth.ts';
 import { classifyPaymentIntent } from '../supabase/functions/chat-ai/paymentTruth.ts';
 import { classifyInvoicingIntent } from '../supabase/functions/chat-ai/invoicingTruth.ts';
+import { OWNER_MATRIX_EXPECTED_FIXTURE } from '../src/data/productTruthOwnerMatrixExpectedFixture.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const FINAL_SHA = '08c012bcd6094335e987e7972c66604c2579e125';
 const raw = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-final-closure-blocker5-raw-owner-planrole.json', 'utf-8'));
 const rerun = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-final-delta-closure-affected-cells-rerun-v32.json', 'utf-8'));
 
+// Precedence MUST mirror index.ts's own real routing order exactly (payment/invoicing checked
+// BEFORE the capability-truth block - see index.ts's own comment: "Runs after payment/invoicing
+// (they keep first refusal on their own questions)"). The first version of this helper checked
+// classifyCapabilityIntent first, which wrongly resolved payment/invoicing-topic prompts to
+// capabilityTruth's own defense-in-depth 'payment_processing' pattern (a real registry id that
+// exists ONLY as an unreachable backstop in production) instead of the real live routing outcome.
 function resolve(prompt) {
-  const capId = classifyCapabilityIntent(prompt);
-  if (capId) return capId;
   if (classifyPaymentIntent(prompt)) return 'payment_truth_sentinel';
   if (classifyInvoicingIntent(prompt)) return 'invoicing_truth_sentinel';
-  return null;
+  return classifyCapabilityIntent(prompt);
 }
 
 const rows = raw.ownerResults.map((r, i) => {
   const evidenceId = `owner-${String(i + 1).padStart(2, '0')}-${r.area}-${r.phrasing}-${r.lang}`;
+  const fixtureKey = `${r.area}|${r.phrasing}|${r.lang}`;
+  const expectedResult = OWNER_MATRIX_EXPECTED_FIXTURE[fixtureKey];
+  if (!expectedResult) throw new Error(`No independent expected-result fixture entry for "${fixtureKey}" - refusing to fabricate one`);
   // OM-11 (row index of area=pdf_print, phrasing=adversarial, lang=he) / OM-12 (same, lang=en):
   // replace with the fresh v32 rerun rather than backfilling the historical, semantically-invalid capture.
   if (r.area === 'pdf_print' && r.phrasing === 'adversarial') {
@@ -42,7 +57,8 @@ const rows = raw.ownerResults.map((r, i) => {
         response: freshCell.response,
         supportCategory: 'FEATURE_REQUEST',
         resolvedResult: 'quote_pdf_vs_print_comparison',
-        expectedResult: 'quote_pdf_vs_print_comparison',
+        expectedResult,
+        expectationSource: 'static_fixture',
         implementationSourceSha: FINAL_SHA,
         testProjectRef: rerun.testProjectRef,
         deployedFunctionVersion: `chat-ai-v${rerun.deployedFunctionVersion}`,
@@ -63,7 +79,8 @@ const rows = raw.ownerResults.map((r, i) => {
     response: r.answer,
     supportCategory: 'FEATURE_REQUEST',
     resolvedResult,
-    expectedResult: resolvedResult,
+    expectedResult,
+    expectationSource: 'static_fixture',
     implementationSourceSha: FINAL_SHA,
     historicalVersion: true,
     testProjectRef: 'ljfizgrdyzxddswcedwr',
