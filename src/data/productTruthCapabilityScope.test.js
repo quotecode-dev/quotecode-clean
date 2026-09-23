@@ -2,12 +2,12 @@
 // Codex proved that "The in-editor calculator is available elsewhere, but TEKANGO lacks it", "... available only outside TEKANGO"
 // and the Hebrew "מחשבון מובנה בעורך זמין במוצרים אחרים, אבל לא ב-TEKANGO" still passed the full 48-cell Owner gate: the extractor saw an
 // UNSCOPED positive availability token and never bound the later scope (elsewhere / outside TEKANGO / TEKANGO lacks it / אבל לא ב-TEKANGO).
-// The fix models scope (see cueScope in productTruthCapabilityPolarity.js): a capability truth is availability IN TEKANGO; each availability
-// cue is attributed the scope of its own clause; cues scoped only to other products are dropped; TEKANGO-scoped denials outrank generic
-// positives. These tests are GROUPED by scope construction (not one string per Codex example) and finish with the FULL GATE.
+// The fix models scope (round 2: per-cue scope; superseded by the STRUCTURAL clause/claim model in productTruthScopeClaims.js - see
+// productTruthScopeClaims.test.js for the structural, property and clause-order tests): a capability truth is availability IN TEKANGO;
+// external claims never prove it and TEKANGO-scoped denials outrank generic positives. These tests are GROUPED by scope construction (not one string per Codex example) and finish with the FULL GATE.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { TRUTH_KINDS, checkCapabilityPolarity, cueScope, deriveExpectedCapabilityTruth } from './productTruthCapabilityPolarity.js';
+import { TRUTH_KINDS, analyzeCapabilityProse, checkCapabilityPolarity, deriveExpectedCapabilityTruth } from './productTruthCapabilityPolarity.js';
 import { validateFinalMatrix } from './productTruthEvidenceSchema.js';
 
 const truth = (id, plan = 'pro', role = 'user') => deriveExpectedCapabilityTruth({ expectedResult: id, serverPlan: plan, serverRole: role, market: 'Local' });
@@ -159,22 +159,18 @@ describe('FINDING 3 scope - the same scope model under the OTHER truth kinds', (
   });
 });
 
-describe('FINDING 3 scope - cueScope unit behaviour (the scope model itself)', () => {
-  const at = (text, needle, lang = 'en') => cueScope(text, text.indexOf(needle), text.indexOf(needle) + needle.length, lang);
-  it('attributes each cue the scope of its own clause', () => {
-    const s = 'available elsewhere, but TEKANGO lacks it';
-    expect(at(s, 'available')).toBe('other');
-    expect(at(s, 'lacks')).toBe('tekango');
-    expect(at('exists in other products and in TEKANGO', 'exists')).toBe('both');
-    expect(at('The calculator exists', 'exists')).toBe('implicit');
-    expect(at('TEKANGO lacks it, though it exists elsewhere', 'lacks')).toBe('tekango');
-    expect(at('TEKANGO lacks it, though it exists elsewhere', 'exists')).toBe('other');
+describe('FINDING 3 scope - claim objects keep TEKANGO and external scopes separate (structural model)', () => {
+  const claims = (text, lang) => analyzeCapabilityProse(text, lang, { labels: ['In-editor calculator'], otherLabels: [] }).sentences.flatMap((c) => c.claims).map((c) => `${c.scope}:${c.polarity}`).sort();
+  it('each clause becomes a claim with its own scope and polarity', () => {
+    expect(claims('available elsewhere, but TEKANGO lacks it', 'en')).toEqual(['external:positive', 'tekango:negative']);
+    expect(claims('exists in other products and in TEKANGO', 'en')).toEqual(['both:positive']);
+    expect(claims('The calculator exists', 'en')).toEqual(['implicit-tekango:positive']);
+    expect(claims('TEKANGO lacks it, though it exists elsewhere', 'en')).toEqual(['external:positive', 'tekango:negative']);
   });
-  it('"outside TEKANGO" is an OTHER-scope phrase, not a TEKANGO marker', () => {
-    expect(at('available outside TEKANGO', 'available')).toBe('other');
-    expect(at('זמין מחוץ ל-TEKANGO', 'זמין', 'he')).toBe('other');
-    expect(at('לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO', 'לא זמין', 'he')).toBe('other');
-    expect(at('לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO', 'אבל זמין', 'he')).toBe('tekango');
+  it('"outside TEKANGO" is an EXTERNAL-scope phrase, not a TEKANGO marker (EN + HE)', () => {
+    expect(claims('available outside TEKANGO', 'en')).toEqual(['external:positive']);
+    expect(claims('זמין מחוץ ל-TEKANGO', 'he')).toEqual(['external:positive']);
+    expect(claims('לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO', 'he')).toEqual(['external:negative', 'tekango:positive']);
   });
 });
 

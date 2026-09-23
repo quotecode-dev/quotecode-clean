@@ -24,6 +24,7 @@
 import { getCapabilityById, PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY } from './productTruthRegistry.js';
 import { PLAN_IDS } from '../utils/planCatalog.js';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
+import { clauseScopeAt, extractClaims, resolveTekangoClaims } from './productTruthScopeClaims.js';
 
 export const TRUTH_KINDS = Object.freeze({
   AVAILABLE: 'AVAILABLE', // exists / supported for this account (gated-but-entitled counts)
@@ -113,7 +114,7 @@ export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serv
 
 // ---------------------------------------------------------------------------------------------------------------------
 // PROSE -> CLAIMS
-const NEG_BEFORE_EN = /\b(?:no|not|never|without|cannot|can['’]t|isn['’]t|doesn['’]t|don['’]t|won['’]t|n['’]t)\b/i;
+const NEG_BEFORE_EN = /\b(?:no|not|never|without|neither|nor|cannot|can['’]t|isn['’]t|doesn['’]t|don['’]t|won['’]t|n['’]t)\b/i;
 const NEG_BEFORE_HE = /(?:^|\s)(?:אין|לא|אינ\S*|בלי)(?:\s|$)/;
 
 const PATTERNS = Object.freeze({
@@ -157,6 +158,10 @@ const PATTERNS = Object.freeze({
       /\bisn['’]t\s+(?:currently\s+)?(?:available|supported|live|offered|present|possible|active)\b/i,
       /\b(?:there\s+(?:is|are)\s+no|there['’]s\s+no|no\s+such)\b/i,
       /\bnon-?existent\b|\bunavailable\b/i,
+      /\bneither\b/i,
+      // elliptical, clause-terminal bare negation (the predicate is the neighbouring clause's): "in TEKANGO, it is not" / "it doesn't"
+      /\b(?:is|are|does|do|can|will)\s+not\s*$|\b(?:isn|aren|doesn|don|can|won)['’]t\s*$/i,
+      /\b(?:absent|omits?|not\s+found|(?:won['’]t|will\s+not|cannot|can['’]t)\s+(?:find|see|get))\b/i,
       // TEKANGO-scoped negation with an elided verb: "..., but not in TEKANGO"
       /\b(?:not|no|never)\s+(?:in|within|on|inside)\s+TEKANGO\b/i,
     ],
@@ -167,6 +172,8 @@ const PATTERNS = Object.freeze({
     denyExistenceAgent: [
       /\b(?:I|we|the\s+assistant|the\s+ai|tekango|the\s+system|the\s+app|the\s+editor)\s+(?:cannot|can['’]t|can\s+not|(?:am|are|is)\s+(?:not\s+)?unable\s+to|do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:currently\s+)?\w+/i,
       /\b(?:tekango|the\s+app|the\s+system|the\s+product|the\s+platform)\s+(?:lacks?|has\s+no|is\s+missing)\b/i,
+      // bare terminal negation of a clause whose subject is the agent ("... , TEKANGO does not." / "TEKANGO doesn't.")
+      /\b(?:tekango|the\s+app|the\s+system|the\s+product|the\s+platform)\s+(?:does\s+not|doesn['’]t|do\s+not|don['’]t|cannot|can['’]t)\s*$/i,
     ],
     affirmExistence: [
       /\bexists?\b/i,
@@ -174,11 +181,19 @@ const PATTERNS = Object.freeze({
       // bare cue for elided-copula clauses ("..., but available in TEKANGO"); negation and scope are applied by the caller
       /\b(?:available|supported|built[- ]in(?:to)?)\b/i,
       /\b(?:has|have|offers?|supports?|includes?|provides?)\s+(?:it|this|one|them)\b/i,
+      // verb + ANY object ("...have AI-executed data mutation"); excludes "has no / has not / has been / has to"
+      /\b(?:has|offers?|supports?|includes?|provides?)\s+(?!no\b|not\b|been\b|to\b|never\b)[A-Za-z]/i,
+      // "have" + object, but never "you/I have ..." (a personal statement, not a claim about the product)
+      /(?<!\b(?:you|I)\s+)\bhave\s+(?!no\b|not\b|been\b|to\b|never\b)[A-Za-z]/i,
       /\b(?:it|this|they)\s+(?:is|are)\s+(?:in|within|on)\s+TEKANGO\b/i,
+      /\b(?:ships?|gives?|delivers?|bundles?|packs?)\s+(?:with\s+)?(?:a|an|the|it|one|[A-Za-z])/i,
+      /\byou\s+(?:get|will\s+find|can\s+find)\b/i,
+      /\b(?:can\s+be|is|are)\s+found\b/i,
       /\b(?:supports?|supported|offers?|offered|provides?|provided|includes?|included|has\s+(?:a|an|the)|have\s+(?:a|an|the)|comes\s+with)\b/i,
       /\byou\s+can\b/i,
-      /^\s*yes\b/i,
     ],
+    // a bare interjection is only a WEAK affirmation (dropped when the sentence carries any strong claim)
+    affirmExistenceWeak: [/^\s*yes\b/i],
     clarification: [/\bwhich\s+specific\b/i, /\bname\s+the\s+specific\b/i, /\bwhat\s+(?:specific|exactly)\b/i],
   },
   he: {
@@ -217,6 +232,8 @@ const PATTERNS = Object.freeze({
       // Hebrew masculine-singular forms end in FINAL letters (קיים, זמין, נתמך) - a plain מ/נ/כ stem would miss them
       /(?:אינ(?:ה|ו|ם|ן)?|לא)\s+(?:קיי[םמ](?:ת|ים|ות)?|זמינ(?:ה|ים|ות)?|זמין|נתמכ(?:ת|ים|ות)?|נתמך|פעיל(?:ה|ים|ות)?|מוצע(?:ת|ים)?)/,
       /(?:^|[\s,;-])אין(?!\s+לך)(?:\s|$)/,
+      /(?:^|\s)לא\s+(?:תמצא|נמצא|נמצאת|נמצאים|נמצאות|מצוי|מצויה)(?:\s|$|[.,])/,
+      /(?:^|\s)(?:אינו|אינה|לא)\s*$/,
       // TEKANGO-scoped negation with an elided verb: "..., אבל לא ב-TEKANGO"
       /(?:^|\s)(?:לא|אין)\s+ב-?TEKANGO/,
     ],
@@ -228,11 +245,12 @@ const PATTERNS = Object.freeze({
       /זמינ(?:ה|ים|ות)?|זמין/,
       /נתמכ(?:ת|ים|ות)?|נתמך/,
       /פעיל(?:ה|ים|ות)?/,
-      /(?:^|[\s-])כן(?:[\s.,-]|$)/,
       /(?:אפשר|ניתן)\s+ל/,
       /(?:^|\s)(?:כולל|כוללת|כוללים|כוללות|תומך|תומכת|תומכים|מציע|מציעה|מציעים)\s/,
+      /(?:^|\s)(?:תמצא|נמצא|נמצאת|נמצאים|נמצאות|מצוי|מצויה|תקבל)(?:\s|$|[.,])/,
       /(?:^|\s)יש\s+(?!לך)/,
     ],
+    affirmExistenceWeak: [/(?:^|[\s-])כן(?:[\s.,-]|$)/],
     clarification: [/איזו\s+יכולת\s+ספציפית/, /איזה\s+(?:פיצ'ר|פיצר|יכולת)\s+(?:ספציפי|בדיוק)/],
   },
 });
@@ -246,130 +264,15 @@ function splitSentences(text) {
 
 const anyMatch = (patterns, s) => patterns.some((p) => { p.lastIndex = 0; return p.test(s); });
 
-// ---------------------------------------------------------------------------------------------------------------------
-// PRODUCT / LOCATION SCOPE (Finding 3 remediation, second round).
-// A capability truth is a claim about availability IN TEKANGO. A response may say where else the capability exists
-// ("available elsewhere", "in other products", "outside TEKANGO", HE "במוצרים אחרים", "מחוץ ל-TEKANGO") without that
-// being a claim about TEKANGO - and a positive token about ELSEWHERE must never override a TEKANGO-specific denial
-// ("... but TEKANGO lacks it", "... but not in TEKANGO", HE "אבל לא ב-TEKANGO") nor prove TEKANGO availability by itself.
-// Model (not phrase exceptions): every availability CUE (an affirm or deny token) is attributed a SCOPE from the scope
-// phrases in ITS OWN clause (clauses are cut at commas / semicolons / contrast words such as but / though / אבל):
-//   the scope phrase after the cue ("available IN OTHER PRODUCTS"), else before it ("TEKANGO lacks it") wins; a cue whose
-//   scope phrases include TEKANGO counts for TEKANGO (also when other products are listed too: "in other products AND in
-//   TEKANGO"); a cue scoped ONLY to other products/locations is dropped from TEKANGO's truth; a cue with no scope phrase
-//   is implicit = about TEKANGO. Exclusivity ("available ONLY outside TEKANGO", "everywhere EXCEPT TEKANGO") is a TEKANGO
-//   denial. "Available elsewhere" alone therefore yields NO claim about TEKANGO - and a gate that requires an in-TEKANGO
-//   claim (AVAILABLE truth) or an in-TEKANGO denial (NOT_AVAILABLE truth) fails it closed as insufficient.
-const SCOPE = Object.freeze({
-  en: {
-    other: [
-      /\belsewhere\b/gi,
-      /\b(?:outside|beyond)\s+(?:of\s+)?(?:TEKANGO|the\s+(?:app|product|system|platform))\b/gi,
-      /\b(?:other\s+than|apart\s+from|aside\s+from|except(?:\s+in|\s+for)?|besides|excluding)\s+TEKANGO\b/gi,
-      /\b(?:other|another|different|competing|rival|third[- ]party)\s+(?:\w+\s+)?(?:products?|tools?|apps?|applications?|software|systems?|platforms?|programs?|editors?|solutions?|services?|vendors?|competitors?)\b/gi,
-      /\b(?:in|at|with|by|from)\s+(?:competitors?|other\s+places|other\s+vendors)\b/gi,
-    ],
-    tekango: [/\bTEKANGO\b/g, /\bin\s+(?:this|our)\s+(?:app|product|system|platform)\b/gi],
-    boundary: /[,;]|\b(?:but|however|though|although|whereas|while|yet)\b/gi,
-    exclusive: [
-      /\bonly\s+(?:available\s+|exists?\s+|supported\s+|offered\s+)?(?:outside|elsewhere|beyond|in\s+(?:some\s+|many\s+)?other|in\s+competitors?|(?:with|at|by)\s+(?:other|another|competitors?))/gi,
-      /\b(?:everywhere|anywhere|in\s+all\s+other\s+\w+)\s+(?:else\s+)?(?:but|except|other\s+than|apart\s+from|besides)\s+(?:in\s+)?TEKANGO\b/gi,
-      /\b(?:except|other\s+than|apart\s+from|besides|excluding)\s+(?:in\s+)?TEKANGO\b/gi,
-    ],
-  },
-  he: {
-    other: [
-      /מוצרים\s+אחר(?:ים|ות)/g,
-      /(?:כלים|אפליקציות|תוכנות|מערכות|פלטפורמות|עורכים|שירותים|פתרונות)\s+אחר(?:ים|ות)/g,
-      /מחוץ\s+ל-?(?:TEKANGO|מערכת|מוצר|אפליקציה)/g,
-      /(?:בשום\s+)?מקום\s+אחר|מקומות\s+אחרים/g,
-      /אצל\s+(?:מתחרים|אחרים)/g,
-      /(?:חוץ|מלבד|פרט)\s+(?:ל|מ)-?TEKANGO/g,
-    ],
-    tekango: [/TEKANGO/g],
-    // Hebrew has no \b (its letters are not \w)
-    boundary: /[,;]|(?:^|\s)(?:אבל|אך|אולם|אף\s+ש|למרות\s+ש|בעוד\s+ש|ואילו)(?=\s)/g,
-    exclusive: [
-      /(?:^|\s)רק\s+(?:מחוץ|ב\S*\s+אחר|במקום\s+אחר|אצל)/g,
-      /(?:אך\s+ורק|בלעדית)\s+(?:מחוץ|ב\S*\s+אחר)/g,
-      /(?:בכל\s+מקום|בכולם)\s+(?:חוץ|מלבד|פרט)\s+(?:ל|מ)-?TEKANGO/g,
-      /(?:חוץ|מלבד|פרט)\s+(?:ל|מ)-?TEKANGO/g,
-    ],
-  },
-});
-
-function allMatches(patterns, text) {
-  const out = [];
-  for (const re of patterns) {
-    const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
-    let m;
-    while ((m = g.exec(text))) { out.push({ start: m.index, end: m.index + m[0].length }); if (m[0].length === 0) g.lastIndex += 1; }
-  }
-  return out;
-}
-
-/** Scope phrases in a text: OTHER-product/location phrases, and TEKANGO markers that are NOT inside an "outside TEKANGO"-style phrase. */
-function scopeSpans(text, lang) {
-  const other = allMatches(SCOPE[lang].other, text);
-  const tekango = allMatches(SCOPE[lang].tekango, text).filter((t) => !other.some((o) => t.start >= o.start && t.end <= o.end));
-  return { other, tekango };
-}
-
-/** [start, end) of the clause containing `index` (clauses are cut at commas / semicolons / contrast words). */
-function clauseBounds(text, index, lang) {
-  const cuts = allMatches([SCOPE[lang].boundary], text);
-  let start = 0;
-  let end = text.length;
-  for (const c of cuts) {
-    if (c.end <= index) start = Math.max(start, c.end);
-    else if (c.start >= index) { end = Math.min(end, c.start); }
-  }
-  return [start, end];
-}
-
-/**
- * Which scope does an availability cue (text[cueStart, cueEnd)) belong to?
- * @returns {'tekango'|'other'|'both'|'implicit'}
- */
-export function cueScope(text, cueStart, cueEnd, lang) {
-  const [cs, ce] = clauseBounds(text, cueStart, lang);
-  const { other, tekango } = scopeSpans(text, lang);
-  const within = (spans) => spans.filter((s) => s.start >= cs && s.end <= ce);
-  const after = (spans) => within(spans).filter((s) => s.start >= cueEnd && s.start - cueEnd <= 80);
-  const before = (spans) => within(spans).filter((s) => s.end <= cueStart);
-  const aT = after(tekango).length > 0;
-  const aO = after(other).length > 0;
-  if (aT) return aO ? 'both' : 'tekango';
-  if (aO) return 'other';
-  if (before(tekango).length > 0) return 'tekango';
-  if (before(other).length > 0) return 'other';
-  return 'implicit';
-}
-
-const countsForTekango = (scope) => scope !== 'other';
-
-/** Exclusivity - "available ONLY outside TEKANGO", "everywhere EXCEPT TEKANGO" - is a denial of availability IN TEKANGO (unless itself negated). */
-function scopedExclusivity(sentence, lang) {
-  const neg = lang === 'en' ? NEG_BEFORE_EN : NEG_BEFORE_HE;
-  for (const s of allMatches(SCOPE[lang].exclusive, sentence)) {
-    const clauseBefore = sentence.slice(Math.max(0, s.start - 35), s.start).split(/[,;:]/).pop() ?? '';
-    if (!neg.test(clauseBefore)) return true;
-  }
-  return false;
-}
-
-/** Existence-directed negation: a negation pattern hit that is NOT directed at the account/plan/role ("Your current plan does not include it"). */
-function existenceDenied(sentence, lang, named) {
+/** CUE detector - a deny cue that is NOT directed at the account/plan/role ("Your current plan does not include it"). Scope is resolved by the claim model. */
+function denyCue(text, lang, named) {
   const P = PATTERNS[lang];
-  if (scopedExclusivity(sentence, lang)) return true;
   for (const re of [...P.denyExistence, ...P.denyExistenceAgent, ...(named ? P.denyExistenceNamed : [])]) {
     const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
     let m;
-    while ((m = g.exec(sentence))) {
-      // a denial scoped to OTHER products/locations ("not available elsewhere") says nothing about TEKANGO
-      if (!countsForTekango(cueScope(sentence, m.index, m.index + m[0].length, lang))) continue;
-      const before = sentence.slice(Math.max(0, m.index - 60), m.index);
-      const after = sentence.slice(m.index, m.index + m[0].length + 40);
+    while ((m = g.exec(text))) {
+      const before = text.slice(Math.max(0, m.index - 60), m.index);
+      const after = text.slice(m.index, m.index + m[0].length + 40);
       // account-directed: the negation's subject is your plan/account/role, or it is "... not available on/for your plan"
       const accountSubject = lang === 'en'
         ? /\b(?:your|the)\s+(?:current\s+)?(?:plan|account|role|tier)\b[^.!?]*$/i.test(before) || /\b(?:you|your)\b/i.test(before.slice(-25)) && /^(?:cannot|can['’]t|can\s+not|unable|do\s+not|don['’]t)/i.test(m[0])
@@ -381,21 +284,26 @@ function existenceDenied(sentence, lang, named) {
   return false;
 }
 
-/** An existence-affirming cue that is not itself under a negation ("does not include" is not an affirmation). */
-function affirmsUnnegated(sentence, lang) {
+/** CUE detector - an existence-affirming cue that is not itself under a negation ("does not include" is not an affirmation). 'strong' | 'weak' (interjection) | null. */
+function affirmCue(text, lang) {
   const neg = lang === 'en' ? NEG_BEFORE_EN : NEG_BEFORE_HE;
-  for (const re of PATTERNS[lang].affirmExistence) {
-    const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
-    let m;
-    while ((m = g.exec(sentence))) {
-      // an affirmation scoped to OTHER products/locations ("available elsewhere") is not an affirmation about TEKANGO
-      if (!countsForTekango(cueScope(sentence, m.index, m.index + m[0].length, lang))) continue;
-      const clauseBefore = sentence.slice(Math.max(0, m.index - 35), m.index).split(/[,;:]/).pop() ?? '';
-      if (!neg.test(clauseBefore)) return true;
+  const scan = (patterns) => {
+    for (const re of patterns) {
+      const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+      let m;
+      while ((m = g.exec(text))) {
+        const clauseBefore = text.slice(Math.max(0, m.index - 35), m.index).split(/[,;:]/).pop() ?? '';
+        if (!neg.test(clauseBefore)) return true;
+      }
     }
-  }
-  return false;
+    return false;
+  };
+  if (scan(PATTERNS[lang].affirmExistence)) return 'strong';
+  if (scan(PATTERNS[lang].affirmExistenceWeak)) return 'weak';
+  return null;
 }
+
+const detectors = (lang) => ({ deny: (t, named) => denyCue(t, lang, named), affirm: (t) => affirmCue(t, lang) });
 
 /**
  * Extracts what the response CLAIMS about a capability, sentence by sentence.
@@ -409,12 +317,14 @@ export function analyzeCapabilityProse(response, language, focus = { labels: [],
     const lower = text.toLowerCase();
     const mentionsFocus = focus.labels.some((l) => lower.includes(l.toLowerCase()));
     const mentionsOther = (focus.otherLabels || []).some((l) => lower.includes(l.toLowerCase()));
-    const denied = existenceDenied(text, language, mentionsFocus);
+    // STRUCTURAL scope/polarity: explicit claim objects per clause, resolved for availability IN TEKANGO (external claims never count)
+    const claims = extractClaims(text, language, detectors(language), { named: mentionsFocus });
+    const resolved = resolveTekangoClaims(claims);
+    const denied = resolved.negative;
+    const affirmed = resolved.positive;
     const acctLacks = anyMatch(P.accountLacks, text);
     const acctHas = anyMatch(P.accountHas, text);
-    // ("Your current plan does not include it" is account-directed AND its 'include' is negated, so it is not an affirmation)
-    const affirmed = !denied && affirmsUnnegated(text, language);
-    const relevant = mentionsFocus || (!mentionsOther && (denied || affirmed));
+    const relevant = mentionsFocus || (!mentionsOther && resolved.tekangoClaims.length > 0);
     const tiers = [];
     for (const re of P.planTier) {
       const g = new RegExp(re.source, re.flags);
@@ -422,7 +332,7 @@ export function analyzeCapabilityProse(response, language, focus = { labels: [],
       while ((m = g.exec(text))) tiers.push(m[1].toLowerCase());
     }
     return {
-      text, relevant, mentionsFocus, denied, affirmed,
+      text, relevant, mentionsFocus, denied, affirmed, claims,
       accountLacks: acctLacks,
       accountHas: acctHas,
       tiers,
@@ -493,7 +403,7 @@ function unnegatedMatches(text, patterns, lang) {
     let m;
     while ((m = g.exec(text))) {
       // a claim scoped to OTHER products/locations ("payments are live elsewhere") is not a claim about TEKANGO
-      if (!countsForTekango(cueScope(text, m.index, m.index + m[0].length, lang))) continue;
+      if (clauseScopeAt(text, m.index, lang) === 'external') continue;
       const before = text.slice(Math.max(0, m.index - 70), m.index);
       const clauseBefore = before.split(/[.!?]/).pop() ?? '';
       if (!neg.test(clauseBefore)) hits.push(m[0]);
