@@ -20,11 +20,13 @@
 // predeclared) + the canonical registry, so a missing row still leaves its required slot standing (=> failure),
 // an extra row can never add a requirement, and a row can never author its own expectation.
 import { getCapabilityById } from './productTruthRegistry.js';
-import { PLAN_IDS } from '../utils/planCatalog.js';
+import { checkAgainstRequiredSlotAuthority } from './productTruthRequiredSlotAuthority.js';
+import { checkCapabilityPolarity, deriveExpectedCapabilityTruth, deriveRegistryEntitlement } from './productTruthCapabilityPolarity.js';
+import { checkRawCaptureIntegrity, checkRowAgainstRawCapture, checkSupportLiveReadback } from './productTruthRawCaptureBinding.js';
 import {
   EXPECTED_MATRIX_SIZES, EXPECTATION_AUTHORITIES, FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, MATRIX_LANGUAGES, OWNER_AREAS,
   OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PERSONA_DECLARATIONS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_V32_UPDATED_AT_UTC,
-  SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT, SENTINEL_RESPONSE_PATTERNS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
+  SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
 } from './productTruthFinalMatrixAcceptance.js';
 
 export const REQUIRED_EVIDENCE_ROW_FIELDS = [
@@ -289,30 +291,9 @@ export function validateEvidenceMatrix(rows, matrixDef) {
 
 const ENTITLEMENT_VALUES = Object.freeze(['GRANTED', 'DENIED']);
 
-/**
- * Entitlement the CANONICAL registry rule yields for a capability given a persona's SERVER-VERIFIED plan/role.
- * (canonical_registry authority applied to a server_verified_fact - it reads neither the evidence row's own
- * expectedEntitlement nor the chat-ai response.)
- * @param {string} capabilityId
- * @param {string|undefined} serverPlan - 'free' | 'basic' | 'pro'
- * @param {string|undefined} serverRole - e.g. 'user' | 'super_admin'
- * @returns {'GRANTED'|'DENIED'|'UNKNOWN'}
- */
-export function deriveRegistryEntitlement(capabilityId, serverPlan, serverRole) {
-  const capability = getCapabilityById(capabilityId);
-  if (!capability) return 'UNKNOWN';
-  if (capability.authorityType === 'role') {
-    if (!isNonEmptyString(serverRole) || !isNonEmptyString(capability.requiredRole)) return 'UNKNOWN';
-    return serverRole === capability.requiredRole ? 'GRANTED' : 'DENIED';
-  }
-  if (capability.authorityType === 'plan') {
-    const have = PLAN_IDS.indexOf(serverPlan);
-    const need = PLAN_IDS.indexOf(capability.minimumPlan);
-    if (have < 0 || need < 0) return 'UNKNOWN';
-    return have >= need ? 'GRANTED' : 'DENIED';
-  }
-  return 'GRANTED';
-}
+// deriveRegistryEntitlement now lives with the capability-polarity truth derivation (it is the same canonical
+// registry x server-verified-facts authority); re-exported here so existing importers keep working.
+export { deriveRegistryEntitlement };
 
 function isCanonicalExpectedResult(value) {
   return isNonEmptyString(value) && (RESULT_SENTINELS.includes(value) || getCapabilityById(value) !== null);
@@ -381,6 +362,9 @@ export function checkFinalMatrixDefinitionIntegrity(key, definition = FINAL_MATR
       if (s.expectationAuthority !== 'canonical_support_category_map') problems.push(`slot_${s.slot}_support_authority_must_be_canonical_support_category_map`);
     }
   }
+  // FINDING 1 (four-finding remediation): EXACT-SET + identity check for ALL FOUR matrices against the separately
+  // committed canonical authority table - a same-cardinality substitution (13 stays 13, 9 stays 9) can no longer pass.
+  problems.push(...checkAgainstRequiredSlotAuthority(key, slots));
   return problems;
 }
 
@@ -446,15 +430,12 @@ function checkFinalRowAgainstSlot(row, slot, key) {
   const response = typeof row.response === 'string' ? row.response : '';
   if (slot.requiresDeterministicAnswer && row.answerSource !== 'deterministic') semantic.push(`answer_not_deterministic:${row.answerSource ?? 'missing'}`);
   if (key === 'owner' || key === 'planRole') {
-    if (RESULT_SENTINELS.includes(slot.expectedResult)) {
-      for (const pattern of SENTINEL_RESPONSE_PATTERNS[slot.expectedResult]?.[slot.language] || []) {
-        if (!pattern.test(response)) semantic.push(`live_response_missing_sentinel_evidence:${slot.expectedResult}:${pattern}`);
-      }
-    } else {
-      const capability = getCapabilityById(slot.expectedResult);
-      const label = capability ? (slot.language === 'he' ? capability.heLabel : capability.enLabel) : null;
-      if (!label || !response.includes(label)) semantic.push(`live_response_does_not_name_expected_capability:${slot.expectedResult}`);
-    }
+    // FINDING 3 (four-finding remediation): capability POLARITY, not label presence. The expected truth is derived from
+    // the canonical registry + structured billing/invoicing facts + the persona's SERVER-VERIFIED plan/role; the claims
+    // the live response makes are extracted and compared (a false "X does not exist" that merely contains X's label fails).
+    const sv = row.serverVerified;
+    const truth = deriveExpectedCapabilityTruth({ expectedResult: slot.expectedResult, serverPlan: sv?.serverPlan, serverRole: sv?.serverRole, market: persona?.market });
+    semantic.push(...checkCapabilityPolarity(truth, response, slot.language).map((x) => `polarity:${x}`));
   }
   if (key === 'security') {
     // re-derive the outcome from the LIVE response with the predeclared patterns - the row's own resolvedResult is
@@ -466,18 +447,21 @@ function checkFinalRowAgainstSlot(row, slot, key) {
     if (row.supportCategory !== slot.expectedResult) semantic.push(`support_category_differs_from_expectation_map:${row.supportCategory}!=${slot.expectedResult}`);
     if (!isNonEmptyString(row.immutableTestRowId)) semantic.push('support_row_not_joinable_to_test_chat_logs_row');
   }
-  if (key === 'planRole') {
+  if (key === 'planRole' || key === 'owner') {
     const sv = row.serverVerified;
     if (!sv || typeof sv !== 'object' || !isNonEmptyString(sv.serverPlan) || !isNonEmptyString(sv.serverRole) || !isNonEmptyString(sv.serverMarket)) {
       semantic.push('server_verified_plan_role_market_facts_required');
     } else {
-      const derived = deriveRegistryEntitlement(slot.expectedResult, sv.serverPlan, sv.serverRole);
-      if (!ENTITLEMENT_VALUES.includes(derived)) semantic.push(`registry_entitlement_underivable:${derived}`);
-      if (derived !== slot.fixtureExpectedEntitlement) semantic.push(`fixture_entitlement_disagrees_with_registry_derivation: fixture "${slot.fixtureExpectedEntitlement}", registry+server facts "${derived}"`);
-      if (row.expectedEntitlement !== derived) semantic.push(`row_expected_entitlement_differs_from_registry_derivation: row "${row.expectedEntitlement ?? 'missing'}", derived "${derived}"`);
-      if (row.resolvedEntitlement !== derived) semantic.push(`wrong_entitlement_result: resolver output "${row.resolvedEntitlement ?? 'missing'}", registry+server facts say "${derived}"`);
-      if (row.expectedEntitlementSource !== 'canonical_registry') semantic.push(`entitlement_expectation_source_not_canonical_registry:${row.expectedEntitlementSource ?? 'missing'}`);
+      if (key === 'planRole') {
+        const derived = deriveRegistryEntitlement(slot.expectedResult, sv.serverPlan, sv.serverRole);
+        if (!ENTITLEMENT_VALUES.includes(derived)) semantic.push(`registry_entitlement_underivable:${derived}`);
+        if (derived !== slot.fixtureExpectedEntitlement) semantic.push(`fixture_entitlement_disagrees_with_registry_derivation: fixture "${slot.fixtureExpectedEntitlement}", registry+server facts "${derived}"`);
+        if (row.expectedEntitlement !== derived) semantic.push(`row_expected_entitlement_differs_from_registry_derivation: row "${row.expectedEntitlement ?? 'missing'}", derived "${derived}"`);
+        if (row.resolvedEntitlement !== derived) semantic.push(`wrong_entitlement_result: resolver output "${row.resolvedEntitlement ?? 'missing'}", registry+server facts say "${derived}"`);
+        if (row.expectedEntitlementSource !== 'canonical_registry') semantic.push(`entitlement_expectation_source_not_canonical_registry:${row.expectedEntitlementSource ?? 'missing'}`);
+      }
       if (persona && sv.serverMarket !== persona.market) semantic.push(`server_market_differs_from_persona_declaration:${sv.serverMarket}!=${persona.market}`);
+      if (persona && sv.serverRole !== persona.role) semantic.push(`server_role_differs_from_persona_declaration:${sv.serverRole}!=${persona.role}`);
       if (isNonEmptyString(row.plan) && !row.plan.toLowerCase().startsWith(sv.serverPlan)) semantic.push(`plan_claim_disagrees_with_server_plan:${row.plan}!=${sv.serverPlan}`);
     }
   }
@@ -493,7 +477,11 @@ function checkFinalRowAgainstSlot(row, slot, key) {
  *  - a row whose expectation was authored by the row itself (or differs from the authority) is INVALID.
  * @param {'owner'|'planRole'|'security'|'support'} key
  * @param {object[]} rows
- * @param {{ definition?: { slots: object[] } }} [opts] - test hook only; the real gate always uses FINAL_MATRIX_DEFINITIONS
+ * @param {{ definition?: { slots: object[] }, rawCapture?: object, liveSupportReadback?: Record<string, object> }} [opts]
+ *   definition - test hook only; the real gate always uses FINAL_MATRIX_DEFINITIONS.
+ *   rawCapture - the parsed RAW committed capture, the independent source every row is bound to (MANDATORY for 'support',
+ *     which fails closed without it; verified for the other matrices whenever supplied - the runner always supplies it).
+ *   liveSupportReadback - optional, `{ [matrixSlot]: liveTuple }` from a read-only TEST chat_logs re-read by id.
  */
 export function validateFinalMatrix(key, rows, opts = {}) {
   const definition = opts.definition || FINAL_MATRIX_DEFINITIONS[key];
@@ -515,6 +503,11 @@ export function validateFinalMatrix(key, rows, opts = {}) {
   for (const row of list) if (isNonEmptyString(row?.evidenceId)) idCounts.set(row.evidenceId, (idCounts.get(row.evidenceId) || 0) + 1);
   const duplicateEvidenceIds = [...idCounts.entries()].filter(([, n]) => n > 1).map(([id]) => id);
 
+  const rawCapture = opts.rawCapture ?? null;
+  const rawCaptureProblems = rawCapture ? checkRawCaptureIntegrity(rawCapture) : (key === 'support' ? ['raw_capture_authority_missing'] : []);
+  const uuidCounts = new Map();
+  // reuse is counted only among rows that fill REQUIRED slots - an extra/unknown-slot row can never damage a valid slot
+  if (key === 'support') for (const row of [...bySlot.values()].flat()) if (isNonEmptyString(row?.immutableTestRowId)) uuidCounts.set(row.immutableTestRowId, (uuidCounts.get(row.immutableTestRowId) || 0) + 1);
   const authorityTally = {};
   const slotResults = slots.map((slot) => {
     const found = bySlot.get(slot.slot) || [];
@@ -527,7 +520,11 @@ export function validateFinalMatrix(key, rows, opts = {}) {
     const { expectation, semantic } = checkFinalRowAgainstSlot(row, slot, key);
     const provenance = checkFinalRuntimeProvenance(row);
     const dupId = duplicateEvidenceIds.includes(row.evidenceId) ? ['duplicate_evidence_id'] : [];
-    const violations = [...schemaViolations, ...expectation, ...semantic, ...provenance, ...dupId];
+    const rawBinding = rawCapture ? checkRowAgainstRawCapture(row, slot, key, rawCapture) : (key === 'support' ? ['raw_capture_authority_missing'] : []);
+    const rawIntegrity = rawCaptureProblems.map((x) => `raw_capture:${x}`);
+    const reused = key === 'support' && uuidCounts.get(row.immutableTestRowId) > 1 ? ['support_uuid_reused_across_rows'] : [];
+    const live = key === 'support' && opts.liveSupportReadback ? checkSupportLiveReadback(row, slot, opts.liveSupportReadback[slot.slot]) : [];
+    const violations = [...schemaViolations, ...expectation, ...semantic, ...provenance, ...dupId, ...rawBinding, ...rawIntegrity, ...reused, ...live];
     if (violations.length === 0) authorityTally[slot.expectationAuthority] = (authorityTally[slot.expectationAuthority] || 0) + 1;
     return { slot: slot.slot, evidenceId: row.evidenceId, status: violations.length === 0 ? 'VALID' : 'INVALID', valid: violations.length === 0, violations, authority };
   });
@@ -537,7 +534,7 @@ export function validateFinalMatrix(key, rows, opts = {}) {
   const duplicateSlots = slotResults.filter((r) => r.status === 'DUPLICATE').map((r) => r.slot);
   return {
     matrix: key, name, totalRequired, validCount, slotResults, missingSlots, duplicateSlots, unknownSlots, duplicateEvidenceIds, definitionProblems,
-    authorityTally,
-    passes: definitionProblems.length === 0 && validCount === totalRequired && missingSlots.length === 0 && duplicateSlots.length === 0 && unknownSlots.length === 0 && duplicateEvidenceIds.length === 0,
+    authorityTally, rawBound: !!rawCapture, rawCaptureProblems, liveReadbackChecked: key === 'support' && !!opts.liveSupportReadback,
+    passes: definitionProblems.length === 0 && rawCaptureProblems.length === 0 && validCount === totalRequired && missingSlots.length === 0 && duplicateSlots.length === 0 && unknownSlots.length === 0 && duplicateEvidenceIds.length === 0,
   };
 }

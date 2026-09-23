@@ -66,14 +66,9 @@ export const PERSONA_DECLARATIONS = Object.freeze({
 // (payment / invoicing keep first refusal ahead of the capability router; the PDF-vs-Print comparison answer).
 export const RESULT_SENTINELS = Object.freeze(['payment_truth_sentinel', 'invoicing_truth_sentinel', 'quote_pdf_vs_print_comparison']);
 
-// What the LIVE response text itself must contain for each sentinel outcome - lets the validator check the actual
-// answer independently of any locally-run classifier. (Registry-id outcomes are checked against the registry's own
-// canonical he/en label instead - see validateFinalMatrix.)
-export const SENTINEL_RESPONSE_PATTERNS = Object.freeze({
-  payment_truth_sentinel: { he: [/סליקה או קבלת תשלומים/], en: [/no live checkout or payment/i] },
-  invoicing_truth_sentinel: { he: [/לא מפיקה חשבוניות/], en: [/does not issue invoices/i] },
-  quote_pdf_vs_print_comparison: { he: [/PDF/, /הדפס/], en: [/PDF/, /print/i] },
-});
+// (The live response is judged by capability POLARITY - productTruthCapabilityPolarity.js derives the expected truth for a
+// sentinel/capability from the canonical registry + structured billing/invoicing facts + server-verified plan/role and
+// compares it with the claims the response makes; the earlier label/pattern-presence check was replaced by it.)
 
 // ---------------------------------------------------------------------------------------------------------
 // Static constants the required slot sets are built from.

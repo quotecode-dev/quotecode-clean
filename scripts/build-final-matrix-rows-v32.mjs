@@ -22,7 +22,7 @@ import { FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, SECURITY_EXPECTED_R
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const RAW = process.argv[2] || 'evidence/product-truth/2026-09-23-three-action-delta-v32-raw-matrices.json';
-const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-three-action-delta';
+const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-four-finding-remediation';
 const raw = JSON.parse(readFileSync(RAW, 'utf-8'));
 
 if (raw.functionBefore.version !== raw.functionAfter.version || raw.functionBefore.ezbrSha256 !== raw.functionAfter.ezbrSha256) {
@@ -45,6 +45,11 @@ function entitlementFromState(state) {
   return 'GRANTED';
 }
 const factsByAlias = Object.fromEntries(raw.serverFacts.results.map((r) => [r.alias, r]));
+
+function serverVerifiedFor(alias) {
+  const facts = factsByAlias[alias];
+  return facts ? { http: facts.http, serverPlan: facts.serverPlan, serverRole: facts.serverRole, serverMarket: facts.serverCountry, method: raw.serverFacts.method, capturedAtUtc: raw.serverFacts.capturedAtUtc } : { note: 'no server facts for this persona' };
+}
 
 function baseRow(slot, call, evidenceId, method) {
   return {
@@ -78,6 +83,9 @@ for (const slot of FINAL_MATRIX_DEFINITIONS.owner.slots) {
     ...baseRow(slot, call, `owner-v32-${slot.slot}`, 'live_terminal_http'),
     ...(slot.subtopic ? { matrixSubtopic: slot.subtopic } : {}),
     resolvedResult: resolveRouting(call.prompt),
+    // the persona's server-verified plan/role/market from the SAME capture run - the capability-polarity truth (gated /
+    // entitled / locked) is derived from these, never from the response
+    serverVerified: serverVerifiedFor(call.alias),
   });
 }
 for (const slot of FINAL_MATRIX_DEFINITIONS.planRole.slots) {
@@ -92,7 +100,7 @@ for (const slot of FINAL_MATRIX_DEFINITIONS.planRole.slots) {
     expectedEntitlement: slot.fixtureExpectedEntitlement,
     expectedEntitlementSource: 'canonical_registry',
     resolvedEntitlement: entitlementFromState(state),
-    serverVerified: facts ? { http: facts.http, serverPlan: facts.serverPlan, serverRole: facts.serverRole, serverMarket: facts.serverCountry, method: raw.serverFacts.method, capturedAtUtc: raw.serverFacts.capturedAtUtc } : { note: 'no server facts for this persona' },
+    serverVerified: serverVerifiedFor(call.alias),
   });
 }
 for (const slot of FINAL_MATRIX_DEFINITIONS.security.slots) {
