@@ -1,0 +1,115 @@
+{
+  "accessibility_tools": [
+    "00080402fb51d287"
+  ],
+  "admin_console": [
+    "1404f99ff2d52925",
+    "4a3c47dd193992ed",
+    "4df1a1e50ef2d2fd",
+    "5763f2668d9e42ae",
+    "63e51bc9ff7c4979",
+    "af27b2497c7ed9da",
+    "b114e7d7efd3d2df",
+    "c2dc3a38886b9c2e",
+    "c91a942f67ba7c24",
+    "de793e038c92f3eb"
+  ],
+  "ai_chat": [
+    "356f2143b72dd892",
+    "3fb7d227b8a164ad"
+  ],
+  "attachments": [
+    "1829d60f6cdd3224"
+  ],
+  "business_settings": [
+    "02f057d46e7c6a32"
+  ],
+  "catalog": [
+    "1b083bda54fda193",
+    "34478f56810d1d85",
+    "5c0c04e24c2f7302",
+    "998f37299be6c280",
+    "cf74d339adf8866a"
+  ],
+  "clients": [
+    "40906c782d5c3d78",
+    "89a796f19346c611",
+    "c653f172ccabf5bd",
+    "effc57b52fb7353c",
+    "f5993d622557de5d"
+  ],
+  "dashboard_overview": [
+    "f37a63f45c066dcb"
+  ],
+  "draft_recovery": [
+    "1718c8d4d6616636",
+    "173b4eb17aa66044",
+    "91e0c47a90b88cbd",
+    "eb538f66570dbe79"
+  ],
+  "editor_calculator": [
+    "84182efeb1f09215"
+  ],
+  "expense_csv": [
+    "f00625440502dacf"
+  ],
+  "expenses": [
+    "028173b6a38d3fc3",
+    "0845bdc006546a71",
+    "584a7484e52c9169",
+    "73ab8ed4df070c9c",
+    "86fccf9f7208e885"
+  ],
+  "owner_whatsapp_share": [
+    "3fb02256d68527d4"
+  ],
+  "plan_trial": [
+    "77bad85a9e451186",
+    "fe357dd48bc4f14a"
+  ],
+  "public_call": [
+    "5bfd0f74f6a8de34",
+    "95300cea77b4e767",
+    "c2b0b21d0dcf0abd"
+  ],
+  "public_quote_sign": [
+    "c1ef190ca7caa71f",
+    "eb2571c0ce7e2812"
+  ],
+  "public_quote_view": [
+    "107e4acebb1f861f",
+    "8cf760bdd9367799",
+    "e8da4eced6fd75f0",
+    "ed6e0f2e6583e158",
+    "f039e416423375da",
+    "fe1bf6db31094125"
+  ],
+  "quote_create": [
+    "1b2a45e3c4e1035c",
+    "898155bdcace2ba8"
+  ],
+  "quote_csv": [
+    "f2a82761c15ce1e8"
+  ],
+  "quote_duplicate": [
+    "3fb02256d68527d4"
+  ],
+  "quote_edit": [
+    "254e798edf55c410"
+  ],
+  "quote_email": [
+    "40fd643804d59c9f",
+    "b3b659c96f3d776e"
+  ],
+  "quote_pdf": [
+    "98c44c3f62e1b38c",
+    "aac93f6e45f363ef"
+  ],
+  "quote_print": [
+    "3bb639b98e07310c",
+    "8fbb39651249b397"
+  ],
+  "smart_quote": [
+    "7466bcefcfd1e684"
+  ]
+}

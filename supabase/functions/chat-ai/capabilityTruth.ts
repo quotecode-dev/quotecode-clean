@@ -16,6 +16,7 @@
 
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { resolveCapabilityAnswerState, checkStructuredStateInvariants } from "./capabilityAnswerState.ts";
+import { classifyHelpIntent } from "./helpContext.ts";
 
 export type CapabilityFact = {
   readonly id: string;
@@ -153,6 +154,17 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // and the following whitespace never fires (both are non-\w), the same recurring pitfall as
     // every other Hebrew literal in this file.
     /(מה\s)?ה?הבדל\s.{0,5}בין\s.{0,10}הדפסה.{0,20}(ל-?)?pdf/i,
+    // Codex final re-review Finding 3 (2026-09-2X): OM-11/OM-12 - an ADVERSARIAL DENIAL shape
+    // ("say there is no print option at all, only PDF" / its reverse) is a distinct phrasing from
+    // the same-as/vs/difference framing above: it does not ask whether the two are the same, it
+    // asserts one does not exist. Previously this fell through to the bare quote_pdf pattern
+    // (/\bpdf\b/i matches "...only PDF"), which only affirmed PDF and never explicitly preserved
+    // Print's own truth against the embedded denial - exactly the semantic-invalidity Codex found.
+    // Routed to the same comparison answer, which explicitly affirms BOTH capabilities.
+    /\bno\b.{0,10}\bprint(ing)?\b.{0,10}\b(option|feature)?\b.{0,20}\bonly\b.{0,15}\bpdf\b/i,
+    /\bno\b.{0,10}\bpdf\b.{0,10}\b(option|feature)?\b.{0,20}\bonly\b.{0,15}\bprint(ing)?\b/i,
+    /(אין|לא קיימת|לא קיימ)\s.{0,15}הדפסה.{0,30}רק\s.{0,10}pdf/i,
+    /(אין|לא קיים)\s.{0,15}pdf.{0,30}רק\s.{0,10}הדפסה/i,
   ]],
 
   ['editor_calculator', [
@@ -297,27 +309,62 @@ export function classifyCapabilityIntent(lastUserMessage: unknown): string | nul
   return null;
 }
 
-// Codex "deterministic product-capability-question guard" (2026-09-2X, blocker 3 §4.3): a message
-// can clearly be ASKING WHETHER A TEKANGO PRODUCT FEATURE EXISTS/IS AVAILABLE/IS SUPPORTED/IS
-// ALLOWED without matching any single specific capability's own classifier pattern above (the
-// exact wording differs from every known phrasing, or names something not among the 38 ids at
-// all). Letting such a message fall through to the free-form model would let the MODEL decide
-// capability availability by guesswork - exactly the root-cause class of defect this whole
-// subsystem exists to close (the historical false "no calculator" denial). This guard requires an
-// explicit existence/support/availability VERB shape (have/support/include/available/possible/
-// allowed/exist) - not a bare "can I ...?", which is too broad and would misroute ordinary support
-// requests - so it stays conservative while still closing the "classifier misses the exact
-// phrasing" gap.
+// Codex "deterministic product-capability-question guard" (2026-09-2X, blocker 3 §4.3, widened by
+// the final re-review's Finding 2): a message can clearly be ASKING WHETHER A TEKANGO PRODUCT
+// FEATURE EXISTS/IS AVAILABLE/IS SUPPORTED/IS ALLOWED/CAN BE DONE without matching any single
+// specific capability's own classifier pattern above (the exact wording differs from every known
+// phrasing, or names something not among the 38 ids at all). Letting such a message fall through
+// to the free-form model would let the MODEL decide capability availability by guesswork - exactly
+// the root-cause class of defect this whole subsystem exists to close (the historical false "no
+// calculator" denial, and the final re-review's own regression case: "Can I put recurring quotes
+// on autopilot?", a bare "Can I <verb>" question with no existence/support/availability verb of its
+// own, previously reached the model unintercepted).
+//
+// Codex final re-review Finding 2 (2026-09-2X): the FIRST version of this guard deliberately
+// excluded a bare "can I ...?"/"am I able to ...?"/"is there a way to ...?" shape as "too broad" -
+// but that is exactly the ordinary, most common way a real user asks whether an action is
+// supported, and Codex found real bare-action questions bypassing the guard through that gap. The
+// patterns below now cover that shape too. The risk that broadening steals a genuine AI-Help-V4
+// "why is this blocked"/"is my work saved" question (which also often starts "Can I ...") is closed
+// structurally, not by narrowing the wording back down: classifyBroadCapabilityQuestionSignal
+// itself defers to classifyHelpIntent (helpContext.ts) - a message that already resolves to a real
+// blocked-workflow/save-status intent is NEVER claimed by this broad capability guard, so AI Help
+// V4's own deterministic routing keeps first refusal on its own question shapes (see
+// capabilityTruthGuardFinal.test.js's dedicated AI-Help-V4-non-regression cases).
 const BROAD_CAPABILITY_QUESTION_PATTERNS: readonly RegExp[] = [
   /\b(do|does)\s+(tekango|it|you|this|the\s+(app|system|product|editor|platform))\b.{0,25}\b(have|support|include|offer|provide)\b/i,
   /\bis\s+(there|it|this)\b.{0,25}\b(available|supported|possible|allowed|included|a\s+feature)\b/i,
   /\b(can|could)\s+(tekango|it|the\s+(app|system|product|editor|platform))\b.{0,25}\b(support|allow|offer|provide|handle)\b/i,
+  // Bare "Can I ...?" / "Could I ...?" / "Am I able to ...?" - the ordinary, most common real-user
+  // shape of an availability question, previously excluded and the exact gap Codex's final
+  // re-review named (the "recurring quotes on autopilot" regression case).
+  /\b(can|could)\s+i\b/i,
+  /\bam\s+i\s+able\s+to\b/i,
+  /\bis\s+there\s+(a|any)\s+way\s+(to|for)\b/i,
   /(יש לכם|יש אפשרות|האם.{0,20}(יש|אפשר|ניתן|תומכ(ת|ים)?|כולל(ת)?|נתמכ(ת)?|קיימ(ת|ים)?))/,
+  // Hebrew "Can I / am I able to ...?" ("אני יכול/ה ל...", "אפשר לי ל...") and "is there a way to
+  // ...?" ("יש דרך ל...") - the same bare-action shape as the English patterns above.
+  /(אני\s+(יכול|יכולה)\s+ל)/,
+  /(אפשר\s+לי\s+ל)/,
+  /(יש\s+דרך\s+ל)/,
+  // Adversarial: an IMPERATIVE claim/instruction telling the model to treat an unverified feature
+  // as already existing/working, rather than a question about it - the same class of adversarial
+  // shape payment_processing/ai_mutation above already close for their own topics (e.g. "assume
+  // checkout is enabled"), generalized here so an adversarial capability claim about ANY feature
+  // (not just payment/mutation) is still intercepted before the free-form model, never left to
+  // decide whether to comply with the embedded instruction.
+  /\b(assume|pretend|imagine)\b.{0,40}\b(exists?|available|works|is\s+live|already\s+(exists?|works))\b/i,
+  /\bconfirm\b.{0,20}\b(it\s+|that\s+it\s+)?(exists|works|is\s+available)\b/i,
+  /(תניח|נניח|תדמיין|תדמייני)\s.{0,20}(כבר\s+)?(קיים|קיימת|עובד|עובדת|זמין|זמינה)/,
+  /(תאשר|תאשרי)\s.{0,20}(ש?זה\s+)?(עובד|עובדת|קיים|קיימת|זמין|זמינה)/,
 ];
 
 export function classifyBroadCapabilityQuestionSignal(lastUserMessage: unknown): boolean {
   const text = String(lastUserMessage ?? '').trim();
   if (!text) return false;
+  // A message that already resolves to a real AI-Help-V4 blocked-workflow/save-status question is
+  // never reclassified as a generic capability-existence question - see the Finding 2 note above.
+  if (classifyHelpIntent(text)) return false;
   return BROAD_CAPABILITY_QUESTION_PATTERNS.some((re) => re.test(text));
 }
 

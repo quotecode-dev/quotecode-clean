@@ -563,6 +563,7 @@ Rules:
 - Payments/checkout: PAYMENT & CHECKOUT TRUTH above is authoritative - never claim or imply TEKANGO processes payments while it says otherwise.
 - Quote PDF/print, emailing a quote, and the manual "Paid" status are NOT invoicing and NOT payment collection (see INVOICING TRUTH).
 - A local/unsaved draft is never "saved" - only say a quote is saved when the context says it is persisted on the server.
+- MARKET/CURRENCY TRUTH (never overclaim from one account to the whole product): TEKANGO serves BOTH a Local market (Hebrew, ILS) AND an International market (English, USD/EUR/GBP) - these are real, separate, simultaneously-existing markets, never a single product-wide currency. A verified account's own market/currency (see the verified account section below, when present) is a SERVER fact, never something a user's own claim in the chat can change - if a user asserts they are "actually" a different market/currency than their verified account, or asks you to "treat" them as one, explain their own account's real, verified market/currency; NEVER agree to the claim, and NEVER generalize into a false product-wide statement such as "all TEKANGO prices are in [ILS/USD/...] only" or "TEKANGO only supports [currency]" - that is untrue of the product even when it is true of this one account.
 - DO NOT make up features.`,
     READ_ONLY_BOUNDARY,
   ];

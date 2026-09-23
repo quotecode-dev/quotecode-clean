@@ -336,6 +336,64 @@ function computeSignature(relFile, kind, tagName, attrNames, handlerName, line, 
   return createHash('sha1').update(raw).digest('hex').slice(0, 16);
 }
 
+// REPLACEMENT-CONTROL DEFENSE (Codex final re-review Blocker 1, 2026-09-2X): `signature` above
+// includes line:column, so it changes on every harmless reformat/reposition - useful for
+// same-run diagnostics, but useless as a PERSISTED identity to compare a control against its own
+// past self. `computeIdentityKey` is the structural subset only (file, enclosing component,
+// control kind, tag name, attribute-name set, resolved handler name) - stable across a pure
+// reposition, but it changes the instant the control itself changes shape: a different tag/kind
+// (button -> Link), a different event-handler binding, or a different enclosing
+// component/render-boundary. This is the identity persisted in productTruthControlBaseline.json
+// and compared every run by checkControlIdentityBaseline, so a marker that is still mechanically
+// "nearest" to a REPLACED control can no longer silently inherit onto it - see
+// productTruthControlScanner.test.js's "REPLACEMENT CONTROL DEFENSE" suite for the required
+// mutation proofs.
+export function computeIdentityKey(control) {
+  const raw = `${control.file}|${control.enclosingComponent}|${control.kind}|${control.tagName}|${(control.attrNames || []).join(',')}|${control.handlerName || 'inline'}`;
+  return createHash('sha1').update(raw).digest('hex').slice(0, 16);
+}
+
+/**
+ * Fails CLOSED: a capability id whose currently-resolved control(s) do not match the identity
+ * key(s) recorded in the committed baseline for that id is a failure, whether the id is brand new
+ * (never baselined - must be explicitly added) or the control behind it changed shape (stale
+ * marker inherited by a replaced control - must be explicitly remapped). A legitimate control
+ * REMOVED entirely (no longer discovered at all) is not itself flagged here - that direction is
+ * covered by the control-resolution/interactive-completeness gates, which fail on the now-missing
+ * capability elsewhere in the registry/coverage chain; this gate's job is narrowly the
+ * replacement-inherits-stale-marker class.
+ * @param {Array<object>} controls - output of scanControlsInFile(s)().controls
+ * @param {Record<string, string[]>} baseline - capabilityId -> array of recorded identity keys
+ * @returns {Array<{capabilityId: string, reason: string, identityKey: string, file: string, line: number|null}>}
+ */
+export function checkControlIdentityBaseline(controls, baseline) {
+  const failures = [];
+  const currentByCapability = new Map();
+  for (const c of controls) {
+    if (c.resolution.status !== 'resolved' || c.resolution.type !== 'capability') continue;
+    const id = c.resolution.id;
+    const key = computeIdentityKey(c);
+    if (!currentByCapability.has(id)) currentByCapability.set(id, new Map());
+    if (!currentByCapability.get(id).has(key)) currentByCapability.get(id).set(key, c);
+  }
+  for (const [id, keyMap] of currentByCapability) {
+    const baselineKeys = new Set(baseline[id] || []);
+    const hasBaselineEntry = Object.prototype.hasOwnProperty.call(baseline, id);
+    for (const [key, control] of keyMap) {
+      if (!baselineKeys.has(key)) {
+        failures.push({
+          capabilityId: id,
+          reason: hasBaselineEntry ? 'stale_marker_on_changed_control' : 'unbaselined_capability_control',
+          identityKey: key,
+          file: control.file,
+          line: control.line,
+        });
+      }
+    }
+  }
+  return failures;
+}
+
 /**
  * Scans one file's real source for interactive controls and their marker resolution.
  * @param {string} relFile - path relative to repo root, used only for reporting/signature input
@@ -405,6 +463,7 @@ export function scanControlsInFile(relFile, source) {
         endLine: loc?.end.line ?? null,
         kind: info.kind,
         tagName: info.tagName,
+        attrNames: info.attrNames,
         handlerName: handlerName || null,
         signature: computeSignature(relFile, info.kind, info.tagName, info.attrNames, handlerName, loc?.start.line, loc?.start.column),
         resolution,

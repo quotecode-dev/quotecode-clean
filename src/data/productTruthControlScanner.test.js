@@ -6,8 +6,15 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { scanControlsInFile, scanControlsInFiles, controlScopeFiles } from './productTruthControlScanner.js';
+import {
+  scanControlsInFile,
+  scanControlsInFiles,
+  controlScopeFiles,
+  computeIdentityKey,
+  checkControlIdentityBaseline,
+} from './productTruthControlScanner.js';
 import { listScannableFiles } from './productTruthCapabilityScanner.js';
+import controlBaseline from './productTruthControlBaseline.json';
 
 const FILE = 'src/components/SyntheticFixture.jsx';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +32,33 @@ describe('CONTROL-LEVEL SOURCE COVERAGE — real data (the actual Blocker 1 guar
     const ambiguous = controls.filter((c) => c.resolution.status === 'ambiguous');
     expect(unresolved, `unresolved controls:\n${JSON.stringify(unresolved.map((c) => ({ file: c.file, line: c.line, kind: c.kind, tagName: c.tagName })), null, 2)}`).toEqual([]);
     expect(ambiguous, `ambiguous controls:\n${JSON.stringify(ambiguous.map((c) => ({ file: c.file, line: c.line, reason: c.resolution.reason })), null, 2)}`).toEqual([]);
+  });
+});
+
+describe('REPLACEMENT CONTROL DEFENSE — real data (Codex final re-review Blocker 1: a changed control must not inherit a stale marker)', () => {
+  it('every capability id\'s currently-resolved control(s) match an identity explicitly recorded in the committed baseline - no replaced/new control inherits a mapping it was never reviewed against', () => {
+    const allFiles = listScannableFiles(ROOT, ['src', 'supabase/functions']);
+    const inScope = controlScopeFiles(allFiles);
+    const { controls } = scanControlsInFiles(ROOT, inScope, (rel) => readFileSync(join(ROOT, rel), 'utf-8'));
+    const failures = checkControlIdentityBaseline(controls, controlBaseline);
+    expect(failures, `replacement-control identity failures (run the generator to review/remap if these are legitimate):\n${JSON.stringify(failures, null, 2)}`).toEqual([]);
+  });
+
+  it('the baseline generator is idempotent: regenerating from real source produces byte-identical identity keys to the committed file', () => {
+    const allFiles = listScannableFiles(ROOT, ['src', 'supabase/functions']);
+    const inScope = controlScopeFiles(allFiles);
+    const { controls } = scanControlsInFiles(ROOT, inScope, (rel) => readFileSync(join(ROOT, rel), 'utf-8'));
+    const byCapability = new Map();
+    for (const c of controls) {
+      if (c.resolution.status !== 'resolved' || c.resolution.type !== 'capability') continue;
+      const id = c.resolution.id;
+      if (!byCapability.has(id)) byCapability.set(id, new Set());
+      byCapability.get(id).add(computeIdentityKey(c));
+    }
+    for (const [id, keys] of byCapability) {
+      expect(controlBaseline[id], `capability "${id}" is missing from the committed control baseline`).toBeTruthy();
+      expect(new Set(controlBaseline[id])).toEqual(keys);
+    }
   });
 });
 
@@ -90,10 +124,168 @@ describe('CONTROL-LEVEL SOURCE COVERAGE — §3.7 required mutation tests', () =
     expect(beforeControls[0].kind).toBe('button');
     expect(afterControls[0].kind).toBe('router_link');
     expect(afterControls[0].signature).not.toBe(beforeControls[0].signature);
-    // The stale marker is positionally still attached (JSX-sibling attachment is mechanical, not
-    // identity-aware) - real closure of this class relies on registry/canonicalSources review
-    // catching a capability id now pointing at a structurally different control; the scanner's own
-    // job, proven here, is that the signature change is real and observable, not hidden by count.
+    // The stale marker is STILL positionally attached (JSX-sibling attachment is mechanical, not
+    // identity-aware) - `after`'s <Link> still resolves to `clients` by pure scanner resolution.
+    expect(afterControls[0].resolution).toEqual({ status: 'resolved', type: 'capability', id: 'clients' });
+    // The scanner's resolution alone is NOT the gate: checkControlIdentityBaseline is. A baseline
+    // that only ever recorded the OLD (button) identity must FAIL CLOSED on the new (Link) one -
+    // the stale marker's mechanical resolution does not, by itself, satisfy the real gate.
+    const baseline = { clients: [computeIdentityKey(beforeControls[0])] };
+    const failures = checkControlIdentityBaseline(afterControls, baseline);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ capabilityId: 'clients', reason: 'stale_marker_on_changed_control' });
+    // Explicit remap (Owner/reviewer regenerates the baseline to accept the Link as clients' new
+    // control) makes the identical scan pass - the gate is data-driven, not a permanent lockout.
+    const remapped = { clients: [computeIdentityKey(afterControls[0])] };
+    expect(checkControlIdentityBaseline(afterControls, remapped)).toEqual([]);
+  });
+
+  it('element kind change alone (button -> role="button" div), same handler, same marker: still a changed control, still fails until remapped', () => {
+    const before = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
+            <button onClick={openCatalog}>Catalog</button>
+          </div>
+        );
+      }
+    `).controls;
+    const after = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
+            <div role="button" onClick={openCatalog}>Catalog</div>
+          </div>
+        );
+      }
+    `).controls;
+    expect(before[0].kind).toBe('button');
+    expect(after[0].kind).toBe('role_button');
+    const baseline = { catalog: [computeIdentityKey(before[0])] };
+    const failures = checkControlIdentityBaseline(after, baseline);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('stale_marker_on_changed_control');
+  });
+
+  it('event-handler change alone (same tag/kind, different resolved handler name), same marker: fails until remapped', () => {
+    const before = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
+            <button onClick={openExpenses}>Expenses</button>
+          </div>
+        );
+      }
+    `).controls;
+    const after = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
+            <button onClick={openExpensesV2}>Expenses</button>
+          </div>
+        );
+      }
+    `).controls;
+    expect(before[0].handlerName).toBe('openExpenses');
+    expect(after[0].handlerName).toBe('openExpensesV2');
+    const baseline = { expenses: [computeIdentityKey(before[0])] };
+    const failures = checkControlIdentityBaseline(after, baseline);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('stale_marker_on_changed_control');
+  });
+
+  it('enclosing component / control-shape change (same tag, kind, handler name, but a different render boundary), same marker: fails until remapped', () => {
+    const before = scanControlsInFile(FILE, `
+      function QuotesTab() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_edit */}
+            <button onClick={editQuote}>Edit</button>
+          </div>
+        );
+      }
+    `).controls;
+    const after = scanControlsInFile(FILE, `
+      function QuotesTabRewrite() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_edit */}
+            <button onClick={editQuote}>Edit</button>
+          </div>
+        );
+      }
+    `).controls;
+    expect(before[0].enclosingComponent).toBe('QuotesTab');
+    expect(after[0].enclosingComponent).toBe('QuotesTabRewrite');
+    const baseline = { quote_edit: [computeIdentityKey(before[0])] };
+    const failures = checkControlIdentityBaseline(after, baseline);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('stale_marker_on_changed_control');
+  });
+
+  it('neighboring marker must not satisfy replacement: a control that newly resolves to an id via a DIFFERENT nearby marker still fails unless ITS OWN identity is baselined for that id', () => {
+    const original = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: attachments */}
+            <button onClick={uploadFile}>Upload</button>
+          </div>
+        );
+      }
+    `).controls;
+    // A structurally different control (different handler => different identity) that a marker
+    // now mechanically resolves onto - simulating a neighboring/relocated marker attaching to the
+    // wrong, unbaselined control.
+    const replaced = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: attachments */}
+            <button onClick={pickFileV2}>Upload</button>
+          </div>
+        );
+      }
+    `).controls;
+    const baseline = { attachments: [computeIdentityKey(original[0])] };
+    const failures = checkControlIdentityBaseline(replaced, baseline);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toBe('stale_marker_on_changed_control');
+  });
+
+  it('unbaselined capability control: a brand-new capability id with no baseline entry at all fails until explicitly added (never a silent free pass for "never reviewed")', () => {
+    const controls = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: brand_new_capability */}
+            <button onClick={doNewThing}>New</button>
+          </div>
+        );
+      }
+    `).controls;
+    const failures = checkControlIdentityBaseline(controls, {});
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ capabilityId: 'brand_new_capability', reason: 'unbaselined_capability_control' });
+  });
+
+  it('unchanged control against its own baselined identity: passes with zero failures (a control that has not changed is never flagged)', () => {
+    const controls = scanControlsInFile(FILE, `
+      function Foo() {
+        return (
+          <div>
+            {/* PRODUCT_TRUTH_CAPABILITY: clients */}
+            <button onClick={openClients}>Clients</button>
+          </div>
+        );
+      }
+    `).controls;
+    const baseline = { clients: [computeIdentityKey(controls[0])] };
+    expect(checkControlIdentityBaseline(controls, baseline)).toEqual([]);
   });
 
   it('free-floating decorative exemption: a decorative marker belonging to an EARLIER, unrelated sibling block does not leak forward to a later, real control in the same children array', () => {
