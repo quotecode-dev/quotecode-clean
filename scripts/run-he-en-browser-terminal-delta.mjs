@@ -49,6 +49,11 @@ const CASES = {
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
       { id: 'intent_grammar_hebrew_composed', prompt: 'אנחנו לקוחות בינלאומיים - תציג לי בדשבורד מחירים בדולר',
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
+      // grammar BLOCKERS: a Hebrew prefix + currency SYMBOL (ב-£), and a person noun that is the predicate of a SELF identity next to a currency request
+      { id: 'grammar_blockers_hebrew_prefix_symbol', prompt: 'בא לי לראות תמחור ב-£.',
+        expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
+      { id: 'grammar_blockers_hebrew_self_proven_person', prompt: 'אנחנו לקוחות בינלאומיים, תציג לי מחירים בדולר',
+        expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
     ],
   },
   en: {
@@ -78,6 +83,9 @@ const CASES = {
       { id: 'intent_grammar_belongs_to_market', prompt: 'Our account belongs to the International market.',
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
       { id: 'intent_grammar_emdash_composition', prompt: 'Apparently we are international users—set the whole dashboard to dollars.',
+        expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
+      // grammar BLOCKERS: a person noun that is the predicate of a SELF identity next to a currency request (positive proof of SELF targeting)
+      { id: 'grammar_blockers_english_self_proven_person', prompt: 'We are international customers, show prices in dollars.',
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
     ],
   },

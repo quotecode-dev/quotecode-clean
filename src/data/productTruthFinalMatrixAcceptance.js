@@ -22,13 +22,15 @@ import { PLAN_ROLE_EXPECTED_FIXTURE } from './productTruthPlanRoleExpectedFixtur
 // ---------------------------------------------------------------------------------------------------------
 // RUNTIME IDENTITY LABELS (kept strictly separate - never interchangeable):
 //   RUNTIME IMPLEMENTATION SHA  = the commit whose chat-ai runtime code the CURRENT TEST chat-ai version was deployed from.
-//                                 (intent grammar normalization closure: chat-ai v37 was deployed from 958b3a1; routing micro-closure: v36 from a2c9146; routing closure: v35 from b4edd6d; structured-truth closure: v34 from e674be2, v33 from 78bc1e7, v32 from 08c012b.)
+//                                 (grammar blockers closure: chat-ai v38 was deployed from 39e7af3; intent grammar closure: v37 from 958b3a1; routing micro-closure: v36 from a2c9146; routing closure: v35 from b4edd6d; structured-truth closure: v34 from e674be2, v33 from 78bc1e7, v32 from 08c012b.)
 //   PRODUCT TRUTH EVIDENCE HEAD = a later commit that only added tests/evidence/docs - it is NOT the runtime implementation SHA.
-export const RUNTIME_IMPLEMENTATION_SHA = '958b3a1945b274bf00f282efee3d386b3d397274';
-export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v37';
-// server-side `updated_at` of TEST chat-ai v37 (epoch 1790203004103), read back from the Supabase Management API.
-// A row labelled v37 cannot have been captured before v37 existed.
-export const RUNTIME_DEPLOYED_UPDATED_AT_UTC = '2026-09-23T22:36:44.103Z';
+export const RUNTIME_IMPLEMENTATION_SHA = '39e7af3a749a6f60e2db8422f53a814a609046d2';
+export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v38';
+// server-side `updated_at` of TEST chat-ai v38, read back from the Supabase Management API.
+// A row labelled v38 cannot have been captured before v38 existed.
+export const RUNTIME_DEPLOYED_UPDATED_AT_UTC = '2026-09-23T23:21:13.000Z';
+// historical: v37 (intent grammar; superseded by v38 - third-party person nouns passed the currency guard as bare compounds; a Hebrew prefix before a currency symbol was not normalized).
+export const RUNTIME_V37_UPDATED_AT_UTC = '2026-09-23T22:36:44.103Z';
 // historical: v36 (micro-closure; superseded by v37 - a regex-union classifier: 14 free-form leaks in 6 grammar classes found by Codex).
 export const RUNTIME_V36_UPDATED_AT_UTC = '2026-09-23T21:24:00.649Z';
 // historical: v35 (routing closure; superseded by v36 - Hebrew attached-prefix nouns and English plural identity nouns still fell through to free-form prose).
@@ -45,6 +47,7 @@ export const TEST_PROJECT_REF = 'ljfizgrdyzxddswcedwr';
 // Product Truth line. A row pairing a version with any OTHER sha (e.g. a v31 call labelled with the v32 SHA) is a
 // provenance forgery and is rejected - historical rows keep their REAL historical pair, they are never relabelled.
 export const KNOWN_RUNTIME_PROVENANCE = Object.freeze({
+  'chat-ai-v38': '39e7af3a749a6f60e2db8422f53a814a609046d2',
   'chat-ai-v37': '958b3a1945b274bf00f282efee3d386b3d397274',
   'chat-ai-v36': 'a2c9146451065230698bf8fcd9ea2fea4b21eba3',
   'chat-ai-v35': 'b4edd6d27ba949c3b9558d15a60972a9539cec0d',

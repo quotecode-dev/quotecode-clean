@@ -1,0 +1,17 @@
+{
+  "readAtUtc": "2026-09-23T23:21:32.608Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 38,
+  "updatedAtEpochMs": 1790205673000,
+  "updatedAtUtc": "2026-09-23T23:21:13.000Z",
+  "ezbrSha256": "c90e9caf00e49ce48a3c95675d054d261d51705abd9fcd128ef7fd0fffaf29e8",
+  "status": "ACTIVE",
+  "priorVersion": 37,
+  "priorVersionNote": "v37 (2026-09-23T22:36:44.103Z, from 958b3a1) - third-party person nouns passed the currency guard as bare compounds / possessives / Hebrew construct forms (6/64 negatives over-routed); a Hebrew prefix before a currency symbol was not normalized",
+  "implementationSourceSha": "39e7af3a749a6f60e2db8422f53a814a609046d2",
+  "deployInputFileCount": 45,
+  "deployInputManifestSha256": "0f76fd337d835282273df4267e06b63d5440fd810b141eb353289a0cda292b23"
+}

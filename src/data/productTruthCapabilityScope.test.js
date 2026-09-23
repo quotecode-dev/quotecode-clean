@@ -177,8 +177,8 @@ describe('FINDING 3 scope - claim objects keep TEKANGO and external scopes separ
 // ---------------------------------------------------------------------------------------------------------------------
 // FULL GATE: the REAL committed Owner rows (48) + raw capture, with each scoped contradiction injected into the calculator cell.
 // The response is forged CONSISTENTLY in the row and in the raw capture, so raw-binding cannot help: polarity must reject on its own.
-const P = 'evidence/product-truth/2026-09-24-intent-grammar';
-const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-intent-grammar-v37-raw-matrices.json', 'utf-8'));
+const P = 'evidence/product-truth/2026-09-24-grammar-blockers';
+const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-grammar-blockers-v38-raw-matrices.json', 'utf-8'));
 const OWNER = JSON.parse(readFileSync(`${P}-owner-matrix-final-rows.json`, 'utf-8')).rows;
 const clone = (x) => JSON.parse(JSON.stringify(x));
 function ownerGateWith(slot, response) {
