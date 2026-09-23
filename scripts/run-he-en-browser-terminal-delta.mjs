@@ -58,7 +58,9 @@ async function readAnswer(page, prompt) {
     await page.waitForTimeout(600);
     const text = await dialog.innerText();
     const idx = text.lastIndexOf(prompt);
-    const after = idx >= 0 ? text.slice(idx + prompt.length).trim() : '';
+    let after = idx >= 0 ? text.slice(idx + prompt.length).trim() : '';
+    // the widget shows a typing indicator while a model answer is still being produced - that is UI chrome, not the answer
+    if (/מקליד תשובה|^\s*(?:\d{1,2}:\d{2}\s+)?(?:typing|is typing)/i.test(after) && after.length < 60) after = '';
     if (after && after === last) { if (Date.now() - stableSince > 2500) return after; } else { last = after; stableSince = Date.now(); }
   }
   throw new Error('no stable rendered answer within 45s for: ' + prompt);
