@@ -21,8 +21,9 @@ import { AI_FACTS } from '../supabase/functions/chat-ai/aiFacts.generated.ts';
 import { FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT } from '../src/data/productTruthFinalMatrixAcceptance.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const RAW = process.argv[2] || 'evidence/product-truth/2026-09-23-three-action-delta-v32-raw-matrices.json';
-const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-four-finding-remediation';
+// version-agnostic (the name is historical): the deployed version / SHA come from the raw capture's own function bracket.
+const RAW = process.argv[2] || 'evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json';
+const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-structured-truth';
 const raw = JSON.parse(readFileSync(RAW, 'utf-8'));
 
 if (raw.functionBefore.version !== raw.functionAfter.version || raw.functionBefore.ezbrSha256 !== raw.functionAfter.ezbrSha256) {
@@ -64,6 +65,10 @@ function baseRow(slot, call, evidenceId, method) {
     prompt: call.prompt,
     response: call.response,
     answerSource: call.answerSource,
+    // STRUCTURED TRUTH: a projection of the raw capture's payload (the validator requires it to equal the raw capture's, field for field)
+    factPayload: call.factPayload ?? null,
+    // the persona's server-verified plan / role / market from the SAME capture run - the structured expectation is derived from these
+    serverVerified: serverVerifiedFor(call.alias),
     supportCategory: classifySupportMessage(call.prompt),
     expectedResult: slot.expectedResult,
     expectationSource: slot.expectationAuthority,
@@ -83,9 +88,6 @@ for (const slot of FINAL_MATRIX_DEFINITIONS.owner.slots) {
     ...baseRow(slot, call, `owner-v32-${slot.slot}`, 'live_terminal_http'),
     ...(slot.subtopic ? { matrixSubtopic: slot.subtopic } : {}),
     resolvedResult: resolveRouting(call.prompt),
-    // the persona's server-verified plan/role/market from the SAME capture run - the capability-polarity truth (gated /
-    // entitled / locked) is derived from these, never from the response
-    serverVerified: serverVerifiedFor(call.alias),
   });
 }
 for (const slot of FINAL_MATRIX_DEFINITIONS.planRole.slots) {
@@ -100,7 +102,6 @@ for (const slot of FINAL_MATRIX_DEFINITIONS.planRole.slots) {
     expectedEntitlement: slot.fixtureExpectedEntitlement,
     expectedEntitlementSource: 'canonical_registry',
     resolvedEntitlement: entitlementFromState(state),
-    serverVerified: serverVerifiedFor(call.alias),
   });
 }
 for (const slot of FINAL_MATRIX_DEFINITIONS.security.slots) {

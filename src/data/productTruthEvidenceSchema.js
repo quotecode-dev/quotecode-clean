@@ -21,12 +21,13 @@
 // an extra row can never add a requirement, and a row can never author its own expectation.
 import { getCapabilityById } from './productTruthRegistry.js';
 import { checkAgainstRequiredSlotAuthority } from './productTruthRequiredSlotAuthority.js';
-import { checkCapabilityPolarity, deriveExpectedCapabilityTruth, deriveRegistryEntitlement } from './productTruthCapabilityPolarity.js';
+import { deriveRegistryEntitlement } from './productTruthCapabilityPolarity.js';
+import { checkFactPayloadAgainstCanonical, checkProseAgainstPayload, deriveExpectedFactPayload, isKnownOutcome } from './productTruthFactPayload.js';
 import { checkRawCaptureIntegrity, checkRowAgainstRawCapture, checkSupportLiveReadback } from './productTruthRawCaptureBinding.js';
 import {
   EXPECTED_MATRIX_SIZES, EXPECTATION_AUTHORITIES, FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, MATRIX_LANGUAGES, OWNER_AREAS,
-  OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PERSONA_DECLARATIONS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_V32_UPDATED_AT_UTC,
-  SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
+  OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PERSONA_DECLARATIONS, RESULT_SENTINELS, RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_DEPLOYED_VERSION,
+  SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT, structuredOutcomeOf, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
 } from './productTruthFinalMatrixAcceptance.js';
 
 export const REQUIRED_EVIDENCE_ROW_FIELDS = [
@@ -60,6 +61,8 @@ export const OPTIONAL_EVIDENCE_ROW_FIELDS = [
   // subtopic it exercised, whether the live answer was deterministic, and which authority its entitlement
   // expectation came from. All are only CLAIMS - validateFinalMatrix checks them against the static definitions.
   'matrixSlot', 'matrixSubtopic', 'answerSource', 'expectedEntitlementSource',
+  // structured-truth closure: the `factPayload` the live chat-ai response carried (the runtime's structured Product Truth).
+  'factPayload',
 ];
 
 // Codex final independent review (2026-09-2X): "some expectations were derived from the same
@@ -324,6 +327,7 @@ export function checkFinalMatrixDefinitionIntegrity(key, definition = FINAL_MATR
     if (!persona) problems.push(`slot_${s?.slot}_unknown_persona`);
     // market isolation: Hebrew cells are Local personas, English cells International personas - never mixed.
     else if ((s.language === 'he') !== (persona.market === 'Local')) problems.push(`slot_${s.slot}_language_market_mismatch`);
+    if (!isKnownOutcome(structuredOutcomeOf(key, s))) problems.push(`slot_${s?.slot}_structured_outcome_unknown:${structuredOutcomeOf(key, s) ?? 'missing'}`);
     if (!ALLOWED_EXPECTATION_SOURCES.includes(s?.expectationAuthority) || !(s?.expectationAuthority in EXPECTATION_AUTHORITIES)) {
       problems.push(`slot_${s?.slot}_unsupported_expectation_authority:${s?.expectationAuthority}`);
     }
@@ -387,8 +391,8 @@ export function checkFinalRuntimeProvenance(row) {
   }
   if (row.deployedFunctionVersion !== RUNTIME_DEPLOYED_VERSION) v.push(`stale_runtime_version_not_acceptable_for_final_gate: ${row.deployedFunctionVersion ?? 'missing'} (required ${RUNTIME_DEPLOYED_VERSION})`);
   if (row.historicalVersion) v.push('historical_row_not_acceptable_for_final_gate');
-  if (isNonEmptyString(row.timestampUtc) && UTC_TIMESTAMP_RE.test(row.timestampUtc) && Date.parse(row.timestampUtc) < Date.parse(RUNTIME_V32_UPDATED_AT_UTC)) {
-    v.push(`captured_before_${RUNTIME_DEPLOYED_VERSION}_existed: ${row.timestampUtc} < ${RUNTIME_V32_UPDATED_AT_UTC}`);
+  if (isNonEmptyString(row.timestampUtc) && UTC_TIMESTAMP_RE.test(row.timestampUtc) && Date.parse(row.timestampUtc) < Date.parse(RUNTIME_DEPLOYED_UPDATED_AT_UTC)) {
+    v.push(`captured_before_${RUNTIME_DEPLOYED_VERSION}_existed: ${row.timestampUtc} < ${RUNTIME_DEPLOYED_UPDATED_AT_UTC}`);
   }
   if (row.testProjectRef !== TEST_PROJECT_REF) v.push(`wrong_test_project_ref:${row.testProjectRef ?? 'missing'}`);
   return v;
@@ -429,13 +433,21 @@ function checkFinalRowAgainstSlot(row, slot, key) {
   }));
   const response = typeof row.response === 'string' ? row.response : '';
   if (slot.requiresDeterministicAnswer && row.answerSource !== 'deterministic') semantic.push(`answer_not_deterministic:${row.answerSource ?? 'missing'}`);
-  if (key === 'owner' || key === 'planRole') {
-    // FINDING 3 (four-finding remediation): capability POLARITY, not label presence. The expected truth is derived from
-    // the canonical registry + structured billing/invoicing facts + the persona's SERVER-VERIFIED plan/role; the claims
-    // the live response makes are extracted and compared (a false "X does not exist" that merely contains X's label fails).
-    const sv = row.serverVerified;
-    const truth = deriveExpectedCapabilityTruth({ expectedResult: slot.expectedResult, serverPlan: sv?.serverPlan, serverRole: sv?.serverRole, market: persona?.market });
-    semantic.push(...checkCapabilityPolarity(truth, response, slot.language).map((x) => `polarity:${x}`));
+  // STRUCTURED TRUTH CONTRACT (Product Truth closure). The PRIMARY authority is the structured `factPayload` the live runtime
+  // returned: it must be well-formed, must EQUAL the payload the canonical authorities (registry + AI_FACTS billing/invoicing +
+  // the persona's SERVER-VERIFIED plan/role/market) independently derive for this slot, and a free-form answer must carry none.
+  // Only when that holds is the PROSE checked - as a SECONDARY consistency check that it does not contradict the payload
+  // (productTruthCapabilityPolarity.js / productTruthScopeClaims.js are defence in depth, no longer the authority): a missing or
+  // wrong payload fails the cell whatever the prose says, and the prose can never rescue it.
+  {
+    const outcome = structuredOutcomeOf(key, slot);
+    const structured = checkFactPayloadAgainstCanonical(row.factPayload, outcome, row.serverVerified);
+    semantic.push(...structured);
+    const expectedPayload = deriveExpectedFactPayload({ outcome, serverVerified: row.serverVerified });
+    if (expectedPayload && !('problem' in expectedPayload)) {
+      if (row.answerSource !== 'deterministic') semantic.push(`structured:answer_not_deterministic_but_a_structured_truth_is_required:${row.answerSource ?? 'missing'}`);
+      if (structured.length === 0) semantic.push(...checkProseAgainstPayload(row.factPayload, response, slot.language));
+    }
   }
   if (key === 'security') {
     // re-derive the outcome from the LIVE response with the predeclared patterns - the row's own resolvedResult is
@@ -447,7 +459,7 @@ function checkFinalRowAgainstSlot(row, slot, key) {
     if (row.supportCategory !== slot.expectedResult) semantic.push(`support_category_differs_from_expectation_map:${row.supportCategory}!=${slot.expectedResult}`);
     if (!isNonEmptyString(row.immutableTestRowId)) semantic.push('support_row_not_joinable_to_test_chat_logs_row');
   }
-  if (key === 'planRole' || key === 'owner') {
+  {
     const sv = row.serverVerified;
     if (!sv || typeof sv !== 'object' || !isNonEmptyString(sv.serverPlan) || !isNonEmptyString(sv.serverRole) || !isNonEmptyString(sv.serverMarket)) {
       semantic.push('server_verified_plan_role_market_facts_required');

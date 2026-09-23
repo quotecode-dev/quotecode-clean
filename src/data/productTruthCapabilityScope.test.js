@@ -177,8 +177,8 @@ describe('FINDING 3 scope - claim objects keep TEKANGO and external scopes separ
 // ---------------------------------------------------------------------------------------------------------------------
 // FULL GATE: the REAL committed Owner rows (48) + raw capture, with each scoped contradiction injected into the calculator cell.
 // The response is forged CONSISTENTLY in the row and in the raw capture, so raw-binding cannot help: polarity must reject on its own.
-const P = 'evidence/product-truth/2026-09-23-four-finding-remediation';
-const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-three-action-delta-v32-raw-matrices.json', 'utf-8'));
+const P = 'evidence/product-truth/2026-09-23-structured-truth';
+const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json', 'utf-8'));
 const OWNER = JSON.parse(readFileSync(`${P}-owner-matrix-final-rows.json`, 'utf-8')).rows;
 const clone = (x) => JSON.parse(JSON.stringify(x));
 function ownerGateWith(slot, response) {
@@ -209,7 +209,7 @@ describe('FINDING 3 scope - FULL 48-cell Owner gate with injected scoped contrad
     const res = ownerGateWith(EN_SLOT, text);
     expect(res.validCount).toBe(47);
     expect(res.passes).toBe(false);
-    expect(cell(res, EN_SLOT).violations.join(' ')).toMatch(/polarity:available_expected_but_response_(denies_existence|does_not_affirm_existence)/);
+    expect(cell(res, EN_SLOT).violations.join(' ')).toMatch(/prose:available_expected_but_response_(denies_existence|does_not_affirm_existence)/);
   });
   it.each([
     'מחשבון מובנה בעורך זמין במוצרים אחרים, אבל לא ב-TEKANGO.',
@@ -220,7 +220,7 @@ describe('FINDING 3 scope - FULL 48-cell Owner gate with injected scoped contrad
     const res = ownerGateWith(HE_SLOT, text);
     expect(res.validCount).toBe(47);
     expect(res.passes).toBe(false);
-    expect(cell(res, HE_SLOT).violations.join(' ')).toMatch(/polarity:available_expected_but_response_/);
+    expect(cell(res, HE_SLOT).violations.join(' ')).toMatch(/prose:available_expected_but_response_/);
   });
   it.each([
     ['The in-editor calculator is unavailable elsewhere, but available in TEKANGO.', EN_SLOT],

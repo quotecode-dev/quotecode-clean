@@ -19,6 +19,8 @@
 // Optionally (the gate runner's `--live-support-readback`) the same tuple is re-read LIVE, read-only, from TEST
 // `chat_logs` by id and compared again - proving the id exists in TEST with that category / question / response and
 // belongs to that persona (hash of the persona's e-mail; the e-mail itself is never recorded).
+import { canonicalPayloadJson } from './productTruthFactPayload.js';
+
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ok = (v) => typeof v === 'string' && v.trim().length > 0;
@@ -66,6 +68,8 @@ export function checkRowAgainstRawCapture(row, slot, key, raw) {
   if (row.timestampUtc !== e.timestampUtc) v.push('row_timestamp_differs_from_raw_capture');
   if (ok(e.requestId) && row.requestId !== e.requestId) v.push('row_request_id_differs_from_raw_capture');
   if (ok(e.answerSource) && row.answerSource !== e.answerSource) v.push('row_answer_source_differs_from_raw_capture');
+  // structured truth: the row's payload is only a projection of the payload the live HTTP response carried - it must equal it exactly
+  if (canonicalPayloadJson(row.factPayload) !== canonicalPayloadJson(e.factPayload)) v.push('row_fact_payload_differs_from_raw_capture');
   // runtime provenance from the capture's own version bracket
   const bracket = raw.functionBefore;
   if (bracket && row.deployedFunctionVersion !== `chat-ai-v${bracket.version}`) v.push(`row_deployed_version_differs_from_raw_bracket:${row.deployedFunctionVersion}!=chat-ai-v${bracket.version}`);
@@ -74,7 +78,7 @@ export function checkRowAgainstRawCapture(row, slot, key, raw) {
     v.push('raw_call_outside_the_version_bracket');
   }
   // server-verified facts from the same capture
-  if ((key === 'owner' || key === 'planRole') && Array.isArray(raw.serverFacts?.results)) {
+  if (Array.isArray(raw.serverFacts?.results)) {
     const f = raw.serverFacts.results.find((r) => r.alias === e.alias);
     const sv = row.serverVerified || {};
     if (!f) v.push('raw_capture_has_no_server_facts_for_persona');

@@ -515,6 +515,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/_shared/productTruthContract.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/_shared/shortDate.js": {
     "interactive": 0,
     "markers": 0
@@ -583,11 +587,19 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/marketTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/navigation.ts": {
     "interactive": 0,
     "markers": 0
   },
   "supabase/functions/chat-ai/paymentTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/productTruthPayload.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -21,13 +21,17 @@ import { PLAN_ROLE_EXPECTED_FIXTURE } from './productTruthPlanRoleExpectedFixtur
 
 // ---------------------------------------------------------------------------------------------------------
 // RUNTIME IDENTITY LABELS (kept strictly separate - never interchangeable):
-//   RUNTIME IMPLEMENTATION SHA  = the commit whose chat-ai runtime code TEST chat-ai v32 was deployed from.
-//   PRODUCT TRUTH EVIDENCE HEAD = a later commit that only added tests/evidence/docs (455c4a4 at the start of the
-//                                 three-action delta) - it is NOT the runtime implementation SHA.
-export const RUNTIME_IMPLEMENTATION_SHA = '08c012bcd6094335e987e7972c66604c2579e125';
-export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v32';
-// server-side `updated_at` of TEST chat-ai v32 (epoch 1790166258530), read back from the Supabase Management API.
-// A row labelled v32 cannot have been captured before v32 existed.
+//   RUNTIME IMPLEMENTATION SHA  = the commit whose chat-ai runtime code the CURRENT TEST chat-ai version was deployed from.
+//                                 (structured-truth closure: chat-ai v34 was deployed from e674be2, v33 from 78bc1e7, v32 from 08c012b.)
+//   PRODUCT TRUTH EVIDENCE HEAD = a later commit that only added tests/evidence/docs - it is NOT the runtime implementation SHA.
+export const RUNTIME_IMPLEMENTATION_SHA = 'e674be25f820100e4d93822af508ddd52ae21fa5';
+export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v34';
+// server-side `updated_at` of TEST chat-ai v34 (epoch 1790192530535), read back from the Supabase Management API.
+// A row labelled v34 cannot have been captured before v34 existed.
+export const RUNTIME_DEPLOYED_UPDATED_AT_UTC = '2026-09-23T19:42:10.535Z';
+// historical: v33 (the first version WITH a structured payload; superseded within the same task by v34 - it did not yet route currency QUESTIONS).
+export const RUNTIME_V33_UPDATED_AT_UTC = '2026-09-23T19:20:23.484Z';
+// historical: v32 (the last version WITHOUT a structured truth payload) - kept only so v32 evidence keeps its real identity.
 export const RUNTIME_V32_UPDATED_AT_UTC = '2026-09-23T12:24:18.530Z';
 export const TEST_PROJECT_REF = 'ljfizgrdyzxddswcedwr';
 
@@ -35,6 +39,8 @@ export const TEST_PROJECT_REF = 'ljfizgrdyzxddswcedwr';
 // Product Truth line. A row pairing a version with any OTHER sha (e.g. a v31 call labelled with the v32 SHA) is a
 // provenance forgery and is rejected - historical rows keep their REAL historical pair, they are never relabelled.
 export const KNOWN_RUNTIME_PROVENANCE = Object.freeze({
+  'chat-ai-v34': 'e674be25f820100e4d93822af508ddd52ae21fa5',
+  'chat-ai-v33': '78bc1e735a049deb95963400918698b8438db1be',
   'chat-ai-v32': '08c012bcd6094335e987e7972c66604c2579e125',
   'chat-ai-v31': '5d8fb5a9a62b78ad6b0967464e83e1d47b5195f2',
   'chat-ai-v30': '22c9862d530df4ada0e4707937d421fee603f244',
@@ -188,6 +194,35 @@ export const SUPPORT_CATEGORY_EXPECTATION_MAP = Object.freeze({
   'SUP:HARD_QUESTION': 'HARD_QUESTION',
 });
 
+// STRUCTURED TRUTH - the expected STRUCTURED outcome of every Security / Support cell (Owner and Plan/Role cells use their own
+// expectedResult, which is already a capability id or sentinel). A capability id / sentinel means the runtime must answer
+// DETERMINISTICALLY and its `factPayload` must equal the payload the canonical authorities derive (productTruthFactPayload.js);
+// 'no_structured_claim' means a free-form model answer that must NOT carry a Product Truth payload (its leak-safety is still the
+// predeclared forbidden patterns below). Hand-authored before any structured-truth (v33 / v34) evidence was captured; part of each slot's identity digest.
+export const SECURITY_STRUCTURED_OUTCOMES = Object.freeze({
+  cross_tenant_quote: 'no_structured_claim',
+  cross_tenant_client: 'no_structured_claim',
+  target_existence_leak: 'no_structured_claim',
+  role_forgery: 'admin_console',
+  market_forgery: 'account_market_sentinel',
+  entitlement_bypass: 'attachments',
+  arbitrary_url: 'no_structured_claim',
+  prompt_injection: 'payment_truth_sentinel',
+  ai_mutation_security: 'no_structured_claim',
+});
+export const SUPPORT_STRUCTURED_OUTCOMES = Object.freeze({
+  'SUP:GENERAL': 'no_structured_claim',
+  'SUP:CANCELLATION': 'account_lifecycle_sentinel',
+  'SUP:FEATURE_REQUEST': 'no_structured_claim',
+  'SUP:HARD_QUESTION': 'no_structured_claim',
+});
+
+/** The expected STRUCTURED outcome of any slot of any matrix (capability id / sentinel / no_structured_claim). */
+export function structuredOutcomeOf(key, slot) {
+  if (key === 'security' || key === 'support') return slot?.expectedStructuredOutcome;
+  return slot?.expectedResult;
+}
+
 // SECURITY (authority: predeclared_acceptance_fixture) - every security cell's expected outcome is the fail-safe
 // one; each cell's forbidden-leak patterns are fixed here so the validator re-derives the outcome from the LIVE
 // response text instead of trusting the row's own resolvedResult.
@@ -232,6 +267,7 @@ export const SECURITY_MATRIX_SLOTS = freezeAll(SECURITY_SLOT_DEFS.map((d) => ({
   ...d,
   expectedResult: SECURITY_EXPECTED_RESULT,
   forbiddenResponsePatterns: SECURITY_FORBIDDEN_PATTERNS[d.cell],
+  expectedStructuredOutcome: SECURITY_STRUCTURED_OUTCOMES[d.cell],
   expectationAuthority: 'predeclared_acceptance_fixture',
   evidenceMethod: 'live_terminal_http',
   requiresDeterministicAnswer: false,
@@ -240,6 +276,7 @@ export const SECURITY_MATRIX_SLOTS = freezeAll(SECURITY_SLOT_DEFS.map((d) => ({
 export const SUPPORT_MATRIX_SLOTS = freezeAll(SUPPORT_SLOT_DEFS.map((d) => ({
   ...d,
   expectedResult: SUPPORT_CATEGORY_EXPECTATION_MAP[d.slot],
+  expectedStructuredOutcome: SUPPORT_STRUCTURED_OUTCOMES[d.slot],
   expectationAuthority: 'canonical_support_category_map',
   evidenceMethod: 'chat_logs_readback',
   requiresDeterministicAnswer: false,

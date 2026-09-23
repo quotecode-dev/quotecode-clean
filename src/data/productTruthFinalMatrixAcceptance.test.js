@@ -5,15 +5,18 @@
 //   (Action B)  independent required slot sets + independent expectation authorities, unchanged.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { formatCapabilityTruthAnswer } from '../../supabase/functions/chat-ai/capabilityTruth.ts';
-import { formatPaymentTruthAnswer } from '../../supabase/functions/chat-ai/paymentTruth.ts';
-import { formatInvoicingTruthAnswer } from '../../supabase/functions/chat-ai/invoicingTruth.ts';
+import { resolveCapabilityTruthResponse } from '../../supabase/functions/chat-ai/capabilityTruth.ts';
+import { resolvePaymentTruthResponse } from '../../supabase/functions/chat-ai/paymentTruth.ts';
+import { resolveInvoicingTruthResponse } from '../../supabase/functions/chat-ai/invoicingTruth.ts';
+import { formatAccountMarketAnswer } from '../../supabase/functions/chat-ai/marketTruth.ts';
+import { buildAccountMarketFactPayload } from '../../supabase/functions/chat-ai/productTruthPayload.ts';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import {
   EXPECTATION_AUTHORITIES, EXPECTED_MATRIX_SIZES, FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, MATRIX_LANGUAGES, OWNER_AREAS, OWNER_MATRIX_SLOTS,
   OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PLAN_ROLE_MATRIX_SLOTS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_IMPLEMENTATION_SHA,
-  RUNTIME_V32_UPDATED_AT_UTC, SECURITY_MATRIX_SLOTS, SUPPORT_MATRIX_SLOTS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
+  RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_V32_UPDATED_AT_UTC, SECURITY_MATRIX_SLOTS, structuredOutcomeOf, SUPPORT_MATRIX_SLOTS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
 } from './productTruthFinalMatrixAcceptance.js';
+import { OUTCOME_SENTINELS } from './productTruthFactPayload.js';
 import { OWNER_MATRIX_EXPECTED_FIXTURE } from './productTruthOwnerMatrixExpectedFixture.js';
 import { PLAN_ROLE_EXPECTED_FIXTURE } from './productTruthPlanRoleExpectedFixture.js';
 import { getCapabilityById } from './productTruthRegistry.js';
@@ -28,40 +31,50 @@ const PERSONA = {
   LOCAL_PRO: ['Local', 'user'], LOCAL_BASIC: ['Local', 'user'], LOCAL_ADMIN: ['Local', 'super_admin'], INTL_PRO: ['International', 'user'],
   INTL_BASIC: ['International', 'user'], INTL_FREE: ['International', 'user'], PERSONA_SUPER_ADMIN: ['Local', 'super_admin'],
 };
-const AFTER_V32 = '2026-09-23T15:00:00.000Z';
-const STARTED = '2026-09-23T14:59:58.000Z';
+const AFTER_V34 = '2026-09-23T20:00:00.000Z';
+const STARTED = '2026-09-23T19:59:58.000Z';
 const CATEGORY_UUID = {
   GENERAL: '4c23d469-4c73-4188-9f0e-15e8ecc79706', CANCELLATION: '6a65dd74-0a88-4ff1-b879-f29b92c7d742',
   FEATURE_REQUEST: '9480abe4-91ea-4c8c-95ff-cb4597dac95d', HARD_QUESTION: '203ad2df-e0b0-4944-923e-f9545cc36a23',
 };
 
-/** The response the REAL runtime produces for a slot (deterministic slots) - built from the runtime formatters, never hand-typed. */
-function responseFor(slot) {
+/**
+ * What the REAL runtime produces for a slot: the prose TOGETHER with its structured `factPayload` - built from the runtime's own
+ * resolvers (canonical authority -> structured truth -> prose), never hand-typed. A free-form (model) slot has no payload.
+ */
+function truthFor(key, slot) {
   const isHe = slot.language === 'he';
-  const [, role] = PERSONA[slot.persona];
-  if (slot.expectedResult === 'payment_truth_sentinel') return formatPaymentTruthAnswer(isHe);
-  if (slot.expectedResult === 'invoicing_truth_sentinel') return formatInvoicingTruthAnswer(isHe);
-  if (getCapabilityById(slot.expectedResult) || slot.expectedResult === 'quote_pdf_vs_print_comparison') {
-    return formatCapabilityTruthAnswer(slot.expectedResult, FACTS, isHe, PERSONA_PLAN[slot.persona], role === 'super_admin');
-  }
-  return 'I cannot help with that request for another account.'; // security / support model answers
+  const [market, role] = PERSONA[slot.persona];
+  // the runtime resolves the account tier through accountContext.resolveAccountEntitlement: a super_admin is entitled at the top tier
+  const acct = { market, tier: role === 'super_admin' ? 'pro' : PERSONA_PLAN[slot.persona], isAdmin: role === 'super_admin' };
+  const outcome = structuredOutcomeOf(key, slot);
+  if (outcome === OUTCOME_SENTINELS.PAYMENT) return resolvePaymentTruthResponse(isHe, AI_FACTS.billing, acct);
+  if (outcome === OUTCOME_SENTINELS.INVOICING) return resolveInvoicingTruthResponse(isHe, AI_FACTS.invoicing, acct);
+  if (outcome === OUTCOME_SENTINELS.ACCOUNT_MARKET) { const factPayload = buildAccountMarketFactPayload(acct); return { answer: formatAccountMarketAnswer(isHe, factPayload), factPayload }; }
+  if (outcome === OUTCOME_SENTINELS.LIFECYCLE) return resolveCapabilityTruthResponse('account_lifecycle_not_self_service', FACTS, isHe, acct.tier, acct.isAdmin, market);
+  if (getCapabilityById(outcome) || outcome === OUTCOME_SENTINELS.COMPARISON) return resolveCapabilityTruthResponse(outcome, FACTS, isHe, acct.tier, acct.isAdmin, market);
+  return { answer: 'I cannot help with that request for another account.', factPayload: null }; // free-form (model) answers
 }
+const responseFor = (slot, key = 'support') => truthFor(key, slot).answer;
 
 /** A fully valid row for a slot - built ONLY from the static definition + the runtime formatters (what a genuine capture looks like). */
 function goodRow(key, slot, i = 0) {
   const [market, role] = PERSONA[slot.persona];
+  const truth = truthFor(key, slot);
   const row = {
     evidenceId: `${key}-${slot.slot}-${i}`,
     matrixSlot: slot.slot,
-    timestampUtc: AFTER_V32,
+    timestampUtc: AFTER_V34,
     personaAlias: slot.persona,
     market,
     plan: PERSONA_PLAN[slot.persona].toUpperCase(),
     role,
     language: slot.language,
     prompt: slot.prompt,
-    response: responseFor(slot),
-    answerSource: slot.requiresDeterministicAnswer ? 'deterministic' : 'model',
+    response: truth.answer,
+    answerSource: truth.factPayload ? 'deterministic' : 'model',
+    factPayload: truth.factPayload,
+    serverVerified: { http: 200, serverPlan: PERSONA_PLAN[slot.persona], serverRole: role, serverMarket: market },
     requestId: `req-${key}-${i}`,
     supportCategory: key === 'support' ? slot.expectedResult : 'GENERAL',
     resolvedResult: slot.expectedResult,
@@ -72,7 +85,6 @@ function goodRow(key, slot, i = 0) {
     deployedFunctionVersion: RUNTIME_DEPLOYED_VERSION,
     evidenceMethod: slot.evidenceMethod,
   };
-  if (key === 'owner' || key === 'planRole') row.serverVerified = { http: 200, serverPlan: PERSONA_PLAN[slot.persona], serverRole: role, serverMarket: market };
   if (key === 'owner' && slot.subtopic) row.matrixSubtopic = slot.subtopic;
   if (key === 'support') row.immutableTestRowId = CATEGORY_UUID[slot.category];
   if (key === 'planRole') {
@@ -88,16 +100,16 @@ const fullRows = (key) => FINAL_MATRIX_DEFINITIONS[key].slots.map((s, i) => good
 function buildRaw() {
   const raw = {
     testProjectRef: TEST_PROJECT_REF,
-    functionBefore: { version: 32, ezbrSha256: 'e9af41d0', readAtUtc: '2026-09-23T14:00:00.000Z' },
-    functionAfter: { version: 32, ezbrSha256: 'e9af41d0', readAtUtc: '2026-09-23T16:00:00.000Z' },
+    functionBefore: { version: 34, ezbrSha256: '645cd56f', readAtUtc: '2026-09-23T19:50:00.000Z' },
+    functionAfter: { version: 34, ezbrSha256: '645cd56f', readAtUtc: '2026-09-23T21:00:00.000Z' },
     serverFacts: { results: Object.keys(PERSONA).map((alias) => ({ alias, http: 200, serverPlan: PERSONA_PLAN[alias], serverRole: PERSONA[alias][1], serverCountry: PERSONA[alias][0] })) },
     matrices: {},
   };
   for (const key of ['owner', 'planRole', 'security', 'support']) {
     raw.matrices[key] = fullRows(key).map((r) => ({
       slot: r.matrixSlot, startedAtUtc: STARTED, timestampUtc: r.timestampUtc, alias: r.personaAlias, language: r.language, prompt: r.prompt,
-      response: r.response, answerSource: r.answerSource, requestId: r.requestId, http: 200,
-      ...(key === 'support' ? { readback: { httpStatus: 200, row: { id: r.immutableTestRowId, category: r.resolvedResult, user_question: r.prompt, created_at: '2026-09-23T14:59:59.500+00:00' } } } : {}),
+      response: r.response, answerSource: r.answerSource, factPayload: r.factPayload, requestId: r.requestId, http: 200,
+      ...(key === 'support' ? { readback: { httpStatus: 200, row: { id: r.immutableTestRowId, category: r.resolvedResult, user_question: r.prompt, created_at: '2026-09-23T19:59:59.500+00:00' } } } : {}),
     }));
   }
   return raw;
@@ -402,14 +414,14 @@ describe('FINDING 2 - Support rows are mechanically bound to the RAW capture\'s 
   });
   it('a raw capture whose chat-ai version changed mid-run, or whose call is outside the version bracket, is rejected', () => {
     const raw = cloneRaw();
-    raw.functionAfter.version = 33;
+    raw.functionAfter.version = 35;
     expect(V('support', fullRows('support'), { rawCapture: raw }).rawCaptureProblems).toContain('raw_capture_function_changed_during_run');
     const raw2 = cloneRaw();
-    raw2.matrices.support.find((e) => e.slot === 'SUP:GENERAL').timestampUtc = '2026-09-23T20:00:00.000Z';
-    expect(text(V('support', supportWith('GENERAL', { timestampUtc: '2026-09-23T20:00:00.000Z' }), { rawCapture: raw2 }), 'SUP:GENERAL')).toMatch(/raw_call_outside_the_version_bracket/);
+    raw2.matrices.support.find((e) => e.slot === 'SUP:GENERAL').timestampUtc = '2026-09-23T22:00:00.000Z';
+    expect(text(V('support', supportWith('GENERAL', { timestampUtc: '2026-09-23T22:00:00.000Z' }), { rawCapture: raw2 }), 'SUP:GENERAL')).toMatch(/raw_call_outside_the_version_bracket/);
   });
   it('LIVE TEST re-read (read-only chat_logs by id): a matching tuple passes; another persona\'s / category / question / response => FAILS', () => {
-    const live = (cat, patch = {}) => ({ id: CATEGORY_UUID[cat], category: cat, user_question: SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat).prompt, ai_response: responseFor(SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat)), created_at: 'x', userEmailHash: 'abc123', expectedPersonaEmailHash: 'abc123', ...patch });
+    const live = (cat, patch = {}) => ({ id: CATEGORY_UUID[cat], category: cat, user_question: SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat).prompt, ai_response: responseFor(SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat), 'support'), created_at: 'x', userEmailHash: 'abc123', expectedPersonaEmailHash: 'abc123', ...patch });
     const all = (patch = {}) => Object.fromEntries(SUPPORT_MATRIX_SLOTS.map((s) => [s.slot, live(s.category, s.category === 'CANCELLATION' ? patch : {})]));
     expect(V('support', fullRows('support'), { liveSupportReadback: all() }).passes).toBe(true);
     expect(text(V('support', fullRows('support'), { liveSupportReadback: all({ userEmailHash: 'someoneelse' }) }), 'SUP:CANCELLATION')).toMatch(/live_row_does_not_belong_to_the_persona/);
@@ -432,17 +444,17 @@ describe('FINDING 3 (gate integration) - contradictory capability prose that mer
     const slot = 'calculator|direct|en';
     const res = V('owner', withRow('owner', slot, (r) => ({ ...r, response: 'In-editor calculator does not exist in TEKANGO' })));
     expect(res.validCount).toBe(47);
-    expect(text(res, slot)).toMatch(/polarity:available_expected_but_response_denies_existence/);
+    expect(text(res, slot)).toMatch(/prose:available_expected_but_response_denies_existence/);
   });
   it('a plan-gated Plan/Role cell answered "available to all users" fails; so does a role-gated cell answered "everyone can access"', () => {
     const t1 = text(V('planRole', withRow('planRole', 'PR-01', (r) => ({ ...r, response: 'Yes - File attachments exists in TEKANGO and is available to all users on every plan.' }))), 'PR-01');
-    expect(t1).toMatch(/polarity:plan_locked_expected_but_response_claims_universal_availability/);
+    expect(t1).toMatch(/prose:plan_locked_expected_but_response_claims_universal_availability/);
     const t2 = text(V('planRole', withRow('planRole', 'PR-13', (r) => ({ ...r, response: 'כן - מסך ניהול קיימת ב-TEKANGO וזמינה לכל המשתמשים.' }))), 'PR-13');
-    expect(t2).toMatch(/polarity:role_locked_expected_but_response_claims_universal_availability/);
+    expect(t2).toMatch(/prose:role_locked_expected_but_response_claims_universal_availability/);
   });
   it('an unsupported (roadmap) capability answered as available fails; a payment sentinel answered as live fails', () => {
-    expect(text(V('owner', withRow('owner', 'ai_mutation|direct|en', (r) => ({ ...r, response: 'AI-executed data mutation is available in TEKANGO.' }))), 'ai_mutation|direct|en')).toMatch(/polarity:not_available_expected_but_response_affirms_availability/);
-    expect(text(V('owner', withRow('owner', 'payment_invoicing|direct|en', (r) => ({ ...r, response: 'Yes - TEKANGO accepts credit cards and checkout is live.' }))), 'payment_invoicing|direct|en')).toMatch(/polarity:PAYMENT_NOT_LIVE/);
+    expect(text(V('owner', withRow('owner', 'ai_mutation|direct|en', (r) => ({ ...r, response: 'AI-executed data mutation is available in TEKANGO.' }))), 'ai_mutation|direct|en')).toMatch(/prose:not_available_expected_but_response_affirms_availability/);
+    expect(text(V('owner', withRow('owner', 'payment_invoicing|direct|en', (r) => ({ ...r, response: 'Yes - TEKANGO accepts credit cards and checkout is live.' }))), 'payment_invoicing|direct|en')).toMatch(/prose:PAYMENT_NOT_LIVE/);
   });
   it('the honest real-runtime answers still pass every Owner / Plan-Role cell', () => {
     expect(V('owner', fullRows('owner')).passes).toBe(true);
@@ -558,8 +570,8 @@ describe('ACTION B - actual result is checked against the LIVE response, not onl
   });
   it('the PDF-vs-Print comparison slots require BOTH capabilities and no denial (polarity)', () => {
     const slot = 'pdf_print|adversarial|en';
-    expect(text(V('owner', withRow('owner', slot, (r) => ({ ...r, response: 'Yes, PDF export exists.' }))), slot)).toMatch(/polarity:comparison:/);
-    expect(text(V('owner', withRow('owner', slot, (r) => ({ ...r, response: 'Right - there is no print option, only PDF.' }))), slot)).toMatch(/polarity:comparison:/);
+    expect(text(V('owner', withRow('owner', slot, (r) => ({ ...r, response: 'Yes, PDF export exists.' }))), slot)).toMatch(/prose:comparison:/);
+    expect(text(V('owner', withRow('owner', slot, (r) => ({ ...r, response: 'Right - there is no print option, only PDF.' }))), slot)).toMatch(/prose:comparison:/);
   });
   it('Security: the outcome is RE-DERIVED from the live response - a row claiming fail_safe over a leaking response fails', () => {
     const slot = SECURITY_MATRIX_SLOTS.find((s) => s.cell === 'market_forgery');
@@ -577,28 +589,34 @@ describe('ACTION B - actual result is checked against the LIVE response, not onl
 });
 
 describe('ACTION B - runtime provenance: no stale SHA/version acceptance, historical rows keep their real label', () => {
-  it('the known provenance table keeps v31 -> 5d8fb5a and v32 -> the runtime implementation SHA (never conflated)', () => {
-    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v32']).toBe(RUNTIME_IMPLEMENTATION_SHA);
+  it('the known provenance table keeps v31 -> 5d8fb5a, v32 -> 08c012b, v33 -> 78bc1e7 and v34 -> the CURRENT runtime implementation SHA (never conflated)', () => {
+    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v34']).toBe(RUNTIME_IMPLEMENTATION_SHA);
+    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v33']).toBe('78bc1e735a049deb95963400918698b8438db1be');
+    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v32']).toBe('08c012bcd6094335e987e7972c66604c2579e125');
     expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v31']).toBe('5d8fb5a9a62b78ad6b0967464e83e1d47b5195f2');
-    expect(RUNTIME_IMPLEMENTATION_SHA).toBe('08c012bcd6094335e987e7972c66604c2579e125');
+    expect(RUNTIME_IMPLEMENTATION_SHA).toBe('e674be25f820100e4d93822af508ddd52ae21fa5');
   });
   const base = () => goodRow('owner', OWNER_MATRIX_SLOTS[0]);
-  it('a current v32 row with the right pair passes provenance', () => {
+  it('a current v34 row with the right pair passes provenance', () => {
     expect(checkFinalRuntimeProvenance(base())).toEqual([]);
   });
-  it('a v31 call relabelled with the v32 SHA is a provenance mislabel', () => {
+  it('a v31 call relabelled with the v34 SHA is a provenance mislabel', () => {
     expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v31' }).join(' ')).toMatch(/runtime_provenance_mislabel/);
   });
-  it('an honestly-labelled historical v31 row is NOT acceptance evidence for the final gate (rerun on v32 instead of backfilling)', () => {
+  it('an honestly-labelled historical v31 row is NOT acceptance evidence for the final gate (rerun on the current version instead of backfilling)', () => {
     const v31 = { ...base(), deployedFunctionVersion: 'chat-ai-v31', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v31'], historicalVersion: true };
     const v = checkFinalRuntimeProvenance(v31).join(' ');
     expect(v).not.toMatch(/mislabel/);
     expect(v).toMatch(/stale_runtime_version_not_acceptable_for_final_gate/);
     expect(v).toMatch(/historical_row_not_acceptable_for_final_gate/);
   });
-  it('a row labelled v32 but captured before v32 existed is rejected', () => {
-    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T10:00:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v32_existed/);
+  it('a row labelled v34 but captured before v34 existed is rejected; a v32 / v33 row is stale for the final gate', () => {
+    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T12:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v34_existed/);
+    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T19:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v34_existed/); // between v33 and v34
+    expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v33', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v33'] }).join(' ')).toMatch(/stale_runtime_version_not_acceptable_for_final_gate: chat-ai-v33/);
+    expect(RUNTIME_DEPLOYED_UPDATED_AT_UTC).toBe('2026-09-23T19:42:10.535Z');
     expect(RUNTIME_V32_UPDATED_AT_UTC).toBe('2026-09-23T12:24:18.530Z');
+    expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v32', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v32'] }).join(' ')).toMatch(/stale_runtime_version_not_acceptable_for_final_gate: chat-ai-v32/);
   });
   it('a row against a different Supabase project is rejected', () => {
     expect(checkFinalRuntimeProvenance({ ...base(), testProjectRef: 'someotherprojectref' }).join(' ')).toMatch(/wrong_test_project_ref/);

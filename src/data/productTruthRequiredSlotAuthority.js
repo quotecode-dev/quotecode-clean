@@ -33,8 +33,10 @@ export function canonicalSlotIdentity(key, slot) {
   const common = [key, slot?.slot, slot?.persona, slot?.language, slot?.prompt, slot?.expectedResult, slot?.expectationAuthority];
   if (key === 'owner') return JSON.stringify([...common, slot?.area, slot?.subtopic ?? null, slot?.phrasing]);
   if (key === 'planRole') return JSON.stringify([...common, slot?.fixtureExpectedEntitlement]);
-  if (key === 'security') return JSON.stringify([...common, slot?.cell, (slot?.forbiddenResponsePatterns || []).map((p) => (p instanceof RegExp ? pat(p) : String(p)))]);
-  if (key === 'support') return JSON.stringify([...common, slot?.category]);
+  // structured-truth closure: the expected STRUCTURED outcome is part of a Security / Support slot's identity (Owner / Plan-Role slots
+  // already carry it as expectedResult), so it cannot be edited without a deliberate change of this table too.
+  if (key === 'security') return JSON.stringify([...common, slot?.cell, (slot?.forbiddenResponsePatterns || []).map((p) => (p instanceof RegExp ? pat(p) : String(p))), slot?.expectedStructuredOutcome]);
+  if (key === 'support') return JSON.stringify([...common, slot?.category, slot?.expectedStructuredOutcome]);
   return JSON.stringify([key, slot?.slot]);
 }
 
@@ -110,21 +112,21 @@ export const REQUIRED_SLOT_IDENTITY_DIGESTS = Object.freeze({
     "PR-13": "4ef39731077719712674a54e91c6488c61c9efbfc98bebf15c27bfe54a81abfd",
   }),
   security: Object.freeze({
-    "SEC:cross_tenant_quote": "6a274908505e1a296755c015eb24cc52b5e653095f7e5d9b310b7823862935e2",
-    "SEC:cross_tenant_client": "f055057a4610c5e002f56778cb21ebe21fcfd05023db02b8fb72cdda3b00bee5",
-    "SEC:target_existence_leak": "83d2766470d27f087c767a4128d7bca5a00968c9b980edd996b8086c36cbf205",
-    "SEC:role_forgery": "3b842e562c70ff06bcdbd49cdb42cf1217ec4a1f73f6f5644a6b1583be0c97f6",
-    "SEC:market_forgery": "2316558039cabc83211bf31f3bf5f1fb75f29f28d79cf4bc549d11aea9d45562",
-    "SEC:entitlement_bypass": "30801327ae90cbbbbb72caf6526ca08f8aab2907107c307c828c3bae5eebe5dd",
-    "SEC:arbitrary_url": "be936f18720666c9547d271acc06a188b246e1f5068ebcc50b0923b5c4c8bfa0",
-    "SEC:prompt_injection": "b108c2c617d21a643c79f88d96795b261bbad82bf4119ca828bc4e330b5040d9",
-    "SEC:ai_mutation_security": "85f45bb93a27b3a69baf4d5a5118459e42ded143e0c88d39f399eb899b49e202",
+    "SEC:cross_tenant_quote": "9c39adecd450302f5fddc5af98663c677ac8edf02ddaeec494748fe93cce8cf0",
+    "SEC:cross_tenant_client": "51dd49e9625503722b2b31de8779e5c307339d3cdb2a243fa20d23f6f99a314a",
+    "SEC:target_existence_leak": "6a25e4baaca85dc786508cff2b5d5dba4ab7e5caf8d845ee1b3ce826bc1fbfd6",
+    "SEC:role_forgery": "4bdbe17e23228af37727208c2372a5c849e8e33a34db785bcb1c5a0fdbec2371",
+    "SEC:market_forgery": "c2ec2432829518a4501959c0d07802ab1a8a944d96e7851ea9d5d6178673cdac",
+    "SEC:entitlement_bypass": "2b87d44283f9be26ed3944ce95f53def0b4a7f8e219fd3be7cff150645cf2784",
+    "SEC:arbitrary_url": "62791c2d69cf081a591cac3a7e82a15dee734b53aac520db68610fd4f89c9924",
+    "SEC:prompt_injection": "59c53e5499610a504dbac58c03901f5aa23dca2ff57d9a392e47f131f2877294",
+    "SEC:ai_mutation_security": "e8a382fb2ff7884622545f0ab7782c1d7286ccf88d60f718e894e373c66ac067",
   }),
   support: Object.freeze({
-    "SUP:GENERAL": "18073a3226db732478871aaffd72a1610fe6c4aec4ada1070a2c8993751f448b",
-    "SUP:CANCELLATION": "b5e128bb276e9b4360c15ec45a5e8d18a62980d2aa0e90563080bf64d4fb2095",
-    "SUP:FEATURE_REQUEST": "a3e7bb078d57f7a78486d2859161cdb029c9eb20f91885fda0b326029db15810",
-    "SUP:HARD_QUESTION": "255fc74353c547fc21fc85c7236090ce3f11e4ae4a6b43d98769c5564ef7847c",
+    "SUP:GENERAL": "37a2af487d9905de4c593b71fc19f10374d3316a7ed02d3f8efe90f49b5c8fbd",
+    "SUP:CANCELLATION": "ed8ea3f801963b69eb2361ab2df72ea4e8a63056e0061bbb6cb493b763d873d5",
+    "SUP:FEATURE_REQUEST": "369a9ca02f738d52f69733611f49cdb6a4f342cc398b57c9bbf9d4a5b0016338",
+    "SUP:HARD_QUESTION": "02b54c761e53a85ca68cb991fd14265f4e34b2191e07f8777a68a48852b97948",
   }),
 });
 

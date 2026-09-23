@@ -13,7 +13,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { FINAL_MATRIX_DEFINITIONS, TEST_PROJECT_REF } from '../src/data/productTruthFinalMatrixAcceptance.js';
 
-const OUT = process.argv[2] || 'evidence/product-truth/2026-09-23-three-action-delta-v32-raw-matrices.json';
+// version-agnostic (the name is historical): captures whichever chat-ai version is deployed and records it in the before/after bracket.
+const OUT = process.argv[2] || 'evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json';
 const envText = readFileSync('C:/tkrc-pt/.env.localtest.local', 'utf-8');
 function envVar(name) {
   const m = envText.match(new RegExp(`^${name}=(.*)$`, 'm'));
@@ -72,11 +73,17 @@ async function askChat(alias, prompt, isHebrew) {
   return {
     startedAtUtc, timestampUtc: new Date().toISOString(), alias, market: p.market, plan: p.plan, role: p.role,
     language: isHebrew ? 'he' : 'en', prompt, response: json.answer ?? json.message ?? null, answerSource: json.answerSource ?? null,
+    // STRUCTURED TRUTH: the runtime's own `factPayload`, exactly as the HTTP response carried it (null for a free-form model answer)
+    factPayload: json.factPayload ?? null, contractVersion: json.contractVersion ?? null,
     requestId: json.requestId ?? null, http: res.status,
   };
 }
 
-async function readBackChatLog(userQuestion, sinceIso) {
+// The harness and the server run on different clocks (the acceptance binding tolerates 5 s of skew), so the read-back window opens 5 s
+// BEFORE the call started - otherwise a row stamped a few hundred ms earlier by the server clock is silently missed.
+const READBACK_SKEW_MS = 5000;
+async function readBackChatLog(userQuestion, callStartedIso) {
+  const sinceIso = new Date(Date.parse(callStartedIso) - READBACK_SKEW_MS).toISOString();
   const auth = await signIn('PERSONA_SUPER_ADMIN');
   const url = `${SUPABASE_URL}/rest/v1/chat_logs?select=id,category,user_question,created_at&user_question=eq.${encodeURIComponent(userQuestion)}&created_at=gte.${encodeURIComponent(sinceIso)}&order=created_at.desc&limit=1`;
   const res = await fetch(url, { headers: { apikey: ANON_KEY, Authorization: `Bearer ${auth.accessToken}` } });
