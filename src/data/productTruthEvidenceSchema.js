@@ -13,6 +13,19 @@
 // matches expected result, capabilityId is populated wherever the cell's own expectation says it
 // must be deterministic, no duplicate/missing matrix slot). A row can have a syntactically complete
 // schema and still be INVALID because its content is semantically wrong - both checks are required.
+//
+// THREE-ACTION DELTA (Action B): validateFinalMatrix() at the bottom of this file is the FINAL gate. Unlike the
+// generic validateEvidenceMatrix() it takes NO caller-supplied slot list and NO caller-supplied expectation: the
+// required slots and every expected value are resolved from productTruthFinalMatrixAcceptance.js (static,
+// predeclared) + the canonical registry, so a missing row still leaves its required slot standing (=> failure),
+// an extra row can never add a requirement, and a row can never author its own expectation.
+import { getCapabilityById } from './productTruthRegistry.js';
+import { PLAN_IDS } from '../utils/planCatalog.js';
+import {
+  EXPECTED_MATRIX_SIZES, EXPECTATION_AUTHORITIES, FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, MATRIX_LANGUAGES, OWNER_AREAS,
+  OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PERSONA_DECLARATIONS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_V32_UPDATED_AT_UTC,
+  SECURITY_EXPECTED_RESULT, SECURITY_UNSAFE_RESULT, SENTINEL_RESPONSE_PATTERNS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
+} from './productTruthFinalMatrixAcceptance.js';
 
 export const REQUIRED_EVIDENCE_ROW_FIELDS = [
   'evidenceId', // unique evidence ID (never reused across rows, never blank)
@@ -41,6 +54,10 @@ export const REQUIRED_EVIDENCE_ROW_FIELDS = [
 export const OPTIONAL_EVIDENCE_ROW_FIELDS = [
   'evidenceOnlyHead', 'immutableTestRowId', 'historicalVersion',
   'expectedEntitlement', 'resolvedEntitlement', 'serverVerified',
+  // three-action delta (Action B): the row's claim of WHICH predeclared slot it fills (matrixSlot), the Owner
+  // subtopic it exercised, whether the live answer was deterministic, and which authority its entitlement
+  // expectation came from. All are only CLAIMS - validateFinalMatrix checks them against the static definitions.
+  'matrixSlot', 'matrixSubtopic', 'answerSource', 'expectedEntitlementSource',
 ];
 
 // Codex final independent review (2026-09-2X): "some expectations were derived from the same
@@ -55,6 +72,7 @@ export const ALLOWED_EXPECTATION_SOURCES = Object.freeze([
   'canonical_entitlement_rules', // planCatalog.js/accountEntitlement.js's own canonical rules
   'server_verified_fact', // a real read-only server query result (e.g. business_settings), independent of the chat-ai call
   'predeclared_acceptance_fixture', // an Owner/task-author-approved fixed matrix design field (e.g. the historical matrix's own `area`/`category` label, authored before any call ran)
+  'canonical_support_category_map', // productTruthFinalMatrixAcceptance.js SUPPORT_CATEGORY_EXPECTATION_MAP (the AI Support category expectation map)
 ]);
 
 /**
@@ -263,4 +281,263 @@ export function validateEvidenceMatrix(rows, matrixDef) {
   for (const s of slotCheck.duplicateSlots) validSlots.delete(s);
   const validCount = [...validSlots].filter((s) => requiredSlots.includes(s)).length;
   return { validCount, totalRequired: requiredSlots.length, rowResults, slotCheck };
+}
+
+// =============================================================================================================
+// THREE-ACTION DELTA - Action B: FINAL GATE (independent required slots + independent expectation authorities)
+// =============================================================================================================
+
+const ENTITLEMENT_VALUES = Object.freeze(['GRANTED', 'DENIED']);
+
+/**
+ * Entitlement the CANONICAL registry rule yields for a capability given a persona's SERVER-VERIFIED plan/role.
+ * (canonical_registry authority applied to a server_verified_fact - it reads neither the evidence row's own
+ * expectedEntitlement nor the chat-ai response.)
+ * @param {string} capabilityId
+ * @param {string|undefined} serverPlan - 'free' | 'basic' | 'pro'
+ * @param {string|undefined} serverRole - e.g. 'user' | 'super_admin'
+ * @returns {'GRANTED'|'DENIED'|'UNKNOWN'}
+ */
+export function deriveRegistryEntitlement(capabilityId, serverPlan, serverRole) {
+  const capability = getCapabilityById(capabilityId);
+  if (!capability) return 'UNKNOWN';
+  if (capability.authorityType === 'role') {
+    if (!isNonEmptyString(serverRole) || !isNonEmptyString(capability.requiredRole)) return 'UNKNOWN';
+    return serverRole === capability.requiredRole ? 'GRANTED' : 'DENIED';
+  }
+  if (capability.authorityType === 'plan') {
+    const have = PLAN_IDS.indexOf(serverPlan);
+    const need = PLAN_IDS.indexOf(capability.minimumPlan);
+    if (have < 0 || need < 0) return 'UNKNOWN';
+    return have >= need ? 'GRANTED' : 'DENIED';
+  }
+  return 'GRANTED';
+}
+
+function isCanonicalExpectedResult(value) {
+  return isNonEmptyString(value) && (RESULT_SENTINELS.includes(value) || getCapabilityById(value) !== null);
+}
+
+/**
+ * Integrity of a static matrix definition against the SECOND, independent size declaration and the static
+ * constants it must be built from. A definition edited to be shorter/longer/different is caught here rather than
+ * silently redefining what "complete" means.
+ * @param {'owner'|'planRole'|'security'|'support'} key
+ * @param {{ slots: object[] }} [definition]
+ * @returns {string[]} problems (empty = the definition is a well-formed instance of its required matrix)
+ */
+export function checkFinalMatrixDefinitionIntegrity(key, definition = FINAL_MATRIX_DEFINITIONS[key]) {
+  const problems = [];
+  if (!(key in EXPECTED_MATRIX_SIZES)) return [`unknown_matrix_key:${key}`];
+  const slots = definition && Array.isArray(definition.slots) ? definition.slots : null;
+  if (!slots) return ['definition_has_no_slots'];
+  if (slots.length !== EXPECTED_MATRIX_SIZES[key]) problems.push(`slot_count_${slots.length}_not_${EXPECTED_MATRIX_SIZES[key]}`);
+  const ids = slots.map((s) => s?.slot);
+  if (new Set(ids).size !== ids.length) problems.push('duplicate_slot_ids_in_definition');
+  for (const s of slots) {
+    for (const f of ['slot', 'persona', 'language', 'prompt', 'expectedResult', 'expectationAuthority', 'evidenceMethod']) {
+      if (!isNonEmptyString(s?.[f])) problems.push(`slot_${s?.slot}_missing_${f}`);
+    }
+    if (!MATRIX_LANGUAGES.includes(s?.language)) problems.push(`slot_${s?.slot}_invalid_language`);
+    const persona = PERSONA_DECLARATIONS[s?.persona];
+    if (!persona) problems.push(`slot_${s?.slot}_unknown_persona`);
+    // market isolation: Hebrew cells are Local personas, English cells International personas - never mixed.
+    else if ((s.language === 'he') !== (persona.market === 'Local')) problems.push(`slot_${s.slot}_language_market_mismatch`);
+    if (!ALLOWED_EXPECTATION_SOURCES.includes(s?.expectationAuthority) || !(s?.expectationAuthority in EXPECTATION_AUTHORITIES)) {
+      problems.push(`slot_${s?.slot}_unsupported_expectation_authority:${s?.expectationAuthority}`);
+    }
+  }
+  if (key === 'owner') {
+    const want = new Set();
+    for (const a of OWNER_AREAS) for (const p of OWNER_PHRASINGS) for (const l of MATRIX_LANGUAGES) want.add(`${a}|${p}|${l}`);
+    for (const id of want) if (!ids.includes(id)) problems.push(`owner_required_slot_absent_from_definition:${id}`);
+    for (const id of ids) if (!want.has(id)) problems.push(`owner_definition_slot_outside_required_set:${id}`);
+    for (const s of slots) {
+      if (!isCanonicalExpectedResult(s.expectedResult)) problems.push(`slot_${s.slot}_expected_not_canonical:${s.expectedResult}`);
+      const wantSub = OWNER_SUBTOPIC_ALLOCATION[s.slot] ?? null;
+      if ((s.subtopic ?? null) !== wantSub) problems.push(`slot_${s.slot}_subtopic_allocation_${s.subtopic ?? 'null'}_not_${wantSub ?? 'null'}`);
+      if (s.expectationAuthority !== 'static_fixture') problems.push(`slot_${s.slot}_owner_authority_must_be_static_fixture`);
+    }
+  } else if (key === 'planRole') {
+    for (const s of slots) {
+      const capability = getCapabilityById(s.expectedResult);
+      if (!capability || !['plan', 'role'].includes(capability.authorityType)) problems.push(`slot_${s.slot}_expected_not_a_plan_or_role_gated_registry_capability`);
+      if (!ENTITLEMENT_VALUES.includes(s.fixtureExpectedEntitlement)) problems.push(`slot_${s.slot}_fixture_entitlement_invalid`);
+      if (s.expectationAuthority !== 'static_fixture') problems.push(`slot_${s.slot}_planrole_authority_must_be_static_fixture`);
+    }
+  } else if (key === 'security') {
+    for (const s of slots) {
+      if (s.expectedResult !== SECURITY_EXPECTED_RESULT) problems.push(`slot_${s.slot}_expected_not_fail_safe`);
+      if (!Array.isArray(s.forbiddenResponsePatterns) || s.forbiddenResponsePatterns.length === 0 || !s.forbiddenResponsePatterns.every((p) => p instanceof RegExp)) {
+        problems.push(`slot_${s.slot}_missing_forbidden_patterns`);
+      }
+      if (s.expectationAuthority !== 'predeclared_acceptance_fixture') problems.push(`slot_${s.slot}_security_authority_must_be_predeclared_acceptance_fixture`);
+    }
+  } else if (key === 'support') {
+    const cats = slots.map((s) => s.category).sort();
+    if (JSON.stringify(cats) !== JSON.stringify([...SUPPORT_REQUIRED_CATEGORIES].sort())) problems.push('support_categories_not_the_four_required');
+    for (const s of slots) {
+      if (s.expectedResult !== s.category) problems.push(`slot_${s.slot}_expected_category_differs_from_slot_category`);
+      if (s.expectationAuthority !== 'canonical_support_category_map') problems.push(`slot_${s.slot}_support_authority_must_be_canonical_support_category_map`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * Runtime provenance for FINAL acceptance: the row must be a genuine, honestly-labelled, CURRENT-runtime capture.
+ * - version/SHA pair must be a truthfully known pair (a v31 call labelled with the v32 SHA is a mislabel);
+ * - it must be the current deployed version (a stale/historical v31 row is honest but is NOT acceptance evidence);
+ * - it cannot have been captured before that version existed;
+ * - it must have been made against the TEST project.
+ * @param {object} row
+ * @returns {string[]}
+ */
+export function checkFinalRuntimeProvenance(row) {
+  const v = [];
+  if (!row || typeof row !== 'object') return ['row_not_an_object'];
+  const knownSha = KNOWN_RUNTIME_PROVENANCE[row.deployedFunctionVersion];
+  if (!knownSha) v.push(`unknown_deployed_function_version:${row.deployedFunctionVersion ?? 'missing'}`);
+  else if (row.implementationSourceSha !== knownSha) {
+    v.push(`runtime_provenance_mislabel: ${row.deployedFunctionVersion} was deployed from ${knownSha.slice(0, 7)}, row claims ${String(row.implementationSourceSha).slice(0, 7)}`);
+  }
+  if (row.deployedFunctionVersion !== RUNTIME_DEPLOYED_VERSION) v.push(`stale_runtime_version_not_acceptable_for_final_gate: ${row.deployedFunctionVersion ?? 'missing'} (required ${RUNTIME_DEPLOYED_VERSION})`);
+  if (row.historicalVersion) v.push('historical_row_not_acceptable_for_final_gate');
+  if (isNonEmptyString(row.timestampUtc) && UTC_TIMESTAMP_RE.test(row.timestampUtc) && Date.parse(row.timestampUtc) < Date.parse(RUNTIME_V32_UPDATED_AT_UTC)) {
+    v.push(`captured_before_${RUNTIME_DEPLOYED_VERSION}_existed: ${row.timestampUtc} < ${RUNTIME_V32_UPDATED_AT_UTC}`);
+  }
+  if (row.testProjectRef !== TEST_PROJECT_REF) v.push(`wrong_test_project_ref:${row.testProjectRef ?? 'missing'}`);
+  return v;
+}
+
+function checkFinalRowAgainstSlot(row, slot, key) {
+  const expectation = [];
+  const semantic = [];
+  const persona = PERSONA_DECLARATIONS[slot.persona];
+
+  // (1) EXPECTATION INDEPENDENCE - what the row CLAIMS must equal what the slot's authority derives.
+  if (row.expectationSource !== slot.expectationAuthority) {
+    expectation.push(`expectation_source_not_slot_authority: row declares "${row.expectationSource ?? 'missing'}", slot authority is "${slot.expectationAuthority}"`);
+  }
+  if (row.expectedResult !== slot.expectedResult) {
+    expectation.push(`expected_result_differs_from_authority: row "${row.expectedResult ?? 'missing'}", ${slot.expectationAuthority} says "${slot.expectedResult}"`);
+  }
+  if (isNonEmptyString(row.expectedResult) && row.expectedResult === row.resolvedResult && row.expectedResult !== slot.expectedResult) {
+    expectation.push('self_derived_expectation: expectedResult == resolvedResult but neither is what the independent authority expects');
+  }
+  // (2) the row must actually be the predeclared cell (prompt / persona / language / market / role / subtopic).
+  if (row.prompt !== slot.prompt) expectation.push('prompt_differs_from_predeclared_slot_prompt');
+  if (row.language !== slot.language) expectation.push(`language_differs_from_slot:${row.language}!=${slot.language}`);
+  if (row.personaAlias !== slot.persona) expectation.push(`persona_differs_from_slot:${row.personaAlias}!=${slot.persona}`);
+  if (persona && row.market !== persona.market) expectation.push(`market_differs_from_persona_declaration:${row.market}!=${persona.market}`);
+  if (persona && row.role !== persona.role) expectation.push(`role_differs_from_persona_declaration:${row.role}!=${persona.role}`);
+  if (key === 'owner') {
+    if (slot.subtopic !== null && row.matrixSubtopic !== slot.subtopic) expectation.push(`subtopic_allocation_not_preserved:${row.matrixSubtopic ?? 'missing'}!=${slot.subtopic}`);
+    if (slot.subtopic === null && row.matrixSubtopic) expectation.push(`unexpected_subtopic_on_single_topic_slot:${row.matrixSubtopic}`);
+  }
+  if (row.evidenceMethod !== slot.evidenceMethod) expectation.push(`evidence_method_differs_from_slot:${row.evidenceMethod}!=${slot.evidenceMethod}`);
+
+  // (3) ACTUAL RESULT - checked against the independent expectation and against the LIVE response text itself.
+  semantic.push(...checkEvidenceRowSemantics(row, {
+    requiresDeterministicCapability: true,
+    expectedResult: slot.expectedResult,
+    forbiddenResponsePatterns: key === 'security' ? slot.forbiddenResponsePatterns : [],
+  }));
+  const response = typeof row.response === 'string' ? row.response : '';
+  if (slot.requiresDeterministicAnswer && row.answerSource !== 'deterministic') semantic.push(`answer_not_deterministic:${row.answerSource ?? 'missing'}`);
+  if (key === 'owner' || key === 'planRole') {
+    if (RESULT_SENTINELS.includes(slot.expectedResult)) {
+      for (const pattern of SENTINEL_RESPONSE_PATTERNS[slot.expectedResult]?.[slot.language] || []) {
+        if (!pattern.test(response)) semantic.push(`live_response_missing_sentinel_evidence:${slot.expectedResult}:${pattern}`);
+      }
+    } else {
+      const capability = getCapabilityById(slot.expectedResult);
+      const label = capability ? (slot.language === 'he' ? capability.heLabel : capability.enLabel) : null;
+      if (!label || !response.includes(label)) semantic.push(`live_response_does_not_name_expected_capability:${slot.expectedResult}`);
+    }
+  }
+  if (key === 'security') {
+    // re-derive the outcome from the LIVE response with the predeclared patterns - the row's own resolvedResult is
+    // only a claim that must equal this independent recomputation.
+    const recomputed = slot.forbiddenResponsePatterns.some((p) => p.test(response)) ? SECURITY_UNSAFE_RESULT : SECURITY_EXPECTED_RESULT;
+    if (row.resolvedResult !== recomputed) semantic.push(`resolved_result_disagrees_with_live_response_recompute: row "${row.resolvedResult}", recomputed "${recomputed}"`);
+  }
+  if (key === 'support') {
+    if (row.supportCategory !== slot.expectedResult) semantic.push(`support_category_differs_from_expectation_map:${row.supportCategory}!=${slot.expectedResult}`);
+    if (!isNonEmptyString(row.immutableTestRowId)) semantic.push('support_row_not_joinable_to_test_chat_logs_row');
+  }
+  if (key === 'planRole') {
+    const sv = row.serverVerified;
+    if (!sv || typeof sv !== 'object' || !isNonEmptyString(sv.serverPlan) || !isNonEmptyString(sv.serverRole) || !isNonEmptyString(sv.serverMarket)) {
+      semantic.push('server_verified_plan_role_market_facts_required');
+    } else {
+      const derived = deriveRegistryEntitlement(slot.expectedResult, sv.serverPlan, sv.serverRole);
+      if (!ENTITLEMENT_VALUES.includes(derived)) semantic.push(`registry_entitlement_underivable:${derived}`);
+      if (derived !== slot.fixtureExpectedEntitlement) semantic.push(`fixture_entitlement_disagrees_with_registry_derivation: fixture "${slot.fixtureExpectedEntitlement}", registry+server facts "${derived}"`);
+      if (row.expectedEntitlement !== derived) semantic.push(`row_expected_entitlement_differs_from_registry_derivation: row "${row.expectedEntitlement ?? 'missing'}", derived "${derived}"`);
+      if (row.resolvedEntitlement !== derived) semantic.push(`wrong_entitlement_result: resolver output "${row.resolvedEntitlement ?? 'missing'}", registry+server facts say "${derived}"`);
+      if (row.expectedEntitlementSource !== 'canonical_registry') semantic.push(`entitlement_expectation_source_not_canonical_registry:${row.expectedEntitlementSource ?? 'missing'}`);
+      if (persona && sv.serverMarket !== persona.market) semantic.push(`server_market_differs_from_persona_declaration:${sv.serverMarket}!=${persona.market}`);
+      if (isNonEmptyString(row.plan) && !row.plan.toLowerCase().startsWith(sv.serverPlan)) semantic.push(`plan_claim_disagrees_with_server_plan:${row.plan}!=${sv.serverPlan}`);
+    }
+  }
+  return { expectation, semantic };
+}
+
+/**
+ * THE FINAL GATE. Required slots + expected values are resolved from the static acceptance definitions; the
+ * evidence rows only supply what they observed. Consequences (each proven by a unit test):
+ *  - a required slot with no row is MISSING and lowers validCount - it cannot vanish;
+ *  - an extra / unknown-slot row never adds a requirement (totalRequired stays 48/13/9/4) and is reported;
+ *  - a duplicated slot never counts;
+ *  - a row whose expectation was authored by the row itself (or differs from the authority) is INVALID.
+ * @param {'owner'|'planRole'|'security'|'support'} key
+ * @param {object[]} rows
+ * @param {{ definition?: { slots: object[] } }} [opts] - test hook only; the real gate always uses FINAL_MATRIX_DEFINITIONS
+ */
+export function validateFinalMatrix(key, rows, opts = {}) {
+  const definition = opts.definition || FINAL_MATRIX_DEFINITIONS[key];
+  const name = definition?.name || key;
+  const definitionProblems = checkFinalMatrixDefinitionIntegrity(key, definition);
+  const slots = definition && Array.isArray(definition.slots) ? definition.slots : [];
+  const requiredSlots = slots.map((s) => s.slot);
+  const totalRequired = EXPECTED_MATRIX_SIZES[key] ?? requiredSlots.length;
+  const list = Array.isArray(rows) ? rows : [];
+
+  const bySlot = new Map();
+  const unknownSlots = [];
+  for (const row of list) {
+    const slotId = row?.matrixSlot;
+    if (isNonEmptyString(slotId) && requiredSlots.includes(slotId)) bySlot.set(slotId, [...(bySlot.get(slotId) || []), row]);
+    else unknownSlots.push({ evidenceId: row?.evidenceId ?? null, claimedSlot: slotId ?? null });
+  }
+  const idCounts = new Map();
+  for (const row of list) if (isNonEmptyString(row?.evidenceId)) idCounts.set(row.evidenceId, (idCounts.get(row.evidenceId) || 0) + 1);
+  const duplicateEvidenceIds = [...idCounts.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+
+  const authorityTally = {};
+  const slotResults = slots.map((slot) => {
+    const found = bySlot.get(slot.slot) || [];
+    const authority = { kind: slot.expectationAuthority, description: EXPECTATION_AUTHORITIES[slot.expectationAuthority] ?? null, expected: slot.expectedResult };
+    if (key === 'planRole') authority.entitlement = { fixture: slot.fixtureExpectedEntitlement, derivedFrom: 'canonical_registry + server_verified_fact' };
+    if (found.length === 0) return { slot: slot.slot, status: 'MISSING', valid: false, violations: ['required_slot_has_no_evidence_row'], authority };
+    if (found.length > 1) return { slot: slot.slot, status: 'DUPLICATE', valid: false, violations: [`required_slot_has_${found.length}_evidence_rows`], authority };
+    const row = found[0];
+    const schemaViolations = [...checkEvidenceRowSchema(row), ...checkExpectationIndependence(row)];
+    const { expectation, semantic } = checkFinalRowAgainstSlot(row, slot, key);
+    const provenance = checkFinalRuntimeProvenance(row);
+    const dupId = duplicateEvidenceIds.includes(row.evidenceId) ? ['duplicate_evidence_id'] : [];
+    const violations = [...schemaViolations, ...expectation, ...semantic, ...provenance, ...dupId];
+    if (violations.length === 0) authorityTally[slot.expectationAuthority] = (authorityTally[slot.expectationAuthority] || 0) + 1;
+    return { slot: slot.slot, evidenceId: row.evidenceId, status: violations.length === 0 ? 'VALID' : 'INVALID', valid: violations.length === 0, violations, authority };
+  });
+
+  const validCount = definitionProblems.length ? 0 : slotResults.filter((r) => r.valid).length;
+  const missingSlots = slotResults.filter((r) => r.status === 'MISSING').map((r) => r.slot);
+  const duplicateSlots = slotResults.filter((r) => r.status === 'DUPLICATE').map((r) => r.slot);
+  return {
+    matrix: key, name, totalRequired, validCount, slotResults, missingSlots, duplicateSlots, unknownSlots, duplicateEvidenceIds, definitionProblems,
+    authorityTally,
+    passes: definitionProblems.length === 0 && validCount === totalRequired && missingSlots.length === 0 && duplicateSlots.length === 0 && unknownSlots.length === 0 && duplicateEvidenceIds.length === 0,
+  };
 }

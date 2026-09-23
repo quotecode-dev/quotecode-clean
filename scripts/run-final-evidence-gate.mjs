@@ -1,33 +1,29 @@
-// PRODUCT TRUTH FINAL CLOSURE — runs the real, mechanical Finding 5 gate against all 4 committed
-// final matrices and prints the exact "N / M VALID" totals + full violation detail for anything
-// short of totally valid. This is the actual proof, not a narrated claim.
-import { validateEvidenceMatrix, checkEvidenceRuntimeFreshness } from '../src/data/productTruthEvidenceSchema.js';
+// PRODUCT TRUTH FINAL THREE-ACTION DELTA - Action B: the FINAL committed semantic gate over the four final matrices.
+//
+// The required slot sets (48 / 13 / 9 / 4) and every expected value are resolved INSIDE validateFinalMatrix from the
+// static acceptance definitions (src/data/productTruthFinalMatrixAcceptance.js) + the canonical registry. This runner
+// hands the validator ONLY the evidence rows - it derives no slot list and no expectation from them (the previous
+// version passed `owner.rows.map(r => r.evidenceId)` as the required slots, which is exactly the defect Codex found).
+//   usage: node scripts/run-final-evidence-gate.mjs [rowsPrefix]
+import { validateFinalMatrix } from '../src/data/productTruthEvidenceSchema.js';
 import { readFileSync } from 'node:fs';
 
-const FINAL_SHA = '08c012bcd6094335e987e7972c66604c2579e125';
+const PREFIX = process.argv[2] || 'evidence/product-truth/2026-09-23-three-action-delta';
+const FILES = { owner: 'owner-matrix', planRole: 'plan-role-matrix', security: 'security-matrix', support: 'support-matrix' };
 
-function report(name, data, requiredSlots, slotOf, expectationOf) {
-  const result = validateEvidenceMatrix(data.rows, { requiredSlots, slotOf, expectationOf });
-  console.log(`\n=== ${name}: ${result.validCount} / ${result.totalRequired} VALID ===`);
-  console.log('slotCheck:', JSON.stringify(result.slotCheck));
-  const invalid = result.rowResults.filter((r) => !r.valid);
-  if (invalid.length) {
-    console.log('INVALID ROWS:', JSON.stringify(invalid.map((r) => ({ slot: r.slot, schema: r.schemaViolations, semantic: r.semanticViolations })), null, 2));
-  }
-  const stale = checkEvidenceRuntimeFreshness(data.rows, FINAL_SHA);
-  console.log(`unmarked-stale-SHA rows: ${stale.length}`);
-  if (stale.length) console.log(JSON.stringify(stale, null, 2));
-  return result;
+let allPass = true;
+const totals = {};
+for (const [key, file] of Object.entries(FILES)) {
+  const data = JSON.parse(readFileSync(`${PREFIX}-${file}-final-rows.json`, 'utf-8'));
+  const result = validateFinalMatrix(key, data.rows);
+  totals[key] = `${result.validCount} / ${result.totalRequired}`;
+  console.log(`\n=== ${result.name}: ${result.validCount} / ${result.totalRequired} VALID (rows supplied: ${data.rows.length}) ===`);
+  console.log('definitionProblems:', JSON.stringify(result.definitionProblems));
+  console.log('missing:', JSON.stringify(result.missingSlots), '| duplicate:', JSON.stringify(result.duplicateSlots), '| unknown:', JSON.stringify(result.unknownSlots), '| duplicateEvidenceIds:', JSON.stringify(result.duplicateEvidenceIds));
+  console.log('expectation authorities proven for VALID cells:', JSON.stringify(result.authorityTally));
+  for (const r of result.slotResults.filter((x) => !x.valid)) console.log(`  ${r.status} ${r.slot}:`, JSON.stringify(r.violations));
+  if (!result.passes) allPass = false;
 }
-
-const owner = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-final-delta-closure-owner-matrix-final-rows.json', 'utf-8'));
-report('OWNER MATRIX', owner, owner.rows.map((r) => r.evidenceId), (r) => r.evidenceId, () => ({ requiresDeterministicCapability: true }));
-
-const planRole = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-final-delta-closure-plan-role-final-rows.json', 'utf-8'));
-report('PLAN/ROLE MATRIX', planRole, planRole.rows.map((r) => r.evidenceId), (r) => r.evidenceId, () => ({ requiresDeterministicCapability: true }));
-
-const security = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-final-delta-closure-security-final-rows.json', 'utf-8'));
-report('SECURITY MATRIX', security, security.rows.map((r) => r.evidenceId), (r) => r.evidenceId, () => ({ expectedResult: 'fail_safe' }));
-
-const support = JSON.parse(readFileSync('evidence/product-truth/2026-09-24-final-delta-closure-support-final-rows.json', 'utf-8'));
-report('AI SUPPORT MATRIX', support, support.rows.map((r) => r.evidenceId), (r) => r.evidenceId, (r) => ({ expectedResult: r.expectedResult, requiresDeterministicCapability: true }));
+console.log('\nTOTALS', JSON.stringify(totals));
+console.log(allPass ? 'FINAL EVIDENCE SEMANTIC GATE: PASS' : 'FINAL EVIDENCE SEMANTIC GATE: FAIL');
+process.exit(allPass ? 0 : 1);
