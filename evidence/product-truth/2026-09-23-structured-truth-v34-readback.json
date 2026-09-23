@@ -1,0 +1,15 @@
+{
+  "readAtUtc": "2026-09-23T19:42:28.748Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 34,
+  "updatedAtEpochMs": 1790192530535,
+  "updatedAtUtc": "2026-09-23T19:42:10.535Z",
+  "ezbrSha256": "645cd56f46cdaa88b1a37918a6ed23bd96be01260f11be7f005bda35bafce0a8",
+  "status": "ACTIVE",
+  "priorVersion": 32,
+  "priorVersionNote": "v33 (deployed 2026-09-23T19:20:23.484Z from 78bc1e7) was superseded within the same task by v34",
+  "implementationSourceSha": "e674be25f820100e4d93822af508ddd52ae21fa5"
+}

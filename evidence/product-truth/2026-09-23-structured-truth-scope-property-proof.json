@@ -1,0 +1,246 @@
+{
+  "capturedAtUtc": "2026-09-23T19:47:34.788Z",
+  "baseline": {
+    "owner": "48 / 48",
+    "planRole": "13 / 13",
+    "security": "9 / 9",
+    "support": "4 / 4"
+  },
+  "runtimeCorpus": {
+    "answers": 486,
+    "falseRejections": 0
+  },
+  "crossTruthSweep": {
+    "pairs": 564,
+    "leaks": 0
+  },
+  "directCases": [
+    {
+      "lang": "en",
+      "text": "TEKANGO lacks the in-editor calculator — elsewhere it is available.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "TEKANGO lacks the in-editor calculator: elsewhere it is available.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "Other platforms lack this calculator — TEKANGO has an in-editor calculator.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "It is unavailable in competing products: TEKANGO includes an in-editor calculator.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "ב-TEKANGO חסר מחשבון מובנה בעורך — במוצרים אחרים הוא זמין.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "ב-TEKANGO אין מחשבון מובנה בעורך: במוצרים אחרים הוא קיים.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך זמין בכל פלטפורמה מלבד TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "במוצרים אחרים המחשבון אינו זמין — ב-TEKANGO הוא זמין.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "במערכות אחרות היכולת אינה נתמכת: ב-TEKANGO היא נתמכת.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "In-editor calculator does not exist in TEKANGO",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is available elsewhere, but TEKANGO lacks it.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is available only outside TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator exists in other products, but not in TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is available elsewhere.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is unavailable elsewhere, but available in TEKANGO.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is available in other products and in TEKANGO.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "text": "The in-editor calculator is not available outside TEKANGO, but TEKANGO supports it.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך זמין במוצרים אחרים, אבל לא ב-TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך זמין רק מחוץ ל-TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך קיים במוצרים אחרים, אבל לא קיים ב-TEKANGO.",
+      "expected": "REJECT",
+      "polarity": "REJECT",
+      "ownerGate": "47 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    },
+    {
+      "lang": "he",
+      "text": "מחשבון מובנה בעורך זמין גם במוצרים אחרים וגם ב-TEKANGO.",
+      "expected": "ACCEPT",
+      "polarity": "ACCEPT",
+      "ownerGate": "48 / 48",
+      "ok": true
+    }
+  ],
+  "generatedPolarity": {
+    "seenNouns": {
+      "generated": 133682,
+      "mustReject": 67024,
+      "mustAccept": 66658,
+      "leaks": 0,
+      "falseRejections": 0,
+      "byFamily": {
+        "pair": 131840,
+        "tek-only": 80,
+        "ext-only": 250,
+        "except-positive": 682,
+        "except-negative": 274,
+        "only-outside": 107,
+        "only-tekango": 12,
+        "composition": 77,
+        "temporal": 45,
+        "special": 315
+      }
+    },
+    "unseenNouns": {
+      "generated": 117296,
+      "mustReject": 58800,
+      "mustAccept": 58496,
+      "leaks": 0,
+      "falseRejections": 0,
+      "byFamily": {
+        "pair": 115712,
+        "tek-only": 80,
+        "ext-only": 214,
+        "except-positive": 562,
+        "except-negative": 226,
+        "only-outside": 95,
+        "only-tekango": 12,
+        "composition": 77,
+        "temporal": 45,
+        "special": 273
+      }
+    }
+  },
+  "fullOwnerGateInjection": {
+    "contradictionsInjected": 39433,
+    "contradictionsRejected": 39433,
+    "validPositivesInjected": 36968,
+    "validPositivesAccepted": 36968,
+    "leaks": [],
+    "falseRejections": [],
+    "leakCount": 0,
+    "falseRejectionCount": 0
+  },
+  "summary": "BASELINE 48/13/9/4; ZERO CONTRADICTION LEAKS; ZERO FALSE REJECTIONS"
+}
