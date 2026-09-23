@@ -76,11 +76,47 @@ const controlOk = Object.values(control).every((r) => r.passes);
   record('A5b', 'Owner: contradictory prose forged consistently in BOTH the row and the raw capture (polarity must reject on its own)', '48 / 48 VALID (accepted)', res, res.slotResults.find((x) => x.slot === 'calculator|direct|en').violations);
 }
 
-const allRejected = results.every((r) => r.rejected);
+// 6+. FINDING 3 SCOPE REMEDIATION - product/location-scoped contradictions (forged consistently in row AND raw, so polarity must reject on its own)
+const forgeOwner = (slot, response) => {
+  const r = clone(rows.owner);
+  const forged = clone(raw);
+  r.find((x) => x.matrixSlot === slot).response = response;
+  forged.matrices.owner.find((e) => e.slot === slot).response = response;
+  return { res: run('owner', r, { rawCapture: forged }), violations: null, slot };
+};
+const scopedAttacks = [
+  ['A6', 'calculator|direct|en', 'The in-editor calculator is available elsewhere, but TEKANGO lacks it.'],
+  ['A7', 'calculator|direct|en', 'The in-editor calculator is available only outside TEKANGO.'],
+  ['A8', 'calculator|direct|en', 'The in-editor calculator exists in other products, but not in TEKANGO.'],
+  ['A9', 'calculator|direct|en', 'TEKANGO lacks it, though the in-editor calculator exists elsewhere.'],
+  ['A10', 'calculator|direct|en', 'The in-editor calculator is available elsewhere.'],
+  ['A11', 'calculator|direct|he', 'מחשבון מובנה בעורך זמין במוצרים אחרים, אבל לא ב-TEKANGO.'],
+  ['A12', 'calculator|direct|he', 'מחשבון מובנה בעורך זמין רק מחוץ ל-TEKANGO.'],
+  ['A13', 'calculator|direct|he', 'מחשבון מובנה בעורך קיים במוצרים אחרים, אבל לא קיים ב-TEKANGO.'],
+];
+// what the pre-fix polarity check (baseline run at the start of the Finding 3 scope remediation) returned for each string
+const PRE_FIX = { A13: 'already rejected before this fix (explicit "לא קיים ב-TEKANGO" was caught)' };
+for (const [id, slot, text] of scopedAttacks) {
+  const { res } = forgeOwner(slot, text);
+  record(id, `Owner ${slot}: "${text}"`, PRE_FIX[id] ?? 'ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)', res, res.slotResults.find((x) => x.slot === slot).violations);
+}
+const validScoped = [];
+for (const [slot, text] of [
+  ['calculator|direct|en', 'The in-editor calculator is unavailable elsewhere, but available in TEKANGO.'],
+  ['calculator|direct|en', 'The in-editor calculator is available in other products and in TEKANGO.'],
+  ['calculator|direct|en', 'The in-editor calculator is not available outside TEKANGO, but TEKANGO supports it.'],
+  ['calculator|direct|he', 'מחשבון מובנה בעורך לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO.'],
+  ['calculator|direct|he', 'מחשבון מובנה בעורך זמין גם במוצרים אחרים וגם ב-TEKANGO.'],
+]) {
+  const { res } = forgeOwner(slot, text);
+  validScoped.push({ slot, text, result: `${res.validCount} / ${res.totalRequired} VALID, gate ${res.passes ? 'PASS' : 'FAIL'}`, accepted: res.passes });
+}
+
+const allRejected = results.every((r) => r.rejected) && validScoped.every((v) => v.accepted);
 console.log(JSON.stringify({
   capturedAtUtc: new Date().toISOString(), rowsPrefix: PREFIX, rawCapture: RAW_PATH,
   control: Object.fromEntries(Object.entries(control).map(([k, v]) => [k, `${v.validCount} / ${v.totalRequired}`])), controlOk,
-  attacks: results, allFiveAttacksRejected: allRejected,
-  summary: controlOk && allRejected ? 'CONTROL 48/13/9/4 VALID; ALL FIVE CODEX ATTACKS REJECTED' : 'PROOF FAILED',
+  attacks: results, validScopedPositivesAccepted: validScoped, allAttacksRejectedAndValidAccepted: allRejected,
+  summary: controlOk && allRejected ? 'CONTROL 48/13/9/4 VALID; ALL CODEX ATTACKS (incl. scoped Finding-3 contradictions) REJECTED; VALID SCOPED POSITIVES ACCEPTED' : 'PROOF FAILED',
 }, null, 2));
 process.exit(controlOk && allRejected ? 0 : 1);
