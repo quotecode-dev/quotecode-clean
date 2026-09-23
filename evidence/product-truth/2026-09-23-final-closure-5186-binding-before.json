@@ -1,0 +1,115 @@
+{
+  "url": "http://192.168.1.189:5186/",
+  "worktree": "C:\\tkrc-pt",
+  "branch": "tekango-rc-product-truth-2026-09-22",
+  "head": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+  "candidateSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+  "expectedCandidateSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+  "mode": "localtest",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "dirty": false,
+  "servesWorkingTree": false,
+  "buildInputDigest": "7be3abd9fbe3528ad77bcf04e9c688295e992c8dbecf9321f8ac5cd8dd5c7926",
+  "gitObjectDigest": "7be3abd9fbe3528ad77bcf04e9c688295e992c8dbecf9321f8ac5cd8dd5c7926",
+  "distDir": "C:\\tkrc-dist\\1e5d6ea0412d",
+  "distFiles": 329,
+  "candidateFingerprint": "a889e46a8b5bf7fccc43eeaf9f633dbf18b3688321a130c49b898d25335eff18",
+  "servedFingerprint": "a889e46a8b5bf7fccc43eeaf9f633dbf18b3688321a130c49b898d25335eff18",
+  "servedMismatches": [],
+  "loaded": {
+    "href": "http://192.168.1.189:5186/dashboard?lang=he",
+    "dom": {
+      "buildSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+      "buildInputDigest": "7be3abd9fbe3528ad77bcf04e9c688295e992c8dbecf9321f8ac5cd8dd5c7926",
+      "assetsFingerprint": "035e37c83da8a265ea7268054e729dd003b1a9c8b10e085d1be2262945d013eb",
+      "testProjectRef": "ljfizgrdyzxddswcedwr",
+      "mode": "localtest",
+      "buildTime": "2026-09-23T10:14:40.616Z",
+      "assetFiles": [
+        "assets/index-BmvrK7ir.css",
+        "assets/index-MGO5-Vh9.js",
+        "assets/index.es-DcUtmeuF.js",
+        "assets/purify.es-Jn2rvFN8.js",
+        "assets/rubik-arabic-wght-normal-CGnJ-sf6.woff2",
+        "assets/rubik-cyrillic-ext-wght-normal-BjodpZir.woff2",
+        "assets/rubik-cyrillic-wght-normal-DveCct9I.woff2",
+        "assets/rubik-hebrew-400-normal-BQDoxs6C.woff",
+        "assets/rubik-hebrew-400-normal-Dp0lvSRB.woff2",
+        "assets/rubik-hebrew-500-normal--anb7y8_.woff",
+        "assets/rubik-hebrew-500-normal-B_5jqoVI.woff2",
+        "assets/rubik-hebrew-600-normal-BGAyptFf.woff",
+        "assets/rubik-hebrew-600-normal-CpCbvE17.woff2",
+        "assets/rubik-hebrew-700-normal-B2Hm7hpE.woff",
+        "assets/rubik-hebrew-700-normal-Da14F88e.woff2",
+        "assets/rubik-hebrew-800-normal-CEoY7Wj3.woff2",
+        "assets/rubik-hebrew-800-normal-DgqUxLtA.woff",
+        "assets/rubik-hebrew-900-normal-B3V9FX5z.woff",
+        "assets/rubik-hebrew-900-normal-CNJSgxQA.woff2",
+        "assets/rubik-hebrew-wght-normal-BIkpbuMU.woff2",
+        "assets/rubik-latin-400-normal-BV1Ho3GG.woff",
+        "assets/rubik-latin-400-normal-j0pmKyiQ.woff2",
+        "assets/rubik-latin-500-normal-1os41rQk.woff2",
+        "assets/rubik-latin-500-normal-LZYVHeqz.woff",
+        "assets/rubik-latin-600-normal-7iWW07_k.woff2",
+        "assets/rubik-latin-600-normal-Bd1rsTk4.woff",
+        "assets/rubik-latin-700-normal-D-tMm-eS.woff2",
+        "assets/rubik-latin-700-normal-KHOtubUA.woff",
+        "assets/rubik-latin-800-normal-BtaGuVpR.woff2",
+        "assets/rubik-latin-800-normal-Dq1miTTj.woff",
+        "assets/rubik-latin-900-normal-CBojinpD.woff",
+        "assets/rubik-latin-900-normal-Cz6GdZLE.woff2",
+        "assets/rubik-latin-ext-wght-normal-OacczzuJ.woff2",
+        "assets/rubik-latin-wght-normal-CnQIisVs.woff2"
+      ]
+    },
+    "metaSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+    "build": {
+      "buildSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+      "buildInputDigest": "7be3abd9fbe3528ad77bcf04e9c688295e992c8dbecf9321f8ac5cd8dd5c7926",
+      "dirty": false,
+      "mode": "localtest"
+    },
+    "loadedAssets": [
+      "assets/index-BmvrK7ir.css",
+      "assets/index-MGO5-Vh9.js",
+      "assets/rubik-hebrew-400-normal-Dp0lvSRB.woff2",
+      "assets/rubik-hebrew-600-normal-CpCbvE17.woff2",
+      "assets/rubik-hebrew-700-normal-Da14F88e.woff2",
+      "assets/rubik-latin-400-normal-j0pmKyiQ.woff2",
+      "assets/rubik-latin-600-normal-7iWW07_k.woff2"
+    ],
+    "font": {
+      "ready": true,
+      "productFontLoaded": true,
+      "loadedFaces": 5
+    },
+    "foreignAssets": []
+  },
+  "servedBy": "vite preview (frozen build, not a dev server)",
+  "mode_": "bind",
+  "stoppedProcesses": [
+    {
+      "pid": "34136",
+      "cmd": "\"C:\\Program Files\\nodejs\\node.exe\" node_modules/.bin/../vite/bin/vite.js preview --mode localtest --host 0.0.0.0 --port 5186 --strictPort --outDir C:/tkrc-dist/5d7b815c37bf"
+    }
+  ],
+  "buildTime": "2026-09-23T10:14:40.616Z",
+  "capturedAt": "2026-09-23T10:15:09.982Z",
+  "browserIdentity": {
+    "dom": {
+      "buildSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+      "buildInputDigest": "7be3abd9fbe3528ad77bcf04e9c688295e992c8dbecf9321f8ac5cd8dd5c7926",
+      "assetsFingerprint": "035e37c83da8a265ea7268054e729dd003b1a9c8b10e085d1be2262945d013eb",
+      "testProjectRef": "ljfizgrdyzxddswcedwr",
+      "mode": "localtest",
+      "buildTime": "2026-09-23T10:14:40.616Z",
+      "assetFiles": 34
+    },
+    "metaSha": "1e5d6ea0412d4ff404918c24442a205ef123f520",
+    "servedAssetsFingerprint": "035e37c83da8a265ea7268054e729dd003b1a9c8b10e085d1be2262945d013eb",
+    "distAssetsFingerprint": "035e37c83da8a265ea7268054e729dd003b1a9c8b10e085d1be2262945d013eb"
+  },
+  "result": "BOUND",
+  "problems": [],
+  "ownerVisualAcceptance": "ELIGIBLE (Owner acceptance itself is a separate record)"
+}
