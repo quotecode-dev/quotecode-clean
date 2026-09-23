@@ -1,6 +1,7 @@
-// STRUCTURED FORBIDDEN-CLAIM CONTRACT tests (Codex finding 4, 2026-09-24).
+// STRUCTURED FORBIDDEN-CLAIM CONTRACT tests (Codex finding 4, 2026-09-24; hardened further by the
+// "structured runtime answer contract" finding, 2026-09-2X: unknown codes now hard-fail).
 import { describe, it, expect } from 'vitest';
-import { checkForbiddenClaimCodes, checkSentinelForbiddenClaim, FORBIDDEN_CODE_TO_SEMANTIC_FAMILY, SENTINEL_TO_SEMANTIC_FAMILY } from './claimCodes.ts';
+import { checkForbiddenClaimCodes, checkSentinelForbiddenClaim, UnknownForbiddenClaimCodeError, FORBIDDEN_CODE_TO_SEMANTIC_FAMILY, SENTINEL_TO_SEMANTIC_FAMILY } from './claimCodes.ts';
 import { FORBIDDEN_CLAIM_FAMILIES } from '../../../src/data/forbiddenClaimSemantics.js';
 import { formatPaymentTruthAnswer } from './paymentTruth.ts';
 import { formatInvoicingTruthAnswer } from './invoicingTruth.ts';
@@ -20,13 +21,27 @@ describe('STRUCTURED FORBIDDEN-CLAIM CONTRACT — the 6 required families are al
     }
   });
 
-  it('every code in FORBIDDEN_CODE_TO_SEMANTIC_FAMILY actually appears on at least one real registry capability (the join points at real data, not invented codes)', () => {
+  it('every code that appears on ANY real registry capability is mapped to a real family - no real registry code is left "unknown" (Codex "structured runtime answer contract": an unmapped code must hard-fail, so none of today\'s real data may ever hit that path)', () => {
     const allRealCodes = new Set();
     for (const c of [...PRODUCT_TRUTH_REGISTRY, ...NON_CURRENT_REGISTRY]) {
       for (const code of c.forbiddenClaimCodes || []) allRealCodes.add(code);
     }
+    for (const code of allRealCodes) {
+      expect(FORBIDDEN_CODE_TO_SEMANTIC_FAMILY[code], `real registry code "${code}" has no mapped semantic family - it would hard-fail at runtime`).toBeTruthy();
+    }
+  });
+
+  it('every code in FORBIDDEN_CODE_TO_SEMANTIC_FAMILY actually appears on at least one real registry capability or is a documented structured-state-only invariant code (the join points at real data, not invented codes)', () => {
+    const allRealCodes = new Set();
+    for (const c of [...PRODUCT_TRUTH_REGISTRY, ...NON_CURRENT_REGISTRY]) {
+      for (const code of c.forbiddenClaimCodes || []) allRealCodes.add(code);
+    }
+    // NO_LIFECYCLE_SELF_SERVICE_CLAIM is emitted only by capabilityAnswerState.ts's structured
+    // invariant check (no registry capability declares it - nothing self-service exists to
+    // conflate) - documented, not a stray/invented mapping.
+    const structuredStateOnlyCodes = new Set(['NO_LIFECYCLE_SELF_SERVICE_CLAIM']);
     for (const code of Object.keys(FORBIDDEN_CODE_TO_SEMANTIC_FAMILY)) {
-      expect(allRealCodes.has(code), `mapped code "${code}" does not appear on any real registry capability`).toBe(true);
+      expect(allRealCodes.has(code) || structuredStateOnlyCodes.has(code), `mapped code "${code}" does not appear on any real registry capability and is not a documented structured-state-only code`).toBe(true);
     }
   });
 });
@@ -76,9 +91,20 @@ describe('STRUCTURED FORBIDDEN-CLAIM CONTRACT — adversarial fixtures (proves t
     expect(results[0].family).toBe('payment');
   });
 
-  it('an unmapped code (e.g. NO_OWNER_PUBLIC_WHATSAPP_CONFLATION - a real registry code outside the 6 required families) is reported honestly as unchecked, never silently "passing" as if it had been verified', () => {
+  it('every real registry code outside the original 6 required families (e.g. NO_OWNER_PUBLIC_WHATSAPP_CONFLATION) is now actually checked, not merely reported as unchecked', () => {
     const results = checkForbiddenClaimCodes(['NO_OWNER_PUBLIC_WHATSAPP_CONFLATION'], 'irrelevant text', false);
-    expect(results[0]).toEqual({ code: 'NO_OWNER_PUBLIC_WHATSAPP_CONFLATION', family: null, claimed: false, matches: [] });
+    expect(results[0].family).toBe('whatsappConflation');
+    expect(results[0].claimed).toBe(false);
+    const fakeAnswer = 'The owner WhatsApp share button is the same as the public WhatsApp contact button.';
+    expect(checkForbiddenClaimCodes(['NO_OWNER_PUBLIC_WHATSAPP_CONFLATION'], fakeAnswer, false)[0].claimed).toBe(true);
+  });
+
+  it('a genuinely unknown/typo\'d forbidden claim code HARD-FAILS (throws UnknownForbiddenClaimCodeError) rather than being silently reported as `claimed: false` (Codex "structured runtime answer contract")', () => {
+    expect(() => checkForbiddenClaimCodes(['NO_THIS_CODE_WAS_NEVER_GIVEN_A_FAMILY'], 'irrelevant text', false)).toThrow(UnknownForbiddenClaimCodeError);
+  });
+
+  it('the hard-fail is by code identity: one unknown code among several known ones still throws (never silently skips just the bad one)', () => {
+    expect(() => checkForbiddenClaimCodes(['NO_PAYMENT_CAPABILITY_CLAIM', 'NO_TYPO_CODE'], 'irrelevant text', false)).toThrow(UnknownForbiddenClaimCodeError);
   });
 
   it('the sentinel join also has teeth: a synthetic settings-lifecycle false claim is caught', () => {

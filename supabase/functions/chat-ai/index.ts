@@ -259,6 +259,13 @@ serve(async (req) => {
   if (capabilityTruthApplies({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })) {
     const capabilityId = classifyCapabilityIntent(lastUserMessage);
     if (capabilityId) {
+      // Codex "structured runtime answer contract" (2026-09-2X): formatCapabilityTruthAnswer
+      // resolves a structured CapabilityAnswerState and THROWS CapabilityAnswerInvariantError if it
+      // would violate a hard product invariant (payment/invoicing/AI-execution/etc.) - a real,
+      // runtime hard-fail (not merely a test-time check), deliberately left uncaught here so a
+      // violation can never be papered over into a wrong deterministic answer; the request fails
+      // closed with a generic error rather than returning a false claim. Real data has zero
+      // violations today (capabilityAnswerState.test.js) - this path exists as a regression guard.
       const capabilityAnswer = formatCapabilityTruthAnswer(
         capabilityId,
         { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities },

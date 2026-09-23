@@ -118,6 +118,51 @@ export function groupMarkersById(markers) {
 }
 
 /**
+ * Codex "enforceable source inventory" (2026-09-2X): lists every real, scannable file under
+ * `roots` (same walk/skip rules as scanCapabilityMarkers - test files, this scanner's own file,
+ * and src/data/ excluded) REGARDLESS of whether it carries a marker. This is the file UNIVERSE the
+ * interactive-completeness gate (productTruthInteractiveScanner.js) audits - deriving it from the
+ * same real filesystem walk the marker scanner already uses means there is still only one
+ * mechanism that decides "which files count", never a second hand-typed file list.
+ * @param {string} baseDir - absolute repository root
+ * @param {string[]} roots - directories (relative to baseDir) to scan
+ * @returns {string[]} relative file paths, sorted
+ */
+export function listScannableFiles(baseDir, roots) {
+  const found = [];
+  const walk = (absDir, relDir) => {
+    let entries;
+    try {
+      entries = readdirSync(absDir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (SKIP_DIR_NAMES.has(entry)) continue;
+      const absPath = join(absDir, entry);
+      const relPath = normalize(relDir ? `${relDir}/${entry}` : entry);
+      let st;
+      try {
+        st = statSync(absPath);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        walk(absPath, relPath);
+        continue;
+      }
+      if (!SCAN_EXTENSIONS.has(extname(entry))) continue;
+      if (isTestFile(entry)) continue;
+      if (SKIP_RELATIVE_PATHS.has(relPath)) continue;
+      if (SKIP_RELATIVE_DIRS.some((d) => relPath.startsWith(d))) continue;
+      found.push(relPath);
+    }
+  };
+  for (const root of roots) walk(join(baseDir, root), normalize(root));
+  return found.sort();
+}
+
+/**
  * Reconciliation (Codex finding 1's actual gate): compares DISCOVERED markers against the
  * registry, in both directions.
  * @param {Record<string, {file:string, line:number}[]>} discoveredById

@@ -75,28 +75,32 @@ export function wouldUnrelatedFileWronglyPass(anchor, unrelatedFileText) {
 }
 
 /**
- * Defect 8 (generalized market authority parity), evidence derivation: for a capability's anchor
- * list, determine which market(s) have REAL, FOUND evidence - not merely declared. An anchor only
- * counts as evidence for a market if the file actually contains it (real fs read) AND the file's
- * naming-convention market classification includes that market.
- * @param {{file:string, anchor:string}[]} anchors
- * @param {(file:string) => boolean} fileExists
- * @param {(file:string) => string} readFile
- * @param {(file:string) => 'local'|'international'|'both'} classifyFileMarket
- * @returns {{localEvidence:boolean, internationalEvidence:boolean}}
+ * Codex "scanner-derived market authority" (2026-09-2X): derive a capability's per-market
+ * IMPLEMENTATION evidence directly from the scanner-DISCOVERED marker locations
+ * (productTruthCapabilityScanner.js's scanCapabilityMarkers/groupMarkersById) - never from a
+ * second, hand-maintained location list (productTruthComponentAnchors.js's CAPABILITY_ANCHORS,
+ * which Codex found still drove market evidence as a second central authority). A capability with
+ * a real marker discovered in a Local-classified file has real Local evidence, and likewise for
+ * International; a file the reachability classifier cannot resolve ('unknown') contributes NO
+ * evidence in either direction - fail closed, an unresolved source can never silently promote a
+ * capability to 'both'.
+ * @param {Record<string, {file:string, line:number}[]>} discoveredById
+ * @param {(file:string) => 'local'|'international'|'both'|'unknown'} classifyFileMarket
+ * @returns {{id:string, localEvidence:boolean, internationalEvidence:boolean}[]}
  */
-export function deriveMarketEvidence(anchors, fileExists, readFile, classifyFileMarket) {
-  let localEvidence = false;
-  let internationalEvidence = false;
-  for (const { file, anchor } of anchors) {
-    if (!fileExists(file)) continue;
-    const text = readFile(file);
-    if (!(typeof text === 'string' && text.includes(anchor))) continue;
-    const market = classifyFileMarket(file);
-    if (market === 'local' || market === 'both') localEvidence = true;
-    if (market === 'international' || market === 'both') internationalEvidence = true;
+export function deriveMarketEvidenceFromScanner(discoveredById, classifyFileMarket) {
+  const evidence = [];
+  for (const [id, markers] of Object.entries(discoveredById)) {
+    let localEvidence = false;
+    let internationalEvidence = false;
+    for (const { file } of markers) {
+      const market = classifyFileMarket(file);
+      if (market === 'local' || market === 'both') localEvidence = true;
+      if (market === 'international' || market === 'both') internationalEvidence = true;
+    }
+    evidence.push({ id, localEvidence, internationalEvidence });
   }
-  return { localEvidence, internationalEvidence };
+  return evidence;
 }
 
 /**
@@ -186,6 +190,46 @@ export function isLocalPrerequisiteProperlyScoped(description, isHebrew) {
 }
 
 /**
+ * Codex "locale/currency negative matrix" mirror check: the same leakage class as
+ * isLocalPrerequisiteProperlyScoped, in the opposite direction - an International-market-only
+ * prerequisite fact must be scoped as International-only whenever mentioned, never presented as
+ * if it also applies to the Local market. No real International-only prerequisite fact exists in
+ * today's registry (the only asymmetric prerequisite today, the Local tax/business ID, is the
+ * function above's real-data case) - this exists so the negative-fixture matrix proves the SAME
+ * leakage class is caught in BOTH directions on a synthetic mirror, not merely assumed safe
+ * because today's real data happens to have nothing International-only to leak.
+ * @param {string} description
+ * @param {boolean} isHebrew
+ * @returns {boolean}
+ */
+export function isInternationalPrerequisiteProperlyScoped(description, isHebrew) {
+  const text = String(description || '');
+  const mentionsIntlTaxId = isHebrew ? /מספר עוסק בינלאומי|EIN/.test(text) : /\b(EIN|international tax id|sales tax id)\b/i.test(text);
+  if (!mentionsIntlTaxId) return true;
+  const mentionsInternationalScope = isHebrew ? /ב-?שוק הבינלאומי/.test(text) : /\bInternational market\b/i.test(text);
+  return mentionsInternationalScope;
+}
+
+/**
+ * Codex "locale/currency negative matrix": regionConfig.js's REGION_RULES is the ONE source for
+ * Local vs International locale/currency semantics that the rest of the Product Truth gate
+ * structurally depends on. Checks the real invariants (Local = ILS symbol + a positive VAT rate;
+ * International = never the ILS symbol, VAT-exempt) so a corrupted regionConfig value is caught
+ * structurally rather than assumed safe because today's committed values happen to be correct.
+ * @param {{LOCAL:{currencySymbol?:string, vatRate:number}, INTERNATIONAL:{defaultCurrencySymbol?:string, vatRate:number}}} regionRules
+ * @returns {string[]} violation reason codes, empty if consistent
+ */
+export function checkRegionConfigIntegrity(regionRules) {
+  const failures = [];
+  if (!regionRules || !regionRules.LOCAL || !regionRules.INTERNATIONAL) return ['missing_region_rules'];
+  if (regionRules.LOCAL.currencySymbol !== '₪') failures.push('local_currency_symbol_not_ils');
+  if (!(regionRules.LOCAL.vatRate > 0)) failures.push('local_vat_rate_not_positive');
+  if (regionRules.INTERNATIONAL.defaultCurrencySymbol === '₪') failures.push('international_currency_symbol_is_ils');
+  if (regionRules.INTERNATIONAL.vatRate !== 0) failures.push('international_vat_rate_not_zero');
+  return failures;
+}
+
+/**
  * Codex finding 3 (2026-09-24): a registry capability's `canonicalSources` and its independently
  * SCANNED, source-owned marker (productTruthCapabilityScanner.js) must be JOINED by identity, not
  * merely both "exist" as separate, never-cross-checked facts. For every LIVE_CURRENT capability
@@ -213,6 +257,47 @@ export function checkSourceAnchorJoin(registryEntries, discoveredById) {
     const markerFiles = (discoveredById[c.id] || []).map((m) => m.file);
     const joined = sources.some((s) => markerFiles.includes(s));
     if (!joined) failures.push({ id: c.id, reason: 'no_source_carries_own_marker' });
+  }
+  return failures;
+}
+
+/**
+ * Codex "enforceable source inventory" (2026-09-2X): a discovered marker occurrence must be
+ * unambiguous - the same capability id must not appear twice in the SAME file (an accidental
+ * copy-paste duplicate, almost never intentional), and a marker's file must be one of that
+ * capability's own DECLARED canonicalSources whenever the registry declares any at all (a marker
+ * discovered somewhere the registry never listed is an undeclared/ambiguous placement - either the
+ * canonicalSources list is stale, or the marker was pasted into the wrong file).
+ * @param {{id:string, file:string, line:number}[]} markers - flat scanner output (scanCapabilityMarkers)
+ * @param {{id:string, canonicalSources?: readonly string[]}[]} registryEntries
+ * @returns {{id:string, file:string, reason:'duplicate_in_file'|'undeclared_marker_location'}[]}
+ */
+export function checkMarkerAmbiguity(markers, registryEntries) {
+  const failures = [];
+  const registryById = new Map(registryEntries.map((c) => [c.id, c]));
+
+  const countByIdFile = new Map();
+  for (const m of markers) {
+    const key = `${m.id}::${m.file}`;
+    countByIdFile.set(key, (countByIdFile.get(key) || 0) + 1);
+  }
+  for (const [key, count] of countByIdFile) {
+    if (count > 1) {
+      const [id, file] = key.split('::');
+      failures.push({ id, file, reason: 'duplicate_in_file' });
+    }
+  }
+
+  const seenIdFile = new Set();
+  for (const m of markers) {
+    const key = `${m.id}::${m.file}`;
+    if (seenIdFile.has(key)) continue;
+    seenIdFile.add(key);
+    const entry = registryById.get(m.id);
+    const sources = entry?.canonicalSources || [];
+    if (entry && sources.length > 0 && !sources.includes(m.file)) {
+      failures.push({ id: m.id, file: m.file, reason: 'undeclared_marker_location' });
+    }
   }
   return failures;
 }

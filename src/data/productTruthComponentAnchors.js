@@ -92,14 +92,11 @@ export function anchorExistsInFile(fileText, anchor) {
   return typeof fileText === 'string' && fileText.includes(anchor);
 }
 
-// Defect 8 (generalized market authority parity): market classification now lives in
-// productTruthMarketReachability.js's createFileMarketClassifier(). That module replaced the
-// original, hard-coded 2-pair Set implementation that used to live here - Codex (finding 2,
-// 2026-09-24) correctly identified that a Set of 2 known literal paths does not generalize to any
-// future file, and that everything outside those 2 pairs silently defaulted to 'both' (a fail-OPEN
-// default masquerading as "shared code"). The replacement derives market from the real filesystem
-// naming convention (generalized, fs-checked) plus real import-graph reachability from the two app
-// entry points, and fails CLOSED to 'unknown' for anything neither signal resolves - see that
-// module's own header for the full design. Re-exported here only for callers that already import
-// classifyFileMarket from this file; no logic lives in this module any more.
-export { createFileMarketClassifier } from './productTruthMarketReachability.js';
+// Defect 8 / Codex "scanner-derived market authority" (2026-09-2X): market classification and
+// market EVIDENCE both live entirely outside this module now. Classification: productTruthMarket-
+// Reachability.js's createFileMarketClassifier() (naming convention + import-graph reachability,
+// fails CLOSED to 'unknown'). Evidence: productTruthGateLib.js's deriveMarketEvidenceFromScanner(),
+// fed by the scanner's own DISCOVERED marker locations (productTruthCapabilityScanner.js) - never
+// by this file's CAPABILITY_ANCHORS map. CAPABILITY_ANCHORS's remaining, legitimate role is the
+// DEFECT-7/9 coverage and source-presence checks above (a distinct concern from market authority);
+// it is no longer imported or re-exported for any market-related purpose anywhere in the repo.

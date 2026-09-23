@@ -13,8 +13,9 @@ import { describe, it, expect } from 'vitest';
 import { PRODUCT_TRUTH_REGISTRY, getCapabilityById } from './productTruthRegistry.js';
 import { CAPABILITY_ANCHORS } from './productTruthComponentAnchors.js';
 import { createFileMarketClassifier } from './productTruthMarketReachability.js';
-import { checkCoverage, checkAnchorPresence, wouldUnrelatedFileWronglyPass, deriveMarketEvidence, checkMarketParity, checkSourceAnchorJoin } from './productTruthGateLib.js';
+import { checkCoverage, checkAnchorPresence, wouldUnrelatedFileWronglyPass, deriveMarketEvidenceFromScanner, checkMarketParity, checkSourceAnchorJoin } from './productTruthGateLib.js';
 import { scanCapabilityMarkers, groupMarkersById } from './productTruthCapabilityScanner.js';
+import { REGION_RULES } from '../utils/regionConfig.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
@@ -94,17 +95,20 @@ describe('DEFECT-7/9 NEGATIVE FIXTURES (synthetic - proves the checker catches e
   });
 });
 
-describe('DEFECT-8 GENERALIZED MARKET AUTHORITY PARITY (real data, not hard-coded to one capability)', () => {
+describe('DEFECT-8 / SCANNER-DERIVED MARKET AUTHORITY (real data, not hard-coded to one capability)', () => {
   // Codex finding 2 (2026-09-24): classifyFileMarket is now a real, generalized derivation
   // (naming-convention + import-graph reachability, computed once for the whole repo) rather than
   // a 2-entry hard-coded Set - see productTruthMarketReachability.js.
   const classifyFileMarket = createFileMarketClassifier(ROOT);
-  // Independently derive REAL per-capability market evidence from the SAME anchor map used for
-  // coverage (§ above) - never reading PRODUCT_TRUTH_REGISTRY's own `markets` field as an input.
-  const evidence = Object.entries(CAPABILITY_ANCHORS).map(([id, anchors]) => ({
-    id,
-    ...deriveMarketEvidence(anchors, fileExists, readFile, classifyFileMarket),
-  }));
+  // Codex "scanner-derived market authority" (2026-09-2X): market evidence now comes DIRECTLY from
+  // the scanner's own discovered marker locations (scanCapabilityMarkers/groupMarkersById) - never
+  // from CAPABILITY_ANCHORS, which Codex found was still acting as a second, hand-maintained
+  // market-evidence authority even after finding 2's naming/reachability generalization. This is
+  // the ONE remaining consumer of CAPABILITY_ANCHORS being retired for market purposes; the anchor
+  // map keeps its separate, legitimate role in the DEFECT-7/9 coverage/source-presence checks above
+  // (a different concern Codex did not ask this task to change).
+  const discoveredById = groupMarkersById(scanCapabilityMarkers(ROOT, ['src', 'supabase/functions']));
+  const evidence = deriveMarketEvidenceFromScanner(discoveredById, classifyFileMarket);
 
   it('sanity: evidence derivation actually distinguishes markets (not everything trivially "both")', () => {
     const localOnly = evidence.filter((e) => e.localEvidence && !e.internationalEvidence);
@@ -147,6 +151,16 @@ describe('DEFECT-8 GENERALIZED MARKET AUTHORITY PARITY (real data, not hard-code
     expect(e.localEvidence).toBe(true);
     expect(e.internationalEvidence).toBe(true);
     expect(getCapabilityById('public_whatsapp_contact').markets).toEqual(expect.arrayContaining(['local', 'international']));
+  });
+
+  it('regionConfig parity: the ONLY two markets regionConfig.js defines (Local/International) are exactly the two market strings the scanner-derived classifier and the registry both use - no third, undeclared market value exists anywhere in the chain', () => {
+    const regionKeys = Object.keys(REGION_RULES).map((k) => k.toLowerCase());
+    expect(regionKeys.sort()).toEqual(['international', 'local']);
+    const registryMarketValues = new Set(PRODUCT_TRUTH_REGISTRY.flatMap((c) => c.markets));
+    expect(registryMarketValues).toEqual(new Set(['local', 'international']));
+    // classifyFileMarket's own possible outputs are 'local'|'international'|'both'|'unknown' - the
+    // two REAL market names it can assert evidence FOR are exactly regionConfig's two keys.
+    expect(['local', 'international'].every((m) => regionKeys.includes(m))).toBe(true);
   });
 
   describe('negative controls (synthetic - proves the generalized checker, not just today\'s clean data)', () => {

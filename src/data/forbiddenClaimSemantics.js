@@ -109,4 +109,46 @@ export const FORBIDDEN_CLAIM_FAMILIES = {
       /(מחשבון )?מתכות[^.]{0,30}(הזנה|שער) חי(ה)? (עצמאי|בלתי תלוי)/,
     ],
   },
+  // Codex "structured runtime answer contract" (2026-09-2X): the registry declares several real
+  // forbiddenClaimCodes beyond the 6 families above (NO_CONVERSION_CURRENCY_AS_*,
+  // NO_OWNER_PUBLIC_WHATSAPP_CONFLATION, NO_LOCAL_DRAFT_AS_CLOUD_SAVED,
+  // NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE, NO_AUTONOMOUS_EMAIL_CLAIM). Every one of them now has
+  // a real semantic family here, so claimCodes.ts's hard-fail-on-unknown-code gate never trips on
+  // real, already-declared data - only on a genuinely new/typo'd code with no owner at all.
+  conversionCurrency: {
+    en: [
+      /\bconversion currency\b[^.]{0,30}\b(is|as)\b[^.]{0,15}\b(payment|checkout|subscription)\b/i,
+      /\b(calculator|converter)\b[^.]{0,30}\bcurrency\b[^.]{0,20}\b(is|becomes)\b[^.]{0,10}\b(the )?(quote|subscription|payment) currency\b/i,
+    ],
+    he: [
+      /מטבע ה?המרה[^.]{0,20}(הוא|היא|משמש)[^.]{0,15}(תשלום|מנוי|הצעה)/,
+    ],
+  },
+  whatsappConflation: {
+    en: [
+      /\bowner\b[^.]{0,20}whatsapp[^.]{0,20}\b(is|same as)\b[^.]{0,20}\bpublic\b[^.]{0,15}whatsapp/i,
+      /\bpublic\b[^.]{0,20}whatsapp[^.]{0,20}\b(is|same as)\b[^.]{0,20}\bowner\b[^.]{0,15}whatsapp/i,
+    ],
+    he: [
+      /שיתוף.{0,20}וואטסאפ.{0,20}(של בעל העסק|זהה).{0,20}(יצירת קשר|ציבורי)/,
+    ],
+  },
+  draftProvenance: {
+    en: [
+      /\b(local|unsaved)\b[^.]{0,15}draft[^.]{0,20}\b(is|are|was)\b[^.]{0,15}\bsaved\b[^.]{0,10}\b(in the )?cloud\b/i,
+      /\bdraft\b[^.]{0,20}\bsaved\b[^.]{0,10}\b(to|in)\b[^.]{0,10}\b(the )?(server|cloud|database)\b/i,
+    ],
+    he: [
+      /טיוטה[^.]{0,20}(שמורה|נשמרה)[^.]{0,15}(בענן|בשרת|במסד הנתונים)/,
+    ],
+  },
+  adminInference: {
+    en: [
+      /\b(pro|lifetime)\b[^.]{0,20}(account|plan)[^.]{0,20}\b(has|gives?|grants?)\b[^.]{0,15}\badmin\b/i,
+      /\badmin\b[^.]{0,20}\b(access|console)\b[^.]{0,20}\bbecause\b[^.]{0,20}\b(pro|lifetime|plan)\b/i,
+    ],
+    he: [
+      /(פרו|לייפטיים|תוכנית)[^.]{0,20}(מעניק|נותן|נותנת)[^.]{0,15}(גישת )?ניהול/,
+    ],
+  },
 };

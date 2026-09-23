@@ -305,7 +305,10 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('public_quote_sign', 'חתימה על הצעה ציבורית', 'Public quote signing',
     'אישור/חתימה על הצעת מחיר על ידי הלקוח, בכפוף לתוקף ההצעה ולזהות המאשר.',
     'Approving/signing a quote as the client, subject to the quote\'s validity and the approver\'s identity.',
-    { surfaces: ['public_quote_page'], operationType: 'mutate', canonicalSources: ['src/pages/PublicQuote.jsx', 'supabase/functions/get-public-quote/index.ts'] }),
+    // Enforceable source inventory fix (2026-09-2X, checkMarkerAmbiguity): PublicQuoteEn.jsx (the
+    // International-market page) carries this capability's own scanned marker too - it was missing
+    // from canonicalSources, an undeclared marker location the new gate caught on first run.
+    { surfaces: ['public_quote_page'], operationType: 'mutate', canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'supabase/functions/get-public-quote/index.ts'] }),
 
   capability('quote_expiry', 'תפוגת הצעת מחיר', 'Quote expiry',
     'הצעה שפג תוקפה נשארת צפויה לצפייה אך אינה ניתנת לחתימה.',

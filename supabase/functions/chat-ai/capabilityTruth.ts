@@ -15,6 +15,7 @@
 // the live deterministic chain — see capabilityTruth.test.js).
 
 import { AI_FACTS } from "./aiFacts.generated.ts";
+import { resolveCapabilityAnswerState, checkStructuredStateInvariants } from "./capabilityAnswerState.ts";
 
 export type CapabilityFact = {
   readonly id: string;
@@ -272,29 +273,68 @@ function description(fact: CapabilityFact | NonCurrentCapabilityFact, isHebrew: 
   return isHebrew ? fact.heDescription : fact.enDescription;
 }
 
+/** Thrown when a resolved structured answer state violates a hard product invariant - a real
+ * runtime failure (Codex "structured runtime answer contract"), never a silently-wrong answer. */
+export class CapabilityAnswerInvariantError extends Error {
+  readonly violations: ReturnType<typeof checkStructuredStateInvariants>;
+  constructor(id: string, violations: ReturnType<typeof checkStructuredStateInvariants>) {
+    super(`Capability "${id}" answer state violates ${violations.length} structural invariant(s): ${violations.map((v) => v.code).join(', ')}`);
+    this.name = 'CapabilityAnswerInvariantError';
+    this.violations = violations;
+  }
+}
+
 // The AI capability answer contract (§52.8 / task step 8) — the STATE dictates the framing; the
 // model never chooses it. Plan-gated: the capability exists, the account restriction is explained
 // (never "TEKANGO does not have X"). Mutating: may explain how the user can do it; never "I did it".
+//
+// Codex "structured runtime answer contract" (2026-09-2X): every branch below now reads its facts
+// FROM the resolved CapabilityAnswerState (capabilityAnswerState.ts), never from the raw
+// CapabilityFact's own loose fields directly - and the resolved state is validated against the
+// hard product invariants BEFORE any prose is returned. A violation throws, it is never silently
+// rendered - regex prose checks (claimCodes.ts) remain a second, textual layer underneath this,
+// never the primary or only gate.
 export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null, isAdmin: boolean | null = null): string | null {
   // Codex defect 3: cancellation/archive/permanent-deletion of the account/business/subscription
   // itself is NOT one of the 38 registered capabilities (it is the false claim being corrected, not
   // a real feature) - answered directly here, matching validation.ts's system-prompt-level wording
-  // exactly, so the deterministic and model paths never disagree.
+  // exactly, so the deterministic and model paths never disagree. Its own structured state (the
+  // sentinel branch inside resolveCapabilityAnswerState) is still resolved and invariant-checked
+  // below, before this hard-coded, pre-vetted, invariant-safe text is returned.
   if (id === 'account_lifecycle_not_self_service') {
+    const sentinelState = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin)!;
+    const sentinelViolations = checkStructuredStateInvariants(sentinelState);
+    if (sentinelViolations.length > 0) throw new CapabilityAnswerInvariantError(id, sentinelViolations);
     const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
     return isHebrew
       ? `ביטול מנוי/עסק, ארכוב נתונים או מחיקה לצמיתות אינם פעולות עצמאיות (self-service) בהגדרות העסק כיום - בדיקת המקור לא מצאה תהליך כזה בממשק. לבקשה כזו יש לפנות ל-${supportEmail}.`
       : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today - a fresh source check found no such UI flow. For this request, please contact ${supportEmail}.`;
   }
   // Codex defect 1: a comparison question must get a deterministic, factual DISTINCTION between
-  // the two real capabilities, never a guess and never a silent pick of just one of them.
+  // the two real capabilities, never a guess and never a silent pick of just one of them. Not a
+  // registry id itself (it compares two that are), so it has no single structured state of its
+  // own - both underlying capabilities' states are still resolved and invariant-checked below.
   if (id === 'quote_pdf_vs_print_comparison') {
+    for (const underlyingId of ['quote_pdf', 'quote_print']) {
+      const underlyingState = resolveCapabilityAnswerState(underlyingId, facts, accountTier, isAdmin);
+      if (underlyingState) {
+        const underlyingViolations = checkStructuredStateInvariants(underlyingState);
+        if (underlyingViolations.length > 0) throw new CapabilityAnswerInvariantError(underlyingId, underlyingViolations);
+      }
+    }
     const pdf = facts.capabilities.find((c) => c.id === 'quote_pdf');
     const print = facts.capabilities.find((c) => c.id === 'quote_print');
     return isHebrew
       ? `לא, PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מייצא את ההצעה כקובץ להורדה/שמירה, בעוד ${print ? label(print, true) : 'הדפסה'} שולחת אותה ישירות למדפסת. שתיהן יוצרות את אותו מסמך הצעה - לא חשבונית - רק ביעד שונה.`
       : `No, PDF and Print are two different actions: ${pdf ? label(pdf, false) : 'PDF export'} downloads/saves the quote as a file, while ${print ? label(print, false) : 'Print'} sends it directly to a printer. Both produce the same quote document - not an invoice - just to a different destination.`;
   }
+
+  const state = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin);
+  if (!state || state.availabilityState === 'UNKNOWN_CAPABILITY') return null;
+
+  const violations = checkStructuredStateInvariants(state);
+  if (violations.length > 0) throw new CapabilityAnswerInvariantError(id, violations);
+
   const current = facts.capabilities.find((c) => c.id === id);
   const nonCurrent = facts.nonCurrentCapabilities.find((c) => c.id === id);
   const fact = current || nonCurrent;
@@ -303,7 +343,7 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
   const name = label(fact, isHebrew);
   const desc = description(fact, isHebrew);
 
-  switch (fact.state) {
+  switch (state.availabilityState) {
     case 'UNAVAILABLE':
       return isHebrew ? `לא - ${name} אינה זמינה כרגע ב-TEKANGO.` : `No - ${name} is not currently available in TEKANGO.`;
     case 'ROADMAP_POST_LIVE':
@@ -323,32 +363,35 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
       if (!current) return isHebrew ? `כן - ${name} קיימת. ${desc}` : `Yes - ${name} exists. ${desc}`;
       // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — must be
       // phrased distinctly from the plan-gated branch below, and never inferred from accountTier
-      // (a PRO or Lifetime account without the role still does not have it).
-      if (current.authorityType === 'role' && current.requiredRole) {
-        if (isAdmin === false) {
+      // (a PRO or Lifetime account without the role still does not have it). Read from
+      // state.roleRestriction, never from current.authorityType/current.requiredRole directly.
+      if (state.roleRestriction) {
+        const { requiredRole, accountHasRole } = state.roleRestriction;
+        if (accountHasRole === false) {
           return isHebrew
-            ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${current.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
-            : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${current.requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
+            ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
+            : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
         }
-        if (isAdmin === true) {
+        if (accountHasRole === true) {
           return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
         }
         return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${current.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${current.requiredRole} role - not a paid plan or Lifetime. ${desc}`;
+          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${requiredRole} role - not a paid plan or Lifetime. ${desc}`;
       }
       // Plan-gated: say the capability exists and explain the restriction — never deny existence.
-      if (current.minimumPlan && current.minimumPlan !== 'free' && accountTier) {
-        const hasIt = current.planAvailability ? current.planAvailability[accountTier as 'free' | 'basic' | 'pro'] === true : null;
-        if (hasIt === false) {
+      // Read from state.planRestriction, never from current.minimumPlan/current.planAvailability
+      // directly.
+      if (state.planRestriction && accountTier) {
+        if (state.planRestriction.accountHasIt === false) {
           return isHebrew
-            ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${current.minimumPlan.toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
-            : `Yes - ${name} exists in TEKANGO, but it requires the ${current.minimumPlan.toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
+            ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${state.planRestriction.minimumPlan.toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
+            : `Yes - ${name} exists in TEKANGO, but it requires the ${state.planRestriction.minimumPlan.toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
         }
-      } else if (current.minimumPlan && current.minimumPlan !== 'free' && !accountTier) {
+      } else if (state.planRestriction && !accountTier) {
         return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${current.minimumPlan.toUpperCase()}. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, from the ${current.minimumPlan.toUpperCase()} plan. ${desc}`;
+          ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${state.planRestriction.minimumPlan.toUpperCase()}. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, from the ${state.planRestriction.minimumPlan.toUpperCase()} plan. ${desc}`;
       }
       return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
     }

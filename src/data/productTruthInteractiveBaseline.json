@@ -1,0 +1,646 @@
+{
+  "src/AIChatWidget.jsx": {
+    "interactive": 17,
+    "markers": 1
+  },
+  "src/App.jsx": {
+    "interactive": 3,
+    "markers": 0
+  },
+  "src/components/AISupportLogsContent.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/AccessibilityModal.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
+  "src/components/AddItemWizard.jsx": {
+    "interactive": 14,
+    "markers": 0
+  },
+  "src/components/AdminDestinationHost.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AdminIdentityIcons.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AdminOverview.jsx": {
+    "interactive": 5,
+    "markers": 0
+  },
+  "src/components/AdminPlans.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/AdminScreenFrame.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AdminSidebarNav.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/AdminSystemActivity.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AdminUserDetails.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/AdminUsersDestination.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AdminUsersTab.jsx": {
+    "interactive": 12,
+    "markers": 1
+  },
+  "src/components/AdminUsersView.jsx": {
+    "interactive": 4,
+    "markers": 0
+  },
+  "src/components/AiChatIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AiHelpButton.jsx": {
+    "interactive": 3,
+    "markers": 0
+  },
+  "src/components/AiModalHeader.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/AuthScreen.jsx": {
+    "interactive": 6,
+    "markers": 0
+  },
+  "src/components/AuthenticatedShellFrames.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/BrandName.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/ClientsTab.jsx": {
+    "interactive": 10,
+    "markers": 1
+  },
+  "src/components/CustomerQuoteItemRow.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/DeleteConfirmModal.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/DividedQuoteUnits.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/DraggableCalculator.jsx": {
+    "interactive": 24,
+    "markers": 2
+  },
+  "src/components/EditClientModal.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/EditExpenseModal.jsx": {
+    "interactive": 3,
+    "markers": 0
+  },
+  "src/components/EmailConfirmModal.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/FinancesTab.jsx": {
+    "interactive": 6,
+    "markers": 3
+  },
+  "src/components/NumericValue.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/PdfFileIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/PlanIdentityBadge.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/components/PricingModal.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/ProFlowLogo.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/ProfessionalItemComparisonCard.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/PublicQuoteHeader.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/PublicTools.jsx": {
+    "interactive": 7,
+    "markers": 4
+  },
+  "src/components/PublicToolsEn.jsx": {
+    "interactive": 7,
+    "markers": 4
+  },
+  "src/components/QuoteDraftNotices.jsx": {
+    "interactive": 5,
+    "markers": 0
+  },
+  "src/components/QuoteForm.jsx": {
+    "interactive": 26,
+    "markers": 4
+  },
+  "src/components/QuotePrintModeModal.jsx": {
+    "interactive": 3,
+    "markers": 0
+  },
+  "src/components/QuotesTab.jsx": {
+    "interactive": 13,
+    "markers": 3
+  },
+  "src/components/ServicesCatalog.jsx": {
+    "interactive": 7,
+    "markers": 1
+  },
+  "src/components/SettingsTab.jsx": {
+    "interactive": 2,
+    "markers": 2
+  },
+  "src/components/SignOutModal.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/components/SmartPublicQuote.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/Toast.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/adminDestinations.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/config/professionalPreviewAllowlist.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/global/AppGlobal.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/hooks/useMoneySlotSize.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/hooks/useQuoteDraftPersistence.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/hooks/useQuoteHistoryGeometry.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/local/AppLocal.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/main.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/pages/AILogs.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/pages/Contact.jsx": {
+    "interactive": 3,
+    "markers": 0
+  },
+  "src/pages/Dashboard.jsx": {
+    "interactive": 19,
+    "markers": 5
+  },
+  "src/pages/LandingGlobal.jsx": {
+    "interactive": 17,
+    "markers": 0
+  },
+  "src/pages/LandingLocal.jsx": {
+    "interactive": 17,
+    "markers": 0
+  },
+  "src/pages/NotFound.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/pages/Privacy.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/pages/ProfessionalPublicPreview.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/pages/ProfessionalQuotePreview.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/pages/PublicQuote.jsx": {
+    "interactive": 11,
+    "markers": 5
+  },
+  "src/pages/PublicQuoteEn.jsx": {
+    "interactive": 11,
+    "markers": 5
+  },
+  "src/pages/Terms.jsx": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "src/pages/landingVideoConfig.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/UpdateAvailableBanner.jsx": {
+    "interactive": 2,
+    "markers": 0
+  },
+  "src/shared/brand.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/supabase.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/useSignaturePad.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/versionAwareness.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/wipeUserData.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/test/setup.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/theme/neonTheme.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/accountEntitlement.js": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "src/utils/addressFormat.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/adminAnalytics.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/adminMarket.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/adminNavGroups.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiChatContext.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiChatContract.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiChatHistoryFormat.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiChatSession.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiHelpBlockers.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiHelpContext.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/aiHelpContract.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/authErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/businessProfileCompleteness.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/clientSort.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/customerFriendlySpec.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/dashboardActionErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/dashboardNavCapabilities.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/draftAttachments.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/functionError.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/generateQuotePdf.js": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "src/utils/guidedChatIntents.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/logoTrim.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/money.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/planCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/planEntitlements.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/presentationGrouping.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/pricingCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/professionalItemClassifier.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/professionalQuoteItem.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteApprovalErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteCompleteness.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteDraft.js": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "src/utils/quoteEmailErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteFormState.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteLock.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteNumber.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quotePresentationModel.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteSaveOrchestrator.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteSearch.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteValidity.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteWorkflowContext.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/regionConfig.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/returnDiag.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/safeNavigation.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/seoMeta.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/shortDate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/structuredQuoteItemPersistence.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/_shared/adminReauth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/_shared/aiChatContract.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/_shared/aiHelpContract.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/_shared/shortDate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-cleanup-user-quotes/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-delete-user/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-extend-trial/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-reauth-verify/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-set-lifetime/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/auth-send-email-hook/index.ts": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "supabase/functions/billing-checkout-stub/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/accountContext.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/aiFacts.generated.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/capabilityAnswerState.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/capabilityTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/claimCodes.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/directFacts.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/helpContext.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/invoicingTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/navigation.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/paymentTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/quoteContext.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/validation.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/clever-processor/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/get-public-quote/index.ts": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "supabase/functions/get-public-quote/validity.ts": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "supabase/functions/resend-email-webhook/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-quote-email/emailMoney.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-quote-email/index.ts": {
+    "interactive": 2,
+    "markers": 1
+  },
+  "supabase/functions/send-subscription-expiration-email/index.ts": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "supabase/functions/send-subscription-expiration-email/safeResponse.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-trial-expiration-email/eligibility.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-trial-expiration-email/index.ts": {
+    "interactive": 1,
+    "markers": 0
+  },
+  "supabase/functions/send-welcome-email/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  }
+}
