@@ -22,8 +22,8 @@ import { FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, SECURITY_EXPECTED_R
 import { readFileSync, writeFileSync } from 'node:fs';
 
 // version-agnostic (the name is historical): the deployed version / SHA come from the raw capture's own function bracket.
-const RAW = process.argv[2] || 'evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json';
-const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-structured-truth';
+const RAW = process.argv[2] || 'evidence/product-truth/2026-09-23-market-routing-v35-raw-matrices.json';
+const OUT_PREFIX = process.argv[3] || 'evidence/product-truth/2026-09-23-market-routing';
 const raw = JSON.parse(readFileSync(RAW, 'utf-8'));
 
 if (raw.functionBefore.version !== raw.functionAfter.version || raw.functionBefore.ezbrSha256 !== raw.functionAfter.ezbrSha256) {

@@ -1,0 +1,28 @@
+raw capture: evidence/product-truth/2026-09-23-market-routing-v35-raw-matrices.json  sha256=157af250ce5d2bd07ad898cb7aba6b970a450395f58a94864bcd8ec0b5366771
+
+=== OWNER MATRIX: 48 / 48 VALID (rows supplied: 48) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"static_fixture":48}
+
+=== PLAN/ROLE MATRIX: 13 / 13 VALID (rows supplied: 13) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"static_fixture":13}
+
+=== SECURITY MATRIX: 9 / 9 VALID (rows supplied: 9) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"predeclared_acceptance_fixture":9}
+  live chat_logs id=477665df-32b9-40ed-94b0-a450d844c448: http=200 found=true category=GENERAL personaEmailHash=c73eaf536cf3
+  live chat_logs id=5c0bff78-a8af-47fc-bae3-61c203e82657: http=200 found=true category=CANCELLATION personaEmailHash=c73eaf536cf3
+  live chat_logs id=5a91054b-2b6c-4b5e-8002-12e96be47af0: http=200 found=true category=FEATURE_REQUEST personaEmailHash=c73eaf536cf3
+  live chat_logs id=f58c52b4-a559-4333-ace7-5e6ccaf5b584: http=200 found=true category=HARD_QUESTION personaEmailHash=c73eaf536cf3
+
+=== AI SUPPORT MATRIX: 4 / 4 VALID (rows supplied: 4) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] | liveReadbackChecked: true
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"canonical_support_category_map":4}
+
+TOTALS {"owner":"48 / 48","planRole":"13 / 13","security":"9 / 9","support":"4 / 4"}
+FINAL EVIDENCE SEMANTIC GATE: PASS

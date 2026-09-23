@@ -22,13 +22,15 @@ import { PLAN_ROLE_EXPECTED_FIXTURE } from './productTruthPlanRoleExpectedFixtur
 // ---------------------------------------------------------------------------------------------------------
 // RUNTIME IDENTITY LABELS (kept strictly separate - never interchangeable):
 //   RUNTIME IMPLEMENTATION SHA  = the commit whose chat-ai runtime code the CURRENT TEST chat-ai version was deployed from.
-//                                 (structured-truth closure: chat-ai v34 was deployed from e674be2, v33 from 78bc1e7, v32 from 08c012b.)
+//                                 (market/currency routing closure: chat-ai v35 was deployed from b4edd6d; structured-truth closure: v34 from e674be2, v33 from 78bc1e7, v32 from 08c012b.)
 //   PRODUCT TRUTH EVIDENCE HEAD = a later commit that only added tests/evidence/docs - it is NOT the runtime implementation SHA.
-export const RUNTIME_IMPLEMENTATION_SHA = 'e674be25f820100e4d93822af508ddd52ae21fa5';
-export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v34';
-// server-side `updated_at` of TEST chat-ai v34 (epoch 1790192530535), read back from the Supabase Management API.
-// A row labelled v34 cannot have been captured before v34 existed.
-export const RUNTIME_DEPLOYED_UPDATED_AT_UTC = '2026-09-23T19:42:10.535Z';
+export const RUNTIME_IMPLEMENTATION_SHA = 'b4edd6d27ba949c3b9558d15a60972a9539cec0d';
+export const RUNTIME_DEPLOYED_VERSION = 'chat-ai-v35';
+// server-side `updated_at` of TEST chat-ai v35 (epoch 1790195758064), read back from the Supabase Management API.
+// A row labelled v35 cannot have been captured before v35 existed.
+export const RUNTIME_DEPLOYED_UPDATED_AT_UTC = '2026-09-23T20:35:58.064Z';
+// historical: v34 (structured truth contract; superseded by v35 - its classifier let common account market / currency paraphrases fall through to free-form model prose).
+export const RUNTIME_V34_UPDATED_AT_UTC = '2026-09-23T19:42:10.535Z';
 // historical: v33 (the first version WITH a structured payload; superseded within the same task by v34 - it did not yet route currency QUESTIONS).
 export const RUNTIME_V33_UPDATED_AT_UTC = '2026-09-23T19:20:23.484Z';
 // historical: v32 (the last version WITHOUT a structured truth payload) - kept only so v32 evidence keeps its real identity.
@@ -39,6 +41,7 @@ export const TEST_PROJECT_REF = 'ljfizgrdyzxddswcedwr';
 // Product Truth line. A row pairing a version with any OTHER sha (e.g. a v31 call labelled with the v32 SHA) is a
 // provenance forgery and is rejected - historical rows keep their REAL historical pair, they are never relabelled.
 export const KNOWN_RUNTIME_PROVENANCE = Object.freeze({
+  'chat-ai-v35': 'b4edd6d27ba949c3b9558d15a60972a9539cec0d',
   'chat-ai-v34': 'e674be25f820100e4d93822af508ddd52ae21fa5',
   'chat-ai-v33': '78bc1e735a049deb95963400918698b8438db1be',
   'chat-ai-v32': '08c012bcd6094335e987e7972c66604c2579e125',

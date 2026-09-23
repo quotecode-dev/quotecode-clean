@@ -1,0 +1,17 @@
+{
+  "readAtUtc": "2026-09-23T20:49:46.832Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 35,
+  "updatedAtEpochMs": 1790195758064,
+  "updatedAtUtc": "2026-09-23T20:35:58.064Z",
+  "ezbrSha256": "4e1ccd2fa6b8a4de489de79069599aae666423e7274533c7a22f7b70394cd06c",
+  "status": "ACTIVE",
+  "priorVersion": 34,
+  "priorVersionNote": "v34 (2026-09-23T19:42:10.535Z, from e674be2) - its account market/currency classifier let common desire/possibility/instruction/simulation paraphrases fall through to free-form model prose (factPayload null)",
+  "implementationSourceSha": "b4edd6d27ba949c3b9558d15a60972a9539cec0d",
+  "deployInputManifestSha256": "1117b81d03c1a00d08953391aefa5bbe816087016bd6e550432ea30f17e4418d",
+  "deployInputFileCount": 41
+}

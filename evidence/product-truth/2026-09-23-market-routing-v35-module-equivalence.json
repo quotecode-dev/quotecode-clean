@@ -1,0 +1,113 @@
+{
+  "allMatch": true,
+  "rows": [
+    {
+      "module": "supabase/functions/chat-ai/index.ts",
+      "match": true,
+      "committedNormLen": 14287,
+      "downloadedNormLen": 14287
+    },
+    {
+      "module": "supabase/functions/chat-ai/validation.ts",
+      "match": true,
+      "committedNormLen": 24740,
+      "downloadedNormLen": 24740
+    },
+    {
+      "module": "supabase/functions/chat-ai/accountContext.ts",
+      "match": true,
+      "committedNormLen": 2315,
+      "downloadedNormLen": 2315
+    },
+    {
+      "module": "supabase/functions/chat-ai/quoteContext.ts",
+      "match": true,
+      "committedNormLen": 5694,
+      "downloadedNormLen": 5694
+    },
+    {
+      "module": "supabase/functions/chat-ai/navigation.ts",
+      "match": true,
+      "committedNormLen": 951,
+      "downloadedNormLen": 951
+    },
+    {
+      "module": "supabase/functions/chat-ai/directFacts.ts",
+      "match": true,
+      "committedNormLen": 3337,
+      "downloadedNormLen": 3337
+    },
+    {
+      "module": "supabase/functions/chat-ai/paymentTruth.ts",
+      "match": true,
+      "committedNormLen": 4796,
+      "downloadedNormLen": 4796
+    },
+    {
+      "module": "supabase/functions/chat-ai/aiFacts.generated.ts",
+      "match": true,
+      "committedNormLen": 29315,
+      "downloadedNormLen": 29315
+    },
+    {
+      "module": "supabase/functions/chat-ai/invoicingTruth.ts",
+      "match": true,
+      "committedNormLen": 3105,
+      "downloadedNormLen": 3105
+    },
+    {
+      "module": "supabase/functions/chat-ai/capabilityTruth.ts",
+      "match": true,
+      "committedNormLen": 19567,
+      "downloadedNormLen": 19567
+    },
+    {
+      "module": "supabase/functions/chat-ai/capabilityAnswerState.ts",
+      "match": true,
+      "committedNormLen": 7466,
+      "downloadedNormLen": 7466
+    },
+    {
+      "module": "supabase/functions/chat-ai/helpContext.ts",
+      "match": true,
+      "committedNormLen": 9552,
+      "downloadedNormLen": 9552
+    },
+    {
+      "module": "supabase/functions/chat-ai/productTruthPayload.ts",
+      "match": true,
+      "committedNormLen": 6041,
+      "downloadedNormLen": 6041
+    },
+    {
+      "module": "supabase/functions/chat-ai/marketTruth.ts",
+      "match": true,
+      "committedNormLen": 16163,
+      "downloadedNormLen": 16163
+    },
+    {
+      "module": "supabase/functions/_shared/productTruthContract.ts",
+      "match": true,
+      "committedNormLen": 6658,
+      "downloadedNormLen": 6658
+    },
+    {
+      "module": "supabase/functions/_shared/aiChatContract.ts",
+      "match": true,
+      "committedNormLen": 573,
+      "downloadedNormLen": 573
+    },
+    {
+      "module": "supabase/functions/_shared/aiHelpContract.js",
+      "match": true,
+      "committedNormLen": 33291,
+      "downloadedNormLen": 33291
+    },
+    {
+      "module": "supabase/functions/_shared/shortDate.js",
+      "match": true,
+      "committedNormLen": 2486,
+      "downloadedNormLen": 2486
+    }
+  ]
+}

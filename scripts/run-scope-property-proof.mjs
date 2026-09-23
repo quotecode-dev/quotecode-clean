@@ -14,8 +14,8 @@ import { validateFinalMatrix } from '../src/data/productTruthEvidenceSchema.js';
 import { SCOPE_SUBJECTS, expectedAccept, generateScopeCases } from '../src/data/productTruthScopeCaseGenerator.js';
 
 const OUT = process.argv[2] || 'evidence/product-truth/2026-09-23-scope-structural-closure-proof.json';
-const EV = 'evidence/product-truth/2026-09-23-structured-truth';
-const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json', 'utf-8'));
+const EV = 'evidence/product-truth/2026-09-23-market-routing';
+const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-market-routing-v35-raw-matrices.json', 'utf-8'));
 const FILES = { owner: 'owner-matrix', planRole: 'plan-role-matrix', security: 'security-matrix', support: 'support-matrix' };
 const ROWS = Object.fromEntries(Object.entries(FILES).map(([k, f]) => [k, JSON.parse(readFileSync(`${EV}-${f}-final-rows.json`, 'utf-8')).rows]));
 const clone = (x) => JSON.parse(JSON.stringify(x));

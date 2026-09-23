@@ -235,8 +235,8 @@ describe('PROPERTY / ADVERSARIAL - combinatorial semantic cases with by-construc
 // ---------------------------------------------------------------------------------------------------------------------
 // A stratified sample of the generated cases pushed through the REAL 48-cell Owner gate (row AND raw forged consistently, so
 // only polarity can decide). The evidence script (scripts/run-scope-property-proof.mjs) runs EVERY AVAILABLE-truth case.
-const EV = 'evidence/product-truth/2026-09-23-structured-truth';
-const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-structured-truth-v34-raw-matrices.json', 'utf-8'));
+const EV = 'evidence/product-truth/2026-09-23-market-routing';
+const RAW = JSON.parse(readFileSync('evidence/product-truth/2026-09-23-market-routing-v35-raw-matrices.json', 'utf-8'));
 const OWNER = JSON.parse(readFileSync(`${EV}-owner-matrix-final-rows.json`, 'utf-8')).rows;
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const ownerGate = (slot, response) => {

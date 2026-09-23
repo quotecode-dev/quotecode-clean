@@ -14,7 +14,7 @@ import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts'
 import {
   EXPECTATION_AUTHORITIES, EXPECTED_MATRIX_SIZES, FINAL_MATRIX_DEFINITIONS, KNOWN_RUNTIME_PROVENANCE, MATRIX_LANGUAGES, OWNER_AREAS, OWNER_MATRIX_SLOTS,
   OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PLAN_ROLE_MATRIX_SLOTS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_IMPLEMENTATION_SHA,
-  RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_V32_UPDATED_AT_UTC, SECURITY_MATRIX_SLOTS, structuredOutcomeOf, SUPPORT_MATRIX_SLOTS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
+  RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_V32_UPDATED_AT_UTC, RUNTIME_V34_UPDATED_AT_UTC, SECURITY_MATRIX_SLOTS, structuredOutcomeOf, SUPPORT_MATRIX_SLOTS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
 } from './productTruthFinalMatrixAcceptance.js';
 import { OUTCOME_SENTINELS } from './productTruthFactPayload.js';
 import { OWNER_MATRIX_EXPECTED_FIXTURE } from './productTruthOwnerMatrixExpectedFixture.js';
@@ -31,8 +31,8 @@ const PERSONA = {
   LOCAL_PRO: ['Local', 'user'], LOCAL_BASIC: ['Local', 'user'], LOCAL_ADMIN: ['Local', 'super_admin'], INTL_PRO: ['International', 'user'],
   INTL_BASIC: ['International', 'user'], INTL_FREE: ['International', 'user'], PERSONA_SUPER_ADMIN: ['Local', 'super_admin'],
 };
-const AFTER_V34 = '2026-09-23T20:00:00.000Z';
-const STARTED = '2026-09-23T19:59:58.000Z';
+const AFTER_V35 = '2026-09-23T21:00:00.000Z';
+const STARTED = '2026-09-23T20:59:58.000Z';
 const CATEGORY_UUID = {
   GENERAL: '4c23d469-4c73-4188-9f0e-15e8ecc79706', CANCELLATION: '6a65dd74-0a88-4ff1-b879-f29b92c7d742',
   FEATURE_REQUEST: '9480abe4-91ea-4c8c-95ff-cb4597dac95d', HARD_QUESTION: '203ad2df-e0b0-4944-923e-f9545cc36a23',
@@ -64,7 +64,7 @@ function goodRow(key, slot, i = 0) {
   const row = {
     evidenceId: `${key}-${slot.slot}-${i}`,
     matrixSlot: slot.slot,
-    timestampUtc: AFTER_V34,
+    timestampUtc: AFTER_V35,
     personaAlias: slot.persona,
     market,
     plan: PERSONA_PLAN[slot.persona].toUpperCase(),
@@ -100,8 +100,8 @@ const fullRows = (key) => FINAL_MATRIX_DEFINITIONS[key].slots.map((s, i) => good
 function buildRaw() {
   const raw = {
     testProjectRef: TEST_PROJECT_REF,
-    functionBefore: { version: 34, ezbrSha256: '645cd56f', readAtUtc: '2026-09-23T19:50:00.000Z' },
-    functionAfter: { version: 34, ezbrSha256: '645cd56f', readAtUtc: '2026-09-23T21:00:00.000Z' },
+    functionBefore: { version: 35, ezbrSha256: '4e1ccd2f', readAtUtc: '2026-09-23T20:50:00.000Z' },
+    functionAfter: { version: 35, ezbrSha256: '4e1ccd2f', readAtUtc: '2026-09-23T21:30:00.000Z' },
     serverFacts: { results: Object.keys(PERSONA).map((alias) => ({ alias, http: 200, serverPlan: PERSONA_PLAN[alias], serverRole: PERSONA[alias][1], serverCountry: PERSONA[alias][0] })) },
     matrices: {},
   };
@@ -109,7 +109,7 @@ function buildRaw() {
     raw.matrices[key] = fullRows(key).map((r) => ({
       slot: r.matrixSlot, startedAtUtc: STARTED, timestampUtc: r.timestampUtc, alias: r.personaAlias, language: r.language, prompt: r.prompt,
       response: r.response, answerSource: r.answerSource, factPayload: r.factPayload, requestId: r.requestId, http: 200,
-      ...(key === 'support' ? { readback: { httpStatus: 200, row: { id: r.immutableTestRowId, category: r.resolvedResult, user_question: r.prompt, created_at: '2026-09-23T19:59:59.500+00:00' } } } : {}),
+      ...(key === 'support' ? { readback: { httpStatus: 200, row: { id: r.immutableTestRowId, category: r.resolvedResult, user_question: r.prompt, created_at: '2026-09-23T20:59:59.500+00:00' } } } : {}),
     }));
   }
   return raw;
@@ -414,11 +414,11 @@ describe('FINDING 2 - Support rows are mechanically bound to the RAW capture\'s 
   });
   it('a raw capture whose chat-ai version changed mid-run, or whose call is outside the version bracket, is rejected', () => {
     const raw = cloneRaw();
-    raw.functionAfter.version = 35;
+    raw.functionAfter.version = 36;
     expect(V('support', fullRows('support'), { rawCapture: raw }).rawCaptureProblems).toContain('raw_capture_function_changed_during_run');
     const raw2 = cloneRaw();
-    raw2.matrices.support.find((e) => e.slot === 'SUP:GENERAL').timestampUtc = '2026-09-23T22:00:00.000Z';
-    expect(text(V('support', supportWith('GENERAL', { timestampUtc: '2026-09-23T22:00:00.000Z' }), { rawCapture: raw2 }), 'SUP:GENERAL')).toMatch(/raw_call_outside_the_version_bracket/);
+    raw2.matrices.support.find((e) => e.slot === 'SUP:GENERAL').timestampUtc = '2026-09-23T22:30:00.000Z';
+    expect(text(V('support', supportWith('GENERAL', { timestampUtc: '2026-09-23T22:30:00.000Z' }), { rawCapture: raw2 }), 'SUP:GENERAL')).toMatch(/raw_call_outside_the_version_bracket/);
   });
   it('LIVE TEST re-read (read-only chat_logs by id): a matching tuple passes; another persona\'s / category / question / response => FAILS', () => {
     const live = (cat, patch = {}) => ({ id: CATEGORY_UUID[cat], category: cat, user_question: SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat).prompt, ai_response: responseFor(SUPPORT_MATRIX_SLOTS.find((s) => s.category === cat), 'support'), created_at: 'x', userEmailHash: 'abc123', expectedPersonaEmailHash: 'abc123', ...patch });
@@ -589,18 +589,19 @@ describe('ACTION B - actual result is checked against the LIVE response, not onl
 });
 
 describe('ACTION B - runtime provenance: no stale SHA/version acceptance, historical rows keep their real label', () => {
-  it('the known provenance table keeps v31 -> 5d8fb5a, v32 -> 08c012b, v33 -> 78bc1e7 and v34 -> the CURRENT runtime implementation SHA (never conflated)', () => {
-    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v34']).toBe(RUNTIME_IMPLEMENTATION_SHA);
+  it('the known provenance table keeps v31 -> 5d8fb5a, v32 -> 08c012b, v33 -> 78bc1e7, v34 -> e674be2 and v35 -> the CURRENT runtime implementation SHA (never conflated)', () => {
+    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v35']).toBe(RUNTIME_IMPLEMENTATION_SHA);
+    expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v34']).toBe('e674be25f820100e4d93822af508ddd52ae21fa5');
     expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v33']).toBe('78bc1e735a049deb95963400918698b8438db1be');
     expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v32']).toBe('08c012bcd6094335e987e7972c66604c2579e125');
     expect(KNOWN_RUNTIME_PROVENANCE['chat-ai-v31']).toBe('5d8fb5a9a62b78ad6b0967464e83e1d47b5195f2');
-    expect(RUNTIME_IMPLEMENTATION_SHA).toBe('e674be25f820100e4d93822af508ddd52ae21fa5');
+    expect(RUNTIME_IMPLEMENTATION_SHA).toBe('b4edd6d27ba949c3b9558d15a60972a9539cec0d');
   });
   const base = () => goodRow('owner', OWNER_MATRIX_SLOTS[0]);
-  it('a current v34 row with the right pair passes provenance', () => {
+  it('a current v35 row with the right pair passes provenance', () => {
     expect(checkFinalRuntimeProvenance(base())).toEqual([]);
   });
-  it('a v31 call relabelled with the v34 SHA is a provenance mislabel', () => {
+  it('a v31 call relabelled with the v35 SHA is a provenance mislabel', () => {
     expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v31' }).join(' ')).toMatch(/runtime_provenance_mislabel/);
   });
   it('an honestly-labelled historical v31 row is NOT acceptance evidence for the final gate (rerun on the current version instead of backfilling)', () => {
@@ -610,11 +611,14 @@ describe('ACTION B - runtime provenance: no stale SHA/version acceptance, histor
     expect(v).toMatch(/stale_runtime_version_not_acceptable_for_final_gate/);
     expect(v).toMatch(/historical_row_not_acceptable_for_final_gate/);
   });
-  it('a row labelled v34 but captured before v34 existed is rejected; a v32 / v33 row is stale for the final gate', () => {
-    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T12:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v34_existed/);
-    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T19:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v34_existed/); // between v33 and v34
+  it('a row labelled v35 but captured before v35 existed is rejected; a v32 / v33 / v34 row is stale for the final gate', () => {
+    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T12:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v35_existed/);
+    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T19:30:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v35_existed/); // between v33 and v34
+    expect(checkFinalRuntimeProvenance({ ...base(), timestampUtc: '2026-09-23T20:00:00.000Z' }).join(' ')).toMatch(/captured_before_chat-ai-v35_existed/); // v34 era
     expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v33', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v33'] }).join(' ')).toMatch(/stale_runtime_version_not_acceptable_for_final_gate: chat-ai-v33/);
-    expect(RUNTIME_DEPLOYED_UPDATED_AT_UTC).toBe('2026-09-23T19:42:10.535Z');
+    expect(RUNTIME_DEPLOYED_UPDATED_AT_UTC).toBe('2026-09-23T20:35:58.064Z');
+    expect(RUNTIME_V34_UPDATED_AT_UTC).toBe('2026-09-23T19:42:10.535Z');
+    expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v34', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v34'] }).join(' ')).toMatch(/stale_runtime_version_not_acceptable_for_final_gate: chat-ai-v34/);
     expect(RUNTIME_V32_UPDATED_AT_UTC).toBe('2026-09-23T12:24:18.530Z');
     expect(checkFinalRuntimeProvenance({ ...base(), deployedFunctionVersion: 'chat-ai-v32', implementationSourceSha: KNOWN_RUNTIME_PROVENANCE['chat-ai-v32'] }).join(' ')).toMatch(/stale_runtime_version_not_acceptable_for_final_gate: chat-ai-v32/);
   });

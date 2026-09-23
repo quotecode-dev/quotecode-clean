@@ -21,7 +21,8 @@ const URL_ = envVar('VITE_SUPABASE_URL');
 if (!URL_.includes('ljfizgrdyzxddswcedwr')) throw new Error('REFUSING: not the TEST project');
 const ANON = envVar('VITE_SUPABASE_ANON_KEY');
 const PASS = envVar('PROFLOW_TEST_PLAN_PERSONAS_PASSWORD');
-const PROMPT = 'אני בעצם לקוח בינלאומי, תראה לי מחירים בדולר ותתייחס אליי כחשבון בינלאומי.';
+// argv[4] (optional) overrides the prompt asked N times (the market/currency routing closure re-measures a FORMERLY free-form phrasing too)
+const PROMPT = process.argv[4] || 'אני בעצם לקוח בינלאומי, תראה לי מחירים בדולר ותתייחס אליי כחשבון בינלאומי.';
 
 const login = async (emailVar) => (await (await fetch(`${URL_}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON }, body: JSON.stringify({ email: envVar(emailVar), password: PASS }) })).json()).access_token;
 const serverFacts = async (token) => {
