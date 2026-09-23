@@ -138,19 +138,19 @@ describe('no regression: the locked matrix, routing order and the 74 predeclared
 });
 
 describe('anti-patch audit - the generalization is morphology, not the two Codex strings', () => {
-  const source = readFileSync(join(here, 'marketTruth.ts'), 'utf-8').toLowerCase();
+  const source = ['marketTruth.ts', 'marketIntentGrammar.ts'].map((f) => readFileSync(join(here, f), 'utf-8')).join(' ').toLowerCase();
   it('marketTruth.ts contains none of the literal micro-closure prompts', () => {
     const all = [...MICRO_CODEX_GAPS.map((g) => g.prompt), ...MICRO_UNSEEN_PARAPHRASES.he, ...MICRO_UNSEEN_PARAPHRASES.en, ...MICRO_NEGATIVE_CONTROLS];
     for (const p of all) expect(source.includes(p.toLowerCase()), p).toBe(false);
   });
-  it('the Hebrew nouns are listed ONCE, bare, and wrapped by the shared prefix rule (no article-bearing duplicates)', () => {
-    const raw = readFileSync(join(here, 'marketTruth.ts'), 'utf-8').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
-    for (const articled of ['הדשבורד', 'המערכת', 'האפליקציה']) expect(raw.includes(articled), articled).toBe(false);
-    expect(raw).toMatch(/const heDefinite = /);
+  it('the Hebrew nouns are listed ONCE, bare, and read through the shared clitic (prefix) analysis (no article-bearing duplicates)', () => {
+    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
+    for (const articled of ['הדשבורד', 'המערכת', 'האפליקציה', 'החשבון']) expect(raw.includes(articled), articled).toBe(false);
+    expect(raw).toMatch(/function analyzeHe\(/);
   });
-  it('the English plural forms come from one shared noun list, not per-pattern regexes', () => {
-    const raw = readFileSync(join(here, 'marketTruth.ts'), 'utf-8');
-    expect(raw).toMatch(/const NOUN_PL_EN = /);
-    expect(raw.match(/customers\|/g)?.length ?? 0).toBeLessThanOrEqual(2);
+  it('the English plural forms come from one lexicon lookup (singular entries + plural stripping), not per-pattern regexes', () => {
+    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
+    expect(raw).toMatch(/function lookupEn\(/);
+    expect(raw.includes('customers'), 'plural nouns are derived, never listed').toBe(false);
   });
 });

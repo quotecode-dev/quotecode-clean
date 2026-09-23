@@ -179,8 +179,8 @@ describe('(5) routing order: no earlier route claims a matrix prompt; the predec
 });
 
 describe('(6) anti-patch audit - the classifier is semantic, not a list of the tested phrases', () => {
-  const source = readFileSync(join(here, 'marketTruth.ts'), 'utf-8');
-  it('marketTruth.ts contains none of the literal matrix / Codex / negative-control prompts', () => {
+  const source = ['marketTruth.ts', 'marketIntentGrammar.ts'].map((f) => readFileSync(join(here, f), 'utf-8')).join(' ');
+  it('the classifier (marketTruth.ts + marketIntentGrammar.ts) contains none of the literal matrix / Codex / negative-control prompts', () => {
     for (const r of MARKET_ROUTING_MATRIX) expect(source.toLowerCase().includes(r.prompt.toLowerCase()), r.prompt).toBe(false);
     for (const p of CODEX_PROVEN_BYPASSES) expect(source.toLowerCase().includes(p.toLowerCase()), p).toBe(false);
     for (const p of MARKET_ROUTING_NEGATIVE_CONTROLS) expect(source.toLowerCase().includes(p.toLowerCase()), p).toBe(false);

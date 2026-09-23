@@ -39,6 +39,8 @@ const MODULES = [
   // structured-truth closure (chat-ai v33 -> v34): the payload builders, the account-market route and the shared contract
   'supabase/functions/chat-ai/productTruthPayload.ts',
   'supabase/functions/chat-ai/marketTruth.ts',
+  // intent grammar normalization closure (chat-ai v36 -> v37): the deterministic account market / currency intent grammar behind marketTruth.ts
+  'supabase/functions/chat-ai/marketIntentGrammar.ts',
   'supabase/functions/_shared/productTruthContract.ts',
   'supabase/functions/_shared/aiChatContract.ts',
   'supabase/functions/_shared/aiHelpContract.js',

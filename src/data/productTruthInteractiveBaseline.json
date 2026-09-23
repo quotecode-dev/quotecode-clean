@@ -587,6 +587,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/marketIntentGrammar.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/marketTruth.ts": {
     "interactive": 0,
     "markers": 0
