@@ -53,7 +53,8 @@ export function normalizeAccountMarketText(raw: string): string {
     .replace(/[–—―−]/g, ' — ') // en dash / em dash / bar / minus  -> clause boundary
     .replace(/\s-+\s/g, ' — ')                     // spaced hyphen
     .replace(/--+/g, ' — ')                        // double hyphen
-    .replace(/([א-ת])-(?=[a-z])/g, '$1 ')     // Hebrew prefix + hyphen + Latin ("ב-TEKANGO")
+    .replace(/([א-ת])-(?=[a-z$€£₪])/g, '$1 ') // Hebrew prefix + hyphen + Latin letter or currency symbol ("ב-TEKANGO", "ב-£")
+    .replace(/([א-ת])(?=[$€£₪])/g, '$1 ')     // Hebrew prefix attached straight to a currency symbol ("ב£")
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -144,7 +145,7 @@ def(HE, 'שלי', ['POSS']); def(HE, 'שלנו', ['POSS'], { pl: true });
 def(HE, 'חשבון עסק פרופיל מנוי חברה ארגון', ['ENTITY'], { flags: ['acct', 'subj'] });
 def(HE, 'חשבוני עסקי פרופילי', ['ENTITY'], { flags: ['acct', 'subj', 'own'] }); def(HE, 'חשבוננו עסקנו פרופילנו', ['ENTITY'], { pl: true, flags: ['acct', 'subj', 'own'] });
 def(HE, 'דשבורד מערכת אפליקציה ממשק אתר פלטפורמה', ['SURFACE'], { flags: ['acct', 'disp'] });
-def(HE, 'מחיר מחירים תמחור מחירון תוכנית תוכניות עלות עלויות סכומים הכל הצעה הצעות מטבע', ['SURFACE'], { flags: ['disp'] });
+def(HE, 'מחיר מחירי מחירים תמחור תמחורי מחירון תוכנית תוכניות עלות עלויות סכומים הכל הצעה הצעות מטבע', ['SURFACE'], { flags: ['disp'] });
 def(HE, 'לקוח לקוחה משתמש משתמשת ספק עובד', ['PERSON'], { flags: ['third'] });
 def(HE, 'לקוחות משתמשים משתמשות ספקים עובדים', ['PERSON'], { pl: true, flags: ['third'] });
 def(HE, 'בעל בעלת אנשים', ['PERSON']);
@@ -182,7 +183,8 @@ const V_HE: Array<[string, string[]]> = [
   ['ראות', ['w']], ['להשתמש', ['w']], ['להגדיר', ['w']], ['לתמוך', ['w']], ['מוצג', ['w']], ['לעבור', ['w', 's']], ['להעביר', ['w', 's']],
   ['תומכת', ['brandverb']], ['תומך', ['brandverb']], ['מציגה', ['brandverb']], ['מציג', ['brandverb']], ['עובדת', ['brandverb']], ['עובד', ['brandverb']],
 ];
-for (const [w, f] of V_HE) HE.set(w, { cats: ['VERB'], flags: f.map((x) => `v_${x}`) });
+// a Hebrew word may be both a verb and a noun ("עובד" works / employee): the verb reading is ADDED to an existing entry, never replaces it
+for (const [w, f] of V_HE) { const e = HE.get(w); HE.set(w, { cats: [...(e?.cats ?? []), 'VERB'], v: e?.v, pl: e?.pl, flags: [...(e?.flags ?? []), ...f.map((x) => `v_${x}`)] }); }
 for (const w of 'ב ל ה מ כ ו ש'.split(' ')) HE.set(w, { cats: ['PREP'] });
 
 // multi-word units (English), matched longest-first on the raw word list
@@ -282,6 +284,11 @@ function tokenizeWords(sentence: string): Tok[] {
     if (/\d/.test(w)) { toks.push({ w, c: ['DIGIT'], flags: [], pfx: '', lang: 'x' }); i += 1; continue; }
     if (/^[$€£₪]$/.test(w)) { toks.push({ w, c: ['CUR'], v: w === '$' ? 'USD' : w === '€' ? 'EUR' : w === '£' ? 'GBP' : 'ILS', flags: [], pfx: '', lang: 'x' }); i += 1; continue; }
     if (isHe) { toks.push(analyzeHe(w)); i += 1; continue; }
+    // possessive of a person noun ("customer's prices"): the person noun itself, flagged genitive - never an unknown word that hides the third party
+    if (/'s$/.test(w)) {
+      const base = lookupEn(w.slice(0, -2));
+      if (base && base.e.cats.includes('PERSON')) { toks.push({ w, c: [...base.e.cats], pl: base.pl, flags: [...(base.e.flags ?? []), 'genitive'], pfx: '', lang: 'en' }); i += 1; continue; }
+    }
     const hit = lookupEn(w);
     if (hit) toks.push({ w, c: [...hit.e.cats], v: hit.e.v, pl: hit.pl, flags: [...(hit.e.flags ?? [])], pfx: '', lang: 'en' });
     else toks.push({ w, c: ['OTHER'], flags: [], pfx: '', lang: 'en' });
@@ -597,18 +604,33 @@ function matchCurrencyQuery(tk: Tok[]): ClauseIntent | null {
   return null;
 }
 
-/** a customer / client / user that is somebody else's ("my clients", "this client", "for the customer", "הלקוח", "ללקוח", "לקוח שלי") - a currency for THEM is not the account's currency */
-function thirdPartyPerson(tk: Tok[]): boolean {
-  for (let i = 0; i < tk.length; i += 1) {
-    const t = tk[i];
-    if (!(has(t, 'PERSON') && flag(t, 'third'))) continue;
-    if (t.lang === 'he') { if (t.pfx.includes('ה') || t.pfx.includes('ל') || has(tk[i + 1], 'POSS')) return true; continue; }
-    let k = i - 1;
-    while (k >= 0 && (has(tk[k], 'ADV') || has(tk[k], 'MKT'))) k -= 1;
-    const p = tk[k];
-    if (p && (has(p, 'POSS') || (has(p, 'DET') && ['the', 'this', 'that', 'these', 'those'].includes(p.w)) || (has(p, 'PREP') && ['for', 'to', 'of', 'from', 'with', 'by'].includes(p.w)))) return true;
+/**
+ * POSITIVE PROOF that a person noun is the user's own: it is the PREDICATE of a SELF identity ("we are (really) international customers", "אנחנו (בעצם) לקוחות
+ * בינלאומיים", "are we overseas clients?") - a SELF subject reached by walking back over fillers (adverbs, determiners, market words, negation, modals) and, in English,
+ * over the copula / participle. A person noun anywhere else (a bare compound "customer prices", a possessive "customer's prices", "my clients", "the client",
+ * "מחיר לקוח", "הלקוח", "ללקוח") names a THIRD party.
+ */
+function selfProvenPerson(tk: Tok[], i: number): boolean {
+  let k = i - 1;
+  while (k >= 0 && (has(tk[k], 'ADV') || has(tk[k], 'DET') || has(tk[k], 'MKT') || has(tk[k], 'NEG') || has(tk[k], 'OR') || has(tk[k], 'MODAL'))) k -= 1;
+  if (k < 0) return false;
+  if (has(tk[k], 'SELF') && flag(tk[k], 'subj')) return true;
+  if (tk[k].lang === 'en' && (has(tk[k], 'COP') || has(tk[k], 'PART'))) {
+    let j = k - 1;
+    while (j >= 0 && (has(tk[j], 'ADV') || has(tk[j], 'NEG') || has(tk[j], 'MODAL') || has(tk[j], 'COP') || has(tk[j], 'PART'))) j -= 1;
+    return j >= 0 && has(tk[j], 'SELF') && flag(tk[j], 'subj');
   }
   return false;
+}
+/** Hebrew "משתמש" (user / uses) and "עובד" (employee / works) are nouns AND participles: right after an account / possessive / brand subject ("החשבון שלי משתמש", "המערכת משתמשת", "TEKANGO עובדת") the word is the VERB, not a person */
+function hebrewUserVerb(tk: Tok[], i: number): boolean {
+  const t = tk[i]; const p = tk[i - 1];
+  return t.lang === 'he' && ['משתמש', 'משתמשת', 'משתמשים', 'משתמשות', 'עובד', 'עובדת', 'עובדים', 'עובדות'].includes(t.w.slice(t.pfx.length))
+    && !!p && (has(p, 'POSS') || has(p, 'ENTITY') || has(p, 'BRAND') || (has(p, 'SURFACE') && flag(p, 'acct')));
+}
+/** a customer / client / user / supplier ... that is NOT proven to be the user's own: a currency for THEM (their prices, totals, fees) is not the account's currency */
+function thirdPartyPerson(tk: Tok[]): boolean {
+  return tk.some((t, i) => has(t, 'PERSON') && flag(t, 'third') && !hebrewUserVerb(tk, i) && !selfProvenPerson(tk, i));
 }
 function matchCurrency(tk: Tok[], ctx: Ctx): ClauseIntent | null {
   if (ctx.guarded || currencyGuards(tk) || thirdPartyPerson(tk)) return null;
@@ -623,7 +645,7 @@ function matchCurrency(tk: Tok[], ctx: Ctx): ClauseIntent | null {
   const desire = tk.some((t) => has(t, 'DESIRE'));
   const state = tk.some((t) => has(t, 'VERB') && flag(t, 'v_s'));
   const n = tk.filter((t) => !has(t, 'COMMA')).length;
-  const base = { text: tk.map((t) => t.w).join(' '), subject: (self ? 'SELF' : acct ? 'ACCOUNT' : 'NONE') as IntentSubject, subjectNumber: 'UNKNOWN' as IntentNumber, targetCurrency: cur, polarity: 'POSITIVE' as const };
+  const base = { text: tk.map((t) => t.w).join(' '), subject: (self || tk.some((t) => flag(t, 'selfdesire')) ? 'SELF' : acct ? 'ACCOUNT' : 'NONE') as IntentSubject, subjectNumber: 'UNKNOWN' as IntentNumber, targetCurrency: cur, polarity: 'POSITIVE' as const };
   if (sim && (acct || disp || selfObj)) return { ...base, relation: 'DISPLAY_REQUEST', modality: 'SIMULATION' };
   if (possible && (acct || disp || (self && work))) return { ...base, relation: 'CURRENCY_CAPABILITY', modality: 'QUESTION' };
   if (initialInstruction(tk)) {

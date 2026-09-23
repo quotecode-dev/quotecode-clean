@@ -144,12 +144,12 @@ describe('anti-patch audit - the generalization is morphology, not the two Codex
     for (const p of all) expect(source.includes(p.toLowerCase()), p).toBe(false);
   });
   it('the Hebrew nouns are listed ONCE, bare, and read through the shared clitic (prefix) analysis (no article-bearing duplicates)', () => {
-    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
+    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
     for (const articled of ['הדשבורד', 'המערכת', 'האפליקציה', 'החשבון']) expect(raw.includes(articled), articled).toBe(false);
     expect(raw).toMatch(/function analyzeHe\(/);
   });
   it('the English plural forms come from one lexicon lookup (singular entries + plural stripping), not per-pattern regexes', () => {
-    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
+    const raw = readFileSync(join(here, 'marketIntentGrammar.ts'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join(' ');
     expect(raw).toMatch(/function lookupEn\(/);
     expect(raw.includes('customers'), 'plural nouns are derived, never listed').toBe(false);
   });
