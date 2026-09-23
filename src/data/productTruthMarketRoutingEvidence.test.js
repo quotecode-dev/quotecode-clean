@@ -5,21 +5,22 @@
 // duplicated prompt, a free-form row, an over-routed negative control or a version mismatch fails here.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_DEPLOYED_VERSION } from './productTruthFinalMatrixAcceptance.js';
+import { RUNTIME_V35_UPDATED_AT_UTC } from './productTruthFinalMatrixAcceptance.js';
 import { MARKET_ROUTING_MATRIX, MARKET_ROUTING_NEGATIVE_CONTROLS, SELF_BREAK_TEST } from './productTruthMarketRoutingMatrix.js';
 
 const P = 'evidence/product-truth/2026-09-23-market-routing';
 const LIVE = JSON.parse(readFileSync(`${P}-live-matrix.json`, 'utf-8'));
 const VAR_ORIGINAL = JSON.parse(readFileSync(`${P}-variance-original.json`, 'utf-8'));
 const VAR_FORMER = JSON.parse(readFileSync(`${P}-variance-formerly-freeform.json`, 'utf-8'));
-const versionNumber = Number(RUNTIME_DEPLOYED_VERSION.replace('chat-ai-v', ''));
+// HISTORICAL evidence: this live capture belongs to chat-ai v35 (routing closure); it stays committed and valid for v35. The current runtime is v36 (micro-closure).
+const versionNumber = 35;
 
 describe('live routing matrix evidence (committed)', () => {
-  it('was captured against exactly the current deployed chat-ai version, unchanged across the run', () => {
+  it('was captured against chat-ai v35 (its own deployed version), unchanged across the run', () => {
     expect(LIVE.summary.chatAi.before.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.after.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.before.ezbrSha256).toBe(LIVE.summary.chatAi.after.ezbrSha256);
-    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_DEPLOYED_UPDATED_AT_UTC);
+    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_V35_UPDATED_AT_UTC);
     expect(LIVE.summary.testProjectRef).toBe('ljfizgrdyzxddswcedwr');
   });
   it('covers EXACTLY the locked matrix - one call per prompt, no extra, no missing, as the right persona', () => {

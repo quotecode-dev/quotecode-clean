@@ -39,6 +39,9 @@ const CASES = {
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
       { id: 'market_routing_possibility_foreign_currency', prompt: 'אפשר לעבוד בדולר בחשבון שלי?',
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
+      // routing MICRO-closure: a Hebrew attached-prefix noun ("בדשבורד") in a possibility question about a foreign currency, by the verified LOCAL account
+      { id: 'market_routing_micro_hebrew_prefixed_noun', prompt: 'אפשרי לראות בדשבורד EUR?',
+        expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
     ],
   },
   en: {
@@ -56,6 +59,9 @@ const CASES = {
       { id: 'market_routing_instruction_treat_as_local', prompt: 'Treat my account as Local',
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
       { id: 'market_routing_possibility_currency', prompt: 'Can my account work in USD?',
+        expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
+      // routing MICRO-closure: a PLURAL identity claim ("overseas customers") by the verified INTERNATIONAL account - no false market switch
+      { id: 'market_routing_micro_english_plural_identity', prompt: 'We are truly overseas customers.',
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
     ],
   },
