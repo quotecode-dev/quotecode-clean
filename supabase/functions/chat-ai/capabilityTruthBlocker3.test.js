@@ -20,6 +20,7 @@ import { AI_FACTS } from './aiFacts.generated.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const capabilityTruthSource = readFileSync(join(__dirname, 'capabilityTruth.ts'), 'utf-8');
+const indexSource = readFileSync(join(__dirname, 'index.ts'), 'utf-8');
 
 const FACTS = { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities };
 
@@ -182,5 +183,50 @@ describe('BLOCKER 3 §4.5 — professional_reuse regression: full HE/EN x direct
     const answer = formatCapabilityTruthAnswer('professional_reuse', FACTS, isHebrew);
     expect(answer).toBeTruthy();
     expect(answer).not.toMatch(/לא קיימ|does not exist|not available/i);
+  });
+});
+
+describe('BLOCKER 3 §4.6 — free-form model fallback attempt for capability availability (structural, index.ts)', () => {
+  // A real free-form-model call cannot be deterministically unit-tested (it's a live network call
+  // with non-deterministic output) - so this proves the actual ROUTING GUARANTEE at the source
+  // level: within the capability-truth block, the specific classifier and the broad guard together
+  // are the only two ways out before the block ends, and the block's own `if`/`else if` never falls
+  // through to a model call while still inside it. This is the same structural technique already
+  // used above for the formatter's exhaustiveness (§4.2) - proving control flow, not behavior that
+  // can't be observed without a live provider call.
+  const capabilityBlockMatch = indexSource.match(
+    /if \(capabilityTruthApplies\([\s\S]*?\n {2}\}\n/,
+  );
+
+  it('the capability-truth block exists in index.ts (sanity: the structural check below is inspecting real, current source)', () => {
+    expect(capabilityBlockMatch).toBeTruthy();
+  });
+
+  it('inside the capability-truth block, a resolved capabilityId always returns a deterministic response - it never falls through to the code after the block', () => {
+    const block = capabilityBlockMatch[0];
+    // The specific-classifier branch must end in a `return deterministicResponse(...)` when it has
+    // an answer - no path from `if (capabilityId)` continues past the block once resolved.
+    expect(block).toMatch(/if \(capabilityId\) \{[\s\S]*?return deterministicResponse\(capabilityAnswer, navSuggestion\);/);
+  });
+
+  it('inside the capability-truth block, the broad guard is the unconditional `else if` sibling of the specific classifier - not a separate, skippable, later check', () => {
+    const block = capabilityBlockMatch[0];
+    expect(block).toMatch(/else if \(classifyBroadCapabilityQuestionSignal\(lastUserMessage\)\) \{[\s\S]*?return deterministicResponse\(clarification\);/);
+  });
+
+  it('the broad guard branch returns a deterministic response too - it never itself calls into a model or falls through', () => {
+    const block = capabilityBlockMatch[0];
+    const broadGuardBranch = block.slice(block.indexOf('else if (classifyBroadCapabilityQuestionSignal'));
+    expect(broadGuardBranch).not.toMatch(/api\.openai\.com|chat\/completions/i);
+    expect(broadGuardBranch).toMatch(/return deterministicResponse/);
+  });
+
+  it('the capability-truth block runs strictly BEFORE the free-form model call in index.ts (source-order proof - not just present, but ordered correctly)', () => {
+    const blockStart = indexSource.indexOf(capabilityBlockMatch[0]);
+    const modelCallIndex = indexSource.search(/api\.openai\.com\/v1\/chat\/completions/i);
+    expect(blockStart).toBeGreaterThan(-1);
+    // A model-invoking call site must exist later in the file (this router does eventually call a
+    // free-form model for genuinely unclassified messages) AND strictly after this block.
+    expect(modelCallIndex).toBeGreaterThan(blockStart);
   });
 });

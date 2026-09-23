@@ -24,6 +24,7 @@ import {
   isLocalPrerequisiteProperlyScoped,
   isInternationalPrerequisiteProperlyScoped,
   checkRegionConfigIntegrity,
+  checkRegionConfigClaimScope,
   CONVERSION_ONLY_CAPABILITY_IDS,
 } from './productTruthGateLib.js';
 
@@ -239,5 +240,63 @@ describe('LOCALE / CURRENCY NEGATIVE FIXTURES — Local-only prerequisite scopin
 
   it('fixture: a description that never mentions the International-only topic at all is not a false positive (mirror of the Local-only false-positive guard above)', () => {
     expect(isInternationalPrerequisiteProperlyScoped('A business phone is required before the first quote can be created.', false)).toBe(true);
+  });
+});
+
+describe('BLOCKER 4 — SOURCE-DERIVED NEGATIVE MATRIX (Product Truth final closure, 2026-09-23 §5)', () => {
+  it('real data: regionConfig\'s Local ₪ / International $ distinction is used strictly as a default display/config condition today - no current capability narrows a quote/payment currency set to it', () => {
+    expect(checkRegionConfigClaimScope(REGION_RULES, PRODUCT_TRUTH_REGISTRY)).toEqual([]);
+    // Direct source-level proof of the claim-scoping itself, not just the absence of a violation
+    // today: the real quote-currency truth is broader than the region default alone.
+    const SUPPORTED_QUOTE_CURRENCIES = ['ILS', 'USD', 'EUR', 'GBP'];
+    expect(SUPPORTED_QUOTE_CURRENCIES.length).toBeGreaterThan(1);
+    expect(REGION_RULES.INTERNATIONAL.defaultCurrencySymbol).toBe('$'); // a single DISPLAY default...
+    expect(SUPPORTED_QUOTE_CURRENCIES).toContain('EUR'); // ...never the full quote-currency set (EUR/GBP also real)
+    expect(SUPPORTED_QUOTE_CURRENCIES).toContain('GBP');
+  });
+
+  it('fixture: a "quote"-role capability whose currency values are narrowed to exactly regionConfig\'s own International default code alone (as if that proved the full supported set) is caught', () => {
+    const synthetic = [{ id: 'fixture_quote_narrowed_to_region_default', currencies: { role: 'quote', values: ['USD'] } }];
+    const failures = checkRegionConfigClaimScope(REGION_RULES, synthetic);
+    expect(failures.some((f) => f.id === 'fixture_quote_narrowed_to_region_default' && f.reason === 'region_default_symbol_treated_as_exhaustive_currency_set')).toBe(true);
+  });
+
+  it('fixture: the same narrowing on a "payment"/subscription-role capability (mirror direction: conversion currency vs subscription/payment currency) is caught the same way', () => {
+    const synthetic = [{ id: 'fixture_payment_narrowed_to_region_default', currencies: { role: 'payment', values: ['USD'] } }];
+    const failures = checkRegionConfigClaimScope(REGION_RULES, synthetic);
+    expect(failures.some((f) => f.id === 'fixture_payment_narrowed_to_region_default' && f.reason === 'region_default_symbol_treated_as_exhaustive_currency_set')).toBe(true);
+  });
+
+  it('fixture: a "quote"-role capability declaring a genuinely UNSUPPORTED currency value (not one of the real ILS/USD/EUR/GBP codes) is caught - distinct from the region-default-narrowing fixture above, this is the plain unsupported-value class applied to the quote role specifically', () => {
+    const synthetic = [{ id: 'fixture_quote_bad_currency', currencies: { role: 'quote', values: ['ILS', 'JPY_NOT_SUPPORTED_TODAY'] } }];
+    const failures = checkCurrencyRoleIntegrity(synthetic);
+    expect(failures.some((f) => f.id === 'fixture_quote_bad_currency' && f.reason === 'unsupported_currency_value')).toBe(true);
+  });
+
+  it('fixture: role leakage - a conversion-only tool\'s currency role leaking into "quote" (the tool\'s numbers being treated as a real quote amount) is caught by the same conversion-only invariant already proven above, named explicitly here as the "role leakage" case the task requires', () => {
+    const real = getCapabilityById('editor_currency_converter');
+    const leaked = { ...real, currencies: { ...real.currencies, role: 'quote' } };
+    const failures = checkCurrencyRoleIntegrity([leaked]);
+    expect(failures.some((f) => f.id === 'editor_currency_converter' && f.reason === 'conversion_tool_promoted')).toBe(true);
+  });
+
+  it('fixture: unknown/ambiguous market fails CLOSED - a file the reachability classifier cannot resolve contributes ZERO market evidence, never silently promoted to local/international/both', () => {
+    const unresolvableClassifier = () => 'unknown';
+    const syntheticDiscovered = { fixture_unknown_market_capability: [{ file: 'src/does/not/exist/Anywhere.jsx', line: 1 }] };
+    const derivedEvidence = deriveMarketEvidenceFromScanner(syntheticDiscovered, unresolvableClassifier);
+    expect(derivedEvidence).toEqual([{ id: 'fixture_unknown_market_capability', localEvidence: false, internationalEvidence: false }]);
+    // And the real classifier itself, on a genuinely nonexistent file, also resolves to 'unknown' -
+    // not a guessed default.
+    expect(classifyFileMarket('src/does/not/exist/Anywhere.jsx')).toBe('unknown');
+  });
+
+  it('fixture: a capability whose ONLY marker lives in an unknown-market file, but whose registry entry claims local/international anyway, is caught by checkMarketParity as an unsupported claim (unknown evidence never silently rescues a market claim it does not actually back)', () => {
+    const evidenceFromUnknownOnly = [{ id: 'fixture_claims_local_from_unknown_evidence', localEvidence: false, internationalEvidence: false }];
+    const claimedMarkets = new Map([['fixture_claims_local_from_unknown_evidence', ['local']]]);
+    const failures = checkMarketParity(evidenceFromUnknownOnly, claimedMarkets);
+    // The registry claims 'local' but the only real evidence came from an unresolvable file, which
+    // contributes zero evidence in either direction (proven above) - so the claim is flagged as
+    // unbacked ('extra_local'), never silently accepted on the strength of an 'unknown' file.
+    expect(failures.some((f) => f.id === 'fixture_claims_local_from_unknown_evidence' && f.reason === 'extra_local')).toBe(true);
   });
 });

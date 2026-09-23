@@ -211,6 +211,40 @@ export function isInternationalPrerequisiteProperlyScoped(description, isHebrew)
 }
 
 /**
+ * Product Truth final closure (2026-09-23, Blocker 4 §5): regionConfig.js's Local ₪ vs
+ * International $ distinction (`REGION_RULES.LOCAL.currencySymbol` / `.INTERNATIONAL.
+ * defaultCurrencySymbol`) is used in real source ONLY as a DEFAULT DISPLAY / CONFIG condition -
+ * `getCurrencySym`'s own fallback when no more specific currency is known, and
+ * `getRegionBillingProfile`'s still-dormant future-billing-integration default (see its own comment:
+ * "מיועד לשימוש ע"י אינטגרציות עתידיות", not a live payment/subscription system). It is never proof
+ * of the FULL quote-currency support set - `getCurrencySym` itself demonstrates real International
+ * quote-currency support is broader (explicit EUR/GBP/USD branches), not narrowed to the single
+ * default symbol. This check catches the exact wrong-claim shape: a registry capability whose
+ * 'quote' or 'payment' role currency VALUES are narrowed to exactly regionConfig's own single
+ * International default code alone, as if that were the complete supported set.
+ * @param {{LOCAL:{currencySymbol?:string}, INTERNATIONAL:{defaultCurrencySymbol?:string}}} regionRules
+ * @param {{id:string, currencies?: {role:string, values:readonly string[]} | null}[]} registryEntries
+ * @returns {{id:string, reason:'region_default_symbol_treated_as_exhaustive_currency_set'}[]}
+ */
+export function checkRegionConfigClaimScope(regionRules, registryEntries) {
+  const failures = [];
+  // The real quote-currency truth (getCurrencySym) supports USD/EUR/GBP for International, ILS for
+  // Local - strictly broader than regionConfig's own single default symbol per market. A 'quote' or
+  // 'payment' role narrowed to exactly one currency code, equal to what regionConfig's own default
+  // symbol maps to, is the shape a wrong "regionConfig proves the currency set" claim would take.
+  const intlDefaultIsDollarSymbol = regionRules?.INTERNATIONAL?.defaultCurrencySymbol === '$';
+  const intlDefaultCode = intlDefaultIsDollarSymbol ? 'USD' : null;
+  for (const c of registryEntries) {
+    if (!c.currencies) continue;
+    const { role, values } = c.currencies;
+    if ((role === 'quote' || role === 'payment') && Array.isArray(values) && values.length === 1 && intlDefaultCode && values[0] === intlDefaultCode) {
+      failures.push({ id: c.id, reason: 'region_default_symbol_treated_as_exhaustive_currency_set' });
+    }
+  }
+  return failures;
+}
+
+/**
  * Codex "locale/currency negative matrix": regionConfig.js's REGION_RULES is the ONE source for
  * Local vs International locale/currency semantics that the rest of the Product Truth gate
  * structurally depends on. Checks the real invariants (Local = ILS symbol + a positive VAT rate;
