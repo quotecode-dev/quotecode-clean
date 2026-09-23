@@ -1,0 +1,26 @@
+[
+  {
+    "lang": "he",
+    "steps": [
+      "filled login form",
+      "submitted login, url=http://192.168.1.189:5186/dashboard?lang=he",
+      "chat input visible",
+      "message sent: אפשר לעשות הצעה מדודה?"
+    ],
+    "urlAfterLogin": "http://192.168.1.189:5186/dashboard?lang=he",
+    "containsExpected": true,
+    "panelTextTail": "שירות לקוחות TEKANGO\nזמין 24/7\nהיום\nשלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?\n13:33\nאפשר לעשות הצעה מדודה?\n13:33\nכן - הצעת מחיר מקצועית/מדודה קיימת ב-TEKANGO. הצעות מחיר מקצועיות עם מבנה מדוד (חדרים/אזורים/יחידות).\n13:33\nT\nTEST HE Pro\nהצעת מחיר חדשה\nהצעות מחיר\nהגדרות עסק\nלקוחות\nפיננסים\nקטלוג\nT\[REDACTED_TEST_PERSONA_EMAIL]\nמופעל על ידי\nברוך שובך\nסה״כ הצעות:\n1\nסך הכנסות:\n₪0.00\nצ׳אט AI\nLIFETIME\nאין כרגע הצעה חמהכשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.\nהיסטוריית הצעות מחיר\nייצא לאקסל (CSV)\nכל הסטטוסים\nטיוטה\nנשלח\nאושר\nשולם\n\tשם לקוח\tמס׳ הצעה\tהסכום\tסטטוס\tתאריך\n\t\nTEST Fixture Client HE\n\tA100706\t₪676.00\tטיוטה\t15/09/2026\nמערכת TEKANGO - ניהול עסק והצעות מחיר\nהצהרת נגישות"
+  },
+  {
+    "lang": "en",
+    "steps": [
+      "filled login form",
+      "submitted login, url=http://192.168.1.189:5186/dashboard?lang=en",
+      "chat input visible",
+      "message sent: Can I reuse professional items across quotes?"
+    ],
+    "urlAfterLogin": "http://192.168.1.189:5186/dashboard?lang=en",
+    "containsExpected": true,
+    "panelTextTail": "89380608393\n\tA100719\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789379402855\n\tA100718\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789377102202\n\tA100717\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789375444914\n\tA100716\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789370818788\n\tA100715\t$300.13\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789368268307\n\tA100714\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789367598553\n\tA100713\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789367520277\n\tA100712\t$300.00\tDraft\t09/14/2026\n\n\t\nBridge SmartQuote Fixture EN v1\n\tA100711\t$573.32\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789351083304\n\tA100710\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789349882028\n\tA100709\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789346731792\n\tA100708\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789346104416\n\tA100707\t$300.00\tDraft\t09/14/2026\n\n\t\nEN Terminal Closure 1789343904793\n\tA100706\t$300.00\tDraft\t09/13/2026\n\n\t\nEN Terminal Closure 1789342588351\n\tA100705\t$300.00\tDraft\t09/13/2026\n\n\t\nEN Terminal Closure 1789339014601\n\tA100704\t$300.00\tDraft\t09/13/2026\n\n\t\nEN Terminal Closure 1789338931957\n\tA100703\t$300.00\tDraft\t09/13/2026\n\n\t\nEN Terminal Closure 1789336986517\n\tA100702\t$300.00\tDraft\t09/13/2026\n\n\t\nEN Terminal Closure 1789334428736\n\tA100701\t$300.00\tDraft\t09/13/2026\n\n\t\nDate Fixture IRONSTRESS\n\tA100858\t$1,313.13\tDraft\t09/13/2026\n\n\t\nJohn Miller\n\tA100700\t$360.00\tDraft\t09/09/2026\nTEKANGO - Business & Quoting SaaS Platform\nAccessibility Statement"
+  }
+]
