@@ -1,0 +1,104 @@
+{
+  "capturedAtUtc": "2026-09-23T11:27:11.306Z",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "method": "auth_signin_plus_rls_scoped_select_readonly",
+  "results": [
+    {
+      "alias": "LOCAL_PRO",
+      "redactedEmailHash": "8d05bb1726f2",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "pro",
+      "serverIsLifetime": true,
+      "serverRole": "user",
+      "serverCountry": "Local",
+      "expectMarket": "Local",
+      "expectPlan": "pro",
+      "expectRole": null
+    },
+    {
+      "alias": "LOCAL_BASIC",
+      "redactedEmailHash": "9c3a3eea152e",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "basic",
+      "serverIsLifetime": true,
+      "serverRole": "user",
+      "serverCountry": "Local",
+      "expectMarket": "Local",
+      "expectPlan": "basic",
+      "expectRole": null
+    },
+    {
+      "alias": "LOCAL_FREE",
+      "redactedEmailHash": "7e26cd674841",
+      "signInOk": false,
+      "http": 400
+    },
+    {
+      "alias": "LOCAL_ADMIN",
+      "redactedEmailHash": "39e41583b58a",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "pro",
+      "serverIsLifetime": false,
+      "serverRole": "super_admin",
+      "serverCountry": "Local",
+      "expectMarket": "Local",
+      "expectPlan": null,
+      "expectRole": "super_admin"
+    },
+    {
+      "alias": "INTL_PRO",
+      "redactedEmailHash": "d6645533fe23",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "pro",
+      "serverIsLifetime": true,
+      "serverRole": "user",
+      "serverCountry": "International",
+      "expectMarket": "International",
+      "expectPlan": "pro",
+      "expectRole": null
+    },
+    {
+      "alias": "INTL_BASIC",
+      "redactedEmailHash": "ab6d70f18339",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "basic",
+      "serverIsLifetime": true,
+      "serverRole": "user",
+      "serverCountry": "International",
+      "expectMarket": "International",
+      "expectPlan": "basic",
+      "expectRole": null
+    },
+    {
+      "alias": "INTL_FREE",
+      "redactedEmailHash": "c73eaf536cf3",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "free",
+      "serverIsLifetime": false,
+      "serverRole": "user",
+      "serverCountry": "International",
+      "expectMarket": "International",
+      "expectPlan": "free",
+      "expectRole": null
+    },
+    {
+      "alias": "PERSONA_SUPER_ADMIN",
+      "redactedEmailHash": "e8c4eba9db71",
+      "signInOk": true,
+      "http": 200,
+      "serverPlan": "free",
+      "serverIsLifetime": false,
+      "serverRole": "super_admin",
+      "serverCountry": "Local",
+      "expectMarket": "Local",
+      "expectPlan": null,
+      "expectRole": "super_admin"
+    }
+  ]
+}
