@@ -276,6 +276,20 @@ describe('(4) the account market / currency route', () => {
     'תשנה לי את המטבע לדולר',
     'תעביר את החשבון שלי לשוק בינלאומי',
     'תתייחס אליי כלקוח בינלאומי',
+    // currency QUESTIONS (yes/no + which-currency forms) - the false 'TEKANGO prices are ILS only' family
+    'Are TEKANGO prices in ILS only?',
+    'Are the prices in USD?',
+    'Is pricing in shekels only?',
+    'Does TEKANGO only support ILS?',
+    'What currency are the prices shown in?',
+    'Which currency is my account billed in?',
+    'In what currency are prices displayed?',
+    'What currency am I seeing?',
+    'האם המחירים ב-TEKANGO הם בשקלים בלבד?',
+    'המחירים בדולרים?',
+    'באיזה מטבע מוצגים המחירים?',
+    'איזה מטבע החשבון שלי משתמש?',
+    'האם TEKANGO תומכת רק בשקלים?',
   ];
   const NO = [
     'How much does the Pro plan cost?',
@@ -289,6 +303,14 @@ describe('(4) the account market / currency route', () => {
     'יש לכם מחשבון?',
     'איך מוסיפים לקוח חדש?',
     'I want to cancel my subscription.',
+    'What are the prices in dollars?',
+    'How much does the PRO plan cost in USD?',
+    'Which currencies does the calculator convert?',
+    'Can I create a quote in euros?',
+    'מה המחירים בדולר?',
+    'כמה עולה תוכנית BASIC בדולרים?',
+    'באילו מטבעות המחשבון תומך?',
+    'אפשר ליצור הצעה בשקלים?',
   ];
   it.each(YES)('routes: %s', (t) => expect(classifyAccountMarketIntent(t)).toBe(true));
   it.each(NO)('does not steal: %s', (t) => expect(classifyAccountMarketIntent(t)).toBe(false));

@@ -24,6 +24,15 @@ const EN_PATTERNS: readonly RegExp[] = [
   /\b(?:change|switch|set|update|convert)\b.{0,15}\b(?:my\s+)?(?:currency|market|region|country)\b/i,
   // "<instruction> ... an international|local account|market|customer"
   /\b(?:treat|consider|regard|switch|make|set|move)\b.{0,30}\b(?:international|foreign|overseas|local|israeli)\s+(?:account|market|customer)\b/i,
+  // CURRENCY QUESTIONS about what the account / prices are shown in. Anchored to a yes/no or "which currency" form on purpose: a real
+  // pricing question ("What are the prices in dollars?", "How much is PRO in USD?") or a feature question ("Which currencies does the
+  // calculator convert?") must still reach the pricing block / the capability router.
+  new RegExp(`^\\s*(?:are|is)\\s+(?:the\\s+|all\\s+|your\\s+)?(?:tekango\\s+)?(?:prices?|pricing)\\b.{0,30}\\b(?:only\\s+)?(?:in\\s+)?${CURRENCY_EN}(?:\\s+only)?\\s*\\??\\s*$`, 'i'),
+  new RegExp(`\\b(?:does|do)\\s+tekango\\b.{0,30}\\b(?:only\\s+)?(?:support|use|show|display)\\b.{0,20}\\b${CURRENCY_EN}\\b`, 'i'),
+  /\b(?:what|which)\s+currenc(?:y|ies)\b.{0,40}\b(?:are|is|do|does|will)\s+(?:the\s+|my\s+|this\s+|all\s+)?(?:tekango\s+)?(?:prices?|pricing|plans?|account|quotes?)\b/i,
+  /\b(?:prices?|pricing)\b.{0,30}\b(?:what|which)\s+currency\b/i,
+  /\bin\s+what\s+currency\b.{0,40}\b(?:prices?|pricing|shown|displayed|billed|charged)\b/i,
+  /\bwhat\s+currency\s+(?:am\s+i|do\s+i)\s+(?:seeing|see|using|use|shown|get)\b/i,
 ];
 
 const HE_CURRENCY = '(?:ב?דולר(?:ים)?|ב?יורו|ב?אירו|ב?שקל(?:ים)?|ב?ש"ח|ב?לירות|ב?לירה|USD|EUR|GBP|ILS)';
@@ -40,6 +49,11 @@ const HE_PATTERNS: readonly RegExp[] = [
   // "<instruction> ... כחשבון|כלקוח|לחשבון|ללקוח בינלאומי|מקומי"
   new RegExp(`${HE_INSTRUCTION}\\s.{0,30}(?:חשבון|לקוח|שוק)\\s+${HE_MARKET_WORD}`),
   new RegExp(`${HE_INSTRUCTION}\\s.{0,30}(?:כחשבון|כלקוח|לחשבון|ללקוח|לשוק)\\s*${HE_MARKET_WORD}`),
+  // CURRENCY QUESTIONS (yes/no or "which currency" forms - anchored so a real pricing / feature question still reaches its own route)
+  new RegExp(`^\\s*(?:האם\\s+)?(?:כל\\s+)?(?:ה)?(?:מחירים|תמחור)(?:\\s+ב-?TEKANGO)?\\s+(?:הם\\s+|נקובים\\s+|מוצגים\\s+)?${HE_CURRENCY}(?:\\s+בלבד)?\\s*\\??\\s*$`),
+  /(?:באיזה|איזה)\s+מטבע.{0,40}(?:המחירים|מחירים|התמחור|החשבון|ההצעות|מוצג|מציגים|מחייבים)/,
+  /(?:המחירים|התמחור|החשבון).{0,30}(?:באיזה|איזה)\s+מטבע/,
+  /(?:האם\s+)?TEKANGO\s.{0,30}(?:תומכת|מציגה|עובדת)\s.{0,15}(?:רק\s+)?ב(?:שקל|דולר|יורו|אירו)/,
 ];
 
 /** True when the message asserts or asks to change the account's market / currency. Conservative on purpose. */
