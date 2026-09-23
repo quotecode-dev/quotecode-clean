@@ -16,6 +16,9 @@
 // quote currency != payment rail; quote generation != checkout; sending a quote != collecting payment;
 // plan/billing metadata != customer payment capability).
 
+import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
+import { buildPaymentFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
+
 export type BillingFacts = {
   readonly liveCheckoutAvailable: boolean;
   readonly paymentProcessingAvailable: boolean;
@@ -61,11 +64,20 @@ export function classifyPaymentIntent(lastUserMessage: unknown): boolean {
 
 // Per-language, per-market wording: the Hebrew/Local text never names a foreign currency and the
 // English/International text never names the shekel (market-isolation law).
-export function formatPaymentTruthAnswer(isHebrew: boolean): string {
+// Structured truth first: the wording below is the NOT-LIVE statement, so it is only ever rendered FROM a PAYMENT_NOT_LIVE payload
+// (any other status fails closed instead of reusing the not-live text).
+export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload): string {
+  if (payload && payload.truthStatus !== 'PAYMENT_NOT_LIVE') throw new Error(`formatPaymentTruthAnswer requires a PAYMENT_NOT_LIVE payload, got ${payload.truthStatus}`);
   if (isHebrew) {
     return 'כרגע אין ב-TEKANGO סליקה או קבלת תשלומים אונליין: המערכת לא מעבדת תשלומים, לא מקבלת כרטיסי אשראי ולא גובה כסף באף מטבע - לא עבור המנוי ולא עבור הצעות מחיר שאתה שולח ללקוחות שלך. המטבע שמוצג במחירים ובהצעות (₪ בשוק המקומי) הוא מטבע תצוגה/הצעה בלבד, ואינו אמצעי תשלום. איך אתה גובה תשלום מהלקוחות שלך מחוץ למערכת אינו מוגדר ב-TEKANGO, ואני לא יודע לומר לך באיזה אמצעי תשלום העסק שלך משתמש.';
   }
   return "Right now TEKANGO has no live checkout or payment processing: it doesn't process payments, accept cards, or collect money in any currency - neither for a subscription nor for the quotes you send your clients. The currency shown on prices and quotes (USD, EUR or GBP) is a display/quote currency only, not a payment method. How you collect payment from your own clients outside TEKANGO isn't something TEKANGO defines, and I don't know which payment method your business uses.";
+}
+
+/** The deterministic payment answer TOGETHER with its structured truth (derived from AI_FACTS.billing, then rendered). */
+export function resolvePaymentTruthResponse(isHebrew: boolean, billing: BillingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS): { answer: string; factPayload: ProductTruthFactPayload } {
+  const factPayload = buildPaymentFactPayload(billing, acct);
+  return { answer: formatPaymentTruthAnswer(isHebrew, factPayload), factPayload };
 }
 
 // Authoritative system-prompt section. Derived from AI_FACTS.billing: when live checkout is not available this

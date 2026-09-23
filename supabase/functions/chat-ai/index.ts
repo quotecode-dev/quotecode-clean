@@ -6,10 +6,13 @@ import { buildVerifiedAccountContext, isHebrewFromMarket, type BusinessSettingsR
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
-import { paymentTruthApplies, classifyPaymentIntent, formatPaymentTruthAnswer } from "./paymentTruth.ts";
+import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
-import { invoicingTruthApplies, classifyInvoicingIntent, formatInvoicingTruthAnswer } from "./invoicingTruth.ts";
-import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, formatBroadCapabilityClarification, formatCapabilityTruthAnswer } from "./capabilityTruth.ts";
+import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse } from "./capabilityTruth.ts";
+import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
+import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
+import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
@@ -195,8 +198,15 @@ serve(async (req) => {
       console.error("Failed to log chat question:", logErr);
     }
   };
-  const deterministicResponse = (answerText: string, navigation: { action: string; focus: string | null } | null = null) => new Response(JSON.stringify({
-    contractVersion: CHAT_CONTRACT_VERSION, requestId: crypto.randomUUID(), contextRevision, answer: answerText, answerSource: 'deterministic', factPayload: null,
+  // STRUCTURED TRUTH: the SERVER-VERIFIED account facts every deterministic Product Truth payload is resolved against (never anything the
+  // caller claimed). No verified account (public chat) = no account facts.
+  const payloadAccount: PayloadAccountFacts = verifiedUserId && accountContext
+    ? { market: accountContext.market, tier: accountContext.tier, isAdmin: !!trustedFacts?.isAdmin }
+    : NO_ACCOUNT_FACTS;
+  // `factPayload` carries the structured Product Truth payload for a deterministic Product Truth answer (canonical authority -> structured
+  // truth -> prose); it stays null for help / free-form answers that make no deterministic Product Truth claim.
+  const deterministicResponse = (answerText: string, navigation: { action: string; focus: string | null } | null = null, truthPayload: ChatFactPayload | null = null) => new Response(JSON.stringify({
+    contractVersion: CHAT_CONTRACT_VERSION, requestId: crypto.randomUUID(), contextRevision, answer: answerText, answerSource: 'deterministic', factPayload: truthPayload,
     navigation, selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null, ...helpEnvelope, error: null,
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -245,9 +255,19 @@ serve(async (req) => {
   const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
-    const capabilityAnswer = asksInvoicing ? formatInvoicingTruthAnswer(isHebrew) : formatPaymentTruthAnswer(isHebrew);
-    await logChat(capabilityAnswer);
-    return deterministicResponse(capabilityAnswer);
+    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount);
+    await logChat(truth.answer);
+    return deterministicResponse(truth.answer, null, truth.factPayload);
+  }
+
+  // ACCOUNT MARKET / CURRENCY TRUTH (structured-truth closure): a message that asserts or asks to change the account's market / currency is
+  // answered DETERMINISTICALLY from the server-verified market, ACCOUNT-scoped - so the model can never turn it into a product-wide
+  // currency claim ("TEKANGO prices are ILS only"). Only for a verified account whose market is known; see marketTruth.ts.
+  if (verifiedUserId && accountContext && accountContext.market !== 'Unknown' && classifyAccountMarketIntent(lastUserMessage)) {
+    const marketPayload = buildAccountMarketFactPayload(payloadAccount);
+    const marketAnswer = formatAccountMarketAnswer(isHebrew, marketPayload);
+    await logChat(marketAnswer);
+    return deterministicResponse(marketAnswer, null, marketPayload);
   }
 
   // PRODUCT TRUTH REGISTRY (TEKANGO_AI_ARCHITECTURE.md v2.5 section 52): a "does the product have X"
@@ -266,20 +286,22 @@ serve(async (req) => {
       // violation can never be papered over into a wrong deterministic answer; the request fails
       // closed with a generic error rather than returning a false claim. Real data has zero
       // violations today (capabilityAnswerState.test.js) - this path exists as a regression guard.
-      const capabilityAnswer = formatCapabilityTruthAnswer(
+      const capabilityTruth = resolveCapabilityTruthResponse(
         capabilityId,
         { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities },
         isHebrew,
         accountContext?.tier ?? null,
         verifiedUserId ? !!trustedFacts?.isAdmin : null,
+        accountContext?.market ?? null,
       );
-      if (capabilityAnswer) {
+      if (capabilityTruth) {
+        const capabilityAnswer = capabilityTruth.answer;
         const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);
         const navSuggestion = matched?.aiMayNavigate && matched.safeNavigationId && verifiedUserId && navAllowed.includes(matched.safeNavigationId)
           ? { action: matched.safeNavigationId, focus: null }
           : null;
         await logChat(capabilityAnswer);
-        return deterministicResponse(capabilityAnswer, navSuggestion);
+        return deterministicResponse(capabilityAnswer, navSuggestion, capabilityTruth.factPayload);
       }
     }
     // Codex "deterministic product-capability-question guard" (2026-09-2X, blocker 3 §4.3): the
@@ -290,9 +312,9 @@ serve(async (req) => {
     // availability - the exact defect class this entire subsystem exists to close. A bounded,
     // deterministic clarification is returned instead; the model is never invoked for this turn.
     else if (classifyBroadCapabilityQuestionSignal(lastUserMessage)) {
-      const clarification = formatBroadCapabilityClarification(isHebrew);
-      await logChat(clarification);
-      return deterministicResponse(clarification);
+      const clarification = resolveBroadCapabilityClarification(isHebrew, payloadAccount);
+      await logChat(clarification.answer);
+      return deterministicResponse(clarification.answer, null, clarification.factPayload);
     }
   }
 

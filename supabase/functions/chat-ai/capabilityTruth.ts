@@ -17,6 +17,8 @@
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { resolveCapabilityAnswerState, checkStructuredStateInvariants } from "./capabilityAnswerState.ts";
 import { classifyHelpIntent } from "./helpContext.ts";
+import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
+import { buildCapabilityFactPayload, buildClarificationFactPayload, buildComparisonFactPayload, buildLifecycleFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 
 export type CapabilityFact = {
   readonly id: string;
@@ -400,13 +402,87 @@ export class CapabilityAnswerInvariantError extends Error {
 // model never chooses it. Plan-gated: the capability exists, the account restriction is explained
 // (never "TEKANGO does not have X"). Mutating: may explain how the user can do it; never "I did it".
 //
-// Codex "structured runtime answer contract" (2026-09-2X): every branch below now reads its facts
-// FROM the resolved CapabilityAnswerState (capabilityAnswerState.ts), never from the raw
-// CapabilityFact's own loose fields directly - and the resolved state is validated against the
-// hard product invariants BEFORE any prose is returned. A violation throws, it is never silently
-// rendered - regex prose checks (claimCodes.ts) remain a second, textual layer underneath this,
-// never the primary or only gate.
-export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null, isAdmin: boolean | null = null): string | null {
+// STRUCTURED TRUTH CONTRACT (Product Truth closure): the direction of authority is
+//     canonical authority (registry / billing / invoicing facts + server-verified account facts)
+//       -> STRUCTURED TRUTH (ProductTruthFactPayload, productTruthPayload.ts)
+//       -> PROSE (renderCapabilityProse below, which picks its branch FROM the payload).
+// Every deterministic answer function therefore returns the payload TOGETHER with the prose; index.ts puts the payload in the
+// response envelope's `factPayload`, so acceptance validates structured truth first and the prose only as a secondary check.
+export type StructuredTruthResponse = { readonly answer: string; readonly factPayload: ProductTruthFactPayload };
+
+/** Renders the prose of a registry capability answer FROM the structured payload (never from the raw fact's loose fields). */
+function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: string, isHebrew: boolean): string {
+  switch (p.truthStatus) {
+    case 'NOT_AVAILABLE':
+      switch (p.registryState) {
+        case 'UNAVAILABLE':
+          return isHebrew ? `לא - ${name} אינה זמינה כרגע ב-TEKANGO.` : `No - ${name} is not currently available in TEKANGO.`;
+        case 'ROADMAP_POST_LIVE':
+          return isHebrew ? `${name} אינה זמינה כרגע - זהו יעד עתידי, לא יכולת פעילה היום.` : `${name} is not currently available - it is a future roadmap item, not an active capability today.`;
+        case 'IMPLEMENTED_NOT_RELEASED':
+          return isHebrew ? `${name} אינה זמינה כרגע למשתמשים.` : `${name} is not currently available to users.`;
+        case 'TEST_ONLY':
+          return isHebrew ? `${name} קיימת רק בסביבת בדיקות פנימית ואינה מוצגת כיכולת ללקוחות.` : `${name} exists only in an internal test environment and is never presented as a customer feature.`;
+        case 'FIRST_LIVE_CANDIDATE':
+          return isHebrew
+            ? `${name} קיימת בסביבת בדיקה מאומתת (TEST) בלבד - אין לראות בכך זמינות בסביבת הייצור.`
+            : `${name} exists in a verified TEST/candidate environment only - this does not imply availability in Production.`;
+        case 'DEPRECATED':
+          return isHebrew ? `${name} הוחלפה. ${desc}` : `${name} has been replaced. ${desc}`;
+        default:
+          throw new CapabilityAnswerInvariantError(p.capabilityId ?? 'unknown', [{ code: 'UNKNOWN_AVAILABILITY_STATE', reason: `NOT_AVAILABLE payload carries registryState "${String(p.registryState)}"` }]);
+      }
+    case 'MARKET_UNAVAILABLE':
+      return isHebrew ? `לא - ${name} אינה זמינה בשוק של החשבון שלך.` : `No - ${name} is not available in your account's market.`;
+    case 'ROLE_LOCKED':
+      return isHebrew
+        ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
+        : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
+    case 'PLAN_LOCKED':
+      return isHebrew
+        ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${String(p.minimumPlan).toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
+        : `Yes - ${name} exists in TEKANGO, but it requires the ${String(p.minimumPlan).toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
+    case 'AVAILABLE': {
+      // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — phrased distinctly from the
+      // plan-gated branch, and never inferred from the account's plan tier (a PRO or Lifetime account without the role still
+      // does not have it). Read from the payload's requiredRole / accountEntitlement.
+      if (p.requiredRole !== null) {
+        if (p.accountEntitlement === 'GRANTED') {
+          return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
+        }
+        return isHebrew
+          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not a paid plan or Lifetime. ${desc}`;
+      }
+      // Plan-gated: say the capability exists and explain the restriction — never deny existence. Codex 4.4: branches on the
+      // payload's tri-state accountEntitlement (never the raw tier string's truthiness); GRANTED needs no restriction disclosure.
+      if (p.minimumPlan !== null && p.accountEntitlement !== 'GRANTED') {
+        return isHebrew
+          ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${p.minimumPlan.toUpperCase()}. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, from the ${p.minimumPlan.toUpperCase()} plan. ${desc}`;
+      }
+      return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
+    }
+    default:
+      // Exhaustive by construction: a truth status that has no capability wording must fail loudly, never fall into available-prose.
+      throw new CapabilityAnswerInvariantError(p.capabilityId ?? 'unknown', [{ code: 'UNKNOWN_AVAILABILITY_STATE', reason: `Unhandled truthStatus "${p.truthStatus}" reached the capability formatter.` }]);
+  }
+}
+
+/**
+ * The deterministic capability answer TOGETHER with its structured truth. Returns null when the id is not a known capability.
+ * Codex "structured runtime answer contract" (2026-09-2X): the resolved CapabilityAnswerState is validated against the hard
+ * product invariants BEFORE any prose is returned - a violation throws, it is never silently rendered.
+ */
+export function resolveCapabilityTruthResponse(
+  id: string,
+  facts: CapabilityFacts,
+  isHebrew: boolean,
+  accountTier: string | null = null,
+  isAdmin: boolean | null = null,
+  accountMarket: PayloadAccountFacts['market'] = null,
+): StructuredTruthResponse | null {
+  const acct: PayloadAccountFacts = { market: accountMarket, tier: accountTier, isAdmin };
   // Codex defect 3: cancellation/archive/permanent-deletion of the account/business/subscription
   // itself is NOT one of the 38 registered capabilities (it is the false claim being corrected, not
   // a real feature) - answered directly here, matching validation.ts's system-prompt-level wording
@@ -417,10 +493,13 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
     const sentinelState = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin)!;
     const sentinelViolations = checkStructuredStateInvariants(sentinelState);
     if (sentinelViolations.length > 0) throw new CapabilityAnswerInvariantError(id, sentinelViolations);
+    const factPayload = buildLifecycleFactPayload(sentinelState, acct);
+    if (factPayload.truthStatus !== 'NOT_AVAILABLE') throw new CapabilityAnswerInvariantError(id, [{ code: 'NO_LIFECYCLE_SELF_SERVICE_CLAIM', reason: `lifecycle payload is ${factPayload.truthStatus}` }]);
     const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
-    return isHebrew
+    const answer = isHebrew
       ? `ביטול מנוי/עסק, ארכוב נתונים או מחיקה לצמיתות אינם פעולות עצמאיות (self-service) בהגדרות העסק כיום - בדיקת המקור לא מצאה תהליך כזה בממשק. לבקשה כזו יש לפנות ל-${supportEmail}.`
       : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today - a fresh source check found no such UI flow. For this request, please contact ${supportEmail}.`;
+    return { answer, factPayload };
   }
   // Codex defect 1: a comparison question must get a deterministic, factual DISTINCTION between
   // the two real capabilities, never a guess and never a silent pick of just one of them. Not a
@@ -434,11 +513,13 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
         if (underlyingViolations.length > 0) throw new CapabilityAnswerInvariantError(underlyingId, underlyingViolations);
       }
     }
-    const pdf = facts.capabilities.find((c) => c.id === 'quote_pdf');
-    const print = facts.capabilities.find((c) => c.id === 'quote_print');
-    return isHebrew
+    const factPayload = buildComparisonFactPayload(facts, acct);
+    const pdf = facts.capabilities.find((c) => c.id === factPayload.comparedCapabilityIds![0]);
+    const print = facts.capabilities.find((c) => c.id === factPayload.comparedCapabilityIds![1]);
+    const answer = isHebrew
       ? `לא, PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מייצא את ההצעה כקובץ להורדה/שמירה, בעוד ${print ? label(print, true) : 'הדפסה'} שולחת אותה ישירות למדפסת. שתיהן יוצרות את אותו מסמך הצעה - לא חשבונית - רק ביעד שונה.`
       : `No, PDF and Print are two different actions: ${pdf ? label(pdf, false) : 'PDF export'} downloads/saves the quote as a file, while ${print ? label(print, false) : 'Print'} sends it directly to a printer. Both produce the same quote document - not an invoice - just to a different destination.`;
+    return { answer, factPayload };
   }
 
   const state = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin);
@@ -452,79 +533,18 @@ export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, 
   const fact = current || nonCurrent;
   if (!fact) return null;
 
-  const name = label(fact, isHebrew);
-  const desc = description(fact, isHebrew);
+  const factPayload = buildCapabilityFactPayload(state, fact, acct);
+  return { answer: renderCapabilityProse(factPayload, label(fact, isHebrew), description(fact, isHebrew), isHebrew), factPayload };
+}
 
-  switch (state.availabilityState) {
-    case 'UNAVAILABLE':
-      return isHebrew ? `לא - ${name} אינה זמינה כרגע ב-TEKANGO.` : `No - ${name} is not currently available in TEKANGO.`;
-    case 'ROADMAP_POST_LIVE':
-      return isHebrew ? `${name} אינה זמינה כרגע - זהו יעד עתידי, לא יכולת פעילה היום.` : `${name} is not currently available - it is a future roadmap item, not an active capability today.`;
-    case 'IMPLEMENTED_NOT_RELEASED':
-      return isHebrew ? `${name} אינה זמינה כרגע למשתמשים.` : `${name} is not currently available to users.`;
-    case 'TEST_ONLY':
-      return isHebrew ? `${name} קיימת רק בסביבת בדיקות פנימית ואינה מוצגת כיכולת ללקוחות.` : `${name} exists only in an internal test environment and is never presented as a customer feature.`;
-    case 'FIRST_LIVE_CANDIDATE':
-      return isHebrew
-        ? `${name} קיימת בסביבת בדיקה מאומתת (TEST) בלבד - אין לראות בכך זמינות בסביבת הייצור.`
-        : `${name} exists in a verified TEST/candidate environment only - this does not imply availability in Production.`;
-    case 'DEPRECATED':
-      return isHebrew ? `${name} הוחלפה. ${desc}` : `${name} has been replaced. ${desc}`;
-    case 'LIVE_CURRENT': {
-      if (!current) return isHebrew ? `כן - ${name} קיימת. ${desc}` : `Yes - ${name} exists. ${desc}`;
-      // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — must be
-      // phrased distinctly from the plan-gated branch below, and never inferred from accountTier
-      // (a PRO or Lifetime account without the role still does not have it). Read from
-      // state.roleRestriction, never from current.authorityType/current.requiredRole directly.
-      if (state.roleRestriction) {
-        const { requiredRole, accountHasRole } = state.roleRestriction;
-        if (accountHasRole === false) {
-          return isHebrew
-            ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
-            : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
-        }
-        if (accountHasRole === true) {
-          return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
-        }
-        return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${requiredRole} role - not a paid plan or Lifetime. ${desc}`;
-      }
-      // Plan-gated: say the capability exists and explain the restriction — never deny existence.
-      // Read from state.planRestriction, never from current.minimumPlan/current.planAvailability
-      // directly. Codex 4.4: branches on state.planRestriction.accountHasIt's real tri-state value
-      // (false/true/null) - never on the raw accountTier string's truthiness. This closes a real
-      // fail-open gap: a truthy but UNRECOGNIZED accountTier used to fall through both branches
-      // below into the unqualified "Yes - exists" line further down, silently dropping the plan-
-      // restriction context; now any accountHasIt !== false path that still has a real restriction
-      // states the minimum plan explicitly (accountHasIt === null covers both "no account context"
-      // and "an invalid/unrecognized tier was rejected upstream", both fail-closed to "unknown").
-      if (state.planRestriction) {
-        if (state.planRestriction.accountHasIt === false) {
-          return isHebrew
-            ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${state.planRestriction.minimumPlan.toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
-            : `Yes - ${name} exists in TEKANGO, but it requires the ${state.planRestriction.minimumPlan.toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
-        }
-        if (state.planRestriction.accountHasIt === null) {
-          return isHebrew
-            ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${state.planRestriction.minimumPlan.toUpperCase()}. ${desc}`
-            : `Yes - ${name} exists in TEKANGO, from the ${state.planRestriction.minimumPlan.toUpperCase()} plan. ${desc}`;
-        }
-        // accountHasIt === true: the account already has it - no restriction to disclose.
-      }
-      return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
-    }
-    default: {
-      // Codex 4.2: exhaustive formatter - any state value reaching here would mean
-      // validateAvailabilityState (capabilityAnswerState.ts) admitted something outside the
-      // canonical set, which it structurally cannot do (it throws first). This branch exists so a
-      // FUTURE new state added to AvailabilityState without a case here fails loudly at review/CI
-      // time (a real thrown error, never silently falling into LIVE_CURRENT's available-prose) and
-      // at runtime, rather than ever emitting capability-available text for an unhandled state.
-      const _exhaustiveCheck: never = state.availabilityState;
-      throw new CapabilityAnswerInvariantError(id, [{ code: 'UNKNOWN_AVAILABILITY_STATE', reason: `Unhandled availabilityState "${String(_exhaustiveCheck)}" reached the formatter's default branch.` }]);
-    }
-  }
+/** Prose-only view of {@link resolveCapabilityTruthResponse} (kept for callers/tests that only need the wording). */
+export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null, isAdmin: boolean | null = null, accountMarket: PayloadAccountFacts['market'] = null): string | null {
+  return resolveCapabilityTruthResponse(id, facts, isHebrew, accountTier, isAdmin, accountMarket)?.answer ?? null;
+}
+
+/** The bounded clarification TOGETHER with its structured (CLARIFICATION) truth - it asserts nothing about any capability. */
+export function resolveBroadCapabilityClarification(isHebrew: boolean, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS): StructuredTruthResponse {
+  return { answer: formatBroadCapabilityClarification(isHebrew), factPayload: buildClarificationFactPayload(acct) };
 }
 
 // Authoritative system-prompt section (defence in depth). Kept short and generic on purpose: the

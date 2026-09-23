@@ -36,6 +36,10 @@ const MODULES = [
   'supabase/functions/chat-ai/capabilityTruth.ts',
   'supabase/functions/chat-ai/capabilityAnswerState.ts',
   'supabase/functions/chat-ai/helpContext.ts',
+  // structured-truth closure (chat-ai v33): the payload builders, the account-market route and the shared contract
+  'supabase/functions/chat-ai/productTruthPayload.ts',
+  'supabase/functions/chat-ai/marketTruth.ts',
+  'supabase/functions/_shared/productTruthContract.ts',
   'supabase/functions/_shared/aiChatContract.ts',
   'supabase/functions/_shared/aiHelpContract.js',
   'supabase/functions/_shared/shortDate.js',

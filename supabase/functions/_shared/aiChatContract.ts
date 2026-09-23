@@ -26,6 +26,8 @@
 // `focus` (all additive; a v3 caller that ignores them still works). AIChatWidget.jsx is updated in the same task.
 export const CHAT_CONTRACT_VERSION = 4;
 
+import type { ProductTruthFactPayload } from "./productTruthContract.ts";
+
 export const ANSWER_SOURCES = ['deterministic', 'model'] as const;
 export type AnswerSource = typeof ANSWER_SOURCES[number];
 
@@ -47,6 +49,11 @@ export type DirectFactPayload = {
   isDraft: boolean;
 };
 
+// `factPayload` is a discriminated union on `kind`: a quote Direct Fact (`kind` = amount / status / ...) or - additive, no contract
+// version bump - a Product Truth STRUCTURED TRUTH payload (`kind` = 'product_truth', see productTruthContract.ts). It is null for a
+// free-form model answer that makes no deterministic Product Truth claim.
+export type ChatFactPayload = DirectFactPayload | ProductTruthFactPayload;
+
 export type ChatErrorCode = 'invalid_request' | 'unauthenticated_private_context' | 'provider_failure' | 'malformed_provider_response' | 'internal_error';
 
 export type ChatResponseEnvelope = {
@@ -59,7 +66,7 @@ export type ChatResponseEnvelope = {
   contextRevision: number | null;
   answer: string | null;
   answerSource: AnswerSource | null;
-  factPayload: DirectFactPayload | null;
+  factPayload: ChatFactPayload | null;
   navigation: { action: string; focus?: string | null } | null;
   selectedQuoteContext: { requested: boolean; available: boolean } | null;
   // AI HELP V4

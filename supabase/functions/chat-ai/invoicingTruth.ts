@@ -3,6 +3,9 @@
 // is answered DETERMINISTICALLY (no model call) and the system prompt carries an authoritative, non-overridable INVOICING TRUTH block.
 // The answer keeps five things strictly apart (never conflated): a quote PDF, emailing a quote, the quote "Paid" status, future payment
 // processing, and future invoicing. The provider candidate (PayPlus) is internal status - it is never named to users as a capability.
+import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
+import { buildInvoicingFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
+
 export type InvoicingFacts = {
   readonly liveInvoicingAvailable: boolean;
   readonly invoiceIssuanceAvailable: boolean;
@@ -30,11 +33,19 @@ export function classifyInvoicingIntent(lastUserMessage: unknown): boolean {
   return EN.some((re) => re.test(t)) || HE.some((re) => re.test(t));
 }
 
-export function formatInvoicingTruthAnswer(isHebrew: boolean): string {
+// Structured truth first: the wording is the NOT-ISSUED statement, so it is only ever rendered FROM an INVOICING_NOT_ISSUED payload.
+export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload): string {
+  if (payload && payload.truthStatus !== 'INVOICING_NOT_ISSUED') throw new Error(`formatInvoicingTruthAnswer requires an INVOICING_NOT_ISSUED payload, got ${payload.truthStatus}`);
   if (isHebrew) {
     return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. הסטטוס "שולם" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
   }
   return "Right now TEKANGO does not issue invoices, tax invoices or receipts - that capability is not live. What does exist: a quote you can download as a PDF or print (a quote document, not an invoice), and emailing the quote to your client. The \"Paid\" status is a label you set on a quote yourself - it does not collect money or issue a receipt. Online payment/checkout is not available either. For now, invoices and receipts have to be issued outside TEKANGO.";
+}
+
+/** The deterministic invoicing answer TOGETHER with its structured truth (derived from AI_FACTS.invoicing, then rendered). */
+export function resolveInvoicingTruthResponse(isHebrew: boolean, inv: InvoicingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS): { answer: string; factPayload: ProductTruthFactPayload } {
+  const factPayload = buildInvoicingFactPayload(inv, acct);
+  return { answer: formatInvoicingTruthAnswer(isHebrew, factPayload), factPayload };
 }
 
 export function buildInvoicingTruthBlock(inv: InvoicingFacts | undefined | null): string {

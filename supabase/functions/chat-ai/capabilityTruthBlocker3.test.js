@@ -69,15 +69,23 @@ describe('BLOCKER 3 §4.2 — exhaustive formatter, no default branch may emit a
     expect(capabilityTruthSource).not.toMatch(/case\s+'LIVE_CURRENT':\s*\n\s*default:/);
   });
 
-  it('every one of the 7 canonical registry states has its OWN explicit case in the formatter switch (source-level exhaustiveness check)', () => {
-    const requiredStates = ['LIVE_CURRENT', 'FIRST_LIVE_CANDIDATE', 'TEST_ONLY', 'IMPLEMENTED_NOT_RELEASED', 'ROADMAP_POST_LIVE', 'UNAVAILABLE', 'DEPRECATED'];
-    for (const s of requiredStates) {
+  // Structured-truth closure: the prose is rendered FROM the payload, so the 6 non-live registry states are explicit registryState
+  // cases under NOT_AVAILABLE, and LIVE_CURRENT is covered by the explicit AVAILABLE / PLAN_LOCKED / ROLE_LOCKED / MARKET_UNAVAILABLE
+  // truth-status cases.
+  it('every one of the 7 canonical registry states has its OWN explicit case in the formatter (source-level exhaustiveness check)', () => {
+    const nonLive = ['FIRST_LIVE_CANDIDATE', 'TEST_ONLY', 'IMPLEMENTED_NOT_RELEASED', 'ROADMAP_POST_LIVE', 'UNAVAILABLE', 'DEPRECATED'];
+    for (const s of nonLive) {
       expect(capabilityTruthSource, `missing explicit case for state "${s}"`).toMatch(new RegExp(`case\\s+'${s}':`));
+    }
+    for (const t of ['NOT_AVAILABLE', 'AVAILABLE', 'PLAN_LOCKED', 'ROLE_LOCKED', 'MARKET_UNAVAILABLE']) {
+      expect(capabilityTruthSource, `missing explicit case for truth status "${t}"`).toMatch(new RegExp(`case\\s+'${t}':`));
     }
   });
 
-  it('the switch has an explicit default branch that throws (not a silent no-op or fallthrough)', () => {
-    expect(capabilityTruthSource).toMatch(/default:\s*\{[^}]*throw new CapabilityAnswerInvariantError/s);
+  it('every switch in the prose renderer has an explicit default branch that throws (not a silent no-op or fallthrough)', () => {
+    const renderer = capabilityTruthSource.slice(capabilityTruthSource.indexOf('function renderCapabilityProse'));
+    expect((renderer.match(/default:/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect((renderer.match(/throw new CapabilityAnswerInvariantError/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 
   it('real data: every real capability formats without throwing, EN+HE (the exhaustive switch genuinely covers all real states in practice)', () => {
@@ -206,12 +214,12 @@ describe('BLOCKER 3 §4.6 — free-form model fallback attempt for capability av
     const block = capabilityBlockMatch[0];
     // The specific-classifier branch must end in a `return deterministicResponse(...)` when it has
     // an answer - no path from `if (capabilityId)` continues past the block once resolved.
-    expect(block).toMatch(/if \(capabilityId\) \{[\s\S]*?return deterministicResponse\(capabilityAnswer, navSuggestion\);/);
+    expect(block).toMatch(/if \(capabilityId\) \{[\s\S]*?return deterministicResponse\(capabilityAnswer, navSuggestion, capabilityTruth\.factPayload\);/);
   });
 
   it('inside the capability-truth block, the broad guard is the unconditional `else if` sibling of the specific classifier - not a separate, skippable, later check', () => {
     const block = capabilityBlockMatch[0];
-    expect(block).toMatch(/else if \(classifyBroadCapabilityQuestionSignal\(lastUserMessage\)\) \{[\s\S]*?return deterministicResponse\(clarification\);/);
+    expect(block).toMatch(/else if \(classifyBroadCapabilityQuestionSignal\(lastUserMessage\)\) \{[\s\S]*?return deterministicResponse\(clarification\.answer, null, clarification\.factPayload\);/);
   });
 
   it('the broad guard branch returns a deterministic response too - it never itself calls into a model or falls through', () => {
