@@ -2,7 +2,7 @@
 //   A. canonical derivation == the runtime's own payload (registry -> payload), across every capability x tier x role x market
 //   B. payload -> prose: every real runtime answer is consistent with its payload (the secondary check has no false rejection)
 //   C. PROSE CONSISTENCY ATTACKS (EN + HE): prose that contradicts a valid structured payload is rejected
-//   D. GATE-LEVEL STRUCTURED ATTACKS on the real committed v36 evidence: a missing / wrong / swapped / forged payload fails the cell
+//   D. GATE-LEVEL STRUCTURED ATTACKS on the real committed v37 evidence: a missing / wrong / swapped / forged payload fails the cell
 //      whatever the prose says, and prose can never rescue it
 //   E. market / currency safety ("TEKANGO prices are ILS only")
 //   F. architecture guards (the acceptance layer derives its expectation from canonical authority only, never from prose)
@@ -159,9 +159,9 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// D. the REAL committed v36 evidence (live capture) - structured attacks against the four final matrices
-const P = 'evidence/product-truth/2026-09-24-micro-closure';
-const RAW = JSON.parse(readFileSync(`${P}-v36-raw-matrices.json`, 'utf-8'));
+// D. the REAL committed v37 evidence (live capture) - structured attacks against the four final matrices
+const P = 'evidence/product-truth/2026-09-24-intent-grammar';
+const RAW = JSON.parse(readFileSync(`${P}-v37-raw-matrices.json`, 'utf-8'));
 const ROWS = {
   owner: JSON.parse(readFileSync(`${P}-owner-matrix-final-rows.json`, 'utf-8')).rows,
   planRole: JSON.parse(readFileSync(`${P}-plan-role-matrix-final-rows.json`, 'utf-8')).rows,
@@ -189,7 +189,7 @@ const slotViolations = (res, slot) => res.slotResults.find((s) => s.slot === slo
 const withPayload = (key) => FINAL_MATRIX_DEFINITIONS[key].slots.filter((s) => structuredOutcomeOf(key, s) !== OUTCOME_SENTINELS.NO_STRUCTURED_CLAIM);
 const withoutPayload = (key) => FINAL_MATRIX_DEFINITIONS[key].slots.filter((s) => structuredOutcomeOf(key, s) === OUTCOME_SENTINELS.NO_STRUCTURED_CLAIM);
 
-describe('D. the committed v36 evidence is valid, and the gate is driven by the structured payload', () => {
+describe('D. the committed v37 evidence is valid, and the gate is driven by the structured payload', () => {
   it.each(KEYS)('control: %s matrix is fully VALID on the real live capture', (key) => {
     const res = validateFinalMatrix(key, clone(ROWS[key]), { rawCapture: clone(RAW) });
     expect(res.validCount).toBe(SIZES[key]);
@@ -209,9 +209,9 @@ describe('D. the committed v36 evidence is valid, and the gate is driven by the 
     expect(withPayload('security').map((s) => s.cell).sort()).toEqual(['entitlement_bypass', 'market_forgery', 'prompt_injection', 'role_forgery']);
     expect(withPayload('support').map((s) => s.category)).toEqual(['CANCELLATION']);
   });
-  it('the runtime version bracket in the capture is v36 (not v32, which has no structured payload; not v34 / v35, whose classifier let some account market paraphrases fall through)', () => {
-    expect(RAW.functionBefore.version).toBe(36);
-    expect(RAW.functionAfter.version).toBe(36);
+  it('the runtime version bracket in the capture is v37 (not v32, which has no structured payload; not v34 - v36, whose regex-union classifier let account market paraphrases fall through)', () => {
+    expect(RAW.functionBefore.version).toBe(37);
+    expect(RAW.functionAfter.version).toBe(37);
   });
 });
 
@@ -346,7 +346,7 @@ describe('E. market / currency safety - "TEKANGO prices are ILS only" cannot pas
     expect(findMarketLeaks(local, 'המחירים מוצגים בדולרים.', 'he')).toEqual(['local_account_prose_names_a_foreign_currency']);
     expect(findMarketLeaks(local, 'המחירים מוצגים בשקלים.', 'he')).toEqual([]);
   });
-  it('the real v36 market-forgery cell is an ACCOUNT-scoped, Local, ILS payload', () => {
+  it('the real v37 market-forgery cell is an ACCOUNT-scoped, Local, ILS payload', () => {
     const e = RAW.matrices.security.find((x) => x.slot === 'SEC:market_forgery');
     expect(e.factPayload).toMatchObject({ truthStatus: 'ACCOUNT_MARKET', claimScope: 'ACCOUNT', marketScope: 'ACCOUNT', accountMarket: 'LOCAL', currencyScope: 'ILS', source: 'MARKET_RULES' });
     expect(e.answerSource).toBe('deterministic');

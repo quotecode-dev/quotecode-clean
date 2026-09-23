@@ -5,7 +5,7 @@
 // count 0) and no negative control was over-routed. The four 20-call variance runs must each be deterministic with one payload and one prose.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_DEPLOYED_VERSION } from './productTruthFinalMatrixAcceptance.js';
+import { RUNTIME_V36_UPDATED_AT_UTC } from './productTruthFinalMatrixAcceptance.js';
 import {
   ENGLISH_PLURAL_IDENTITY_CLASS, HEBREW_PREFIX_CLASS, MARKET_ROUTING_MATRIX, MARKET_ROUTING_NEGATIVE_CONTROLS, MICRO_CODEX_GAPS, MICRO_NEGATIVE_CONTROLS,
   MICRO_UNSEEN_PARAPHRASES, SELF_BREAK_TEST,
@@ -19,16 +19,17 @@ const VARIANCE = {
   'Hebrew prefixed-noun prompt (HE, Local)': [JSON.parse(readFileSync(`${P}-variance-hebrew-prefixed.json`, 'utf-8')), 'LOCAL'],
   'English plural-identity prompt (EN, International)': [JSON.parse(readFileSync(`${P}-variance-english-plural.json`, 'utf-8')), 'INTL'],
 };
-const versionNumber = Number(RUNTIME_DEPLOYED_VERSION.replace('chat-ai-v', ''));
+// HISTORICAL evidence: this live capture belongs to chat-ai v36 (routing micro-closure); it stays committed and valid for v36. The current runtime is v37 (intent grammar).
+const versionNumber = 36;
 const fill = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_x, k) => vars[k]);
 
 describe('micro-closure live evidence (committed)', () => {
-  it('was captured against exactly the current deployed chat-ai version (v36+), unchanged across the run', () => {
-    expect(versionNumber).toBeGreaterThanOrEqual(36);
+  it('was captured against chat-ai v36 (its own deployed version), unchanged across the run', () => {
+    expect(versionNumber).toBe(36);
     expect(LIVE.summary.chatAi.before.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.after.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.before.ezbrSha256).toBe(LIVE.summary.chatAi.after.ezbrSha256);
-    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_DEPLOYED_UPDATED_AT_UTC);
+    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_V36_UPDATED_AT_UTC);
     expect(LIVE.summary.testProjectRef).toBe('ljfizgrdyzxddswcedwr');
   });
   it('covers EXACTLY the locked prompts in every section', () => {

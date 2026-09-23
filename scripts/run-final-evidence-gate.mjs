@@ -16,8 +16,8 @@ import { createHash } from 'node:crypto';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const LIVE = process.argv.includes('--live-support-readback');
-const PREFIX = args[0] || 'evidence/product-truth/2026-09-24-micro-closure';
-const RAW_PATH = args[1] || 'evidence/product-truth/2026-09-24-micro-closure-v36-raw-matrices.json';
+const PREFIX = args[0] || 'evidence/product-truth/2026-09-24-intent-grammar';
+const RAW_PATH = args[1] || 'evidence/product-truth/2026-09-24-intent-grammar-v37-raw-matrices.json';
 const FILES = { owner: 'owner-matrix', planRole: 'plan-role-matrix', security: 'security-matrix', support: 'support-matrix' };
 
 const rawText = readFileSync(RAW_PATH, 'utf-8');

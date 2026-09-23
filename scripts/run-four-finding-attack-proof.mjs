@@ -6,8 +6,8 @@ import { readFileSync } from 'node:fs';
 import { validateFinalMatrix, checkFinalMatrixDefinitionIntegrity } from '../src/data/productTruthEvidenceSchema.js';
 import { FINAL_MATRIX_DEFINITIONS } from '../src/data/productTruthFinalMatrixAcceptance.js';
 
-const PREFIX = process.argv[2] || 'evidence/product-truth/2026-09-24-micro-closure';
-const RAW_PATH = process.argv[3] || 'evidence/product-truth/2026-09-24-micro-closure-v36-raw-matrices.json';
+const PREFIX = process.argv[2] || 'evidence/product-truth/2026-09-24-intent-grammar';
+const RAW_PATH = process.argv[3] || 'evidence/product-truth/2026-09-24-intent-grammar-v37-raw-matrices.json';
 const FILES = { owner: 'owner-matrix', planRole: 'plan-role-matrix', security: 'security-matrix', support: 'support-matrix' };
 const raw = JSON.parse(readFileSync(RAW_PATH, 'utf-8'));
 const rows = Object.fromEntries(Object.entries(FILES).map(([k, f]) => [k, JSON.parse(readFileSync(`${PREFIX}-${f}-final-rows.json`, 'utf-8')).rows]));

@@ -1,0 +1,17 @@
+{
+  "readAtUtc": "2026-09-23T22:37:05.714Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 37,
+  "updatedAtEpochMs": 1790203004103,
+  "updatedAtUtc": "2026-09-23T22:36:44.103Z",
+  "ezbrSha256": "e6822003b4c572624c6aec2c53fb0bd4c3f4de2c9085f3fc3d03ff33f4a2f6c7",
+  "status": "ACTIVE",
+  "priorVersion": 36,
+  "priorVersionNote": "v36 (2026-09-23T21:24:00.649Z, from a2c9146) - regex-union classifier: 14 free-form leaks in 6 grammar classes found by Codex; 2636/3144 English-identity and 576/616 Hebrew-relationship generated cases leaked",
+  "implementationSourceSha": "958b3a1945b274bf00f282efee3d386b3d397274",
+  "deployInputFileCount": 44,
+  "deployInputManifestSha256": "3e81d8815184e375d57c59ba9e94cd9276f91e46de0a332ec80242dcd68a6dad"
+}
