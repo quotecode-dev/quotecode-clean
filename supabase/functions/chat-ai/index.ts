@@ -14,7 +14,7 @@ import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./market
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
-import { buildErrorEnvelope, type ChatErrorCode } from "../_shared/aiChatContract.ts";
+import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -205,10 +205,10 @@ serve(async (req) => {
     : NO_ACCOUNT_FACTS;
   // `factPayload` carries the structured Product Truth payload for a deterministic Product Truth answer (canonical authority -> structured
   // truth -> prose); it stays null for help / free-form answers that make no deterministic Product Truth claim.
-  const deterministicResponse = (answerText: string, navigation: { action: string; focus: string | null } | null = null, truthPayload: ChatFactPayload | null = null) => new Response(JSON.stringify({
+  const deterministicResponse = (answerText: string, navigation: { action: string; focus: string | null } | null = null, truthPayload: ChatFactPayload | null = null) => new Response(JSON.stringify(withLegacyChoices({
     contractVersion: CHAT_CONTRACT_VERSION, requestId: crypto.randomUUID(), contextRevision, answer: answerText, answerSource: 'deterministic', factPayload: truthPayload,
     navigation, selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null, ...helpEnvelope, error: null,
-  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  })), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   // §22 "Direct Facts": deterministic fast path, tried BEFORE any model
   // call. Only ever triggers for an authenticated caller with a server-
@@ -228,7 +228,7 @@ serve(async (req) => {
       } catch (logErr) {
         console.error("Failed to log chat question:", logErr);
       }
-      return new Response(JSON.stringify({
+      return new Response(JSON.stringify(withLegacyChoices({
         contractVersion: CHAT_CONTRACT_VERSION,
         requestId: crypto.randomUUID(),
         contextRevision,
@@ -239,7 +239,7 @@ serve(async (req) => {
         selectedQuoteContext: { requested: true, available: true },
         ...helpEnvelope,
         error: null,
-      }), {
+      })), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -407,7 +407,7 @@ serve(async (req) => {
     console.error("Failed to log chat question:", logErr);
   }
 
-  return new Response(JSON.stringify({
+  return new Response(JSON.stringify(withLegacyChoices({
     contractVersion: CHAT_CONTRACT_VERSION,
     requestId: crypto.randomUUID(),
     contextRevision,
@@ -418,7 +418,7 @@ serve(async (req) => {
     selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,
     ...helpEnvelope,
     error: null,
-  }), {
+  })), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

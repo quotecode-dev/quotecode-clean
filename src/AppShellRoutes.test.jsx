@@ -228,6 +228,37 @@ describe('Public Quote route dispatch - real route resolution (both shells)', ()
   });
 });
 
+describe('MD-2 attachment compatibility route (2026-09-25) - real route resolution (both shells)', () => {
+  // A stale pre-cutover tab opens `<a href={file.file_url}>` where file_url is the storage path `<ownerUid>/<quoteId>_<stamp>.<ext>`;
+  // resolved against /dashboard that is `/<ownerUid>/<...>` (or `/dashboard/<ownerUid>/<...>` from `/dashboard/`). Both shells route
+  // exactly that shape to the compatibility view (here: signed out -> sign-in state, never a storage call); anything else stays NotFound.
+  const OWNER = '3f1c2b4a-5d6e-4f70-8a91-b2c3d4e5f607';
+  const OBJ = '9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d_1790285195272.pdf';
+  for (const [name, Shell, dir] of [['AppLocal (HE)', AppLocal, 'rtl'], ['AppGlobal (EN)', AppGlobal, 'ltr']]) {
+    it(`${name}: /<owner>/<object> and /dashboard/<owner>/<object> render the compatibility view (${dir}), not NotFound`, async () => {
+      for (const path of [`/${OWNER}/${OBJ}`, `/dashboard/${OWNER}/${OBJ}`]) {
+        renderAtPath(Shell, path);
+        const el = await screen.findByTestId('attachment-compat-open');
+        expect(el.getAttribute('dir')).toBe(dir);
+        await waitForState(el, 'signin');
+        expect(screen.queryByText('404')).not.toBeInTheDocument();
+      }
+    });
+    it(`${name}: look-alike paths still fall through to NotFound (no shadowing)`, async () => {
+      for (const path of ['/foo/bar', `/${OWNER}/plan.pdf`, `/${OWNER}/../${OBJ}`, `/he/${OWNER}/${OBJ}`, `/${OWNER.toUpperCase()}/${OBJ}`, `/quote-files/${OWNER}/${OBJ}`]) {
+        renderAtPath(Shell, path);
+        expect(await screen.findByText('404')).toBeInTheDocument();
+        expect(screen.queryByTestId('attachment-compat-open')).not.toBeInTheDocument();
+      }
+    });
+  }
+});
+
+async function waitForState(el, state) {
+  for (let i = 0; i < 50 && el.getAttribute('data-state') !== state; i += 1) await new Promise((r) => setTimeout(r, 10));
+  expect(el.getAttribute('data-state')).toBe(state);
+}
+
 describe('Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task) - real route resolution', () => {
   beforeEach(() => {
     mockRootRecoveryIntent.isRecovery = false;

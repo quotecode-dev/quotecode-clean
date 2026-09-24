@@ -73,8 +73,21 @@ export type ChatResponseEnvelope = {
   helpMode?: 'NORMAL_HELP' | 'BLOCKED_WORKFLOW_HELP' | null;
   blockerCodes?: string[];
   privateHelp?: boolean;
+  // MD-1: present on success envelopes only (withLegacyChoices below); a mirror of `answer` for the legacy widget.
+  choices?: [LegacyChoice];
   error: { code: ChatErrorCode; message: string } | null;
 };
+
+// MD-1 (First-LIVE cutover compatibility, 2026-09-25): every SUCCESS envelope also carries the legacy OpenAI-shaped `choices` array,
+// because a browser tab still running the pre-v4 widget (LIVE baseline 7cd78ea) reads only `data.choices[0].message.content` and never
+// auto-reloads. `choices` is a pure mirror of `answer` - built here from the final `answer` string, never from a separate model
+// output, prompt or truth path - so both fields always carry the one same answer. Additive (a v4 caller ignores it; no version bump).
+// Error envelopes stay unchanged (no `choices`), so a legacy caller keeps failing closed on an error exactly as before.
+export type LegacyChoice = { index: 0; message: { role: 'assistant'; content: string }; finish_reason: 'stop' };
+
+export function withLegacyChoices<T extends { answer: string }>(envelope: T): T & { choices: [LegacyChoice] } {
+  return { ...envelope, choices: [{ index: 0, message: { role: 'assistant', content: envelope.answer }, finish_reason: 'stop' }] };
+}
 
 export function buildErrorEnvelope(code: ChatErrorCode, message: string, contextRevision: number | null = null): ChatResponseEnvelope {
   return {

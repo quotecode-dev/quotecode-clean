@@ -14,7 +14,7 @@ import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
-import NotFound from '../pages/NotFound';
+import AttachmentCompatRoute from '../components/AttachmentCompatRoute';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 
 export default function AppGlobal() {
@@ -101,7 +101,9 @@ export default function AppGlobal() {
 
         {/* SEO indexing remediation (2026-09-16 TEST task, item B7): see the
             identical AppLocal.jsx comment above / src/pages/NotFound.jsx. */}
-        <Route path="*" element={<NotFound isHebrew={false} />} />
+        {/* MD-2 (2026-09-25): an attachment storage-path URL opened from a stale pre-cutover tab resolves here; every other
+            unknown path still renders NotFound - see src/components/AttachmentCompatRoute.jsx. */}
+        <Route path="*" element={<AttachmentCompatRoute isHebrew={false} />} />
       </Routes>
     </BrowserRouter>
   );

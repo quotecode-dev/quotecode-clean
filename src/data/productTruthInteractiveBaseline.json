@@ -75,6 +75,10 @@
     "interactive": 1,
     "markers": 1
   },
+  "src/components/AttachmentCompatRoute.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/AuthScreen.jsx": {
     "interactive": 6,
     "markers": 0
@@ -356,6 +360,10 @@
     "markers": 0
   },
   "src/utils/aiHelpContract.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/attachmentCompatPath.js": {
     "interactive": 0,
     "markers": 0
   },
