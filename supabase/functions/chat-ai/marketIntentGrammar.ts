@@ -186,6 +186,7 @@ const V_HE: Array<[string, string[]]> = [
 // a Hebrew word may be both a verb and a noun ("עובד" works / employee): the verb reading is ADDED to an existing entry, never replaces it
 for (const [w, f] of V_HE) { const e = HE.get(w); HE.set(w, { cats: [...(e?.cats ?? []), 'VERB'], v: e?.v, pl: e?.pl, flags: [...(e?.flags ?? []), ...f.map((x) => `v_${x}`)] }); }
 for (const w of 'ב ל ה מ כ ו ש'.split(' ')) HE.set(w, { cats: ['PREP'] });
+HE.set('עם', { cats: ['PREP'] }); // "with"
 
 // multi-word units (English), matched longest-first on the raw word list
 const MWE_EN: Array<{ seq: string[]; e: Entry }> = [
@@ -632,9 +633,50 @@ function hebrewUserVerb(tk: Tok[], i: number): boolean {
 function thirdPartyPerson(tk: Tok[]): boolean {
   return tk.some((t, i) => has(t, 'PERSON') && flag(t, 'third') && !hebrewUserVerb(tk, i) && !selfProvenPerson(tk, i));
 }
+/**
+ * ACCOUNT / SYSTEM-SUBJECT currency question: a yes/no question whose SUBJECT is the user's own account or the system / product and whose target is a currency -
+ * in both languages (does / is  <owned account or system>  use / work in / support / be in  <currency>).
+ * Frame = QUESTION (initial aux / be-verb, "האם", or a question mark) + SUBJECT (my / our / the / this + account | system | app | dashboard ..., TEKANGO, or the Hebrew
+ * account / system noun with an article / possessive) + [PREDICATE: use / work / support / show ... or, initial be-verb / Hebrew nominal, none] + only prepositions /
+ * determiners / adverbs + CURRENCY. The subject must be the account or the system: an impersonal question (no self / account / system subject) has none and stays out;
+ * a question already framed as a POSSIBILITY keeps its own CURRENCY_CAPABILITY reading.
+ */
+function readAccountSystemSubject(tk: Tok[], i: number): number {
+  const t = tk[i]; if (!t) return -1;
+  if (has(t, 'BRAND')) return i + 1;
+  const n = tk[i + 1];
+  if (t.lang === 'en') {
+    const owner = has(t, 'POSS') || (has(t, 'DET') && ['the', 'this', 'that'].includes(t.w));
+    return owner && n && (has(n, 'ENTITY') || (has(n, 'SURFACE') && flag(n, 'acct'))) ? i + 2 : -1;
+  }
+  if ((has(t, 'ENTITY') || (has(t, 'SURFACE') && flag(t, 'acct'))) && (t.pfx.includes('ה') || flag(t, 'own') || has(n, 'POSS') || t.w.slice(t.pfx.length) === 'חשבון')) return has(n, 'POSS') ? i + 2 : i + 1;
+  return -1;
+}
+function matchAccountSubjectCurrencyQuestion(tk: Tok[], ctx: Ctx): ClauseIntent | null {
+  const first = tk[0]; if (!first) return null;
+  const isQuestion = ctx.question || has(first, 'Q') || has(first, 'AUX') || (first.lang === 'en' && has(first, 'COP'));
+  const cur = firstCurrency(tk);
+  if (!isQuestion || !cur || tk.some((t) => has(t, 'POSSIBLE'))) return null;
+  for (let i = 0; i < tk.length; i += 1) {
+    const end = readAccountSystemSubject(tk, i);
+    if (end < 0) continue;
+    let j = end; let predicate = false;
+    while (j < tk.length && (has(tk[j], 'ADV') || has(tk[j], 'DET'))) j += 1;
+    const p = tk[j];
+    if (p && ((has(p, 'VERB') && (flag(p, 'v_w') || flag(p, 'v_brandverb'))) || hebrewUserVerb(tk, j) || (has(p, 'COP') && p.lang === 'en') || has(p, 'PART'))) { predicate = true; j += 1; }
+    // no predicate is needed after an initial be-verb (English) or in a Hebrew nominal question; an initial do / does needs the verb
+    if (!predicate && !((first.lang === 'en' && has(first, 'COP')) || first.lang === 'he')) continue;
+    while (j < tk.length && (has(tk[j], 'PREP') || has(tk[j], 'DET') || has(tk[j], 'ADV'))) j += 1;
+    if (j < tk.length && has(tk[j], 'CUR')) {
+      let k = j + 1; while (k < tk.length && (has(tk[k], 'ADV') || has(tk[k], 'POLITE'))) k += 1;
+      if (k === tk.length) return { text: tk.map((x) => x.w).join(' '), subject: 'ACCOUNT', subjectNumber: 'SINGULAR', relation: 'CURRENCY_QUERY', targetCurrency: cur, modality: 'QUESTION', polarity: 'POSITIVE' };
+    }
+  }
+  return null;
+}
 function matchCurrency(tk: Tok[], ctx: Ctx): ClauseIntent | null {
   if (ctx.guarded || currencyGuards(tk) || thirdPartyPerson(tk)) return null;
-  const q = matchCurrencyQuery(tk);
+  const q = matchCurrencyQuery(tk) ?? matchAccountSubjectCurrencyQuestion(tk, ctx);
   if (q) return q;
   const cur = firstCurrency(tk);
   if (!cur) return null;
