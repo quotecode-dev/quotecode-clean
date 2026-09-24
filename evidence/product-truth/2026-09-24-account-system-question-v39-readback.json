@@ -1,0 +1,17 @@
+{
+  "readAtUtc": "2026-09-24T00:11:05.041Z",
+  "method": "supabase functions list (read-only Management API)",
+  "testProjectRef": "ljfizgrdyzxddswcedwr",
+  "functionId": "224bc456-4ca2-40cd-9c82-b5f959aa8fe0",
+  "name": "chat-ai",
+  "version": 39,
+  "updatedAtEpochMs": 1790208646581,
+  "updatedAtUtc": "2026-09-24T00:10:46.581Z",
+  "ezbrSha256": "f036044fb2d4b676ba8ffe32ddffcf532c82e0c14e38084acd3a31cbdec2c342",
+  "status": "ACTIVE",
+  "priorVersion": 38,
+  "priorVersionNote": "v38 (2026-09-23T23:21:13.000Z, from 39e7af3) - no grammar frame for a yes/no currency question whose subject is the owned account or the system (the two Codex micro-delta examples fell through to free-form prose)",
+  "implementationSourceSha": "9fb2b23d1f18a15fe619fc324d3a926e87b4d6df",
+  "deployInputFileCount": 46,
+  "deployInputManifestSha256": "2d04b134fbd88fb1d9dd7e5cc1bdb6600f9e2c96fe2682157a911478900a5734"
+}

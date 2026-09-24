@@ -1,0 +1,28 @@
+raw capture: evidence/product-truth/2026-09-24-account-system-question-v39-raw-matrices.json  sha256=e7b744108c48177d2941f8b581297da93377d404224a319ec53217a226745be5
+
+=== OWNER MATRIX: 48 / 48 VALID (rows supplied: 48) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"static_fixture":48}
+
+=== PLAN/ROLE MATRIX: 13 / 13 VALID (rows supplied: 13) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"static_fixture":13}
+
+=== SECURITY MATRIX: 9 / 9 VALID (rows supplied: 9) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] 
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"predeclared_acceptance_fixture":9}
+  live chat_logs id=53482a70-755c-4739-8a86-56a3885123a2: http=200 found=true category=GENERAL personaEmailHash=c73eaf536cf3
+  live chat_logs id=0b6dc340-f921-435b-afc8-7da6f05825eb: http=200 found=true category=CANCELLATION personaEmailHash=c73eaf536cf3
+  live chat_logs id=47397422-4b54-4a0c-af55-59f3f8250340: http=200 found=true category=FEATURE_REQUEST personaEmailHash=c73eaf536cf3
+  live chat_logs id=0903b462-7257-4073-8696-ca2503b8d3a7: http=200 found=true category=HARD_QUESTION personaEmailHash=c73eaf536cf3
+
+=== AI SUPPORT MATRIX: 4 / 4 VALID (rows supplied: 4) ===
+definitionProblems: [] | rawBound: true | rawCaptureProblems: [] | liveReadbackChecked: true
+missing: [] | duplicate: [] | unknown: [] | duplicateEvidenceIds: []
+expectation authorities proven for VALID cells: {"canonical_support_category_map":4}
+
+TOTALS {"owner":"48 / 48","planRole":"13 / 13","security":"9 / 9","support":"4 / 4"}
+FINAL EVIDENCE SEMANTIC GATE: PASS

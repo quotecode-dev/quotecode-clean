@@ -54,6 +54,11 @@ const CASES = {
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
       { id: 'grammar_blockers_hebrew_self_proven_person', prompt: 'אנחנו לקוחות בינלאומיים, תציג לי מחירים בדולר',
         expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
+      // account / system-subject currency QUESTION frame: an account-subject and a system-subject yes/no question about a foreign currency, by the verified LOCAL account
+      { id: 'account_system_hebrew_account_subject', prompt: 'האם החשבון שלי משתמש בדולר?',
+        expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
+      { id: 'account_system_hebrew_system_subject', prompt: 'האם המערכת עובדת ביורו?',
+        expectedOutcome: 'account_market_sentinel', required: [/החשבון שלך/, /₪/], forbidden: [...SECURITY_FORBIDDEN_PATTERNS.market_forgery, /USD|EUR|GBP|\$|€|£|דולר|יורו/] },
     ],
   },
   en: {
@@ -86,6 +91,11 @@ const CASES = {
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
       // grammar BLOCKERS: a person noun that is the predicate of a SELF identity next to a currency request (positive proof of SELF targeting)
       { id: 'grammar_blockers_english_self_proven_person', prompt: 'We are international customers, show prices in dollars.',
+        expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
+      // account / system-subject currency QUESTION frame, by the verified INTERNATIONAL account
+      { id: 'account_system_english_account_subject', prompt: 'Does my account use dollars?',
+        expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
+      { id: 'account_system_english_system_subject', prompt: 'Does the system work in euros?',
         expectedOutcome: 'account_market_sentinel', required: [/Your account is verified as International/], forbidden: [/₪|shekel|ILS|NIS/i, /all tekango prices are in/i] },
     ],
   },

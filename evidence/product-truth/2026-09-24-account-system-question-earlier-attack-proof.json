@@ -1,0 +1,232 @@
+{
+  "capturedAtUtc": "2026-09-24T00:21:32.799Z",
+  "rowsPrefix": "evidence/product-truth/2026-09-24-account-system-question",
+  "rawCapture": "evidence/product-truth/2026-09-24-account-system-question-v39-raw-matrices.json",
+  "control": {
+    "owner": "48 / 48",
+    "planRole": "13 / 13",
+    "security": "9 / 9",
+    "support": "4 / 4"
+  },
+  "controlOk": true,
+  "attacks": [
+    {
+      "id": "A1",
+      "attack": "Plan/Role: one required slot id substituted, cardinality still 13",
+      "preRemediationResult": "definitionProblems: [] (accepted)",
+      "nowResult": "0 / 13 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "required_slot_absent:PR-01",
+        "slot_outside_canonical_required_set:PR-99"
+      ]
+    },
+    {
+      "id": "A2",
+      "attack": "Security: one required slot id substituted, cardinality still 9",
+      "preRemediationResult": "definitionProblems: [] (accepted)",
+      "nowResult": "0 / 9 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "required_slot_absent:SEC:cross_tenant_quote",
+        "slot_outside_canonical_required_set:SEC:other"
+      ]
+    },
+    {
+      "id": "A3",
+      "attack": "Support: Cancellation row UUID replaced by 00000000-0000-0000-0000-000000000000",
+      "preRemediationResult": "4 / 4 VALID (accepted)",
+      "nowResult": "3 / 4 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "row_immutable_id_not_a_real_uuid:00000000-0000-0000-0000-000000000000",
+        "row_immutable_id_differs_from_raw_readback:00000000-0000-0000-0000-000000000000!=0b6dc340-f921-435b-afc8-7da6f05825eb"
+      ]
+    },
+    {
+      "id": "A4",
+      "attack": "Support: Cancellation and Feature-request row UUIDs swapped",
+      "preRemediationResult": "4 / 4 VALID (accepted)",
+      "nowResult": "2 / 4 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": {
+        "cancellation": [
+          "row_immutable_id_differs_from_raw_readback:47397422-4b54-4a0c-af55-59f3f8250340!=0b6dc340-f921-435b-afc8-7da6f05825eb"
+        ],
+        "featureRequest": [
+          "row_immutable_id_differs_from_raw_readback:0b6dc340-f921-435b-afc8-7da6f05825eb!=47397422-4b54-4a0c-af55-59f3f8250340"
+        ]
+      }
+    },
+    {
+      "id": "A5",
+      "attack": "Owner: calculator answer replaced by \"In-editor calculator does not exist in TEKANGO\" (contains the expected label)",
+      "preRemediationResult": "48 / 48 VALID (accepted)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence",
+        "row_response_differs_from_raw_capture"
+      ]
+    },
+    {
+      "id": "A3b",
+      "attack": "Support: nil UUID forged consistently in BOTH the row and the raw capture",
+      "preRemediationResult": "4 / 4 VALID (accepted)",
+      "nowResult": "3 / 4 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "raw_readback_id_not_a_real_uuid:00000000-0000-0000-0000-000000000000",
+        "row_immutable_id_not_a_real_uuid:00000000-0000-0000-0000-000000000000"
+      ]
+    },
+    {
+      "id": "A5b",
+      "attack": "Owner: contradictory prose forged consistently in BOTH the row and the raw capture (polarity must reject on its own)",
+      "preRemediationResult": "48 / 48 VALID (accepted)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A6",
+      "attack": "Owner calculator|direct|en: \"The in-editor calculator is available elsewhere, but TEKANGO lacks it.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A7",
+      "attack": "Owner calculator|direct|en: \"The in-editor calculator is available only outside TEKANGO.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A8",
+      "attack": "Owner calculator|direct|en: \"The in-editor calculator exists in other products, but not in TEKANGO.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A9",
+      "attack": "Owner calculator|direct|en: \"TEKANGO lacks it, though the in-editor calculator exists elsewhere.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A10",
+      "attack": "Owner calculator|direct|en: \"The in-editor calculator is available elsewhere.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A11",
+      "attack": "Owner calculator|direct|he: \"מחשבון מובנה בעורך זמין במוצרים אחרים, אבל לא ב-TEKANGO.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A12",
+      "attack": "Owner calculator|direct|he: \"מחשבון מובנה בעורך זמין רק מחוץ ל-TEKANGO.\"",
+      "preRemediationResult": "ACCEPTED - baseline before this fix returned no polarity violation (48 / 48)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    },
+    {
+      "id": "A13",
+      "attack": "Owner calculator|direct|he: \"מחשבון מובנה בעורך קיים במוצרים אחרים, אבל לא קיים ב-TEKANGO.\"",
+      "preRemediationResult": "already rejected before this fix (explicit \"לא קיים ב-TEKANGO\" was caught)",
+      "nowResult": "47 / 48 VALID, gate FAIL",
+      "rejected": true,
+      "verdict": "PASS (attack rejected)",
+      "detail": [
+        "prose:available_expected_but_response_denies_existence",
+        "prose:available_expected_but_response_does_not_affirm_existence"
+      ]
+    }
+  ],
+  "validScopedPositivesAccepted": [
+    {
+      "slot": "calculator|direct|en",
+      "text": "The in-editor calculator is unavailable elsewhere, but available in TEKANGO.",
+      "result": "48 / 48 VALID, gate PASS",
+      "accepted": true
+    },
+    {
+      "slot": "calculator|direct|en",
+      "text": "The in-editor calculator is available in other products and in TEKANGO.",
+      "result": "48 / 48 VALID, gate PASS",
+      "accepted": true
+    },
+    {
+      "slot": "calculator|direct|en",
+      "text": "The in-editor calculator is not available outside TEKANGO, but TEKANGO supports it.",
+      "result": "48 / 48 VALID, gate PASS",
+      "accepted": true
+    },
+    {
+      "slot": "calculator|direct|he",
+      "text": "מחשבון מובנה בעורך לא זמין במוצרים אחרים, אבל זמין ב-TEKANGO.",
+      "result": "48 / 48 VALID, gate PASS",
+      "accepted": true
+    },
+    {
+      "slot": "calculator|direct|he",
+      "text": "מחשבון מובנה בעורך זמין גם במוצרים אחרים וגם ב-TEKANGO.",
+      "result": "48 / 48 VALID, gate PASS",
+      "accepted": true
+    }
+  ],
+  "allAttacksRejectedAndValidAccepted": true,
+  "summary": "CONTROL 48/13/9/4 VALID; ALL CODEX ATTACKS (incl. scoped Finding-3 contradictions) REJECTED; VALID SCOPED POSITIVES ACCEPTED"
+}

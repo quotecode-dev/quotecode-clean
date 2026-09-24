@@ -6,7 +6,7 @@
 // deterministic with one payload and one prose.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_DEPLOYED_VERSION } from './productTruthFinalMatrixAcceptance.js';
+import { RUNTIME_V38_UPDATED_AT_UTC } from './productTruthFinalMatrixAcceptance.js';
 import {
   ENGLISH_PLURAL_IDENTITY_CLASS, HEBREW_PREFIX_CLASS, MARKET_ROUTING_MATRIX, MARKET_ROUTING_NEGATIVE_CONTROLS, MICRO_CODEX_GAPS, MICRO_NEGATIVE_CONTROLS, MICRO_UNSEEN_PARAPHRASES, SELF_BREAK_TEST,
 } from './productTruthMarketRoutingMatrix.js';
@@ -27,7 +27,8 @@ const VARIANCE = {
   'SELF-proven person noun + currency request (EN, International)': ['self-proven-english', 'INTL', 'We are international customers, show prices in dollars.'],
   'SELF-proven person noun + currency request (HE, Local)': ['self-proven-hebrew', 'LOCAL', 'אנחנו לקוחות בינלאומיים, תציג לי מחירים בדולר'],
 };
-const versionNumber = Number(RUNTIME_DEPLOYED_VERSION.replace('chat-ai-v', ''));
+// HISTORICAL evidence: this live capture belongs to chat-ai v38 (grammar blockers closure); it stays committed and valid for v38. The current runtime is v39 (account / system question frame).
+const versionNumber = 38;
 const fill = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_x, k) => vars[k]);
 const sorted = (rows) => rows.map((r) => r.prompt).sort();
 const A = englishIdentityGrammarCases(); const B = hebrewRelationshipGrammarCases(); const C = overrideGrammarCases(); const D = clauseCompositionCases();
@@ -35,12 +36,12 @@ const SYM = symbolPrefixCases(); const SELF = selfCurrencyPositives();
 const THIRD_EN = thirdPartyDisplayNegativesEn(); const THIRD_HE = thirdPartyDisplayNegativesHe();
 
 describe('grammar-blockers live evidence (committed)', () => {
-  it('was captured against exactly the current deployed chat-ai version (v38+), unchanged across the run', () => {
-    expect(versionNumber).toBeGreaterThanOrEqual(38);
+  it('was captured against chat-ai v38 (its own deployed version), unchanged across the run', () => {
+    expect(versionNumber).toBe(38);
     expect(LIVE.summary.chatAi.before.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.after.version).toBe(versionNumber);
     expect(LIVE.summary.chatAi.before.ezbrSha256).toBe(LIVE.summary.chatAi.after.ezbrSha256);
-    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_DEPLOYED_UPDATED_AT_UTC);
+    expect(LIVE.summary.chatAi.before.updatedAtUtc).toBe(RUNTIME_V38_UPDATED_AT_UTC);
     expect(LIVE.summary.testProjectRef).toBe('ljfizgrdyzxddswcedwr');
   });
   it('the earlier regression / findings / property / unseen sets are re-covered EXACTLY', () => {

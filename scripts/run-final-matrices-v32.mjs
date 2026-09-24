@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { FINAL_MATRIX_DEFINITIONS, TEST_PROJECT_REF } from '../src/data/productTruthFinalMatrixAcceptance.js';
 
 // version-agnostic (the name is historical): captures whichever chat-ai version is deployed and records it in the before/after bracket.
-const OUT = process.argv[2] || 'evidence/product-truth/2026-09-24-grammar-blockers-v38-raw-matrices.json';
+const OUT = process.argv[2] || 'evidence/product-truth/2026-09-24-account-system-question-v39-raw-matrices.json';
 const envText = readFileSync('C:/tkrc-pt/.env.localtest.local', 'utf-8');
 function envVar(name) {
   const m = envText.match(new RegExp(`^${name}=(.*)$`, 'm'));
