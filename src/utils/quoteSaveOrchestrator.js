@@ -295,12 +295,13 @@ export async function deleteQuoteWithAttachments(supabase, quoteId) {
   return { ok: true, cleanupPending: failed };
 }
 
-// Authorized, short-lived access to a private attachment (OD-2). Historical rows without a storage path fall back to their URL.
+// Authorized, short-lived access to a private attachment (OD-2). A row without a storage path FAILS CLOSED: its stored file_url is never
+// returned (SIGNED, PROJECT-ONLY ATTACHMENT NAVIGATION - same law as the rollback artifact 8a13066; V-1 stops the cutover if such rows exist).
 export async function createAttachmentAccessUrl(supabase, attachment, expiresInSeconds = 60) {
   if (attachment?.storage_path) {
     const { data, error } = await supabase.storage.from(QUOTE_FILES_BUCKET).createSignedUrl(attachment.storage_path, expiresInSeconds);
     if (error || !data?.signedUrl) return { url: null, error: error || new Error('no signed url') };
     return { url: data.signedUrl };
   }
-  return { url: /^https?:\/\//.test(String(attachment?.file_url || '')) ? attachment.file_url : null };
+  return { url: null, error: new Error('no storage path: fail closed (a stored file_url is never returned)') };
 }

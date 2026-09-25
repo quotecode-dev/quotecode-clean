@@ -47,3 +47,43 @@ export async function resolveAttachmentCompatOpen({ client, match, supabaseUrl }
   if (!isTrustedSignedAttachmentUrl(url, supabaseUrl, match.storagePath)) return { state: 'error' };
   return { state: 'redirect', url };
 }
+
+// CANDIDATE PARITY (2026-09-25): the editor open path below is BYTE-IDENTICAL to the one in the First-LIVE rollback artifact 8a13066
+// (the same fail-closed law in both frontends); the MD-2 route code above is unchanged.
+// ---- editor open path (FRONTEND ROLLBACK ARTIFACT, 2026-09-25; fail closed) ----
+// The rollback editor opens a persisted attachment ONLY through this project's signed URL of a PROVEN owner storage path, in the same order
+// as the MD-2 route: session -> storage_path is exactly <session uid>/<one safe object name> -> this row (id + storage_path) is RLS-visible
+// -> signed under the user's JWT -> trusted signed URL of exactly that object. Anything else (missing / blank / malformed / foreign path,
+// deleted row, untrusted URL, thrown error) is refused: the stored file_url is never returned, navigated to, or used to infer a key.
+// The object-name contract is wider than the MD-2 URL shape on purpose: rows written by the LIVE-baseline uploader keep the original
+// extension case (e.g. .JPG); it still admits exactly one segment of [A-Za-z0-9._-] (no '/', '..', '%', '\', space or other character).
+const CANONICAL_UUID_RE = new RegExp(`^${UUID}$`);
+const OWNER_OBJECT_NAME_RE = /^[A-Za-z0-9](?:[A-Za-z0-9_-]|\.(?!\.))*$/;
+
+export function isOwnerStoragePath(storagePath, userId) {
+  if (typeof storagePath !== 'string' || typeof userId !== 'string' || !CANONICAL_UUID_RE.test(userId)) return false;
+  const slash = storagePath.indexOf('/');
+  if (slash < 0 || storagePath.slice(0, slash) !== userId) return false;
+  const name = storagePath.slice(slash + 1);
+  return name.length > 0 && name.length <= 255 && OWNER_OBJECT_NAME_RE.test(name);
+}
+
+export async function resolveEditorAttachmentOpen({ client, attachment, supabaseUrl }) {
+  try {
+    const { data: sessionData } = await client.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) return { state: 'signin' };
+    const storagePath = attachment?.storage_path;
+    if (!attachment?.id || !isOwnerStoragePath(storagePath, userId)) return { state: 'unavailable' };
+    const { data: rows, error: rowError } = await client.from('quote_attachments').select('id').eq('id', attachment.id).eq('storage_path', storagePath).limit(1);
+    if (rowError) return { state: 'error' };
+    if (!rows || rows.length === 0) return { state: 'unavailable' };
+    const { url } = await createAttachmentAccessUrl(client, { storage_path: storagePath }, SIGNED_URL_SECONDS);
+    if (!url) return { state: 'unavailable' };
+    if (!isTrustedSignedAttachmentUrl(url, supabaseUrl, storagePath)) return { state: 'error' };
+    return { state: 'redirect', url };
+  } catch {
+    return { state: 'error' };
+  }
+}
+// ---- editor open path (end) ----

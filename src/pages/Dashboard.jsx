@@ -54,7 +54,8 @@ import SignOutModal from '../components/SignOutModal';
 import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
 import QuoteForm from '../components/QuoteForm';
-import { persistQuote, deleteQuoteWithAttachments, createAttachmentAccessUrl, newUuid } from '../utils/quoteSaveOrchestrator';
+import { persistQuote, deleteQuoteWithAttachments, newUuid } from '../utils/quoteSaveOrchestrator';
+import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 
 import AuthScreen from '../components/AuthScreen';
@@ -1757,18 +1758,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
   }
 
-  // OD-2: open a persisted attachment through an authorized, 60-second signed URL. The tab is opened synchronously (popup
-  // blockers allow it inside the click) and pointed at the URL once it has been minted.
+  // OD-2: open a persisted attachment through an authorized, 60-second signed URL - FAIL CLOSED (2026-09-25, same code as the rollback
+  // artifact 8a13066): only this project's signed URL of a proven owner storage path is ever opened (resolveEditorAttachmentOpen); a row with a
+  // missing / malformed / foreign storage_path is refused and its stored file_url is never navigated to.
+  // The tab is opened synchronously (popup blockers allow it inside the click) and pointed at the URL once it has been minted.
   async function openQuoteAttachment(file) {
     const win = window.open('about:blank', '_blank');
     if (win) win.opener = null;
-    const { url } = await createAttachmentAccessUrl(supabase, file, 60);
-    if (!url) {
+    const r = await resolveEditorAttachmentOpen({ client: supabase, attachment: file, supabaseUrl: import.meta.env.VITE_SUPABASE_URL });
+    if (r.state !== 'redirect') {
       if (win) win.close();
-      setAlertModalMsg(isHebrew ? 'לא ניתן לפתוח את הקובץ כרגע. נסו שוב.' : 'The file cannot be opened right now. Please try again.');
+      setAlertModalMsg(r.state === 'unavailable'
+        ? (isHebrew ? 'הקובץ אינו זמין לפתיחה. רעננו את הדף ונסו שוב.' : 'This file is not available. Reload the page and try again.')
+        : (isHebrew ? 'לא ניתן לפתוח את הקובץ כרגע. נסו שוב.' : 'The file cannot be opened right now. Please try again.'));
       return;
     }
-    if (win) win.location.href = url; else window.location.assign(url);
+    if (win) win.location.href = r.url; else window.location.assign(r.url);
   }
 
   async function executeDeleteQuote(quoteId) {

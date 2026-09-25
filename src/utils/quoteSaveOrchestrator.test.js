@@ -123,6 +123,14 @@ describe('helpers', () => {
     const { url } = await createAttachmentAccessUrl(makeFake(), { storage_path: `${U}/${Q}_1.pdf`, file_url: 'https://public.example/x.pdf' });
     expect(url).toMatch(/^https:\/\/signed\.example\/.*ttl=60$/);
   });
+  it('no storage path -> FAIL CLOSED: a stored http(s) or public file_url is never returned (2026-09-25 raw-URL parity)', async () => {
+    for (const file_url of ['https://evil.example/phish', 'http://evil.example/x.pdf', 'https://public.example/storage/v1/object/public/quote-files/x.pdf']) {
+      for (const storage_path of [undefined, null, '']) {
+        const r = await createAttachmentAccessUrl(makeFake(), { storage_path, file_url });
+        expect(r.url).toBeNull(); expect(r.error).toBeInstanceOf(Error);
+      }
+    }
+  });
 });
 
 describe('PHASED path (current TEST schema) - failure injection at every stage', () => {
