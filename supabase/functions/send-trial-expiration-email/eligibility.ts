@@ -29,6 +29,21 @@ export type TrialReminderCandidate = {
 
 export const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+// Codex Post-LIVE Wave 1 blocker 5 (2026-09-27): the reminder's market (language, direction, date locale, CTA, sender)
+// comes ONLY from the exact canonical business_settings.country value. The previous code treated every value other than
+// 'International' as Local, so the schema default 'Unknown', null, legacy and malformed values all got a Hebrew email from
+// support@. Now: exact 'Local' -> Local, exact 'International' -> International, anything else -> null = do NOT send
+// (fail closed: no claim, no email, no sent flag; the account is re-evaluated on the next run if its market is fixed).
+// Note: 'LCL' is a documented legacy alias of Local in the UI / quote-validity code; this send path deliberately does not
+// accept it (exact canonical values only), so an 'LCL' account is skipped and reported, never mis-routed.
+export type ReminderMarket = 'Local' | 'International';
+
+export function resolveReminderMarket(country: unknown): ReminderMarket | null {
+  if (country === 'Local') return 'Local';
+  if (country === 'International') return 'International';
+  return null;
+}
+
 export function resolveTrialReminderStage(
   biz: TrialReminderCandidate,
   nowMs: number,

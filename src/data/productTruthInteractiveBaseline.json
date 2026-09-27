@@ -555,7 +555,19 @@
     "interactive": 1,
     "markers": 0
   },
+  "supabase/functions/auth-send-email-hook/emailPlan.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/auth-send-email-hook/handler.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/auth-send-email-hook/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/auth-send-email-hook/webhookVerify.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -664,7 +676,15 @@
     "markers": 0
   },
   "supabase/functions/send-trial-expiration-email/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-trial-expiration-email/reminderContent.ts": {
     "interactive": 1,
+    "markers": 0
+  },
+  "supabase/functions/send-trial-expiration-email/reminderRun.ts": {
+    "interactive": 0,
     "markers": 0
   },
   "supabase/functions/send-welcome-email/index.ts": {

@@ -6,7 +6,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -80,6 +80,24 @@ try {
     console.log(`${failed ? 'FAIL' : 'PASS'}  ${f}  (${notices.filter((n) => n.startsWith('PASS')).length} assertions)`);
     if (failed) for (const n of notices.filter((x) => x.startsWith('FAIL'))) console.log(`      ${n}`);
     if (!r.ok) console.log(`      ${result.tests.at(-1).error}`);
+  }
+  // Multi-session tests (e.g. overlapping claims): tests/*.mjs export default async ({ container, psql, root }) and return
+  // { assertions: ['PASS: ...' | 'FAIL: ...'] }. They run after the SQL files, against the same disposable container.
+  for (const f of fs.readdirSync(testDir).filter((x) => x.endsWith('.mjs') && (!ONLY || x.includes(ONLY))).sort()) {
+    const text = fs.readFileSync(path.join(testDir, f), 'utf8');
+    let assertions = [];
+    let error;
+    try {
+      const mod = await import(pathToFileURL(path.join(testDir, f)).href);
+      assertions = (await mod.default({ container: NAME, psql, root: ROOT })).assertions ?? [];
+    } catch (e) {
+      error = String(e?.stack ?? e).slice(0, 1500);
+    }
+    const failed = Boolean(error) || assertions.length === 0 || assertions.some((n) => n.startsWith('FAIL'));
+    result.tests.push({ file: f, sha256: sha(text), status: failed ? 'FAIL' : 'PASS', assertions, error });
+    console.log(`${failed ? 'FAIL' : 'PASS'}  ${f}  (${assertions.filter((n) => n.startsWith('PASS')).length} assertions)`);
+    if (failed) for (const n of assertions.filter((x) => x.startsWith('FAIL'))) console.log(`      ${n}`);
+    if (error) console.log(`      ${error}`);
   }
   // Re-run idempotency is MANDATORY for migrations prepared by the current closure (version >= 20260922000000); legacy files
   // that were already applied long ago are reported but do not gate (e.g. 20260827000000 is not re-runnable by design).

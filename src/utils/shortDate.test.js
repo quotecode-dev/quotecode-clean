@@ -84,7 +84,7 @@ describe('IRON-DATE-001 ownership guard', () => {
   const files = [...walk(path.join(ROOT, 'src')), ...walk(path.join(ROOT, 'supabase/functions'))]
     .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/\.test\./.test(f));
   // Documented long-form prose exceptions (month spelled out, so day/month order can never be misread; never numeric).
-  const LONG_FORM = ['supabase/functions/send-trial-expiration-email/index.ts', 'supabase/functions/send-subscription-expiration-email/index.ts'];
+  const LONG_FORM = ['supabase/functions/send-trial-expiration-email/reminderContent.ts', 'supabase/functions/send-subscription-expiration-email/index.ts'];
 
   it('no direct toLocaleDateString / Date#toLocaleString / removed owners outside the primitive', () => {
     const offenders = [];
