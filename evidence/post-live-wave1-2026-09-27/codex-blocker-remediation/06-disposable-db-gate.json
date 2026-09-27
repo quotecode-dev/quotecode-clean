@@ -1,0 +1,341 @@
+{
+  "harness": "tekango disposable DB (postgres:17, --rm)",
+  "at": "2026-09-27T19:49:36.737Z",
+  "image": "postgres:17",
+  "migrations": [
+    {
+      "file": "20260830000000_capture_base_schema_tables.sql",
+      "sha256": "bae65e5862c37b5325f46a22c9e2c12d8d161e5e36ecf190d32930eb103216a8",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260830000001_capture_base_functions_triggers.sql",
+      "sha256": "5bf68f231c26333678b0c0eb4ae663641f110f254b9dc4d90787b037b806ecbb",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260830000002_capture_base_rls_grants.sql",
+      "sha256": "566c0437352346eaa78e2d386843b705029f0b7f9639672f1858494cfb406abb",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260830000003_capture_base_storage.sql",
+      "sha256": "6f4589935a059ad75ed58d49d75fc312c2a535c0696e8edf3098cf86245b7177",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260827000000_add_quote_number_sequence.sql",
+      "sha256": "308b0439d8318555b45e9269275c931cfc07d62ef46986a5945f52aa05397591",
+      "ok": true,
+      "rerunOk": false,
+      "rerunError": "psql:<stdin>:62: NOTICE:  relation \"business_quote_sequences\" already exists, skipping | psql:<stdin>:83: ERROR:  policy \"Super admins can view all quote sequences\" for table \"business_quote_sequences\" already exists",
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260827000001_add_quote_number_unique_index.sql",
+      "sha256": "1c78034e1de15d509bb5d8941348584f214fcb3ebe5f63ed68023dfe6aa3014a",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "202608270000015_attach_quote_number_unique_constraint.sql",
+      "sha256": "bbc5f331f7c9a9a000c4a4c033173b43fe8cba468cfd2f9bd5519159c7c5c91a",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260827000002_protect_quote_number_immutability.sql",
+      "sha256": "eb4b5cdc5cd311604233e39fc9e2fbd7994a1189ce2628f50333e94ffa2b0015",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260827000003_drop_quote_number_default.sql",
+      "sha256": "77d215885f700201118b47165ae750c04c10efbd338c6856e962437b3b1f9881",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260828000000_add_quote_attn_contact.sql",
+      "sha256": "9e446b835f4734d15022d7bfe18adc7089931c0003bd56a892427971d3d6a259",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260830000004_add_warranty_fields.sql",
+      "sha256": "be76c67fd1fd7c7e799ae2f0373816bdf97706e6a12c3d2315ef176f578f5876",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260831000000_fix_public_approve_quote_business_check.sql",
+      "sha256": "78b3ec76f21db2385379b1824d0bcb5e7d2cc45e15d8fff26f816135c1ebde20",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260908000000_add_explicit_lifetime_state.sql",
+      "sha256": "58b9a898be36c20f654413e98bba2fcfc63f4aaebc9e57d6810cae195965d76f",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260909000000_narrow_public_approve_quote_to_owner_only.sql",
+      "sha256": "59e1b888c69dc12b0af414137e48b7a0072690e9dd1138c378a80bd9bf545d73",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260916010000_admin_reauth_proofs_and_audit_log.sql",
+      "sha256": "325785a5d3c67e09c974c4d912f963754d325c04e8dbf451370db921d1af9bf4",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260917000000_prod_forward_professional_quote_items_stage_a.sql",
+      "sha256": "f59279ba858c026cd99e3f5ccbc6b13efa33453c2a36fd4d61521f585824462f",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260917000001_prod_forward_business_professional_domain.sql",
+      "sha256": "eddfa64b9b3f3592fad4a5cdacb4472d4a523740d0f5d654842e80d9ff7998b1",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260917000002_prod_forward_professional_quote_hierarchy.sql",
+      "sha256": "ef3e1ac26256005a9ec9431e190f2ab31132fbe7f43168de08d079ca267d20e4",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260917000003_prod_forward_save_quote_structured_atomic_function.sql",
+      "sha256": "5185f19b75dcde35eddbb4a4a4746139aef2f03939ee14965762ed904dc439af",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": false
+    },
+    {
+      "file": "20260922000000_first_live_closure_signing_validity_attachments_atomic_save.sql",
+      "sha256": "7db24c7f07ad478f48fe7c6e8f176442ed87d26a72c8bfedda9ddf7241de187f",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": true
+    },
+    {
+      "file": "20260927000000_trial_reminder_delivery_claims.sql",
+      "sha256": "97d2017ed55ce06ca4683973adc69e48372d87a74e9c60e5a26d8b3a60a1d729",
+      "ok": true,
+      "rerunOk": true,
+      "idempotencyRequired": true
+    }
+  ],
+  "tests": [
+    {
+      "file": "000_baseline_smoke.sql",
+      "sha256": "e2fb3b1d225a843791c55ccd642df356df63a703fc0d219eb53a5ec76ac93d23",
+      "status": "PASS",
+      "assertions": [
+        "PASS: synthetic tenants seeded",
+        "PASS: public_approve_quote exists",
+        "PASS: save_quote_structured exists"
+      ]
+    },
+    {
+      "file": "010_public_signing_contract.sql",
+      "sha256": "61aafcc5f2a7ebdce32ebd2d60c15b1ee8686bc191ab5eddd382b79b9f3cadbc",
+      "status": "PASS",
+      "assertions": [
+        "PASS: owner is an issuer-tenant member",
+        "PASS: SIGN-OWNER: quote owner attempts to sign -> blocked [raised: Not permitted: a member of the business that issued this quote cannot approve or sign it on the customer's behalf]",
+        "PASS: other-tenant user is not an issuer-tenant member",
+        "PASS: SIGN-OTHER-TENANT: authenticated user of another tenant signs a valid quote -> allowed",
+        "PASS: SIGN-EXPIRED (other tenant): expired quote -> blocked [raised: Quote expired: the validity date has passed, so it can no longer be approved or signed]",
+        "PASS: SIGN-ANON: unauthenticated legitimate customer signs a valid quote -> allowed",
+        "PASS: SIGN-NO-EXPIRY: a quote without a validity date can be signed",
+        "PASS: SIGN-EXPIRED (anonymous, Local): expired quote -> blocked [raised: Quote expired: the validity date has passed, so it can no longer be approved or signed]",
+        "PASS: SIGN-EXPIRED (anonymous, International): expired quote -> blocked [raised: Quote expired: the validity date has passed, so it can no longer be approved or signed]",
+        "PASS: SIGN-WRONG-QUOTE: unknown quote id / wrong scope -> blocked [raised: Quote not found or cannot be approved]",
+        "PASS: SIGN-TWICE: an already signed quote cannot be signed again [raised: Quote not found or cannot be approved]",
+        "PASS: SIGN-FORMAT: non-PNG signature rejected [raised: Invalid signature format]",
+        "PASS: anonymous signature recorded (approved + signature)",
+        "PASS: other-tenant signature recorded",
+        "PASS: expired quote unchanged",
+        "PASS: OD-1: the stored historical validity date was not changed",
+        "PASS: Local: last second of 13/09/2026 (Asia/Jerusalem) still acceptable",
+        "PASS: Local: 14/09/2026 00:00 Asia/Jerusalem is expired",
+        "PASS: International: 09/13/2026 still valid anywhere on Earth (UTC-12)",
+        "PASS: International: expired once 09/13 ended everywhere",
+        "PASS: no validity date = never expires",
+        "PASS: Local: 23:30 Asia/Jerusalem on the validity day is acceptable",
+        "PASS: Local: 00:30 Asia/Jerusalem next day is expired although UTC is still the validity day (market time zone decides, not the server)",
+        "PASS: anon may execute public_approve_quote",
+        "PASS: authenticated may execute public_approve_quote",
+        "PASS: service_role has no execute on public_approve_quote"
+      ]
+    },
+    {
+      "file": "020_attachment_privacy_and_gc.sql",
+      "sha256": "359dad32ba5ead4e584fcf1915fc00cece3c87db35ecf6e336035d3b700ddf9a",
+      "status": "PASS",
+      "assertions": [
+        "PASS: PRIVACY: quote-files bucket is private (no permanent public URL)",
+        "PASS: PRIVACY: public SELECT policy removed",
+        "PASS: PRIVACY-ANON: anonymous caller cannot read any quote file object",
+        "PASS: PRIVACY-CROSS-TENANT: other tenant cannot read the owner's objects",
+        "PASS: PRIVACY-CROSS-TENANT: other tenant cannot delete the owner's objects",
+        "PASS: PRIVACY-CROSS-TENANT: other tenant cannot read the owner's attachment rows",
+        "PASS: owner reads own objects",
+        "PASS: GC queue empty while every object is referenced",
+        "PASS: LIFECYCLE: removed persisted attachment queues its object AFTER the row is gone",
+        "PASS: LIFECYCLE: the object itself is not deleted by the DB (no premature delete)",
+        "PASS: LIFECYCLE: owner deletes exactly the queued object (owner DELETE policy)",
+        "PASS: LIFECYCLE: owner acknowledges the queue row",
+        "PASS: LIFECYCLE: deleting a draft quote queues all of its attachment objects",
+        "PASS: LIFECYCLE: an approved quote's attachment cannot be removed [raised: Not permitted: quote is approved/paid/signed - items/attachments are frozen]",
+        "PASS: LIFECYCLE: nothing queued for the frozen attachment",
+        "PASS: GC queue rows are owner-private",
+        "PASS: other tenant cannot acknowledge the owner's queue rows",
+        "PASS: owner queue intact after the cross-tenant attempt"
+      ]
+    },
+    {
+      "file": "030_atomic_quote_save.sql",
+      "sha256": "098a9e192394bf83885ca010ac4ed06c8fa594c4991962bcf245694027565f54",
+      "status": "PASS",
+      "assertions": [
+        "PASS: NEW: atomic save succeeds",
+        "PASS: NEW: exactly one new client created",
+        "PASS: PROJECT-NAME: persisted (trimmed) and read back",
+        "PASS: NEW: header fields + allocated quote number + Draft",
+        "PASS: NEW: both items persisted",
+        "PASS: NEW: measurement persisted",
+        "PASS: NEW: grouping (room) persisted",
+        "PASS: NEW: attachment metadata stored with a storage path, never a public URL",
+        "PASS: RETRY: duplicate new-quote save is recognised as a replay",
+        "PASS: RETRY: no duplicate client/quote/items",
+        "PASS: FAIL-ITEMS: structured item failure raises",
+        "PASS: FAIL-ITEMS: the client insert was rolled back",
+        "PASS: FAIL-ITEMS: no quote shell remains",
+        "PASS: FAIL-ATTACH-META: metadata failure after upload raises (caller removes the uploaded object)",
+        "PASS: FAIL-ATTACH-META: client/quote/items rolled back",
+        "PASS: FAIL-CLIENT: client update failure raises",
+        "PASS: FAIL-CLIENT: quote header unchanged (no partial edit)",
+        "PASS: PROJECT-NAME: edit + resave read-back",
+        "PASS: EDIT: quote re-linked to the matched existing client",
+        "PASS: FAIL-REMOVE: unknown removal id raises",
+        "PASS: FAIL-REMOVE: the valid attachment is NOT removed (all-or-nothing)",
+        "PASS: FAIL-REMOVE: header change rolled back",
+        "PASS: FAIL-REMOVE: nothing queued for deletion",
+        "PASS: REMOVE: persisted attachment row removed",
+        "PASS: REMOVE: its object path is returned and queued for post-commit deletion",
+        "PASS: UNFINISHED-DRAFT: empty quote saved as Draft; blank project_name stored as NULL",
+        "PASS: CROSS-TENANT: another tenant cannot edit the quote (RLS hides it) [raised: Quote not found]",
+        "PASS: CROSS-TENANT: a replay with a foreign quote id is refused [raised: Not permitted]",
+        "PASS: ANON: cannot execute save_quote_atomic [raised: permission denied for function save_quote_atomic]",
+        "PASS: ANON: cannot probe the capability [raised: permission denied for function save_quote_atomic_version]"
+      ]
+    },
+    {
+      "file": "040_trial_reminder_claims.sql",
+      "sha256": "a565db5aaec63a562c07371628b2510396907be17e9d76cd51ca849aa54fc02f",
+      "status": "PASS",
+      "assertions": [
+        "PASS: LEDGER: RLS enabled",
+        "PASS: CLAIM: first claim returns a claim",
+        "PASS: CLAIM: a second claim while held returns NULL (no send)",
+        "PASS: CLAIM: deterministic attempt-1 idempotency key, status claimed",
+        "PASS: CLAIM: stages are independent",
+        "PASS: COMPLETE: a non-holder completion is refused",
+        "PASS: COMPLETE: the refused completion wrote no sent flag",
+        "PASS: COMPLETE: the holder records sent",
+        "PASS: SENT: only the 3d flag is set, in the same transaction",
+        "PASS: SENT: ledger row sent with provider message id",
+        "PASS: SENT: a sent stage is never claimed again",
+        "PASS: COMPLETE: a second completion of the same claim is refused",
+        "PASS: FAILED: holder records a definite failure",
+        "PASS: FAILED: no sent flag",
+        "PASS: FAILED: retry is claimable with a NEW idempotency key (attempt 2)",
+        "PASS: UNKNOWN: claim",
+        "PASS: UNKNOWN: holder records an ambiguous outcome",
+        "PASS: UNKNOWN: retry inside the window reuses the SAME key (provider dedups)",
+        "PASS: UNKNOWN: second ambiguous outcome recorded",
+        "PASS: UNKNOWN: past the key window an ambiguous row is NOT re-sent automatically",
+        "PASS: LEASE: claim",
+        "PASS: LEASE: not re-claimable inside the lease",
+        "PASS: LEASE: after the lease the claim is taken over with the SAME key",
+        "PASS: LEASE: the stale worker's late completion is refused",
+        "PASS: LEASE: the new holder completes",
+        "PASS: LEGACY: a stage already flagged sent is not claimed",
+        "PASS: ACCOUNT: no business_settings row -> not claimed",
+        "PASS: LEGACY/ACCOUNT: no ledger row created",
+        "PASS: ARGS: unknown stage rejected [raised: claim_trial_reminder: invalid arguments]",
+        "PASS: ARGS: unknown outcome rejected [raised: complete_trial_reminder: invalid arguments]",
+        "PASS: PERSIST: claim",
+        "PASS: PERSIST: completing sent without an updatable account row raises [raised: complete_trial_reminder: account row not updated (0 rows)]",
+        "PASS: PERSIST: the ledger update was rolled back (claim still open, not marked sent)",
+        "PASS: ANON: cannot read the ledger [raised: permission denied for table trial_reminder_deliveries]",
+        "PASS: ANON: cannot claim [raised: permission denied for function claim_trial_reminder]",
+        "PASS: ANON: cannot complete [raised: permission denied for function complete_trial_reminder]",
+        "PASS: AUTHENTICATED: cannot read the ledger [raised: permission denied for table trial_reminder_deliveries]",
+        "PASS: AUTHENTICATED: cannot claim for itself [raised: permission denied for function claim_trial_reminder]",
+        "PASS: AUTHENTICATED: cannot mark itself sent [raised: permission denied for function complete_trial_reminder]",
+        "PASS: CASCADE: deleting the auth user removes its ledger rows"
+      ]
+    },
+    {
+      "file": "041_trial_reminder_concurrency.mjs",
+      "sha256": "2d441a91fe36763e74579e0d817fa173903ebd708e10c515e6a40dfa1191124e",
+      "status": "PASS",
+      "assertions": [
+        "PASS: RACE: all 80 sessions were blocked on the barrier before release",
+        "PASS: RACE: account 1 stage 3d: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 1 stage 24h: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 2 stage 3d: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 2 stage 24h: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 3 stage 3d: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 3 stage 24h: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 4 stage 3d: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 4 stage 24h: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 5 stage 3d: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: account 5 stage 24h: 8 simultaneous sessions -> exactly 1 claim",
+        "PASS: RACE: exactly one ledger row per (account, stage)",
+        "PASS: E2E: synthetic candidate snapshot read",
+        "PASS: E2E: 6 overlapping runs -> each of the 10 eligible accounts received exactly one email",
+        "PASS: E2E: total provider deliveries == eligible accounts",
+        "PASS: E2E: recorded sends across runs == eligible accounts",
+        "PASS: E2E: sender follows the exact market (Local -> support@, International -> info@)",
+        "PASS: E2E: country \"Unknown\" -> no email",
+        "PASS: E2E: country null -> no email",
+        "PASS: E2E: country \"LCL\" -> no email",
+        "PASS: E2E: country \"local\" -> no email",
+        "PASS: E2E: sent flag set exactly for the delivered accounts",
+        "PASS: E2E: ledger has one sent row per delivered account and none for unresolved markets",
+        "PASS: E2E: a duplicate invocation after completion sends nothing"
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

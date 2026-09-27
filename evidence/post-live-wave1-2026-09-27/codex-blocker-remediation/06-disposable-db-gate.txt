@@ -1,0 +1,9 @@
+PASS  000_baseline_smoke.sql  (3 assertions)
+PASS  010_public_signing_contract.sql  (26 assertions)
+PASS  020_attachment_privacy_and_gc.sql  (18 assertions)
+PASS  030_atomic_quote_save.sql  (30 assertions)
+PASS  040_trial_reminder_claims.sql  (40 assertions)
+PASS  041_trial_reminder_concurrency.mjs  (24 assertions)
+re-run (idempotency) failures: 20260827000000_add_quote_number_sequence.sql [legacy, informational]
+DISPOSABLE DB GATE: PASS (21 migrations, 6/6 test files PASS)
+exit=0

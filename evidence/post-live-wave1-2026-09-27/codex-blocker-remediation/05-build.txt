@@ -1,0 +1,47 @@
+vite v5.4.21 building for production...
+transforming...
+✓ 2950 modules transformed.
+rendering chunks...
+computing gzip size...
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-900-normal-CNJSgxQA.woff2             5.19 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-400-normal-Dp0lvSRB.woff2             5.32 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-800-normal-CEoY7Wj3.woff2             5.41 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-500-normal-B_5jqoVI.woff2             5.41 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-700-normal-Da14F88e.woff2             5.46 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-600-normal-CpCbvE17.woff2             5.46 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/index.html                                                5.89 kB │ gzip:   2.27 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-900-normal-B3V9FX5z.woff              6.72 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-400-normal-BQDoxs6C.woff              6.77 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-700-normal-B2Hm7hpE.woff              6.79 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-500-normal--anb7y8_.woff              6.83 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-600-normal-BGAyptFf.woff              6.87 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-800-normal-DgqUxLtA.woff              6.91 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-hebrew-wght-normal-BIkpbuMU.woff2            9.35 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-cyrillic-ext-wght-normal-BjodpZir.woff2     12.39 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-cyrillic-wght-normal-DveCct9I.woff2         15.11 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-900-normal-Cz6GdZLE.woff2             17.82 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-400-normal-j0pmKyiQ.woff2             18.94 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-500-normal-1os41rQk.woff2             19.04 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-600-normal-7iWW07_k.woff2             19.06 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-800-normal-BtaGuVpR.woff2             19.06 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-700-normal-D-tMm-eS.woff2             19.11 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-ext-wght-normal-OacczzuJ.woff2        19.40 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-900-normal-CBojinpD.woff              22.75 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-400-normal-BV1Ho3GG.woff              23.92 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-800-normal-Dq1miTTj.woff              24.17 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-500-normal-LZYVHeqz.woff              24.21 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-600-normal-Bd1rsTk4.woff              24.21 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-700-normal-KHOtubUA.woff              24.28 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-arabic-wght-normal-CGnJ-sf6.woff2           32.47 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/rubik-latin-wght-normal-CnQIisVs.woff2            35.35 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/index-nhcImtck.css                                31.78 kB │ gzip:   7.22 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/purify.es-Jn2rvFN8.js                             28.91 kB │ gzip:  10.90 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/index.es-BOzNaUc5.js                             150.69 kB │ gzip:  51.55 kB
+../Users/sales/AppData/Local/Temp/claude/c--Users-sales-Documents-YoutubeChanel-WebSite-quotecode-saas/77639c96-5281-414a-a9ce-fd4c65cca264/scratchpad/build-bound/assets/index-DumuHBMo.js                              3,191.69 kB │ gzip: 916.28 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 12.20s
+exit=0

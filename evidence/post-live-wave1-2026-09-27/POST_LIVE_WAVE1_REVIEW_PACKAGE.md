@@ -146,3 +146,21 @@ Recorded by the evidence-reconciliation commit that follows the remediation comm
 - **Ambiguous sends past the 23 h key window** stay `unknown` / `claimed` and are never re-sent automatically; there is no alerting beyond the cron logs.
 - **Browser:** not applicable (no UI change in this remediation); no browser evidence produced.
 - **Minor handler changes:** the hook now answers non-POST requests (incl. OPTIONS) with 405 — Auth never sends a preflight — and uses the documented error shape.
+
+### 8.11 Verification bound to remediation commit `89f38414bd9a2e9a5f3837061f47db4759b223df` (evidence-reconciliation commit)
+Identity: remediation commit `89f38414bd9a2e9a5f3837061f47db4759b223df` (tree `dd563dcc0a6e9caee1d553dd68ac10f4d5dd2882`), parent = reviewed predecessor `cfdaf9efdd15398cdaf8756b353a24ad5ee6d0ef`, base = LIVE `e2090a407cf450b92335ad21791ca5fca6c78974`, branch `tekango-post-live-wave1-2026-09-27`, worktree `C:\tkpl-wave1`. Every run below started and ended with 0 `git status` lines at `HEAD` = `89f3841`. The only later file is this commit's own evidence (the negative-control script ran from the untracked evidence folder). The reconciliation commit that adds this section changes only `evidence/post-live-wave1-2026-09-27/**`; verify with `git diff --stat 89f3841 HEAD`.
+
+| Check | Command | Result | Artifact |
+|---|---|---|---|
+| Identity + changed files | `git rev-parse` / `git diff --name-status cfdaf9e 89f3841` | 22 files (12 new) | `codex-blocker-remediation/01-identity.txt` |
+| Targeted blocker tests | `npx vitest run api/cron.test.js supabase/functions/auth-send-email-hook supabase/functions/send-trial-expiration-email src/utils/shortDate.test.js src/data/productTruthInteractiveCompleteness.test.js` | **8 files / 197 tests PASS** | `02-targeted-tests.txt` |
+| Full suite | `npx vitest run` | **157 files / 4266 tests PASS** (was 153 / 4122 at `cfdaf9e`) | `03-full-suite.txt` |
+| Lint | `npx eslint .` | **0 errors**, 3 warnings (the same pre-existing PublicTools / PublicToolsEn / Dashboard:734) | `04-eslint.txt` |
+| Build | `npx vite build --mode production` (scratch outDir) | **OK** | `05-build.txt` |
+| Disposable DB gate | `node scripts/db-test/run-db-tests.mjs` (postgres:17, `--rm`) | **PASS** — 21 migrations (new `20260927000000` applied AND re-run OK), 6/6 test files: 000 (3), 010 (26), 020 (18), 030 (30), **040 (40)**, **041 (24)**; the only re-run note is the legacy, informational `20260827000000` | `06-disposable-db-gate.txt/.json` |
+| Negative control (blocker 3) | `node evidence/…/codex-blocker-remediation/negative-control-naive-claim.mjs` | real implementation 041 PASS; naive check-then-act claim → **13 FAIL / 24** (5–8 of 8 sessions win per target; 20 deliveries for 10 accounts) → **DETECTED** | `07-negative-control.txt` |
+| Deno type-check | `deno check` (Deno 2.1.4, Docker) | 7 pure modules exit 0; both `index.ts` (from `git show HEAD`, remote imports stubbed) exit 0 | `08-deno-check.txt` |
+
+SHA-256 of every artifact: `codex-blocker-remediation/SHA256SUMS.txt`.
+
+**Blocker closure (local):** 1 CLOSED · 2 CLOSED · 3 CLOSED · 4 CLOSED · 5 CLOSED — each by code + tests at `89f3841`; blocker 3 also by the disposable-DB proof and the negative control. **Not claimed:** any TEST / Production / browser / real-email terminal behavior (§8.10). Next step: independent Codex re-review of this branch head. Production remains NOT authorized; push NOT performed.

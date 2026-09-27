@@ -1,0 +1,13 @@
+== pure modules, mounted read-only from C:\tkpl-wave1 at HEAD 89f3841 (clean) ==
+Check file:///fn/auth-send-email-hook/handler.ts
+Check file:///fn/auth-send-email-hook/emailPlan.ts
+Check file:///fn/auth-send-email-hook/webhookVerify.ts
+Check file:///fn/auth-send-email-hook/emailContent.ts
+Check file:///fn/send-trial-expiration-email/reminderRun.ts
+Check file:///fn/send-trial-expiration-email/reminderContent.ts
+Check file:///fn/send-trial-expiration-email/eligibility.ts
+exit=0
+== index.ts wiring: git show HEAD copies, remote imports (deno.land std serve, esm.sh supabase-js) replaced by local stubs ==
+Check file:///fn/auth-send-email-hook/index.ts
+Check file:///fn/send-trial-expiration-email/index.ts
+exit=0

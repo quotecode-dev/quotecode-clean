@@ -1,0 +1,58 @@
+at: 2026-09-27T19:47:30Z
+HEAD: 89f38414bd9a2e9a5f3837061f47db4759b223df
+parent: cfdaf9efdd15398cdaf8756b353a24ad5ee6d0ef
+tree: dd563dcc0a6e9caee1d553dd68ac10f4d5dd2882
+branch: tekango-post-live-wave1-2026-09-27
+base (merge-base with e2090a4): e2090a407cf450b92335ad21791ca5fca6c78974
+status lines: 0
+node: v26.5.0
+
+diff --stat cfdaf9e..HEAD:
+ api/cron.js                                        | 179 +++++-----
+ api/cron.test.js                                   | 107 ++++++
+ .../POST_LIVE_WAVE1_REVIEW_PACKAGE.md              |  88 +++++
+ scripts/db-test/run-db-tests.mjs                   |  20 +-
+ .../db-test/tests/040_trial_reminder_claims.sql    | 142 ++++++++
+ .../tests/041_trial_reminder_concurrency.mjs       | 167 ++++++++++
+ src/data/productTruthInteractiveBaseline.json      |  20 ++
+ src/utils/shortDate.test.js                        |   2 +-
+ .../auth-send-email-hook/emailContent.test.js      |  72 +++--
+ .../functions/auth-send-email-hook/emailContent.ts | 229 ++++++++++---
+ .../functions/auth-send-email-hook/emailPlan.ts    | 163 ++++++++++
+ .../functions/auth-send-email-hook/handler.test.js | 359 +++++++++++++++++++++
+ supabase/functions/auth-send-email-hook/handler.ts | 115 +++++++
+ supabase/functions/auth-send-email-hook/index.ts   | 173 +---------
+ .../auth-send-email-hook/webhookVerify.test.js     | 165 ++++++++++
+ .../auth-send-email-hook/webhookVerify.ts          |  90 ++++++
+ .../send-trial-expiration-email/eligibility.ts     |  15 +
+ .../functions/send-trial-expiration-email/index.ts | 188 +++--------
+ .../send-trial-expiration-email/reminderContent.ts | 104 ++++++
+ .../reminderRun.test.js                            | 294 +++++++++++++++++
+ .../send-trial-expiration-email/reminderRun.ts     | 156 +++++++++
+ ...260927000000_trial_reminder_delivery_claims.sql | 173 ++++++++++
+ 22 files changed, 2562 insertions(+), 459 deletions(-)
+
+diff --name-status cfdaf9e..HEAD:
+M	api/cron.js
+A	api/cron.test.js
+M	evidence/post-live-wave1-2026-09-27/POST_LIVE_WAVE1_REVIEW_PACKAGE.md
+M	scripts/db-test/run-db-tests.mjs
+A	scripts/db-test/tests/040_trial_reminder_claims.sql
+A	scripts/db-test/tests/041_trial_reminder_concurrency.mjs
+M	src/data/productTruthInteractiveBaseline.json
+M	src/utils/shortDate.test.js
+M	supabase/functions/auth-send-email-hook/emailContent.test.js
+M	supabase/functions/auth-send-email-hook/emailContent.ts
+A	supabase/functions/auth-send-email-hook/emailPlan.ts
+A	supabase/functions/auth-send-email-hook/handler.test.js
+A	supabase/functions/auth-send-email-hook/handler.ts
+M	supabase/functions/auth-send-email-hook/index.ts
+A	supabase/functions/auth-send-email-hook/webhookVerify.test.js
+A	supabase/functions/auth-send-email-hook/webhookVerify.ts
+M	supabase/functions/send-trial-expiration-email/eligibility.ts
+M	supabase/functions/send-trial-expiration-email/index.ts
+A	supabase/functions/send-trial-expiration-email/reminderContent.ts
+A	supabase/functions/send-trial-expiration-email/reminderRun.test.js
+A	supabase/functions/send-trial-expiration-email/reminderRun.ts
+A	supabase/migrations/20260927000000_trial_reminder_delivery_claims.sql
+status lines after: 0
