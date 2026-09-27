@@ -58,6 +58,22 @@ export function createIdbAdapter(idbFactory = globalThis.indexedDB) {
   };
 }
 
+// A restored blob can exist in IndexedDB yet no longer be readable (e.g. a disk-backed File whose source changed or was removed).
+// Such a file could never be uploaded, so the save would fail closed later; detecting it at restore time lets the caller report it
+// as missing ("please select it again") instead. Only a proven read failure counts as unreadable - no read API means "assume readable".
+export async function isBlobReadable(blob) {
+  try {
+    const head = blob.slice(0, 1);
+    if (typeof head.arrayBuffer === 'function') { await head.arrayBuffer(); return true; }
+    if (typeof FileReader === 'function') {
+      await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = resolve; r.onerror = () => reject(r.error); r.readAsArrayBuffer(head); });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function createBlobStore(adapter = createIdbAdapter()) {
   const draftKey = (userId, draftId) => `${userId}:${draftId}`;
   const store = {
@@ -76,7 +92,7 @@ export function createBlobStore(adapter = createIdbAdapter()) {
       for (const d of descriptors || []) {
         try {
           const rec = await adapter.get(d.blobId);
-          if (rec && rec.userId === userId && rec.draftId === draftId && rec.blob) {
+          if (rec && rec.userId === userId && rec.draftId === draftId && rec.blob && await isBlobReadable(rec.blob)) {
             const f = new File([rec.blob], rec.name, { type: rec.type || '', lastModified: rec.lastModified });
             files.push({ file: f, blobId: d.blobId });
           } else missing.push({ name: d.name, size: d.size });

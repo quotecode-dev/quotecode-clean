@@ -551,8 +551,12 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/auth-send-email-hook/index.ts": {
+  "supabase/functions/auth-send-email-hook/emailContent.ts": {
     "interactive": 1,
+    "markers": 0
+  },
+  "supabase/functions/auth-send-email-hook/index.ts": {
+    "interactive": 0,
     "markers": 0
   },
   "supabase/functions/billing-checkout-stub/index.ts": {

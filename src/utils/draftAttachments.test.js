@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBlobStore } from './draftAttachments';
+import { createBlobStore, isBlobReadable } from './draftAttachments';
 
 // In-memory adapter with the same surface as the IndexedDB adapter; can be told to fail (quota/blocked/evicted).
 function memAdapter({ failPut = false, failGet = false } = {}) {
@@ -45,6 +45,25 @@ describe('pending attachment blobs (IndexedDB staging contract)', () => {
     expect((await bs.restoreFiles('uB', 'd1', [{ blobId, name: 'secret.pdf' }])).files).toEqual([]);
     expect((await bs.restoreFiles('uA', 'd2', [{ blobId, name: 'secret.pdf' }])).files).toEqual([]);
     expect((await bs.restoreFiles('uA', 'd1', [{ blobId, name: 'secret.pdf' }])).files).toHaveLength(1);
+  });
+  // Post-LIVE Wave 1 (First-LIVE finding): a restored draft kept a file that could no longer be read, so the save failed closed
+  // later. An unreadable blob is now reported as missing at restore time (the user is asked to re-select it); readable files and
+  // the fail-closed save are unchanged.
+  it('a stored blob that can no longer be read is reported missing, not restored', async () => {
+    const ad = memAdapter(); const bs = createBlobStore(ad);
+    const ok = await bs.putFile('u1', 'd1', file('ok.pdf', 'OK'));
+    const bad = await bs.putFile('u1', 'd1', file('gone.pdf', 'X'));
+    const unreadable = { size: 1, type: 'application/pdf', slice: () => ({ arrayBuffer: () => Promise.reject(Object.assign(new Error('NotReadableError'), { name: 'NotReadableError' })) }) };
+    ad._m.set(bad.blobId, { ...ad._m.get(bad.blobId), blob: unreadable });
+    const { files, missing } = await bs.restoreFiles('u1', 'd1', [{ blobId: ok.blobId, name: 'ok.pdf', size: 2 }, { blobId: bad.blobId, name: 'gone.pdf', size: 1 }]);
+    expect(files.map((f) => f.file.name)).toEqual(['ok.pdf']);
+    expect(await files[0].file.text()).toBe('OK');
+    expect(missing).toEqual([{ name: 'gone.pdf', size: 1 }]);
+  });
+  it('isBlobReadable: readable blob -> true, read failure -> false', async () => {
+    expect(await isBlobReadable(new Blob(['abc']))).toBe(true);
+    expect(await isBlobReadable(new Blob([]))).toBe(true);
+    expect(await isBlobReadable({ slice: () => ({ arrayBuffer: () => Promise.reject(new Error('x')) }) })).toBe(false);
   });
   it('deleteBlob / deleteDraft / purgeUser remove staged files', async () => {
     const ad = memAdapter(); const bs = createBlobStore(ad);

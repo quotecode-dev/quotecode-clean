@@ -728,12 +728,13 @@ export default function AddItemWizard({
       ? (calculatedValue != null ? calculatedValue * (Number(unitPrice) || 0) : null)
       : (Number(unitPrice) || 0);
 
+  // Display-only unit word (stored measurements stay cm / m² / m); shared by the formula and the review step.
+  const measureUnitWord = pricingMethod === 'area' ? (isHebrew ? 'מ"ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
   const priceIsValid = unitPrice !== '' && !Number.isNaN(Number(unitPrice)) && Number(unitPrice) >= 0;
   let formulaText = null;
   if (priceIsValid && total != null) {
     if (isMeasureMethod && calculatedValue != null) {
-      const unitWord = pricingMethod === 'area' ? (isHebrew ? 'מ"ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
-      formulaText = `${calculatedValue.toFixed(2)} ${unitWord} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
+      formulaText = `${calculatedValue.toFixed(2)} ${measureUnitWord} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     } else if (pricingMethod === 'units' && Number(quantity) > 0) {
       formulaText = `${quantity} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     }
@@ -1028,11 +1029,11 @@ export default function AddItemWizard({
                       <SummaryRow
                         key={i}
                         label={row.label ? `${t.sizeN(i + 1)} — ${row.label}` : t.sizeN(i + 1)}
-                        value={pricingMethod === 'area' ? `${row.widthCm} × ${row.heightCm} cm = ${row.value.toFixed(2)} m²` : `${row.widthCm} cm = ${row.value.toFixed(2)} m`}
+                        value={pricingMethod === 'area' ? t.calcPreviewArea(row.widthCm, row.heightCm, row.value.toFixed(2)) : t.calcPreviewLinear(row.widthCm, row.value.toFixed(2))}
                         isHebrew={isHebrew}
                       />
                     ))}
-                    <SummaryRow label={pricingMethod === 'area' ? t.totalAreaLabel : t.totalLengthLabel} value={`${calculatedValue != null ? calculatedValue.toFixed(2) : '—'} ${pricingMethod === 'area' ? 'm²' : 'm'}`} isHebrew={isHebrew} />
+                    <SummaryRow label={pricingMethod === 'area' ? t.totalAreaLabel : t.totalLengthLabel} value={`${calculatedValue != null ? calculatedValue.toFixed(2) : '—'} ${measureUnitWord}`} isHebrew={isHebrew} />
                   </div>
                 )}
                 {pricingMethod === 'units' && (
@@ -1106,7 +1107,7 @@ export default function AddItemWizard({
                 {activeGroupName && <div style={{ fontSize: '0.76rem', color: NEON.textSecondary, marginTop: '2px' }}>{activeGroupName}</div>}
                 {isMeasureMethod && allRowsForReview.length > 0 && (
                   <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>
-                    {allRowsForReview.length} {isHebrew ? 'מידות' : 'sizes'} · {calculatedValue != null ? calculatedValue.toFixed(2) : '—'} {pricingMethod === 'area' ? 'm²' : 'm'}
+                    {allRowsForReview.length} {isHebrew ? 'מידות' : 'sizes'} · {calculatedValue != null ? calculatedValue.toFixed(2) : '—'} {measureUnitWord}
                   </div>
                 )}
                 {pricingMethod === 'units' && (

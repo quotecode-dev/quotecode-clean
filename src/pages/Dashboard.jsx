@@ -3861,8 +3861,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             : 'Could not save this quote\'s structure (units/items/measurements) in the current environment. The new quote was not created - no partial quote remains.';
         } else if (saveResult.stage === 'upload') {
           msg = isHebrew
-            ? `ההצעה לא נשמרה - העלאת הקובץ נכשלה (${saveResult.attachmentFailures.join(', ')}). שום דבר לא נשמר או שונה; הטיוטה נשמרה - אפשר לנסות שוב.`
-            : `The quote was not saved - uploading failed (${saveResult.attachmentFailures.join(', ')}). Nothing was saved or changed; your draft is kept - you can try again.`;
+            ? `ההצעה לא נשמרה - העלאת הקובץ נכשלה (${saveResult.attachmentFailures.join(', ')}). שום דבר לא נשמר או שונה; הטיוטה נשמרה - אפשר לנסות שוב. אם הכשל חוזר, הסירו את הקובץ וצרפו אותו מחדש.`
+            : `The quote was not saved - uploading failed (${saveResult.attachmentFailures.join(', ')}). Nothing was saved or changed; your draft is kept - you can try again. If it keeps failing, remove the file and attach it again.`;
         } else if (saveResult.stage === 'transaction') {
           msg = (isHebrew ? 'ההצעה לא נשמרה - השמירה בוטלה במלואה, שום דבר לא שונה. הטיוטה נשמרה - אפשר לנסות שוב.' : 'The quote was not saved - the save was rolled back completely and nothing changed. Your draft is kept - you can try again.') + detail;
         } else if (saveResult.stage === 'quote' && saveResult.missingColumn === 'project_name') {

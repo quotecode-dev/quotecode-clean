@@ -1,5 +1,6 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { buildEmailContent, buildVerifyUrl, isHebrewMarket, senderAddressFor, type EmailActionType } from "./emailContent.ts";
 
 // ==========================================
 // Post-LIVE Priority 1 (Auth email localization + TEKANGO rebrand +
@@ -22,6 +23,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // deploy-but-do-not-activate decision and its exact reasoning). Activated
 // via `supabase config push --project-ref ljfizgrdyzxddswcedwr`, explicit
 // project-ref every time - never Production (ixabnzhjeqevtbhdfswv).
+// Post-LIVE Wave 1 (2026-09-27): NOT deployed / NOT enabled on Production;
+// enabling it there is an Owner decision (hook + SEND_EMAIL_HOOK_SECRET).
 //
 // Market signal: reuses Dashboard.jsx's own existing, already-live
 // `signup_market` value ('Local'/'International'), written into
@@ -37,68 +40,18 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // "no guessing, fail closed" convention (see the identical fail-closed
 // comment on bundleIsHebrew in Dashboard.jsx's handleSignUp) rather than
 // inventing a browser/geo/header-based fallback.
+//
+// Content (subject / HTML / text / sender) lives in ./emailContent.ts
+// (pure, unit-tested by emailContent.test.js).
 // ==========================================
 
-const HEADER_BG = '#111112';
-const FLOW_PURPLE = '#d8b4fe';
-const ACCENT_VIOLET = '#8b5cf6';
-
-function senderAddressFor(isHebrew: boolean) {
-  // Matches the already-shipped convention in send-trial-expiration-email
-  // and send-subscription-expiration-email - not a new split invented here.
-  return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
-}
-
-function wrapEmail(isHebrew: boolean, bodyHtml: string) {
-  return `<!DOCTYPE html>
-<html dir="${isHebrew ? 'rtl' : 'ltr'}" lang="${isHebrew ? 'he' : 'en'}">
-<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-          <tr>
-            <td style="background:${HEADER_BG};padding:20px 28px;">
-              <span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:28px;text-align:${isHebrew ? 'right' : 'left'};color:#1e293b;">
-              ${bodyHtml}
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-function ctaButton(url: string, label: string) {
-  return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${label}</a>`;
-}
-
-type EmailActionType =
-  | 'signup'
-  | 'recovery'
-  | 'magiclink'
-  | 'invite'
-  | 'email_change_current'
-  | 'email_change_new'
-  | 'reauthentication';
-
 // Per Supabase's own documented Send Email Hook payload
-// (https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook -
-// verified against that public documentation, NOT against a live
-// invocation, since this hook is not yet enabled - see the file-header
-// disclosure). `email_data.site_url` is Auth's own configured Site URL,
-// not necessarily this project's canonical GoTrue host - the verify
-// endpoint itself always lives under the Auth API's own base URL, so this
-// function builds it from SUPABASE_URL (a value every Edge Function
-// already receives, confirmed via the sibling send-trial-expiration-email
-// function's own identical `Deno.env.get('SUPABASE_URL')` usage) rather
-// than trusting a payload field that could point elsewhere.
+// (https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook).
+// `email_data.site_url` is Auth's own configured Site URL, not necessarily
+// this project's canonical GoTrue host - the verify endpoint itself always
+// lives under the Auth API's own base URL, so this function builds it from
+// SUPABASE_URL (a value every Edge Function already receives) rather than
+// trusting a payload field that could point elsewhere.
 interface SendEmailHookPayload {
   user: {
     id: string;
@@ -114,92 +67,6 @@ interface SendEmailHookPayload {
     token_new?: string;
     token_hash_new?: string;
   };
-}
-
-function buildVerifyUrl(supabaseUrl: string, tokenHash: string, actionType: string, redirectTo: string) {
-  const url = new URL(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/verify`);
-  url.searchParams.set('token', tokenHash);
-  url.searchParams.set('type', actionType);
-  url.searchParams.set('redirect_to', redirectTo);
-  return url.toString();
-}
-
-function buildEmailContent(
-  actionType: EmailActionType,
-  isHebrew: boolean,
-  verifyUrl: string,
-  toEmail: string,
-): { subject: string; html: string; text: string } {
-  const greeting = isHebrew ? 'שלום,' : 'Hello,';
-  const signature = isHebrew ? 'בברכה,<br>צוות TEKANGO' : 'Best regards,<br>The TEKANGO Team';
-
-  switch (actionType) {
-    case 'signup': {
-      const subject = isHebrew ? 'אישור הרשמה ל-TEKANGO' : 'Confirm your TEKANGO signup';
-      const bodyCopy = isHebrew
-        ? 'תודה שנרשמת למערכת הניהול והצעות המחיר <strong>TEKANGO</strong>. לחצו על הכפתור למטה כדי לאשר את כתובת האימייל ולהפעיל את החשבון שלכם.'
-        : 'Thank you for signing up for <strong>TEKANGO</strong>, the business & quoting platform. Click the button below to confirm your email address and activate your account.';
-      const cta = ctaButton(verifyUrl, isHebrew ? 'אישור כתובת האימייל' : 'Confirm Email Address');
-      return {
-        subject,
-        html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyCopy}</p>${cta}<p style="margin-top:24px;">${signature}</p>`),
-        text: `${greeting}\n\n${isHebrew ? 'לאישור ההרשמה' : 'Confirm your signup'}: ${verifyUrl}`,
-      };
-    }
-    case 'recovery': {
-      const subject = isHebrew ? 'איפוס סיסמה ל-TEKANGO' : 'Reset your TEKANGO password';
-      const bodyCopy = isHebrew
-        ? `קיבלנו בקשה לאיפוס הסיסמה עבור החשבון <strong>${toEmail}</strong>. לחצו על הכפתור למטה כדי לבחור סיסמה חדשה. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.`
-        : `We received a request to reset the password for <strong>${toEmail}</strong>. Click the button below to choose a new password. If you didn't request this, you can safely ignore this email.`;
-      const cta = ctaButton(verifyUrl, isHebrew ? 'איפוס סיסמה' : 'Reset Password');
-      return {
-        subject,
-        html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyCopy}</p>${cta}<p style="margin-top:24px;">${signature}</p>`),
-        text: `${greeting}\n\n${isHebrew ? 'לאיפוס הסיסמה' : 'Reset your password'}: ${verifyUrl}`,
-      };
-    }
-    case 'magiclink': {
-      const subject = isHebrew ? 'קישור כניסה ל-TEKANGO' : 'Your TEKANGO sign-in link';
-      const bodyCopy = isHebrew
-        ? 'לחצו על הכפתור למטה כדי להתחבר ל-TEKANGO ללא סיסמה.'
-        : 'Click the button below to sign in to TEKANGO without a password.';
-      const cta = ctaButton(verifyUrl, isHebrew ? 'התחברות' : 'Sign In');
-      return {
-        subject,
-        html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyCopy}</p>${cta}<p style="margin-top:24px;">${signature}</p>`),
-        text: `${greeting}\n\n${isHebrew ? 'קישור כניסה' : 'Sign-in link'}: ${verifyUrl}`,
-      };
-    }
-    case 'email_change_current':
-    case 'email_change_new': {
-      const subject = isHebrew ? 'אישור שינוי כתובת אימייל ב-TEKANGO' : 'Confirm your TEKANGO email change';
-      const bodyCopy = isHebrew
-        ? `קיבלנו בקשה לשנות את כתובת האימייל בחשבון TEKANGO שלכם. לחצו על הכפתור למטה כדי לאשר את השינוי. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.`
-        : `We received a request to change the email address on your TEKANGO account. Click the button below to confirm the change. If you didn't request this, you can safely ignore this email.`;
-      const cta = ctaButton(verifyUrl, isHebrew ? 'אישור שינוי כתובת' : 'Confirm Email Change');
-      return {
-        subject,
-        html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyCopy}</p>${cta}<p style="margin-top:24px;">${signature}</p>`),
-        text: `${greeting}\n\n${isHebrew ? 'לאישור שינוי הכתובת' : 'Confirm the email change'}: ${verifyUrl}`,
-      };
-    }
-    default: {
-      // reauthentication/invite or any future action type Supabase adds -
-      // fail-safe to a generic-but-still-branded, still-correctly-localized
-      // template rather than silently dropping the email (which would
-      // block the real Auth action the user is waiting on).
-      const subject = isHebrew ? 'פעולה נדרשת בחשבון TEKANGO שלך' : 'Action required on your TEKANGO account';
-      const bodyCopy = isHebrew
-        ? 'לחצו על הכפתור למטה כדי להשלים את הפעולה המבוקשת בחשבון TEKANGO שלכם.'
-        : 'Click the button below to complete the requested action on your TEKANGO account.';
-      const cta = ctaButton(verifyUrl, isHebrew ? 'המשך' : 'Continue');
-      return {
-        subject,
-        html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyCopy}</p>${cta}<p style="margin-top:24px;">${signature}</p>`),
-        text: `${greeting}\n\n${verifyUrl}`,
-      };
-    }
-  }
 }
 
 // Supabase signs Send Email Hook requests using the Svix-compatible
@@ -289,7 +156,7 @@ serve(async (req) => {
       return jsonResponse({ error: 'RESEND_API_KEY or SUPABASE_URL is not configured.' }, 500);
     }
 
-    const isHebrew = payload.user?.user_metadata?.signup_market === 'Local';
+    const isHebrew = isHebrewMarket(payload.user?.user_metadata);
     const actionType = payload.email_data.email_action_type;
     const tokenHash = actionType === 'email_change_new' && payload.email_data.token_hash_new
       ? payload.email_data.token_hash_new

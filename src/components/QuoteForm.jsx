@@ -702,7 +702,7 @@ export default function QuoteForm({
               value={clientName}
               onChange={handleClientSelect}
               list="existing-clients-list"
-              placeholder="e.g. Acme Corp"
+              placeholder={isHebrew ? 'לדוגמה: כהן בנייה בע"מ' : 'e.g. Acme Corp'}
               data-help-field="client_name"
               required
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
@@ -769,7 +769,7 @@ export default function QuoteForm({
               media query needed. */}
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'לידי (איש קשר, לא חובה)' : 'Attn (contact, optional)'}</label>
-            <input type="text" value={attnName || ''} onChange={(e) => setAttnName(e.target.value)} placeholder={isHebrew ? 'לדוגמה: שמעון לוי' : 'e.g. Simon Levy'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            <input type="text" value={attnName || ''} onChange={(e) => setAttnName(e.target.value)} placeholder={isHebrew ? 'לדוגמה: שמעון לוי' : 'e.g. John Smith'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'תפקיד / תואר (לא חובה)' : 'Role / Title (optional)'}</label>
@@ -1096,7 +1096,7 @@ export default function QuoteForm({
             type="text"
             value={projectName || ''}
             onChange={(e) => setProjectName(e.target.value)}
-            placeholder={isHebrew ? 'לדוגמה: פרויקט חולון' : 'e.g. Holon Project'}
+            placeholder={isHebrew ? 'לדוגמה: פרויקט חולון' : 'e.g. Downtown Office Renovation'}
             style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
           />
         </div>
@@ -1204,7 +1204,7 @@ export default function QuoteForm({
                       <span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>
                     )}
                     {/* PRODUCT_TRUTH_DECORATIVE: removes a single file from the in-progress attachments list before save; a list-item delete control */}
-                    <button type="button" onClick={() => removeFile(idx)} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
+                    <button type="button" onClick={() => removeFile(idx)} aria-label={isHebrew ? `הסרת הקובץ ${displayName}` : `Remove attachment ${displayName}`} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={3} /></button>
                   </div>
                 );
               })}

@@ -315,6 +315,52 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     expect(item.measurements).toHaveLength(4);
   });
 
+  // Post-LIVE Wave 1 (First-LIVE finding): the Hebrew Review step showed raw "cm" / "m²" / "m" while the previous step
+  // showed ס"מ / מ"ר. Display only - the stored item (meters, pricing_unit) must stay identical.
+  it('Hebrew Review shows localized units (ס"מ / מ"ר / מ\'), never raw cm / m², and stores the same canonical item', () => {
+    const onAdd = vi.fn();
+    render(<AddItemWizard {...baseProps} isHebrew sym="₪" onAdd={onAdd} />);
+    setValue(document.getElementById('wiz-description'), 'חלונות');
+    fireEvent.click(screen.getByText('הבא'));
+    fireEvent.click(screen.getByText('אפשרויות נוספות'));
+    fireEvent.click(screen.getByText('מחיר לפי שטח'));
+    fireEvent.click(screen.getByText('הבא'));
+    setValue(document.getElementById('wiz-width'), '80');
+    setValue(document.getElementById('wiz-height'), '100');
+    fireEvent.click(screen.getByText('+ הוספת מידה נוספת'));
+    setValue(document.getElementById('wiz-extra-width-0'), '100');
+    setValue(document.getElementById('wiz-extra-height-0'), '120');
+    setValue(document.getElementById('wiz-unit-price-m'), '100');
+    fireEvent.click(screen.getByText('הבא'));
+
+    expect(screen.getByText('מידה 1')).toBeTruthy();
+    expect(screen.getByText('80 × 100 ס"מ = 0.80 מ"ר')).toBeTruthy();
+    expect(screen.getByText('100 × 120 ס"מ = 1.20 מ"ר')).toBeTruthy();
+    expect(screen.getByText('2.00 מ"ר')).toBeTruthy();
+    expect(screen.getByText(/2 מידות · 2\.00 מ"ר/)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/\bcm\b|m²/);
+    fireEvent.click(screen.getByText(/הוספה להצעה|הוסף להצעה/));
+
+    const item = onAdd.mock.calls[0][0];
+    expect(item.pricing_unit).toBe('m2');
+    expect(item.calculated_quantity).toBeCloseTo(2, 6);
+    expect(item.measurements.map((m) => [m.width, m.height])).toEqual([[0.8, 1], [1, 1.2]]);
+  });
+
+  it('Hebrew Review for length pricing shows ס"מ / מ\' and no raw cm / m', () => {
+    render(<AddItemWizard {...baseProps} isHebrew sym="₪" />);
+    setValue(document.getElementById('wiz-description'), 'מעקה');
+    fireEvent.click(screen.getByText('הבא'));
+    fireEvent.click(screen.getByText('אפשרויות נוספות'));
+    fireEvent.click(screen.getByText('מחיר לפי אורך'));
+    fireEvent.click(screen.getByText('הבא'));
+    setValue(document.getElementById('wiz-width'), '500');
+    setValue(document.getElementById('wiz-unit-price-m'), '40');
+    fireEvent.click(screen.getByText('הבא'));
+    expect(screen.getByText('500 ס"מ = 5.00 מ\'')).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/\bcm\b/);
+  });
+
   it('blocks progression when a started size is incomplete, names the exact row, and never silently drops it', () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(document.getElementById('wiz-description'), 'Window');

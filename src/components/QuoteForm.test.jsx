@@ -533,3 +533,44 @@ describe('QuoteForm - Hebrew/RTL compact card', () => {
     expect(screen.getByText('1.00 × ₪300.00')).toBeTruthy();
   });
 });
+
+// Post-LIVE Wave 1 (First-LIVE findings): placeholders follow the form language (no English example in the Hebrew form,
+// no Israeli example in the English form), and the icon-only attachment remove control has an accessible name.
+describe('QuoteForm - market-correct placeholders and attachment remove accessibility', () => {
+  const withFile = (isHebrew) => baseProps({
+    isHebrew, sym: isHebrew ? '₪' : '$', currency: isHebrew ? 'ILS' : 'USD', isLocalIsraeliBusiness: isHebrew,
+    quoteFiles: [{ id: 'att-1', file_name: 'plan.pdf', file_size: 1048576 }],
+  });
+  const placeholders = () => [...document.querySelectorAll('input[placeholder]')].map((el) => el.getAttribute('placeholder'));
+  const HEBREW = /[֐-׿]/;
+
+  it('Hebrew form: Hebrew client / attention / project examples, no English example', () => {
+    render(<QuoteForm {...withFile(true)} />);
+    const ph = placeholders();
+    expect(ph).toContain('לדוגמה: כהן בנייה בע"מ');
+    expect(ph).toContain('לדוגמה: שמעון לוי');
+    expect(ph).toContain('לדוגמה: פרויקט חולון');
+    expect(ph.filter((p) => /^e\.g\./.test(p))).toEqual([]);
+  });
+
+  it('English form: English examples only, no Israeli names and no Hebrew', () => {
+    render(<QuoteForm {...withFile(false)} />);
+    const ph = placeholders();
+    expect(ph).toContain('e.g. Acme Corp');
+    expect(ph).toContain('e.g. John Smith');
+    expect(ph).toContain('e.g. Downtown Office Renovation');
+    expect(ph.join(' ')).not.toMatch(/Holon|Simon Levy/);
+    expect(ph.filter((p) => HEBREW.test(p))).toEqual([]);
+  });
+
+  it('the attachment remove button is named in the form language and still removes the file', () => {
+    const props = withFile(false);
+    const { unmount } = render(<QuoteForm {...props} />);
+    const btn = screen.getByRole('button', { name: 'Remove attachment plan.pdf' });
+    fireEvent.click(btn);
+    expect(props.setQuoteFiles).toHaveBeenCalledTimes(1);
+    unmount();
+    render(<QuoteForm {...withFile(true)} />);
+    expect(screen.getByRole('button', { name: 'הסרת הקובץ plan.pdf' })).toBeTruthy();
+  });
+});
