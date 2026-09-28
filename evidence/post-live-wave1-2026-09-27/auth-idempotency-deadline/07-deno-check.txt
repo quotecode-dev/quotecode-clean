@@ -1,0 +1,15 @@
+# deno check - NOT RUN for code commit 9bef6652671a1c182e3a2797f3e97ab0aa06d286 (2026-09-28) - TEST PREREQUISITE
+
+Docker is not authorized in this task, and no TypeScript / Deno tooling was installed.
+
+resendSend.ts and handler.ts use only Web-standard APIs that exist in the Supabase Edge (Deno) runtime:
+- crypto.subtle (HMAC importKey / sign - already used by webhookVerify.ts);
+- TextEncoder, btoa;
+- fetch + AbortController / AbortSignal, Response.json();
+- setTimeout / clearTimeout.
+
+There is no Node-only dependency and no new URL import (index.ts is unchanged). vitest executes the code.
+
+Still NOT proven here, and must be proven in the TEST redeploy / re-proof:
+- a static type check;
+- the Deno runtime behavior, including abort on the Resend fetch and on the body stream.

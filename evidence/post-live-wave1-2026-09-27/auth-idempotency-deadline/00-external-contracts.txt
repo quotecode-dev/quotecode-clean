@@ -1,0 +1,59 @@
+# Verified external contracts (read-only, retrieved 2026-09-28T07:43:54Z from raw.githubusercontent.com/supabase/auth/master; resend.com docs + resend-node read via web fetch the same day)
+
+## supabase/auth internal/hooks/hookshttp/hookshttp.go  sha256 f7624ec94eab3720006c54e570f0a12bec812ce19749e582bd6181460cb45712
+27:	defaultHTTPHookTimeout  = 5 * time.Second
+29:	httpHookBackoffDuration = 2 * time.Second
+115:	ctx, cancel := context.WithTimeout(ctx, o.hookTimeout)
+125:	inputPayload, err := json.Marshal(input)
+130:	for i := range o.hookRetries {
+136:		msgID := uuid.Must(uuid.NewV4())
+146:			ctx, http.MethodPost, requestURL, bytes.NewBuffer(inputPayload))
+153:		req.Header.Set("webhook-id", msgID.String())
+176:				case <-time.After(o.hookBackoff):
+234:		case http.StatusTooManyRequests, http.StatusServiceUnavailable:
+235:			retryAfterHeader := rsp.Header.Get("retry-after")
+237:			if retryAfterHeader != "" {
+
+## supabase/auth internal/hooks/v0hooks/v0hooks.go  sha256 2c365799c5cc433b61c2c4103debd51884a6090afa1a574fc6660eb75a1c6aec
+38:	UUID uuid.UUID `json:"uuid"`
+50:		UUID:      uuid.Must(uuid.NewV4()),
+245:	Metadata  *Metadata        `json:"metadata"`
+247:	EmailData mailer.EmailData `json:"email_data"`
+256:		Metadata:  NewMetadata(r, SendEmail),
+
+## supabase/auth internal/api/mail.go  sha256 2dd9bbe99cddcb842b1a7ff243dd10124290596b434a9eb938d423bbb8b461a9
+95:	otp := crypto.GenerateOtp(config.Mailer.OtpLength)
+97:	hashedToken := crypto.GenerateTokenHash(params.Email, otp)
+262:				user.EmailChangeTokenNew = crypto.GenerateTokenHash(params.NewEmail, otp)
+330:	otp := crypto.GenerateOtp(otpLength)
+332:	token := crypto.GenerateTokenHash(u.GetEmail(), otp)
+365:	otp := crypto.GenerateOtp(otpLength)
+367:	u.ConfirmationToken = crypto.GenerateTokenHash(u.GetEmail(), otp)
+407:	otp := crypto.GenerateOtp(otpLength)
+409:	token := crypto.GenerateTokenHash(u.GetEmail(), otp)
+426:	u.RecoverySentAt = &now
+449:	otp := crypto.GenerateOtp(otpLength)
+451:	u.ReauthenticationToken = crypto.GenerateTokenHash(u.GetEmail(), otp)
+468:	u.ReauthenticationSentAt = &now
+492:	otp := crypto.GenerateOtp(otpLength)
+494:	token := crypto.GenerateTokenHash(u.GetEmail(), otp)
+511:	u.RecoverySentAt = &now
+535:	token := crypto.GenerateTokenHash(u.EmailChange, otpNew)
+542:		currentToken := crypto.GenerateTokenHash(u.GetEmail(), otpCurrent)
+873:		input := v0hooks.NewSendEmailInput(
+
+## Resend (docs, quoted)
+idempotency-keys: same key+same request -> 'the same response, without actually sending the email again'; invalid_idempotent_request = 'already been used on a request that had a different payload'; concurrent_idempotent_requests = 'another request with the same idempotency key is in progress ... safe to retry this request later'; 'Idempotency keys are kept in the system for 24 hours'; keys 1-256 characters; no statement on keys of rejected originals.
+api-reference/errors: both idempotency errors are 409; invalid_idempotency_key is 400.
+resend-node src/interfaces.ts: ErrorResponse = { message: string; statusCode: number | null; name: RESEND_ERROR_CODE_KEY } (both names listed).
+Client-side AbortSignal cancels only the HTTP exchange; no doc guarantees the provider did not process an aborted request -> treated as ambiguous.
+
+## Supabase docs (auth-hooks)
+'HTTP Hooks should complete in 5 seconds.' 'On a retry-able error, such as an error with a 429 or 503 status code, HTTP Hooks will attempt up to three retries with a back-off of two seconds.' (source above: 429/503 retried only with retry-after, immediately; network errors after 2 s; one 5 s context for all attempts).
+
+## Caveat (explicit)
+These are the supabase/auth MASTER sources. The Auth version running on the hosted TEST / Production projects is not observable
+here. The design does not REQUIRE metadata.uuid: the key is derived from the whole verified body, which is byte-identical
+across attempts whenever the body is marshaled once per logical event. The hook logs "metadata.uuid present / absent" (a
+presence flag only), so the TEST re-proof can confirm the hosted payload shape. Retry behavior on the hosted version must also
+be re-confirmed during the TEST step.

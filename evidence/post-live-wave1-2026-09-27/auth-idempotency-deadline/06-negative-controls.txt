@@ -1,0 +1,13 @@
+# negative controls at 9bef6652671a1c182e3a2797f3e97ab0aa06d286 (2026-09-28T07:44:37Z) - each mutation must make tests FAIL
+## M1 key reverted to webhook-id only (auth-hook/<webhook-id>/<slot>) (file supabase/functions/auth-send-email-hook/handler.ts, changed lines: 1)
+⎯⎯⎯⎯⎯⎯ Failed Tests 24 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  24 failed | 148 passed (172)
+restored: blob identical (724408aa34e1d8d51c8929c6274a801af2c45922)
+## M2 initial provider request NOT bounded by the deadline (1e9 ms timer) (file supabase/functions/auth-send-email-hook/resendSend.ts, changed lines: 1)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  8 failed | 164 passed (172)
+restored: blob identical (fdb853fd11d8da5b06c771d059f8dfd575fced81)
+## M3 each secure-email slot gets a FRESH full deadline (file supabase/functions/auth-send-email-hook/handler.ts, changed lines: 1)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 167 passed (172)
+restored: blob identical (724408aa34e1d8d51c8929c6274a801af2c45922)

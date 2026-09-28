@@ -183,3 +183,17 @@ SHA-256 of every artifact: `codex-blocker-remediation/SHA256SUMS.txt`.
   - 3 / 3 mutation controls detected;
   - deno check NOT RUN (TEST prerequisite).
 - **Status:** an independent Codex delta RE-review is required. Stage 3 is not Production-ready.
+
+## 11. Codex Auth 409 delta RE-review — FAIL (blockers A + B) and the idempotency / deadline redesign (2026-09-28)
+- **A:** Supabase retries use a NEW webhook-id, so the webhook-id-based key was not a logical-event identity.
+- **B:** the retry deadline did not cover the lookup, the initial request, the body read, or both slots.
+- `1e4bd0b` is preserved as the failed predecessor.
+- **Fix:** code commit `9bef6652671a1c182e3a2797f3e97ab0aa06d286`.
+  - Key = HMAC(hook secret, slot + verified raw body): stable across retries / markets, distinct per event / slot.
+  - One 3500 ms invocation deadline bounding the lookup, every request, every body read, the retries and both slots.
+  - No platform retry requested (the §10 statement that the 503 would be redelivered by Auth is superseded: per the source, Auth retries a 503 only when it carries retry-after).
+- **Re-review package:** `auth-idempotency-deadline/CODEX_IDEMPOTENCY_DEADLINE_REREVIEW_PACKAGE.md`.
+  - hook suite 292 / 292; full suite 160 / 4449; eslint 0 errors; build OK;
+  - mutations 3 / 3 detected;
+  - deno check NOT RUN (TEST prerequisite).
+- **Status:** an independent Codex re-review is required. Stage 3 is not Production-ready.

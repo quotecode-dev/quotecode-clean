@@ -1,0 +1,8 @@
+# eslint . at 9bef6652671a1c182e3a2797f3e97ab0aa06d286
+
+C:\tkpl-wave1\src\pages\Dashboard.jsx
+  734:6  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 3 problems (0 errors, 3 warnings)
+
+exit=0

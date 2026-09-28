@@ -1,0 +1,4 @@
+# full suite at 9bef6652671a1c182e3a2797f3e97ab0aa06d286 (2026-09-28T07:42:28Z): npx vitest run
+ Test Files  160 passed (160)
+      Tests  4449 passed (4449)
+   Duration  96.25s (transform 11.73s, setup 39.39s, import 35.91s, tests 101.82s, environment 243.16s)
