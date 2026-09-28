@@ -40,7 +40,7 @@
 // גלש/שינה VPN בינתיים.
 // ==============================================================================
 
-import { geolocation, next } from '@vercel/functions';
+import { geolocation } from '@vercel/functions';
 
 export const config = {
   matcher: ['/'],
@@ -89,6 +89,61 @@ export function resolveCanonicalRedirect(host: string, pathname: string, search:
   return `${CANONICAL_ORIGIN}${pathname}${search}`;
 }
 
+// ==============================================================================
+// ROOT LOCALE RESOLUTION (Google indexing root-canonical remediation, 2026-09-28; locked policy TEKANGO_AI_ARCHITECTURE.md
+// §55.11: /he = Local canonical, /en = International canonical, "/" resolves to one of them via geo/IP BEFORE any landing
+// content paints - no wrong-locale first paint). "/" used to render a landing in the visitor's locale under canonical "/", so
+// Google saw the root and /en as duplicates and chose "/" for /en (Search Console, 2026-09-28). "/" is now never a page on a
+// Vercel host: it is a 302 to exactly /he or /en, with the query string kept (e.g. an Auth callback's ?code= / ?error=); a URL
+// fragment (an implicit-flow Auth callback) is carried over by the browser and handled on /he and /en exactly as on "/"
+// (AppLocal.jsx / AppGlobal.jsx).
+//
+// Precedence - the same order main.jsx uses on the client, so server and client never disagree:
+//   1. explicit ?lang=he|en;
+//   2. the visitor's saved PUBLIC UI language preference (cookie LOCALE_PREF_COOKIE, mirrored by main.jsx from its existing
+//      localStorage 'proflow_lang' value);
+//   3. geo/IP country (IL -> he, any other -> en) - the same signal the geo cookie below already carries;
+//   4. geo unavailable: the browser's primary Accept-Language (he / iw -> he);
+//   5. otherwise en (deterministic).
+// IRON RULE: this is anonymous PUBLIC UI routing only. It never reads or writes business_settings.country, signup_market, currency,
+// billing / legal region or any authenticated market identity, and nothing downstream may treat it as one.
+// Not cached: 302 + Cache-Control private,no-store + Vary, so one visitor's resolution can never be served to another.
+// ==============================================================================
+export const LOCALE_PREF_COOKIE = 'proflow_lang';
+export type PublicLocale = 'he' | 'en';
+
+export function readCookie(cookieHeader: string | null | undefined, name: string): string | null {
+  for (const part of String(cookieHeader || '').split(';')) {
+    const eq = part.indexOf('=');
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() === name) {
+      try { return decodeURIComponent(part.slice(eq + 1).trim()); } catch { return null; }
+    }
+  }
+  return null;
+}
+
+const asLocale = (v: string | null | undefined): PublicLocale | null => (v === 'he' || v === 'en' ? v : null);
+
+export function resolveRootLocale({ search, cookieHeader, country, acceptLanguage }: {
+  search: string; cookieHeader?: string | null; country?: string | null; acceptLanguage?: string | null;
+}): PublicLocale {
+  const explicit = asLocale(new URLSearchParams(search || '').get('lang'));
+  if (explicit) return explicit;
+  const saved = asLocale(readCookie(cookieHeader, LOCALE_PREF_COOKIE));
+  if (saved) return saved;
+  if (country) return country.trim().toUpperCase() === 'IL' ? 'he' : 'en';
+  const primary = String(acceptLanguage || '').split(',')[0].trim().toLowerCase();
+  if (primary.startsWith('he') || primary.startsWith('iw')) return 'he';
+  return 'en';
+}
+
+// Absolute target on the SAME origin (canonical host or a Vercel preview): always /he or /en - never "/" - so no loop is possible
+// (the matcher only covers "/"). The query string is kept verbatim.
+export function rootLocaleRedirectTarget(origin: string, locale: PublicLocale, search: string): string {
+  return `${origin}/${locale}${search || ''}`;
+}
+
 export default function middleware(request: Request) {
   const url = new URL(request.url);
   const redirectTo = resolveCanonicalRedirect(request.headers.get('host') || '', url.pathname, url.search);
@@ -97,16 +152,20 @@ export default function middleware(request: Request) {
   }
 
   const { country } = geolocation(request);
-
-  if (!country) {
-    // geo לא זמין (פיתוח מקומי, פרוקסי חוסם וכו') - ממשיכים רגיל בלי
-    // לכתוב עוגייה; main.jsx כבר יודע ליפול חזרה ל-navigator.language.
-    return next();
-  }
-
-  return next({
-    headers: {
-      'Set-Cookie': `${GEO_COOKIE_NAME}=${encodeURIComponent(country)}; Path=/; Max-Age=${GEO_COOKIE_MAX_AGE}; SameSite=Lax; Secure`,
-    },
+  const locale = resolveRootLocale({
+    search: url.search,
+    cookieHeader: request.headers.get('cookie'),
+    country,
+    acceptLanguage: request.headers.get('accept-language'),
   });
+  const headers = new Headers({
+    Location: rootLocaleRedirectTarget(url.origin, locale, url.search),
+    'Cache-Control': 'private, no-store',
+    Vary: 'Cookie, Accept-Language',
+  });
+  if (country) {
+    // Unchanged geo hint for main.jsx (see the header of this file); still written on the redirect response.
+    headers.append('Set-Cookie', `${GEO_COOKIE_NAME}=${encodeURIComponent(country)}; Path=/; Max-Age=${GEO_COOKIE_MAX_AGE}; SameSite=Lax; Secure`);
+  }
+  return new Response(null, { status: 302, headers });
 }

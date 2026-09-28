@@ -4,6 +4,7 @@ import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
 import { NEON, FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeo } from '../shared/publicSeoRoutes';
 
 function PublicToolsEn() {
   const navigate = useNavigate();
@@ -17,15 +18,8 @@ function PublicToolsEn() {
       navigate('/en/tools', { replace: true });
     }
 
-    setSeoMeta({
-      title: 'TEKANGO - Business Tools & Calculators Hub',
-      description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from TEKANGO.',
-      canonicalPath: '/en/tools',
-      hreflang: [
-        { lang: 'he', path: '/he/tools' },
-        { lang: 'en', path: '/en/tools' },
-      ],
-    });
+    // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
+    setSeoMeta(publicSeo('/en/tools'));
   }, [navigate]);
 
   // Currency state with Swap support

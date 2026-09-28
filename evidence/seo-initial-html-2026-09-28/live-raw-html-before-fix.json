@@ -1,0 +1,287 @@
+{
+  "base": "https://www.tekango.com",
+  "userAgent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+  "at": "2026-09-28T12:34:28.043Z",
+  "routes": [
+    {
+      "route": "/",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/he",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/en",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/he/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/en/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/he/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/en/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/he/privacy",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/en/privacy",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/he/terms",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/en/terms",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/dashboard",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, nofollow",
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, follow",
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, follow",
+      "bytes": 5789,
+      "sha256": "dcbc82f9fb6e6a6f",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/",
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    }
+  ]
+}

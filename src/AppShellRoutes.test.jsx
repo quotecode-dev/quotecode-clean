@@ -306,6 +306,32 @@ describe('Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task) 
     expect(await screen.findByText('❌ This recovery link is invalid or has expired. Please request a new one.')).toBeInTheDocument();
   });
 
+  // Google indexing root-canonical remediation (2026-09-28): on Vercel, middleware.ts 302s "/" to /he or /en and the browser keeps
+  // the Auth callback fragment across the redirect - the callback must still reach the recovery / error UI on the locale route.
+  it('HE: /he with a recovery marker (a "/" callback after the server locale redirect) mounts the recovery owner, not LandingLocal', async () => {
+    mockRootRecoveryIntent.isRecovery = true;
+    renderAtPath(AppLocal, '/he');
+    expect(await screen.findByText('הגדרת סיסמה חדשה')).toBeInTheDocument();
+  });
+
+  it('EN: /en with a recovery marker mounts the recovery owner, not LandingGlobal', async () => {
+    mockRootRecoveryIntent.isRecovery = true;
+    renderAtPath(AppGlobal, '/en');
+    expect(await screen.findByText('Set New Password')).toBeInTheDocument();
+  });
+
+  it('HE / EN: an expired callback redirected to /he or /en reaches the curated login message (never raw provider text)', async () => {
+    mockRootRecoveryIntent.isError = true;
+    renderAtPath(AppLocal, '/he');
+    expect(await screen.findByText('❌ קישור השחזור אינו תקין או שפג תוקפו. יש לבקש קישור חדש.')).toBeInTheDocument();
+  });
+
+  it('HE / EN: /he and /en WITHOUT a marker still render the ordinary landing pages', async () => {
+    renderAtPath(AppLocal, '/he');
+    expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('הגדרת סיסמה חדשה')).not.toBeInTheDocument();
+  });
+
   it('the direct /dashboard?lang=he route (hash still present in the URL) still works exactly as before - unaffected by this hardening', async () => {
     cleanup();
     window.history.pushState({}, '', '/dashboard?lang=he#access_token=fake&type=recovery');

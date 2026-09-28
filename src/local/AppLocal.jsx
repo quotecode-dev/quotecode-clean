@@ -73,7 +73,11 @@ export default function AppLocal() {
             fallback at all here). Recovery's own condition/behavior is
             unchanged - this only adds an independent additional case. */}
         <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={true} /> : <LandingLocal />} />
-        <Route path="/he" element={<LandingLocal />} />
+        {/* Google indexing root-canonical remediation (2026-09-28): on a Vercel host middleware.ts now 302s "/" to /he or /en before
+            any paint, and the browser carries an Auth callback's fragment (#...type=recovery / error / type=signup) across that
+            redirect - so the SAME callback fallback as "/" must apply here, or a SITE_URL-fallback recovery link would land on the
+            landing page instead of the recovery UI. Ordinary /he traffic (no marker) still renders LandingLocal unchanged. */}
+        <Route path="/he" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={true} /> : <LandingLocal />} />
         {/* bundleIsHebrew=true: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
         <Route path="/dashboard" element={<Dashboard bundleIsHebrew={true} />} />

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeoFor } from '../shared/publicSeoRoutes';
 import ProFlowLogo from '../components/ProFlowLogo';
 
 export default function Terms({ isHebrew }) {
@@ -13,16 +14,8 @@ export default function Terms({ isHebrew }) {
       navigate(isHebrew ? '/he/terms' : '/en/terms', { replace: true });
     }
 
-    setSeoMeta({
-      title: isHebrew ? 'TEKANGO - תנאי שימוש' : 'TEKANGO - Terms of Service',
-      description: isHebrew ? 'תנאי השימוש המלאים של פלטפורמת TEKANGO לניהול עסק והפקת הצעות מחיר.' : 'Full Terms of Service for the TEKANGO business management and quoting platform.',
-      canonicalPath: isHebrew ? '/he/terms' : '/en/terms',
-      lang: isHebrew ? 'he' : 'en',
-      hreflang: [
-        { lang: 'he', path: '/he/terms' },
-        { lang: 'en', path: '/en/terms' },
-      ],
-    });
+    // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
+    setSeoMeta(publicSeoFor('terms', isHebrew ? 'he' : 'en'));
   }, [isHebrew, navigate]);
 
   const t = isHebrew ? {

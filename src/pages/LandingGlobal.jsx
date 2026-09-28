@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { NEON, FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeo } from '../shared/publicSeoRoutes';
 import { getPlanPricingDisplay, getStripePriceId } from '../utils/pricingCatalog';
 import { VIDEOS_READY } from './landingVideoConfig';
 
@@ -37,48 +38,11 @@ export default function LandingGlobal({ onForgotPassword }) {
   const showVideosSection = VIDEOS_READY || previewVideos;
 
   useEffect(() => {
-    // Final canonical rule (iron rule, see PROFLOW_HANDOFF.md §16): only an
-    // explicit ?lang= override may move the canonical of bare "/" (with or
-    // without a query string) to a specific language target. Geo/
-    // localStorage/navigator.language may decide which bundle actually
-    // renders at bare "/" for a human visitor, but must never affect its
-    // canonical - bare "/" with no ?lang= always self-canonicalizes to "/",
-    // even when English is what's shown. If LandingGlobal renders at all
-    // with a valid explicit ?lang=he/en present, that already means main.jsx
-    // picked English because of that ?lang - the self-canonical /en matches
-    // exactly the language actually rendered. An invalid ?lang= value
-    // (anything other than he/en - main.jsx itself doesn't recognize it
-    // either) does not count as an explicit override and falls back to the
-    // normal pathname rule.
-    const langParam = new URLSearchParams(window.location.search).get('lang');
-    const explicitLang = langParam === 'he' || langParam === 'en' ? langParam : null;
-    const canonicalPath = explicitLang
-      ? '/en'
-      : window.location.pathname === '/en'
-      ? '/en'
-      : '/';
-
-    setSeoMeta({
-      title: "TEKANGO - Business & Quoting SaaS Platform",
-      description: 'TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.',
-      canonicalPath,
-      lang: 'en',
-      hreflang: [
-        { lang: 'he', path: '/he' },
-        { lang: 'en', path: '/en' },
-        { lang: 'x-default', path: '/' },
-      ],
-      structuredData: {
-        '@context': 'https://schema.org',
-        '@type': 'SoftwareApplication',
-        name: 'TEKANGO',
-        operatingSystem: 'All',
-        applicationCategory: 'BusinessApplication',
-        inLanguage: 'en',
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-        description: 'A smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.',
-      },
-    });
+    // Google indexing root-canonical remediation (2026-09-28, locked policy TEKANGO_AI_ARCHITECTURE.md §55.11 - supersedes the
+    // former "bare / is canonical to itself" rule): /en is THE International canonical. "/" is no longer a page on the canonical
+    // host - middleware.ts resolves it to /he or /en server-side - so this landing always declares /en, whatever URL rendered it.
+    // Title / description / hreflang / structured data (USD) come from the ONE public SEO table the prerender build also uses.
+    setSeoMeta(publicSeo('/en'));
 
     try {
       const userLang = (navigator.language || '').toLowerCase();

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeoFor } from '../shared/publicSeoRoutes';
 import ProFlowLogo from '../components/ProFlowLogo';
 
 export default function Privacy({ isHebrew }) {
@@ -13,16 +14,8 @@ export default function Privacy({ isHebrew }) {
       navigate(isHebrew ? '/he/privacy' : '/en/privacy', { replace: true });
     }
 
-    setSeoMeta({
-      title: isHebrew ? 'TEKANGO - מדיניות פרטיות' : 'TEKANGO - Privacy Policy',
-      description: isHebrew ? 'מדיניות הפרטיות המלאה של פלטפורמת TEKANGO ואופן השימוש בנתוני המשתמשים.' : 'Full Privacy Policy for the TEKANGO platform and how user data is handled.',
-      canonicalPath: isHebrew ? '/he/privacy' : '/en/privacy',
-      lang: isHebrew ? 'he' : 'en',
-      hreflang: [
-        { lang: 'he', path: '/he/privacy' },
-        { lang: 'en', path: '/en/privacy' },
-      ],
-    });
+    // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
+    setSeoMeta(publicSeoFor('privacy', isHebrew ? 'he' : 'en'));
   }, [isHebrew, navigate]);
 
   const t = isHebrew ? {

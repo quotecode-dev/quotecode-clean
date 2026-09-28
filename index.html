@@ -32,19 +32,18 @@
     <title>TEKANGO - SaaS Business & Quoting Platform</title>
     <meta name="description" content="TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide." />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://www.tekango.com/" />
-
-    <!-- Bilingual hreflang alternates -->
-    <link rel="alternate" hreflang="en" href="https://www.tekango.com/en" />
-    <link rel="alternate" hreflang="he" href="https://www.tekango.com/he" />
-    <link rel="alternate" hreflang="x-default" href="https://www.tekango.com/" />
+    <!-- Google indexing root-canonical remediation (2026-09-28): this file is the SPA shell served for every route WITHOUT its own
+         prerendered document (dashboard, public quotes, legacy aliases ...). It used to declare canonical "/" + the landing hreflang
+         for ALL of them, which made Google fold /en into "/" (Search Console: "Duplicate, Google chose different canonical").
+         It now declares no canonical / hreflang / og:url of its own: every public sitemap route gets its own initial HTML with the
+         correct signals (scripts/prerender-public-routes.mjs), "/" is resolved to /he or /en by middleware.ts, and other pages set
+         their own via setSeoMeta(). -->
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TEKANGO" />
     <meta property="og:title" content="TEKANGO - SaaS Business & Quoting Platform" />
     <meta property="og:description" content="Smart quotes and client management made easy." />
-    <meta property="og:url" content="https://www.tekango.com/" />
     <!-- SEO indexing remediation (2026-09-16 TEST task): og/twitter:image
          previously referenced /tekango-logo-horizontal-white.png, a V1
          asset that no longer exists in public/ - the URL fell through the

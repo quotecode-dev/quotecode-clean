@@ -1,0 +1,263 @@
+{
+  "base": "http://127.0.0.1:5197",
+  "userAgent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+  "at": "2026-09-28T13:18:26.638Z",
+  "routes": [
+    {
+      "route": "/",
+      "status": 302,
+      "location": "http://127.0.0.1:5197/en",
+      "xRobotsTag": null,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c14",
+      "htmlTag": null,
+      "canonical": null,
+      "title": null,
+      "description": null,
+      "robotsMeta": null,
+      "hreflang": [],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 0
+    },
+    {
+      "route": "/he",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 64133,
+      "sha256": "c8ebd9f06c0fc490",
+      "htmlTag": "<html lang=\"he\" dir=\"rtl\">",
+      "canonical": "https://www.tekango.com/he",
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "description": "TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע&quot;מ אוטומטי לעסקים בישראל.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 3015
+    },
+    {
+      "route": "/en",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 66918,
+      "sha256": "f349b6c32b7214d4",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/en",
+      "title": "TEKANGO - Business &amp; Quoting SaaS Platform",
+      "description": "TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 8
+    },
+    {
+      "route": "/he/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 14065,
+      "sha256": "3858fbb526f29c3b",
+      "htmlTag": "<html lang=\"he\" dir=\"rtl\">",
+      "canonical": "https://www.tekango.com/he/tools",
+      "title": "TEKANGO - מרכז הכלים והמחשבונים העסקיים",
+      "description": "מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית TEKANGO.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 661
+    },
+    {
+      "route": "/en/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 14322,
+      "sha256": "a443bac31b98e4c2",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/en/tools",
+      "title": "TEKANGO - Business Tools &amp; Calculators Hub",
+      "description": "Free currency converter, unit converter, metals and crypto calculators - accurate business tools from TEKANGO.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 0
+    },
+    {
+      "route": "/he/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 18107,
+      "sha256": "e5d0f6b9b7409771",
+      "htmlTag": "<html lang=\"he\" dir=\"rtl\">",
+      "canonical": "https://www.tekango.com/he/contact",
+      "title": "TEKANGO - צור קשר ותמיכה",
+      "description": "צרו קשר עם צוות התמיכה של TEKANGO לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 320
+    },
+    {
+      "route": "/en/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 18283,
+      "sha256": "11a509fdd703564d",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/en/contact",
+      "title": "TEKANGO - Contact Us &amp; Support",
+      "description": "Get in touch with the TEKANGO support team for any question about managing your business and quotes.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 3
+    },
+    {
+      "route": "/he/privacy",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 9336,
+      "sha256": "fc75906a73ad0c15",
+      "htmlTag": "<html lang=\"he\" dir=\"rtl\">",
+      "canonical": "https://www.tekango.com/he/privacy",
+      "title": "TEKANGO - מדיניות פרטיות",
+      "description": "מדיניות הפרטיות המלאה של פלטפורמת TEKANGO ואופן השימוש בנתוני המשתמשים.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 988
+    },
+    {
+      "route": "/en/privacy",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 9574,
+      "sha256": "a57a019627364057",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/en/privacy",
+      "title": "TEKANGO - Privacy Policy",
+      "description": "Full Privacy Policy for the TEKANGO platform and how user data is handled.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 0
+    },
+    {
+      "route": "/he/terms",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 9692,
+      "sha256": "6c5905795d05c019",
+      "htmlTag": "<html lang=\"he\" dir=\"rtl\">",
+      "canonical": "https://www.tekango.com/he/terms",
+      "title": "TEKANGO - תנאי שימוש",
+      "description": "תנאי השימוש המלאים של פלטפורמת TEKANGO לניהול עסק והפקת הצעות מחיר.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 1135
+    },
+    {
+      "route": "/en/terms",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": null,
+      "bytes": 10196,
+      "sha256": "ac8fce4e8f270504",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": "https://www.tekango.com/en/terms",
+      "title": "TEKANGO - Terms of Service",
+      "description": "Full Terms of Service for the TEKANGO business management and quoting platform.",
+      "robotsMeta": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootContentChars": null,
+      "hebrewCharsInHtmlBody": 0
+    },
+    {
+      "route": "/dashboard",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, nofollow",
+      "bytes": 6182,
+      "sha256": "37993f7a811d7b74",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": null,
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/contact",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, follow",
+      "bytes": 6182,
+      "sha256": "37993f7a811d7b74",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": null,
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    },
+    {
+      "route": "/tools",
+      "status": 200,
+      "location": null,
+      "xRobotsTag": "noindex, follow",
+      "bytes": 6182,
+      "sha256": "37993f7a811d7b74",
+      "htmlTag": "<html lang=\"en\" dir=\"ltr\">",
+      "canonical": null,
+      "title": "TEKANGO - SaaS Business & Quoting Platform",
+      "description": "TEKANGO is an advanced SaaS platform for business management, smart quotes, and client management worldwide.",
+      "robotsMeta": "index, follow",
+      "hreflang": [],
+      "rootContentChars": 0,
+      "hebrewCharsInHtmlBody": 5
+    }
+  ]
+}

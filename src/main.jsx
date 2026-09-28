@@ -46,6 +46,13 @@ const isEnglishEnv = langParam === 'en' ? true
 try {
   localStorage.setItem('proflow_lang', isEnglishEnv ? 'en' : 'he');
 } catch { /* ignore (private browsing / storage disabled) */ }
+// Server-readable mirror of the SAME public UI language preference (Google indexing root-canonical remediation, 2026-09-28):
+// middleware.ts resolves "/" to /he or /en before any paint and cannot see localStorage, so a returning visitor's choice is
+// mirrored here with the identical value and semantics. PUBLIC UI ROUTING ONLY - never an account market / currency / legal-region
+// authority (those stay business_settings.country and friends), exactly like the localStorage value it mirrors.
+try {
+  document.cookie = `proflow_lang=${isEnglishEnv ? 'en' : 'he'}; Path=/; Max-Age=31536000; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+} catch { /* ignore (cookies disabled) */ }
 
 // Market direction before the FIRST paint: pages still set lang/dir in their own effects, but without this the Hebrew bundle painted
 // left-to-right until those effects ran (a visible LTR flash, caught by the WebKit leg of the browser matrix, 2026-09-22).

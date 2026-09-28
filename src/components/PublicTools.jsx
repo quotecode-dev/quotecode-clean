@@ -4,6 +4,7 @@ import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
 import { NEON, FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeo } from '../shared/publicSeoRoutes';
 
 function PublicTools() {
   const navigate = useNavigate();
@@ -16,15 +17,8 @@ function PublicTools() {
       navigate('/he/tools', { replace: true });
     }
 
-    setSeoMeta({
-      title: 'TEKANGO - מרכז הכלים והמחשבונים העסקיים',
-      description: 'מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית TEKANGO.',
-      canonicalPath: '/he/tools',
-      hreflang: [
-        { lang: 'he', path: '/he/tools' },
-        { lang: 'en', path: '/en/tools' },
-      ],
-    });
+    // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
+    setSeoMeta(publicSeo('/he/tools'));
   }, [navigate]);
 
   // Currency state with Swap support

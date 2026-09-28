@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { NEON, FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeo } from '../shared/publicSeoRoutes';
 import { getPlanPricingDisplay, getVatBreakdown, getStripePriceId } from '../utils/pricingCatalog';
 import { VIDEOS_READY } from './landingVideoConfig';
 
@@ -47,50 +48,11 @@ export default function LandingLocal({ onForgotPassword }) {
   const showVideosSection = VIDEOS_READY || previewVideos;
 
   useEffect(() => {
-    // כלל קנוני סופי (חוק ברזל, ר' PROFLOW_HANDOFF.md §16): רק ?lang=
-    // מפורש רשאי להזיז את הקנוני של "/" הריק/עם query ליעד שפה ספציפי.
-    // geo/localStorage/navigator.language עשויים לקבוע איזה באנדל מוצג
-    // בפועל ב-"/" הריק עבור בן-אדם, אבל לעולם לא ישפיעו על הקנוני שלו -
-    // "/" הריק ללא ?lang= תמיד קנוני לעצמו ("/"), גם כשעברית מוצגת בו.
-    // אם LandingLocal בכלל רונדר עם ?lang=he/en מפורש ותקין, זה כבר אומר
-    // ש-main.jsx בחר עברית בגלל אותו ?lang - הקנוני העצמי /he תואם בדיוק
-    // לשפה שבאמת הוצגה. ערך ?lang= לא תקין (כל דבר חוץ מ-he/en - main.jsx
-    // עצמו לא מכיר בו) לא נחשב override מפורש ונופל לכלל pathname הרגיל.
-    const langParam = new URLSearchParams(window.location.search).get('lang');
-    const explicitLang = langParam === 'he' || langParam === 'en' ? langParam : null;
-    const canonicalPath = explicitLang
-      ? '/he'
-      : window.location.pathname === '/he'
-      ? '/he'
-      : '/';
-
-    // חוק ברזל (§13 - Locale metadata correction): lang:'he' חדש (מתקן
-    // <html lang="en" dir="ltr"> הקבוע שמעולם לא התעדכן, ר' seoMeta.js).
-    // updateSocial:false הוסר בכוונה - זה בדיוק ה"שלב עתידי" שההערה הישנה
-    // התייחסה אליו; og:*/twitter:*/og:locale מתעדכנים עכשיו נכון לעברית.
-    // structuredData: עוקף את ה-JSON-LD הסטטי (SoftwareApplication,
-    // priceCurrency:"USD") שירש לדף הזה תמיד - כאן ILS, כולל מע"מ.
-    setSeoMeta({
-      title: "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
-      description: 'TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
-      canonicalPath,
-      lang: 'he',
-      hreflang: [
-        { lang: 'he', path: '/he' },
-        { lang: 'en', path: '/en' },
-        { lang: 'x-default', path: '/' },
-      ],
-      structuredData: {
-        '@context': 'https://schema.org',
-        '@type': 'SoftwareApplication',
-        name: 'TEKANGO',
-        operatingSystem: 'All',
-        applicationCategory: 'BusinessApplication',
-        inLanguage: 'he',
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'ILS' },
-        description: 'מערכת ניהול עסק חכמה להפקת הצעות מחיר, ניהול לקוחות וחישוב מע"מ אוטומטי לעסקים בישראל.',
-      },
-    });
+    // Google indexing root-canonical remediation (2026-09-28, locked policy TEKANGO_AI_ARCHITECTURE.md §55.11 - supersedes the
+    // former "bare / is canonical to itself" rule): /he is THE Local canonical. "/" is no longer a page on the canonical host -
+    // middleware.ts resolves it to /he or /en server-side - so this landing always declares /he, whatever URL rendered it.
+    // Title / description / hreflang / structured data (ILS) come from the ONE public SEO table the prerender build also uses.
+    setSeoMeta(publicSeo('/he'));
   }, []);
 
   const getLocalPriceId = (planType) => getStripePriceId(planType, 'il', billingCycle);

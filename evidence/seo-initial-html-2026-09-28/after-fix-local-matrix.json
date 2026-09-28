@@ -1,0 +1,208 @@
+{
+  "server": "local Vercel-like proof server (scratchpad), dist of C:/tkseo-initial-html",
+  "at": "2026-09-28T13:18:38.834Z",
+  "routes": [
+    {
+      "route": "/he",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootTextChars": 3977,
+      "hebrewLetters": 2979,
+      "latinLetters": 99,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootTextChars": 4773,
+      "hebrewLetters": 0,
+      "latinLetters": 3822,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/tools",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/he/tools"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מרכז הכלים והמחשבונים העסקיים",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootTextChars": 945,
+      "hebrewLetters": 651,
+      "latinLetters": 68,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/tools",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/en/tools"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Business Tools & Calculators Hub",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootTextChars": 1139,
+      "hebrewLetters": 0,
+      "latinLetters": 908,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/contact",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/he/contact"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - צור קשר ותמיכה",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootTextChars": 476,
+      "hebrewLetters": 314,
+      "latinLetters": 40,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/contact",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/en/contact"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Contact Us & Support",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootTextChars": 580,
+      "hebrewLetters": 0,
+      "latinLetters": 454,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/privacy",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/he/privacy"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מדיניות פרטיות",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootTextChars": 1337,
+      "hebrewLetters": 988,
+      "latinLetters": 56,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/privacy",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/en/privacy"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Privacy Policy",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootTextChars": 1576,
+      "hebrewLetters": 0,
+      "latinLetters": 1275,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/terms",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/he/terms"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - תנאי שימוש",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootTextChars": 1554,
+      "hebrewLetters": 1135,
+      "latinLetters": 76,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/terms",
+      "status": 200,
+      "servedVia": "static",
+      "canonical": [
+        "https://www.tekango.com/en/terms"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Terms of Service",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootTextChars": 1994,
+      "hebrewLetters": 0,
+      "latinLetters": 1605,
+      "verdict": "PASS"
+    }
+  ]
+}

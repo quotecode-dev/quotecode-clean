@@ -1,0 +1,207 @@
+{
+  "base": "https://www.tekango.com",
+  "at": "2026-09-28T12:34:05.115Z",
+  "routes": [
+    {
+      "route": "/",
+      "url": "/",
+      "canonical": [
+        "https://www.tekango.com/"
+      ],
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "הצעות מחיר חכמות וניהול העסק\nבקלות, במהירות ובמקצועיות",
+      "hebrewChars": 2967,
+      "textLen": 4005
+    },
+    {
+      "route": "/he",
+      "url": "/he",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "הצעות מחיר חכמות וניהול העסק\nבקלות, במהירות ובמקצועיות",
+      "hebrewChars": 2967,
+      "textLen": 4005
+    },
+    {
+      "route": "/en",
+      "url": "/en",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "hreflang": [
+        "en=/en",
+        "he=/he",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "h1": "Smart Quotes & Business Management\nEasily, Fast & Profession",
+      "hebrewChars": 0,
+      "textLen": 4793
+    },
+    {
+      "route": "/he/tools",
+      "url": "/he/tools",
+      "canonical": [
+        "https://www.tekango.com/he/tools"
+      ],
+      "hreflang": [
+        "en=/en/tools",
+        "he=/he/tools"
+      ],
+      "title": "TEKANGO - מרכז הכלים והמחשבונים העסקיים",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "מרכז הכלים והמחשבונים העסקיים",
+      "hebrewChars": 651,
+      "textLen": 949
+    },
+    {
+      "route": "/en/tools",
+      "url": "/en/tools",
+      "canonical": [
+        "https://www.tekango.com/en/tools"
+      ],
+      "hreflang": [
+        "en=/en/tools",
+        "he=/he/tools"
+      ],
+      "title": "TEKANGO - Business Tools & Calculators Hub",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "h1": "Business Tools & Calculators Hub",
+      "hebrewChars": 0,
+      "textLen": 1143
+    },
+    {
+      "route": "/he/contact",
+      "url": "/he/contact",
+      "canonical": [
+        "https://www.tekango.com/he/contact"
+      ],
+      "hreflang": [
+        "en=/en/contact",
+        "he=/he/contact"
+      ],
+      "title": "TEKANGO - צור קשר ותמיכה",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "צור קשר",
+      "hebrewChars": 314,
+      "textLen": 484
+    },
+    {
+      "route": "/en/contact",
+      "url": "/en/contact",
+      "canonical": [
+        "https://www.tekango.com/en/contact"
+      ],
+      "hreflang": [
+        "en=/en/contact",
+        "he=/he/contact"
+      ],
+      "title": "TEKANGO - Contact Us & Support",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "h1": "Contact Us",
+      "hebrewChars": 0,
+      "textLen": 588
+    },
+    {
+      "route": "/he/privacy",
+      "url": "/he/privacy",
+      "canonical": [
+        "https://www.tekango.com/he/privacy"
+      ],
+      "hreflang": [
+        "en=/en/privacy",
+        "he=/he/privacy"
+      ],
+      "title": "TEKANGO - מדיניות פרטיות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "מדיניות פרטיות (Privacy Policy)",
+      "hebrewChars": 988,
+      "textLen": 1351
+    },
+    {
+      "route": "/en/privacy",
+      "url": "/en/privacy",
+      "canonical": [
+        "https://www.tekango.com/en/privacy"
+      ],
+      "hreflang": [
+        "en=/en/privacy",
+        "he=/he/privacy"
+      ],
+      "title": "TEKANGO - Privacy Policy",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "h1": "Privacy Policy",
+      "hebrewChars": 0,
+      "textLen": 1590
+    },
+    {
+      "route": "/he/terms",
+      "url": "/he/terms",
+      "canonical": [
+        "https://www.tekango.com/he/terms"
+      ],
+      "hreflang": [
+        "en=/en/terms",
+        "he=/he/terms"
+      ],
+      "title": "TEKANGO - תנאי שימוש",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "h1": "תנאי שימוש (Terms of Service)",
+      "hebrewChars": 1135,
+      "textLen": 1570
+    },
+    {
+      "route": "/en/terms",
+      "url": "/en/terms",
+      "canonical": [
+        "https://www.tekango.com/en/terms"
+      ],
+      "hreflang": [
+        "en=/en/terms",
+        "he=/he/terms"
+      ],
+      "title": "TEKANGO - Terms of Service",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "h1": "Terms of Service",
+      "hebrewChars": 0,
+      "textLen": 2010
+    }
+  ]
+}

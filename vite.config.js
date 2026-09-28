@@ -7,6 +7,7 @@ import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { existsSync } from 'node:fs'
 import process from 'node:process'
 import { sourceIdentity } from './scripts/build-identity.js'
+import { prerenderPublicRoutesPlugin } from './scripts/prerender-public-routes.mjs'
 
 // Frontend Version Awareness (Gate F, systemic remediation continuation
 // task, 2026-09-09): every build embeds its own git commit SHA both into
@@ -91,7 +92,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const testProjectRef = (String(env.VITE_SUPABASE_URL || '').match(/^https:\/\/([a-z0-9]+)\.supabase\.co/) || [])[1] || null;
   return {
-  plugins: [react(), versionManifestPlugin(identity, { exposeInDom: mode !== 'production', testProjectRef })],
+  // prerenderPublicRoutesPlugin (2026-09-28): every client build ends by writing + validating the initial HTML of each public
+  // sitemap route (scripts/prerender-public-routes.mjs); a missing or wrong route fails the build.
+  plugins: [react(), versionManifestPlugin(identity, { exposeInDom: mode !== 'production', testProjectRef }), prerenderPublicRoutesPlugin()],
   define: {
     __PROFLOW_BUILD_SHA__: JSON.stringify(getBuildSha()),
     __PROFLOW_BUILD_IDENTITY__: JSON.stringify({ buildSha: identity.buildSha, buildInputDigest: identity.buildInputDigest, dirty: identity.dirty, mode }),

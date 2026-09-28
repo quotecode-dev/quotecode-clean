@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 import ProFlowLogo from '../components/ProFlowLogo';
 import { setSeoMeta } from '../utils/seoMeta';
+import { publicSeoFor } from '../shared/publicSeoRoutes';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 
 export default function Contact({ isHebrew }) {
@@ -22,19 +23,8 @@ export default function Contact({ isHebrew }) {
     // הקנוני נגזר אך ורק מ-isHebrew (לא מ-pathname) ולכן תקין גם בטרנזיציה -
     // /he/contact ו-/en/contact הם היחידים שיכולים אי-פעם להיות קנוני; ה-
     // alias הריק עצמו לעולם לא.
-    setSeoMeta({
-      title: isHebrew ? 'TEKANGO - צור קשר ותמיכה' : 'TEKANGO - Contact Us & Support',
-      description: isHebrew ? 'צרו קשר עם צוות התמיכה של TEKANGO לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.' : 'Get in touch with the TEKANGO support team for any question about managing your business and quotes.',
-      canonicalPath: isHebrew ? '/he/contact' : '/en/contact',
-      // חוק ברזל (Landing Pages + Tools TEST/Staging task, §13): lang חדש -
-      // ר' seoMeta.js לתיעוד המלא של הבאג (html lang/dir/og:locale מעולם לא
-      // התעדכנו per-page, גם כאן).
-      lang: isHebrew ? 'he' : 'en',
-      hreflang: [
-        { lang: 'he', path: '/he/contact' },
-        { lang: 'en', path: '/en/contact' },
-      ],
-    });
+    // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
+    setSeoMeta(publicSeoFor('contact', isHebrew ? 'he' : 'en'));
   }, [isHebrew, navigate]);
 
   const t = isHebrew ? {

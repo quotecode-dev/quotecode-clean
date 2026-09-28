@@ -63,7 +63,9 @@ export default function AppGlobal() {
             fallback at all here). Recovery's own condition/behavior is
             unchanged - this only adds an independent additional case. */}
         <Route path="/" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={false} /> : <LandingGlobal />} />
-        <Route path="/en" element={<LandingGlobal />} />
+        {/* Google indexing root-canonical remediation (2026-09-28): "/" is now 302'd to /he or /en by middleware.ts and the browser
+            keeps an Auth callback's fragment across it - the same callback fallback as "/" (see AppLocal.jsx's /he route). */}
+        <Route path="/en" element={(rootRecoveryIntent.isRecovery || rootRecoveryIntent.isError || rootSignupIntent.isSignup) ? <Dashboard bundleIsHebrew={false} /> : <LandingGlobal />} />
         {/* bundleIsHebrew=false: מקור אמת מפורש עבור ברירות המחדל של חשבון
             חדש (מדינה/מטבע/תקנון) בהרשמה - ראו הערה מקבילה ב-Dashboard.jsx */}
         <Route path="/dashboard" element={<Dashboard bundleIsHebrew={false} />} />

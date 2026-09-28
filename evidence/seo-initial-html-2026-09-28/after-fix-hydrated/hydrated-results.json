@@ -1,0 +1,381 @@
+{
+  "base": "http://127.0.0.1:5197",
+  "at": "2026-09-28T13:19:47.389Z",
+  "results": [
+    {
+      "name": "HE landing desktop",
+      "path": "/he",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 3015,
+      "finalPath": "/he",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 2967,
+      "h1": "הצעות מחיר חכמות וניהול העסק בקלות, במהירות ובמקצו",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "EN landing desktop",
+      "path": "/en",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 8,
+      "finalPath": "/en",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 0,
+      "h1": "Smart Quotes & Business Management Easily, Fast & ",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "HE landing 390px",
+      "path": "/he",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 3015,
+      "finalPath": "/he",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 2954,
+      "h1": "הצעות מחיר חכמות וניהול העסק בקלות, במהירות ובמקצו",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "EN landing 390px",
+      "path": "/en",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 8,
+      "finalPath": "/en",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 0,
+      "h1": "Smart Quotes & Business Management Easily, Fast & ",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "root, US geo -> /en",
+      "path": "/",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 8,
+      "finalPath": "/en",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 0,
+      "h1": "Smart Quotes & Business Management Easily, Fast & ",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "root, IL geo -> /he",
+      "path": "/",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 3015,
+      "finalPath": "/he",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 1,
+      "hebrew": 2967,
+      "h1": "הצעות מחיר חכמות וניהול העסק בקלות, במהירות ובמקצו",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "page /he/contact",
+      "path": "/he/contact",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 320,
+      "finalPath": "/he/contact",
+      "canonical": [
+        "https://www.tekango.com/he/contact"
+      ],
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "title": "TEKANGO - צור קשר ותמיכה",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 314,
+      "h1": "צור קשר",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "page /en/contact",
+      "path": "/en/contact",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 3,
+      "finalPath": "/en/contact",
+      "canonical": [
+        "https://www.tekango.com/en/contact"
+      ],
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "title": "TEKANGO - Contact Us & Support",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 0,
+      "h1": "Contact Us",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "page /he/privacy",
+      "path": "/he/privacy",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 988,
+      "finalPath": "/he/privacy",
+      "canonical": [
+        "https://www.tekango.com/he/privacy"
+      ],
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "title": "TEKANGO - מדיניות פרטיות",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 988,
+      "h1": "מדיניות פרטיות (Privacy Policy)",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "page /en/privacy",
+      "path": "/en/privacy",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 0,
+      "finalPath": "/en/privacy",
+      "canonical": [
+        "https://www.tekango.com/en/privacy"
+      ],
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "title": "TEKANGO - Privacy Policy",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 0,
+      "h1": "Privacy Policy",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "page /he/terms",
+      "path": "/he/terms",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 1135,
+      "finalPath": "/he/terms",
+      "canonical": [
+        "https://www.tekango.com/he/terms"
+      ],
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "title": "TEKANGO - תנאי שימוש",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 1135,
+      "h1": "תנאי שימוש (Terms of Service)",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "page /en/terms",
+      "path": "/en/terms",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 0,
+      "finalPath": "/en/terms",
+      "canonical": [
+        "https://www.tekango.com/en/terms"
+      ],
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "title": "TEKANGO - Terms of Service",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 0,
+      "h1": "Terms of Service",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "page /he/tools",
+      "path": "/he/tools",
+      "firstStatus": 200,
+      "firstLang": "he",
+      "firstHebrewInRoot": 661,
+      "finalPath": "/he/tools",
+      "canonical": [
+        "https://www.tekango.com/he/tools"
+      ],
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "title": "TEKANGO - מרכז הכלים והמחשבונים העסקיים",
+      "lang": "he",
+      "dir": "rtl",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 651,
+      "h1": "מרכז הכלים והמחשבונים העסקיים",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "he",
+      "errors": []
+    },
+    {
+      "name": "page /en/tools",
+      "path": "/en/tools",
+      "firstStatus": 200,
+      "firstLang": "en",
+      "firstHebrewInRoot": 0,
+      "finalPath": "/en/tools",
+      "canonical": [
+        "https://www.tekango.com/en/tools"
+      ],
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "title": "TEKANGO - Business Tools & Calculators Hub",
+      "lang": "en",
+      "dir": "ltr",
+      "robots": "index, follow",
+      "jsonLd": 0,
+      "hebrew": 0,
+      "h1": "Business Tools & Calculators Hub",
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "langCookie": "en",
+      "errors": []
+    },
+    {
+      "name": "navigation + saved preference",
+      "navigatedToPrivacy": null,
+      "rootWithSavedEnPreferenceInIL": "/en"
+    }
+  ]
+}
