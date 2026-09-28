@@ -1,6 +1,8 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleSendEmailHook } from "./handler.ts";
+import { makeBusinessMarketLookup } from "./marketLookup.ts";
 
 // ==========================================
 // Post-LIVE Priority 1 (Auth email localization + TEKANGO rebrand +
@@ -26,20 +28,14 @@ import { handleSendEmailHook } from "./handler.ts";
 // Post-LIVE Wave 1 (2026-09-27): NOT deployed / NOT enabled on Production;
 // enabling it there is an Owner decision (hook + SEND_EMAIL_HOOK_SECRET).
 //
-// Market signal: reuses Dashboard.jsx's own existing, already-live
-// `signup_market` value ('Local'/'International'), written into
-// `user.user_metadata` at the real `supabase.auth.signUp()` call
-// (src/pages/Dashboard.jsx, handleSignUp) - the same authoritative,
-// already-shipped source of truth the app itself already trusts for
-// legal-region purposes, not a new signal invented for this task. This
-// value persists on the user record for its whole lifetime, so it is
-// available identically for signup, recovery, magic-link, and
-// email-change hook calls - one shared mechanism, not a signup-only one.
-// Fails closed to English/International if the field is ever missing or
-// not exactly 'Local' - matches this codebase's own established
-// "no guessing, fail closed" convention (see the identical fail-closed
-// comment on bundleIsHebrew in Dashboard.jsx's handleSignUp) rather than
-// inventing a browser/geo/header-based fallback.
+// Market signal (Auth market identity gap F1 - Option C, Owner-approved 2026-09-28; supersedes the earlier
+// "signup_market for the account's whole lifetime" design, which sent English to existing Local accounts created before
+// signup_market existed): the CANONICAL public.business_settings.country of the verified user decides ('Local' / 'LCL' ->
+// Hebrew, support@; 'International' -> English, info@; anything else -> English, metadata ignored). user_metadata.
+// signup_market (written at supabase.auth.signUp() in Dashboard.jsx) is used ONLY while no business_settings row exists yet
+// (the signup email itself, or before the first login creates the row). Lookup failure / timeout fails closed to English
+// and the email is still sent. See marketResolver.ts / marketLookup.ts and
+// evidence/wave1-production-release-plan-2026-09-27/AUTH_MARKET_IDENTITY_DESIGN.md.
 //
 // Content (subject / HTML / text / sender) lives in ./emailContent.ts, the
 // per-action message plan in ./emailPlan.ts, Standard Webhooks verification
@@ -54,8 +50,12 @@ import { handleSendEmailHook } from "./handler.ts";
 // source-verified contract.
 // ==========================================
 
+const env = (name: string) => Deno.env.get(name);
+const lookupMarketRows = makeBusinessMarketLookup({ env, createClient });
+
 serve((req) => handleSendEmailHook(req, {
-  env: (name) => Deno.env.get(name),
+  env,
   fetch: (input, init) => fetch(input, init),
   nowMs: () => Date.now(),
+  lookupMarketRows,
 }));

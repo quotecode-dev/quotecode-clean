@@ -7,9 +7,9 @@
 // are separate message kinds here; notification actions produce information-only messages with no verification CTA;
 // `reauthentication` carries a one-time code and no link. Which messages exist for a payload is decided in emailPlan.ts.
 //
-// Market signal: `user_metadata.signup_market` written by Dashboard.jsx handleSignUp ('Local' | 'International').
-// Only the exact value 'Local' selects Hebrew; anything else (missing / legacy / unexpected) fails closed to English -
-// never to Local. (An Auth email cannot be withheld, so the fail-closed branch is the International one.)
+// Market: decided by marketResolver.ts (Option C, 2026-09-28 - canonical business_settings.country first, signup_market
+// only while no row exists, fail closed to International). This module only renders the market it is given
+// (isHebrew = market is Local). An Auth email cannot be withheld, so the fail-closed branch is the International one.
 
 const HEADER_BG = '#111112';
 const FLOW_PURPLE = '#d8b4fe';
@@ -36,10 +36,6 @@ export type AuthEmailMessage =
       to: string;
       details: { email?: string; oldEmail?: string; provider?: string; factorType?: string };
     };
-
-export function isHebrewMarket(userMetadata: Record<string, unknown> | undefined | null): boolean {
-  return userMetadata?.signup_market === 'Local';
-}
 
 export function senderAddressFor(isHebrew: boolean) {
   // Same split as send-trial-expiration-email / send-subscription-expiration-email.

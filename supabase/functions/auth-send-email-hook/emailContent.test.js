@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { buildEmailContent, buildVerifyUrl, escapeHtml, isHebrewMarket, senderAddressFor } from './emailContent.ts';
+import { buildEmailContent, buildVerifyUrl, escapeHtml, senderAddressFor } from './emailContent.ts';
 
 // Post-LIVE Wave 1 (Track A) - static validation of the Auth email content, per MESSAGE kind (Codex blocker 1
 // remediation: message kinds, not invented hook action names; which messages a payload produces is tested in
@@ -31,11 +31,11 @@ const NO_LINK_MESSAGES = [
 ];
 
 describe('auth-send-email-hook content', () => {
-  it('market selection: only signup_market === "Local" is Hebrew; everything else fails closed to English (never Local)', () => {
-    expect(isHebrewMarket({ signup_market: 'Local' })).toBe(true);
-    for (const md of [{ signup_market: 'International' }, { signup_market: 'local' }, {}, null, undefined, { signup_market: 'IL' }, { signup_market: 'Unknown' }, { signup_market: 'LCL' }]) {
-      expect(isHebrewMarket(md)).toBe(false);
-    }
+  // Market SELECTION moved to marketResolver.ts (Option C, 2026-09-28) and is tested in marketResolver.test.js /
+  // handler.test.js; this module only renders the market it is given.
+  it('the content module no longer selects the market itself (no metadata-based selector exported)', async () => {
+    const mod = await import('./emailContent.ts');
+    expect(mod.isHebrewMarket).toBeUndefined();
   });
 
   it('sender identity per market (TEKANGO, tekango.com)', () => {

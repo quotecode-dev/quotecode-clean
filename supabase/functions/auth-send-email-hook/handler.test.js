@@ -72,15 +72,22 @@ function fakeResend({ failOnCall } = {}) {
   return { calls, fetch };
 }
 
-async function run(payload, { env = ENV, resend = fakeResend(), nowMs = NOW_MS, req } = {}) {
+// Canonical market lookup fake (Option C). Default: no business_settings row -> signup_market bootstrap, which keeps every
+// pre-Option-C test's metadata semantics. `lookupCalls` records exactly what the handler asked for.
+const rowsLookup = (...countries) => async () => countries.map((country) => ({ country }));
+
+async function run(payload, { env = ENV, resend = fakeResend(), nowMs = NOW_MS, req, lookup = rowsLookup(), lookupTimeoutMs = 50 } = {}) {
   const logs = [];
+  const lookupCalls = [];
   const res = await handleSendEmailHook(req ?? signedRequest(payload), {
     env: (k) => env[k],
     fetch: resend.fetch,
     nowMs: () => nowMs,
     log: (...a) => logs.push(a.join(' ')),
+    lookupMarketRows: lookup === null ? undefined : async (id, signal) => { lookupCalls.push(id); return lookup(id, signal); },
+    marketLookupTimeoutMs: lookupTimeoutMs,
   });
-  return { res, status: res.status, json: await res.json(), calls: resend.calls, logs };
+  return { res, status: res.status, json: await res.json(), calls: resend.calls, logs, lookupCalls };
 }
 
 const linkOf = (call) => {
@@ -262,7 +269,7 @@ describe('auth-send-email-hook handler - documented action contract', () => {
   }
 });
 
-describe('auth-send-email-hook handler - market separation', () => {
+describe('auth-send-email-hook handler - market separation, bootstrap (no business_settings row yet)', () => {
   const recovery = (md) => ({ user: makeUser({ user_metadata: md }), email_data: makeEmailData({ email_action_type: 'recovery', token_hash: 'h1' }) });
 
   it('Local -> Hebrew RTL, support@ sender', async () => {
@@ -355,5 +362,205 @@ describe('auth-send-email-hook handler - authentication and replay', () => {
     const { status, json } = await run(payload, { resend: fakeResend({ failOnCall: 1 }) });
     expect(status).toBe(500);
     expect(json).toEqual({ error: { http_code: 500, message: 'Failed to send email via Resend' } });
+  });
+});
+
+// ============================================================================================================================
+// Auth market identity gap F1 - Option C (Owner-approved 2026-09-28): canonical business_settings.country first, signup
+// metadata only while no row exists, fail closed to International; integrated through the real handler for every flow.
+// ============================================================================================================================
+const LOCAL_FROM = 'TEKANGO Support <support@tekango.com>';
+const INTL_FROM = 'TEKANGO <info@tekango.com>';
+const expectLocal = (c) => {
+  expect(c.body.from).toBe(LOCAL_FROM);
+  expect(c.body.html).toContain('dir="rtl"');
+  expect(c.body.subject).toMatch(HEBREW);
+};
+const expectIntl = (c) => {
+  expect(c.body.from).toBe(INTL_FROM);
+  expect(c.body.html).toContain('dir="ltr"');
+  expect(`${c.body.subject}${c.body.html}${c.body.text}`).not.toMatch(HEBREW);
+};
+const hangingLookup = () => new Promise(() => {});
+const VERIFIED_ID = '11111111-2222-4333-8444-555555555555';
+
+const FLOWS = {
+  signup: (md) => ({ user: makeUser({ user_metadata: md }), email_data: makeEmailData({ email_action_type: 'signup', token_hash: 'h_signup' }) }),
+  recovery: (md) => ({ user: makeUser({ user_metadata: md }), email_data: makeEmailData({ email_action_type: 'recovery', token_hash: 'h_recovery' }) }),
+  secure_email_change: (md) => ({
+    user: makeUser({ user_metadata: md, new_email: 'new.address@example.test' }),
+    email_data: makeEmailData({ email_action_type: 'email_change', token: '111111', token_hash: 'h_new', token_new: '222222', token_hash_new: 'h_current' }),
+  }),
+  reauthentication: (md) => ({ user: makeUser({ user_metadata: md }), email_data: makeEmailData({ email_action_type: 'reauthentication', token: '482913' }) }),
+  password_changed_notification: (md) => ({ user: makeUser({ user_metadata: md }), email_data: makeEmailData({ email_action_type: 'password_changed_notification' }) }),
+};
+const EXPECTED_MESSAGES = { signup: 1, recovery: 1, secure_email_change: 2, reauthentication: 1, password_changed_notification: 1 };
+
+describe('Option C - existing users: the canonical business_settings row decides, for every flow', () => {
+  const CASES = [
+    ['DB Local + missing metadata', ['Local'], {}, 'Local'],
+    ['DB LCL + missing metadata', ['LCL'], {}, 'Local'],
+    ['DB International + missing metadata', ['International'], {}, 'International'],
+    ['DB Local + conflicting International metadata (DB wins)', ['Local'], { signup_market: 'International' }, 'Local'],
+    ['DB International + conflicting Local metadata (DB wins)', ['International'], { signup_market: 'Local' }, 'International'],
+    ['DB Unknown + Local metadata (metadata ignored)', ['Unknown'], { signup_market: 'Local' }, 'International'],
+    ['DB null + Local metadata (metadata ignored)', [null], { signup_market: 'Local' }, 'International'],
+    ['DB malformed "local " + Local metadata (metadata ignored)', ['local '], { signup_market: 'Local' }, 'International'],
+  ];
+  for (const [flow, build] of Object.entries(FLOWS)) {
+    for (const [name, countries, md, market] of CASES) {
+      it(`${flow}: ${name} -> ${market === 'Local' ? 'HE / RTL / support@' : 'EN / LTR / info@'}`, async () => {
+        const { status, calls, lookupCalls } = await run(build(md), { lookup: rowsLookup(...countries) });
+        expect(status).toBe(200);
+        expect(calls).toHaveLength(EXPECTED_MESSAGES[flow]);
+        for (const c of calls) (market === 'Local' ? expectLocal : expectIntl)(c);
+        expect(lookupCalls).toEqual([VERIFIED_ID]);
+      });
+    }
+  }
+});
+
+describe('Option C - bootstrap: signup metadata ONLY when no business row exists', () => {
+  for (const [flow, build] of Object.entries(FLOWS)) {
+    for (const [md, market] of [
+      [{ signup_market: 'Local' }, 'Local'],
+      [{ signup_market: 'International' }, 'International'],
+      [{}, 'International'],
+      [null, 'International'],
+      [{ signup_market: 'local' }, 'International'],
+      [{ signup_market: 'LCL' }, 'International'], // the LCL alias applies to the canonical row only, never to metadata
+    ]) {
+      it(`${flow}: no row + ${JSON.stringify(md)} -> ${market}`, async () => {
+        const { status, calls } = await run(build(md), { lookup: rowsLookup() });
+        expect(status).toBe(200);
+        expect(calls).toHaveLength(EXPECTED_MESSAGES[flow]);
+        for (const c of calls) (market === 'Local' ? expectLocal : expectIntl)(c);
+      });
+    }
+  }
+});
+
+describe('Option C - failures fail closed to International and the Auth email is still sent', () => {
+  const recovery = FLOWS.recovery({ signup_market: 'Local' });
+  it('DB timeout + Local metadata -> EN, sent (bounded by the deadline)', async () => {
+    const started = Date.now();
+    const { status, calls, logs } = await run(recovery, { lookup: hangingLookup, lookupTimeoutMs: 30 });
+    expect(status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expectIntl(calls[0]);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(logs.join('\n')).toContain('market fail-closed to International (lookup_timeout)');
+  });
+  it('DB error + Local metadata -> EN, sent', async () => {
+    const { status, calls, logs } = await run(recovery, { lookup: async () => { throw new Error('connection refused'); } });
+    expect(status).toBe(200);
+    expectIntl(calls[0]);
+    expect(logs.join('\n')).toContain('(lookup_error)');
+  });
+  it('multiple rows + Local metadata -> EN, sent, anomaly logged', async () => {
+    const { status, calls, logs } = await run(recovery, { lookup: rowsLookup('Local', 'Local') });
+    expect(status).toBe(200);
+    expectIntl(calls[0]);
+    expect(logs.join('\n')).toContain('(lookup_multiple_rows)');
+  });
+  it('lookup not wired (misconfiguration) + Local metadata -> EN, sent', async () => {
+    const { status, calls, logs } = await run(recovery, { lookup: null });
+    expect(status).toBe(200);
+    expectIntl(calls[0]);
+    expect(logs.join('\n')).toContain('(lookup_not_configured)');
+  });
+  it('a failing lookup leaks no secret, id, address or database message into logs or the response', async () => {
+    const SECRET = 'sb_secret_SYNTHETIC_ONLY';
+    const { status, json, logs } = await run(recovery, { lookup: async () => { throw new Error(`boom ${SECRET} ${VERIFIED_ID} current.owner@example.test`); } });
+    expect(status).toBe(200);
+    const all = `${logs.join('\n')}\n${JSON.stringify(json)}`;
+    for (const s of [SECRET, VERIFIED_ID, 'current.owner@example.test', 'boom']) expect(all).not.toContain(s);
+  });
+});
+
+describe('Option C - trust boundary: the lookup uses only the verified payload user.id, and only for a sendable request', () => {
+  const payload = FLOWS.recovery({ signup_market: 'Local' });
+  it('invalid signature -> 401, no lookup, nothing sent', async () => {
+    const { status, calls, lookupCalls } = await run(payload, { req: signedRequest(payload, { signature: `v1,${Buffer.alloc(32).toString('base64')}` }), lookup: rowsLookup('Local') });
+    expect(status).toBe(401);
+    expect(calls).toHaveLength(0);
+    expect(lookupCalls).toHaveLength(0);
+  });
+  it('unsupported action -> 400, no lookup', async () => {
+    const { status, lookupCalls } = await run({ user: makeUser(), email_data: makeEmailData({ email_action_type: 'email', token_hash: 'h' }) }, { lookup: rowsLookup('Local') });
+    expect(status).toBe(400);
+    expect(lookupCalls).toHaveLength(0);
+  });
+  it('a non-UUID user.id is never sent to the database -> EN fail-closed', async () => {
+    const { status, calls, lookupCalls } = await run({ ...payload, user: { ...payload.user, id: 'x-or-1-eq-1' } }, { lookup: rowsLookup('Local') });
+    expect(status).toBe(200);
+    expect(lookupCalls).toHaveLength(0);
+    expectIntl(calls[0]);
+  });
+});
+
+describe('Option C - redelivery with a different market resolution never produces a second email', () => {
+  // Resend idempotency (documented): same key + same body -> original response, no new email; same key + different body ->
+  // 409 invalid_idempotent_request; concurrent same key -> 409 concurrent_idempotent_requests.
+  function idempotentResend({ concurrentOnKey } = {}) {
+    const store = new Map();
+    const accepted = [];
+    const calls = [];
+    const fetch = async (url, init) => {
+      const key = init.headers['Idempotency-Key'];
+      calls.push({ url, headers: init.headers, body: JSON.parse(init.body) });
+      if (concurrentOnKey === key) return new Response(JSON.stringify({ name: 'concurrent_idempotent_requests' }), { status: 409 });
+      if (store.has(key)) {
+        return store.get(key).body === init.body
+          ? new Response(JSON.stringify({ id: store.get(key).id }), { status: 200 })
+          : new Response(JSON.stringify({ name: 'invalid_idempotent_request', message: 'different payload' }), { status: 409 });
+      }
+      const id = `resend_${store.size + 1}`;
+      store.set(key, { body: init.body, id });
+      accepted.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ id }), { status: 200 });
+    };
+    return { fetch, calls, accepted };
+  }
+  const payload = FLOWS.recovery({ signup_market: 'Local' });
+
+  it('attempt 1 lookup timeout (EN sent); redelivery resolves Local (HE) -> 409, hook fails, still exactly ONE accepted email, same key', async () => {
+    const resend = idempotentResend();
+    const first = await run(payload, { resend, lookup: hangingLookup, lookupTimeoutMs: 20 });
+    expect(first.status).toBe(200);
+    const second = await run(payload, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
+    expect(second.status).toBe(500);
+    expect(second.json.error.message).toBe('Email not sent: idempotency conflict for this request');
+    expect(resend.accepted).toHaveLength(1);
+    expect(resend.accepted[0].from).toBe(INTL_FROM);
+    expect(new Set(resend.calls.map((c) => c.headers['Idempotency-Key']))).toEqual(new Set(['auth-hook/msg_synthetic_0001/primary']));
+    expect(second.logs.join('\n')).toContain('Resend idempotency conflict (invalid_idempotent_request); not re-sent.');
+  });
+
+  it('redelivery with the same resolution -> 200, provider dedup, still one accepted email', async () => {
+    const resend = idempotentResend();
+    await run(payload, { resend, lookup: rowsLookup('Local') });
+    const again = await run(payload, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
+    expect(again.status).toBe(200);
+    expect(resend.accepted).toHaveLength(1);
+    expect(resend.accepted[0].from).toBe(LOCAL_FROM);
+  });
+
+  it('secure email change redelivery with a changed market: conflict on the first slot, no new key, no extra email', async () => {
+    const resend = idempotentResend();
+    const change = FLOWS.secure_email_change({});
+    expect((await run(change, { resend, lookup: rowsLookup('International') })).status).toBe(200);
+    const again = await run(change, { resend, lookup: rowsLookup('Local') });
+    expect(again.status).toBe(500);
+    expect(resend.accepted).toHaveLength(2);
+    for (const c of resend.calls) expect(['auth-hook/msg_synthetic_0001/current', 'auth-hook/msg_synthetic_0001/new']).toContain(c.headers['Idempotency-Key']);
+  });
+
+  it('concurrent same-key request -> 409 concurrent_idempotent_requests -> hook fails, nothing new accepted', async () => {
+    const resend = idempotentResend({ concurrentOnKey: 'auth-hook/msg_synthetic_0001/primary' });
+    const r = await run(payload, { resend, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(500);
+    expect(resend.accepted).toHaveLength(0);
+    expect(r.logs.join('\n')).toContain('(concurrent_idempotent_requests)');
   });
 });
