@@ -47,5 +47,19 @@
 6. The gate strength: the negative controls in `seoInitialHtml.test.jsx` (the live-shape document fails; wrong-locale markup fails; USD in the Local landing fails).
 7. **Residual:** a returning visitor whose preference exists only in `localStorage` from BEFORE this release gets geo / Accept-Language once, until `main.jsx` writes the cookie on their next page load.
 
+## 4a. Favicon option A (Owner-approved; commit `06f4ff862877965c2862706e96a145f0501ba72d`)
+- **What:** the existing 512 master symbol, cropped to its own bbox and scaled uniformly to width = size − 1 px (0.5 px margin each side), 8× supersampled and centered.
+  - No clipping: the solid bbox stays inside the canvas; the edge columns are anti-alias only (max α 31 / 55 / 94 / 111).
+  - No distortion (h / w 0.823 kept) and no colour / geometry / wordmark change.
+- **Linear gain:** 32 px +6.7 %; 64 px +10.3 %; 192 px +12.9 %; 512 px +13.3 %. Area fill: 70 / 68 / 65 / 64 % → 81–83 %.
+- **Why not +20–30 %:** the symbol is wide and was already 88–94 % of the width.
+- **Evidence:** `favicon-option-a/` (the before files, `favicon-occupancy.json`, `favicon-before-after-sheet.png`).
+- **Gates:** build (prerender 10 / 10), full suite 161 / 4499, eslint 0 errors, `git diff --check`, asset-completeness PASS.
+
+## 4b. Vercel Preview proof — PENDING (blocked in the Claude session)
+- The Preview deployment was blocked by the Claude Code session's safety policy ("create public surface"); it was not attempted another way.
+- The exact Owner-run command + read-only verifiers are in `VERCEL_PREVIEW_PROOF.md`.
+- **Until run, "Vercel serves `dist/<route>/index.html` before the `/(.*)` rewrite" and "the Edge 302 on Vercel" remain UNPROVEN.**
+
 ## 5. Requested verdict
 `CODEX SEO INITIAL-HTML REVIEW: PASS / FAIL`, with blockers as file:line and "NEW BLOCKING FINDINGS: <n>".
