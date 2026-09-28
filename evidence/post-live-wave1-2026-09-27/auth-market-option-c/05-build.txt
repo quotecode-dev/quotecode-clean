@@ -1,0 +1,6 @@
+# vite build at 56bca555df73ce9a7c60d74a11e3c0618c22b419 (2026-09-28T06:43:04Z); outDir = session scratchpad (not the candidate worktree), removed after
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 23.65s[39m
+exit=0

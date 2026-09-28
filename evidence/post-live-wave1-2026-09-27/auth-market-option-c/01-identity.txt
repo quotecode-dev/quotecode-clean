@@ -1,0 +1,44 @@
+# Option C (F1) - candidate identity (2026-09-28T06:42:07Z), worktree C:\tkpl-wave1
+HEAD 56bca555df73ce9a7c60d74a11e3c0618c22b419
+parent 8e5ac5871d502c401bb653066a5304bf15d76b75  (= previous candidate 8e5ac58, preserved)
+branch tekango-post-live-wave1-2026-09-27
+LIVE base e2090a4: ancestor
+status --porcelain lines: 1
+remote-tracking refs containing HEAD: 0
+
+## files changed vs 8e5ac58
+src/data/productTruthInteractiveBaseline.json
+supabase/functions/auth-send-email-hook/emailContent.test.js
+supabase/functions/auth-send-email-hook/emailContent.ts
+supabase/functions/auth-send-email-hook/handler.test.js
+supabase/functions/auth-send-email-hook/handler.ts
+supabase/functions/auth-send-email-hook/index.ts
+supabase/functions/auth-send-email-hook/marketLookup.test.js
+supabase/functions/auth-send-email-hook/marketLookup.ts
+supabase/functions/auth-send-email-hook/marketResolver.test.js
+supabase/functions/auth-send-email-hook/marketResolver.ts
+
+## Stages 1 / 2 / 4 untouched (git diff --quiet 8e5ac58 HEAD -- <path>)
+UNCHANGED supabase/migrations
+UNCHANGED supabase/functions/send-trial-expiration-email
+UNCHANGED api
+UNCHANGED vercel.json
+UNCHANGED index.html
+UNCHANGED package.json
+UNCHANGED package-lock.json
+UNCHANGED vite.config.js
+UNCHANGED supabase/config.toml
+src/ changed files: src/data/productTruthInteractiveBaseline.json (Product Truth baseline fixture only)
+
+## migration 20260927000000 bytes (Stage 1 package binding)
+97d2017ed55ce06ca4683973adc69e48372d87a74e9c60e5a26d8b3a60a1d729 *-
+
+## auth-send-email-hook deploy input at HEAD (runtime .ts files, git objects)
+a3f39df6020dd422be882ffb0108343a9dab7bb94bf601c6991548b8d008a6d7  supabase/functions/auth-send-email-hook/emailContent.ts
+ec6543a7440795a32b0ac71b4b0f999e6ef91b93de5c191937d0d3284785c44f  supabase/functions/auth-send-email-hook/emailPlan.ts
+d16847f3b9c2a7834db05e194678904e33796a824224bceec1f1ba117a377520  supabase/functions/auth-send-email-hook/handler.ts
+d5387a2848a3e4c6dc23d911713768198febc1882ccdcd209e658c892b6a5cd3  supabase/functions/auth-send-email-hook/index.ts
+5743605b01e926e30a3bb65b20aa8bef66e113df6e94fa0ef2229317bc59a301  supabase/functions/auth-send-email-hook/marketLookup.ts
+07af22d7dd40097bce25cdf578449c97803d0af3598bc37edf1443b502dccd5f  supabase/functions/auth-send-email-hook/marketResolver.ts
+7e00d4c03409b5876ef6d446cbe9f4fc54771ee5c3ea316af6007330d5342585  supabase/functions/auth-send-email-hook/webhookVerify.ts
+note: the single untracked status line is this evidence folder (evidence/post-live-wave1-2026-09-27/auth-market-option-c/), written after the code commit; tracked files are clean at HEAD.

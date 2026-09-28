@@ -164,3 +164,9 @@ Identity: remediation commit `89f38414bd9a2e9a5f3837061f47db4759b223df` (tree `d
 SHA-256 of every artifact: `codex-blocker-remediation/SHA256SUMS.txt`.
 
 **Blocker closure (local):** 1 CLOSED · 2 CLOSED · 3 CLOSED · 4 CLOSED · 5 CLOSED — each by code + tests at `89f3841`; blocker 3 also by the disposable-DB proof and the negative control. **Not claimed:** any TEST / Production / browser / real-email terminal behavior (§8.10). Next step: independent Codex re-review of this branch head. Production remains NOT authorized; push NOT performed.
+
+## 9. Auth market identity gap F1 — Option C (2026-09-28, Owner-approved; delta on top of `8e5ac58`)
+- **Code commit:** `56bca555df73ce9a7c60d74a11e3c0618c22b419`, auth-send-email-hook only + the Product Truth baseline fixture (+2 zero-gap entries). It is NOT reviewed yet.
+- **What changed:** canonical `business_settings.country` first; `signup_market` only while no row exists; fail closed to International. Stages 1 / 2 / 4 bytes are unchanged.
+- **Delta review package + evidence:** `auth-market-option-c/CODEX_OPTION_C_DELTA_REVIEW_PACKAGE.md`. Verification is bound to `56bca55`: hook suite 247 / 247; full suite 159 files / 4404 tests; eslint 0 errors; build OK; negative control 42 FAIL under the old behavior; deno check NOT RUN.
+- **Status:** `8e5ac58` remains the previous candidate (history). Stage 3 still requires an independent Codex delta review + a TEST re-proof + Owner Production authorization.

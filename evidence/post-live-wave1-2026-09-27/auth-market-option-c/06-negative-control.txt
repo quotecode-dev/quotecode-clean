@@ -1,0 +1,7 @@
+# negative control at 56bca555df73ce9a7c60d74a11e3c0618c22b419 (2026-09-28T06:44:45Z)
+mutation: handler.ts resolves with a forced zero-row lookup ({ ok: true, rows: [] }) = the pre-Option-C metadata-only behavior
+mutated lines: 1
+⎯⎯⎯⎯⎯⎯ Failed Tests 42 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  42 failed | 85 passed (127)
+restored: git blob identical to HEAD (1d2441e1f2d15b415ec08fc62d4ddeb5ab3923e8)
+expected: the Option C canonical-row / failure / idempotency tests FAIL under the mutation -> the tests detect the defect

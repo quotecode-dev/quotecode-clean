@@ -1,0 +1,19 @@
+# deno check - NOT RUN for code commit 56bca555df73ce9a7c60d74a11e3c0618c22b419 (2026-09-28)
+
+Reason:
+- On this host, `deno check` runs only through the Docker deno image. Docker is NOT authorized for this implementation task.
+- `tsc` is not installed in the candidate. Installing it (npx) would be an unauthorized download: it was refused with
+  `--no-install`, nothing was installed, and the empty npx staging folder was removed.
+
+What is and is not covered:
+- handler.ts, marketResolver.ts, marketLookup.ts, emailPlan.ts, emailContent.ts and webhookVerify.ts have no URL imports.
+  vitest executes them (esbuild transpile), so syntax and runtime behavior are proven (02-targeted-tests.txt). A static
+  TypeScript type check is NOT proven.
+- index.ts (Deno wiring: std serve + esm.sh supabase-js createClient -> makeBusinessMarketLookup) is not executed by any
+  test here.
+- The earlier 08-deno-check PASS of 89f3841 does not transfer to this commit.
+
+Required before Stage 3 (to be closed by the separate TEST re-proof task):
+- a `deno check` of index.ts (Docker, separately authorized) OR the TEST deploy itself
+  (`supabase functions deploy ... --use-api`, server-side bundling) plus a live TEST invocation.
+- The decisive TEST cell also proves the service-role lookup end to end.
