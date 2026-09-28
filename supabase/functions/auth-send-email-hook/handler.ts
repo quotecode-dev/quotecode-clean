@@ -16,18 +16,21 @@
 // Auth market identity gap F1 - Option C (2026-09-28): the market comes from the CANONICAL business_settings.country row of
 // the verified user (one narrow service-role read, marketLookup.ts), with user_metadata.signup_market used ONLY while no row
 // exists; unresolved / failed lookups fail closed to International and the email is still sent (marketResolver.ts).
-// A redelivery keeps the SAME Idempotency-Key per slot even if the market resolves differently this time, so a retry can
-// never produce a second email. The Resend 409 lifecycle (Codex Option C delta review blocker P1, 2026-09-28) is handled by
-// the provider's error `name`, not by the status alone - see resendSend.ts:
-//   invalid_idempotent_request      -> key already consumed by an earlier attempt of this slot -> acknowledged, not re-sent;
-//   concurrent_idempotent_requests  -> bounded same-key / same-body retry inside the hook budget, else retry-able 503;
-//   any other 409                   -> explicit failure (never "already sent", never another key).
+// Idempotency + deadline (Codex Auth 409 delta RE-review blockers A + B, 2026-09-28 - see resendSend.ts for the verified
+// Supabase / Resend contracts):
+// - A: the provider Idempotency-Key is a LOGICAL-EVENT key derived from the verified raw request body (byte-identical across
+//   Supabase retries, which carry a NEW webhook-id each time) + the slot, HMAC-keyed with the hook secret. It does not depend
+//   on the webhook-id or on the resolved market, so a Supabase retry or a changed-market redelivery can never send twice.
+// - B: ONE invocation deadline (INVOCATION_BUDGET_MS from entry) bounds the market lookup, every provider request, every
+//   error-body read, the concurrent-conflict retries and BOTH secure-email-change slots. No platform retry is requested.
+// Resend 409 by provider error `name`: invalid_idempotent_request -> already consumed (acknowledged, not re-sent);
+// concurrent_idempotent_requests -> bounded same-key / same-body retries inside the remaining budget; any other 409 -> failure.
 
-import { verifyStandardWebhook } from './webhookVerify.ts';
+import { verifyStandardWebhook, parseHookSecret } from './webhookVerify.ts';
 import { planAuthEmails, type SendEmailHookPayload } from './emailPlan.ts';
 import { buildEmailContent, senderAddressFor } from './emailContent.ts';
 import { MARKET_LOOKUP_TIMEOUT_MS, resolveAuthEmailMarket, runMarketLookupWithTimeout } from './marketResolver.ts';
-import { sendWithIdempotency } from './resendSend.ts';
+import { INVOCATION_BUDGET_MS, MIN_PROVIDER_REQUEST_WINDOW_MS, deriveIdempotencyKey, remainingMs, sendWithIdempotency, type Deadline } from './resendSend.ts';
 
 export type HookDeps = {
   env: (name: string) => string | undefined;
@@ -37,9 +40,23 @@ export type HookDeps = {
   // Canonical market read (marketLookup.ts makeBusinessMarketLookup). Missing -> fail closed to International.
   lookupMarketRows?: (userId: string, signal: AbortSignal) => Promise<ReadonlyArray<{ country?: unknown }>>;
   marketLookupTimeoutMs?: number;
-  // Elapsed-time clock + sleep for the hook budget (defaults: Date.now / setTimeout); injectable for tests.
+  // Elapsed-time clock, sleep and timer for the one invocation deadline (defaults: Date.now / setTimeout); injectable for tests.
   clockMs?: () => number;
   sleep?: (ms: number) => Promise<void>;
+  setTimer?: (ms: number, fn: () => void) => () => void;
+  invocationBudgetMs?: number;
+};
+
+const LOOKUP_SLACK_MS = 100;
+
+// Every non-completed provider outcome -> explicit 500 (no 429/503 + Retry-After: Supabase would re-invoke inside the same
+// 5 s context; duplicate prevention never relies on it).
+const FAILURE_MESSAGES: Record<string, string> = {
+  not_started: 'Email not sent: hook time budget exhausted before the provider request',
+  ambiguous: 'Email delivery outcome unknown within the hook time budget',
+  concurrent_unresolved: 'Email send for this Auth event is still in progress; not completed within the hook time budget',
+  conflict_unknown: 'Email not sent: unrecognized idempotency conflict',
+  provider_error: 'Failed to send email via Resend',
 };
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
@@ -54,7 +71,8 @@ function hookError(status: number, message: string) {
 export async function handleSendEmailHook(req: Request, deps: HookDeps): Promise<Response> {
   const log = deps.log ?? console.error;
   const clockMs = deps.clockMs ?? (() => Date.now());
-  const hookStartedAtMs = clockMs();
+  // ONE invocation deadline, created at entry; every downstream step consumes the same remaining budget.
+  const deadline: Deadline = { deadlineAtMs: clockMs() + (deps.invocationBudgetMs ?? INVOCATION_BUDGET_MS), clockMs };
 
   if (req.method !== 'POST') return hookError(405, 'Method not allowed');
 
@@ -104,36 +122,40 @@ export async function handleSendEmailHook(req: Request, deps: HookDeps): Promise
       return hookError(400, `Unsupported or incomplete hook payload (${plan.reason})`);
     }
 
-    // Only after verification + a sendable plan: one bounded canonical lookup by the VERIFIED payload's user.id.
-    const lookup = await runMarketLookupWithTimeout(deps.lookupMarketRows, payload.user?.id, deps.marketLookupTimeoutMs ?? MARKET_LOOKUP_TIMEOUT_MS);
+    // Logical-event identity material: the decoded hook secret (already required for verification) + the verified raw body.
+    const secretBytes = parseHookSecret(hookSecret);
+    if (!secretBytes) return hookError(500, 'Hook not configured');
+    log(`auth-send-email-hook: idempotency identity = verified-body digest (metadata.uuid ${typeof (payload as { metadata?: { uuid?: unknown } }).metadata?.uuid === 'string' ? 'present' : 'absent'}).`);
+
+    // Only after verification + a sendable plan: one bounded canonical lookup by the VERIFIED payload's user.id. Its time
+    // comes out of the SAME invocation budget and always leaves room for one provider request.
+    // (+ LOOKUP_SLACK_MS so the elapsed-time jitter of the lookup itself can never eat into that one request window)
+    const lookupBudgetMs = Math.min(deps.marketLookupTimeoutMs ?? MARKET_LOOKUP_TIMEOUT_MS, remainingMs(deadline) - MIN_PROVIDER_REQUEST_WINDOW_MS - LOOKUP_SLACK_MS);
+    const lookup = lookupBudgetMs > 0
+      ? await runMarketLookupWithTimeout(deps.lookupMarketRows, payload.user?.id, lookupBudgetMs)
+      : { ok: false as const, reason: 'timeout' as const };
     const market = resolveAuthEmailMarket(lookup, payload.user?.user_metadata ?? null);
     if (market.source === 'fail_closed') log(`auth-send-email-hook: market fail-closed to International (${market.classification}).`);
     const isHebrew = market.market === 'Local';
-    // Secure email change sends two messages; each is sent (and idempotency-keyed) separately. If one fails the hook
-    // fails, Auth reports the change request as failed, and a retry of the same webhook-id cannot duplicate the one
-    // that already went out (same idempotency key, same payload).
+    // Secure email change sends two messages, in order (current, then new), each with its OWN logical-event key and under the
+    // SAME deadline. A consumed slot does not block the next; an unfinished slot stops the invocation before the next starts.
     const sendDeps = {
       fetch: deps.fetch,
-      clockMs,
+      deadline,
       sleep: deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))),
+      setTimer: deps.setTimer ?? ((ms: number, fn: () => void) => { const t = setTimeout(fn, ms); return () => clearTimeout(t); }),
       log,
     };
     for (const { slot, message } of plan.messages) {
       const { subject, html, text } = buildEmailContent(message, isHebrew);
       const outcome = await sendWithIdempotency({
         apiKey: resendApiKey,
-        idempotencyKey: `auth-hook/${webhookId}/${slot}`, // stable per webhook-id + slot; never regenerated
+        idempotencyKey: await deriveIdempotencyKey(secretBytes, rawBody, slot), // logical event + slot; never webhook-id / market
         body: JSON.stringify({ from: senderAddressFor(isHebrew), to: [message.to], subject, html, text }),
         slot,
-        hookStartedAtMs,
       }, sendDeps);
-      if (outcome.kind === 'sent' || outcome.kind === 'already_consumed') continue; // next slot keeps its own key
-      if (outcome.kind === 'concurrent_unresolved' || outcome.kind === 'retry_aborted') {
-        // Retry-able: Supabase Auth redelivers the SAME webhook-id (same keys) - the in-flight request then resolves.
-        return hookError(503, 'Email send for this request is still in progress; retry');
-      }
-      if (outcome.kind === 'conflict_unknown') return hookError(500, 'Email not sent: unrecognized idempotency conflict');
-      return hookError(500, 'Failed to send email via Resend');
+      if (outcome.kind === 'sent' || outcome.kind === 'already_consumed') continue;
+      return hookError(500, FAILURE_MESSAGES[outcome.kind] ?? FAILURE_MESSAGES.provider_error);
     }
 
     return jsonResponse({}, 200);

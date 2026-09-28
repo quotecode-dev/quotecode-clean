@@ -1,121 +1,146 @@
 import { describe, it, expect } from 'vitest';
+import { createHmac } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import {
-  CONCURRENT_RETRY_DELAYS_MS, HOOK_TIMEOUT_MS, MIN_RETRY_REQUEST_WINDOW_MS, RETRY_DEADLINE_MS, providerErrorName, sendWithIdempotency,
+  CONCURRENT_RETRY_DELAYS_MS, INVOCATION_BUDGET_MS, MIN_PROVIDER_REQUEST_WINDOW_MS, SUPABASE_HOOK_TIMEOUT_MS, deriveIdempotencyKey, providerErrorName,
+  sendWithIdempotency,
 } from './resendSend.ts';
 
-// Codex Option C delta review blocker P1 (2026-09-28): Resend 409 lifecycle by provider error name + hook time budget.
-const KEY = 'auth-hook/msg_unit/primary';
+// Codex Auth 409 delta RE-review blockers A + B (2026-09-28): logical-event key derivation, the Resend 409 lifecycle and the
+// ONE invocation deadline. Synthetic values only.
+const SECRET = new Uint8Array(Buffer.from('synthetic-hook-secret-for-tests-only-0123456789'));
+const RAW = JSON.stringify({ metadata: { uuid: '0f5a8a52-3c1e-4c55-9a55-000000000001' }, user: { id: 'u', email: 'a@example.test' }, email_data: { email_action_type: 'recovery', token_hash: 'th_1' } });
+const KEY = 'tekango-auth/v1/primary/unit';
 const BODY = JSON.stringify({ from: 'TEKANGO <info@tekango.com>', to: ['a@example.test'], subject: 's', html: 'h', text: 't' });
 const concurrent = () => new Response(JSON.stringify({ statusCode: 409, name: 'concurrent_idempotent_requests', message: 'in progress' }), { status: 409 });
-const args = (hookStartedAtMs) => ({ apiKey: 're_synthetic', idempotencyKey: KEY, body: BODY, slot: 'primary', hookStartedAtMs });
+const invalid = () => new Response(JSON.stringify({ statusCode: 409, name: 'invalid_idempotent_request' }), { status: 409 });
 
-function fakeDeps({ responses, clock = { t: 0 } }) {
-  const calls = [];
-  const sleeps = [];
-  const logs = [];
+function fake({ responses, clock = { t: 0 }, budget = INVOCATION_BUDGET_MS }) {
+  const calls = []; const sleeps = []; const timers = []; const logs = [];
+  const deadline = { deadlineAtMs: clock.t + budget, clockMs: () => clock.t };
   return {
-    calls, sleeps, logs, clock,
+    calls, sleeps, timers, logs, clock,
     deps: {
-      fetch: async (url, init) => { calls.push({ key: init.headers['Idempotency-Key'], body: init.body, hasSignal: !!init.signal }); const r = responses.shift(); return typeof r === 'function' ? r(init) : r; },
-      clockMs: () => clock.t,
+      fetch: async (url, init) => { calls.push({ key: init.headers['Idempotency-Key'], body: init.body, signal: init.signal }); const r = responses.shift(); return typeof r === 'function' ? r(init) : r; },
+      deadline,
       sleep: async (ms) => { sleeps.push(ms); clock.t += ms; },
+      setTimer: (ms, fn) => { timers.push(ms); const t = setTimeout(fn, ms); return () => clearTimeout(t); },
       log: (...a) => logs.push(a.join(' ')),
     },
   };
 }
+const send = (deps) => sendWithIdempotency({ apiKey: 're_synthetic', idempotencyKey: KEY, body: BODY, slot: 'primary' }, deps);
 
-describe('providerErrorName - documented discriminator only', () => {
-  it('reads `name`; anything unexpected is "" (unknown)', async () => {
-    const r = (b) => new Response(b, { status: 409 });
-    expect(await providerErrorName(r(JSON.stringify({ name: 'invalid_idempotent_request' })))).toBe('invalid_idempotent_request');
-    expect(await providerErrorName(r(JSON.stringify({ name: 'concurrent_idempotent_requests', statusCode: 409 })))).toBe('concurrent_idempotent_requests');
-    for (const b of ['', 'x', 'null', '[]', JSON.stringify({ name: 42 }), JSON.stringify({ name: 'Bad Name!' }), JSON.stringify({ name: 'a'.repeat(65) }), JSON.stringify({ error: 'x' })]) {
-      expect(await providerErrorName(r(b)), b).toBe('');
+describe('deriveIdempotencyKey - logical-event identity', () => {
+  it('deterministic, matches an independent node:crypto derivation, no webhook-id / market input', async () => {
+    const k = await deriveIdempotencyKey(SECRET, RAW, 'primary');
+    const mac = createHmac('sha256', Buffer.from(SECRET)).update(`tekango-auth-email-idempotency/v1\nprimary\n${RAW}`).digest('base64url');
+    expect(k).toBe(`tekango-auth/v1/primary/${mac}`);
+    expect(await deriveIdempotencyKey(SECRET, RAW, 'primary')).toBe(k);
+  });
+  it('slot, body and secret each change the key; the key never contains payload material', async () => {
+    const k = await deriveIdempotencyKey(SECRET, RAW, 'primary');
+    expect(await deriveIdempotencyKey(SECRET, RAW, 'current')).not.toBe(k);
+    expect(await deriveIdempotencyKey(SECRET, RAW.replace('th_1', 'th_2'), 'primary')).not.toBe(k);
+    expect(await deriveIdempotencyKey(SECRET, RAW.replace('000000000001', '000000000002'), 'primary')).not.toBe(k);
+    expect(await deriveIdempotencyKey(new Uint8Array([1, 2, 3]), RAW, 'primary')).not.toBe(k);
+    for (const s of ['a@example.test', 'th_1', '0f5a8a52', 'recovery']) expect(k).not.toContain(s);
+    expect(k.length).toBeLessThanOrEqual(256);
+  });
+  it('missing / malformed identity input -> explicit error (never a guessed key)', async () => {
+    for (const [secret, raw, slot] of [[new Uint8Array(), RAW, 'primary'], [null, RAW, 'primary'], [SECRET, '', 'primary'], [SECRET, null, 'primary'], [SECRET, RAW, ''], [SECRET, RAW, 'Primary/../x']]) {
+      await expect(deriveIdempotencyKey(secret, raw, slot)).rejects.toThrow(/idempotency identity/);
     }
   });
 });
 
-describe('sendWithIdempotency - lifecycle', () => {
-  it('invalid_idempotent_request -> already_consumed, one request, no sleep', async () => {
-    const f = fakeDeps({ responses: [new Response(JSON.stringify({ name: 'invalid_idempotent_request' }), { status: 409 })] });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'already_consumed' });
+describe('providerErrorName - documented discriminator only', () => {
+  it('reads `name`; anything unexpected is "" (unknown)', async () => {
+    const r = (b) => new Response(b, { status: 409 });
+    expect(await providerErrorName(r('{"name":"invalid_idempotent_request"}'))).toBe('invalid_idempotent_request');
+    for (const b of ['', 'x', 'null', '[]', '{"name":42}', '{"name":"Bad Name!"}', JSON.stringify({ name: 'a'.repeat(65) })]) expect(await providerErrorName(r(b)), b).toBe('');
+  });
+});
+
+describe('sendWithIdempotency - lifecycle under the invocation deadline (fake clock)', () => {
+  it('2xx -> sent; one request bounded by the whole remaining budget', async () => {
+    const f = fake({ responses: [new Response('{"id":"e"}', { status: 200 })] });
+    expect(await send(f.deps)).toEqual({ kind: 'sent' });
+    expect(f.timers).toEqual([INVOCATION_BUDGET_MS]);
+    expect(f.calls[0].signal).toBeInstanceOf(AbortSignal);
+  });
+  it('invalid_idempotent_request -> already_consumed; no retry', async () => {
+    const f = fake({ responses: [invalid()] });
+    expect(await send(f.deps)).toEqual({ kind: 'already_consumed' });
     expect(f.calls).toHaveLength(1);
-    expect(f.sleeps).toEqual([]);
   });
-
-  it('concurrent -> retries use the SAME key and the byte-identical body; resolves -> sent', async () => {
-    const f = fakeDeps({ responses: [concurrent(), concurrent(), new Response('{"id":"e1"}', { status: 200 })] });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'sent' });
+  it('concurrent -> same key + identical body retries within budget; resolves -> sent', async () => {
+    const f = fake({ responses: [concurrent(), concurrent(), new Response('{"id":"e"}', { status: 200 })] });
+    expect(await send(f.deps)).toEqual({ kind: 'sent' });
     expect(f.calls.map((c) => c.key)).toEqual([KEY, KEY, KEY]);
-    expect(new Set(f.calls.map((c) => c.body))).toEqual(new Set([BODY]));
+    expect(new Set(f.calls.map((c) => c.body)).size).toBe(1);
     expect(f.sleeps).toEqual([...CONCURRENT_RETRY_DELAYS_MS]);
-    expect(f.calls.slice(1).every((c) => c.hasSignal)).toBe(true); // every retry is deadline-bounded
   });
-
-  it('concurrent, then the in-flight original finished with a different body -> already_consumed', async () => {
-    const f = fakeDeps({ responses: [concurrent(), new Response(JSON.stringify({ name: 'invalid_idempotent_request' }), { status: 409 })] });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'already_consumed' });
+  it('concurrent, then the original finished with another body -> already_consumed', async () => {
+    const f = fake({ responses: [concurrent(), invalid()] });
+    expect(await send(f.deps)).toEqual({ kind: 'already_consumed' });
   });
-
-  it('concurrent that never resolves -> concurrent_unresolved after exactly the bounded retries', async () => {
-    const f = fakeDeps({ responses: [concurrent(), concurrent(), concurrent(), concurrent()] });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'concurrent_unresolved' });
-    expect(f.calls).toHaveLength(1 + CONCURRENT_RETRY_DELAYS_MS.length);
+  it('concurrent never resolving -> concurrent_unresolved after the bounded retries', async () => {
+    const f = fake({ responses: [concurrent(), concurrent(), concurrent()] });
+    expect(await send(f.deps)).toEqual({ kind: 'concurrent_unresolved' });
+    expect(f.calls).toHaveLength(3);
   });
-
-  it('budget gate: a retry is started only if it can finish by RETRY_DEADLINE_MS', async () => {
-    // started 2800 ms ago: 2800 + 250 + 700 <= 4000 -> one retry; then 3050 + 500 + 700 > 4000 -> stop
-    const f = fakeDeps({ responses: [concurrent(), concurrent()], clock: { t: 2800 } });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'concurrent_unresolved' });
-    expect(f.sleeps).toEqual([250]);
-    // started 3100 ms ago: no retry at all
-    const g = fakeDeps({ responses: [concurrent()], clock: { t: 3100 } });
-    expect(await sendWithIdempotency(args(0), g.deps)).toEqual({ kind: 'concurrent_unresolved' });
-    expect(g.sleeps).toEqual([]);
+  it('retries are gated by the REMAINING budget (not a private budget)', async () => {
+    const f = fake({ responses: [concurrent(), concurrent()], clock: { t: 0 }, budget: 1000 });
+    expect(await send(f.deps)).toEqual({ kind: 'concurrent_unresolved' });
+    expect(f.sleeps).toEqual([250]); // 1000 >= 250 + 600; then 750 < 500 + 600
+    expect(f.timers.every((ms) => ms <= 1000)).toBe(true);
   });
-
-  it('a retry request that fails / is aborted -> retry_aborted (outcome unknown, never "sent")', async () => {
-    const f = fakeDeps({ responses: [concurrent(), () => Promise.reject(new Error('network'))] });
-    expect(await sendWithIdempotency(args(0), f.deps)).toEqual({ kind: 'retry_aborted' });
+  it('less than one request window left -> not_started (no request at all)', async () => {
+    const f = fake({ responses: [], budget: MIN_PROVIDER_REQUEST_WINDOW_MS - 1 });
+    expect(await send(f.deps)).toEqual({ kind: 'not_started' });
+    expect(f.calls).toHaveLength(0);
   });
-
-  it('unknown 409 and non-409 errors: no retry; only status + name are logged', async () => {
-    const u = fakeDeps({ responses: [new Response('{"name":"brand_new_409"}', { status: 409 })] });
-    expect(await sendWithIdempotency(args(0), u.deps)).toEqual({ kind: 'conflict_unknown' });
-    const p = fakeDeps({ responses: [new Response(JSON.stringify({ name: 'rate_limit_exceeded', message: 'a@example.test' }), { status: 429 })] });
-    expect(await sendWithIdempotency(args(0), p.deps)).toEqual({ kind: 'provider_error', status: 429, name: 'rate_limit_exceeded' });
-    expect(p.calls).toHaveLength(1);
+  it('request failure -> ambiguous (never "sent"); unknown 409 -> conflict_unknown; non-409 -> provider_error (name only logged)', async () => {
+    const a = fake({ responses: [() => Promise.reject(new Error('reset a@example.test'))] });
+    expect(await send(a.deps)).toEqual({ kind: 'ambiguous' });
+    expect(a.logs.join('\n')).not.toContain('a@example.test');
+    const u = fake({ responses: [new Response('{"name":"brand_new_409"}', { status: 409 })] });
+    expect(await send(u.deps)).toEqual({ kind: 'conflict_unknown' });
+    const p = fake({ responses: [new Response(JSON.stringify({ name: 'rate_limit_exceeded', message: 'a@example.test' }), { status: 429 })] });
+    expect(await send(p.deps)).toEqual({ kind: 'provider_error', status: 429, name: 'rate_limit_exceeded' });
     expect(p.logs.join('\n')).not.toContain('a@example.test');
   });
 });
 
-describe('hook time budget (real clock and timers)', () => {
-  it('constants keep >= 1 s margin inside the documented 5 s hook limit', () => {
-    expect(HOOK_TIMEOUT_MS).toBe(5000);
-    expect(RETRY_DEADLINE_MS).toBeLessThanOrEqual(HOOK_TIMEOUT_MS - 1000);
-    expect(CONCURRENT_RETRY_DELAYS_MS.reduce((a, b) => a + b, 0)).toBeLessThan(RETRY_DEADLINE_MS);
-    expect(MIN_RETRY_REQUEST_WINDOW_MS).toBeGreaterThan(0);
+describe('sendWithIdempotency - real clock bounds', () => {
+  const realDeps = (fetch, budget) => ({
+    fetch,
+    deadline: { deadlineAtMs: Date.now() + budget, clockMs: () => Date.now() },
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    setTimer: (ms, fn) => { const t = setTimeout(fn, ms); return () => clearTimeout(t); },
+    log: () => {},
   });
-
-  it('worst case with an immediately-answering provider: total retry logic < 1 s', async () => {
+  it('constants: invocation budget leaves >= 1.5 s under the documented 5 s Supabase limit', () => {
+    expect(SUPABASE_HOOK_TIMEOUT_MS).toBe(5000);
+    expect(INVOCATION_BUDGET_MS).toBeLessThanOrEqual(SUPABASE_HOOK_TIMEOUT_MS - 1500);
+  });
+  it('a hanging request (even one ignoring the abort signal) ends at the deadline -> ambiguous', async () => {
     const t0 = Date.now();
-    const out = await sendWithIdempotency(args(t0), { fetch: async () => concurrent(), clockMs: () => Date.now(), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), log: () => {} });
-    const took = Date.now() - t0;
-    expect(out).toEqual({ kind: 'concurrent_unresolved' });
-    expect(took).toBeLessThan(1000);
+    const out = await send(realDeps(() => new Promise(() => {}), 800));
+    expect(out).toEqual({ kind: 'ambiguous' });
+    expect(Date.now() - t0).toBeLessThan(800 + 200);
   });
-
-  it('worst case with a hanging retry: the retry is aborted so the whole send ends by RETRY_DEADLINE_MS after hook start', async () => {
-    const hookStartedAtMs = Date.now() - 3000; // lookup + first send already used 3 s
-    let n = 0;
-    const fetch = (url, init) => {
-      n += 1;
-      if (n === 1) return Promise.resolve(concurrent());
-      return new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted'))));
-    };
-    const out = await sendWithIdempotency(args(hookStartedAtMs), { fetch, clockMs: () => Date.now(), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), log: () => {} });
-    const endedAfterHookStart = Date.now() - hookStartedAtMs;
-    expect(out).toEqual({ kind: 'retry_aborted' });
-    expect(endedAfterHookStart).toBeLessThanOrEqual(RETRY_DEADLINE_MS + 150);
+  it('a stalled error body ends at the deadline', async () => {
+    const t0 = Date.now();
+    const out = await send(realDeps(async () => new Response(new ReadableStream({ start() {} }), { status: 409 }), 800));
+    expect(out).toEqual({ kind: 'conflict_unknown' });
+    expect(Date.now() - t0).toBeLessThan(800 + 200);
+  });
+  it('concurrent forever with an instant provider: all retries finish well inside the budget', async () => {
+    const t0 = Date.now();
+    const out = await send(realDeps(async () => concurrent(), INVOCATION_BUDGET_MS));
+    expect(out).toEqual({ kind: 'concurrent_unresolved' });
+    expect(Date.now() - t0).toBeLessThan(1000);
   });
 });
