@@ -1,0 +1,44 @@
+# 409 micro-closure - identity (2026-09-28T07:01:03Z), worktree C:\tkpl-wave1
+HEAD (code) e4c81b98ecdac80782fe06496a0882560aced4ad
+parent 2648e3ed803d137d2e0a7a5f10a934b5d1b73903 (= 2648e3e, Codex Option C delta review FAIL - preserved predecessor)
+chain: 8e5ac58 -> 56bca55 (Option C code) -> 2648e3e (evidence, FAILED Codex delta) -> e4c81b9 (409 fix)
+branch tekango-post-live-wave1-2026-09-27; tracked dirty at HEAD: 0; remote refs containing HEAD: 0
+
+## files changed vs 2648e3e
+src/data/productTruthInteractiveBaseline.json
+supabase/functions/auth-send-email-hook/handler.test.js
+supabase/functions/auth-send-email-hook/handler.ts
+supabase/functions/auth-send-email-hook/resendSend.test.js
+supabase/functions/auth-send-email-hook/resendSend.ts
+
+## unchanged vs 2648e3e (Option C market / signature-replay / email-change contract / Stages 1-2-4)
+UNCHANGED supabase/functions/auth-send-email-hook/marketResolver.ts
+UNCHANGED supabase/functions/auth-send-email-hook/marketLookup.ts
+UNCHANGED supabase/functions/auth-send-email-hook/webhookVerify.ts
+UNCHANGED supabase/functions/auth-send-email-hook/emailPlan.ts
+UNCHANGED supabase/functions/auth-send-email-hook/emailContent.ts
+UNCHANGED supabase/functions/auth-send-email-hook/index.ts
+UNCHANGED supabase/migrations
+UNCHANGED supabase/functions/send-trial-expiration-email
+UNCHANGED api
+UNCHANGED vercel.json
+UNCHANGED package.json
+UNCHANGED package-lock.json
+UNCHANGED supabase/config.toml
+Stages 1/2/4 vs previous accepted candidate 8e5ac58:
+UNCHANGED supabase/migrations
+UNCHANGED supabase/functions/send-trial-expiration-email
+UNCHANGED api
+UNCHANGED vercel.json
+UNCHANGED package.json
+src/ vs 8e5ac58: src/data/productTruthInteractiveBaseline.json (Product Truth baseline fixture only)
+
+## hook deploy input at HEAD (runtime .ts, git objects)
+a3f39df6020dd422be882ffb0108343a9dab7bb94bf601c6991548b8d008a6d7  supabase/functions/auth-send-email-hook/emailContent.ts
+ec6543a7440795a32b0ac71b4b0f999e6ef91b93de5c191937d0d3284785c44f  supabase/functions/auth-send-email-hook/emailPlan.ts
+b3b0bbbafa9491eda3fbec147b203a396c185e361f9fe121d686a1e7953d0cdd  supabase/functions/auth-send-email-hook/handler.ts
+d5387a2848a3e4c6dc23d911713768198febc1882ccdcd209e658c892b6a5cd3  supabase/functions/auth-send-email-hook/index.ts
+5743605b01e926e30a3bb65b20aa8bef66e113df6e94fa0ef2229317bc59a301  supabase/functions/auth-send-email-hook/marketLookup.ts
+07af22d7dd40097bce25cdf578449c97803d0af3598bc37edf1443b502dccd5f  supabase/functions/auth-send-email-hook/marketResolver.ts
+e444fe9276e10955281e5ee9c7d16eb56680b7c705c2b132ae946dec2bf36353  supabase/functions/auth-send-email-hook/resendSend.ts
+7e00d4c03409b5876ef6d446cbe9f4fc54771ee5c3ea316af6007330d5342585  supabase/functions/auth-send-email-hook/webhookVerify.ts

@@ -170,3 +170,16 @@ SHA-256 of every artifact: `codex-blocker-remediation/SHA256SUMS.txt`.
 - **What changed:** canonical `business_settings.country` first; `signup_market` only while no row exists; fail closed to International. Stages 1 / 2 / 4 bytes are unchanged.
 - **Delta review package + evidence:** `auth-market-option-c/CODEX_OPTION_C_DELTA_REVIEW_PACKAGE.md`. Verification is bound to `56bca55`: hook suite 247 / 247; full suite 159 files / 4404 tests; eslint 0 errors; build OK; negative control 42 FAIL under the old behavior; deno check NOT RUN.
 - **Status:** `8e5ac58` remains the previous candidate (history). Stage 3 still requires an independent Codex delta review + a TEST re-proof + Owner Production authorization.
+
+## 10. Codex Option C delta review — FAIL (1 blocker, P1) and the 409 micro-closure (2026-09-28)
+- **P1:** every Resend 409 became a hook 500, so a changed-market redelivery falsely failed the Auth lifecycle. `2648e3e` is preserved as the failed predecessor.
+- **Fix:** code commit `e4c81b98ecdac80782fe06496a0882560aced4ad`. It adds `resendSend.ts`: a lifecycle keyed on the provider error name.
+  - `invalid_idempotent_request` → acknowledged, not re-sent;
+  - `concurrent_idempotent_requests` → bounded same-key / same-body retries inside the 5 s hook budget, else retry-able 503;
+  - unknown 409 → explicit 500.
+  - Stable keys, Option C market resolution, signature / replay and Stages 1 / 2 / 4 are unchanged.
+- **Re-review package + evidence:** `auth-409-micro-closure/CODEX_409_DELTA_REREVIEW_PACKAGE.md`.
+  - hook suite 272 / 272; full suite 160 files / 4429 tests; eslint 0 errors; build OK;
+  - 3 / 3 mutation controls detected;
+  - deno check NOT RUN (TEST prerequisite).
+- **Status:** an independent Codex delta RE-review is required. Stage 3 is not Production-ready.

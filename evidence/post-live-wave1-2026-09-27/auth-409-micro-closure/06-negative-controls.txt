@@ -1,0 +1,13 @@
+# negative controls at e4c81b98ecdac80782fe06496a0882560aced4ad (2026-09-28T07:03:11Z) - each mutation must make tests FAIL
+## M1 Case A reverted: invalid_idempotent_request -> failure (the rejected 409->500 behavior) (changed lines: 1)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 146 passed (152)
+restored: blob identical (333952f53bd3e520cbedc132f0c5fbeb20f75bc6)
+## M2 Case B treated as already sent: concurrent_idempotent_requests -> already_consumed (changed lines: 1)
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  12 failed | 140 passed (152)
+restored: blob identical (333952f53bd3e520cbedc132f0c5fbeb20f75bc6)
+## M3 unknown 409 treated as sent (changed lines: 1)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 146 passed (152)
+restored: blob identical (333952f53bd3e520cbedc132f0c5fbeb20f75bc6)

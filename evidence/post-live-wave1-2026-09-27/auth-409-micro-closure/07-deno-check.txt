@@ -1,0 +1,8 @@
+# deno check - NOT RUN for code commit e4c81b98ecdac80782fe06496a0882560aced4ad (2026-09-28) - TEST PREREQUISITE
+
+On this host `deno check` runs only through Docker, which is not authorized for this task. No TypeScript tooling was
+installed. Carried forward from the Option C package (auth-market-option-c/07-deno-check.txt): the runtime / type gap of
+index.ts wiring (and now resendSend.ts under Deno) must be closed during the separately authorized TEST redeploy + re-proof
+(deno check via Docker, or server-side bundling on deploy plus live TEST invocations).
+resendSend.ts uses only fetch / Response / AbortController / setTimeout / clearTimeout (standard in Deno and Node) and no URL
+imports; vitest executes it (02-targeted-tests.txt), but a static type check is NOT proven.
