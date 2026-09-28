@@ -1,0 +1,242 @@
+{
+  "preview": "https://quotecode-fk2uq4s3e-quote-code.vercel.app",
+  "deployment": "dpl_GYxMSNu5M7P89nFq97R5SqjnJHfX",
+  "method": "in-page fetch() from the SSO-authenticated Preview origin (raw bytes, no JS executed), validated with scripts/publicRouteHtml.mjs",
+  "at": "2026-09-28T14:22:36.003Z",
+  "sitemapMatchesTable": true,
+  "routes": [
+    {
+      "route": "/he",
+      "status": 200,
+      "redirected": false,
+      "bytes": 64133,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/he"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+      "description": "TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע\"מ אוטומטי לעסקים בישראל.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootTextChars": 3977,
+      "hebrewLetters": 2979,
+      "latinLetters": 99,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en",
+      "status": 200,
+      "redirected": false,
+      "bytes": 66918,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/en"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Business & Quoting SaaS Platform",
+      "description": "TEKANGO is a smart business management SaaS: create quotes, manage clients, get digital signatures, and calculate totals automatically - built for businesses worldwide.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he",
+        "en=/en",
+        "x-default=/"
+      ],
+      "rootTextChars": 4773,
+      "hebrewLetters": 0,
+      "latinLetters": 3822,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/tools",
+      "status": 200,
+      "redirected": false,
+      "bytes": 14065,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/he/tools"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מרכז הכלים והמחשבונים העסקיים",
+      "description": "מחשבון המרת מטבעות, יחידות מידה, מתכות וקריפטו - כלים עסקיים חינמיים ומדויקים מבית TEKANGO.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootTextChars": 945,
+      "hebrewLetters": 651,
+      "latinLetters": 68,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/tools",
+      "status": 200,
+      "redirected": false,
+      "bytes": 14322,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/en/tools"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Business Tools & Calculators Hub",
+      "description": "Free currency converter, unit converter, metals and crypto calculators - accurate business tools from TEKANGO.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/tools",
+        "en=/en/tools"
+      ],
+      "rootTextChars": 1139,
+      "hebrewLetters": 0,
+      "latinLetters": 908,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/contact",
+      "status": 200,
+      "redirected": false,
+      "bytes": 18107,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/he/contact"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - צור קשר ותמיכה",
+      "description": "צרו קשר עם צוות התמיכה של TEKANGO לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootTextChars": 476,
+      "hebrewLetters": 314,
+      "latinLetters": 40,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/contact",
+      "status": 200,
+      "redirected": false,
+      "bytes": 18283,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/en/contact"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Contact Us & Support",
+      "description": "Get in touch with the TEKANGO support team for any question about managing your business and quotes.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/contact",
+        "en=/en/contact"
+      ],
+      "rootTextChars": 580,
+      "hebrewLetters": 0,
+      "latinLetters": 454,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/privacy",
+      "status": 200,
+      "redirected": false,
+      "bytes": 9336,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/he/privacy"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - מדיניות פרטיות",
+      "description": "מדיניות הפרטיות המלאה של פלטפורמת TEKANGO ואופן השימוש בנתוני המשתמשים.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootTextChars": 1337,
+      "hebrewLetters": 988,
+      "latinLetters": 56,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/privacy",
+      "status": 200,
+      "redirected": false,
+      "bytes": 9574,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/en/privacy"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Privacy Policy",
+      "description": "Full Privacy Policy for the TEKANGO platform and how user data is handled.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/privacy",
+        "en=/en/privacy"
+      ],
+      "rootTextChars": 1576,
+      "hebrewLetters": 0,
+      "latinLetters": 1275,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/he/terms",
+      "status": 200,
+      "redirected": false,
+      "bytes": 9692,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/he/terms"
+      ],
+      "lang": "he",
+      "dir": "rtl",
+      "title": "TEKANGO - תנאי שימוש",
+      "description": "תנאי השימוש המלאים של פלטפורמת TEKANGO לניהול עסק והפקת הצעות מחיר.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootTextChars": 1554,
+      "hebrewLetters": 1135,
+      "latinLetters": 76,
+      "verdict": "PASS"
+    },
+    {
+      "route": "/en/terms",
+      "status": 200,
+      "redirected": false,
+      "bytes": 10196,
+      "xRobotsTag": "noindex",
+      "canonical": [
+        "https://www.tekango.com/en/terms"
+      ],
+      "lang": "en",
+      "dir": "ltr",
+      "title": "TEKANGO - Terms of Service",
+      "description": "Full Terms of Service for the TEKANGO business management and quoting platform.",
+      "robots": "index, follow",
+      "hreflang": [
+        "he=/he/terms",
+        "en=/en/terms"
+      ],
+      "rootTextChars": 1994,
+      "hebrewLetters": 0,
+      "latinLetters": 1605,
+      "verdict": "PASS"
+    }
+  ],
+  "summary": "10/10"
+}

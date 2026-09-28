@@ -1,7 +1,7 @@
 # Vercel Preview proof package — static-file vs rewrite precedence + root middleware
 
 **Audience:** the Owner (the runner) and the reviewer.
-**Status:** Owner-authorized 2026-09-28, but the deployment was BLOCKED inside the Claude Code session by its safety policy ("create public surface"). Claude did not attempt it any other way. **NOT EXECUTED.**
+**Status:** EXECUTED 2026-09-28 — Preview `dpl_GYxMSNu5M7P89nFq97R5SqjnJHfX` (https://quotecode-fk2uq4s3e-quote-code.vercel.app), verified through the Owner's signed-in Vercel SSO session (protection kept ON, no bypass secret created). Results: `CODEX_SEO_INITIAL_HTML_REVIEW_PACKAGE.md` §4b and `preview-*.json`. The first in-session deploy attempt had been blocked by the session safety policy; the Owner then explicitly authorized it.
 **Why it matters:** the only material assumption not provable locally is whether Vercel serves `dist/en/index.html` for `/en` before the `/(.*)` → `/index.html` rewrite in `vercel.json`, and whether the Edge middleware's 302 behaves as it does locally.
 
 ## 1. Deploy (Owner, host PC, PowerShell) — Preview ONLY, never `--prod`

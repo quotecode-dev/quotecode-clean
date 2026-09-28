@@ -1,0 +1,102 @@
+{
+ "/he": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/he",
+  "file": "he.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "HIT",
+  "bytes": 64133
+ },
+ "/en": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/en",
+  "file": "en.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 66918
+ },
+ "/he/tools": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/he/tools",
+  "file": "he__tools.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 14065
+ },
+ "/en/tools": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/en/tools",
+  "file": "en__tools.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 14322
+ },
+ "/he/contact": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/he/contact",
+  "file": "he__contact.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 18107
+ },
+ "/en/contact": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/en/contact",
+  "file": "en__contact.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 18283
+ },
+ "/he/privacy": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/he/privacy",
+  "file": "he__privacy.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 9336
+ },
+ "/en/privacy": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/en/privacy",
+  "file": "en__privacy.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 9574
+ },
+ "/he/terms": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/he/terms",
+  "file": "he__terms.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "MISS",
+  "bytes": 9692
+ },
+ "/en/terms": {
+  "status": 200,
+  "redirected": false,
+  "finalUrl": "https://quotecode-fk2uq4s3e-quote-code.vercel.app/en/terms",
+  "file": "en__terms.html",
+  "x-robots-tag": "noindex",
+  "content-type": "text/html; charset=utf-8",
+  "x-vercel-cache": "HIT",
+  "bytes": 10196
+ }
+}

@@ -56,10 +56,46 @@
 - **Evidence:** `favicon-option-a/` (the before files, `favicon-occupancy.json`, `favicon-before-after-sheet.png`).
 - **Gates:** build (prerender 10 / 10), full suite 161 / 4499, eslint 0 errors, `git diff --check`, asset-completeness PASS.
 
-## 4b. Vercel Preview proof — PENDING (blocked in the Claude session)
-- The Preview deployment was blocked by the Claude Code session's safety policy ("create public surface"); it was not attempted another way.
-- The exact Owner-run command + read-only verifiers are in `VERCEL_PREVIEW_PROOF.md`.
-- **Until run, "Vercel serves `dist/<route>/index.html` before the `/(.*)` rewrite" and "the Edge 302 on Vercel" remain UNPROVEN.**
+## 4b. Vercel Preview proof — EXECUTED (Owner-authorized, Preview only)
+**Deployment:** `dpl_GYxMSNu5M7P89nFq97R5SqjnJHfX`, https://quotecode-fk2uq4s3e-quote-code.vercel.app.
+- Target preview; no domain / alias.
+- Built from the clean tree at `899f977` (code `06f4ff8`); build env = Supabase TEST.
+- Vercel's own build ran the prerender gate: 10 / 10 ok.
+- Deployment Protection: kept ON. Access came from the Owner's signed-in Vercel SSO session in the local Chrome. No bypass secret was created; `vercel curl` was not used (it would generate one).
+
+**Raw, no JS (`preview-raw-matrix.json`):**
+- Method: in-page `fetch()` of the raw bytes from the Preview origin, validated with `scripts/publicRouteHtml.mjs`.
+- Sitemap (re-derived from the Preview) == route table.
+- **10 / 10 PASS:** canonical = self (raw `/en` → `https://www.tekango.com/en`, raw `/he` → `…/he`), `lang` / `dir`, title, description, hreflang, robots meta, 476–4773 chars of content, market separation.
+- Byte sizes are identical to the local build.
+
+**Static-before-rewrite (`preview-private-app-routes.json`): PASS.**
+- The prerendered routes are served as their own documents: `/en` = 66918 B, `/en/` = the same doc.
+- Non-prerendered routes get the SPA shell (6182 B, no canonical): `/dashboard`, `/ai-logs`, the public-quote routes, `/contact`, `/tools`, `/privacy`, `/he/tools/currency`, unknown paths.
+- The public quote is NOT replaced by marketing output.
+
+**X-Robots-Tag:**
+- `vercel.json` values are preserved (`/dashboard`, `/ai-logs`, quotes = `noindex, nofollow`; `/contact`, `/tools`, `/privacy` = `noindex, follow`).
+- Every other Preview response carries Vercel's automatic Preview `X-Robots-Tag: noindex` (a non-Production deployment property). LIVE `/en` today carries no such header — to re-check on LIVE after release.
+
+**Root (`preview-root-routing.json`): PASS.**
+- `/` is always a server redirect (fetch `redirect: manual` → `opaqueredirect`), landing on exactly `/he` or `/en`:
+  - no preference + this host's geo (IL) → `/he`;
+  - cookie en → `/en`; cookie he → `/he`;
+  - `?lang=en&x=1` beats cookie he → `/en?lang=en&x=1`; `?lang=he` beats cookie en;
+  - the Auth error query is kept.
+- A hydrated navigation to `/` = exactly one redirect hop (no loop).
+- **Not observable** through `fetch()` on the protected Preview: the literal status code (302) and the `Cache-Control` / `Vary` headers of the redirect. They were proven locally with the same `middleware.ts`.
+- **Not provable from this host:** a non-IL geo cell.
+
+**Hydrated (`preview-hydrated/`, the Owner's Chrome):**
+- HE / EN at desktop and 390 px: canonical / hreflang / title / `lang` / `dir` unchanged after JS; 0 runtime / console errors; no horizontal overflow; EN = 0 Hebrew letters.
+- The first HTML is already in the page's locale (raw matrix) → no wrong-locale first paint.
+- Client navigation landing → privacy correct in HE and EN.
+- The "🐴" title prefix in the results is the automation tool's tab marker, not the app.
+- Pre-existing, unrelated: the EN 390 px floating AI-chat button overlaps the hero (a known open item).
+
+**Favicon:** served by the Preview (the new `06f4ff8` assets). The Chrome tab strip itself is not capturable by CDP; the before / after rendering at 16 / 32 / 64 px is in `favicon-option-a/`.
 
 ## 5. Requested verdict
 `CODEX SEO INITIAL-HTML REVIEW: PASS / FAIL`, with blockers as file:line and "NEW BLOCKING FINDINGS: <n>".

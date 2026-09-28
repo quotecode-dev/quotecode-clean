@@ -1,0 +1,149 @@
+[
+ {
+  "path": "/en/",
+  "status": 200,
+  "redirected": false,
+  "final": "/en/",
+  "bytes": 66918,
+  "canonical": [
+   "https://www.tekango.com/en"
+  ],
+  "lang": "en",
+  "rootTextChars": 15029,
+  "xRobotsTag": "noindex"
+ },
+ {
+  "path": "/he/",
+  "status": 200,
+  "redirected": false,
+  "final": "/he/",
+  "bytes": 64133,
+  "canonical": [
+   "https://www.tekango.com/he"
+  ],
+  "lang": "he",
+  "rootTextChars": 12228,
+  "xRobotsTag": "noindex"
+ },
+ {
+  "path": "/dashboard",
+  "status": 200,
+  "redirected": false,
+  "final": "/dashboard",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/dashboard?lang=he",
+  "status": 200,
+  "redirected": false,
+  "final": "/dashboard?lang=he",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/ai-logs",
+  "status": 200,
+  "redirected": false,
+  "final": "/ai-logs",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/public-quote/00000000-0000-4000-8000-000000000000",
+  "status": 200,
+  "redirected": false,
+  "final": "/public-quote/00000000-0000-4000-8000-000000000000",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/en/public-quote/00000000-0000-4000-8000-000000000000",
+  "status": 200,
+  "redirected": false,
+  "final": "/en/public-quote/00000000-0000-4000-8000-000000000000",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/quote/00000000-0000-4000-8000-000000000000",
+  "status": 200,
+  "redirected": false,
+  "final": "/quote/00000000-0000-4000-8000-000000000000",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, nofollow"
+ },
+ {
+  "path": "/contact",
+  "status": 200,
+  "redirected": false,
+  "final": "/contact",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, follow"
+ },
+ {
+  "path": "/tools",
+  "status": 200,
+  "redirected": false,
+  "final": "/tools",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, follow"
+ },
+ {
+  "path": "/privacy",
+  "status": 200,
+  "redirected": false,
+  "final": "/privacy",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex, follow"
+ },
+ {
+  "path": "/he/tools/currency",
+  "status": 200,
+  "redirected": false,
+  "final": "/he/tools/currency",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex"
+ },
+ {
+  "path": "/does-not-exist",
+  "status": 200,
+  "redirected": false,
+  "final": "/does-not-exist",
+  "bytes": 6182,
+  "canonical": [],
+  "lang": "en",
+  "rootTextChars": 0,
+  "xRobotsTag": "noindex"
+ }
+]

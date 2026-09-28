@@ -1,0 +1,62 @@
+[
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/he",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/he",
+  "finalLang": "he",
+  "name": "no pref cookie (geo of this host)"
+ },
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/en",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/en",
+  "finalLang": "en",
+  "name": "pref cookie en"
+ },
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/he",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/he",
+  "finalLang": "he",
+  "name": "pref cookie he"
+ },
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/en?lang=en&x=1",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/en",
+  "finalLang": "en",
+  "name": "?lang=en beats pref he, query kept"
+ },
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/he?lang=he",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/he",
+  "finalLang": "he",
+  "name": "?lang=he beats pref en"
+ },
+ {
+  "manualType": "opaqueredirect",
+  "manualStatus": 0,
+  "redirected": true,
+  "final": "/en?error=access_denied&error_code=otp_expired",
+  "finalStatus": 200,
+  "finalCanonical": "https://www.tekango.com/en",
+  "finalLang": "en",
+  "name": "Auth error query kept (pref en)"
+ }
+]

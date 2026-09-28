@@ -1,0 +1,141 @@
+{
+ "hydrated": [
+  {
+   "path": "/he",
+   "redirectCount": 0,
+   "canonical": [
+    "https://www.tekango.com/he"
+   ],
+   "hreflang": [
+    "he=/he",
+    "en=/en",
+    "x-default=/"
+   ],
+   "title": "🐴 TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+   "lang": "he",
+   "dir": "rtl",
+   "robotsMeta": "index, follow",
+   "jsonLd": 1,
+   "hebrew": 2967,
+   "h1": "הצעות מחיר חכמות וניהול העסק בקלות, במהירות ובמקצועיות",
+   "innerWidth": 1249,
+   "scrollWidth": 1234,
+   "errors": [],
+   "name": "HE desktop"
+  },
+  {
+   "path": "/en",
+   "redirectCount": 0,
+   "canonical": [
+    "https://www.tekango.com/en"
+   ],
+   "hreflang": [
+    "he=/he",
+    "en=/en",
+    "x-default=/"
+   ],
+   "title": "🐴 TEKANGO - Business & Quoting SaaS Platform",
+   "lang": "en",
+   "dir": "ltr",
+   "robotsMeta": "index, follow",
+   "jsonLd": 1,
+   "hebrew": 0,
+   "h1": "Smart Quotes & Business Management Easily, Fast & Profession",
+   "innerWidth": 1249,
+   "scrollWidth": 1234,
+   "errors": [],
+   "name": "EN desktop"
+  },
+  {
+   "path": "/he",
+   "redirectCount": 0,
+   "canonical": [
+    "https://www.tekango.com/he"
+   ],
+   "hreflang": [
+    "he=/he",
+    "en=/en",
+    "x-default=/"
+   ],
+   "title": "🐴 TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות",
+   "lang": "he",
+   "dir": "rtl",
+   "robotsMeta": "index, follow",
+   "jsonLd": 1,
+   "hebrew": 2954,
+   "h1": "הצעות מחיר חכמות וניהול העסק בקלות, במהירות ובמקצועיות",
+   "innerWidth": 390,
+   "scrollWidth": 390,
+   "errors": [],
+   "name": "HE mobile 390"
+  },
+  {
+   "path": "/en",
+   "redirectCount": 0,
+   "canonical": [
+    "https://www.tekango.com/en"
+   ],
+   "hreflang": [
+    "he=/he",
+    "en=/en",
+    "x-default=/"
+   ],
+   "title": "🐴 TEKANGO - Business & Quoting SaaS Platform",
+   "lang": "en",
+   "dir": "ltr",
+   "robotsMeta": "index, follow",
+   "jsonLd": 1,
+   "hebrew": 0,
+   "h1": "Smart Quotes & Business Management Easily, Fast & Profession",
+   "innerWidth": 390,
+   "scrollWidth": 390,
+   "errors": [],
+   "name": "EN mobile 390"
+  },
+  {
+   "path": "/en",
+   "redirectCount": 1,
+   "canonical": [
+    "https://www.tekango.com/en"
+   ],
+   "hreflang": [
+    "he=/he",
+    "en=/en",
+    "x-default=/"
+   ],
+   "title": "🐴 TEKANGO - Business & Quoting SaaS Platform",
+   "lang": "en",
+   "dir": "ltr",
+   "robotsMeta": "index, follow",
+   "jsonLd": 1,
+   "hebrew": 0,
+   "h1": "Smart Quotes & Business Management Easily, Fast & Profession",
+   "innerWidth": 1249,
+   "scrollWidth": 1234,
+   "errors": [],
+   "name": "root (geo IL) hydrated"
+  }
+ ],
+ "navigation": [
+  {
+   "path": "/en/privacy",
+   "canonical": "https://www.tekango.com/en/privacy",
+   "lang": "en",
+   "dir": "ltr",
+   "h1": "Privacy Policy",
+   "errors": [],
+   "start": "/en",
+   "clicked": true
+  },
+  {
+   "path": "/he/privacy",
+   "canonical": "https://www.tekango.com/he/privacy",
+   "lang": "he",
+   "dir": "rtl",
+   "h1": "מדיניות פרטיות (Privacy Policy)",
+   "errors": [],
+   "start": "/he",
+   "clicked": true
+  }
+ ]
+}
