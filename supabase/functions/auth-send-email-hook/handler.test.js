@@ -76,9 +76,11 @@ function fakeResend({ failOnCall } = {}) {
 // pre-Option-C test's metadata semantics. `lookupCalls` records exactly what the handler asked for.
 const rowsLookup = (...countries) => async () => countries.map((country) => ({ country }));
 
-async function run(payload, { env = ENV, resend = fakeResend(), nowMs = NOW_MS, req, lookup = rowsLookup(), lookupTimeoutMs = 50 } = {}) {
+// Budget clock for the 409 lifecycle: `sleep` advances a fake elapsed-time clock (no real waiting); `sleeps` records them.
+async function run(payload, { env = ENV, resend = fakeResend(), nowMs = NOW_MS, req, lookup = rowsLookup(), lookupTimeoutMs = 50, clock = { t: 0 } } = {}) {
   const logs = [];
   const lookupCalls = [];
+  const sleeps = [];
   const res = await handleSendEmailHook(req ?? signedRequest(payload), {
     env: (k) => env[k],
     fetch: resend.fetch,
@@ -86,8 +88,10 @@ async function run(payload, { env = ENV, resend = fakeResend(), nowMs = NOW_MS, 
     log: (...a) => logs.push(a.join(' ')),
     lookupMarketRows: lookup === null ? undefined : async (id, signal) => { lookupCalls.push(id); return lookup(id, signal); },
     marketLookupTimeoutMs: lookupTimeoutMs,
+    clockMs: () => clock.t,
+    sleep: async (ms) => { sleeps.push(ms); clock.t += ms; },
   });
-  return { res, status: res.status, json: await res.json(), calls: resend.calls, logs, lookupCalls };
+  return { res, status: res.status, json: await res.json(), calls: resend.calls, logs, lookupCalls, sleeps };
 }
 
 const linkOf = (call) => {
@@ -499,68 +503,192 @@ describe('Option C - trust boundary: the lookup uses only the verified payload u
   });
 });
 
-describe('Option C - redelivery with a different market resolution never produces a second email', () => {
-  // Resend idempotency (documented): same key + same body -> original response, no new email; same key + different body ->
-  // 409 invalid_idempotent_request; concurrent same key -> 409 concurrent_idempotent_requests.
-  function idempotentResend({ concurrentOnKey } = {}) {
+describe('Resend 409 idempotency lifecycle (Codex Option C delta review blocker P1) - decided by the provider error name', () => {
+  // Resend (docs + resend-node ErrorResponse { message, statusCode, name }): same key + same body -> original response,
+  // no new email; same key + different body -> 409 invalid_idempotent_request; same key in flight -> 409
+  // concurrent_idempotent_requests ("safe to retry later"). `inFlight` makes a key report concurrent N more times.
+  function idempotentResend({ inFlight = {}, raw409 = null } = {}) {
     const store = new Map();
     const accepted = [];
     const calls = [];
+    const remaining = { ...inFlight };
     const fetch = async (url, init) => {
       const key = init.headers['Idempotency-Key'];
-      calls.push({ url, headers: init.headers, body: JSON.parse(init.body) });
-      if (concurrentOnKey === key) return new Response(JSON.stringify({ name: 'concurrent_idempotent_requests' }), { status: 409 });
+      calls.push({ url, key, rawBody: init.body, headers: init.headers, body: JSON.parse(init.body) });
+      if (raw409 !== null) return new Response(raw409, { status: 409 });
+      if (remaining[key] > 0) {
+        remaining[key] -= 1;
+        return new Response(JSON.stringify({ statusCode: 409, name: 'concurrent_idempotent_requests', message: 'There is another request in progress with the same idempotency key.' }), { status: 409 });
+      }
       if (store.has(key)) {
         return store.get(key).body === init.body
           ? new Response(JSON.stringify({ id: store.get(key).id }), { status: 200 })
-          : new Response(JSON.stringify({ name: 'invalid_idempotent_request', message: 'different payload' }), { status: 409 });
+          : new Response(JSON.stringify({ statusCode: 409, name: 'invalid_idempotent_request', message: 'the request body was modified' }), { status: 409 });
       }
       const id = `resend_${store.size + 1}`;
       store.set(key, { body: init.body, id });
-      accepted.push(JSON.parse(init.body));
+      accepted.push({ key, body: JSON.parse(init.body) });
       return new Response(JSON.stringify({ id }), { status: 200 });
     };
-    return { fetch, calls, accepted };
+    return { fetch, calls, accepted, store };
   }
-  const payload = FLOWS.recovery({ signup_market: 'Local' });
+  const recovery = FLOWS.recovery({ signup_market: 'Local' });
+  const KEY = 'auth-hook/msg_synthetic_0001/primary';
 
-  it('attempt 1 lookup timeout (EN sent); redelivery resolves Local (HE) -> 409, hook fails, still exactly ONE accepted email, same key', async () => {
+  it('invalid_idempotent_request after a prior accepted send -> 200 (acknowledged), exactly one accepted email, stable key, no other key, no re-send', async () => {
     const resend = idempotentResend();
-    const first = await run(payload, { resend, lookup: hangingLookup, lookupTimeoutMs: 20 });
-    expect(first.status).toBe(200);
-    const second = await run(payload, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
-    expect(second.status).toBe(500);
-    expect(second.json.error.message).toBe('Email not sent: idempotency conflict for this request');
+    // an earlier attempt of this webhook-id/slot was accepted with an EN body
+    await resend.fetch('https://api.resend.com/emails', { headers: { 'Idempotency-Key': KEY }, body: JSON.stringify({ from: INTL_FROM, to: ['x@example.test'], subject: 's', html: 'h', text: 't' }) });
+    const r = await run(recovery, { resend, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({});
     expect(resend.accepted).toHaveLength(1);
-    expect(resend.accepted[0].from).toBe(INTL_FROM);
-    expect(new Set(resend.calls.map((c) => c.headers['Idempotency-Key']))).toEqual(new Set(['auth-hook/msg_synthetic_0001/primary']));
-    expect(second.logs.join('\n')).toContain('Resend idempotency conflict (invalid_idempotent_request); not re-sent.');
+    expect(resend.calls.map((c) => c.key)).toEqual([KEY, KEY]); // the hook made exactly ONE request, with the stable key
+    expect(r.sleeps).toEqual([]);
+    expect(r.logs.join('\n')).toContain('Resend idempotency key already consumed (slot primary); acknowledged, not re-sent.');
   });
 
-  it('redelivery with the same resolution -> 200, provider dedup, still one accepted email', async () => {
+  it('changed-market redelivery (Codex scenario): attempt 1 accepted with EN (lookup timeout), response treated as lost; redelivery resolves Local -> invalid_idempotent_request -> Auth lifecycle NOT failed, no duplicate', async () => {
     const resend = idempotentResend();
-    await run(payload, { resend, lookup: rowsLookup('Local') });
-    const again = await run(payload, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
+    const first = await run(recovery, { resend, lookup: hangingLookup, lookupTimeoutMs: 20 });
+    expect(first.status).toBe(200);
+    const second = await run(recovery, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
+    expect(second.status).toBe(200);
+    expect(resend.accepted).toHaveLength(1);
+    expect(resend.accepted[0].body.from).toBe(INTL_FROM);
+    expect(new Set(resend.calls.map((c) => c.key))).toEqual(new Set([KEY]));
+    expect(resend.calls[1].body.from).toBe(LOCAL_FROM); // the redelivery really carried a different payload
+  });
+
+  it('redelivery with the same resolution -> 200, provider dedup, one accepted email', async () => {
+    const resend = idempotentResend();
+    await run(recovery, { resend, lookup: rowsLookup('Local') });
+    const again = await run(recovery, { resend, lookup: rowsLookup('Local'), nowMs: NOW_MS + 60_000 });
     expect(again.status).toBe(200);
     expect(resend.accepted).toHaveLength(1);
-    expect(resend.accepted[0].from).toBe(LOCAL_FROM);
   });
 
-  it('secure email change redelivery with a changed market: conflict on the first slot, no new key, no extra email', async () => {
-    const resend = idempotentResend();
-    const change = FLOWS.secure_email_change({});
-    expect((await run(change, { resend, lookup: rowsLookup('International') })).status).toBe(200);
-    const again = await run(change, { resend, lookup: rowsLookup('Local') });
-    expect(again.status).toBe(500);
-    expect(resend.accepted).toHaveLength(2);
-    for (const c of resend.calls) expect(['auth-hook/msg_synthetic_0001/current', 'auth-hook/msg_synthetic_0001/new']).toContain(c.headers['Idempotency-Key']);
+  it('concurrent_idempotent_requests that resolves -> NOT treated as sent; bounded retry with the SAME key and the byte-identical body -> 200, one email', async () => {
+    const resend = idempotentResend({ inFlight: { [KEY]: 1 } });
+    const r = await run(recovery, { resend, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(200);
+    expect(resend.calls).toHaveLength(2);
+    expect(resend.calls[0].key).toBe(KEY);
+    expect(resend.calls[1].key).toBe(KEY);
+    expect(resend.calls[1].rawBody).toBe(resend.calls[0].rawBody);
+    expect(resend.accepted).toHaveLength(1);
+    expect(r.sleeps).toEqual([250]);
   });
 
-  it('concurrent same-key request -> 409 concurrent_idempotent_requests -> hook fails, nothing new accepted', async () => {
-    const resend = idempotentResend({ concurrentOnKey: 'auth-hook/msg_synthetic_0001/primary' });
-    const r = await run(payload, { resend, lookup: rowsLookup('Local') });
-    expect(r.status).toBe(500);
+  it('concurrent conflict that stays unresolved -> explicit retry-able 503 after the bounded retries, same key, no email, no other key', async () => {
+    const resend = idempotentResend({ inFlight: { [KEY]: 99 } });
+    const r = await run(recovery, { resend, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(503);
+    expect(r.json).toEqual({ error: { http_code: 503, message: 'Email send for this request is still in progress; retry' } });
     expect(resend.accepted).toHaveLength(0);
-    expect(r.logs.join('\n')).toContain('(concurrent_idempotent_requests)');
+    expect(resend.calls).toHaveLength(3); // 1 + 2 bounded retries
+    expect(new Set(resend.calls.map((c) => c.key))).toEqual(new Set([KEY]));
+    expect(new Set(resend.calls.map((c) => c.rawBody)).size).toBe(1);
+    expect(r.sleeps).toEqual([250, 500]);
+    expect(r.logs.join('\n')).toContain('still in progress (slot primary); returning retry-able 503.');
+  });
+
+  it('concurrent conflict whose retry request fails (outcome unknown) -> retry-able 503, never "sent", no other key', async () => {
+    const calls = [];
+    const fetch = async (url, init) => {
+      calls.push(init.headers['Idempotency-Key']);
+      if (calls.length === 1) return new Response(JSON.stringify({ name: 'concurrent_idempotent_requests' }), { status: 409 });
+      throw new Error('network reset');
+    };
+    const r = await run(recovery, { resend: { fetch, calls }, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(503);
+    expect(calls).toEqual([KEY, KEY]);
+  });
+
+  it('concurrent conflict late in the hook budget -> no retry that could overrun: immediate 503', async () => {
+    const resend = idempotentResend({ inFlight: { [KEY]: 99 } });
+    const clock = { t: 0 };
+    const lookup = async () => { clock.t += 3200; return [{ country: 'Local' }]; }; // a slow (but in-deadline) lookup consumed the budget
+    const r = await run(recovery, { resend, lookup, clock, lookupTimeoutMs: 5000 });
+    expect(r.status).toBe(503);
+    expect(resend.calls).toHaveLength(1);
+    expect(r.sleeps).toEqual([]);
+  });
+
+  for (const [label, raw] of [
+    ['unknown name', JSON.stringify({ statusCode: 409, name: 'some_new_conflict', message: 'x' })],
+    ['no name', JSON.stringify({ statusCode: 409, message: 'conflict' })],
+    ['non-string name', JSON.stringify({ name: 42 })],
+    ['malformed JSON body', 'not json at all'],
+    ['empty body', ''],
+  ]) {
+    it(`unknown 409 (${label}) -> explicit 500, never "already sent", never retried, never another key`, async () => {
+      const resend = idempotentResend({ raw409: raw });
+      const r = await run(recovery, { resend, lookup: rowsLookup('Local') });
+      expect(r.status).toBe(500);
+      expect(r.json).toEqual({ error: { http_code: 500, message: 'Email not sent: unrecognized idempotency conflict' } });
+      expect(resend.calls).toHaveLength(1);
+      expect(r.sleeps).toEqual([]);
+      expect(r.logs.join('\n')).not.toContain('not json at all');
+    });
+  }
+
+  describe('secure email change: per-slot keys, one slot conflict never suppresses or corrupts the other', () => {
+    const change = FLOWS.secure_email_change({});
+    const CUR = 'auth-hook/msg_synthetic_0001/current';
+    const NEW = 'auth-hook/msg_synthetic_0001/new';
+
+    it('changed-market redelivery: both slots already consumed -> 200, still exactly 2 accepted emails, keys unchanged', async () => {
+      const resend = idempotentResend();
+      expect((await run(change, { resend, lookup: rowsLookup('International') })).status).toBe(200);
+      const again = await run(change, { resend, lookup: rowsLookup('Local') });
+      expect(again.status).toBe(200);
+      expect(resend.accepted).toHaveLength(2);
+      expect(new Set(resend.calls.map((c) => c.key))).toEqual(new Set([CUR, NEW]));
+    });
+
+    it('only the current slot was sent before (new slot failed): redelivery acknowledges current and SENDS new with its own key', async () => {
+      const resend = idempotentResend();
+      await resend.fetch('https://api.resend.com/emails', { headers: { 'Idempotency-Key': CUR }, body: JSON.stringify({ from: INTL_FROM, to: ['current.owner@example.test'], subject: 's', html: 'h', text: 't' }) });
+      const r = await run(change, { resend, lookup: rowsLookup('Local') });
+      expect(r.status).toBe(200);
+      expect(resend.accepted.map((a) => a.key)).toEqual([CUR, NEW]);
+      expect(resend.accepted[1].body.to).toEqual(['new.address@example.test']);
+      expect(resend.accepted[1].body.from).toBe(LOCAL_FROM);
+    });
+
+    it('current slot concurrent and unresolved -> 503 and the new slot is NOT sent under any key (redelivery handles both)', async () => {
+      const resend = idempotentResend({ inFlight: { [CUR]: 99 } });
+      const r = await run(change, { resend, lookup: rowsLookup('Local') });
+      expect(r.status).toBe(503);
+      expect(resend.calls.every((c) => c.key === CUR)).toBe(true);
+      expect(resend.accepted).toHaveLength(0);
+    });
+
+    it('new slot concurrent then resolves -> both slots end with exactly one email each', async () => {
+      const resend = idempotentResend({ inFlight: { [NEW]: 1 } });
+      const r = await run(change, { resend, lookup: rowsLookup('Local') });
+      expect(r.status).toBe(200);
+      expect(resend.accepted.map((a) => a.key)).toEqual([CUR, NEW]);
+    });
+  });
+
+  it('normal success path unchanged: one request, no sleep, 200', async () => {
+    const resend = idempotentResend();
+    const r = await run(recovery, { resend, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(200);
+    expect(resend.calls).toHaveLength(1);
+    expect(r.sleeps).toEqual([]);
+  });
+
+  it('non-409 provider failure unchanged: 500 "Failed to send email via Resend", no retry; only status + error name logged (no raw body)', async () => {
+    const calls = [];
+    const fetch = async (url, init) => { calls.push(init); return new Response(JSON.stringify({ statusCode: 422, name: 'validation_error', message: 'Invalid `to` field: current.owner@example.test' }), { status: 422 }); };
+    const r = await run(recovery, { resend: { fetch, calls }, lookup: rowsLookup('Local') });
+    expect(r.status).toBe(500);
+    expect(r.json).toEqual({ error: { http_code: 500, message: 'Failed to send email via Resend' } });
+    expect(calls).toHaveLength(1);
+    expect(r.logs.join('\n')).toContain('Resend error (slot primary, status 422, name validation_error)');
+    expect(r.logs.join('\n')).not.toContain('current.owner@example.test');
   });
 });

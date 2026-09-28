@@ -16,15 +16,18 @@
 // Auth market identity gap F1 - Option C (2026-09-28): the market comes from the CANONICAL business_settings.country row of
 // the verified user (one narrow service-role read, marketLookup.ts), with user_metadata.signup_market used ONLY while no row
 // exists; unresolved / failed lookups fail closed to International and the email is still sent (marketResolver.ts).
-// A redelivery keeps the SAME Idempotency-Key per slot even if the market resolves differently this time: Resend then refuses
-// the different body with 409 invalid_idempotent_request, so a retry can never produce a second email. That 409 is NOT
-// treated as success (Resend does not document whether a failed original request stores the key, so "already sent" cannot
-// be assumed) - the hook reports failure and never retries under a new key.
+// A redelivery keeps the SAME Idempotency-Key per slot even if the market resolves differently this time, so a retry can
+// never produce a second email. The Resend 409 lifecycle (Codex Option C delta review blocker P1, 2026-09-28) is handled by
+// the provider's error `name`, not by the status alone - see resendSend.ts:
+//   invalid_idempotent_request      -> key already consumed by an earlier attempt of this slot -> acknowledged, not re-sent;
+//   concurrent_idempotent_requests  -> bounded same-key / same-body retry inside the hook budget, else retry-able 503;
+//   any other 409                   -> explicit failure (never "already sent", never another key).
 
 import { verifyStandardWebhook } from './webhookVerify.ts';
 import { planAuthEmails, type SendEmailHookPayload } from './emailPlan.ts';
 import { buildEmailContent, senderAddressFor } from './emailContent.ts';
 import { MARKET_LOOKUP_TIMEOUT_MS, resolveAuthEmailMarket, runMarketLookupWithTimeout } from './marketResolver.ts';
+import { sendWithIdempotency } from './resendSend.ts';
 
 export type HookDeps = {
   env: (name: string) => string | undefined;
@@ -34,6 +37,9 @@ export type HookDeps = {
   // Canonical market read (marketLookup.ts makeBusinessMarketLookup). Missing -> fail closed to International.
   lookupMarketRows?: (userId: string, signal: AbortSignal) => Promise<ReadonlyArray<{ country?: unknown }>>;
   marketLookupTimeoutMs?: number;
+  // Elapsed-time clock + sleep for the hook budget (defaults: Date.now / setTimeout); injectable for tests.
+  clockMs?: () => number;
+  sleep?: (ms: number) => Promise<void>;
 };
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
@@ -47,6 +53,8 @@ function hookError(status: number, message: string) {
 
 export async function handleSendEmailHook(req: Request, deps: HookDeps): Promise<Response> {
   const log = deps.log ?? console.error;
+  const clockMs = deps.clockMs ?? (() => Date.now());
+  const hookStartedAtMs = clockMs();
 
   if (req.method !== 'POST') return hookError(405, 'Method not allowed');
 
@@ -104,29 +112,28 @@ export async function handleSendEmailHook(req: Request, deps: HookDeps): Promise
     // Secure email change sends two messages; each is sent (and idempotency-keyed) separately. If one fails the hook
     // fails, Auth reports the change request as failed, and a retry of the same webhook-id cannot duplicate the one
     // that already went out (same idempotency key, same payload).
+    const sendDeps = {
+      fetch: deps.fetch,
+      clockMs,
+      sleep: deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))),
+      log,
+    };
     for (const { slot, message } of plan.messages) {
       const { subject, html, text } = buildEmailContent(message, isHebrew);
-      const resendRes = await deps.fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-          'Idempotency-Key': `auth-hook/${webhookId}/${slot}`,
-        },
+      const outcome = await sendWithIdempotency({
+        apiKey: resendApiKey,
+        idempotencyKey: `auth-hook/${webhookId}/${slot}`, // stable per webhook-id + slot; never regenerated
         body: JSON.stringify({ from: senderAddressFor(isHebrew), to: [message.to], subject, html, text }),
-      });
-      if (!resendRes.ok) {
-        const errData = await resendRes.json().catch(() => ({}));
-        if (resendRes.status === 409) {
-          // Same webhook-id/slot key already used (different body, e.g. the market resolved differently on a redelivery) or
-          // still in flight: Resend sent nothing for THIS request. Never retried under another key -> no second email.
-          const name = errData && typeof errData === 'object' ? String((errData as Record<string, unknown>).name ?? '') : '';
-          log(`auth-send-email-hook: Resend idempotency conflict (${name === 'invalid_idempotent_request' || name === 'concurrent_idempotent_requests' ? name : 'unknown_409'}); not re-sent.`);
-          return hookError(500, 'Email not sent: idempotency conflict for this request');
-        }
-        log('auth-send-email-hook: Resend API error', resendRes.status, errData);
-        return hookError(500, 'Failed to send email via Resend');
+        slot,
+        hookStartedAtMs,
+      }, sendDeps);
+      if (outcome.kind === 'sent' || outcome.kind === 'already_consumed') continue; // next slot keeps its own key
+      if (outcome.kind === 'concurrent_unresolved' || outcome.kind === 'retry_aborted') {
+        // Retry-able: Supabase Auth redelivers the SAME webhook-id (same keys) - the in-flight request then resolves.
+        return hookError(503, 'Email send for this request is still in progress; retry');
       }
+      if (outcome.kind === 'conflict_unknown') return hookError(500, 'Email not sent: unrecognized idempotency conflict');
+      return hookError(500, 'Failed to send email via Resend');
     }
 
     return jsonResponse({}, 200);
