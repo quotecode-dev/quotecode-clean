@@ -1,0 +1,131 @@
+{
+ "masterBbox": [
+  30,
+  70,
+  482,
+  442
+ ],
+ "symbolAspect_h_over_w": 0.82301,
+ "sizes": {
+  "32": {
+   "before": {
+    "bbox": [
+     1,
+     4,
+     31,
+     28
+    ],
+    "w": 30,
+    "h": 24,
+    "wFill": 0.9375,
+    "hFill": 0.75,
+    "areaFill": 0.7031
+   },
+   "after": {
+    "bbox": [
+     0,
+     3,
+     32,
+     29
+    ],
+    "w": 32,
+    "h": 26,
+    "wFill": 1.0,
+    "hFill": 0.8125,
+    "areaFill": 0.8125
+   },
+   "linearGain": 0.0667,
+   "clipped": false
+  },
+  "64": {
+   "before": {
+    "bbox": [
+     3,
+     8,
+     61,
+     56
+    ],
+    "w": 58,
+    "h": 48,
+    "wFill": 0.9062,
+    "hFill": 0.75,
+    "areaFill": 0.6797
+   },
+   "after": {
+    "bbox": [
+     0,
+     5,
+     64,
+     58
+    ],
+    "w": 64,
+    "h": 53,
+    "wFill": 1.0,
+    "hFill": 0.8281,
+    "areaFill": 0.8281
+   },
+   "linearGain": 0.1034,
+   "clipped": false
+  },
+  "192": {
+   "before": {
+    "bbox": [
+     11,
+     26,
+     181,
+     166
+    ],
+    "w": 170,
+    "h": 140,
+    "wFill": 0.8854,
+    "hFill": 0.7292,
+    "areaFill": 0.6456
+   },
+   "after": {
+    "bbox": [
+     0,
+     17,
+     192,
+     175
+    ],
+    "w": 192,
+    "h": 158,
+    "wFill": 1.0,
+    "hFill": 0.8229,
+    "areaFill": 0.8229
+   },
+   "linearGain": 0.1294,
+   "clipped": false
+  },
+  "512": {
+   "before": {
+    "bbox": [
+     30,
+     70,
+     482,
+     442
+    ],
+    "w": 452,
+    "h": 372,
+    "wFill": 0.8828,
+    "hFill": 0.7266,
+    "areaFill": 0.6414
+   },
+   "after": {
+    "bbox": [
+     0,
+     45,
+     512,
+     466
+    ],
+    "w": 512,
+    "h": 421,
+    "wFill": 1.0,
+    "hFill": 0.8223,
+    "areaFill": 0.8223
+   },
+   "linearGain": 0.1327,
+   "clipped": false
+  }
+ }
+}
