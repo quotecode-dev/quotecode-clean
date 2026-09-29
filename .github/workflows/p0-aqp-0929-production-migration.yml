@@ -1,0 +1,145 @@
+# P0 AQP 0929 - ONE-SHOT Production apply of 20260929000000_drop_legacy_approve_quote_public.sql through the protected broker.
+#
+# This workflow holds NO database credential, NO SQL and NO target. It only:
+#   1. proves (job `if:` + in-script re-checks) repository / repository id / owner id / ref / event / attempt / workflow ref and a
+#      GitHub-hosted runner,
+#   2. requests exactly ONE GitHub OIDC token (audience tekango-p0-aqp-0929-broker),
+#   3. sends exactly ONE POST to the fixed broker URL with body {"authorization": <b64>, "testReport": <b64>} taken verbatim from the
+#      protected Environment secrets, and
+#   4. prints only the sanitized broker state / hashes.
+# The broker (supabase/functions/p0-aqp-0929-broker) re-verifies everything (OIDC signature + claims, authorization v3, TEST report /2,
+# deploy pins, one-shot CAS) and embeds the reviewed Production bundle. No retry anywhere: a failed / timed-out call is UNKNOWN and
+# must be resolved read-only before anything else happens. Running it requires a separate explicit Owner authorization.
+# No third-party or first-party actions are used (no checkout): only the runner's preinstalled bash, curl and jq.
+#
+# PRECONDITIONS (must hold BEFORE this file reaches main - GitHub auto-creates a missing Environment WITHOUT any protection):
+#   - The `production-migration-0929` Environment is configured and read back: required reviewer(s), prevent_self_review: true,
+#     administrators may NOT bypass, custom deployment branch policy = `main` only.
+#   - P0_AQP_0929_AUTHORIZATION_B64 / P0_AQP_0929_TEST_REPORT_B64 exist ONLY as secrets of that Environment - never as
+#     repository- or organization-level secrets with the same names (those would be readable without the reviewer gate).
+name: p0-aqp-0929-production-migration
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: p0-aqp-0929-production-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-0929:
+    name: one-shot broker call (20260929000000)
+    if: >-
+      github.repository == 'quotecode-dev/quotecode-clean' &&
+      github.repository_id == '1332524138' &&
+      github.repository_owner_id == '309962619' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.run_attempt == '1' &&
+      github.workflow_ref == 'quotecode-dev/quotecode-clean/.github/workflows/p0-aqp-0929-production-migration.yml@refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: production-migration-0929
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: one OIDC token, one broker POST (no retry)
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          P0_AQP_0929_AUTHORIZATION_B64: ${{ secrets.P0_AQP_0929_AUTHORIZATION_B64 }}
+          P0_AQP_0929_TEST_REPORT_B64: ${{ secrets.P0_AQP_0929_TEST_REPORT_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          readonly BROKER_URL='https://ixabnzhjeqevtbhdfswv.supabase.co/functions/v1/p0-aqp-0929-broker'
+          readonly AUDIENCE='tekango-p0-aqp-0929-broker'
+          refuse() { echo "REFUSED: $1"; exit 1; }
+
+          # ---- context re-checks (defense in depth; the broker verifies the same facts from the signed OIDC claims) ----
+          [ "${RUNNER_ENVIRONMENT:-}" = 'github-hosted' ] || refuse 'not a GitHub-hosted runner'
+          [ "${GITHUB_REPOSITORY:-}" = 'quotecode-dev/quotecode-clean' ] || refuse 'repository'
+          [ "${GITHUB_REPOSITORY_ID:-}" = '1332524138' ] || refuse 'repository id'
+          [ "${GITHUB_REPOSITORY_OWNER_ID:-}" = '309962619' ] || refuse 'repository owner id'
+          [ "${GITHUB_REF:-}" = 'refs/heads/main' ] || refuse 'ref'
+          [ "${GITHUB_EVENT_NAME:-}" = 'workflow_dispatch' ] || refuse 'event'
+          [ "${GITHUB_RUN_ATTEMPT:-}" = '1' ] || refuse 'run attempt (re-runs are never allowed)'
+          [ "${GITHUB_WORKFLOW_REF:-}" = 'quotecode-dev/quotecode-clean/.github/workflows/p0-aqp-0929-production-migration.yml@refs/heads/main' ] || refuse 'workflow ref'
+          [[ "${GITHUB_WORKFLOW_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || refuse 'workflow sha'
+          [[ "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" == https://* ]] || refuse 'OIDC request URL unavailable (id-token permission)'
+          [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ] || refuse 'OIDC request token unavailable (id-token permission)'
+          echo "context: repository_id=${GITHUB_REPOSITORY_ID} owner_id=${GITHUB_REPOSITORY_OWNER_ID} ref=${GITHUB_REF} workflow_sha=${GITHUB_WORKFLOW_SHA} run_id=${GITHUB_RUN_ID} attempt=${GITHUB_RUN_ATTEMPT}"
+
+          # ---- protected Environment secrets: strict single-line base64, masked, never printed ----
+          b64='^[A-Za-z0-9+/]+={0,2}$'
+          [[ "${P0_AQP_0929_AUTHORIZATION_B64:-}" =~ $b64 ]] || refuse 'Environment secret P0_AQP_0929_AUTHORIZATION_B64 missing or not single-line base64'
+          [[ "${P0_AQP_0929_TEST_REPORT_B64:-}" =~ $b64 ]] || refuse 'Environment secret P0_AQP_0929_TEST_REPORT_B64 missing or not single-line base64'
+          echo "::add-mask::${P0_AQP_0929_AUTHORIZATION_B64}"
+          echo "::add-mask::${P0_AQP_0929_TEST_REPORT_B64}"
+
+          work="$(mktemp -d "${RUNNER_TEMP}/p0aqp.XXXXXXXX")"
+          trap 'rm -rf -- "${work}"' EXIT
+
+          # ---- exactly ONE OIDC token request (request token passed via a header file, not argv) ----
+          printf 'Authorization: bearer %s\n' "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" > "${work}/oidc.hdr"
+          curl --silent --show-error --fail --proto '=https' --tlsv1.2 --retry 0 --max-redirs 0 \
+            --connect-timeout 10 --max-time 30 \
+            --header @"${work}/oidc.hdr" --output "${work}/oidc.json" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUDIENCE}" || refuse 'OIDC token request failed (no broker call was made)'
+          rm -f -- "${work}/oidc.hdr"
+          token="$(jq -r 'if type == "object" and (.value | type) == "string" then .value else "" end' "${work}/oidc.json" 2>/dev/null || true)"
+          rm -f -- "${work}/oidc.json"
+          [[ "${token}" =~ ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || refuse 'OIDC token malformed (no broker call was made)'
+          echo "::add-mask::${token}"
+          printf 'Authorization: Bearer %s\n' "${token}" > "${work}/broker.hdr"
+          unset token
+
+          # ---- body: exactly {authorization, testReport}, read from env by jq (secrets never on argv) ----
+          jq -n -c '{authorization: env.P0_AQP_0929_AUTHORIZATION_B64, testReport: env.P0_AQP_0929_TEST_REPORT_B64}' > "${work}/body.json"
+          unset P0_AQP_0929_AUTHORIZATION_B64 P0_AQP_0929_TEST_REPORT_B64
+
+          # ---- exactly ONE broker POST to the fixed URL; no retry, no redirect, bounded time ----
+          rc=0
+          http_code="$(curl --silent --show-error --proto '=https' --tlsv1.2 --retry 0 --max-redirs 0 \
+            --connect-timeout 20 --max-time 150 \
+            --request POST \
+            --header @"${work}/broker.hdr" \
+            --header 'Content-Type: application/json' \
+            --data-binary @"${work}/body.json" \
+            --output "${work}/resp.json" --write-out '%{http_code}' \
+            "${BROKER_URL}")" || rc=$?
+          rm -f -- "${work}/broker.hdr" "${work}/body.json"
+          if [ "${rc}" -ne 0 ]; then
+            echo "BROKER CALL FAILED (curl exit ${rc}): outcome UNKNOWN. Do NOT re-run; resolve read-only first."
+            exit 1
+          fi
+
+          # ---- sanitized output only (never the raw response) ----
+          field() {
+            local v
+            v="$(jq -r --arg k "$1" 'if type == "object" and ((.[$k] | type) == "string" or (.[$k] | type) == "boolean") then (.[$k] | tostring) else "" end' "${work}/resp.json" 2>/dev/null || true)"
+            v="$(printf '%s' "${v}" | tr -cd 'A-Za-z0-9_.-')"
+            printf '%s' "${v:0:128}"
+          }
+          http_code="$(printf '%s' "${http_code}" | tr -cd '0-9')"
+          state="$(field state)"
+          echo "broker.http=${http_code:0:3}"
+          echo "broker.state=${state}"
+          # allowlist = the broker's closed response keys (B7 BROKER_CONTRACT); anything else in the response is never printed
+          for k in reason releaseKey bundleSha256 authorizationSha256 testReportSha256 deployPinsSha256; do
+            echo "broker.${k}=$(field "${k}")"
+          done
+          terminal="$(field terminalRecorded)"
+          case "${terminal}" in true|false) ;; *) terminal='' ;; esac
+          echo "broker.terminalRecorded=${terminal}"
+          code="$(field code)"
+          [[ "${code}" =~ ^(TK_[A-Z0-9_]{1,64}|55P03|57014)$ ]] || code=''
+          echo "broker.code=${code}"
+          if [ "${http_code}" = '200' ] && [ "${state}" = 'APPLIED' ]; then
+            echo 'RESULT: APPLIED'
+            exit 0
+          fi
+          echo "RESULT: NOT APPLIED / UNKNOWN (state=${state:-none}). Do NOT re-run; resolve read-only first."
+          exit 1

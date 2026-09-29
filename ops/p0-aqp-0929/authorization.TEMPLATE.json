@@ -1,0 +1,32 @@
+{
+  "authorizedBy": "Owner",
+  "bindings": {
+    "candidateCommit": "623ac1ee01995b071b5f0d9a8f3d6f1cef87cc23",
+    "environment": "production-migration-0929",
+    "executorCommit": "{{executorCommit: 40-hex tooling commit that generated the Production bundle (deploy pin)}}",
+    "migrationFile": "20260929000000_drop_legacy_approve_quote_public.sql",
+    "migrationSha256": "7c9c1fb54e7ce99896b9ba49f17b0608c686c340faa65ecefbb78ef949929ef4",
+    "migrationVersion": "20260929000000",
+    "oidcAudience": "tekango-p0-aqp-0929-broker",
+    "productionBundleSha256": "{{productionBundleSha256: 64-hex PRODUCTION_BUNDLE_SHA256 from the reviewed broker bundle.ts}}",
+    "productionRef": "ixabnzhjeqevtbhdfswv",
+    "ref": "refs/heads/main",
+    "repository": "quotecode-dev/quotecode-clean",
+    "repositoryId": "1332524138",
+    "repositoryOwner": "quotecode-dev",
+    "repositoryOwnerId": "309962619",
+    "testRegistrySha256": "242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667",
+    "testReportSha256": "{{testReportSha256: 64-hex sha256 of the canonical TEST verification report bytes (deploy pin)}}",
+    "workflowPath": ".github/workflows/p0-aqp-0929-production-migration.yml",
+    "workflowSha": "{{workflowSha: 40-hex main commit that contains the reviewed workflow (deploy pin)}}"
+  },
+  "expiresAt": "{{UTC ISO-8601, at most issuedAt + 72 h}}",
+  "forwardFixPermitted": false,
+  "issuedAt": "{{UTC ISO-8601 issuance time, after the final TEST capture}}",
+  "oneShot": true,
+  "ownerDecisionText": "{{VERBATIM OWNER TEXT - must name 20260929000000 and ixabnzhjeqevtbhdfswv}}",
+  "ownerDecisionTextSha256": "{{64-hex sha256 of the UTF-8 ownerDecisionText}}",
+  "releaseId": "tekango-p0-aqp-remediation-2026-09-29",
+  "schema": "tekango-migration-authorization/3",
+  "scope": "APPLY_ONE_MIGRATION_TO_PRODUCTION_VIA_BROKER"
+}

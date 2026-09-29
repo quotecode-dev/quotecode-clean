@@ -1,0 +1,147 @@
+{
+  "$id": "tekango-migration-authorization/3",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Authoritative checker: scripts/mirror/aqp-authorization-lib.js verifyProductionRelease (mirrored by the broker). Also enforced: canonical JSON bytes; secret/customer-shaped content refused; ownerDecisionTextSha256 = sha256(UTF-8 text); expiresAt - issuedAt <= 72 h; issuedAt <= now; now - issuedAt <= 72 h; now < expiresAt; final TEST capture < issuedAt; report age <= 72 h; sha256(authorization bytes) == deploy pin authorizationSha256; bindings.testReportSha256 == sha256(report bytes).",
+  "properties": {
+    "authorizedBy": {
+      "const": "Owner"
+    },
+    "bindings": {
+      "additionalProperties": false,
+      "properties": {
+        "candidateCommit": {
+          "const": "623ac1ee01995b071b5f0d9a8f3d6f1cef87cc23"
+        },
+        "environment": {
+          "const": "production-migration-0929"
+        },
+        "executorCommit": {
+          "description": "DEPLOY-TIME pin: must equal the same key in P0_AQP_0929_DEPLOY_PINS (strict JSON); missing / PENDING refuses everything",
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "migrationFile": {
+          "const": "20260929000000_drop_legacy_approve_quote_public.sql"
+        },
+        "migrationSha256": {
+          "const": "7c9c1fb54e7ce99896b9ba49f17b0608c686c340faa65ecefbb78ef949929ef4"
+        },
+        "migrationVersion": {
+          "const": "20260929000000"
+        },
+        "oidcAudience": {
+          "const": "tekango-p0-aqp-0929-broker"
+        },
+        "productionBundleSha256": {
+          "description": "must equal PRODUCTION_BUNDLE_SHA256 of the reviewed broker bundle.ts (input pin; PENDING refuses everything)",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "productionRef": {
+          "const": "ixabnzhjeqevtbhdfswv"
+        },
+        "ref": {
+          "const": "refs/heads/main"
+        },
+        "repository": {
+          "const": "quotecode-dev/quotecode-clean"
+        },
+        "repositoryId": {
+          "const": "1332524138"
+        },
+        "repositoryOwner": {
+          "const": "quotecode-dev"
+        },
+        "repositoryOwnerId": {
+          "const": "309962619"
+        },
+        "testRegistrySha256": {
+          "const": "242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667"
+        },
+        "testReportSha256": {
+          "description": "DEPLOY-TIME pin: must equal the same key in P0_AQP_0929_DEPLOY_PINS (strict JSON); missing / PENDING refuses everything",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "workflowPath": {
+          "const": ".github/workflows/p0-aqp-0929-production-migration.yml"
+        },
+        "workflowSha": {
+          "description": "DEPLOY-TIME pin: must equal the same key in P0_AQP_0929_DEPLOY_PINS (strict JSON); missing / PENDING refuses everything",
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "repositoryId",
+        "repositoryOwner",
+        "repositoryOwnerId",
+        "ref",
+        "workflowPath",
+        "workflowSha",
+        "environment",
+        "oidcAudience",
+        "candidateCommit",
+        "migrationVersion",
+        "migrationFile",
+        "migrationSha256",
+        "productionRef",
+        "productionBundleSha256",
+        "executorCommit",
+        "testRegistrySha256",
+        "testReportSha256"
+      ],
+      "type": "object"
+    },
+    "expiresAt": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+      "type": "string"
+    },
+    "forwardFixPermitted": {
+      "const": false
+    },
+    "issuedAt": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+      "type": "string"
+    },
+    "oneShot": {
+      "const": true
+    },
+    "ownerDecisionText": {
+      "description": "verbatim Owner text; must contain 20260929000000 and ixabnzhjeqevtbhdfswv; no placeholders",
+      "maxLength": 4000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "ownerDecisionTextSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "releaseId": {
+      "const": "tekango-p0-aqp-remediation-2026-09-29"
+    },
+    "schema": {
+      "const": "tekango-migration-authorization/3"
+    },
+    "scope": {
+      "const": "APPLY_ONE_MIGRATION_TO_PRODUCTION_VIA_BROKER"
+    }
+  },
+  "required": [
+    "schema",
+    "authorizedBy",
+    "scope",
+    "releaseId",
+    "ownerDecisionText",
+    "ownerDecisionTextSha256",
+    "bindings",
+    "issuedAt",
+    "expiresAt",
+    "oneShot",
+    "forwardFixPermitted"
+  ],
+  "title": "P0 AQP 0929 Owner authorization (one-shot, no forward fix)",
+  "type": "object"
+}

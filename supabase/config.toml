@@ -158,3 +158,16 @@ enabled = true
 # Webhooks HMAC algorithm resend-email-webhook already uses successfully.
 verify_jwt = false
 entrypoint = "./functions/auth-send-email-hook/index.ts"
+
+[functions.p0-aqp-0929-broker]
+enabled = true
+# verify_jwt=false on purpose: the only legitimate caller is ONE GitHub Actions job
+# (.github/workflows/p0-aqp-0929-production-migration.yml, Environment production-migration-0929)
+# that presents a GitHub-issued OIDC JWT (audience tekango-p0-aqp-0929-broker), not a Supabase Auth
+# JWT - the gateway check would reject it before our code runs. Authentication is enforced in code
+# BEFORE anything else: RS256 signature against GitHub JWKS (kid), iss/aud/sub, exp/nbf/iat/max age,
+# repository + immutable repository/owner ids, refs/heads/main, workflow path + deploy-pinned
+# workflow_sha, Environment, workflow_dispatch, github-hosted runner, run_attempt 1 (see policy.ts).
+# The DB credential is read only after every check passed; the endpoint and SQL are fixed in code.
+verify_jwt = false
+entrypoint = "./functions/p0-aqp-0929-broker/index.ts"
