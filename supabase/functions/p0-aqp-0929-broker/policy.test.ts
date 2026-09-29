@@ -753,11 +753,28 @@ test('artifacts: the synthetic /2 report + v3 authorization are accepted (positi
   const v = await verifyProductionRelease(t.authBytes, t.reportBytes, t.deploy, NOW_MS, PINS);
   assert.deepEqual(v.errors, []); assert.equal(v.ok, true);
 });
+// Round 12 Phase F: Track B pins the v2 session check (scripts/mirror/sql/test-apply-session-check-v2.sql in the tooling,
+// `tekango-test-apply-session-check/2`); the tooling suite asserts BUILD_PINS.sessionCheckSha256 equals this literal.
+const SESSION_CHECK_V2_SHA = 'd29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534';
+const SESSION_CHECK_V1_SHA = '851951309cccb8a7f2007d10355e5b62a588d3ad85ec68f6cd7dfde9bb487e57';
 test('artifacts: /1 documents and /1 inner schemas are refused; /2 accepted', async () => {
   await expectArtifactRefused('report /1', await triple((r) => { r.schema = 'tekango-aqp-test-verification/1'; }), /report\.schema/);
   await expectArtifactRefused('registry /1', await triple((r) => { r.registry.schema = 'tekango-test-migration-registry/1'; }), /registry\.schema/);
   await expectArtifactRefused('run /1', await triple((r) => { r.testRun.runSchema = 'tekango-test-migration-run/1'; }), /runSchema/);
   await expectArtifactRefused('auth /2', await triple(undefined, (a) => { a.schema = 'tekango-migration-authorization/2'; }), /authorization\.schema/);
+  // Round 12 Phase F: a v1-era report (v1 session-check sha) is refused even though every other field, the v3 authorization bound to
+  // its bytes and both deploy pins are consistent (no downgrade).
+  await expectArtifactRefused('report with the v1 session-check sha', await triple((r) => { r.sessionCheckSqlSha256 = SESSION_CHECK_V1_SHA; }), /sessionCheckSqlSha256/);
+});
+test('CODE_PINS.sessionCheckSha256 is the v2 session check, never v1', async () => {
+  assert.equal(CODE_PINS.sessionCheckSha256, SESSION_CHECK_V2_SHA);
+  assert.notEqual(CODE_PINS.sessionCheckSha256, SESSION_CHECK_V1_SHA);
+  assert.ok(Object.isFrozen(CODE_PINS));
+  assert.equal(baseReport().sessionCheckSqlSha256, SESSION_CHECK_V2_SHA); // the positive-control report is a v2-era report
+  const t = await triple((r) => { r.sessionCheckSqlSha256 = SESSION_CHECK_V1_SHA; });
+  const v = await verifyProductionRelease(t.authBytes, t.reportBytes, t.deploy, NOW_MS, PINS);
+  assert.equal(v.ok, false);
+  assert.deepEqual(v.errors, ['test report: report.sessionCheckSqlSha256: does not equal the pinned value'], 'the v1 pin is the ONLY failure');
 });
 test('artifacts: TEST report step / registry / hash tampering is refused', async () => {
   const cases: [string, (r: J) => void, RegExp?][] = [
@@ -862,6 +879,12 @@ test('artifacts through the handler: tampered report / authorization -> 403, pin
   let w = await world({ auth: bad.authBytes, report: bad.reportBytes });
   let r = await call(w, req({ jwt: await validJwt(), body: bodyOf(bad.authBytes, bad.reportBytes) }));
   assert.equal(r.status, 403); assert.equal(r.json.reason, 'TEST_REPORT_INVALID'); assertNoCredentialRead(w); assertSanitized(r.text);
+  // Round 12 Phase F: a v1-era report (v1 session-check sha) with a consistent v3 authorization + deploy pins -> 403 TEST_REPORT_INVALID,
+  // no credential read, zero Management API calls.
+  const v1 = await triple((x) => { x.sessionCheckSqlSha256 = SESSION_CHECK_V1_SHA; });
+  w = await world({ auth: v1.authBytes, report: v1.reportBytes });
+  r = await call(w, req({ jwt: await validJwt(), body: bodyOf(v1.authBytes, v1.reportBytes) }));
+  assert.equal(r.status, 403); assert.equal(r.json.reason, 'TEST_REPORT_INVALID'); assertNoCredentialRead(w); assert.equal(w.m.calls.length, 0); assertSanitized(r.text, [SESSION_CHECK_V1_SHA]);
   const badA = await triple(undefined, (a) => { a.forwardFixPermitted = true; });
   w = await world({ auth: badA.authBytes, report: badA.reportBytes });
   r = await call(w, req({ jwt: await validJwt(), body: bodyOf(badA.authBytes, badA.reportBytes) }));

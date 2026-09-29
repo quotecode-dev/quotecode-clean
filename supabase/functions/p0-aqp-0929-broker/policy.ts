@@ -69,7 +69,7 @@ export const CODE_PINS = Object.freeze({
   productionRef: 'ixabnzhjeqevtbhdfswv',
   testRef: 'ljfizgrdyzxddswcedwr',
   testRegistrySha256: '242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667',
-  sessionCheckSha256: '851951309cccb8a7f2007d10355e5b62a588d3ad85ec68f6cd7dfde9bb487e57',
+  sessionCheckSha256: 'd29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534',
   productionBundleSha256: PENDING as string, // PENDING until B6 generates the real bundle from a fresh Production pre-state
   atomicityProbeBundle: Object.freeze({ name: '00-atomicity-probe.sql', sha256: '5270596f53def403a2a2c8dbbb506a577f8c9956a7ccb06b41010aa94d45fd11' }),
   testSteps: Object.freeze([

@@ -189,7 +189,7 @@
       "const": "tekango-aqp-test-verification/2"
     },
     "sessionCheckSqlSha256": {
-      "const": "851951309cccb8a7f2007d10355e5b62a588d3ad85ec68f6cd7dfde9bb487e57"
+      "const": "d29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534"
     },
     "target": {
       "additionalProperties": false,
