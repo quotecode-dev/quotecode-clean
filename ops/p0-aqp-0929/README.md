@@ -22,7 +22,7 @@ actual TEST report are instance artifacts and are never committed (see section 1
 - One migration, one Production project, one send. No retry, no forward fix under this authorization (`forwardFixPermitted: false`),
   `oneShot: true`.
 - The TEST report binds the committed TEST channel exactly: registry `tekango-test-migration-registry/2` revision R3
-  sha256 `44ae8c8443a95f980520364f331560de40c274f878698fff2570540f32b5b1a5` (= the R2 registry
+  sha256 `2dd150c11e6c6e0bd3baf0d3185b2f510993499cde4d8eb96eb876dc981553a5` (= the R2 registry
   `242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667` + step 7; R2 stays pinned as the history registry), run evidence
   `tekango-test-migration-run/2`,
   session-check SQL v2 sha256 `d29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534` (`tekango-test-apply-session-check/2`, run
@@ -54,10 +54,12 @@ actual TEST report are instance artifacts and are never committed (see section 1
 | 4 | 20260917000003 | 20260917000003_prod_forward_save_quote_structured_atomic_function.sql | 5185f19b75dcde35eddbb4a4a4746139aef2f03939ee14965762ed904dc439af | 04-20260917000003.sql | fc9aaf993af6858323f6e669b15fe3b0ac5005a7fc4a0f2ec3438ff01330d0dc |
 | 5 | 20260927000000 | 20260927000000_trial_reminder_delivery_claims.sql | 97d2017ed55ce06ca4683973adc69e48372d87a74e9c60e5a26d8b3a60a1d729 | 05-20260927000000.sql | e81fe1323387bd4ff82ac32dd8b01832aeb0ec18d7c6844e7705354a6004d0aa |
 | 6 | 20260929000000 | 20260929000000_drop_legacy_approve_quote_public.sql | 7c9c1fb54e7ce99896b9ba49f17b0608c686c340faa65ecefbb78ef949929ef4 | 06-20260929000000.sql | 9da76c2d2ad568b8d5e0134bc939cfff1187e324f36c77f04057e8241b696417 |
-| 7 | 20260930000000 | 20260930000000_converge_mirror_runtime_contract.sql | 6af52b48650b38e9fd17d8bb4187136e66c144c9875fd4c9f99bdf8a6c832b42 | 07-20260930000000.sql | ed6d129e47e9b973a6d26cbd1f9a5c83f8af71f9da9a7349e2f5fb77845dbd21 |
+| 7 | 20260930000000 | 20260930000000_converge_mirror_runtime_contract.sql | 6af52b48650b38e9fd17d8bb4187136e66c144c9875fd4c9f99bdf8a6c832b42 | 07-20260930000000.sql | f935e9da4aaebc0a0cbb0e68524ef398c8c810b90443e5f534a18a1653f7cba0 |
 
 Steps 1-6 ran in the R19 history run (bundles 01-06 are the R2 bytes that were sent; the guard no longer pins them). Step 7 runs in the
-M1 run (the guard pins only the atomicity probe and 07).
+M1 run (the guard pins only the atomicity probe and 07). Bundle 07 (M1 fix round R1-M1) holds `LOCK TABLE public.clients,
+public.quote_items, public.quotes IN SHARE MODE;` from right after its step guard to COMMIT (registry R3 step 7 `bodyLock`), so no concurrent
+row write can land between the file's TKM data guards and its retypes; the pre-fix bytes `ed6d129e...` are superseded and unpinned.
 
 ## 3. File map
 
@@ -123,7 +125,7 @@ a test asserts they equal the generator output byte for byte.
 | candidateCommit | `623ac1ee01995b071b5f0d9a8f3d6f1cef87cc23` | `BUILD_PINS` |
 | migrationVersion / migrationFile / migrationSha256 | see section 1 | `BUILD_PINS` |
 | productionRef / testRef | `ixabnzhjeqevtbhdfswv` / `ljfizgrdyzxddswcedwr` | `BUILD_PINS` |
-| testRegistrySha256 | `44ae8c8443a95f980520364f331560de40c274f878698fff2570540f32b5b1a5` (registry R3) | `BUILD_PINS` |
+| testRegistrySha256 | `2dd150c11e6c6e0bd3baf0d3185b2f510993499cde4d8eb96eb876dc981553a5` (registry R3) | `BUILD_PINS` |
 | testHistoryRegistrySha256 | `242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667` (registry R2, the R19 run) | `BUILD_PINS` |
 | testHistoryRunSha256 | `67538b44929ca4aa6ebb6631187fa76b6f0bcb9f678423d4b5360b7273e026cb` (the R19 run evidence) | `BUILD_PINS` |
 | sessionCheckSha256 | `d29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534` (session check v2) | `BUILD_PINS` |

@@ -167,7 +167,7 @@
           "const": "tekango-test-migration-registry/2"
         },
         "sha256": {
-          "const": "44ae8c8443a95f980520364f331560de40c274f878698fff2570540f32b5b1a5"
+          "const": "2dd150c11e6c6e0bd3baf0d3185b2f510993499cde4d8eb96eb876dc981553a5"
         },
         "sourceCommit": {
           "const": "623ac1ee01995b071b5f0d9a8f3d6f1cef87cc23"
@@ -693,7 +693,7 @@
                   "const": "07-20260930000000.sql"
                 },
                 "bundleSha256": {
-                  "const": "ed6d129e47e9b973a6d26cbd1f9a5c83f8af71f9da9a7349e2f5fb77845dbd21"
+                  "const": "f935e9da4aaebc0a0cbb0e68524ef398c8c810b90443e5f534a18a1653f7cba0"
                 },
                 "file": {
                   "const": "20260930000000_converge_mirror_runtime_contract.sql"
