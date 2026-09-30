@@ -57,7 +57,7 @@
           "const": "309962619"
         },
         "testRegistrySha256": {
-          "const": "242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667"
+          "const": "44ae8c8443a95f980520364f331560de40c274f878698fff2570540f32b5b1a5"
         },
         "testReportSha256": {
           "description": "DEPLOY-TIME pin: must equal the same key in P0_AQP_0929_DEPLOY_PINS (strict JSON); missing / PENDING refuses everything",

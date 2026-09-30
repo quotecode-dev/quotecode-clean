@@ -68,7 +68,12 @@ export const CODE_PINS = Object.freeze({
   profileId: 'aqp-drop-20260929000000',
   productionRef: 'ixabnzhjeqevtbhdfswv',
   testRef: 'ljfizgrdyzxddswcedwr',
-  testRegistrySha256: '242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667',
+  // M1 (TEKANGO Codex spec Milestone 1, registry R3 = R2 + step 7; Track B option (a)): the TEST report binds registry R3 and spans EXACTLY
+  // two runs - the R19 history run (steps 1..6 with registry R2; its run evidence sha256 is pinned) and the M1 run (step 7, registry R3).
+  // Production semantics are unchanged: the migration / bundle / candidate commit / authorization scope pins are the 0929 ones.
+  testRegistrySha256: '44ae8c8443a95f980520364f331560de40c274f878698fff2570540f32b5b1a5',
+  testHistoryRunSha256: '67538b44929ca4aa6ebb6631187fa76b6f0bcb9f678423d4b5360b7273e026cb',
+  testHistoryRegistrySha256: '242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667',
   sessionCheckSha256: 'd29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534',
   productionBundleSha256: 'aeb3d19e54a8efbb8cc392816ed241fc72a013eeb2e5a78830b67131748ed29e' as string, // READY bundle.ts (B6)
   atomicityProbeBundle: Object.freeze({ name: '00-atomicity-probe.sql', sha256: '5270596f53def403a2a2c8dbbb506a577f8c9956a7ccb06b41010aa94d45fd11' }),
@@ -79,7 +84,10 @@ export const CODE_PINS = Object.freeze({
     Object.freeze({ step: 4, version: '20260917000003', file: '20260917000003_prod_forward_save_quote_structured_atomic_function.sql', fileSha256: '5185f19b75dcde35eddbb4a4a4746139aef2f03939ee14965762ed904dc439af', bundleName: '04-20260917000003.sql', bundleSha256: 'fc9aaf993af6858323f6e669b15fe3b0ac5005a7fc4a0f2ec3438ff01330d0dc' }),
     Object.freeze({ step: 5, version: '20260927000000', file: '20260927000000_trial_reminder_delivery_claims.sql', fileSha256: '97d2017ed55ce06ca4683973adc69e48372d87a74e9c60e5a26d8b3a60a1d729', bundleName: '05-20260927000000.sql', bundleSha256: 'e81fe1323387bd4ff82ac32dd8b01832aeb0ec18d7c6844e7705354a6004d0aa' }),
     Object.freeze({ step: 6, version: '20260929000000', file: '20260929000000_drop_legacy_approve_quote_public.sql', fileSha256: '7c9c1fb54e7ce99896b9ba49f17b0608c686c340faa65ecefbb78ef949929ef4', bundleName: '06-20260929000000.sql', bundleSha256: '9da76c2d2ad568b8d5e0134bc939cfff1187e324f36c77f04057e8241b696417' }),
+    Object.freeze({ step: 7, version: '20260930000000', file: '20260930000000_converge_mirror_runtime_contract.sql', fileSha256: '6af52b48650b38e9fd17d8bb4187136e66c144c9875fd4c9f99bdf8a6c832b42', bundleName: '07-20260930000000.sql', bundleSha256: 'ed6d129e47e9b973a6d26cbd1f9a5c83f8af71f9da9a7349e2f5fb77845dbd21' }),
   ]),
+  // M1: the run plan - run 1 = the pinned history run (testHistoryRunSha256), run 2 = the M1 run.
+  testRunPlan: Object.freeze([Object.freeze([1, 2, 3, 4, 5, 6]), Object.freeze([7])]),
   // Production ledger BEFORE 0929 (AQP profile preApplyLedger: 14 rows ending 20260927000000) and the legacy overloads it must drop.
   productionPreApplyLedger: Object.freeze(['20260827000000', '20260827000001', '202608270000015', '20260827000002', '20260827000003', '20260828000000', '20260831000000', '20260908000000', '20260917000000', '20260917000001', '20260917000002', '20260917000003', '20260922000000', '20260927000000']),
   legacyOverloads: Object.freeze(['approve_quote_public(uuid)', 'approve_quote_public(uuid, text)']),
@@ -433,7 +441,7 @@ export const INITIAL_LEDGER_COUNT = 17;
 const PROBE_OUTCOME = 'PROBE_ATOMIC';
 const PROBE_TK_CODE = 'TK_TXN_PROBE';
 export const BUILD_PIN_KEYS = Object.freeze(['releaseId', 'repository', 'repositoryId', 'repositoryOwner', 'repositoryOwnerId', 'ref', 'workflowPath', 'environment', 'oidcAudience',
-  'candidateCommit', 'migrationVersion', 'migrationFile', 'migrationSha256', 'productionRef', 'testRef', 'testRegistrySha256', 'sessionCheckSha256', 'productionBundleSha256']);
+  'candidateCommit', 'migrationVersion', 'migrationFile', 'migrationSha256', 'productionRef', 'testRef', 'testRegistrySha256', 'testHistoryRunSha256', 'testHistoryRegistrySha256', 'sessionCheckSha256', 'productionBundleSha256']);
 const STEP_PIN_KEYS = Object.freeze(['step', 'version', 'file', 'fileSha256', 'bundleName', 'bundleSha256']);
 export const AUTH_KEYS = Object.freeze(['schema', 'authorizedBy', 'scope', 'releaseId', 'ownerDecisionText', 'ownerDecisionTextSha256', 'bindings', 'issuedAt', 'expiresAt', 'oneShot', 'forwardFixPermitted']);
 export const AUTH_BINDING_KEYS = Object.freeze(['repository', 'repositoryId', 'repositoryOwner', 'repositoryOwnerId', 'ref', 'workflowPath', 'workflowSha', 'environment', 'oidcAudience',
@@ -556,7 +564,7 @@ const PIN_FORMATS: Record<string, RegExp> = {
   releaseId: /^[a-z0-9-]{8,80}$/, repository: /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/, repositoryId: /^[1-9][0-9]{0,19}$/, repositoryOwner: /^[A-Za-z0-9-]{1,39}$/,
   repositoryOwnerId: /^[1-9][0-9]{0,19}$/, ref: /^refs\/heads\/main$/, workflowPath: /^\.github\/workflows\/[a-z0-9-]+\.yml$/, environment: /^[a-z0-9-]{1,64}$/,
   oidcAudience: /^[a-z0-9-]{1,64}$/, candidateCommit: HEX40, migrationVersion: /^\d{14}$/, migrationFile: /^\d{14}_[a-z0-9_]+\.sql$/, migrationSha256: HEX64,
-  productionRef: /^[a-z]{20}$/, testRef: /^[a-z]{20}$/, testRegistrySha256: HEX64, sessionCheckSha256: HEX64, productionBundleSha256: HEX64,
+  productionRef: /^[a-z]{20}$/, testRef: /^[a-z]{20}$/, testRegistrySha256: HEX64, testHistoryRunSha256: HEX64, testHistoryRegistrySha256: HEX64, sessionCheckSha256: HEX64, productionBundleSha256: HEX64,
 };
 export function checkPinsReady(pins: Obj): string[] {
   const errs: string[] = [];
@@ -566,6 +574,7 @@ export function checkPinsReady(pins: Obj): string[] {
     else if (typeof v !== 'string' || !PIN_FORMATS[k].test(v)) errs.push(`build pin ${k} is malformed`);
   }
   if (pins.productionRef === pins.testRef) errs.push('build pin productionRef equals testRef');
+  if (pins.testHistoryRegistrySha256 === pins.testRegistrySha256) errs.push('build pin testHistoryRegistrySha256 equals testRegistrySha256');
   return errs;
 }
 
@@ -587,13 +596,14 @@ export async function checkTestReportBytes(bytes: Uint8Array, pins: CodePins, no
     if (r.registry.schema !== TEST_REGISTRY_SCHEMA) errs.push(`report.registry.schema must be ${TEST_REGISTRY_SCHEMA}`);
     eqPin(errs, 'report.registry.sha256', r.registry.sha256, pins.testRegistrySha256); eqPin(errs, 'report.registry.sourceCommit', r.registry.sourceCommit, pins.candidateCommit);
     eqPin(errs, 'report.registry.targetRef', r.registry.targetRef, pins.testRef);
+    if (pins.testHistoryRegistrySha256 === pins.testRegistrySha256) errs.push('pins: the history registry equals the current registry');
     if (r.registry.initialLedgerCount !== INITIAL_LEDGER_COUNT) errs.push(`report.registry.initialLedgerCount must be ${INITIAL_LEDGER_COUNT}`);
   }
   eqPin(errs, 'report.sessionCheckSqlSha256', r.sessionCheckSqlSha256, pins.sessionCheckSha256);
   if (keysOk(r.atomicityProbe, REPORT_PROBE_KEYS, 'report.atomicityProbe', errs)) {
     if (r.atomicityProbe.bundleName !== pins.atomicityProbeBundle.name || r.atomicityProbe.bundleSha256 !== pins.atomicityProbeBundle.sha256) errs.push('report.atomicityProbe does not equal the pinned probe bundle');
   }
-  const steps6 = pins.testSteps;
+  const steps6 = pins.testSteps; const plan = pins.testRunPlan; // M1: 7 pinned steps in exactly 2 runs
   const times: [string, number][] = [];
   let runUtcByStep = new Map<number, number>(); let lastRunMs = NaN;
   if (keysOk(r.testRun, REPORT_TESTRUN_KEYS, 'report.testRun', errs)) {
@@ -601,7 +611,7 @@ export async function checkTestReportBytes(bytes: Uint8Array, pins: CodePins, no
     if (tr.runSchema !== TEST_RUN_SCHEMA) errs.push(`report.testRun.runSchema must be ${TEST_RUN_SCHEMA}`);
     hexOk(errs, 'report.testRun.toolingCommit', tr.toolingCommit, HEX40);
     const runs = Array.isArray(tr.runs) ? tr.runs : null;
-    if (!runs || runs.length < 1 || runs.length > steps6.length) errs.push(`report.testRun.runs must list 1..${steps6.length} runs`);
+    if (!runs || runs.length !== plan.length) errs.push(`report.testRun.runs must list exactly ${plan.length} runs (${plan.map((x) => x.join(',')).join(' | ')})`);
     const runOfStep = new Map<number, { sha: unknown; t: number }>(); const seen = new Set<unknown>(); const order: number[] = []; let prev = -Infinity;
     (runs || []).forEach((run: unknown, i: number) => {
       const L = `report.testRun.runs[${i}]`;
@@ -617,9 +627,13 @@ export async function checkTestReportBytes(bytes: Uint8Array, pins: CodePins, no
         hexOk(errs, `${L}.probe.postCaptureSha256`, p.postCaptureSha256); hexOk(errs, `${L}.probe.postSessionSha256`, p.postSessionSha256);
       }
       if (!Array.isArray(run.steps) || run.steps.length === 0 || !run.steps.every(int)) errs.push(`${L}.steps must list the step numbers the run APPLIED`);
-      else for (const n of run.steps as number[]) { order.push(n); if (!runOfStep.has(n)) runOfStep.set(n, { sha: run.evidenceSha256, t }); }
+      else {
+        for (const n of run.steps as number[]) { order.push(n); if (!runOfStep.has(n)) runOfStep.set(n, { sha: run.evidenceSha256, t }); }
+        if (plan[i] && (run.steps as number[]).join(',') !== plan[i].join(',')) errs.push(`${L}.steps must be exactly ${plan[i].join(',')} (the run plan)`);
+      }
+      if (i === 0) eqPin(errs, `${L}.evidenceSha256 (the R19 history run)`, run.evidenceSha256, pins.testHistoryRunSha256);
     });
-    if (order.join(',') !== steps6.map((s) => s.step).join(',')) errs.push('report.testRun.runs: the applied steps across the runs must be exactly 1,2,3,4,5,6 in order');
+    if (order.join(',') !== steps6.map((s) => s.step).join(',')) errs.push(`report.testRun.runs: the applied steps across the runs must be exactly ${steps6.map((s) => s.step).join(',')} in order`);
     runUtcByStep = new Map([...runOfStep].map(([n, v]) => [n, v.t]));
     const steps = Array.isArray(tr.steps) ? tr.steps : null;
     if (!steps || steps.length !== steps6.length) errs.push(`report.testRun.steps must list exactly the ${steps6.length} pinned steps`);
@@ -634,7 +648,8 @@ export async function checkTestReportBytes(bytes: Uint8Array, pins: CodePins, no
       hexOk(errs, `${L}.postCaptureSha256`, s.postCaptureSha256); hexOk(errs, `${L}.postSessionSha256`, s.postSessionSha256);
     });
   }
-  const migRunMs = runUtcByStep.get(steps6[steps6.length - 1].step);
+  // M1: the aqp captures bracket the run that applied the Production migration (20260929000000 = step 6, the history run), not the last run.
+  const migRunMs = runUtcByStep.get((steps6.find((s) => s.version === pins.migrationVersion) ?? { step: -1 }).step);
   let afterMs = NaN;
   if (keysOk(r.aqpVerify, REPORT_AQP_KEYS, 'report.aqpVerify', errs)) {
     const a = r.aqpVerify;

@@ -83,7 +83,8 @@ const PINS = Object.freeze({ ...CODE_PINS, productionBundleSha256: BUNDLE_SHA })
 // ---- artifacts (authorization v3 + TEST report /2), canonical bytes ------------------------------------------------------------
 // Synthetic, schema-exact artifacts (canonical bytes). Hash-like values are obviously fake repeated hex digits.
 const H = (c: string) => c.repeat(64);
-const T = { run: '2026-09-30T06:00:00.000Z', before: '2026-09-30T05:59:00.000Z', after: '2026-09-30T06:01:00.000Z', ledger: '2026-09-30T06:02:00.000Z', issued: '2026-09-30T08:00:00.000Z', expires: '2026-10-01T08:00:00.000Z' };
+// M1: run1 = the R19 history run (steps 1..6, pinned evidence sha), run = the M1 run (step 7); the aqp captures bracket run1 (0929).
+const T = { run1: '2026-09-30T05:50:00.000Z', run: '2026-09-30T06:00:00.000Z', before: '2026-09-30T05:49:00.000Z', after: '2026-09-30T06:01:00.000Z', ledger: '2026-09-30T06:02:00.000Z', issued: '2026-09-30T08:00:00.000Z', expires: '2026-10-01T08:00:00.000Z' };
 type J = Record<string, any>; // test-only mutable fixture shape
 function baseReport(): J {
   return {
@@ -95,11 +96,12 @@ function baseReport(): J {
     atomicityProbe: { bundleName: CODE_PINS.atomicityProbeBundle.name, bundleSha256: CODE_PINS.atomicityProbeBundle.sha256 },
     testRun: {
       runSchema: 'tekango-test-migration-run/2', toolingCommit: EXECUTOR_COMMIT,
-      runs: [{ evidenceSha256: H('b'), runUtc: T.run, probe: { outcome: 'PROBE_ATOMIC', tkCode: 'TK_TXN_PROBE', postCaptureSha256: H('c'), postSessionSha256: H('d') }, steps: [1, 2, 3, 4, 5, 6] }],
-      steps: CODE_PINS.testSteps.map((p) => ({ ...p, outcome: 'APPLIED', runEvidenceSha256: H('b'), preLedgerCount: 16 + p.step, postLedgerCount: 17 + p.step, postCaptureSha256: H('e'), postSessionSha256: H('f') })),
+      runs: [{ evidenceSha256: CODE_PINS.testHistoryRunSha256, runUtc: T.run1, probe: { outcome: 'PROBE_ATOMIC', tkCode: 'TK_TXN_PROBE', postCaptureSha256: H('c'), postSessionSha256: H('d') }, steps: [1, 2, 3, 4, 5, 6] },
+        { evidenceSha256: H('b'), runUtc: T.run, probe: { outcome: 'PROBE_ATOMIC', tkCode: 'TK_TXN_PROBE', postCaptureSha256: H('c'), postSessionSha256: H('d') }, steps: [7] }],
+      steps: CODE_PINS.testSteps.map((p) => ({ ...p, outcome: 'APPLIED', runEvidenceSha256: p.step <= 6 ? CODE_PINS.testHistoryRunSha256 : H('b'), preLedgerCount: 16 + p.step, postLedgerCount: 17 + p.step, postCaptureSha256: H('e'), postSessionSha256: H('f') })),
     },
     aqpVerify: { verdict: 'PASS', checksTotal: 12, beforeCaptureSha256: H('1'), afterCaptureSha256: H('2'), beforeCollectedAt: T.before, afterCollectedAt: T.after },
-    ledger: { captureSha256: H('3'), collectedAt: T.ledger, projectRef: CODE_PINS.testRef, rowCount: 23, migrationRow: { version: CODE_PINS.migrationVersion, name: CODE_PINS.migrationName, nStatements: 1, statementsSha256: CODE_PINS.migrationSha256, stmt1Sha256: CODE_PINS.migrationSha256 } },
+    ledger: { captureSha256: H('3'), collectedAt: T.ledger, projectRef: CODE_PINS.testRef, rowCount: 24, migrationRow: { version: CODE_PINS.migrationVersion, name: CODE_PINS.migrationName, nStatements: 1, statementsSha256: CODE_PINS.migrationSha256, stmt1Sha256: CODE_PINS.migrationSha256 } },
     finalTestCaptureAt: T.ledger,
     generator: { toolingCommit: EXECUTOR_COMMIT, clean: true },
   };
@@ -781,10 +783,17 @@ test('CODE_PINS.sessionCheckSha256 is the v2 session check, never v1', async () 
 test('artifacts: TEST report step / registry / hash tampering is refused', async () => {
   const cases: [string, (r: J) => void, RegExp?][] = [
     ['wrong step order', (r) => { const s = r.testRun.steps; [s[0], s[1]] = [s[1], s[0]]; }, /pinned step/],
-    ['runs step order', (r) => { r.testRun.runs[0].steps = [2, 1, 3, 4, 5, 6]; }, /1,2,3,4,5,6/],
-    ['missing step', (r) => { r.testRun.steps.pop(); r.testRun.runs[0].steps = [1, 2, 3, 4, 5]; }],
+    ['runs step order', (r) => { r.testRun.runs[0].steps = [2, 1, 3, 4, 5, 6]; }, /1,2,3,4,5,6,7/],
+    ['missing step', (r) => { r.testRun.steps.pop(); r.testRun.runs[1].steps = [8]; }],
     ['duplicated step', (r) => { r.testRun.runs[0].steps = [1, 2, 3, 4, 5, 5]; }],
-    ['extra step', (r) => { r.testRun.runs[0].steps = [1, 2, 3, 4, 5, 6, 7]; }],
+    ['extra step', (r) => { r.testRun.runs[1].steps = [7, 8]; }],
+    // M1 (option (a)): exactly two runs [1..6 (the pinned history run) | 7]
+    ['M1: three runs', (r) => { r.testRun.runs.push({ ...clone(r.testRun.runs[1]), evidenceSha256: H('9'), runUtc: '2026-09-30T06:00:30.000Z' }); }, /exactly 2 runs/],
+    ['M1: one run holding 1..7', (r) => { r.testRun.runs = [{ ...r.testRun.runs[0], steps: [1, 2, 3, 4, 5, 6, 7] }]; for (const st of r.testRun.steps) st.runEvidenceSha256 = CODE_PINS.testHistoryRunSha256; }, /exactly 2 runs/],
+    ['M1: the plan split 1..5 | 6,7', (r) => { r.testRun.runs[0].steps = [1, 2, 3, 4, 5]; r.testRun.runs[1].steps = [6, 7]; r.testRun.steps[5].runEvidenceSha256 = H('b'); }, /steps must be exactly 1,2,3,4,5,6 \(the run plan\)/],
+    ['M1: reordered runs (the M1 run first)', (r) => { const [a, b] = r.testRun.runs; r.testRun.runs = [{ ...b, runUtc: '2026-09-30T05:40:00.000Z' }, a]; }, /steps must be exactly 1,2,3,4,5,6/],
+    ['M1: another history-run evidence', (r) => { r.testRun.runs[0].evidenceSha256 = H('8'); for (const st of r.testRun.steps.slice(0, 6)) st.runEvidenceSha256 = H('8'); }, /the R19 history run/],
+    ['M1: the R2 registry as the report registry', (r) => { r.registry.sha256 = CODE_PINS.testHistoryRegistrySha256; }, /registry\.sha256/],
     ['wrong version', (r) => { r.testRun.steps[2].version = '20260917000009'; }],
     ['wrong step name (file)', (r) => { r.testRun.steps[1].file = '20260917000001_other.sql'; }],
     ['wrong bundle hash', (r) => { r.testRun.steps[5].bundleSha256 = H('9'); }],
@@ -805,9 +814,9 @@ test('artifacts: TEST report step / registry / hash tampering is refused', async
     ['migration sha', (r) => { r.migration.sha256 = H('a'); }],
     ['candidate commit', (r) => { r.migration.candidateCommit = '9'.repeat(40); }],
     ['ledger row', (r) => { r.ledger.migrationRow.nStatements = 2; }],
-    ['ledger row count', (r) => { r.ledger.rowCount = 22; }],
+    ['ledger row count', (r) => { r.ledger.rowCount = 23; }],
     ['aqp verdict', (r) => { r.aqpVerify.verdict = 'FAIL'; }],
-    ['aqp captures do not bracket the 0929 run', (r) => { r.aqpVerify.beforeCollectedAt = '2026-09-30T06:00:30.000Z'; }],
+    ['aqp captures do not bracket the 0929 run', (r) => { r.aqpVerify.beforeCollectedAt = '2026-09-30T05:55:00.000Z'; }, /bracket the run that applied the migration/],
     ['final capture not the latest', (r) => { r.finalTestCaptureAt = T.after; }],
     ['generator not clean', (r) => { r.generator.clean = false; }],
     ['unknown top-level key', (r) => { r.extra = 'x'; }, /unknown key/],
@@ -866,12 +875,12 @@ test('artifacts: authorization field / binding tampering is refused (every bindi
 test('artifacts: stale report (> 72 h before now) is refused even with a fresh authorization', async () => {
   const shift = (s: string) => new Date(Date.parse(s) - 80 * 3600 * 1000).toISOString();
   await expectArtifactRefused('stale report', await triple((r) => {
-    r.testRun.runs[0].runUtc = shift(T.run); r.aqpVerify.beforeCollectedAt = shift(T.before); r.aqpVerify.afterCollectedAt = shift(T.after); r.ledger.collectedAt = shift(T.ledger); r.finalTestCaptureAt = shift(T.ledger);
+    r.testRun.runs[0].runUtc = shift(T.run1); r.testRun.runs[1].runUtc = shift(T.run); r.aqpVerify.beforeCollectedAt = shift(T.before); r.aqpVerify.afterCollectedAt = shift(T.after); r.ledger.collectedAt = shift(T.ledger); r.finalTestCaptureAt = shift(T.ledger);
   }), /older than 72 h/);
 });
 test('artifacts: any PENDING build pin refuses (bundle pin, registry pin)', async () => {
   const t = await triple();
-  for (const k of ['productionBundleSha256', 'testRegistrySha256', 'sessionCheckSha256', 'candidateCommit'] as const) {
+  for (const k of ['productionBundleSha256', 'testRegistrySha256', 'testHistoryRunSha256', 'testHistoryRegistrySha256', 'sessionCheckSha256', 'candidateCommit'] as const) {
     const v = await verifyProductionRelease(t.authBytes, t.reportBytes, t.deploy, NOW_MS, { ...PINS, [k]: 'PENDING' } as typeof PINS);
     assert.equal(v.ok, false, k);
   }
