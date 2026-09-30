@@ -48,8 +48,8 @@ export const DEPLOY_PIN_KEYS = Object.freeze(['workflowSha', 'executorCommit', '
 export const ONESHOT_TABLE = 'tekango_release_ops.p0_aqp_0929_oneshot';
 export const LEDGER_TABLE = 'supabase_migrations.schema_migrations';
 
-// Build-time code pins. productionBundleSha256 stays PENDING until B6 generates the real Production bundle from a fresh Production
-// pre-state capture; while PENDING the broker refuses every request (BROKER_NOT_READY).
+// Build-time code pins. productionBundleSha256 = PRODUCTION_BUNDLE_SHA256 of the READY bundle.ts generated (B6) from the fresh read-only
+// Production pre-state capture of 2026-09-30T17:56:31Z (generatorCommit 7bb85184); any other bundle is refused (BROKER_NOT_READY).
 export const CODE_PINS = Object.freeze({
   releaseId: 'tekango-p0-aqp-remediation-2026-09-29',
   repository: 'quotecode-dev/quotecode-clean',
@@ -70,7 +70,7 @@ export const CODE_PINS = Object.freeze({
   testRef: 'ljfizgrdyzxddswcedwr',
   testRegistrySha256: '242678137ee6b341c0b1dad13844bc44e49ebd5630a4e42ad0871dd8c756a667',
   sessionCheckSha256: 'd29ba6ca169cd8687a9e67bf332afd1a37e3ef440aa25644fb2d12cf75697534',
-  productionBundleSha256: PENDING as string, // PENDING until B6 generates the real bundle from a fresh Production pre-state
+  productionBundleSha256: 'aeb3d19e54a8efbb8cc392816ed241fc72a013eeb2e5a78830b67131748ed29e' as string, // READY bundle.ts (B6)
   atomicityProbeBundle: Object.freeze({ name: '00-atomicity-probe.sql', sha256: '5270596f53def403a2a2c8dbbb506a577f8c9956a7ccb06b41010aa94d45fd11' }),
   testSteps: Object.freeze([
     Object.freeze({ step: 1, version: '20260917000000', file: '20260917000000_prod_forward_professional_quote_items_stage_a.sql', fileSha256: 'f59279ba858c026cd99e3f5ccbc6b13efa33453c2a36fd4d61521f585824462f', bundleName: '01-20260917000000.sql', bundleSha256: '5b5c62a0b383452cb673a7eec13c7fec5fab0bdcb3d127fc8c3a09e1229a1458' }),

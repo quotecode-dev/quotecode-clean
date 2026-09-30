@@ -58,7 +58,7 @@ function claims(over: Record<string, unknown> = {}): Record<string, unknown> {
 const HDR = { alg: 'RS256', typ: 'JWT', kid: KID, x5t: 'synthetic-thumbprint' };
 const validJwt = (over: Record<string, unknown> = {}, hdr: Record<string, unknown> = HDR) => signJwt(hdr, claims(over));
 
-// Synthetic Production bundle that satisfies the broker's structural tripwires (NOT the real bundle - that is bundle.ts, PENDING).
+// Synthetic Production bundle that satisfies the broker's structural tripwires (NOT the real bundle - that is bundle.ts, READY).
 const PRE = CODE_PINS.productionPreApplyLedger;
 const POST = [...PRE, CODE_PINS.migrationVersion].sort();
 const BUNDLE_SQL = [
@@ -233,8 +233,9 @@ test('happy path: all checks pass -> precheck, CAS, exactly ONE bundle call, rea
   assert.deepEqual(w.e.reads, [DEPLOY_PINS_ENV, DB_TOKEN_ENV]);
 });
 
-test('createHandler (production entry) refuses everything while the code bundle pin is PENDING', async () => {
-  assert.equal(CODE_PINS.productionBundleSha256, 'PENDING');
+test('createHandler (production entry) refuses everything unless the bundle is exactly the code-pinned one', async () => {
+  assert.match(CODE_PINS.productionBundleSha256, /^[0-9a-f]{64}$/);
+  assert.notEqual(CODE_PINS.productionBundleSha256, BUNDLE_SHA);
   const e = envFake({ [DEPLOY_PINS_ENV]: JSON.stringify({ workflowSha: WORKFLOW_SHA, executorCommit: EXECUTOR_COMMIT, authorizationSha256: '3'.repeat(64), testReportSha256: '4'.repeat(64) }), [DB_TOKEN_ENV]: FAKE_TOKEN });
   const h = createHandler({ fetch: throwingFetch, env: e.env, now: () => NOW_MS, jwks: async () => JWKS, bundle: BUNDLE as never });
   const res = await h(req({ jwt: await validJwt(), body: bodyOf() }));
@@ -634,7 +635,8 @@ test('bundle: PENDING stub / sha mismatch / code pin PENDING / wrong target / TE
   const variants: [string, unknown, typeof PINS?][] = [
     ['pending stub', { PRODUCTION_BUNDLE_SQL: '', PRODUCTION_BUNDLE_SHA256: 'PENDING', PRODUCTION_BUNDLE_META: { ...META_READY, status: 'PENDING_PRODUCTION_PRESTATE_CAPTURE' } }],
     ['status', { ...BUNDLE, PRODUCTION_BUNDLE_META: { ...META_READY, status: 'DRAFT' } }],
-    ['code pin PENDING', BUNDLE, CODE_PINS as typeof PINS],
+    ['code pin PENDING', BUNDLE, { ...CODE_PINS, productionBundleSha256: 'PENDING' } as typeof PINS],
+    ['production code pin (another bundle)', BUNDLE, CODE_PINS as typeof PINS],
     ['declared sha != bytes', { ...BUNDLE, PRODUCTION_BUNDLE_SQL: BUNDLE_SQL.replace('COMMIT;', 'COMMIT; ') }],
     ['code pin != bundle', BUNDLE, { ...PINS, productionBundleSha256: 'f'.repeat(64) }],
     ['meta TEST target', { ...BUNDLE, PRODUCTION_BUNDLE_META: { ...META_READY, targetKind: 'TEST', targetRef: CODE_PINS.testRef } }],
