@@ -17,8 +17,26 @@
 --   - Data-loss guards are aggregate / count-only reads (no row value is ever emitted). row_security is pinned off for this
 --     transaction so a guard can never be silently filtered by RLS (a filtered read errors instead: fail closed).
 --   - NOT touched (intentionally left different): table / function comments, function bodies (CRLF vs LF), the R-10 policy
---     text, migration 20260922000000's ledger row, any ledger row, any customer row value.
+--     text, migration 20260922000000's ledger row, any ledger row, any customer row value - with ONE stated exception (S1
+--     below): the R-1 numeric retype coerces a binary-float REPRESENTATION-RESIDUE value to its own cent value.
 --   - Every catalog / function reference is schema-qualified; search_path is pinned to pg_catalog, pg_temp.
+--
+-- S1 AMENDMENT (Owner decision S1, 2026-10-01; TECHNICAL STORAGE PRECISION - this is NOT a money / product law; IRON-ILS-001,
+-- the display-only ILS rule, is untouched and not used here). This file is amended BEFORE its first execution: version
+-- 20260930000000 has never been applied anywhere (absent from the TEST and the Production ledger; every bundle refuses a replay),
+-- so amending its bytes pre-execution rewrites no history. The ONLY behavioural change is TKM05:
+--   - before: TKM05 refused ANY numeric value with value <> round(value, 2);
+--   - now:    TKM05 refuses only a GENUINE sub-cent value, i.e. value <> round(value, 2) AND NOT representation residue, where
+--             residue = |value - round(value, 2)| <= GREATEST(|value|, 1) * 1e-12 (verbatim the reviewed classification rule of
+--             scripts/mirror/sql/m1-money-classification.sql / m1-s1-binding.sql). A residue value (e.g. 179.99999999999997, the
+--             float artefact of an intended 180.00) is coerced by ALTER COLUMN ... TYPE numeric(p,2) (typmod rounding, half away
+--             from zero = round(value, 2)); it moves by at most GREATEST(|value|, 1) * 1e-12 and keeps its intended cent amount.
+--             The table rewrite fires no row trigger, so a residue row on a LOCKED quote needs no UPDATE and no guard bypass.
+--   - A GENUINE sub-cent value is never coerced silently: it still refuses (TKM05) and must be removed beforehand by an explicit,
+--     bound, Owner-authorized step (TEST: the S1 pre-step of bundle 07 v2) or an Owner decision.
+--   - TKM06 (range / NaN / Infinity) and every other clause are unchanged.
+--   - Production: no-op. Every governed Production column already equals its target definition, so the loop CONTINUEs before any
+--     data guard; the amended TKM05 is never evaluated there.
 --
 -- TEST-target clauses (no-ops where already canonical, e.g. on Production):
 --   R-1  clients.company_name / contact_name / email, quote_items.description -> varchar(255); quote_items.unit_price /
@@ -48,7 +66,8 @@
 --                                     index, constraint, trigger, statistics, routine ...)
 --   TKM03 TK_M1_DATA_LENGTH           a value longer than 255 characters in a column being narrowed to varchar(255)
 --   TKM04 TK_M1_DATA_CURRENCY         a quotes.currency value longer than 3 characters
---   TKM05 TK_M1_DATA_NUMERIC_SCALE    a numeric value that is not exactly representable at scale 2 (value <> round(value, 2))
+--   TKM05 TK_M1_DATA_NUMERIC_SCALE    a GENUINE sub-cent numeric value: value <> round(value, 2) and not representation residue
+--                                     (|value - round(value, 2)| <= GREATEST(|value|, 1) * 1e-12 is residue, coerced by the retype; S1)
 --   TKM06 TK_M1_DATA_NUMERIC_RANGE    a numeric value outside the target precision (or NaN / Infinity)
 --   TKM07 TK_M1_ENUM_LABELS           public.quote_status missing / not an enum / labels neither the TEST set nor the canonical set
 --   TKM08 TK_M1_ENUM_DEPENDENCY       something other than a column DEFAULT depends on public.quote_status or its array type
@@ -240,12 +259,15 @@ BEGIN
       END IF;
     ELSIF c_cols[i][3] = 'N' THEN
       -- target numeric(p,2): exact iff value = round(value, 2) and abs(value) < 10^(p-2); NaN / Infinity fail the range test.
-      EXECUTE pg_catalog.format('SELECT pg_catalog.count(*) FILTER (WHERE %1$I <> pg_catalog.round(%1$I, 2)),'
+      -- S1: TKM05 counts only GENUINE sub-cent values; representation residue (|v - round(v, 2)| <= GREATEST(|v|, 1) * 1e-12) is
+      -- coerced to round(v, 2) by the retype below.
+      EXECUTE pg_catalog.format('SELECT pg_catalog.count(*) FILTER (WHERE %1$I <> pg_catalog.round(%1$I, 2)'
+                                ' AND NOT (pg_catalog.abs(%1$I - pg_catalog.round(%1$I, 2)) <= GREATEST(pg_catalog.abs(%1$I), 1) * 1e-12)),'
                                 ' pg_catalog.count(*) FILTER (WHERE NOT (pg_catalog.abs(%1$I) < %2$s::pg_catalog.numeric)) FROM public.%3$I',
                                 c_cols[i][2], pg_catalog.power(10::pg_catalog.numeric, c_cols[i][7]::integer - 2)::pg_catalog.int8, c_cols[i][1])
         INTO v_n, v_n2;
       IF v_n <> 0 THEN
-        RAISE EXCEPTION 'TK_M1_DATA_NUMERIC_SCALE: % row(s) of public.%.% have more than 2 decimal places', v_n, c_cols[i][1], c_cols[i][2]
+        RAISE EXCEPTION 'TK_M1_DATA_NUMERIC_SCALE: % row(s) of public.%.% carry a genuine sub-cent value (not representation residue)', v_n, c_cols[i][1], c_cols[i][2]
           USING ERRCODE = 'TKM05';
       END IF;
       IF v_n2 <> 0 THEN
