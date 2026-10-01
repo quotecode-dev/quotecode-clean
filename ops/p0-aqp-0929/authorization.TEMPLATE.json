@@ -15,7 +15,7 @@
     "repositoryId": "1332524138",
     "repositoryOwner": "quotecode-dev",
     "repositoryOwnerId": "309962619",
-    "testRegistrySha256": "2dd150c11e6c6e0bd3baf0d3185b2f510993499cde4d8eb96eb876dc981553a5",
+    "testRegistrySha256": "a93685d9d1cc3cfd68b67d020a1308ba0a7c0a8f131d97ddddee2b7348d540d9",
     "testReportSha256": "{{testReportSha256: 64-hex sha256 of the canonical TEST verification report bytes (deploy pin)}}",
     "workflowPath": ".github/workflows/p0-aqp-0929-production-migration.yml",
     "workflowSha": "{{workflowSha: 40-hex main commit that contains the reviewed workflow (deploy pin)}}"
