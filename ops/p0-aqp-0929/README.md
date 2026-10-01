@@ -317,35 +317,52 @@ Limits (documented, not solved by the trigger): the table owner / `postgres` can
 re-grant itself privileges or `DROP` the table; the guarantee relies on the broker only ever sending its fixed statements, and on
 nobody else holding the token.
 
-## 8. GitHub Environment and branch protection requirements (B-4)
+## 8. GitHub Environment and branch protection requirements (single-owner governance; supersedes B-4)
 
 Facts (public read-only API, 2026-09-29): the repository is PUBLIC; the owner `quotecode-dev` is a User account (id `309962619`);
 existing Environments are `Preview` and `Production` only; `production-migration-0929` does not exist yet; branch protection on
-`main` was not readable unauthenticated; no rulesets were returned.
+`main` was not readable unauthenticated; no rulesets were returned. Re-read 2026-10-01: `production-migration-0929` still 404,
+`main` unprotected.
 
-Required before any Production run (each needs configuration authorization and a readback proof):
+OWNER DECISION (2026-10-01, Packet 1, single-owner governance - SUPERSEDES the B-4 decision below): the Owner has exactly one
+legitimate GitHub account. The second-human reviewer assumption is formally superseded. Fake, duplicate, bot, Claude or Codex
+reviewer identities are FORBIDDEN. Unavailable dual-human control is replaced by: explicit Owner authorization + independent
+Codex review + immutable pins (deploy pins, `workflowSha`, bundle / report / authorization hashes) + delayed secrets (Environment
+secrets set only right before dispatch) + one-shot / no-retry / terminal read-back (broker CAS, section 7).
 
-- Environment `production-migration-0929`: required reviewer `<SECOND_GITHUB_REVIEWER>`, `prevent_self_review: true`,
-  administrators may NOT bypass (`can_admins_bypass: false`), deployment branch policy = custom branch policy `main` only;
-  Environment secrets hold the authorization and the TEST report (names defined by the workflow); nothing else.
-- Branch `main`: protected; force pushes and deletion blocked; administrators included (no bypass); the workflow and broker reach
-  `main` only through review.
+Required BEFORE the workflow first reaches `main` (configuration authorization + read-back proof):
+
+- Environment `production-migration-0929`: required reviewers = 0; `prevent_self_review` NOT APPLICABLE (disabled / unset - there
+  is no second reviewer); administrators may NOT bypass (`can_admins_bypass: false`, mandatory); deployment branch policy = custom
+  branch policy, selected branches only, `main` only (mandatory); no wait timer; no custom protection app; NO Environment secrets.
+- Branch `main`: an active ruleset on `refs/heads/main` - deletion restricted, force pushes blocked, linear history required,
+  bypass list empty. Pull requests are not required ONLY for the one reviewed fast-forward that brings the workflow + broker to
+  `main`; immediately after it the same ruleset is tightened to require a pull request (approving reviews = 0), keeping the
+  deletion restriction, force-push block, linear history and empty bypass list.
 - Actions: GitHub-hosted runners only; actions pinned to full commit SHAs; `permissions: contents: read, id-token: write`.
 
-OWNER DECISION (2026-09-29, B-4): `prevent_self_review` STAYS ENABLED and must never be weakened. A SECOND GitHub identity,
-`<SECOND_GITHUB_REVIEWER>`, is the Environment's required reviewer. The concrete identity is designated by the Owner at the
-separately authorized Environment-provisioning step (it is not needed at build time and is never invented here). The identity
-that dispatches the workflow must NOT be `<SECOND_GITHUB_REVIEWER>`.
+Required BEFORE any Production dispatch (not before the workflow first reaches `main`):
+
+- Environment secrets `P0_AQP_0929_AUTHORIZATION_B64` / `P0_AQP_0929_TEST_REPORT_B64` exist ONLY as secrets of that Environment
+  (never repository- or organization-level secrets with the same names); nothing else in the Environment.
+- Explicit Owner authorization + independent Codex review of the exact final package (section 10).
 
 Provisioning readback checklist (all must hold, read back after configuration; any deviation stops Production execution):
 
 - [ ] Environment `production-migration-0929` exists.
-- [ ] Required reviewers contain `<SECOND_GITHUB_REVIEWER>` (the Owner-designated second identity).
-- [ ] `prevent_self_review` is `true`.
+- [ ] Required reviewers = 0 (no fabricated or substitute reviewer identity).
+- [ ] `prevent_self_review` disabled / unset (not applicable).
 - [ ] `can_admins_bypass` is `false`.
 - [ ] Deployment branch policy is a custom branch policy allowing `main` only (no other branch or tag pattern).
-- [ ] The planned dispatcher identity is not `<SECOND_GITHUB_REVIEWER>`.
-- [ ] Branch `main` protection as listed above (no force push, no deletion, administrators included).
+- [ ] No wait timer, no custom protection app.
+- [ ] Environment secrets: none before the workflow reaches `main`; exactly the two artifact secrets only right before dispatch.
+- [ ] `main` ruleset as listed above (deletion restricted, force push blocked, linear history, empty bypass; pull request
+      required after the one reviewed fast-forward).
+
+SUPERSEDED (history, kept verbatim): OWNER DECISION (2026-09-29, B-4): `prevent_self_review` STAYS ENABLED and must never be
+weakened. A SECOND GitHub identity, `<SECOND_GITHUB_REVIEWER>`, is the Environment's required reviewer. The concrete identity is
+designated by the Owner at the separately authorized Environment-provisioning step (it is not needed at build time and is never
+invented here). The identity that dispatches the workflow must NOT be `<SECOND_GITHUB_REVIEWER>`.
 
 ## 9. Supabase token requirements
 
@@ -369,10 +386,11 @@ Provisioning readback checklist (all must hold, read back after configuration; a
    broker, workflow and generated bundle.
 2. Track A: authorized TEST session check, atomicity probe and six-step TEST run; fresh AQP before/after captures and a ledger
    capture; `generate-test-report` (output outside every checkout) -> `testReportSha256`.
-3. Owner designates the concrete `<SECOND_GITHUB_REVIEWER>` identity and the (different) dispatcher identity (section 8;
-   decision already taken: second identity as reviewer, `prevent_self_review` stays enabled).
-4. GitHub configuration: create + configure Environment `production-migration-0929` and `main` protection; readback proof
-   against the section 8 checklist.
+3. Single-owner governance (section 8, Owner decision 2026-10-01, supersedes B-4): no second reviewer identity is designated;
+   the Owner's one GitHub account dispatches; explicit Owner authorization + independent Codex review + immutable pins + delayed
+   secrets + one-shot / no-retry / terminal read-back replace dual-human control.
+4. GitHub configuration: create + configure Environment `production-migration-0929` (required reviewers 0, admin bypass off,
+   `main` only, no secrets) and the `main` ruleset; readback proof against the section 8 checklist.
 5. Merge workflow + broker to `main` -> `workflowSha`. FREEZE `main` from this step until the dispatch (step 12): any further
    commit to `main` changes the OIDC `workflow_sha` claim of the run, and the broker refuses it (401) because it no longer equals
    the pinned `workflowSha`. A needed change means a new `workflowSha`, new deploy pins and a new authorization.

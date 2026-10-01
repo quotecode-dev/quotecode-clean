@@ -12,11 +12,16 @@
 # must be resolved read-only before anything else happens. Running it requires a separate explicit Owner authorization.
 # No third-party or first-party actions are used (no checkout): only the runner's preinstalled bash, curl and jq.
 #
-# PRECONDITIONS (must hold BEFORE this file reaches main - GitHub auto-creates a missing Environment WITHOUT any protection):
-#   - The `production-migration-0929` Environment is configured and read back: required reviewer(s), prevent_self_review: true,
-#     administrators may NOT bypass, custom deployment branch policy = `main` only.
+# PRECONDITIONS (single-owner governance, Owner decision 2026-10-01 superseding B-4; ops/p0-aqp-0929/README.md section 8):
+#   BEFORE this file reaches main (GitHub auto-creates a missing Environment WITHOUT any protection):
+#   - The `production-migration-0929` Environment is configured and read back: required reviewers 0 (the Owner has one legitimate
+#     GitHub account; prevent_self_review NOT APPLICABLE), administrators may NOT bypass, custom deployment branch policy =
+#     `main` only, no Environment secrets yet.
+#   BEFORE any Production dispatch (not before first reaching main):
 #   - P0_AQP_0929_AUTHORIZATION_B64 / P0_AQP_0929_TEST_REPORT_B64 exist ONLY as secrets of that Environment - never as
-#     repository- or organization-level secrets with the same names (those would be readable without the reviewer gate).
+#     repository- or organization-level secrets with the same names (those would be readable outside the main-only Environment).
+#   Dual-human control is replaced by: explicit Owner authorization + independent Codex review + immutable pins + delayed secrets
+#   + one-shot / no-retry / terminal read-back.
 name: p0-aqp-0929-production-migration
 
 on:
