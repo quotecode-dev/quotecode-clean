@@ -1,0 +1,77 @@
+// Task 27: the in-app offer cards (Free-10 + the one all-inclusive package) used by the plans view (PricingModal) and the Free-10 upgrade
+// window. Data = pricingModalModel (one price source). The package card has an accessible monthly / annual radio choice and shows ONE
+// price at a time, with the saving line only for the annual period. Display only: no purchase action exists while checkout is inactive.
+import { useId, useState } from 'react';
+import { Check } from 'lucide-react';
+
+// Task 30: amounts and percentages inside a note ("15%", "₪54.00", "$32.00") are LTR-isolated, tabular figures (text unchanged).
+const NUMERIC_TOKEN = /([₪$€£]?\d[\d.,]*%?)/;
+function isolateNumbers(text) {
+  return String(text).split(NUMERIC_TOKEN).map((part, i) => (i % 2 === 1
+    ? <bdi key={i} dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{part}</bdi>
+    : part));
+}
+
+function PriceBlock({ plan, isHebrew }) {
+  const uid = useId();
+  const [period, setPeriod] = useState(plan.prices[0]?.period);
+  const choice = plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
+  const shown = choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
+  return (
+    <div data-region="price">
+      {choice && (
+        <fieldset data-period-choice style={{ border: 0, padding: 0, margin: '0 0 6px', minWidth: 0 }}>
+          <legend style={{ padding: 0, marginBottom: 4, fontSize: '0.76rem', fontWeight: 600, color: '#475569' }}>{choice.legend}</legend>
+          <div style={{ display: 'inline-flex', gap: 4, padding: 3, background: '#eef2f3', border: '1px solid #d5dee0', borderRadius: 9, flexWrap: 'wrap' }}>
+            {plan.prices.map((r) => (
+              <label key={r.period} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 40, minWidth: 76,
+                padding: '0 12px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
+                background: period === r.period ? '#0F6672' : 'transparent', color: period === r.period ? '#ffffff' : '#1e293b' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: chooses which billing period's price the offer card shows; no purchase, nothing stored */}
+                <input type="radio" name={`${uid}-period`} value={r.period} checked={period === r.period} onChange={() => setPeriod(r.period)} data-period={r.period}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', margin: 0, opacity: 0, cursor: 'pointer' }} />
+                <span>{choice.labels[r.period]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      <div aria-live={choice ? 'polite' : undefined}>
+        {shown.map((r) => (
+          <div key={r.period}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' }} data-billing-period={r.period}>
+              <span className="pf-money" data-price style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums', direction: 'ltr', unicodeBidi: 'isolate' }}>{r.amount}</span>
+              {r.per && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.per}</span>}
+            </div>
+            {r.note && <div data-period-note={r.period} dir={isHebrew ? 'rtl' : 'ltr'} style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 6, background: '#e3f1ea', color: '#1e5c42', fontSize: '0.8rem', fontWeight: 700 }}>{isolateNumbers(r.note)}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal' }) {
+  const plans = only ? model.plans.filter((p) => only.includes(p.id)) : model.plans;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+      {plans.map((p) => {
+        const isCurrent = currentPlanId === p.id;
+        return (
+          <section key={p.id} data-testid={`${testIdPrefix}-card-${p.id}`} aria-label={p.name}
+            style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
+            {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
+            <PriceBlock plan={p} isHebrew={isHebrew} />
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
+              {p.lines.map((line) => (
+                <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>
+              ))}
+            </ul>
+            {isCurrent && <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F6672' }}>{isHebrew ? 'המסלול שלך' : 'Your plan'}</span>}
+          </section>
+        );
+      })}
+    </div>
+  );
+}

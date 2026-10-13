@@ -34,23 +34,23 @@ export const CAPABILITY_ANCHORS = {
   editor_calculator: [{ file: 'src/components/DraggableCalculator.jsx', anchor: 'inputDigit' }],
   editor_currency_converter: [{ file: 'src/components/DraggableCalculator.jsx', anchor: 'fromCurr' }],
   public_currency_converter: [
-    { file: 'src/components/PublicTools.jsx', anchor: 'const [rates, setRates] = useState(' },
-    { file: 'src/components/PublicToolsEn.jsx', anchor: 'const [rates, setRates] = useState(' },
+    { file: 'src/components/PublicTools.jsx', anchor: 'convertCurrency(amountIn.value' },
+    { file: 'src/components/PublicToolsEn.jsx', anchor: 'convertCurrency(amountIn.value' },
   ],
   public_unit_converter: [
-    { file: 'src/components/PublicTools.jsx', anchor: 'convertUnits' },
-    { file: 'src/components/PublicToolsEn.jsx', anchor: 'convertUnits' },
+    { file: 'src/components/PublicTools.jsx', anchor: 'convertLength(unitIn.value' },
+    { file: 'src/components/PublicToolsEn.jsx', anchor: 'convertLength(unitIn.value' },
   ],
   // Note: the two files use different variable names (metalPricesILS vs metalPricesUSD) - a real,
   // deliberate difference (the Hebrew tool denominates in ILS, the English one in USD), not an
   // inconsistency to normalize away.
   public_metals_calculator: [
-    { file: 'src/components/PublicTools.jsx', anchor: 'metalPricesILS' },
-    { file: 'src/components/PublicToolsEn.jsx', anchor: 'metalPricesUSD' },
+    { file: 'src/components/PublicTools.jsx', anchor: 'metalValueUsd(gramsIn.value' },
+    { file: 'src/components/PublicToolsEn.jsx', anchor: 'metalValueUsd(gramsIn.value' },
   ],
   public_crypto_calculator: [
-    { file: 'src/components/PublicTools.jsx', anchor: 'cryptoPricesUSD' },
-    { file: 'src/components/PublicToolsEn.jsx', anchor: 'cryptoPricesUSD' },
+    { file: 'src/components/PublicTools.jsx', anchor: 'coinPrice.usd' },
+    { file: 'src/components/PublicToolsEn.jsx', anchor: 'coinPrice.usd' },
   ],
   business_settings: [{ file: 'src/components/SettingsTab.jsx', anchor: 'export default function SettingsTab' }],
   profile_prerequisites: [{ file: 'src/components/SettingsTab.jsx', anchor: 'pf-settings-business_tax_id' }],

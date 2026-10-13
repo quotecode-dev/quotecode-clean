@@ -13,21 +13,23 @@ import { sanitizeQuoteContext, buildQuoteContextBlock } from './quoteContext.ts'
 describe('buildSystemPrompt - HE (Israel/ILS) pricing correctness', () => {
   const prompt = buildSystemPrompt({ isHebrew: true });
 
-  it('shows both the monthly price and the annual-effective-monthly price, distinctly', () => {
-    const basic = AI_FACTS.pricing.il.plans.basic;
-    expect(prompt).toContain(`₪${basic.monthly}`);
-    expect(prompt).toContain(`₪${basic.annualEffectiveMonthly}`);
-    expect(basic.monthly).not.toBe(basic.annualEffectiveMonthly);
+  // Task 39 (Owner 2026-10-13): the retired Basic / Pro / trial lines were replaced by the approved package truth (publicPlanTruth.ts)
+  it('shows the approved package monthly and yearly price distinctly, with VAT and the saving; never a retired Basic / Pro price', () => {
+    expect(prompt).toContain('₪30 לחודש');
+    expect(prompt).toContain('₪306 לשנה');
+    expect(prompt).toContain('המחירים כוללים מע״מ');
+    expect(prompt).toContain('₪54');
+    expect(prompt).not.toContain(`₪${AI_FACTS.pricing.il.plans.basic.monthly} לחודש`);
   });
 
-  it('shows the annual total figure, not just a rate', () => {
-    const pro = AI_FACTS.pricing.il.plans.pro;
-    expect(prompt).toContain(`₪${pro.annualTotal}`);
+  it('presents the prices for information only - nothing purchasable, Free-10 not active', () => {
+    expect(prompt).toMatch(/לידיעה בלבד/);
+    expect(prompt).toMatch(/מסלול 10 ההצעות החינמיות עדיין לא הופעל/);
   });
 
-  it('explains the 14-day trial', () => {
-    expect(prompt).toContain(`${AI_FACTS.trialDays}`);
-    expect(prompt).toMatch(/ניסיון/);
+  it('the account terms (incl. any trial) are those shown at sign-up; existing rights unchanged (no trial invented or removed)', () => {
+    expect(prompt).toMatch(/תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה/);
+    expect(prompt).toMatch(/זכויות קיימות של חשבונות אינן משתנות/);
   });
 
   it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {
@@ -57,20 +59,22 @@ describe('buildSystemPrompt - HE (Israel/ILS) pricing correctness', () => {
 describe('buildSystemPrompt - EN (International) pricing correctness', () => {
   const prompt = buildSystemPrompt({ isHebrew: false });
 
-  it('shows both the monthly price and the annual-effective-monthly price, distinctly', () => {
-    const basic = AI_FACTS.pricing.usd.plans.basic;
-    expect(prompt).toContain(`$${basic.monthly}`);
-    expect(prompt).toContain(`$${basic.annualEffectiveMonthly}`);
-    expect(basic.monthly).not.toBe(basic.annualEffectiveMonthly);
+  // Task 39 (Owner 2026-10-13): the retired Basic / Pro / trial lines were replaced by the approved package truth (publicPlanTruth.ts)
+  it('shows the approved package monthly and yearly price distinctly with the saving; never a retired Basic / Pro price', () => {
+    expect(prompt).toContain('$18 per month');
+    expect(prompt).toContain('$184 per year');
+    expect(prompt).toContain('$32');
+    expect(prompt).not.toMatch(/Basic: \$/);
   });
 
-  it('shows the annual total figure, not just a rate', () => {
-    const pro = AI_FACTS.pricing.usd.plans.pro;
-    expect(prompt).toContain(`$${pro.annualTotal}`);
+  it('presents the prices for information only - nothing purchasable, Free-10 not active', () => {
+    expect(prompt).toMatch(/information only/);
+    expect(prompt).toMatch(/The 10-free-quotes plan is not active yet/);
   });
 
-  it('explains the 14-day trial', () => {
-    expect(prompt).toContain(`${AI_FACTS.trialDays}-day`);
+  it('the account terms (incl. any trial) are those shown at sign-up; existing rights unchanged (no trial invented or removed)', () => {
+    expect(prompt).toMatch(/account terms available today are shown when you sign up/);
+    expect(prompt).toMatch(/existing account rights do not change/);
   });
 
   it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {

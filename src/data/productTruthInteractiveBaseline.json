@@ -131,6 +131,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/PackageOfferCards.jsx": {
+    "interactive": 0,
+    "markers": 1
+  },
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
     "markers": 0
@@ -140,8 +144,8 @@
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
-    "interactive": 2,
-    "markers": 2
+    "interactive": 0,
+    "markers": 0
   },
   "src/components/ProFlowLogo.jsx": {
     "interactive": 0,
@@ -156,12 +160,12 @@
     "markers": 2
   },
   "src/components/PublicTools.jsx": {
-    "interactive": 7,
-    "markers": 11
+    "interactive": 8,
+    "markers": 12
   },
   "src/components/PublicToolsEn.jsx": {
-    "interactive": 7,
-    "markers": 11
+    "interactive": 8,
+    "markers": 12
   },
   "src/components/QuoteDraftNotices.jsx": {
     "interactive": 5,
@@ -203,7 +207,63 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/landing/LandingHeader.jsx": {
+    "interactive": 10,
+    "markers": 10
+  },
+  "src/components/landing/LandingPage.jsx": {
+    "interactive": 6,
+    "markers": 6
+  },
+  "src/components/landing/LandingPlans.jsx": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "src/components/landing/LandingQuoteDocument.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/QuoteStyleShowcase.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
+  "src/components/landing/landingPackageFacts.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/landingQuoteModel.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/landingStyles.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/showcaseAvailability.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/config/professionalPreviewAllowlist.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/accountSummaryClient.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/displayEstimate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/packageCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/priceCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/pricingModalModel.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -215,7 +275,15 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/hooks/useLauncherStepAside.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/hooks/useMoneySlotSize.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/hooks/usePublicToolsFeeds.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -248,11 +316,11 @@
     "markers": 25
   },
   "src/pages/LandingGlobal.jsx": {
-    "interactive": 17,
+    "interactive": 0,
     "markers": 0
   },
   "src/pages/LandingLocal.jsx": {
-    "interactive": 17,
+    "interactive": 0,
     "markers": 0
   },
   "src/pages/NotFound.jsx": {
@@ -284,6 +352,22 @@
     "markers": 0
   },
   "src/pages/landingVideoConfig.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/quoteDocument/QuoteMedia.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/quoteDocument/quoteMediaModel.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/quoteDocument/quoteStyles.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/quoteDocument/sampleQuotes.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -447,6 +531,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/publicToolsCore.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/quoteApprovalErrorClassification.js": {
     "interactive": 0,
     "markers": 0
@@ -536,6 +624,10 @@
     "markers": 0
   },
   "supabase/functions/_shared/shortDate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/_shared/subscriptionContract.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -648,6 +740,10 @@
     "markers": 0
   },
   "supabase/functions/chat-ai/productTruthPayload.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/publicPlanTruth.ts": {
     "interactive": 0,
     "markers": 0
   },

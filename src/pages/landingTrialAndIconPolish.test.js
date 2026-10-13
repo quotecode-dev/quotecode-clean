@@ -24,29 +24,46 @@ function readRenderedText(relativePath) {
 // a structural regression guard so a future copy edit doesn't silently
 // reintroduce the duplication.
 describe('landing page trial-message de-duplication (Final Landing Polish task, Part A)', () => {
-  it('Hebrew landing page mentions the 14-day trial duration in at most 3 rendered locations', () => {
-    const he = readRenderedText('LandingLocal.jsx');
-    const matches = he.match(/14\s*(יום|ימי)/g) || [];
-    expect(matches.length).toBeLessThanOrEqual(3);
-    expect(matches.length).toBeGreaterThan(0); // still stated somewhere - not silently dropped
+  // OD-01 (Owner 2026-10-07) supersedes the 3-location 14-day budget: the trial is replaced by Free-10, so the rendered copy
+  // (comments stripped) mentions the 14-day trial nowhere, and the Free-10 policy is stated in the hero line, the plans
+  // note and the FAQ (at most 3 places, never silently dropped).
+  const code = (src) => src.replace(/^\s*\/\/.*$/gm, '');
+  it('Hebrew landing page: no 14-day trial; Free-10 stated in 1-3 places', () => {
+    const he = code(readRenderedText('LandingLocal.jsx'));
+    expect(he.match(/14\s*(יום|ימי)/g) || []).toHaveLength(0);
+    const free10 = he.match(/10 הצעות מחיר (חינם )?בסך הכול/g) || [];
+    expect(free10.length).toBeGreaterThan(0);
+    expect(free10.length).toBeLessThanOrEqual(3);
   });
 
-  it('English landing page mentions the 14-day trial duration in at most 3 rendered locations', () => {
-    const en = readRenderedText('LandingGlobal.jsx');
-    const matches = en.match(/14[\s-]day/gi) || [];
-    expect(matches.length).toBeLessThanOrEqual(3);
-    expect(matches.length).toBeGreaterThan(0);
+  it('English landing page: no 14-day trial; Free-10 stated in 1-3 places', () => {
+    const en = code(readRenderedText('LandingGlobal.jsx'));
+    expect(en.match(/14[\s-]day/gi) || []).toHaveLength(0);
+    const free10 = en.match(/10 (free )?quotes in total/gi) || [];
+    expect(free10.length).toBeGreaterThan(0);
+    expect(free10.length).toBeLessThanOrEqual(3);
   });
 
+  // Task 16 correction A (2026-10-05): the approved refined landing replaced the legacy closing band ("Ready to create
+  // your first quote?" h2 + p in the page JSX) with the refined closing ("Your next quote starts with a clear
+  // process."), and the page files now hold their copy as data rendered by the shared LandingPage layout. Only the
+  // LAYOUT pin changed (where the closing heading/text live); the truth constraint is unchanged: the closing band's
+  // heading, text and CTA never repeat the trial duration.
   it('the final CTA band no longer repeats the trial duration in either locale', () => {
     const he = readRenderedText('LandingLocal.jsx');
     const en = readRenderedText('LandingGlobal.jsx');
-    const heMatch = he.match(/מוכנים ליצור את ההצעה הראשונה שלכם\?[^<]*<\/h2>\s*<p[^>]*>([^<]*)<\/p>/);
-    const enMatch = en.match(/Ready to create your first quote\?[^<]*<\/h2>\s*<p[^>]*>([^<]*)<\/p>/);
+    // IRON-LANDING-001 (2026-10-11): the closing band's CTA is the shared Free-10 button (copy.free10), so the band holds title + text.
+    const closingRe = /closing:\s*\{\s*title:\s*'([^']*)',\s*text:\s*'([^']*)',?\s*\}/;
+    const free10Re = /free10:\s*\{\s*cta:\s*'([^']*)',\s*status:\s*'([^']*)'\s*\}/;
+    const heMatch = he.match(closingRe);
+    const enMatch = en.match(closingRe);
     expect(heMatch).toBeTruthy();
     expect(enMatch).toBeTruthy();
-    expect(heMatch[1]).not.toMatch(/14/);
-    expect(enMatch[1]).not.toMatch(/14/);
+    for (const m of [heMatch, enMatch, he.match(free10Re), en.match(free10Re)]) {
+      expect(m).toBeTruthy();
+      expect(m[1]).not.toMatch(/14/);
+      expect(m[2]).not.toMatch(/14/);
+    }
   });
 });
 

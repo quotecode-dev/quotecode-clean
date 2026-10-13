@@ -9,6 +9,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
+import { classifyPublicPlanIntent, publicPlanTruthAnswer, hasRetiredPlanPriceClaim } from "./publicPlanTruth.ts";
 import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse } from "./capabilityTruth.ts";
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
@@ -259,6 +260,12 @@ serve(async (req) => {
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
   }
+  // Task 39 (Owner): plans / prices / purchase / Free-10 / trial questions get the approved package truth, deterministically (no model).
+  if (classifyPublicPlanIntent(lastUserMessage)) {
+    const planAnswer = publicPlanTruthAnswer(isHebrew);
+    await logChat(planAnswer);
+    return deterministicResponse(planAnswer, null);
+  }
 
   // ACCOUNT MARKET / CURRENCY TRUTH (structured-truth closure): a message that asserts or asks to change the account's market / currency is
   // answered DETERMINISTICALLY from the server-verified market, ACCOUNT-scoped - so the model can never turn it into a product-wide
@@ -381,7 +388,10 @@ serve(async (req) => {
 
   // §8: parse and validate any trailing navigation marker - the visible
   // answer never contains the raw "NAVIGATE: ..." line either way.
-  const { answer, action: navigationAction } = extractNavigationAction(aiReply, selectedQuoteAvailable, verifiedUserId ? navAllowed : []);
+  const extracted = extractNavigationAction(aiReply, selectedQuoteAvailable, verifiedUserId ? navAllowed : []);
+  // Task 39 (Owner): a model answer that quotes a retired Basic / Pro price is replaced by the approved package truth.
+  const answer = hasRetiredPlanPriceClaim(extracted.answer) ? publicPlanTruthAnswer(isHebrew) : extracted.answer;
+  const navigationAction = extracted.action;
   const NAV_FOCUS: Record<string, string> = { open_business_phone: 'business_phone', open_business_tax_id: 'business_tax_id', open_business_details: 'business_details' };
 
   const category = classifySupportMessage(lastUserMessage);
