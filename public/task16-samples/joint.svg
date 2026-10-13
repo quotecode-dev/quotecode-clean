@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 135" width="1600" height="1200" role="img" aria-labelledby="t">
+<title id="t">Synthetic joinery detail illustration</title>
+<rect width="180" height="135" fill="#ece9e1"/>
+<g transform="translate(0 2.5)"><path d="M14 90L88 34l74 28-75 56z" fill="#c28b60"/><path d="M88 34v19l74 27V62z" fill="#9f6847"/><path d="M14 90v16l73 13v-1z" fill="#ac7652"/><circle cx="90" cy="66" r="15" fill="none" stroke="#315f67" stroke-width="3"/><path d="M100 76l19 18" stroke="#315f67" stroke-width="3"/></g>
+</svg>

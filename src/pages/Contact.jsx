@@ -1,13 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AIChatWidget from '../AIChatWidget';
 import ProFlowLogo from '../components/ProFlowLogo';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeoFor } from '../shared/publicSeoRoutes';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
+import { useLauncherStepAside } from '../hooks/useLauncherStepAside';
+
+// Task 36 (Codex landing review L6): the floating AI launcher steps aside while it would cover a heading, text or action of this page
+// (measured: it covered the support email link and the "Start chat" button). HE copy (Task 36, §ג): one form of address (plural, as the
+// landing), no English badge on the Hebrew page, no superlative.
+const CONTACT_PROTECTED = '.contact-main h1, .contact-main h2, .contact-main p, .contact-main a, .contact-main button, .contact-main [data-protect], footer';
 
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
+  const rootRef = useRef(null);
+  useLauncherStepAside(rootRef, CONTACT_PROTECTED, 'contact-launcher-aside');
 
   useEffect(() => {
     // /contact הלא-מקודד הוא alias לתאימות בלבד (בוקמארקים/בקלינקים ישנים)
@@ -28,19 +36,21 @@ export default function Contact({ isHebrew }) {
   }, [isHebrew, navigate]);
 
   const t = isHebrew ? {
-    title: 'צור קשר',
-    subtitle: 'נשמח לעזור! אנחנו זמינים עבורך לכל שאלה, בקשה או תקלה טכנית.',
-    back: 'חזור אחורה',
+    title: 'יצירת קשר',
+    subtitle: 'נשמח לעזור בכל שאלה, בקשה או תקלה טכנית.',
+    back: 'חזרה',
     emailTitle: 'אימייל לתמיכה',
     emailValue: SUPPORT_EMAIL_HE,
     emailDesc: 'פניות בנושאי שירות לקוחות, תמיכה טכנית ושאלות על המערכת.',
     responseTimeTitle: 'זמני מענה',
-    responseTimeValue: 'אנו משתדלים להשיב לכל פנייה בתוך 24 שעות.',
-    responseTimeDesc: 'בימי חול (א\'-ה\'). פניות שיישלחו בסוף השבוע ייענו ביום העסקים הבא.',
-    aiTitle: 'צ\'אט תמיכה חכם (AI)',
-    aiDesc: 'קבל מענה מיידי 24/7 לשאלות נפוצות, תפעול המערכת והדרכות בעזרת עוזר ה-AI שלנו.',
-    aiButton: 'התחל צ\'אט ✦',
-    footerText: 'TEKANGO ישראל - פלטפורמת ה-SaaS המתקדמת לניהול עסק.'
+    // Task 37 (Owner): no service-time promise that is not verified
+    responseTimeValue: 'פניות לתמיכה נענות בימי העבודה.',
+    responseTimeDesc: 'פניות שיישלחו בסוף השבוע ייענו ביום העבודה הבא.',
+    aiTitle: 'צ\'אט עם עוזר ה-AI',
+    aiDesc: 'קבלו תשובות מיידיות בכל שעה לשאלות על המערכת, המחירים והמסלולים, בעזרת עוזר ה-AI שלנו.',
+    aiButton: 'פתיחת הצ\'אט ✦',
+    aiBadge: 'זמין בכל שעה',
+    footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.'
   } : {
     title: 'Contact Us',
     subtitle: 'We are here to help! Reach out for any questions, requests, or technical support.',
@@ -53,12 +63,13 @@ export default function Contact({ isHebrew }) {
     emailValue: SUPPORT_EMAIL_EN,
     emailDesc: 'For customer service, technical support, and general inquiries.',
     responseTimeTitle: 'Response Time',
-    responseTimeValue: 'We aim to respond to all inquiries within 24 hours.',
-    responseTimeDesc: 'On business days. Inquiries sent over the weekend will be addressed on the next business day.',
+    responseTimeValue: 'Support inquiries are answered on business days.',
+    responseTimeDesc: 'Inquiries sent over the weekend are answered on the next business day.',
     aiTitle: 'AI Support Chat',
     aiDesc: 'Get instant 24/7 answers to common questions, system operations, and guides using our AI assistant.',
     aiButton: 'Start Chat ✦',
-    footerText: 'TEKANGO Global - The advanced SaaS platform for business management.'
+    aiBadge: 'Available 24/7',
+    footerText: 'TEKANGO Global - quotes and business management in one place.'
   };
 
   const handleAiClick = () => {
@@ -66,7 +77,7 @@ export default function Contact({ isHebrew }) {
   };
 
   return (
-    <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', Arial, Segoe UI, Tahoma, sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', Arial, Segoe UI, Tahoma, sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
       <style>{`
         .contact-card {
@@ -112,6 +123,7 @@ export default function Contact({ isHebrew }) {
           opacity: 0.9;
           transform: scale(1.02);
         }
+        .contact-launcher-aside .ai-support-btn { opacity: 0 !important; transform: translateY(16px) !important; pointer-events: none !important; visibility: hidden; }
       `}</style>
 
       {/* Header */}
@@ -135,7 +147,7 @@ export default function Contact({ isHebrew }) {
       </header>
 
       {/* Content */}
-      <main style={{ flex: 1, padding: '60px 20px' }}>
+      <main className="contact-main" style={{ flex: 1, padding: '60px 20px' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '50px' }}>
             <h1 style={{ fontSize: '3rem', fontWeight: '900', color: '#ffffff', marginBottom: '16px', letterSpacing: '-0.5px' }}>{t.title}</h1>
@@ -167,7 +179,7 @@ export default function Contact({ isHebrew }) {
             {/* AI Chat Card */}
             <div className="contact-card" style={{ position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, background: '#10b981', color: 'white', padding: '4px 12px', borderBottomLeftRadius: isHebrew ? '0' : '16px', borderBottomRightRadius: isHebrew ? '16px' : '0', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                Active 24/7
+                {t.aiBadge}
               </div>
               <div className="contact-icon" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
