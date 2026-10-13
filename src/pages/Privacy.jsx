@@ -20,7 +20,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: אוגוסט 2026',
+    lastUpdated: 'עדכון אחרון: אוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
@@ -29,11 +29,11 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '2. שימוש במידע',
-        content: 'המידע הנאסף משמש אך ורק לצורך תפעול המערכת, יצירת מסמכים עבור העסק שלך, עיבוד תשלומים, מתן תמיכה טכנית ושיפור חוויית המשתמש. אנו לא נעשה שימוש בנתונים העסקיים שלך לשום מטרה אחרת.'
+        content: 'המידע הנאסף משמש אך ורק לצורך תפעול המערכת, יצירת מסמכים עבור העסק שלך, מתן תמיכה טכנית ושיפור חוויית המשתמש. השירות אינו מעבד תשלומים כרגע. אנו לא נעשה שימוש בנתונים העסקיים שלך לשום מטרה אחרת.'
       },
       {
         title: '3. שיתוף מידע עם צד שלישי',
-        content: 'אנו מתחייבים לעולם לא למכור, לסחור או להשכיר את המידע שלך לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים, וספקי סליקה מאובטחים) הפועלים תחת תקני אבטחה מחמירים.'
+        content: 'אנו מתחייבים לעולם לא למכור, לסחור או להשכיר את המידע שלך לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים) הפועלים תחת תקני אבטחה מחמירים. כרגע אין ספק סליקה מחובר לשירות; ספק התשלום ופרטי השיתוף עמו יפורסמו לפני הפעלת המסלולים בתשלום. עוזר ה-AI של TEKANGO (בצ\'אט באתר ובתוך המערכת) מעביר את הטקסט שאתם כותבים לספק מודל שפה חיצוני (OpenAI) לצורך הפקת התשובה. המערכת אינה מצרפת לשאלה באופן אוטומטי את פרטי הלקוחות שלכם (שם, אימייל, טלפון, כתובת). טקסט שאתם מקלידים בעצמכם נשלח כפי שנכתב, ולכן אל תכללו בו פרטים שאינכם רוצים להעביר. השאלות והתשובות נשמרות אצלנו יחד עם כתובת המייל של החשבון (או כפנייה אנונימית בצ\'אט באתר) ומועד הפנייה, לצורך מענה ותמיכה. הודעות מייל (למשל הצעת מחיר ללקוח, אימות חשבון ואיפוס סיסמה) נשלחות באמצעות ספק שליחה חיצוני (Resend).'
       },
       {
         title: '4. שימוש ב-Cookies',
@@ -46,11 +46,15 @@ export default function Privacy({ isHebrew }) {
       {
         title: '6. זכויות המשתמש',
         content: 'זכותך המלאה לעיין במידע האישי שלך השמור במערכת, לעדכן אותו, או לבקש את מחיקתו המוחלטת. למחיקת החשבון וכל הנתונים המקושרים אליו, תוכל לפנות אלינו דרך עמוד "צור קשר".'
+      },
+      {
+        title: '7. נושאים שטרם הוחלטו',
+        content: 'משך שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים.'
       }
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last Updated: August 2026',
+    lastUpdated: 'Last Updated: October 2026',
     back: 'Go Back',
     sections: [
       {
@@ -59,11 +63,11 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '2. Use of Information',
-        content: 'The collected data is used exclusively to operate the platform, generate your business documents, process billing, provide technical support, and improve user experience. We will not use your business data for any other purpose.'
+        content: 'The collected data is used exclusively to operate the platform, generate your business documents, provide technical support, and improve user experience. The service does not process payments at this time. We will not use your business data for any other purpose.'
       },
       {
         title: '3. Third-Party Sharing',
-        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting and secure payment processors) that operate under strict security standards.'
+        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting) that operate under strict security standards. No payment processor is connected to the service at this time; the payment provider and what is shared with it will be published before paid plans are activated. The TEKANGO AI assistant (in the website chat and inside the app) sends the text you write to an external language-model provider (OpenAI) to produce its answer. The system does not automatically attach your customers\' details (name, email, phone, address) to a question. Text you type yourself is sent as written, so do not include details you do not want to pass on. Questions and answers are stored by us with the account email (or as an anonymous inquiry in the website chat) and the time, for answering and support. Emails (for example a quote to a customer, account verification and password reset) are sent through an external sending provider (Resend).'
       },
       {
         title: '4. Cookies',
@@ -76,6 +80,10 @@ export default function Privacy({ isHebrew }) {
       {
         title: '6. User Rights',
         content: 'You have the right to access, update, or request the complete deletion of your personal information stored in our system. To delete your account and all associated data, please reach out to us via the Contact Us page.'
+      },
+      {
+        title: '7. Matters Not Yet Decided',
+        content: 'Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published before the plans are activated.'
       }
     ]
   };

@@ -82,7 +82,7 @@ export const PUBLIC_SEO_ROUTES = [
     path: '/he/contact',
     page: 'contact',
     lang: 'he',
-    title: 'TEKANGO - צור קשר ותמיכה',
+    title: 'TEKANGO - יצירת קשר ותמיכה', // Task 36: the page heading is now „יצירת קשר”
     description: 'צרו קשר עם צוות התמיכה של TEKANGO לכל שאלה בנוגע לניהול העסק והצעות המחיר שלכם.',
     hreflang: pair('/contact'),
   },

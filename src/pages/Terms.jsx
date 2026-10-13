@@ -20,7 +20,7 @@ export default function Terms({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
-    lastUpdated: 'עדכון אחרון: אוגוסט 2026',
+    lastUpdated: 'עדכון אחרון: אוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
@@ -36,8 +36,17 @@ export default function Terms({ isHebrew }) {
         content: 'אתה אחראי באופן בלעדי לשמור על סודיות פרטי ההתחברות שלך (אימייל וסיסמה). כל פעולה שתתבצע תחת החשבון שלך היא באחריותך. אנו משתמשים בטכנולוגיות אבטחה והצפנה מתקדמות בענן, אך איננו יכולים להבטיח חסינות מוחלטת מפני פריצות או תקלות רשת.'
       },
       {
-        title: '4. מינויים, תשלומים ומדיניות החזרים כספיים (Refunds)',
-        content: 'אנו מציעים תקופת ניסיון חינמית (Trial) למשך 14 ימים. לאחר תקופה זו, המשך גישה לתכונות ה-PRO מותנית בתשלום דמי מנוי מחזוריים (חודשיים או שנתיים). מכיוון שמדובר בשירות תוכנה דיגיטלי, לא יינתנו החזרים כספיים על תקופות יחסיות ששולמו. תוכל לבטל את המנוי בכל עת והוא יסתיים בתום תקופת החיוב הנוכחית שלך.'
+        // Owner unified instruction 2026-10-07 (4.b.6) + subscriptions cutover (OD-01..OD-08, OD-16): approved facts only -
+        // canonical plan names, Free-10 rules, the approved IL prices INCLUDING VAT; no payment exists, so no recurring /
+        // non-refundable / cancellation promise. Open branches (OPEN-01/02/08/09/10/11/13) are marked "not decided, will be
+        // published before activation" - never an invented policy. Legal review pending. Task 36 (L2): the Free-10 counting sentence = the
+        // canonical Owner decision 2026-10-11 (version + customer), the same rule as the landing FAQ and the server ledger.
+        title: '4. מסלולים ותשלומים',
+        content: 'אחרי 10 ההצעות החינמיות, המנוי הוא מסלול אחד שכולל את כל היכולות הזמינות בשירות, בתשלום חודשי או שנתי מתחדש: 30.00 ₪ לחודש או 306.00 ₪ לשנה. סגנונות הצגת ההצעה אינם מסלולים. זכויות קיימות במסלול קודם נשמרות ואינן משתנות אוטומטית. מסלול חינם כולל 10 הצעות בסך הכול, ללא תפוגה. הצעה נספרת כשהיא יוצאת ללקוח (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית). הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ, אינה נספרת שוב; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת. טיוטה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים. כל מסלול בתשלום כולל 100 מוצרי קטלוג, והרחבה של 100 מוצרים נוספים עולה 5.00 ₪ לחודש, רק בבחירה מפורשת. המחירים כוללים מע״מ. מערכת המסלולים החדשה עדיין אינה פעילה: מסלולים בתשלום ותשלום מקוון אינם זמינים כרגע, ולא נגבה תשלום כלשהו דרך השירות. תנאי התשלום, החיוב והביטול של מסלולים בתשלום טרם נקבעו.'
+      },
+      {
+        title: '4א. נושאים שטרם הוחלטו',
+        content: 'הנושאים הבאים טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; ביטול, החזרים וחיוב יחסי; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.'
       },
       {
         title: '5. קניין רוחני',
@@ -54,7 +63,7 @@ export default function Terms({ isHebrew }) {
     ]
   } : {
     title: 'Terms of Service',
-    lastUpdated: 'Last Updated: August 2026',
+    lastUpdated: 'Last Updated: October 2026',
     back: 'Go Back',
     sections: [
       {
@@ -70,8 +79,15 @@ export default function Terms({ isHebrew }) {
         content: 'You are entirely responsible for maintaining the confidentiality of your login credentials. Any activity occurring under your account is your sole responsibility. While we employ advanced cloud security and encryption technologies, we cannot guarantee absolute immunity from cyber breaches.'
       },
       {
-        title: '4. Subscriptions, Payments, and Refund Policy',
-        content: 'We offer a 14-day free trial. Following this period, continued access to PRO features requires a paid recurring subscription (monthly or annual). As this is a digital software service, all payments are non-refundable. You may cancel your subscription at any time, and the cancellation will take effect at the end of your current billing cycle.'
+        // Owner unified instruction 2026-10-07 (4.b.6) + subscriptions cutover (OD-01, OD-02, OD-06..OD-08, OD-16): approved
+        // International facts only - USD catalog prices, billing always in USD, a local-currency figure is only an estimate; no
+        // shekel price on the English page (OD-11). Open branches are marked "not decided". Legal review pending.
+        title: '4. Plans and Payments',
+        content: 'After the 10 free quotes, the subscription is one package with every capability available in the service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year. Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically. The Free plan includes 10 quotes in total, with no expiry. A quote counts when it reaches a client (sending it, sharing its public link, or producing its final PDF or print). Producing the same version again for the same client, on any channel, does not count again; changing the client, the recipient name or the quote content and producing it again counts as another quote. Drafts and previews do not count, deleting a quote does not give one back, and existing documents stay accessible. Every paid plan includes 100 catalog products, and 100 more products cost 3.00 USD per month, only when you explicitly choose it. Billing is always in USD; a price shown in your local currency is only an estimate. The new plan system is not active yet: Paid plans and online payment are not currently available, and no payment is collected through the service. Payment, billing and cancellation terms for paid plans have not been decided yet.'
+      },
+      {
+        title: '4a. Matters Not Yet Decided',
+        content: 'The following have not been decided yet and will be published before the plans are activated: quote limits of the paid plans; attachments; storage; AI quotas; cancellation, refunds and proration; taxes; and data and document retention periods.'
       },
       {
         title: '5. Intellectual Property',

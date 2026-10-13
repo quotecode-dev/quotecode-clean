@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 135" width="1600" height="1200" role="img" aria-labelledby="t">
+<title id="t">Synthetic oak worktop illustration</title>
+<rect width="180" height="135" fill="#dde6e2"/>
+<g transform="translate(0 2.5)"><path d="M18 61l105-31 39 18-106 33z" fill="#d1a477"/><path d="M56 81l106-33v13L56 95z" fill="#a8734e"/><path d="M30 74v42M147 62v42" stroke="#395e50" stroke-width="6"/><path d="M22 42c24 8 35-7 55 2M83 30c26 8 41-6 62 1" stroke="#b7825b" fill="none"/></g>
+</svg>

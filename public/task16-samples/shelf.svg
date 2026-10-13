@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="1600" height="1200" role="img" aria-labelledby="t">
+<title id="t">Synthetic oak shelving illustration</title>
+<rect width="240" height="180" fill="#e7e4dc"/>
+<g transform="translate(0 20)"><rect x="35" y="18" width="170" height="104" rx="2" fill="#b98258"/><g fill="#e8c39e"><rect x="44" y="26" width="45" height="38"/><rect x="97" y="26" width="45" height="38"/><rect x="150" y="26" width="46" height="38"/><rect x="44" y="72" width="45" height="41"/><rect x="97" y="72" width="45" height="41"/><rect x="150" y="72" width="46" height="41"/></g><g fill="#496d63"><circle cx="66" cy="47" r="9"/><path d="M62 50h8v11h-8z"/><circle cx="172" cy="93" r="10"/><path d="M168 96h8v12h-8z"/></g></g>
+</svg>

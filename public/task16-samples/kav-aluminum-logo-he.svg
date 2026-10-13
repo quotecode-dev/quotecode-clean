@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">סמל קו אלומיניום</title>
+  <desc id="desc">סמל גאומטרי של מסגרת חלון</desc>
+  <rect width="64" height="64" rx="7" fill="#fff"/>
+  <g transform="translate(10 7)" fill="none" stroke="#173f48" stroke-width="3.5">
+    <rect x="0" y="0" width="44" height="48" rx="2"/>
+    <path d="M22 2v44M2 24h40"/>
+  </g>
+  <path d="M10 55h44" stroke="#c89242" stroke-width="4"/>
+</svg>
