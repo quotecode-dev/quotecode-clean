@@ -72,6 +72,19 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(input.placeholder).toBe('e.g. Installation, handles, or a window screen');
   });
 
+  it('Task 39: a description of 255 characters advances; 256 is refused with the length message, never truncated', () => {
+    render(<AddItemWizard {...baseProps} />);
+    const input = document.getElementById('wiz-description');
+    setValue(input, 'x'.repeat(256));
+    fireEvent.click(screen.getByText('Next'));
+    expect(screen.getByText('The description is too long: 256 characters. Up to 255 characters are allowed.')).toBeTruthy();
+    expect(document.getElementById('wiz-description').value).toHaveLength(256);
+    setValue(document.getElementById('wiz-description'), 'x'.repeat(255));
+    fireEvent.click(screen.getByText('Next'));
+    expect(screen.queryByText(/The description is too long/)).toBeNull();
+    expect(document.getElementById('wiz-description')).toBeNull();
+  });
+
   it('requires a description before advancing', () => {
     render(<AddItemWizard {...baseProps} />);
     fireEvent.click(screen.getByText('Next'));

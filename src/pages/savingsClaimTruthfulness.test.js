@@ -76,7 +76,7 @@ describe('annual savings claims stay truthful (no hardcoded uniform percentage)'
     expect(en).toContain("savingRate.exact ? '' : 'approximately '");
     expect(en).not.toMatch(/Annual Billing/); // the retired annual-toggle title (plain "annual billing" in a sentence is the §249 choice)
     expect(he).toContain("ilsPackageAmount('year')");
-    expect(en).toContain("usdPackageAmount('year')");
+    expect(en).toContain("usdPackageAmount('year'"); // Task 39: the call also passes the local-estimate rate record (still the catalog price)
     expect(he.match(/חיסכון/g) || []).toHaveLength(2); // the annual note + the base capability text "וחיסכון בזמן" (time, not money)
     expect(he).toContain('{ilsAnnualSaving()}');
     expect(en).toContain('{usdAnnualSaving()}');

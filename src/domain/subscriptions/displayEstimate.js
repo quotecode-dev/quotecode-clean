@@ -2,8 +2,8 @@
 // is the only way a display currency can be derived. It never alters billingCurrency / billingAmountMinor, never trusts a
 // browser-supplied market, and falls back to USD when the rate record is missing, malformed, stale, unsupported or a
 // forbidden International currency (ILS / NIS never appear on the International site, OD-11).
-// No verified rate source is wired today (see the plan-cards / subscriptions report): callers pass `rate: null` and get
-// the USD display.
+// Task 39 (Owner final scope 2026-10-13): the rate record comes from localPriceEstimate.js (the product's existing public rate source,
+// with provider + last-update time; GBP / EUR only, 26 h validity passed as maxAgeMs). Without a valid record the display is USD.
 export const ESTIMATE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const FORBIDDEN_INTERNATIONAL_CURRENCIES = Object.freeze(['ILS', 'NIS']);
 

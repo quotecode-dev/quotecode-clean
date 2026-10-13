@@ -5,19 +5,29 @@
 // never starts a payment and never changes the plan.
 // The current plan line comes ONLY from the server account summary (OD-20); market = the server summary market, else the
 // account's recorded business market (never the UI language, locale or a client-side rate).
+import { useEffect, useState } from 'react';
 import { X, LayoutList } from 'lucide-react';
+import { loadUsdRate, ESTIMATE_CURRENCIES } from '../domain/subscriptions/localPriceEstimate';
 import BrandName from './BrandName';
 import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency }) {
+  const [rate, setRate] = useState(null);
+  const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
+  useEffect(() => {
+    if (!wantsEstimate) return undefined;
+    let alive = true;
+    loadUsdRate(currency).then((r) => { if (alive) setRate(r); }).catch(() => {});
+    return () => { alive = false; };
+  }, [wantsEstimate, currency]);
   if (!isOpen) return null;
   const lang = isHebrew ? 'he' : 'en';
   const serverMarket = accountSummary?.state === 'ready' ? accountSummary.market : null;
   const market = serverMarket || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL');
-  const m = pricingModalModel({ isHebrew, market });
+  const m = pricingModalModel({ isHebrew, market, accountCurrency: market === 'IL' ? null : currency, estimateRate: rate });
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
 
@@ -44,7 +54,15 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
+        {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{m.estimateNote}</p>}
         <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>
+        <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
+          {m.cancellation.text}{' '}
+          {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}
+          <a href={m.cancellation.href} style={{ color: '#0F6672', fontWeight: 600 }}>{m.cancellation.linkLabel}</a>{' · '}
+          {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
+          <a href={m.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6672' }}>{m.cancellation.termsLabel}</a>
+        </p>
         <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>
           {isHebrew ? 'יש לך שאלות? צור איתנו קשר דרך עוזר ה-AI או במייל.' : 'Have questions? Contact us via AI assistant or email.'}
         </div>

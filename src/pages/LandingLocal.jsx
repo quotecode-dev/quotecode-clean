@@ -185,6 +185,8 @@ export default function LandingLocal({ onForgotPassword }) {
         { q: 'האם המערכת מותאמת לסמארטפון ולמחשב?', a: 'כן. אפשר להפיק הצעות ולנהל את העסק מהמחשב, מהטאבלט או מהטלפון.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'הנתונים שלכם מאוחסנים בתשתית ענן מבוססת Supabase/PostgreSQL, עם הצפנה בתעבורה (TLS) ובאחסון כחלק מתשתית הענן הסטנדרטית. הגישה לנתונים מוגבלת לחשבון שלכם בלבד.' },
+        // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
+        { q: 'איך מבקשים ביטול מנוי?', a: <>עדיין אי אפשר לרכוש מנוי בתשלום. כשהרכישה תיפתח, אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הבקשה מטופלת בידי הצוות ומאושרת במייל - זה אינו ביטול אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
       ],
     },
@@ -209,6 +211,7 @@ export default function LandingLocal({ onForgotPassword }) {
       links: [
         { href: '/he/terms', label: 'תנאי שימוש' },
         { href: '/he/privacy', label: 'מדיניות פרטיות' },
+        { href: '/he/terms#cancellation', label: 'ביטול מנוי והחזרים' },
         { kind: 'accessibility', label: 'נגישות' },
         { href: '/he/contact', label: 'צרו קשר (support@tekango.com)', icon: Mail },
         { href: '/he/tools', label: 'כלים לעסקים', icon: BriefcaseBusiness },

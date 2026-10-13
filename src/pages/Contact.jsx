@@ -50,7 +50,19 @@ export default function Contact({ isHebrew }) {
     aiDesc: 'קבלו תשובות מיידיות בכל שעה לשאלות על המערכת, המחירים והמסלולים, בעזרת עוזר ה-AI שלנו.',
     aiButton: 'פתיחת הצ\'אט ✦',
     aiBadge: 'זמין בכל שעה',
-    footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.'
+    footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.',
+    // Task 39 (Owner final scope 2026-10-13): operator details; the phone number is shown on the Israeli site only; the cancellation
+    // request is handled by the team (never an automatic cancellation) and is not an account deletion.
+    businessTitle: 'פרטי העסק',
+    businessLines: ['שלמה סיני, עוסק מס׳ 023716913', 'רחוב שרה אהרונסון, רמת גן (אין קבלת קהל)'],
+    phone: '050-2993806',
+    phoneHref: 'tel:+972502993806',
+    cancelTitle: 'בקשת ביטול מנוי',
+    cancelText: 'אפשר לבקש ביטול מנוי בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; היא אינה ביטול אוטומטי ואינה מחיקת חשבון.',
+    cancelLink: 'שליחת בקשת ביטול במייל',
+    cancelSubject: 'בקשת ביטול מנוי',
+    termsLink: 'תנאי הביטול וההחזרים',
+    termsHref: '/he/terms#cancellation',
   } : {
     title: 'Contact Us',
     subtitle: 'We are here to help! Reach out for any questions, requests, or technical support.',
@@ -69,7 +81,17 @@ export default function Contact({ isHebrew }) {
     aiDesc: 'Get instant 24/7 answers to common questions, system operations, and guides using our AI assistant.',
     aiButton: 'Start Chat ✦',
     aiBadge: 'Available 24/7',
-    footerText: 'TEKANGO Global - quotes and business management in one place.'
+    footerText: 'TEKANGO Global - quotes and business management in one place.',
+    businessTitle: 'Business Details',
+    businessLines: ['Shlomo Sinai, Israeli business registration (osek) no. 023716913', 'Sarah Aharonson Street, Ramat Gan, Israel (no in-person reception)'],
+    phone: null,
+    phoneHref: null,
+    cancelTitle: 'Subscription Cancellation Request',
+    cancelText: 'You can ask to cancel a subscription at any time by email. Our team handles the request and confirms it by email; it is not an automatic cancellation and does not delete your account.',
+    cancelLink: 'Email a cancellation request',
+    cancelSubject: 'Subscription cancellation request',
+    termsLink: 'Cancellation and refund terms',
+    termsHref: '/en/terms#cancellation',
   };
 
   const handleAiClick = () => {
@@ -164,6 +186,17 @@ export default function Contact({ isHebrew }) {
               <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.emailTitle}</h2>
               <a href={`mailto:${t.emailValue}`} style={{ color: '#3b82f6', fontSize: '1.15rem', fontWeight: 'bold', textDecoration: 'none', marginBottom: '12px', display: 'inline-block' }}>{t.emailValue}</a>
               <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.emailDesc}</p>
+            </div>
+
+            {/* Task 39: business details + the cancellation-request path */}
+            <div className="contact-card" data-testid="contact-business">
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.businessTitle}</h2>
+              {t.businessLines.map((line) => <p key={line} style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 6px' }}>{line}</p>)}
+              {/* PRODUCT_TRUTH_DECORATIVE: tel link to the business phone (Israeli site only) */}{t.phone && <a href={t.phoneHref} data-testid="contact-phone" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', margin: '0 0 12px' }}><bdi dir="ltr">{t.phone}</bdi></a>}
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#ffffff', margin: '12px 0 6px' }}>{t.cancelTitle}</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 8px' }}>{t.cancelText}</p>
+              {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href={`mailto:${t.emailValue}?subject=${encodeURIComponent(t.cancelSubject)}`} data-testid="contact-cancel-request" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', marginBottom: '6px' }}>{t.cancelLink}</a>
+              {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href={t.termsHref} onClick={(e) => { e.preventDefault(); navigate(t.termsHref); }} style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{t.termsLink}</a>
             </div>
 
             {/* Response Time Card */}
