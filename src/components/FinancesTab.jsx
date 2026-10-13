@@ -3,11 +3,12 @@
 // ==============================================================================
 
 import { useState } from 'react';
-import { MoneyValue, NumericValue } from './NumericValue';
+import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
 import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatShortDate } from '../utils/shortDate';
+import { QUOTE_CURRENCY_SYMBOLS } from '../utils/money';
 
 // PRODUCT_TRUTH_CAPABILITY: finance_views
 export default function FinancesTab({
@@ -18,10 +19,12 @@ export default function FinancesTab({
   endDate,
   setEndDate,
   adminTotalQuotesCount,
-  adminTotalRevenue,
+  adminRevenueTotals,
   adminTotalExpenses,
   adminNetProfit,
   chartData,
+  chartIncomeCurrencies = [],
+  accountCurrency,
   filteredExpensesForReport,
   expenseDesc,
   setExpenseDesc,
@@ -61,7 +64,13 @@ export default function FinancesTab({
   // תוקן: dataKey נשאר קבוע ותואם את הנתון האמיתי (Income/Expenses),
   // ואילו name (prop נפרד שכבר תומך בו Recharts, לתצוגת legend/tooltip
   // בלבד) הוא שנושא את התרגום - כך שהערך המוצג תמיד אמיתי בשתי השפות.
-  const hasChartData = Array.isArray(chartData) && chartData.some((d) => Number(d.Income || 0) > 0 || Number(d.Expenses || 0) > 0);
+  // IRON-MARKET-004: income is one series per persisted quote currency (Income_ILS, Income_USD, ...) - never one mixed series.
+  const hasChartData = Array.isArray(chartData) && chartData.some((d) => Number(d.Expenses || 0) > 0
+    || Object.keys(d).some((k) => k.startsWith('Income_') && Number(d[k] || 0) > 0));
+  const INCOME_FILLS = ['#22c55e', '#0ea5e9', '#8b5cf6', '#f59e0b'];
+  const revenueMulti = (adminRevenueTotals?.groups?.length || 0) > 1 || (adminRevenueTotals?.unknownCount || 0) > 0;
+  const netProfitComputable = adminNetProfit !== null && adminNetProfit !== undefined;
+  const netProfitTone = !netProfitComputable ? NEON.textMuted : (adminNetProfit >= 0 ? '#22c55e' : NEON.red);
 
   // חוק ברזל (Task F item 5): מגדיר מפורשות שכרטיסי-ה-KPI (adminTotalRevenue
   // וכו', הבנויים מ-filteredQuotesForReport/filteredExpensesForReport)
@@ -129,15 +138,24 @@ export default function FinancesTab({
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color="#22c55e" />{t.totalRevenue}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>{sym}{formatMoneyDisplay(adminTotalRevenue)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>
+            <CurrencyTotals className={revenueMulti ? 'pf-kpi-currencies' : ''} totals={adminRevenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
+          </div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
           <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
-        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${adminNetProfit >= 0 ? '#22c55e' : NEON.red}` }}>
-          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={adminNetProfit >= 0 ? '#22c55e' : NEON.red} />{t.netProfit}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: adminNetProfit >= 0 ? '#22c55e' : NEON.red }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${netProfitTone}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${netProfitTone}` }}>
+          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={netProfitTone} />{t.netProfit}</div>
+          {netProfitComputable ? (
+            <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
+          ) : (
+            // IRON-MARKET-004: revenue spans several currencies (or a quote has no valid currency) - no conversion, so no number
+            <div className="pf-kpi-money pf-kpi-money--na" data-net-profit="not-computable" style={{ fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}>
+              {isHebrew ? 'לא ניתן לחשב: ההכנסות בכמה מטבעות' : 'Not computable: revenue is in several currencies'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -158,12 +176,17 @@ export default function FinancesTab({
                <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
                <YAxis stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
                <Tooltip
-                 formatter={(value) => `${sym}${formatMoneyDisplay(value)}`}
+                 formatter={(value, _name, item) => {
+                   const cur = String(item?.dataKey || '').startsWith('Income_') ? String(item.dataKey).slice(7) : null;
+                   return cur ? `${QUOTE_CURRENCY_SYMBOLS[cur]}${formatMoneyDisplay(value, cur)}` : `${sym}${formatMoneyDisplay(value)}`;
+                 }}
                  contentStyle={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textPrimary }}
                  labelStyle={{ color: NEON.textPrimary }}
                />
                <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '0.75rem', color: NEON.textSecondary }} />
-               <Bar dataKey="Income" name={isHebrew ? 'הכנסות' : 'Income'} fill="#22c55e" radius={[3, 3, 0, 0]} />
+               {chartIncomeCurrencies.map((cur, i) => (
+                 <Bar key={cur} dataKey={`Income_${cur}`} name={`${isHebrew ? 'הכנסות' : 'Income'} ${QUOTE_CURRENCY_SYMBOLS[cur]}`} fill={INCOME_FILLS[i % INCOME_FILLS.length]} radius={[3, 3, 0, 0]} />
+               ))}
                <Bar dataKey="Expenses" name={isHebrew ? 'הוצאות' : 'Expenses'} fill={NEON.red} radius={[3, 3, 0, 0]} />
              </BarChart>
            </ResponsiveContainer>

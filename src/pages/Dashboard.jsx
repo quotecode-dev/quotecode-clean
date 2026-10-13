@@ -34,7 +34,8 @@ import { normalizeAuthError } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
-import { formatMoney, formatMoneyForCurrency } from '../utils/money';
+import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
+import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
 import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
@@ -2805,7 +2806,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const planLimit = entitlement.monthlyQuoteLimit === Infinity ? '∞' : entitlement.monthlyQuoteLimit;
 
   const totalQuotesCount = quotes.length;
-  const totalRevenue = quotes.filter(q => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid').reduce((sum, q) => sum + Number(q.total || 0), 0);
+  // IRON-MARKET-004: revenue (approved/paid - the unchanged definition) is totalled per persisted quote currency; amounts in
+  // different currencies are never added, converted or relabelled with the account currency (which only sets display order).
+  const isRevenueQuote = (q) => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid';
+  const accountCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;
+  const revenueTotals = totalsByQuoteCurrency(quotes, { include: isRevenueQuote, accountCurrency });
 
   const reportYear = now.getFullYear();
   const reportMonth = now.getMonth();
@@ -2869,9 +2874,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   });
 
   const adminTotalQuotesCount = filteredQuotesForReport.length;
-  const adminTotalRevenue = filteredQuotesForReport.reduce((sum, q) => sum + Number(q.total || 0), 0);
+  const adminRevenueTotals = totalsByQuoteCurrency(filteredQuotesForReport, { accountCurrency });
   const adminTotalExpenses = filteredExpensesForReport.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-  const adminNetProfit = adminTotalRevenue - adminTotalExpenses;
+  // Expenses have no currency column (they are entered in the account currency). Net profit is therefore defined only when every
+  // revenue amount of the period is in that same currency; otherwise it is NOT computable without conversion (null - shown as such).
+  const accountCurrencyCode = normalizeQuoteCurrency(accountCurrency);
+  const adminNetProfit = adminRevenueTotals.unknownCount === 0 && adminRevenueTotals.groups.every((g) => g.currency === accountCurrencyCode)
+    ? (adminRevenueTotals.groups[0]?.total || 0) - adminTotalExpenses
+    : null;
 
   // חוק ברזל (Task F item 2, real defect found+fixed): monthNames היה קבוע-
   // אנגלי-בלבד ('Jan'..'Dec') ומועבר כ-name לכל נקודת-chartData ללא תלות
@@ -2883,18 +2893,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     ? ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
     : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+  // IRON-MARKET-004: one income series per persisted quote currency (Income_ILS / Income_USD / ...), never one mixed series.
+  const inReportMonth = (q, month) => { const d = new Date(q.created_at); return d.getFullYear() === reportYear && (month === undefined || d.getMonth() === month); };
+  const chartIncomeCurrencies = totalsByQuoteCurrency(quotes, { include: (q) => isRevenueQuote(q) && inReportMonth(q), accountCurrency }).groups.map((g) => g.currency);
   const chartData = monthNames.map((name, index) => {
-    let income = 0;
+    const income = totalsByQuoteCurrency(quotes, { include: (q) => isRevenueQuote(q) && inReportMonth(q, index), accountCurrency });
     let expense = 0;
-    
-    quotes.forEach(q => {
-      if (q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid') {
-        const d = new Date(q.created_at);
-        if (d.getFullYear() === reportYear && d.getMonth() === index) {
-          income += Number(q.total || 0);
-        }
-      }
-    });
 
     expenses.forEach(exp => {
       const d = new Date(exp.expense_date);
@@ -2907,7 +2911,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
     });
 
-    return { name, Income: income, Expenses: expense };
+    return { name, ...Object.fromEntries(income.groups.map((g) => [`Income_${g.currency}`, g.total])), Expenses: expense };
   });
 
   const showQuoteForm = isCreatingQuote || editingQuoteId !== null;
@@ -6118,9 +6122,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', color: SHELL.sidebarText }}>
                     {isHebrew ? 'סך הכנסות:' : 'Total Revenue:'}
                   </span>
-                  <span className="pf-money" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
-                    {sym}{formatMoneyDisplay(totalRevenue)}
-                  </span>
+                  <CurrencyTotals style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}
+                    totals={revenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
                 </span>
               </div>
             );
@@ -6374,6 +6377,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <QuotesTab
                 stickyTopBase={upperSectionHeight}
                 quotes={filteredQuotes}
+                allQuotes={quotes}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 statusFilter={statusFilter}
@@ -6547,10 +6551,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               endDate={endDate}
               setEndDate={setEndDate}
               adminTotalQuotesCount={adminTotalQuotesCount}
-              adminTotalRevenue={adminTotalRevenue}
+              adminRevenueTotals={adminRevenueTotals}
               adminTotalExpenses={adminTotalExpenses}
               adminNetProfit={adminNetProfit}
               chartData={chartData}
+              chartIncomeCurrencies={chartIncomeCurrencies}
+              accountCurrency={accountCurrency}
               reportYear={reportYear}
               expenses={expenses}
               filteredExpensesForReport={filteredExpensesForReport}

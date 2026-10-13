@@ -104,6 +104,45 @@ describe('deterministicHelpAnswer', () => {
     const f = deriveTrustedFacts(acct(), { phone: '+972 501', tax_id: '1' }, 0);
     expect(deterministicHelpAnswer('why_blocked', ctx(), [], f, false, false)).toBeNull();
   });
+  it('without verified server facts (account read failed) no browser claim is ever "confirmed" and no prerequisite is invented', () => {
+    const c = ctx({ blockers: [blk('PROFILE_MISSING_PHONE'), blk('ADMIN_NOT_AUTHORIZED'), blk('TRIAL_EXPIRED')] });
+    const { active, dropped } = reconcileBlockers(c, null);
+    expect(active.map((b) => b.confirmation)).toEqual(['client_reported', 'client_reported', 'client_reported']);
+    expect(dropped).toEqual([]);
+    expect(deterministicHelpAnswer('why_blocked', ctx(), [], null, false, false)).toBeNull();
+  });
+});
+
+describe('reconcileBlockers - remaining server-truth branches', () => {
+  it('payment / invoicing unavailability is a server truth: always confirmed (never a client claim the model may doubt)', () => {
+    const f = deriveTrustedFacts(acct({ tier: 'pro' }), { phone: '+972 501', tax_id: '1' }, 0);
+    const { active } = reconcileBlockers(ctx({ blockers: [blk('CHECKOUT_UNAVAILABLE'), blk('INVOICING_UNAVAILABLE')] }), f);
+    expect(active.map((b) => [b.code, b.confirmation])).toEqual([['CHECKOUT_UNAVAILABLE', 'confirmed'], ['INVOICING_UNAVAILABLE', 'confirmed']]);
+  });
+  it('monthly limit: an unknown server count is never "confirmed"; a Lifetime or admin account contradicts the claim', () => {
+    const unknownCount = deriveTrustedFacts(acct({ tier: 'basic' }), { phone: '+972 501', tax_id: '1' }, null);
+    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), unknownCount).active[0].confirmation).toBe('client_reported');
+    const lifetime = deriveTrustedFacts(acct({ tier: 'free', isLifetime: true }), { phone: '+972 501', tax_id: '1' }, 999);
+    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), lifetime).dropped[0].confirmation).toBe('contradicted');
+    const admin = deriveTrustedFacts(acct({ tier: 'free' }), { phone: '+972 501', tax_id: '1', role: 'super_admin' }, 999);
+    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), admin).dropped).toHaveLength(1);
+  });
+});
+
+describe('prerequisites + staleness labelling', () => {
+  it('server prerequisites only on creation screens; the region prerequisite is never turned into a deterministic profile answer', () => {
+    const missingAll = deriveTrustedFacts(acct({ market: 'Unknown' }), { phone: '', tax_id: '' }, 0);
+    expect(missingAll.profile.missingFields).toEqual(['business_phone', 'business_region']); // Unknown market: no Local tax ID required
+    const onClients = sanitizeHelpContext({ version: 4, screen: 'clients', capturedAt: NOW }, NOW);
+    expect(deterministicHelpAnswer('why_blocked', onClients, [], missingAll, false, false)).toBeNull();
+    const regionOnly = deriveTrustedFacts(acct({ market: 'Unknown' }), { phone: '+1 555', tax_id: '' }, 0);
+    expect(deterministicHelpAnswer('why_blocked', ctx(), [], regionOnly, false, false)).toBeNull();
+  });
+  it('a context captured more than 10 minutes ago is labelled stale in Layer 2 (the model must ask before relying on it)', () => {
+    const old = ctx({ capturedAt: NOW - 11 * 60 * 1000 });
+    expect(buildHelpContextBlocks(old, [], [], null, false)).toMatch(/MORE THAN 10 MINUTES AGO \(stale - ask before relying on it\)/);
+    expect(buildHelpContextBlocks(ctx(), [], [], null, false)).toMatch(/captured just now/);
+  });
 });
 
 describe('prompt layering + per-turn navigation filter', () => {

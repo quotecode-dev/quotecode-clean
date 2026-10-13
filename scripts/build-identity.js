@@ -11,9 +11,13 @@ export const BUILD_INPUT_ROOTS = ['src', 'public', 'supabase/migrations', 'supab
 const TEST_FILE_RE = /\.(test|spec)\.[cm]?[jt]sx?$/;
 const BINARY_EXT_RE = /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|eot|mp4|webm|mov|zip|gz|pdf)$/i;
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+const GIT_ENV = { ...process.env, GIT_OPTIONAL_LOCKS: '0' };
 
 export function git(root, ...args) {
-  try { return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim(); } catch { return null; }
+  // windowsHide: never surface a console window per probe on Windows (2026-10-09 TEST 5186 focus-loop incident).
+  // GIT_OPTIONAL_LOCKS=0: read-only probes (status) must not opportunistically rewrite the index, which the dev identity
+  // watcher observes (scripts/dev-identity-cache.js) - otherwise every recompute could invalidate itself.
+  try { return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true, env: GIT_ENV }).trim(); } catch { return null; }
 }
 
 export function listBuildInputs(root) {
