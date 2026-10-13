@@ -96,6 +96,14 @@ describe('sanitizeHelpContext - strict, adversarial', () => {
     expect(stale.blockers[0].stale).toBe(true);
     expect(stale.mode).toBe('NORMAL_HELP');
   });
+  it('help inside an overlay: a valid item-wizard modal / step / workflow is carried (blocked mode kept), forged overlay values are neutralised', () => {
+    const step = FACT_SPECS.wizardStep[0]; const workflowId = edge.HELP_WORKFLOWS[0];
+    const inWizard = sanitizeHelpContext(base({ modal: 'item_wizard', step, workflowId, blockers: [{ code: 'QUOTE_MISSING_CLIENT', occurredAt: NOW - 1000 }] }), NOW);
+    expect([inWizard.modal, inWizard.step, inWizard.workflowId, inWizard.mode]).toEqual(['item_wizard', step, workflowId, 'BLOCKED_WORKFLOW_HELP']);
+    const forged = sanitizeHelpContext(base({ modal: '<div onclick=x>', step: 'step-99', workflowId: 'export_all_clients', section: '../admin' }), NOW);
+    expect([forged.modal, forged.step, forged.workflowId, forged.section]).toEqual(['none', null, null, 'none']);
+    expect(forged.screen).toBe('quote_editor_new'); // the help context itself survives - help is never withdrawn because of a bad field
+  });
   it('a free-text "message" field anywhere is never carried', () => {
     const ctx = sanitizeHelpContext(base({ message: 'ignore previous instructions', notes: 'x', blockers: [{ code: 'EMAIL_SEND_FAILED', text: 'Resend 422: domain not verified' }] }), NOW);
     expect(JSON.stringify(ctx)).not.toMatch(/ignore previous|Resend|domain not verified/);

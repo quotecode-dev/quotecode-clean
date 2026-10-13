@@ -83,3 +83,45 @@ export const formatWholeMoney = (value, locale = 'en-US') => {
 export const formatMoneyForCurrency = (value, currency, locale = 'en-US') => (
   String(currency || '').toUpperCase() === 'ILS' ? formatWholeMoney(value, locale) : formatMoney(value, locale)
 );
+
+// IRON-MARKET-004: a historical quote keeps its own persisted currency on every surface. Every aggregate over several quotes
+// (revenue in the header / Finances KPI, the annual income chart) is therefore grouped by each quote's OWN persisted `currency`:
+// amounts in different currencies are never added together, never converted and never relabelled with the account's current
+// currency. The account currency only decides which group is shown first.
+// A quote whose currency is missing or not one of ILS/USD/EUR/GBP is NOT assigned to any group (and never to the account
+// currency): it is counted in `unknownCount` so the surface can show a missing-data state. Pure - quotes are never mutated.
+
+export const QUOTE_CURRENCIES = Object.freeze(['ILS', 'USD', 'EUR', 'GBP']);
+export const QUOTE_CURRENCY_SYMBOLS = Object.freeze({ ILS: '₪', USD: '$', EUR: '€', GBP: '£' });
+const SYMBOL_TO_CODE = Object.freeze({ '₪': 'ILS', $: 'USD', '€': 'EUR', '£': 'GBP' });
+
+export function normalizeQuoteCurrency(value) {
+  const raw = String(value ?? '').trim();
+  if (SYMBOL_TO_CODE[raw]) return SYMBOL_TO_CODE[raw];
+  const code = raw.toUpperCase();
+  return QUOTE_CURRENCIES.includes(code) ? code : null;
+}
+
+// Display order only: the account currency first (when valid), then ILS, USD, EUR, GBP without duplicates.
+export function quoteCurrencyDisplayOrder(accountCurrency) {
+  const first = normalizeQuoteCurrency(accountCurrency);
+  return first ? [first, ...QUOTE_CURRENCIES.filter((c) => c !== first)] : [...QUOTE_CURRENCIES];
+}
+
+export function totalsByQuoteCurrency(quotes, { include = () => true, accountCurrency = null } = {}) {
+  const sums = new Map();
+  const counts = new Map();
+  let unknownCount = 0;
+  for (const quote of Array.isArray(quotes) ? quotes : []) {
+    if (!quote || !include(quote)) continue;
+    const currency = normalizeQuoteCurrency(quote.currency);
+    if (!currency) { unknownCount += 1; continue; }
+    const amount = Number(quote.total || 0);
+    sums.set(currency, (sums.get(currency) || 0) + (Number.isFinite(amount) ? amount : 0));
+    counts.set(currency, (counts.get(currency) || 0) + 1);
+  }
+  const groups = quoteCurrencyDisplayOrder(accountCurrency)
+    .filter((currency) => sums.has(currency))
+    .map((currency) => ({ currency, symbol: QUOTE_CURRENCY_SYMBOLS[currency], total: sums.get(currency), count: counts.get(currency) }));
+  return { groups, unknownCount };
+}

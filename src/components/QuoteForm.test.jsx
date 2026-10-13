@@ -226,6 +226,14 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('Existing client');
   });
 
+  it('SMART-QUOTE-04: an empty / whitespace-only client name makes NO client claim (nothing is disclosed that save will not do)', () => {
+    const { unmount } = render(<QuoteForm {...baseProps({ clientName: '   ', clients: [{ id: 'c1', company_name: 'Other Co' }] })} />);
+    expect(screen.queryByTestId('sq-client-disclosure')).toBeNull();
+    unmount();
+    render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', clientName: '' })} />);
+    expect(screen.queryByTestId('sq-client-disclosure')).toBeNull();
+  });
+
   it('HE copy for the disclosure, the steps and the unfinished label is market-native', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', clientName: 'לקוח סינתטי', items: [], subtotal: 0, totalAmount: 0 })} />);
     expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('ייווצר כרטיס לקוח חדש');

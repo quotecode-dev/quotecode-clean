@@ -935,7 +935,7 @@ export default function PublicQuote({ quoteData }) {
               {!items || items.length === 0 ? (
                 <tr>
                   <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                    הצעת מחיר כללית בסך {formatWholeMoney(finalTotalRounded)} {currencySymbol}
+                    הצעת מחיר כללית בסך <span className="pf-money">{formatWholeMoney(finalTotalRounded)}</span> {currencySymbol}
                   </td>
                 </tr>
               ) : displaySections.length === 0 ? (

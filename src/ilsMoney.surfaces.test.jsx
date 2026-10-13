@@ -2,11 +2,15 @@
 // Closes the coverage gaps named in the combined First-LIVE closure: Quote Form totals + item card, Catalog, Add Item Wizard
 // (catalog list, formula, review line). Local/ILS => nearest whole shekel, half-up, always ".00"; International keeps cents.
 // Stored values are passed in unchanged - only the rendered text is asserted.
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { cwd } from 'node:process';
 import QuoteForm from './components/QuoteForm';
 import ServicesCatalog from './components/ServicesCatalog';
 import AddItemWizard from './components/AddItemWizard';
+import QuotesTab from './components/QuotesTab';
 import { formatMoneyForCurrency } from './utils/money';
 
 const noop = vi.fn();
@@ -103,4 +107,87 @@ describe('IRON-ILS-001 Add Item Wizard (rendered)', () => {
     expect(s).toContain('£191.16');
     expect(s).toContain('£324.50');
   });
+});
+
+// IRON-ILS-001 Quotes dashboard (rendered): the quote rows, overview total, mobile/tablet-portrait cards and amount tooltips.
+// Every device class of the responsive matrix is emulated through the component's real breakpoint (max-width: 768px).
+describe('IRON-ILS-001 Quotes dashboard (rendered, HE/Local/ILS vs EN/International, all device classes)', () => {
+  const DEVICES = [['desktop', 1280], ['tablet-landscape', 1024], ['tablet-portrait', 768], ['mobile', 390]];
+  const setWidth = (width) => {
+    window.matchMedia = vi.fn().mockImplementation((query) => {
+      const max = query.match(/max-width:\s*(\d+)px/); const min = query.match(/min-width:\s*(\d+)px/);
+      const matches = (!max || width <= Number(max[1])) && (!min || width >= Number(min[1]));
+      return { matches, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() };
+    });
+  };
+  afterEach(() => { delete window.matchMedia; });
+  const RAW = [1227.2, 18397.2, 1227.5, 191.16, 324.5];
+  const quotes = (cur) => RAW.map((total, i) => ({
+    id: `q-${i}`, quote_number: 12000 + i, status: i === 0 ? 'sent' : 'draft', view_count: i === 0 ? 3 : 0, signature: null, total,
+    subtotal: total, discount: 0, tax_rate: cur === 'ILS' ? 18 : 0, currency: cur, created_at: '2026-01-0' + (i + 1) + 'T00:00:00.000Z',
+    clients: { company_name: `Client ${i}`, client_type: 'business' }, quote_items: [{ description: 'Item' }], email_bounced: false,
+  }));
+  const props = (ils, cur) => {
+    const list = quotes(cur);
+    return {
+      quotes: list, allQuotes: list, searchTerm: '', setSearchTerm: noop, statusFilter: 'All', setStatusFilter: noop, quoteSortField: 'date',
+      quoteSortDirection: 'desc', handleQuoteSort: noop, handleExportQuotes: noop, handleEditClick: noop, handleDuplicateQuote: noop,
+      sendWhatsApp: noop, handleDeleteQuote: noop, handleProtectedAction: vi.fn((id, a, fn) => fn()), activeTooltip: { quoteId: null, action: null },
+      openDropdownId: null, isHebrew: ils, isLocalIsraeliBusiness: ils, formatNum: (n) => String(n), formatMoneyDisplay: dashFormatter(cur),
+      t: { recentHistory: 'History', quotesNav: 'Quotes', searchQuote: 'Search', filterStatus: 'Status' }, setPendingEmailQuote: noop,
+      emailStatuses: {}, currency: cur,
+    };
+  };
+  const strip = (x) => x.replace(/[\s‎‏‪-‮⁦-⁩]+/g, '');
+  const amountsOf = (c) => [...c.querySelectorAll('.pf-money')].map((e) => strip(e.textContent));
+  const tooltipsOf = (c) => [...c.querySelectorAll('[title]')].map((e) => strip(e.getAttribute('title'))).filter((x) => /[₪$€£][\d,]+\.\d\d/.test(x));
+
+  it('the money atoms are LTR-isolated tabular numerals (index.css .pf-money)', () => {
+    const css = readFileSync(join(cwd(), 'src', 'index.css'), 'utf8');
+    const rule = css.slice(css.indexOf('.pf-money {'), css.indexOf('}', css.indexOf('.pf-money {')));
+    expect(rule).toMatch(/direction: ltr;/);
+    expect(rule).toMatch(/unicode-bidi: isolate;/);
+    expect(rule).toMatch(/font-variant-numeric: tabular-nums/);
+  });
+
+  for (const [device, width] of DEVICES) {
+    const cards = width <= 768;
+    it(`${device} ${width}px HE/Local/ILS: every amount (${cards ? 'cards' : 'rows'}, overview, tooltips) is a whole shekel ".00"`, () => {
+      setWidth(width);
+      const { container } = render(<QuotesTab {...props(true, 'ILS')} />);
+      const amounts = amountsOf(container);
+      expect(amounts.length).toBeGreaterThanOrEqual(RAW.length + 1);
+      for (const a of amounts) expect(a).toMatch(/^₪-?[\d,]+\.00$/);
+      // rows/cards 1227.20, 18397.20, 1227.50, 191.16, 324.50 and the overview total 21367.56
+      for (const expected of ['₪1,227.00', '₪18,397.00', '₪1,228.00', '₪191.00', '₪325.00', '₪21,368.00']) expect(amounts).toContain(expected);
+      const tips = tooltipsOf(container);
+      for (const tip of tips) expect(tip).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
+      if (cards) {
+        expect(container.querySelectorAll('.quote-card')).toHaveLength(RAW.length);
+        for (const card of container.querySelectorAll('.quote-card')) expect(card).toHaveAttribute('dir', 'rtl');
+        expect(container.querySelector('table')).toBeNull();
+      } else {
+        expect(tips.length).toBeGreaterThanOrEqual(RAW.length); // the before-VAT tooltip of every ILS row
+        const table = container.querySelector('tbody').closest('table');
+        expect(table).toHaveAttribute('dir', 'rtl');
+        expect(table.querySelectorAll('tbody > tr').length).toBeGreaterThanOrEqual(RAW.length);
+        expect(container.querySelector('.quote-card')).toBeNull();
+      }
+      expect(container.querySelector('[data-testid="quote-overview"]')).toHaveAttribute('dir', 'rtl');
+    });
+
+    it(`${device} ${width}px EN/International: USD keeps cents, never ₪`, () => {
+      setWidth(width);
+      const { container } = render(<QuotesTab {...props(false, 'USD')} />);
+      const amounts = amountsOf(container);
+      for (const expected of ['$1,227.20', '$18,397.20', '$1,227.50', '$191.16', '$324.50', '$21,367.56']) expect(amounts).toContain(expected);
+      expect(container.textContent).not.toContain('₪');
+      if (cards) {
+        for (const card of container.querySelectorAll('.quote-card')) expect(card).toHaveAttribute('dir', 'ltr');
+      } else {
+        expect(container.querySelector('tbody').closest('table')).toHaveAttribute('dir', 'ltr');
+      }
+      expect(container.querySelector('[data-testid="quote-overview"]')).toHaveAttribute('dir', 'ltr');
+    });
+  }
 });

@@ -4,7 +4,8 @@
 // ==========================================
 
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { MoneyValue } from './NumericValue';
+import { MoneyValue, CurrencyTotals } from './NumericValue';
+import { totalsByQuoteCurrency } from '../utils/money';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
@@ -91,6 +92,7 @@ function ClientTypeBadge({ clientType, isHebrew }) {
 // PRODUCT_TRUTH_CAPABILITY: quote_history
 export default function QuotesTab({
   quotes,
+  allQuotes,
   searchTerm,
   setSearchTerm,
   statusFilter,
@@ -288,7 +290,12 @@ export default function QuotesTab({
     const rawDiscount = quote.discount || 0;
     const discBase = rawSubtotal - ((rawSubtotal * rawDiscount) / 100);
     const isBizClient = (quote.client_type || quote.clients?.client_type) === 'business';
-    const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
+    // IRON-MARKET-004: the quote's OWN persisted VAT rate (same rule as PublicQuote's vatRate), never a fixed 18% -
+    // a historical 0%-tax quote shown in a Local account has no VAT to extract.
+    const persistedTaxRate = (quote.tax_rate !== undefined && quote.tax_rate !== null && Number.isFinite(Number(quote.tax_rate)) && Number(quote.tax_rate) >= 0)
+      ? Number(quote.tax_rate)
+      : 0.18;
+    const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / (1 + persistedTaxRate));
 
     const quoteSym = getQuoteCurrencySymbol(quote.currency);
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
@@ -300,9 +307,23 @@ export default function QuotesTab({
     return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge };
   });
 
+  // Owner console approval 2026-10-13 (Task 39): the quotes overview row of the TEST logic - derived from the COMPLETE collection
+  // so search/filter never changes the business totals; "Awaiting" = sent (never a draft); "Approved" = approved/paid.
+  const overviewQuotes = Array.isArray(allQuotes) ? allQuotes : quotes;
+  const overviewAwaiting = overviewQuotes.filter((quote) => (quote.status || '').toLowerCase() === 'sent').length;
+  const overviewApproved = overviewQuotes.filter((quote) => {
+    const status = (quote.status || '').toLowerCase();
+    return status === 'approved' || status === 'paid';
+  }).length;
+  // IRON-MARKET-004: the same quote population, totalled per persisted quote currency - never one mixed sum.
+  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency });
+  const overviewMultiCurrency = overviewTotals.groups.length > 1;
+  const overviewMulti = overviewMultiCurrency || overviewTotals.unknownCount > 0;
+
   // IRON-QH-LAYOUT-001: ONE semantic slot geometry for the desktop header + body tables (see useQuoteHistoryGeometry). When the
   // protected slots cannot leave the client its minimum, the list deliberately switches to the card layout.
-  const moneyTexts = rowsMeta.map((r) => `${r.quoteSym}${formatMoneyDisplay(r.quote.total, r.quote.currency)}`);
+  // IRON-MARKET-004: the measured amount text is keyed on each quote's OWN persisted currency, exactly like the rendered rows / cards.
+  const moneyTexts = rowsMeta.map(({ quote, quoteSym }) => `${quoteSym}${formatMoneyDisplay(quote.total, quote.currency)}`);
   const { compact: qhCompact } = useQuoteHistoryGeometry(screenRef, {
     enabled: !isMobileView,
     numbers: rowsMeta.map((r) => formatQuoteFallback(r.quote)),
@@ -578,6 +599,29 @@ export default function QuotesTab({
         )}
       </div>
 
+      {/* Owner console approval 2026-10-13 (Task 39): the quotes overview row (TEST logic) - real quote data, the canonical money
+          formatter per persisted currency (IRON-MARKET-004 / IRON-ILS-001); it wraps rather than adding a horizontal scroll owner. */}
+      <div data-testid="quote-overview" className={`quote-overview${overviewMulti ? ' quote-overview--multi' : ''}`} dir={tableDir}
+        style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: '8px', marginBottom: '10px' }}>
+        {[
+          { key: 'all', label: isHebrew ? 'הצעות' : 'Quotes', value: overviewQuotes.length },
+          { key: 'awaiting', label: isHebrew ? 'ממתינות' : 'Awaiting', value: overviewAwaiting },
+          { key: 'approved', label: isHebrew ? 'אושרו' : 'Approved', value: overviewApproved },
+        ].map((item) => (
+          <div key={item.key} data-qh-overview={item.key} className="quote-overview-cell"
+            style={{ flex: '1 1 90px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm }}>
+            <strong className="quote-overview-value pf-num" style={{ fontSize: '1rem', fontWeight: '800', color: NEON.textPrimary }}>{item.value}</strong>
+            <span className="quote-overview-label" style={{ fontSize: '0.72rem', fontWeight: '600', color: NEON.textSecondary }}>{item.label}</span>
+          </div>
+        ))}
+        <div data-qh-overview="total" className={`quote-overview-cell quote-overview-cell--total${overviewMulti ? ' quote-overview-cell--multi' : ''}`}
+          style={{ flex: '2 1 160px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm }}>
+          <CurrencyTotals className="quote-overview-value" style={{ fontSize: '1rem', fontWeight: '800', color: NEON.textPrimary, overflowWrap: 'anywhere' }}
+            totals={overviewTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={currency} isHebrew={isHebrew} />
+          <span className="quote-overview-label" style={{ fontSize: '0.72rem', fontWeight: '600', color: NEON.textSecondary }}>{overviewMultiCurrency ? (isHebrew ? 'סה״כ לפי מטבע' : 'Total by currency') : (isHebrew ? 'סה״כ' : 'Total value')}</span>
+        </div>
+      </div>
+
       {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
           Controls): מובייל בלבד - החיפוש מקבל שורה מלאה-רוחב עצמאית
           משלו ("Search receives a full-width usable row," הדרישה המפורשת
@@ -819,6 +863,8 @@ export default function QuotesTab({
                 const { quote, quoteSym, badge } = row;
                 const isExpanded = expandedQuoteId === quote.id;
                 const detailId = `quote-detail-${quote.id}`;
+                // IRON-ILS-001: ONE canonical amount text per Quote History row, keyed on the quote's own currency.
+                const amountText = formatMoneyDisplay(quote.total, quote.currency);
                 return (
                 <Fragment key={quote.id}>
                 <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${NEON.divider}`, fontSize: '0.82rem', lineHeight: '1.2' }}>
@@ -905,7 +951,7 @@ export default function QuotesTab({
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
-                    <MoneyValue slot data-qh="amount" symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
+                    <MoneyValue slot data-qh="amount" symbol={quoteSym} text={amountText} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
                     <span data-qh="status" style={{ ...QH_CELL_STYLE.status, background: badge.bg, color: badge.color }}>
