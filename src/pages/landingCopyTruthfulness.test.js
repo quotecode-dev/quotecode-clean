@@ -54,11 +54,26 @@ describe('landing page copy - previously-removed false claims stay removed', () 
     // The capability card's own paragraph text (identified by its distinctive
     // wording) should not mention "Basic"/"Pro"/"בסיסי"/"PRO" - tier detail
     // belongs on the pricing cards only, not duplicated/risked here.
-    const heMatch = he.match(/בנה הצעה לפי מידות אמיתיות[^<]*/);
+    const heMatch = he.match(/בנו הצעה לפי מידות אמיתיות[^<]*/); // Owner HE language edit 2026-10-06 (plural)
     const enMatch = en.match(/Build a quote from real measurements[^<]*/);
     expect(heMatch).toBeTruthy();
     expect(enMatch).toBeTruthy();
     expect(heMatch[0]).not.toMatch(/בסיסי|PRO|Basic/i);
     expect(enMatch[0]).not.toMatch(/\bBasic\b|\bPro\b/);
+  });
+
+  // cloud-fix4 A14 (IRON-LANDING-001, retro ledger L09): every account outside TEST resolves to the Classic
+  // presentation and presentation tiers are not mapped to plans, so neither landing may promise plan-included styles
+  // or a style choice, nor present Modern / Visual as available.
+  it('does not promise plan-included styles or a style choice; Modern / Visual are marked unavailable', () => {
+    const he = readRenderedText('LandingLocal.jsx');
+    const en = readRenderedText('LandingGlobal.jsx');
+    expect(he).not.toMatch(/הכלולים במסלול|בוחרים את סגנון ההצגה|Modern מוסיף תמונות מוצר/);
+    expect(en).not.toMatch(/included in your plan|choose the presentation style|Modern adds product images/i);
+    expect(he).toContain('וכרגע אינם זמינים באף מסלול'); // Owner 2026-10-11 natural-Hebrew rewrite (same fact)
+    expect(en).toContain('are not currently available on any plan');
+    // the workflow / hero copy is the base copy again (authority ledger L07) - it names no style choice
+    expect(he).not.toMatch(/בוחרים מבין הסגנונות/);
+    expect(en).not.toMatch(/Choose from the styles/);
   });
 });

@@ -6,6 +6,7 @@
 // Vitest for deterministic, network-free tests (including full system-
 // prompt assembly, per §11.5, without ever calling a live model).
 import { AI_FACTS } from "./aiFacts.generated.ts";
+import { publicPlanTruthAnswer } from "./publicPlanTruth.ts";
 import { isValidQuoteId } from "./quoteContext.ts";
 import type { VerifiedAccountContext } from "./accountContext.ts";
 import { CHAT_CONTRACT_VERSION } from "../_shared/aiChatContract.ts";
@@ -338,11 +339,11 @@ export function buildGuidedIntentHint(guidedIntent: string | null, guidedSubtopi
 // currency - a public/unauthenticated request or an already-onboarded
 // account is never marketUncertain, so this note is additive, not a change
 // to their behavior.
+// Task 39 (Owner, 2026-10-13): the retired free-quota / Basic / Pro / trial lines are replaced by the approved package truth
+// (publicPlanTruth.ts); the market header, the uncertainty notes and the display-currency / no-checkout lines are unchanged.
 function buildPricingBlock(isHebrew: boolean, marketUncertain: boolean = false): string {
   const market = isHebrew ? AI_FACTS.pricing.il : AI_FACTS.pricing.usd;
   const sym = market.currencySymbol;
-  const basic = market.plans.basic;
-  const pro = market.plans.pro;
 
   const uncertaintyNoteHe = marketUncertain
     ? '\n- הערה: חשבון זה טרם השלים את בחירת האזור (מקומי/בינלאומי) בהגדרות העסק, כך שאין עדיין וודאות לגבי מטבע החיוב שלו בפועל - הצג את המחירים כמידע כללי בלבד, ואל תטען שזהו בהכרח המטבע שבו יחויב חשבון זה. אפשר להציע להשלים את בחירת האזור בהגדרות העסק.'
@@ -353,18 +354,14 @@ function buildPricingBlock(isHebrew: boolean, marketUncertain: boolean = false):
 
   if (isHebrew) {
     return `Pricing (ISRAEL/HEBREW CONTEXT ONLY — do not use these figures for international/English users; NEVER mention $, USD, EUR, or GBP as a price or display currency here):
-- חינם: ${sym}0 לחודש (${AI_FACTS.quoteLimits.free} הצעות מחיר בחודש).
-- בסיסי: ${sym}${basic.monthly} לחודש במסלול חודשי, או ${sym}${basic.annualEffectiveMonthly} לחודש בפועל (${sym}${basic.annualTotal} לשנה) במסלול שנתי - חיסכון של כ-${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} הצעות מחיר בחודש).
-- פרו: ${sym}${pro.monthly} לחודש במסלול חודשי, או ${sym}${pro.annualEffectiveMonthly} לחודש בפועל (${sym}${pro.annualTotal} לשנה) במסלול שנתי - חיסכון של כ-${pro.savingsPercent}% (הצעות מחיר ללא הגבלה, WhatsApp, והעלאת קבצים/שרטוטים עד ${AI_FACTS.attachments.maxTotalMb}MB סך הכל, מקסימום ${AI_FACTS.attachments.maxFileMb}MB לקובץ).
-- תקופת ניסיון חינמית של ${AI_FACTS.trialDays} יום כוללת גישה מלאה לתוכנית ה-PRO.
+- ${publicPlanTruthAnswer(true)}
+- אל תציג מחיר אחר של מסלול, ואל תציג Basic / Pro או כל מסלול אחר כמסלול לרכישה. המסלול, תקופת הניסיון והמכסה של חשבון מחובר מגיעים רק מבלוק ACCOUNT CONTEXT ונשארים כפי שהם.
 - אלו מחירי תצוגה בלבד - למערכת עדיין אין תהליך תשלום/סליקה חי (ראה PAYMENT & CHECKOUT TRUTH), ואף מסלול אינו נגבה אוטומטית כיום.${uncertaintyNoteHe}`;
   }
 
   return `Pricing (INTERNATIONAL/ENGLISH CONTEXT ONLY — do not use these figures for Hebrew/Israeli users; NEVER mention NIS, ILS, or ₪ as a price or display currency here):
-- Free: ${sym}0/mo (${AI_FACTS.quoteLimits.free} quotes/mo).
-- Basic: ${sym}${basic.monthly}/mo on the monthly plan, or ${sym}${basic.annualEffectiveMonthly}/mo effective (${sym}${basic.annualTotal}/year total) on the annual plan - save ~${basic.savingsPercent}% (${AI_FACTS.quoteLimits.basic} quotes/mo).
-- Pro: ${sym}${pro.monthly}/mo on the monthly plan, or ${sym}${pro.annualEffectiveMonthly}/mo effective (${sym}${pro.annualTotal}/year total) on the annual plan - save ~${pro.savingsPercent}% (Unlimited quotes, WhatsApp, and File/Drawing Attachments up to ${AI_FACTS.attachments.maxTotalMb}MB total, max ${AI_FACTS.attachments.maxFileMb}MB per file).
-- ${AI_FACTS.trialDays}-day free trial gives full PRO access.
+- ${publicPlanTruthAnswer(false)}
+- Never quote any other plan price and never present Basic / Pro (or any other plan) as purchasable. A signed-in account's own plan, trial and quota come only from the ACCOUNT CONTEXT block and stay as they are.
 - Figures above are shown in USD as the DISPLAY currency; your own account's display currency setting (USD, EUR, or GBP) may show different equivalent figures - do not assume USD is the only supported display currency. Separately, when creating your own quotes for clients, you may choose USD, EUR, or GBP as that quote's display/quote currency. A display or quote currency is never a payment currency (see PAYMENT & CHECKOUT TRUTH).
 - These are DISPLAY prices only - TEKANGO does not yet have live payment/checkout processing for any currency (see PAYMENT & CHECKOUT TRUTH), so no plan is actually charged automatically today.${uncertaintyNoteEn}`;
 }

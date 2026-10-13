@@ -21,11 +21,13 @@ function readSource(relativePath) {
 }
 
 describe('subscription intent (intendedPlan/intendedCycle) stays non-authoritative', () => {
-  it('the landing pages send it only as a URL query param, never a stored/authoritative value', () => {
+  // Owner 2026-10-07: the review plan cards carry no signup / plan-hint action (registration and billing are not active),
+  // so the landing pages no longer send an intended-plan hint at all; it must still never become stored / authoritative.
+  it('the landing pages send no intended-plan hint and never store one', () => {
     const he = readSource('LandingLocal.jsx');
     const en = readSource('LandingGlobal.jsx');
-    expect(he).toMatch(/intendedPlan=\$\{|intendedPlan=(free|basic|pro)/);
-    expect(en).toMatch(/intendedPlan=\$\{|intendedPlan=(free|basic|pro)/);
+    expect(he).not.toMatch(/intendedPlan=|intendedCycle=/);
+    expect(en).not.toMatch(/intendedPlan=|intendedCycle=/);
     // Never written to localStorage/sessionStorage/a Supabase call from the landing pages themselves.
     expect(he).not.toMatch(/(localStorage|sessionStorage|supabase)[^\n]*intended(Plan|Cycle)/i);
     expect(en).not.toMatch(/(localStorage|sessionStorage|supabase)[^\n]*intended(Plan|Cycle)/i);

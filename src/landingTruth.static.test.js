@@ -12,6 +12,9 @@ const visible = (src) => src.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\
 const he = visible(read('src/pages/LandingLocal.jsx'));
 const en = visible(read('src/pages/LandingGlobal.jsx'));
 const modal = visible(read('src/components/PricingModal.jsx'));
+const layout = visible(read('src/components/landing/LandingPage.jsx'));
+const showcase = visible(read('src/components/landing/QuoteStyleShowcase.jsx'));
+const availability = visible(read('src/components/landing/showcaseAvailability.js'));
 const html = read('index.html');
 
 const FORBIDDEN = [
@@ -26,24 +29,81 @@ const FORBIDDEN = [
   [/AI (sends|writes|negotiates|collects)|ה-AI (שולח|כותב|גובה)/i, 'autonomous AI action'],
 ];
 
+// cloud-fix4 A14 (IRON-LANDING-001, retro ledger L09 / L08): outside TEST every account resolves to the Classic
+// presentation (supabase/functions/quote-presentation/lib.ts resolveTier -> 'classic'), and tiers are not mapped to
+// plans - so no landing copy may promise styles "included in your plan", offer a style choice, or describe Modern /
+// Visual as an available feature; and no public landing link goes to the noindex sample-quote QA route.
+const STYLE_TRUTH_FORBIDDEN = [
+  [/הסגנונות הכלולים במסלול|styles included in your plan|included in your plan/i, 'styles "included in your plan"'],
+  [/בוחרים את סגנון ההצגה|choose the presentation style|הסגנון שנבחר להצעה|the style selected for your quote/i, 'a style choice the account does not have'],
+  [/Modern מוסיף תמונות מוצר|Modern adds product images/, 'Modern presented as an available feature'],
+  [/sample-quote|sampleQuoteHref|צפו בהצעה לדוגמה|לצפייה בהצעה לדוגמה|See a sample quote|View the full sample quote|נתונים סינתטיים|synthetic data/i, 'public sample-quote link / caption'],
+];
+
 describe('landing truth gate', () => {
   for (const [name, src] of [['HE landing', he], ['EN landing', en], ['in-app PricingModal', modal]]) {
     for (const [re, what] of FORBIDDEN) {
       it(`${name}: no ${what}`, () => { expect(src.match(re)?.[0] ?? null).toBeNull(); });
     }
   }
+  for (const [name, src] of [['HE landing', he], ['EN landing', en], ['landing layout', layout], ['styles showcase', showcase]]) {
+    for (const [re, what] of STYLE_TRUTH_FORBIDDEN) {
+      it(`${name}: no ${what}`, () => { expect(src.match(re)?.[0] ?? null).toBeNull(); });
+    }
+  }
+
+  it('KEEP: Classic is named as the presentation every account has; Modern / Visual are illustrations only (HE + EN)', () => {
+    // Owner 2026-10-11 natural-Hebrew rewrite: the same KEEP facts in natural wording.
+    expect(he).toMatch(/כרגע כל ההצעות, בכל החשבונות, מוצגות בסגנון Classic/);
+    expect(he).toMatch(/הסגנונות Modern ו-Visual מוצגים כאן להמחשה בלבד, וכרגע אינם זמינים באף מסלול\./);
+    expect(he).toMatch(/availableBadge: 'זמין בכל החשבונות'/);
+    expect(he).toMatch(/previewBadge: 'דוגמה בלבד · לא זמין כרגע'/);
+    expect(en).toMatch(/Today every quote, on every account, is presented in the Classic style/);
+    expect(en).toMatch(/Modern and Visual are shown here as illustrations only and are not currently available on any plan\./);
+    expect(en).toMatch(/availableBadge: 'Available to every account'/);
+    expect(en).toMatch(/previewBadge: 'Preview only · not currently available'/);
+    expect(availability).toMatch(/DEFAULT_SHOWCASE_STYLE = 'classic'/);
+    expect(availability).toMatch(/AVAILABLE_SHOWCASE_STYLES = Object\.freeze\(\['classic'\]\)/);
+    expect(showcase).toMatch(/isShowcaseStyleAvailable\(id\)/);
+  });
+
+  it('KEEP: the base free business tools section (ledger L03) - base strings, public tools hub, no FREE-plan claim', () => {
+    expect(he).toMatch(/title: 'כלים עסקיים חינמיים'/);
+    expect(he).toMatch(/cta: 'למעבר לכלים העסקיים',\s*href: '\/he\/tools'/);
+    expect(en).toMatch(/title: 'Free Business Tools'/);
+    expect(en).toMatch(/cta: 'Explore the Free Business Tools',\s*href: '\/en\/tools'/);
+    for (const src of [he, en]) {
+      const tools = src.match(/tools: \{[\s\S]*?\n {4}\},/)[0];
+      expect(tools).not.toMatch(/FREE|Free plan|מסלול חינמי|Basic|PRO|בסיסי|round|עיגול/);
+    }
+  });
+
   it('static index.html fallback claims no invoicing', () => {
     expect(html).not.toMatch(/Invoicing/i);
   });
 
-  it('KEEP: plan prices, the annual plan and the 14-day no-card trial stay visible (HE + EN)', () => {
-    expect(he).toMatch(/מסלול שנתי/);
-    expect(he).toMatch(/14 יום ניסיון PRO מלא, ללא כרטיס אשראי/);
-    expect(he).toMatch(/basicPricing\.monthlyRate/);
-    expect(en).toMatch(/Annual Billing/);
-    expect(en).toMatch(/14-day full PRO trial, no credit card required/);
-    expect(en).toMatch(/Paid upgrades and online checkout are not currently available/);
-    expect(he).toMatch(/שדרוג למסלול בתשלום ותשלום מקוון אינם זמינים כרגע/);
+  // IRON-LANDING-001 as amended by the Owner 2026-10-11 (PROFLOW_PROJECT_CONTEXT.md §249, supersedes the OD-03..OD-08 three-plan
+  // cards): Free-10, then ONE all-inclusive package, monthly + annual (annual Owner-approved, §249), with the numbers ONLY from
+  // src/domain/subscriptions/packageCatalog.js via landingPackageFacts.js; the 14-day trial stays replaced by Free-10, stated as not
+  // yet activated; the paid / checkout "not available" truth stays.
+  it('§249 package prices (packageCatalog), the review notice and the Free-10 line are visible; no 14-day trial (HE + EN)', () => {
+    for (const p of ['month', 'year']) {
+      expect(he).toContain(`ilsPackageAmount('${p}')`);
+      expect(en).toContain(`usdPackageAmount('${p}')`);
+    }
+    expect(`${he}${en}`).not.toMatch(/landingPlanFacts|ilsAmount\(|usdAmount\(|catalog_block_100|STYLE_COPY/);
+    // Task 37: the Owner-approved L7 notice (registration exists; checkout and Free-10 are off) replaced the 2026-10-07 review notice
+    expect(he).toContain('המסלולים החדשים עדיין לא הופעלו: אי אפשר לרכוש מנוי או לשלם באתר. פתיחת חשבון זמינה כבר עכשיו.');
+    expect(en).toContain('The new plans are not active yet: subscriptions cannot be purchased and there is no online payment. You can already open an account.');
+    expect(he).not.toMatch(/basicPricing|proPricing/);
+    expect(en).not.toMatch(/basicPricing|proPricing/);
+    expect(he).not.toMatch(/14 יום ניסיון|ניסיון PRO/);
+    expect(en).not.toMatch(/14-day|PRO trial|Free Trial/);
+    expect(he).toContain('10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן. ההטבה עדיין לא הופעלה.');
+    expect(en).toContain('10 free quotes in total · not active yet');
+    // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
+    expect(en).toMatch(/The new paid plan cannot be purchased yet/);
+    expect(he).toMatch(/המסלול החדש בתשלום עדיין אינו זמין לרכישה/);
   });
 
   it('signup CTAs start the free trial (no pay-now path)', () => {
@@ -53,7 +113,11 @@ describe('landing truth gate', () => {
   });
 
   it('the in-app comparison uses the canonical price catalog (no second, contradicting price list)', () => {
-    expect(modal).toMatch(/PRICING_CATALOG\.global\.usd/);
-    expect(modal).not.toMatch(/\? 39\)|: 89\)|upperCurr === 'EUR' \? 35/);
+    // OD-03..OD-08: PricingModal renders pricingModalModel, which reads only the approved price catalog through landingPlanFacts
+    const model = visible(read('src/domain/subscriptions/pricingModalModel.js'));
+    expect(modal).toMatch(/pricingModalModel/);
+    // Task 27: the same package facts as the landing (packageCatalog.js through landingPackageFacts.js)
+    expect(model).toMatch(/from '\.\.\/\.\.\/components\/landing\/landingPackageFacts'/);
+    expect(modal + model).not.toMatch(/PRICING_CATALOG|pricingCatalog'|\? 39\)|: 89\)|EUR|GBP|€|£/);
   });
 });
