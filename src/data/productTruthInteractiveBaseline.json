@@ -12,8 +12,8 @@
     "markers": 6
   },
   "src/components/AccessibilityModal.jsx": {
-    "interactive": 1,
-    "markers": 2
+    "interactive": 4,
+    "markers": 5
   },
   "src/components/AddItemWizard.jsx": {
     "interactive": 14,
@@ -144,8 +144,8 @@
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/ProFlowLogo.jsx": {
     "interactive": 0,
@@ -255,6 +255,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/domain/subscriptions/localPriceEstimate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/domain/subscriptions/packageCatalog.js": {
     "interactive": 0,
     "markers": 0
@@ -308,20 +312,20 @@
     "markers": 0
   },
   "src/pages/Contact.jsx": {
-    "interactive": 3,
-    "markers": 0
+    "interactive": 6,
+    "markers": 3
   },
   "src/pages/Dashboard.jsx": {
     "interactive": 19,
     "markers": 25
   },
   "src/pages/LandingGlobal.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 2,
+    "markers": 2
   },
   "src/pages/LandingLocal.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 2,
+    "markers": 2
   },
   "src/pages/NotFound.jsx": {
     "interactive": 1,

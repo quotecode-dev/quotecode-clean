@@ -5,7 +5,8 @@ import { FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
 import { formatMoney } from '../utils/money';
-import { FREE_QUOTES_TOTAL, usdPackageAmount, usdAnnualSaving, usdAnnualSavingRate } from '../components/landing/landingPackageFacts';
+import { FREE_QUOTES_TOTAL, usdPackageAmount, usdAnnualSaving, usdAnnualSavingRate, estimateAnnualSaving } from '../components/landing/landingPackageFacts';
+import { loadLocalEstimate, CURRENCY_SYMBOL, RATE_SOURCE_NAME } from '../domain/subscriptions/localPriceEstimate';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
 
@@ -27,6 +28,20 @@ export default function LandingGlobal({ onForgotPassword }) {
     // /en is THE International canonical (locked policy TEKANGO_AI_ARCHITECTURE.md §55.11).
     setSeoMeta(publicSeo('/en'));
   }, []);
+  // Task 39 (Owner final scope, OD-08): the visitor's real geo country picks the DISPLAY currency (GB GBP, euro area EUR, else USD) - a
+  // labelled estimate only; billing stays USD and nothing about an account changes. Until / unless a valid rate arrives, USD is shown.
+  const [estimate, setEstimate] = useState({ currency: 'USD', rate: null, reason: null });
+  useEffect(() => {
+    let alive = true;
+    loadLocalEstimate({ cookieString: typeof document !== 'undefined' ? document.cookie : '' })
+      .then((r) => { if (alive) setEstimate(r); })
+      .catch(() => { /* USD stays */ });
+    return () => { alive = false; };
+  }, []);
+  const month = usdPackageAmount('month', estimate.rate);
+  const year = usdPackageAmount('year', estimate.rate);
+  const est = month.display.estimate && year.display.estimate ? month.display : null;
+  const sym = est ? CURRENCY_SYMBOL[est.displayCurrency] : '$';
 
   // §249: two review cards in six shared regions (LandingPlans.jsx) - Free-10, then the one all-inclusive package with one price row
   // per billing period, in USD (OD-08); no tax line (international tax policy open, OPEN-11); the annual price is a price, never a
@@ -36,7 +51,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   const plans = [
     {
       id: 'free', icon: Gift, name: 'Free', tagline: 'A free plan with no time limit.',
-      prices: [{ period: 'free', amount: `$${formatMoney(0)}`, per: null }],
+      prices: [{ period: 'free', amount: `${sym}${formatMoney(0)}`, per: null }],
       capacity: [`${FREE_QUOTES_TOTAL} quotes in total`, 'No time limit'],
       features: [
         'Counts when it reaches a client; a new version or another client counts again',
@@ -47,11 +62,15 @@ export default function LandingGlobal({ onForgotPassword }) {
     },
     {
       id: 'all_inclusive', icon: PackageCheck, name: 'All-inclusive', tagline: 'One package with every available capability, billed monthly or annually.',
-      prices: [
-        { period: 'month', amount: usdPackageAmount('month').text, per: 'USD / month' },
+      prices: est ? [
+        // Task 39: the local figure is a labelled estimate; the billed USD amount is stated on the same card row.
+        { period: 'month', amount: month.estimateText, per: `${est.displayCurrency} / month · estimate`, note: <>Charged in USD: <bdi dir="ltr">{month.text}</bdi> per month</> },
+        { period: 'year', amount: year.estimateText, per: `${est.displayCurrency} / year · estimate`, note: <>Charged in USD: <bdi dir="ltr">{year.text}</bdi> per year. Save {savingRate.exact ? '' : 'approximately '}<bdi dir="ltr">{savingRate.text}</bdi> - <bdi dir="ltr">{usdAnnualSaving()}</bdi> (<bdi dir="ltr">{estimateAnnualSaving(year.display)}</bdi>) per year</> },
+      ] : [
+        { period: 'month', amount: month.text, per: 'USD / month' },
         // Task 26 (Owner 2026-10-11 wording): shown only while the annual period is chosen - the permanent saving vs 12 monthly payments from
         // the final catalog rows: $216.00 - $184.00 = $32.00, 14.81... % -> "Save approximately 15% - $32.00 per year".
-        { period: 'year', amount: usdPackageAmount('year').text, per: 'USD / year', note: <>Save {savingRate.exact ? '' : 'approximately '}<bdi dir="ltr">{savingRate.text}</bdi> - <bdi dir="ltr">{usdAnnualSaving()}</bdi> per year</> },
+        { period: 'year', amount: year.text, per: 'USD / year', note: <>Save {savingRate.exact ? '' : 'approximately '}<bdi dir="ltr">{savingRate.text}</bdi> - <bdi dir="ltr">{usdAnnualSaving()}</bdi> per year</> },
       ],
       // Task 26: the visitor chooses ONE billing period and sees that single price (initially monthly); review display only.
       periodChoice: { legend: 'Billing period', labels: { month: 'Monthly', year: 'Annual' } },
@@ -158,8 +177,13 @@ export default function LandingGlobal({ onForgotPassword }) {
       // Owner 2026-10-07: review notice for the new plan cards (exact wording).
       // Task 37 (Owner-approved L7).
       reviewNotice: 'The new plans are not active yet: subscriptions cannot be purchased and there is no online payment. You can already open an account.',
-      // OD-08: billing currency disclosure (no local estimate is shown while no verified rate source exists).
-      priceNote: 'Prices are in US dollars. Charged in USD.',
+      // OD-08: billing currency disclosure; with a valid rate the local figure is an estimate (source + as-of date), otherwise USD with
+      // the true reason when a local estimate was due but unavailable.
+      priceNote: est
+        ? <>Prices in {est.displayCurrency} are estimates, converted from US dollars at the {RATE_SOURCE_NAME} rate of <bdi dir="ltr">{est.rateAsOf.slice(0, 10)}</bdi> (1 USD = <bdi dir="ltr">{est.rate}</bdi> {est.displayCurrency}). You are charged in US dollars.</>
+        : estimate.currency !== 'USD'
+          ? `A ${estimate.currency} estimate is not available right now, so prices are shown in US dollars. Charged in USD.`
+          : 'Prices are in US dollars. Charged in USD.',
     },
     // Authority ledger L07b (pointwise rollback): base FAQ heading + subtitle (c65f742 LandingGlobal.jsx:709-710); no eyebrow.
     faq: {
@@ -171,13 +195,15 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Does previewing another style change my plan?', a: 'No. Viewing the examples on this page does not change your plan or your quotes.' },
         { q: 'What happens to a shared quote after a plan change?', a: 'A shared or signed quotation stays as the customer received it, including its presentation.' },
         // OD-08 / OPEN-11: prices are the USD catalog and are charged in USD; international tax treatment is not decided.
-        { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD. The package cannot be purchased yet; if any tax applies when it launches, it will be shown clearly before you pay anything.' },
+        { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The package cannot be purchased yet; if any tax applies when it launches, it will be shown clearly before you pay anything.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points.
         { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, with no time limit.<ul className="tl-faq-list"><li>A quote counts when it reaches a customer: sending it, a view link, a final PDF or a final print.</li><li>Sending or producing the same version again for the same customer does not count again, on any channel.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>Drafts and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>The new plan is not active yet; the account terms available today are shown when you sign up.</> },
         { q: 'Is the platform optimized for mobile and desktop?', a: 'Yes, TEKANGO is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'Is my business data secure on the cloud?', a: 'Your data is stored on cloud infrastructure built on Supabase/PostgreSQL, which includes encryption in transit (TLS) and at rest as part of the standard cloud infrastructure. Access to your data is restricted to your own account.' },
+        // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
+        { q: 'How do I cancel a subscription?', a: <>Paid subscriptions cannot be purchased yet. Once they can, you can ask to cancel a subscription at any time by email to {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:info@tekango.com?subject=Subscription%20cancellation%20request">info@tekango.com</a> or from the plans window in the app. Our team handles the request and confirms it by email - it is not an automatic cancellation. Cancelling a subscription does not delete your account. The cancellation and refund terms are in our {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/en/terms#cancellation">Terms of Service</a>.</> },
         { q: 'Can I export my financial reports and quotes?', a: 'Yes, you can easily export all your business quotes and expense reports into CSV format compatible with Excel and accounting software.' },
       ],
     },
@@ -202,6 +228,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       links: [
         { href: '/en/terms', label: 'Terms of Service' },
         { href: '/en/privacy', label: 'Privacy Policy' },
+        { href: '/en/terms#cancellation', label: 'Cancellation & Refunds' },
         { kind: 'accessibility', label: 'Accessibility' },
         { href: '/en/contact', label: 'Contact Us (info@tekango.com)', icon: Mail },
         { href: '/en/tools', label: 'Business Tools', icon: BriefcaseBusiness },

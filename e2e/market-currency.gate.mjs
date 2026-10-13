@@ -4,7 +4,8 @@
 // exercised at QUOTE level (synthetic EUR/GBP quotes owned by the EN persona - the persona's own market state is never changed).
 // Authenticated EUR/GBP account views need dedicated EUR/GBP personas that are NOT designated yet -> reported as BLOCKED cells.
 // Cells: public quote (screen + print) per currency, market routing without bleed (an International quote opened on the HE route
-// stays EN/LTR), landing pricing currency by visitor locale (en-US $, en-GB £, de-DE €; HE always ₪).
+// stays EN/LTR), landing pricing currency by the visitor's geo country (IL ₪ / US $ / GB ≈£ / euro area ≈€ estimates, USD billing;
+// non-euro Europe, stale or missing rate -> USD + notice), monthly + annual, 390 + 1280 px.
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -97,22 +98,57 @@ try {
 } finally {
   for (const [s, q] of made) { await s.sb.from('quotes').delete().eq('id', q.id); await s.sb.from('clients').delete().eq('id', q.clientId); }
 }
-// landing pricing currency by visitor locale
-for (const [locale, tz, sym, lang] of [['en-US', 'America/New_York', '$', 'en'], ['en-GB', 'Europe/London', '£', 'en'], ['de-DE', 'Europe/Berlin', '€', 'en'], ['he-IL', 'Asia/Jerusalem', '₪', 'he']]) {
-  const c = cell(`landing-pricing/${locale}`);
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale, timezoneId: tz });
-  const page = await ctx.newPage();
-  try {
-    await page.goto(`${base}/${lang}?lang=${lang}`, { timeout: 90000 });
-    await page.locator('h1').first().waitFor({ timeout: 45000 });
-    await page.waitForTimeout(1000);
-    const text = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
-    const others = ['$', '£', '€', '₪'].filter((x) => x !== sym);
-    const priceHits = (text.match(/[$£€₪] ?\d+|\d+ ?[₪]/g) || []);
-    check(c, `plan prices shown in ${sym}`, priceHits.some((p) => p.includes(sym)), priceHits.slice(0, 6).join(' '));
-    check(c, 'no other currency in plan prices', priceHits.every((p) => !others.some((o) => p.includes(o))), priceHits.slice(0, 8).join(' '));
-  } catch (e) { check(c, 'rendered', false, String(e.message).slice(0, 160)); }
-  await ctx.close();
+// landing pricing currency by the visitor's GEO country (Task 39, Owner final scope / OD-08): IL -> the Hebrew landing in ₪; abroad -> the
+// English landing in USD, with GB £ / euro-area € shown ONLY as a labelled estimate from the rate source (billing stays USD). The geo
+// country and the rate payload are CONTROLLED inputs here (request stubs for /api/geo and the rate source) - TEST evidence of the
+// behaviour, never a LIVE geo proof. Only the plan-card amounts are checked (not example amounts in the page), monthly AND annual.
+const RATE_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
+const ratePayload = (ageHours) => ({ provider: 'https://www.exchangerate-api.com', base: 'USD', date: '2026-10-13', time_last_updated: Math.floor(Date.now() / 1000 - ageHours * 3600), rates: { USD: 1, GBP: 0.75, EUR: 0.9, ILS: 3.7 } });
+const PRICING = [
+  // [id, country, rate: 'fresh' | 'stale' | 'down', lang, month amount, year amount, estimate?]
+  ['IL', 'IL', 'fresh', 'he', '₪30.00', '₪306.00', false],
+  ['US', 'US', 'fresh', 'en', '$18.00', '$184.00', false],
+  ['GB', 'GB', 'fresh', 'en', '≈£13.50', '≈£138.00', true],
+  ['DE', 'DE', 'fresh', 'en', '≈€16.20', '≈€165.60', true],
+  ['FR', 'FR', 'fresh', 'en', '≈€16.20', '≈€165.60', true],
+  ['CH-not-euro', 'CH', 'fresh', 'en', '$18.00', '$184.00', false],
+  ['GB-stale-rate', 'GB', 'stale', 'en', '$18.00', '$184.00', false],
+  ['GB-rate-source-down', 'GB', 'down', 'en', '$18.00', '$184.00', false],
+];
+for (const [id, country, rateMode, lang, monthAmt, yearAmt, isEstimate] of PRICING) {
+  for (const width of [390, 1280]) {
+    const c = cell(`landing-pricing/${id}/${width}`);
+    const ctx = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 700 });
+    const page = await ctx.newPage();
+    await page.route('**/api/geo', (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: JSON.stringify({ country }) }));
+    await page.route(RATE_URL, (r) => (rateMode === 'down' ? r.fulfill({ status: 503, body: '' }) : r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(ratePayload(rateMode === 'stale' ? 30 : 1)) })));
+    try {
+      await page.goto(`${base}/${lang}?lang=${lang}`, { timeout: 90000 });
+      const card = page.locator('[data-plan-card="all_inclusive"]');
+      await card.waitFor({ timeout: 45000 });
+      await page.waitForTimeout(1500);
+      const amount = async () => (await card.locator('.tl-plan-amount').first().innerText()).trim();
+      const month = await amount();
+      check(c, `monthly plan-card amount ${monthAmt}`, month === monthAmt, month);
+      await card.locator('input[data-period="year"]').check();
+      await page.waitForTimeout(300);
+      const year = await amount();
+      check(c, `annual plan-card amount ${yearAmt}`, year === yearAmt, year);
+      const cardText = (await card.innerText()).replace(/s+/g, ' ');
+      const note = ((await page.locator('[data-price-note]').first().innerText().catch(() => '')) || '').replace(/s+/g, ' ');
+      if (lang === 'he') check(c, 'Local: ₪ only, VAT included', !/[$£€]/.test(cardText) && /מע/.test(note + cardText), note);
+      else if (isEstimate) {
+        check(c, 'estimate labelled and billing disclosed in USD on the card', /estimate/.test(cardText) && /Charged in USD: $184.00/.test(cardText), cardText.slice(0, 200));
+        check(c, 'price note: estimate + source + as-of date + charged in USD', /are estimates/.test(note) && /ExchangeRate-API/.test(note) && /d{4}-d{2}-d{2}/.test(note) && /charged in US dollars/.test(note), note);
+        check(c, 'never ILS on the International landing', !/₪|ILS|NIS/.test(await page.locator('body').innerText()));
+      } else {
+        check(c, 'USD only on the card (no £ / € / ₪)', !/[£€₪]/.test(cardText), cardText.slice(0, 160));
+        const wantsNotice = rateMode !== 'fresh' && country === 'GB';
+        check(c, wantsNotice ? 'true notice: the estimate is not available, prices in USD' : 'plain USD disclosure', wantsNotice ? /GBP estimate is not available right now/.test(note) : /Prices are in US dollars. Charged in USD./.test(note), note);
+      }
+    } catch (e) { check(c, 'rendered', false, String(e.message).slice(0, 160)); }
+    await ctx.close();
+  }
 }
 await browser.close();
 // explicitly blocked cells (never inferred)

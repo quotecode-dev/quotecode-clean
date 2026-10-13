@@ -20,12 +20,13 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: אוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 13 באוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
-        title: '1. איסוף מידע',
-        content: 'בעת ההרשמה והשימוש במערכת TEKANGO, אנו אוספים מידע אישי בסיסי כגון כתובת אימייל ופרטי התחברות. בנוסף, המערכת שומרת את הנתונים שאתה מזין (לקוחות, הצעות מחיר, הוצאות) כדי לספק לך את השירות.'
+        // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
+        title: '1. מי אחראי למידע ואיזה מידע נאסף',
+        content: 'האחראי למידע בשירות TEKANGO הוא המפעיל, שלמה סיני, עוסק מס׳ 023716913, רמת גן (לפניות: support@tekango.com). בעת ההרשמה והשימוש אנו מעבדים פרטי חשבון ועסק (כגון כתובת אימייל, שם העסק ופרטי התחברות), את המידע שאתם מזינים (לקוחות, הצעות מחיר, הוצאות) ותיעוד תפעולי הדרוש לאספקת השירות, לאבטחה ולתמיכה. פרטי ההתחברות והעסק הבסיסיים נדרשים לפתיחת חשבון; בלעדיהם לא ניתן לספק את השירות. שדות נוספים הם לבחירתכם.'
       },
       {
         title: '2. שימוש במידע',
@@ -44,22 +45,31 @@ export default function Privacy({ isHebrew }) {
         content: 'אנו נוקטים באמצעי אבטחה מתקדמים הכוללים הצפנת נתונים בתעבורה ושימוש בשרתי ענן מוגנים. עם זאת, עליך להבין כי שום העברת נתונים באינטרנט אינה בטוחה ב-100%, ולכן איננו יכולים לערוב לאבטחה מוחלטת.'
       },
       {
-        title: '6. זכויות המשתמש',
-        content: 'זכותך המלאה לעיין במידע האישי שלך השמור במערכת, לעדכן אותו, או לבקש את מחיקתו המוחלטת. למחיקת החשבון וכל הנתונים המקושרים אליו, תוכל לפנות אלינו דרך עמוד "צור קשר".'
+        title: '6. זכויות המשתמש ומחיקה',
+        content: 'אפשר לבקש לעיין במידע האישי השמור עליכם, לתקן אותו או למחוק אותו, לפי הדין החל, בפנייה אל support@tekango.com. לצורך הטיפול ייתכן שנבקש לאמת את זהותכם, ונפריד בין מידע החשבון שלכם לבין מידע של אחרים. מחיקה מתבצעת לפי התהליך הקיים ובכפוף לחובות שמירה לפי דין; עותקים בגיבויים של ספקי התשתית אינם נמחקים מיידית ומוחלפים במהלך מחזור הגיבוי. ביטול מנוי אינו בקשת מחיקה.'
       },
       {
-        title: '7. נושאים שטרם הוחלטו',
-        content: 'משך שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים.'
+        title: '7. תשלומים (בעת רכישת מנוי)',
+        content: 'כיום לא מתבצעים תשלומים בשירות. בעת ביצוע רכישה, ספק התשלום החיצוני יעבד את פרטי התשלום הנדרשים לביצוע העסקה, והשירות יעבד את פרטי העסקה והסטטוס הדרושים לניהול המנוי ולתמיכה. זהות הספק ופרטי העיבוד יוצגו בתהליך הרכישה ובמדיניות זו לפני הפעלת התשלום.'
+      },
+      {
+        title: '8. הודעות ודיוור',
+        content: 'נשלח אליכם הודעות הנדרשות להפעלת החשבון והשירות (כגון אימות חשבון, איפוס סיסמה ותשובות לפניות). קבלת תנאי השימוש אינה הסכמה לדיוור שיווקי; אם יופעל דיוור שיווקי, הוא יישלח רק בהסכמה נפרדת, עם אפשרות הסרה.'
+      },
+      {
+        title: '9. נושאים שטרם הוחלטו',
+        content: 'משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים.'
       }
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last Updated: October 2026',
+    lastUpdated: 'Last updated: October 13, 2026',
     back: 'Go Back',
     sections: [
       {
-        title: '1. Data Collection',
-        content: 'When you register and use the TEKANGO platform, we collect basic personal information such as your email address and login details. Additionally, the system stores the business data you input (clients, quotes, expenses) to provide the service.'
+        // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
+        title: '1. Who Is Responsible and What We Collect',
+        content: 'The party responsible for data in the TEKANGO service is its operator, Shlomo Sinai, Israeli business registration (osek) no. 023716913, Ramat Gan, Israel (contact: info@tekango.com). When you register and use the service we process account and business details (such as your email address, business name and sign-in details), the information you enter (clients, quotes, expenses) and operational records needed to provide the service, for security and for support. The basic sign-in and business details are required to open an account; without them the service cannot be provided. Other fields are optional.'
       },
       {
         title: '2. Use of Information',
@@ -78,11 +88,19 @@ export default function Privacy({ isHebrew }) {
         content: 'We implement advanced security measures, including data encryption in transit and secure cloud hosting. However, please understand that no internet transmission is 100% secure, and we cannot guarantee absolute security.'
       },
       {
-        title: '6. User Rights',
-        content: 'You have the right to access, update, or request the complete deletion of your personal information stored in our system. To delete your account and all associated data, please reach out to us via the Contact Us page.'
+        title: '6. Your Rights and Deletion',
+        content: 'You can ask to access, correct or delete the personal information stored about you, according to the applicable law, by writing to info@tekango.com. To handle the request we may ask to verify your identity, and we keep your account information separate from other people\'s information. Deletion follows the existing process and is subject to retention duties under the law; copies in our infrastructure providers\' backups are not deleted immediately and are replaced during the backup cycle. Cancelling a subscription is not a deletion request.'
       },
       {
-        title: '7. Matters Not Yet Decided',
+        title: '7. Payments (When a Subscription Is Purchased)',
+        content: 'No payments are made in the service today. When a purchase is made, the external payment provider will process the payment details needed for the transaction, and the service will process the transaction details and status needed to manage the subscription and for support. The provider and the processing details will be shown in the purchase flow and in this policy before payment is activated.'
+      },
+      {
+        title: '8. Messages and Marketing',
+        content: 'We send messages needed to operate your account and the service (such as account verification, password reset and replies to your requests). Accepting the Terms of Service is not consent to marketing emails; if marketing emails are introduced, they will be sent only with separate consent and an unsubscribe option.'
+      },
+      {
+        title: '9. Matters Not Yet Decided',
         content: 'Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published before the plans are activated.'
       }
     ]

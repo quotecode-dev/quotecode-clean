@@ -6,6 +6,7 @@ import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { packagePrice, annualSavingMinor, annualSavingPercent } from '../../domain/subscriptions/packageCatalog';
 import { FREE_QUOTES_TOTAL, majorUnits } from '../../domain/subscriptions/priceCatalog';
 import { internationalDisplay } from '../../domain/subscriptions/displayEstimate';
+import { RATE_VALIDITY_MS, ESTIMATE_CURRENCIES, CURRENCY_SYMBOL } from '../../domain/subscriptions/localPriceEstimate';
 
 export { FREE_QUOTES_TOTAL };
 
@@ -19,11 +20,18 @@ const rate = (market) => { const p = annualSavingPercent(market); const whole = 
 export const ilsAnnualSavingRate = () => rate('IL');
 export const usdAnnualSavingRate = () => rate('INTERNATIONAL');
 
-// EN / INTERNATIONAL: canonical USD with two decimals; a local estimate only through internationalDisplay() (no verified rate source is
-// wired, so the display is USD).
-export function usdPackageAmount(billingPeriod, rate = null) {
-  const d = internationalDisplay(packagePrice('INTERNATIONAL', billingPeriod), rate);
-  return { text: `$${formatMoney(majorUnits(d.billingAmountMinor))}`, display: d };
+// EN / INTERNATIONAL: canonical USD with two decimals; a local estimate only through internationalDisplay() with a rate record from
+// localPriceEstimate.js (GBP / EUR, 26 h validity). `text` is always the billed USD amount; `estimateText` is the labelled local figure or
+// null (no rate, stale, unsupported -> USD only).
+export function usdPackageAmount(billingPeriod, rate = null, { now = Date.now() } = {}) {
+  const d = internationalDisplay(packagePrice('INTERNATIONAL', billingPeriod), rate, { now, maxAgeMs: RATE_VALIDITY_MS, supportedCurrencies: ESTIMATE_CURRENCIES });
+  const estimateText = d.estimate ? `≈${CURRENCY_SYMBOL[d.displayCurrency]}${formatMoney(majorUnits(d.displayAmountMinor))}` : null;
+  return { text: `$${formatMoney(majorUnits(d.billingAmountMinor))}`, estimateText, display: d };
+}
+// The annual saving as the same labelled estimate (the USD saving converted with the same rate), or null.
+export function estimateAnnualSaving(display) {
+  if (!display?.estimate) return null;
+  return `≈${CURRENCY_SYMBOL[display.displayCurrency]}${formatMoney(majorUnits(Math.round(annualSavingMinor('INTERNATIONAL') * display.rate)))}`;
 }
 // Task 26: the annual saving vs 12 monthly payments in USD, International precision ($32.00 at the Owner's $184.00; never the ILS rounding).
 export const usdAnnualSaving = () => `$${formatMoney(majorUnits(annualSavingMinor('INTERNATIONAL')))}`;

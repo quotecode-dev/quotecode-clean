@@ -101,7 +101,9 @@ for (const [lang, market, persona, taxRate, currency] of MARKETS) {
   const made = [];
   try { s = await session(persona); } catch (e) { results.push({ id: `${market}/session`, checks: [{ name: 'persona session', ok: false, detail: e.message }] }); continue; }
   const longName = (he ? 'לקוח סינתטי בעל שם ארוך במיוחד לבדיקת גלישת טקסט בהדפסה ובקובץ PDF ' : 'Synthetic Customer With An Exceptionally Long Company Name For Print Wrapping Checks ').repeat(2).slice(0, 120);
-  const longDesc = (he ? 'תיאור עבודה סינתטי ארוך מאוד הכולל פירוט רב של חומרים, מידות, שלבי התקנה ותנאים מיוחדים. ' : 'Very long synthetic work description with many details about materials, dimensions, installation stages and special terms. ').repeat(6).slice(0, 600);
+  // Task 39: quote_items.description is varchar(255) since migration 20260930000000 (in Production) - the long-text fixture is the full
+  // 255-character maximum (wrapping / pagination checks unchanged); 256 is refused by the database (boundary check below).
+  const longDesc = (he ? 'תיאור עבודה סינתטי ארוך מאוד הכולל פירוט רב של חומרים, מידות, שלבי התקנה ותנאים מיוחדים. ' : 'Very long synthetic work description with many details about materials, dimensions, installation stages and special terms. ').repeat(6).slice(0, 255);
   const scenarios = {
     long: { clientName: longName, items: [{ d: longDesc, q: 1, p: 9876543.21 }], validUntil: '2099-12-13' },
     multipage: { clientName: `${he ? 'לקוח רב-עמודים' : 'Multi-page customer'} PRT`, items: Array.from({ length: 40 }, (_, i) => ({ d: `${he ? 'פריט סינתטי' : 'Synthetic item'} ${i + 1}`, q: 2, p: 100.5 + i })), validUntil: '2099-12-13' },
@@ -112,6 +114,21 @@ for (const [lang, market, persona, taxRate, currency] of MARKETS) {
   try {
     const q = {};
     for (const [k, sc] of Object.entries(scenarios)) { q[k] = await createQuote(s, { lang, ...sc, taxRate, currency }); made.push(q[k]); }
+    // Task 39 boundary: 255 characters were saved (the long scenario); 256 must be refused by the database, inside the transaction of the
+    // structured save, so nothing is truncated silently and the (empty) draft quote stays unchanged.
+    {
+      const c = { id: `${market}/description-limit-255-256`, checks: [] };
+      results.push(c);
+      check(c, 'a 255-character description was saved', longDesc.length === 255 && !!q.long?.id, `length=${longDesc.length}`);
+      const { error: tooLong } = await s.sb.rpc('save_quote_structured', {
+        p_quote_id: q.unfinished.id, p_financial: null, p_sections: [],
+        p_items: [{ client_key: 'k256', id: null, section_client_key: null, description: 'x'.repeat(256), quantity: 1, unit_price: 1, total_price: 1, sort_order: 0, measurements: [] }],
+        p_removed_section_ids: [], p_removed_item_ids: [],
+      });
+      check(c, 'a 256-character description is refused (no silent truncation)', !!tooLong && /too long|character varying\(255\)/i.test(tooLong.message || ''), tooLong?.message);
+      const { data: left } = await s.sb.from('quote_items').select('id').eq('quote_id', q.unfinished.id);
+      check(c, 'the refused save left the draft unchanged (still no items)', Array.isArray(left) && left.length === 0, `items=${left?.length}`);
+    }
     // sign as an anonymous customer through the public RPC (the real customer path)
     const anonSb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
     const { error: signErr } = await anonSb.rpc('public_approve_quote', { p_quote_id: q.signed.id, p_signature_data_url: SIG });

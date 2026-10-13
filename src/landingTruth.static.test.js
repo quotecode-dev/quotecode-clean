@@ -89,7 +89,7 @@ describe('landing truth gate', () => {
   it('§249 package prices (packageCatalog), the review notice and the Free-10 line are visible; no 14-day trial (HE + EN)', () => {
     for (const p of ['month', 'year']) {
       expect(he).toContain(`ilsPackageAmount('${p}')`);
-      expect(en).toContain(`usdPackageAmount('${p}')`);
+      expect(en).toContain(`usdPackageAmount('${p}'`); // Task 39: the call also passes the local-estimate rate record (still the catalog price)
     }
     expect(`${he}${en}`).not.toMatch(/landingPlanFacts|ilsAmount\(|usdAmount\(|catalog_block_100|STYLE_COPY/);
     // Task 37: the Owner-approved L7 notice (registration exists; checkout and Free-10 are off) replaced the 2026-10-07 review notice

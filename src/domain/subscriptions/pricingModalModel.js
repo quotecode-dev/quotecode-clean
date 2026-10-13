@@ -5,10 +5,13 @@
 // Market = the server account market (else the account's recorded business market) - never the UI language. Purchase is not available
 // (checkout is not activated), so nothing here starts a payment or changes a plan.
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving, usdAnnualSaving, ilsAnnualSavingRate, usdAnnualSavingRate } from '../../components/landing/landingPackageFacts';
+import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 
-export function pricingModalModel({ isHebrew, market }) {
+// Task 39 (Owner final scope): International accounts whose identified currency is GBP / EUR also see a labelled estimate from the
+// same rate source as the landing (`estimateRate` = a localPriceEstimate record or null); the shown / billed amounts stay USD.
+export function pricingModalModel({ isHebrew, market, accountCurrency = null, estimateRate = null }) {
   const lang = isHebrew ? 'he' : 'en';
   const il = market === 'IL';
   const amount = (period) => (il ? ilsPackageAmount(period) : usdPackageAmount(period).text);
@@ -37,11 +40,28 @@ export function pricingModalModel({ isHebrew, market }) {
       ? [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'המנוי החודשי מתחדש כל חודש, והשנתי כל שנה']
       : [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'The monthly plan renews every month, the annual plan every year'],
   };
+  const wantCur = !il && typeof accountCurrency === 'string' && ESTIMATE_CURRENCIES.includes(accountCurrency.toUpperCase()) ? accountCurrency.toUpperCase() : null;
+  const mo = wantCur ? usdPackageAmount('month', estimateRate) : null; const yr = wantCur ? usdPackageAmount('year', estimateRate) : null;
+  const est = mo?.display.estimate && yr?.display.estimate && mo.display.displayCurrency === wantCur ? mo.display : null;
+  const estimateNote = !wantCur ? null : est
+    ? (isHebrew
+      ? `הערכה ב-${wantCur} בלבד: כ-${mo.estimateText.slice(1)} לחודש או כ-${yr.estimateText.slice(1)} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
+      : `Estimate in ${wantCur} only: about ${mo.estimateText.slice(1)} per month or ${yr.estimateText.slice(1)} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`)
+    : (isHebrew ? `הערכה ב-${wantCur} אינה זמינה כרגע, ולכן המחירים מוצגים בדולר ארה״ב.` : `A ${wantCur} estimate is not available right now, so prices are shown in US dollars.`);
   return {
     plans: [free, pkg],
     priceNote: il
       ? (isHebrew ? 'המחירים כוללים מע״מ.' : 'Prices include VAT.')
       : (isHebrew ? 'המחירים בדולר ארה״ב. החיוב בדולר ארה״ב.' : 'Prices are in US dollars. Charged in USD.'),
+    estimateNote,
+    // Task 39: the cancellation-request path (a request to the market's service mailbox, handled by the team - not an automatic cancellation).
+    cancellation: {
+      text: isHebrew ? 'ביטול מנוי: אפשר לבקש בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; זה אינו ביטול אוטומטי ואינו מחיקת חשבון.' : 'Cancelling a subscription: you can ask at any time by email. Our team handles the request and confirms it by email; it is not an automatic cancellation and does not delete your account.',
+      linkLabel: isHebrew ? 'שליחת בקשת ביטול' : 'Send a cancellation request',
+      href: `mailto:${il ? 'support@tekango.com' : 'info@tekango.com'}?subject=${encodeURIComponent(isHebrew ? 'בקשת ביטול מנוי' : 'Subscription cancellation request')}`,
+      termsLabel: isHebrew ? 'תנאי הביטול וההחזרים' : 'Cancellation and refund terms',
+      termsHref: isHebrew ? '/he/terms#cancellation' : '/en/terms#cancellation',
+    },
     availability: isHebrew
       ? 'רכישת מנוי עדיין לא זמינה: אין אפשרות לבחור מסלול בתשלום כרגע, ולא מתבצע חיוב.'
       : 'Subscriptions cannot be purchased yet: a paid plan cannot be chosen right now, and nothing is charged.',

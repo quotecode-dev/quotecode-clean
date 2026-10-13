@@ -5,6 +5,9 @@ import { LIGHT as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
 import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas } from '../utils/professionalQuoteItem';
 
+// Task 39: the stored item description limit (quote_items.description varchar(255)).
+export const ITEM_DESCRIPTION_MAX = 255;
+
 // חוק ברזל (Smart Quote Final UX Simplification task, Owner-authorized,
 // "a first-time user should understand what to do without explanation"):
 // אשף-הוספה/עריכה מודרך יחיד, 4 שלבים חובה בלבד (Decision 1): מה מוסיפים ->
@@ -434,6 +437,9 @@ export default function AddItemWizard({
       : ['What', 'Pricing', 'Details', 'Check'],
     stepOfTotal: isHebrew ? (n, total) => `שלב ${n} מתוך ${total}` : (n, total) => `Step ${n} of ${total}`,
     missingDescription: isHebrew ? 'יש להזין שם או תיאור לפריט' : 'Please enter a name or description for this item',
+    // Task 39: quote_items.description is varchar(255) (migration 20260930000000) - a longer text must be shortened by the user, never
+    // truncated silently or lost at save.
+    descriptionTooLong: (n) => (isHebrew ? `התיאור ארוך מדי: ${n} תווים. אפשר עד ${ITEM_DESCRIPTION_MAX} תווים.` : `The description is too long: ${n} characters. Up to ${ITEM_DESCRIPTION_MAX} characters are allowed.`),
     missingMethod: isHebrew ? 'יש לבחור כיצד לתמחר את הפריט' : 'Please choose how to charge for this item',
     missingWidth: isHebrew ? 'יש להזין רוחב גדול מ-0' : 'Please enter a width greater than 0',
     missingHeight: isHebrew ? 'יש להזין גובה גדול מ-0' : 'Please enter a height greater than 0',
@@ -493,6 +499,7 @@ export default function AddItemWizard({
     const e = {};
     if (step === STEPS.WHAT) {
       if (!description.trim()) e.description = t.missingDescription;
+      else if (description.length > ITEM_DESCRIPTION_MAX) e.description = t.descriptionTooLong(description.length);
     }
     if (step === STEPS.PRICING) {
       if (!pricingMethod) e.method = t.missingMethod;

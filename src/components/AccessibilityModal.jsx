@@ -24,17 +24,22 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
           {isHebrew ? '♿ הצהרת נגישות' : '♿ Accessibility Statement'}
         </h3>
         
+        {/* Task 39 (Owner final scope 2026-10-13, legal-documents spec section E): facts only - scope, a real date, adjustments verified in
+            this product's gates (page language + direction, phone width without horizontal scrolling, this dialog's semantics + Escape),
+            a stated limitation, and a real contact. No full-compliance (AA / IS 5568) or exemption claim. */}
         {isHebrew ? (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <p>אנו ב-<BrandName onDark={false} /> רואים חשיבות עליונה בהנגשת המערכת והשירותים שלנו לכלל הציבור, כולל אנשים עם מוגבלויות, מתוך אמונה כי לכל אדם מגיעה הזכות לשוויון, כבוד, נוחות ועצמאות.</p>
-            <p>המערכת שלנו נמצאת כעת בשלבי הרצה (Beta), ואנו פועלים באופן שוטף לשפר את הנגישות שלה בהתאם להנחיות תקן הנגישות (WCAG 2.1).</p>
-            <p>אם במהלך הגלישה באתר או במערכת נתקלתם בבעיה, תקלה, או שיש לכם הצעה לשיפור בנושא נגישות, אנו נשמח לשמוע מכם ולטפל בנושא בהקדם האפשרי.</p>
+            <p><BrandName onDark={false} /> פועלת לשפר את הנגישות של האתר ושל המערכת. הצהרה זו מתייחסת לעמודי האתר הציבוריים ולמערכת לאחר ההתחברות, ונכונה ל-13 באוקטובר 2026.</p>
+            <p>התאמות שנבדקו: בכל עמוד מוגדרים השפה וכיוון הכתיבה (עברית מימין לשמאל, אנגלית משמאל לימין); העמודים מותאמים לרוחב מסך של טלפון בלי גלילה לרוחב; וחלון הצהרה זה מוכרז כחלון דו-שיח ונסגר גם במקש Escape.</p>
+            <p>מגבלות: טרם בוצעה בדיקת נגישות מלאה לפי התקן, ולכן איננו מצהירים על עמידה מלאה בו. ייתכן שחלקים באתר ובמערכת עדיין אינם נגישים במלואם.</p>
+            <p>לקבלת סיוע או לדיווח על קושי בנגישות אפשר לפנות במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:support@tekango.com?subject=%D7%A0%D7%92%D7%99%D7%A9%D7%95%D7%AA"><bdi dir="ltr">support@tekango.com</bdi></a> או בטלפון {/* PRODUCT_TRUTH_DECORATIVE: tel link to the accessibility contact phone (Israeli site only) */}<a href="tel:+972502993806"><bdi dir="ltr">050-2993806</bdi></a>. כדאי לציין את כתובת העמוד, הפעולה שלא הצליחה, הדפדפן והטכנולוגיה המסייעת שבה השתמשתם. אין לצרף סיסמאות או מידע רגיש.</p>
           </div>
         ) : (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <p>At <BrandName onDark={false} />, we are committed to making our platform and services accessible to everyone, including people with disabilities, believing that everyone deserves the right to equality, dignity, comfort, and independence.</p>
-            <p>Our system is currently in its Beta launch phase, and we are actively working to improve its accessibility in accordance with the WCAG 2.1 guidelines.</p>
-            <p>If you encounter any accessibility barriers or have suggestions for improvement, we would love to hear from you and address the issue as soon as possible.</p>
+            <p><BrandName onDark={false} /> works to improve the accessibility of its website and system. This statement covers the public website pages and the system after sign-in, and is correct as of October 13, 2026.</p>
+            <p>Adjustments that were checked: every page declares its language and text direction (Hebrew right-to-left, English left-to-right); pages fit a phone-width screen without horizontal scrolling; and this statement is announced as a dialog and also closes with the Escape key.</p>
+            <p>Limitations: a full accessibility audit against the standard has not been carried out yet, so we do not claim full conformance. Some parts of the website and the system may not yet be fully accessible.</p>
+            <p>For help or to report an accessibility difficulty, email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:info@tekango.com?subject=Accessibility">info@tekango.com</a>. Please include the page address, the action that did not work, your browser and the assistive technology you used. Do not include passwords or sensitive information.</p>
           </div>
         )}
 
