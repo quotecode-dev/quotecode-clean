@@ -134,17 +134,17 @@ for (const [id, country, rateMode, lang, monthAmt, yearAmt, isEstimate] of PRICI
       await page.waitForTimeout(300);
       const year = await amount();
       check(c, `annual plan-card amount ${yearAmt}`, year === yearAmt, year);
-      const cardText = (await card.innerText()).replace(/s+/g, ' ');
-      const note = ((await page.locator('[data-price-note]').first().innerText().catch(() => '')) || '').replace(/s+/g, ' ');
+      const cardText = (await card.innerText()).replace(/\s+/g, ' ');
+      const note = ((await page.locator('[data-price-note]').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ');
       if (lang === 'he') check(c, 'Local: ₪ only, VAT included', !/[$£€]/.test(cardText) && /מע/.test(note + cardText), note);
       else if (isEstimate) {
-        check(c, 'estimate labelled and billing disclosed in USD on the card', /estimate/.test(cardText) && /Charged in USD: $184.00/.test(cardText), cardText.slice(0, 200));
-        check(c, 'price note: estimate + source + as-of date + charged in USD', /are estimates/.test(note) && /ExchangeRate-API/.test(note) && /d{4}-d{2}-d{2}/.test(note) && /charged in US dollars/.test(note), note);
-        check(c, 'never ILS on the International landing', !/₪|ILS|NIS/.test(await page.locator('body').innerText()));
+        check(c, 'estimate labelled and billing disclosed in USD on the card', /estimate/.test(cardText) && /Charged in USD: \$184\.00/.test(cardText), cardText.slice(0, 200));
+        check(c, 'price note: estimate + source + as-of date + charged in USD', /are estimates/.test(note) && /ExchangeRate-API/.test(note) && /\d{4}-\d{2}-\d{2}/.test(note) && /charged in US dollars/.test(note), note);
+        check(c, 'never ILS on the International landing', !/₪|\bILS\b|\bNIS\b/.test(await page.locator('body').innerText()));
       } else {
         check(c, 'USD only on the card (no £ / € / ₪)', !/[£€₪]/.test(cardText), cardText.slice(0, 160));
         const wantsNotice = rateMode !== 'fresh' && country === 'GB';
-        check(c, wantsNotice ? 'true notice: the estimate is not available, prices in USD' : 'plain USD disclosure', wantsNotice ? /GBP estimate is not available right now/.test(note) : /Prices are in US dollars. Charged in USD./.test(note), note);
+        check(c, wantsNotice ? 'true notice: the estimate is not available, prices in USD' : 'plain USD disclosure', wantsNotice ? /GBP estimate is not available right now/.test(note) : /Prices are in US dollars\. Charged in USD\./.test(note), note);
       }
     } catch (e) { check(c, 'rendered', false, String(e.message).slice(0, 160)); }
     await ctx.close();
