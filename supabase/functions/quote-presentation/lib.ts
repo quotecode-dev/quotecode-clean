@@ -410,7 +410,8 @@ export function uniqueAssetIds(media: { assetId?: unknown }[] | null | undefined
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Tier resolution (server-authoritative). Outside TEST every account is 'classic' until the Owner maps tiers to plans.
+// Tier resolution (server-authoritative). Owner console 2026-10-14 ("the modern and visual styles must be open to everyone"): outside
+// TEST every account gets the full 'visual' tier (classic + modern + visual) - styles are not plan-gated while tiers are not mapped to plans.
 // ---------------------------------------------------------------------------------------------------------------------
 export type QaFixture = { v: 1; users: Record<string, PresentationTierId> };
 
@@ -431,7 +432,7 @@ export function resolveTier({ testMode, fixture, userId }: { testMode: boolean; 
     const t = normalizeQaFixture(fixture).users[userId.toLowerCase()];
     if (t) return { tier: t, tierSource: 'qa_fixture' };
   }
-  return { tier: 'classic', tierSource: 'default' };
+  return { tier: 'visual', tierSource: 'default' };
 }
 
 export function authorizeQaSetCapability({ testMode, callerRole, userId, tier }: { testMode: boolean; callerRole: unknown; userId: unknown; tier: unknown }):

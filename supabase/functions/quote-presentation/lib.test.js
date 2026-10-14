@@ -308,9 +308,10 @@ describe('tier resolution and QA capability', () => {
   const fixture = { v: 1, users: { [UID]: 'visual', [OTHER]: 'bogus' } };
   it('fixture only applies in TEST mode', () => {
     expect(resolveTier({ testMode: true, fixture, userId: UID })).toEqual({ tier: 'visual', tierSource: 'qa_fixture' });
-    expect(resolveTier({ testMode: false, fixture, userId: UID })).toEqual({ tier: 'classic', tierSource: 'default' });
-    expect(resolveTier({ testMode: true, fixture, userId: OTHER })).toEqual({ tier: 'classic', tierSource: 'default' });
-    expect(resolveTier({ testMode: true, fixture: null, userId: UID })).toEqual({ tier: 'classic', tierSource: 'default' });
+    // Owner 2026-10-14: every account outside a TEST QA fixture gets the full visual tier (all three styles)
+    expect(resolveTier({ testMode: false, fixture, userId: UID })).toEqual({ tier: 'visual', tierSource: 'default' });
+    expect(resolveTier({ testMode: true, fixture, userId: OTHER })).toEqual({ tier: 'visual', tierSource: 'default' });
+    expect(resolveTier({ testMode: true, fixture: null, userId: UID })).toEqual({ tier: 'visual', tierSource: 'default' });
   });
   it('qa_set_capability refused outside TEST and for non-super_admin', () => {
     expect(authorizeQaSetCapability({ testMode: false, callerRole: 'super_admin', userId: UID, tier: 'visual' })).toMatchObject({ ok: false, code: 'qa_not_available' });
