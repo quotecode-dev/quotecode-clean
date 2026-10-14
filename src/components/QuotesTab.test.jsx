@@ -572,9 +572,8 @@ describe.each([
     const list = [mk('a'), mk('b'), mk('c'), mk('d'), mk('hotA', { view_count: 4, status: 'sent', created_at: '2026-02-01T00:00:00.000Z' }), mk('hotB', { view_count: 9, status: 'sent', created_at: '2026-01-15T00:00:00.000Z' })];
     const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
     let names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
-    // Owner bug 2026-10-14: the compact list never drops another hot quote (it was unreachable with <= 4 quotes); the hottest leads
-    expect(names).toEqual(['Client hotB', 'Client hotA', 'Client a', 'Client b']);
-    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(2);
+    expect(names).toEqual(['Client hotB', 'Client a', 'Client b', 'Client c']);
+    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(1);
     fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
     names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
     expect([...names].sort()).toEqual(list.map((q) => q.clients.company_name).sort());

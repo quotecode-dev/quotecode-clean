@@ -256,8 +256,8 @@
     "markers": 9
   },
   "src/components/SettingsTab.jsx": {
-    "interactive": 7,
-    "markers": 9
+    "interactive": 5,
+    "markers": 7
   },
   "src/components/ShareDefaultsSettings.jsx": {
     "interactive": 2,

@@ -123,49 +123,6 @@ export function useAdminAccountSummaries(userIds, client = supabase) {
   return result;
 }
 
-// Owner console 2026-10-14 (Codex spec A7 / A8, approved): human indicator tags per account, each on its own axis - lifetime
-// (business_settings.is_lifetime, shown even while the new plan system is not active), the legacy trial (history wording, never a new
-// trial), and - only from a READY server summary - Free-10, the paid subscription state and the plan-system assignment. A missing or
-// unknown value yields no tag (never "free"). formatDate is the caller's market-aware short date formatter.
-export function accountIndicators(account, summary, { isHebrew, formatDate, now = Date.now() } = {}) {
-  const he = isHebrew === true;
-  const out = [];
-  if (account?.is_lifetime === true) out.push({ key: 'lifetime', tone: 'lifetime', text: he ? 'לכל החיים' : 'Lifetime' });
-  const trialAt = account?.trial_ends_at ? new Date(account.trial_ends_at).getTime() : NaN;
-  if (account?.is_lifetime !== true && Number.isFinite(trialAt)) {
-    const date = formatDate ? formatDate(account.trial_ends_at) : '';
-    out.push(trialAt > now
-      ? { key: 'legacy_trial', tone: 'muted', text: (he ? 'ניסיון ישן עד ' : 'Legacy trial until ') + date }
-      : { key: 'legacy_trial_ended', tone: 'muted', text: he ? 'ניסיון ישן הסתיים' : 'Legacy trial ended' });
-  }
-  const state = summary?.state;
-  if (state === 'ready') {
-    out.push({ key: 'provisioned', tone: 'ok', text: he ? 'שויך למערכת המסלולים' : 'Provisioned' });
-    if (summary.free10) {
-      const enforced = outputPhaseOf(summary) === 'enforced';
-      const left = summary.free10.remaining + '/' + summary.free10.limit;
-      out.push({ key: 'free10', tone: enforced ? 'ok' : 'muted', text: enforced ? (he ? 'Free-10: נותרו ' + left : 'Free-10: ' + left + ' left') : (he ? 'Free-10: מוכן, לא נאכף' : 'Free-10: prepared, not enforced') });
-    }
-    const sub = subscriptionStatusLabel(summary.subscriptionStatus, isHebrew);
-    if (sub) out.push({ key: 'subscription', tone: summary.subscriptionStatus === 'active' ? 'ok' : 'muted', text: sub });
-  } else if (state === 'unprovisioned') {
-    out.push({ key: 'unprovisioned', tone: 'warn', text: he ? 'טרם שויך למערכת המסלולים' : 'Not provisioned' });
-  }
-  return out;
-}
-
-// The status filter of the users list (Owner A8): lifetime / legacy trial active / legacy trial ended / none of these.
-export function matchesStatusFilter(account, filter, now = Date.now()) {
-  if (!filter || filter === 'all') return true;
-  const lifetime = account?.is_lifetime === true;
-  const t = account?.trial_ends_at ? new Date(account.trial_ends_at).getTime() : NaN;
-  if (filter === 'lifetime') return lifetime;
-  if (filter === 'trial_active') return !lifetime && Number.isFinite(t) && t > now;
-  if (filter === 'trial_ended') return !lifetime && Number.isFinite(t) && t <= now;
-  if (filter === 'none') return !lifetime && !Number.isFinite(t);
-  return true;
-}
-
 export function subscriptionStatusLabel(status, isHebrew) {
   return STATUS[status] ? tr(STATUS[status], isHebrew) : null;
 }
