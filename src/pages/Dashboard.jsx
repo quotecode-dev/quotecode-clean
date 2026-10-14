@@ -302,8 +302,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [bizPhone, setBizPhone] = useState('');
   const [bizAddress, setBizAddress] = useState('');
   const [bizLogoUrl, setBizLogoUrl] = useState('');
-  // Approved 980px dashboard: the sidebar top is the static TEKANGO logo card, so the business-logo load/trim state that used
-  // to feed the sidebar brand block is gone (bizLogoUrl itself is still used by quote documents).
+  // Approved 980px dashboard: the sidebar top is the TEKANGO logo card. Owner 2026-10-14 (option A): a business that uploaded a logo
+  // sees ITS logo in that card (as before the new interface); no logo, or a logo that fails to load -> the TEKANGO wordmark.
+  const [sidebarLogoFailed, setSidebarLogoFailed] = useState(false);
+  useEffect(() => { setSidebarLogoFailed(false); }, [bizLogoUrl]);
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
   // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner
@@ -5725,6 +5727,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             background: #ffffff;
             overflow: hidden;
           }
+          .dash-sidebar-business-logo {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: calc(100% - 16px);
+            max-height: 48px;
+            object-fit: contain;
+          }
           .dash-sidebar-wordmark {
             color: #0b2a55;
             font-size: 27px;
@@ -6953,9 +6963,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           {/* Approved 980px dashboard: the top of the sidebar is the TEKANGO platform logo card (static wordmark), in the same
               flat band as the header - not the business avatar/name (the business identity lives at the sidebar bottom). */}
           <div className="dash-sidebar-brand">
-            <div className="dash-sidebar-brand-card" role="img" aria-label="TEKANGO">
-              <span className="dash-sidebar-wordmark" dir="ltr" aria-hidden="true">TEKANGO</span>
-            </div>
+            {bizLogoUrl && !sidebarLogoFailed ? (
+              <div className="dash-sidebar-brand-card" data-testid="sidebar-business-logo">
+                <img key={bizLogoUrl} src={bizLogoUrl} alt={bizName || (isHebrew ? 'לוגו העסק' : 'Business logo')} className="dash-sidebar-business-logo" onError={() => setSidebarLogoFailed(true)} />
+              </div>
+            ) : (
+              <div className="dash-sidebar-brand-card" role="img" aria-label="TEKANGO">
+                <span className="dash-sidebar-wordmark" dir="ltr" aria-hidden="true">TEKANGO</span>
+              </div>
+            )}
           </div>
           <nav className="dash-sidebar-nav">
               <>
