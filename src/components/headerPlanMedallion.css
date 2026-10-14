@@ -1,9 +1,10 @@
-/* Header plan medallion (Owner 2026-10-14) - see HeaderPlanMedallion.jsx. The 36px button keeps the former avatar slot. */
+/* Header plan medallion v2 (Owner 2026-10-14, reference: the earlier FREE / BASIC / PRO medallions) - see HeaderPlanMedallion.jsx.
+   A 40px button in the former avatar slot: a light disc, a crisp gradient ring, a colored outline icon; tangible but calm motion. */
 .hpm {
   position: relative;
   flex: none;
-  inline-size: 36px;
-  block-size: 36px;
+  inline-size: 40px;
+  block-size: 40px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -15,91 +16,114 @@
 }
 .hpm:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
 
-/* the solid disc with the white icon (the earlier medallion language) */
+/* the light disc with a soft depth */
 .hpm-disc {
   grid-area: 1 / 1;
-  inline-size: 30px;
-  block-size: 30px;
+  position: relative;
+  inline-size: 40px;
+  block-size: 40px;
   border-radius: 50%;
-  background: var(--hpm-color);
-  color: #ffffff;
+  background: radial-gradient(circle at 35% 28%, #ffffff 0%, #f4f6fa 55%, #e3e8f0 100%);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.55), inset 0 -2px 4px rgba(15, 23, 42, 0.12);
   display: grid;
   place-items: center;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 4px 12px -4px rgba(0, 0, 0, 0.55);
-  transition: transform .25s ease;
+  overflow: hidden;
+  transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .22s ease;
 }
-.hpm:hover .hpm-disc, .hpm:focus-visible .hpm-disc { transform: scale(1.06); }
+.hpm:hover .hpm-disc, .hpm:focus-visible .hpm-disc { transform: translateY(-2px) scale(1.07); box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.7), 0 0 14px -2px var(--hpm-c1), inset 0 -2px 4px rgba(15, 23, 42, 0.12); }
+.hpm:active .hpm-disc { transform: translateY(0) scale(.94); transition-duration: .08s; }
 
-/* a light sweep ring around the disc (once on arrival, again on hover / focus) */
-.hpm-ring {
+/* the crisp ring (SVG, gradient stroke); Free-10: the ring is the share of quotes left over a faint track */
+.hpm-ring { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; transform: rotate(-90deg); }
+.hpm-track { fill: none; stroke: rgba(15, 23, 42, 0.08); stroke-width: 3.6; }
+.hpm-arc {
+  fill: none;
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--hpm-ratio) * 100);
+}
+.hpm:not(.hpm--progress) .hpm-arc { stroke-linecap: butt; }
+
+/* the colored outline icon */
+.hpm-icon { position: relative; display: grid; place-items: center; color: var(--hpm-ink); }
+
+/* a light shine that crosses the disc on arrival / hover */
+.hpm-shine {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.95) 50%, transparent 62%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+/* a soft halo that pulses at rest */
+.hpm-halo {
   grid-area: 1 / 1;
-  inline-size: 36px;
-  block-size: 36px;
+  inline-size: 40px;
+  block-size: 40px;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0.95) 70deg, rgba(255, 255, 255, 0) 140deg, rgba(255, 255, 255, 0) 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
-  opacity: 0;
+  animation: hpm-halo 7s ease-out 3s infinite;
+  pointer-events: none;
 }
-.hpm--intro .hpm-ring, .hpm:hover .hpm-ring, .hpm:focus-visible .hpm-ring { animation: hpm-sweep 1.3s cubic-bezier(.45, .05, .25, 1) 1; }
-@keyframes hpm-sweep {
-  0% { opacity: 0; transform: rotate(0deg); }
-  12% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; transform: rotate(360deg); }
+@keyframes hpm-halo {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hpm-c1) 70%, transparent); }
+  14% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--hpm-c1) 0%, transparent); }
+  100% { box-shadow: 0 0 0 9px transparent; }
 }
 
-/* Free-10: the share of quotes left as a ring */
-.hpm-progress {
-  grid-area: 1 / 1;
-  inline-size: 36px;
-  block-size: 36px;
-  border-radius: 50%;
-  background: conic-gradient(#34d399 calc(var(--hpm-ratio) * 360deg), rgba(255, 255, 255, 0.18) 0);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-}
-
-/* arrival pop of the disc */
-.hpm--intro .hpm-disc { animation: hpm-pop .55s cubic-bezier(.34, 1.7, .64, 1) 1; }
-@keyframes hpm-pop { 0% { transform: scale(.55); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+/* arrival: spring drop-in, the ring draws itself, the icon wiggles, the shine crosses */
+.hpm--intro .hpm-disc { animation: hpm-drop .75s cubic-bezier(.34, 1.56, .64, 1) 1 both; }
+.hpm--intro .hpm-arc { animation: hpm-draw 1s cubic-bezier(.65, 0, .35, 1) .2s 1 both; }
+.hpm--intro .hpm-icon, .hpm:hover .hpm-icon, .hpm:focus-visible .hpm-icon { animation: hpm-wiggle .7s ease-in-out .55s 1; }
+.hpm:hover .hpm-icon, .hpm:focus-visible .hpm-icon { animation-delay: 0s; }
+.hpm--intro .hpm-shine { animation: hpm-shine .9s ease-in-out 1.1s 1; }
+.hpm:hover .hpm-shine, .hpm:focus-visible .hpm-shine { animation: hpm-shine .8s ease-in-out 1; }
+@keyframes hpm-drop { 0% { transform: translateY(-14px) scale(.35); opacity: 0; } 60% { transform: translateY(1px) scale(1.14); opacity: 1; } 80% { transform: scale(.95); } 100% { transform: none; } }
+@keyframes hpm-draw { from { stroke-dashoffset: 100; } }
+@keyframes hpm-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg) scale(1.12); } 55% { transform: rotate(9deg); } 80% { transform: rotate(-4deg); } }
+@keyframes hpm-shine { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
 
 /* the plan name in a small bubble UNDER the disc (no header layout shift), anchored to the outer edge so it extends inwards */
 .hpm-bubble {
   position: absolute;
   inset-block-start: calc(100% + 9px);
-  inset-inline-end: -4px;
+  inset-inline-end: -2px;
   z-index: 20;
   padding: 6px 11px;
   border-radius: 9px;
   background: #ffffff;
-  color: #11274a;
+  color: var(--hpm-ink);
+  border: 1px solid color-mix(in srgb, var(--hpm-c1) 45%, #ffffff);
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
   white-space: nowrap;
   box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.45);
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(.96);
   pointer-events: none;
-  transition: opacity .2s ease, transform .2s ease;
+  transition: opacity .22s ease, transform .22s cubic-bezier(.34, 1.56, .64, 1);
 }
 .hpm-bubble::before {
   content: '';
   position: absolute;
-  inset-block-start: -5px;
-  inset-inline-end: 16px;
+  inset-block-start: -6px;
+  inset-inline-end: 15px;
   inline-size: 10px;
   block-size: 10px;
   background: #ffffff;
+  border-inline-start: 1px solid color-mix(in srgb, var(--hpm-c1) 45%, #ffffff);
+  border-block-start: 1px solid color-mix(in srgb, var(--hpm-c1) 45%, #ffffff);
   transform: rotate(45deg);
-  border-radius: 2px;
+  border-radius: 2px 0 0 0;
 }
-.hpm--intro .hpm-bubble, .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble { opacity: 1; transform: translateY(0); }
+.hpm--intro .hpm-bubble, .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hpm--intro .hpm-ring, .hpm:hover .hpm-ring, .hpm:focus-visible .hpm-ring, .hpm--intro .hpm-disc { animation: none; }
+  .hpm-halo, .hpm--intro .hpm-disc, .hpm--intro .hpm-arc, .hpm .hpm-icon, .hpm .hpm-shine { animation: none !important; }
   .hpm-disc, .hpm-bubble { transition: none; }
+  .hpm:hover .hpm-disc, .hpm:focus-visible .hpm-disc { transform: none; }
   .hpm--intro .hpm-bubble { opacity: 0; }
   .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble { opacity: 1; transform: none; }
 }

@@ -12,18 +12,19 @@ const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url
 
 describe('HeaderPlanMedallion', () => {
   it.each([
-    ['lifetime', { state: 'not_activated' }, { isLifetime: true }, '#b7791f', 'לכל החיים'],
+    ['lifetime', { state: 'not_activated' }, { isLifetime: true }, '#b07604', 'לכל החיים'],
     ['plans', { state: 'not_activated' }, {}, '#0f6672', 'מסלולים'],
-    ['free10', { state: 'ready', planId: 'free', free10: { remaining: 7 }, phase: { output: 'enforced' } }, {}, '#059669', 'נותרו 7/10'],
+    ['free10', { state: 'ready', planId: 'free', free10: { remaining: 7 }, phase: { output: 'enforced' } }, {}, '#15803d', 'נותרו 7/10'],
   ])('%s: its color, the plan name in the bubble and in the accessible name; the click opens the plans window', (kind, summary, opts, color, label) => {
     const onOpen = vi.fn();
     const { getByTestId } = render(<HeaderPlanMedallion model={planBadgeModel(summary, 'he', opts)} isHebrew onOpen={onOpen} />);
     const b = getByTestId('header-plan-button');
     expect(b.dataset.planKind).toBe(kind);
-    expect(b.style.getPropertyValue('--hpm-color')).toBe(color);
+    expect(b.style.getPropertyValue('--hpm-ink')).toBe(color);
+    expect(b.querySelector('svg.hpm-ring .hpm-arc')).not.toBeNull();
     expect(b.getAttribute('aria-label')).toBe(`${label} - פתיחת חלון המסלולים`);
     expect(b.querySelector('.hpm-bubble').textContent).toBe(label);
-    expect(!!b.querySelector('.hpm-progress')).toBe(kind === 'free10');
+    expect(b.classList.contains('hpm--progress')).toBe(kind === 'free10');
     fireEvent.click(b);
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
@@ -38,9 +39,10 @@ describe('HeaderPlanMedallion', () => {
     act(() => { vi.advanceTimersByTime(MEDALLION_INTRO_MS + 10); });
     expect(getByTestId('header-plan-button').className).not.toContain('hpm--intro');
   });
-  it('css: 36px round slot, bubble under the disc toward the inside, reduced motion = no motion', () => {
-    expect(css).toMatch(/\.hpm \{[^}]*inline-size: 36px;[^}]*block-size: 36px;[^}]*border-radius: 50%;/);
-    expect(css).toMatch(/\.hpm-bubble \{[^}]*inset-block-start: calc\(100% \+ 9px\);[^}]*inset-inline-end: -4px;/);
-    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*animation: none;/);
+  it('css: 40px round slot, the ring arc follows the ratio, bubble under the disc toward the inside, reduced motion = no motion', () => {
+    expect(css).toMatch(/\.hpm \{[^}]*inline-size: 40px;[^}]*block-size: 40px;[^}]*border-radius: 50%;/);
+    expect(css).toMatch(/\.hpm-bubble \{[^}]*inset-block-start: calc\(100% \+ 9px\);[^}]*inset-inline-end: -2px;/);
+    expect(css).toContain('stroke-dashoffset: calc(100 - var(--hpm-ratio) * 100);');
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*animation: none !important;/);
   });
 });
