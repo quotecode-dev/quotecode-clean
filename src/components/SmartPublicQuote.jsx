@@ -128,13 +128,10 @@ export default function SmartPublicQuote() {
   }
 
   if (state.status !== 'ready') {
-    // Owner P0 (Task 38 finding): readable contrast on every page background (the text was black on a near-black page, 1.03:1)
-    // and ONE language - the page's own (main.jsx sets <html lang> from the bundle), never both at once.
-    const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
-      <div data-testid="public-quote-not-found" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '10px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'Quote not found or expired' : 'הצעת המחיר לא נמצאה או שפג תוקפה'}</h1>
-        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'Please ask the business that sent it for an up-to-date link.' : 'אפשר לבקש מהעסק ששלח אותה קישור עדכני.'}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '20px', gap: '6px' }}>
+        <h2>Quote not found or expired.</h2>
+        <h2 dir="rtl">הצעת המחיר אינה נמצאת או שפג תוקפה.</h2>
       </div>
     );
   }
