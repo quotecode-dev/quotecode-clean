@@ -1,0 +1,622 @@
+{
+ "kind": "task16-dark-scope-policy",
+ "version": 5,
+ "rule": "Every measured surface must be LIGHT unless it is listed below as dark-allowed / dark-required with provenance. Dark-allowed regions (and only those) are masked out of the pixel statistics of the surfaces that contain them; nothing else is masked except embedded media (img/video/picture/canvas: photographs are content, not surfaces). A dark or mixed reading of any 'light' region FAILS. Provenance of type 'base' is re-verified at runtime when a base build is measured: the region must be dark in base c65f742 too, otherwise the allowance is void and the cell FAILS (a Task-16 darkening is a finding, not an allowance). cloud-fix4b: in addition, every measured surface carries a '<surface>.dark-pockets' row (see 'pockets'): any connected SOLID dark area any block of which is not an approved dark region, allowlisted content media, the own box of an ACCENT-filled control, glyph ink inside one text line or a small icon FAILS (a near-black filled control, a url() background and un-allowlisted media FAIL too), whatever share of its region it covers.",
+ "classification": {
+  "cssDarkBelowRelLum": 0.2,
+  "cssLightFromRelLum": 0.5,
+  "pixelDarkLuma": 0.35,
+  "pixelDarkFromFrac": 0.5,
+  "lightMaxDarkFrac": 0.3,
+  "lightMinMeanLuma": 0.62,
+  "note": "css = WCAG relative luminance of the effective background (own colour, first gradient stop, or nearest opaque ancestor). pixel = share of sampled pixels with sRGB luma < pixelDarkLuma inside the region minus masked rects. dark = css dark OR pixel darkFrac >= pixelDarkFromFrac; light = css light AND darkFrac <= lightMaxDarkFrac AND meanLuma >= lightMinMeanLuma; anything else = mixed."
+ },
+ "pockets": {
+  "blockPx": 4,
+  "minWindowPx": 16,
+  "strokeEm": 0.25,
+  "iconMaxPx": 48,
+  "rule": "A pocket is a 4-connected component of solid dark: pixels with luma < pixelDarkLuma, gridded into blockPx blocks (a block is dark when >= 75% of its pixels are), eroded by an S x S square and re-dilated (morphological opening). Excluded before the search: the approved dark regions of the surface (rule dark-allowed / dark-required, present), CONTENT media - an img/video/picture/canvas/iframe (>= 400px2) only when it matches a provenance-bearing, container-scoped selector of mediaAllowlist, a CSS url() background only when it matches cssImageAllowlist (empty) - and the UA scrollbar gutter. EVERY block of every remaining pocket is attributed to the topmost opaque painter at its centre (cloud-fix4b K3): a dark painter that is an ACCENT control (or inside one) approves only the blocks inside its own box; a near-black control is BLACK-CONTROL, a url() background CSS-IMAGE, un-allowlisted media MEDIA, any other dark element (section, footer, aside, div, the html/body canvas) SURFACE - all FAIL. A block with no dark painter on top is approved as ICON (inside a <= iconMaxPx inline svg), as CONTROL only inside a control's own opaque ACCENT-coloured focus ring / outline no wider than ringMaxPx (an opaque near-black ring is BLACK-CONTROL), or as TEXT when all such ink blocks lie inside ONE text line box and span <= 1 em of it (block / geometric-shape glyphs form no line box); otherwise UNPAINTED, FAIL. A pocket passes only when none of its blocks fails.",
+  "derivation": {
+   "S": "S = max(minWindowPx, ceil(strokeEm x maxFontPx / blockPx) x blockPx), maxFontPx = the largest computed font-size of visible text on that surface. The opening removes ordinary text, rules (<= 3px), borders and focus rings, which are thinner than S (regular/bold stems <= ~0.15-0.2 em). It is not relied on alone for heavy display type: the pos-darktext control measured 16x16 solid ink at stem junctions of a #000 weight-900 52px heading (EN 1440) and a 34px heading (EN 390); such ink stays inside its own text line box and is attributed TEXT (approved) instead of being hidden by a larger window, so S stays small and the rule stays sensitive. minWindowPx 16 = 4 blocks.",
+   "minArea": "No separate area threshold: the minimum detectable pocket is the S x S window itself (>= 16x16px). Size does not excuse a dark surface - the Owner rule is categorical (black on screen only in the greeting card and the issuer/metadata band), so the gate decides by WHAT paints the pocket, not by how much of the region it covers (the region darkFrac <= 0.30 rule stays as the coarse classifier; A17 F4 showed a 0.111 exposed-body share passing it).",
+   "iconMaxPx": "48 = the 44px minimum touch target (WCAG 2.5.5 / platform HIG) rounded to the 4px grid: an inline svg glyph no larger than its target is an icon, not an illustration. A larger dark svg is not excused.",
+   "gutter": "The part of the window outside the root element box (innerWidth - documentElement.getBoundingClientRect().width; clientWidth reports the full window under scrollbar-gutter: stable in this Chromium), accepted only up to gutterMaxPx 20 (a classic scrollbar is 15px in Chromium/Linux, 17px on Windows). Headless Chromium hides the scrollbar, so the reserved gutter shows the html/body colour (#050506, M10) as a full-height strip on every route, base included (A17 cloud-fix4 log 34-right-edge-strip.log). Excluded from the pocket search only; reported per row (pockets.gutter). NOTE for the Owner/lead: on a desktop with classic scrollbars a non-scrolling page may show this reserved gutter too - not decided by this gate.",
+   "text": "Text line boxes = Range.getClientRects() of every visible text node (grown by max(2px, h/4) for ink overshoot). Text is content: the Owner rule restricts dark SURFACES (black backgrounds), not dark text or headings. A dark surface cannot hide inside one line box: its pocket extends beyond any single line (bands, columns, panels), and a dark background element under a line is attributed SURFACE before the text test. cloud-fix4b K6 (A17 B3: 40 x U+2588 at 64px made a 1050x64 bar approved as one text line): (1) block elements U+2580-U+259F and geometric shapes U+25A0-U+25FF are drawn fills, so no line box is built over them (the product uses only the small sort arrows U+25B2 / U+25BC, which never hold a 16px solid square); (2) approved glyph ink must also span <= 1 em of its line (+ one 4px block): solid ink cannot cross a glyph's side bearings, so ordinary text never forms a solid pocket wider than one glyph - measured on the pos-darktext control (#000, weight 900): text pockets 16x16 to 16x28 at 52px / 34px. Known limit: very large heavy display glyphs each <= 1 em remain text (the Owner rule is about dark surfaces, not big text).",
+   "inkMaxChroma": "0.15 separates the ink / near-black family from the accent fills by chroma = (max - min) / 255 of the fill (darkest dark gradient stop for gradients). Ink family in product + reference: #050506 0.004, #101b20 0.063, #152229 0.078, #19272e 0.082, #17272d 0.086. Accent fills: teal CTA #315f6f 0.243, AI chat #0f6672 0.388, violet #7c3aed 0.702. 0.15 sits between the largest ink (0.086) and the smallest accent (0.243) with margin both ways. The Owner rule restricts BLACK on screen; a near-black filled control is black on screen, a teal/violet accent control is not.",
+   "controls": "A control (a, button, [role=button|tab|link|menuitem], input, select, textarea, summary, label, or inside one) is judged by its FILL, not its size: an accent fill (chroma >= inkMaxChroma; teal CTA #315f6f luma 0.34, AI chat #0f6672, base violet #7c3aed - all below pixelDarkLuma) is content, a near-black ink fill is black on screen and FAILS. An earlier height bound (two 48px target rows) was dropped: it failed a legitimately wrapped 3-line style tab at 320px (accent fill) and is a size number the Owner rule does not contain. A17 N2: the accent fill now used for the landing selected tab / cycle button (#315f6f, luma 0.339 < pixelDarkLuma 0.35, chroma 0.243) is dark by the luma test and approved only as an ACCENT control by the chroma test. That is deliberate: the Owner rule restricts black; #315f6f is the landing's teal accent (the same fill as every primary CTA), not black. Size is not bounded because a size number would have to be invented (the tried two-target-row bound failed a legitimate wrapped tab) and an oversized accent control is not black either. If the Owner judges dark teal selected states as black, raise inkMaxChroma above 0.243 or add the selector to a light rule - an Owner decision, not a gate default.",
+   "cssImages": "cloud-fix4b K1 (A17 VERIFICATION_4B_3659ce1.md §5): the former blanket exclusion of every CSS url() background as 'media' let a dark url()-painted element inside a light region pass both rules (FAQ item painted by a #101b20 data: SVG, 860x123 at HE 1440). Content media are the elements whose whole purpose is an image: img, picture, video, canvas, iframe - product photos and the user's own quote images arrive as <img>. A url() background is decoration of an element and gets no exemption unless an entry {selector, provenance} is added here for a named product media container. The list is EMPTY: the product uses no url() backgrounds on any measured surface (inventory on fb59a75, landing / app / doc / print, HE+EN, 1440 + 390: 0 elements; every dark-scope row reports pockets.cssImagePainters). No pixel-variance test: a texture threshold would be a tuned number, and a near-uniform dark texture is exactly the failure to catch. The dark-<img>-fill residual is closed by mediaAllowlist (derivation.media).",
+   "attribution": "cloud-fix4b K3 (A17 VERIFICATION_4B_FINAL_4a5eb18.md §2): attribution by the painter under the pocket's top-most point credited a whole merged component (an 80px #101b20 strip touching the selected accent style tab, 1048x92) to the tab and passed it. Now every 4px block is credited to the topmost opaque painter at its centre (smallest opaque-background box containing it - nested backgrounds paint over their ancestors; light painters included, so ink on a white card is never blamed on a dark html canvas behind the card). An accent control approves only its own box. Dark pixels just outside ANY control are credited to it only inside its OWN paint-overflow ring - outline width + offset and non-inset box-shadow |offset| + blur + spread, computed from that control's CSS at measurement time (e.g. the focus ring of the landing menu toggle after the drawer closes, seen in the fidelity run at 390/320) - no fixed px number.",
+   "media": "cloud-fix4b K1r (A17 §3): a dark <img> used as a plain fill (96px #101b20 data-SVG image above the FAQ) was excluded as media. Media are now excluded only inside the provenance-bearing content containers of mediaAllowlist, each traced to its source line and (where it renders on a measured surface) to the a18/k3 media inventory: landing logo, brand logo files, commercial video, landing illustration figures, quote business logo, quote product media, signature image + pad, sidebar business logo, creator thumbnails, market flags. Any other img/video/picture/canvas/iframe paints its box like a fill (kind MEDIA). No pixel-variance test (a tuned number; a uniform dark fill is exactly the case to catch). Every row reports pockets.unlistedMedia. cloud-fix4b K4 (A17 VERIFICATION_4B_GATE_b8e8f67.md B1): every entry is scoped to its real container path (an unscoped .tl-figure img let a <figure class=\"tl-figure\"> dark fill in the plans section pass); the brand-logo entry is scoped by its fixed asset src instead. Media of an allowlisted kind outside its container are MEDIA and FAIL.",
+   "rings": "cloud-fix4b K5 (A17 B2: a 40px #101b20 box-shadow ring around the hero CTA passed). A control's paint-overflow ring is credited to it only when the ring is opaque (alpha > 0.5), ACCENT-coloured (chroma >= inkMaxChroma, same rule as control fills) and no wider than ringMaxPx. ringMaxPx 6 = the widest focus ring the product CSS declares: outline 3px (APP_FOCUS.width 3px; landing.css var(--tl-accent) 3px; qp-focus 3px; #0f6672 / #7c3aed / #f0abfc 3px) + outline-offset up to 3px (APP_FOCUS.offset 2px; offsets 2px / 3px in src CSS); the product box-shadow rings are 1.5px and 3px (translucent / white). An opaque near-black ring of any width is BLACK-CONTROL; an accent ring wider than ringMaxPx is not credited (its pixels fall through to ink -> UNPAINTED)."
+  },
+  "provenance": [
+   "A17 cloud-fix4 VERIFICATION.md F4 (doc.page negative passed at 390 with darkFrac 0.111)",
+   "OWNER-BLACK-SCOPE-2026-10-05",
+   "Codex review of 5117916 (cloud-fix4b task 2)"
+  ],
+  "gutterMaxPx": 20,
+  "inkMaxChroma": 0.15,
+  "cssImageAllowlist": [],
+  "mediaAllowlist": [
+   {
+    "selector": ".tl-header a.tl-logo > img",
+    "scope": "landing header brand link (LandingHeader.jsx L59)",
+    "provenance": "src/components/landing/LandingHeader.jsx L59 a.tl-logo (ProFlowLogo brand image); measured landing HE/EN 1440 + 390 (a18/k3 media inventory)"
+   },
+   {
+    "selector": "img[src^=\"/tekango-\"]",
+    "scope": "scoped by CONTENT, not position: only the fixed TEKANGO brand assets /tekango-*.png shipped in public/ match (ProFlowLogo.jsx L42/L61); a flat dark fill cannot carry that src",
+    "provenance": "src/components/ProFlowLogo.jsx L42/L61: the brand logo files /tekango-*.png from public/ (dashboard, auth, legal pages)"
+   },
+   {
+    "selector": ".tl-doc .tl-figure > img",
+    "scope": "figures inside the landing quote illustration document article.tl-doc only (LandingQuoteDocument.jsx L106-L119, L150)",
+    "provenance": "src/components/landing/LandingQuoteDocument.jsx L108-109 figure.tl-figure: the landing quote illustration product figures (Modern/Visual tabs)"
+   },
+   {
+    "selector": ".pq-letterhead .pq-logo-chip > img",
+    "scope": "the quote letterhead logo chip only (PublicQuoteHeader.jsx L96)",
+    "provenance": "src/components/PublicQuoteHeader.jsx L96: the business logo (user content) in the quote letterhead; measured doc + print, all styles"
+   },
+   {
+    "selector": ".pq-card .pq-media-frame > img.pq-media-img",
+    "scope": "quote product media frames inside the quote card only (QuoteMedia.jsx L60-L61)",
+    "provenance": "src/quoteDocument/QuoteMedia.jsx L61: quote product media (hero / support / rail / row thumbnails, user content); measured doc + print Modern/Visual"
+   },
+   {
+    "selector": ".pq-approval-record img.pq-signature-img",
+    "scope": "the signed-approval record inside the quote only (PublicQuote.jsx L825-L850, PublicQuoteEn.jsx L625-L643)",
+    "provenance": "src/pages/PublicQuote.jsx L845/L850 and PublicQuoteEn.jsx L638/L643: the client signature image"
+   },
+   {
+    "selector": ".pq-actions .pq-sign-panel canvas",
+    "scope": "the signature pad inside the quote actions only (PublicQuote.jsx L1040, L1094)",
+    "provenance": "src/pages/PublicQuote.jsx L1094 (and the En page): the signature pad canvas (no-print); measured doc"
+   },
+   {
+    "selector": ".dash-sidebar-brand-logo-canvas img.dash-sidebar-brand-logo-img",
+    "scope": "the sidebar brand logo box only (Dashboard.jsx L5842-L5854)",
+    "provenance": "src/pages/Dashboard.jsx L5850: the business logo in the sidebar brand"
+   },
+   {
+    "selector": ".qp-media-item img.qp-thumb, .qp-catalog img.qp-thumb",
+    "scope": "creator media list items and the catalog media control only (QuoteMediaManager.jsx L14/L59, CatalogMediaControl.jsx L51)",
+    "provenance": "src/components/quotePresentation/CatalogMediaControl.jsx L51, QuoteMediaManager.jsx L14: user media thumbnails in the creator"
+   },
+   {
+    "selector": "span.admin-market-icon > img",
+    "scope": "the admin market flag icon only (AdminIdentityIcons.jsx L14)",
+    "provenance": "src/components/AdminIdentityIcons.jsx L14: market flag icons (26x18)"
+   }
+  ],
+  "ringMaxPx": 6
+ },
+ "provenance": {
+  "OWNER-HEADER-BLACK": {
+   "type": "owner",
+   "source": "docs/task16-quote-experience-v2/cloud-handoff/OWNER_DIRECTIVES.md §1 (L7-8)",
+   "date": "2026-10-05",
+   "text": "**Requirement:** a **black header on screen** — both in the **application interface** and in the **quotation**. In **print**: **white background and readable text**."
+  },
+  "OWNER-NO-AUTO-BLACKEN": {
+   "type": "owner",
+   "source": "docs/task16-quote-experience-v2/cloud-fix-2026-10-05/FIX_REPORT.md §1 finding F4 (L30)",
+   "date": "2026-10-05",
+   "text": "do not blacken the sidebar, bottom navigation or landing automatically; Direct PDF not decided, so keep its behaviour as an explicit separate mode."
+  },
+  "OWNER-LANDING-ILLUSTRATION-OPEN": {
+   "type": "owner-open",
+   "source": "docs/task16-quote-experience-v2/cloud-fix-2026-10-05/FIX_REPORT.md §3 item 3 (L72)",
+   "date": "2026-10-05",
+   "text": "**Landing quotation illustration.** Should the landing's quote illustration also carry the black band? Not changed (Owner: no automatic landing blackening)."
+  },
+  "BASE-SIDEBAR-DARK": {
+   "type": "base",
+   "source": "base c65f742 src/theme/neonTheme.js L207-208 `SHELL.sidebarBg: '#171830'`; .dash-sidebar background `${SHELL.sidebarBg}` (Dashboard.jsx L4605); measured rgb(23, 24, 48) on the base build",
+   "date": "pre-Task-16",
+   "text": "the authenticated side navigation was dark navy before Task 16; Task 16 re-toned it to #152229 (refined --nav), still dark"
+  },
+  "BASE-GREETING-DARK": {
+   "type": "base",
+   "source": "base c65f742 .dash-upper-section measured rgb(23, 24, 48) (sidebar tone) on the base build; neonTheme.js APP_HEADER comment: 'Pre-Task-16 the card used the sidebar tone'",
+   "date": "pre-Task-16",
+   "text": "the dashboard greeting card was dark before Task 16"
+  },
+  "REF-NAV-TONE": {
+   "type": "reference",
+   "source": "revision-r2-refined/styles.css L1 `:root{... --nav:#152229 ...}`",
+   "date": "2026-10-04/05",
+   "text": "refined dark navigation tone"
+  },
+  "BASE-ACTION-TILES": {
+   "type": "base",
+   "source": "base c65f742 public quote route (PublicQuote.jsx .pq-action-tile, measured on the base build with the same synthetic DTO): the primary tile is a filled purple gradient (#7c3aed -> #a855f7), the other tiles are white",
+   "date": "pre-Task-16",
+   "text": "public-quote action tiles: filled primary tile + white secondary tiles before Task 16 (accent-filled controls, not page surfaces)"
+  },
+  "OWNER-BLACK-SCOPE-2026-10-05": {
+   "type": "owner",
+   "source": "Owner prompt 2026-10-05 (TEKANGO - continuation after the Codex TEST review): \"שחור במסך רק בתחומים שאושרו: כרטיס הברכה ופס issuer/metadata של המסמך\"",
+   "date": "2026-10-05",
+   "text": "black on screen only in the approved regions: the greeting card and the document issuer/metadata band. A reference is not an approval (Codex 2026-10-05)."
+  },
+  "BASE-BODY-BG-M10": {
+   "type": "base",
+   "source": "base c65f742 index.html `html, body { background: #050506 }` + theme-color #050506; restored in round 4 (ledger M10, Owner round-4 instruction: 'global background M10 ב-index.html' back to base)",
+   "date": "2026-10-05",
+   "text": "the html/body background is the base dark colour; every page paints its own full-height background over it, so it is not visible. The page canvas is judged on visible pixels."
+  },
+  "OWNER-FOOTER-LIGHT-4B": {
+   "type": "owner",
+   "source": "Owner instruction in force (cloud-fix4b, Codex review of 5117916 U12/F5a = defect): black on screen ONLY on the dashboard greeting card and the public-quote issuer/metadata band; base/reference never override that later instruction. Product: commit 35f3a7e src/components/landing/landing.css .tl-footer background var(--tl-alt) #eef2f0",
+   "date": "2026-10-06",
+   "text": "the landing footer is LIGHT; the base (rgb(0,0,0)) and reference (#101b20) dark footer are no longer allowances"
+  }
+ },
+ "supersededProvenance": {
+  "BASE-FOOTER-DARK": {
+   "type": "base",
+   "source": "base c65f742 landing <footer> measured rgb(0, 0, 0)",
+   "date": "pre-Task-16",
+   "text": "the landing footer was dark before Task 16",
+   "supersededBy": "OWNER-FOOTER-LIGHT-4B",
+   "note": "kept for the audit trail only; referenced by NO region - not an allowance"
+  },
+  "REF-FOOTER-DARK": {
+   "type": "reference",
+   "source": "revision-r2-refined/styles.css L14 `.land-footer{background:#101b20;...}`",
+   "date": "2026-10-04/05",
+   "text": "the approved refined landing footer is dark",
+   "supersededBy": "OWNER-FOOTER-LIGHT-4B",
+   "note": "kept for the audit trail only; referenced by NO region - not an allowance"
+  },
+  "REF-CLOSING-DARK": {
+   "type": "reference",
+   "source": "docs/task16-quote-experience-v2/cloud-handoff/reference/revision-r2-refined/styles.css L14 `.closing{background:#17272d;color:#fff;...}`; approved composition: cloud-handoff/governance/CHECKPOINT_EXCERPT.md L11 '(A) replace the HE/EN landing composition with the approved refined design'",
+   "date": "2026-10-04/05",
+   "text": "the approved refined landing ends with a dark closing band",
+   "supersededBy": "OWNER-BLACK-SCOPE-2026-10-05",
+   "note": "kept for the audit trail only; referenced by NO region - not an allowance"
+  },
+  "REF-MG-SIDE-DARK": {
+   "type": "reference",
+   "source": "revision-r2-refined/styles.css L11 `.mg-side{background:#19272e;color:#d9e2e4;...}` (management preview on the landing, R2.management())",
+   "date": "2026-10-04/05",
+   "text": "the approved landing management illustration shows the app's dark side navigation",
+   "supersededBy": "OWNER-BLACK-SCOPE-2026-10-05",
+   "note": "kept for the audit trail only; referenced by NO region - not an allowance"
+  }
+ },
+ "regions": [
+  {
+   "id": "landing.page",
+   "surface": "landing",
+   "selectors": [
+    "@page"
+   ],
+   "rule": "light",
+   "why": "landing canvas outside every listed dark region"
+  },
+  {
+   "id": "landing.nav",
+   "surface": "landing",
+   "selectors": [
+    "header.tl-header",
+    "nav.land-nav",
+    "header"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "landing.hero",
+   "surface": "landing",
+   "selectors": [
+    ".tl-hero",
+    "section.hero",
+    "@hero"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "landing.hero-illustration",
+   "surface": "landing",
+   "selectors": [
+    ".tl-hero-paper",
+    ".hero-proof"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "landing.hero-document",
+   "surface": "landing",
+   "selectors": [
+    ".tl-hero .tl-doc",
+    ".hero-proof .quote-doc"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-LANDING-ILLUSTRATION-OPEN"
+   ],
+   "noMediaMask": false
+  },
+  {
+   "id": "landing.section",
+   "surface": "landing",
+   "selectors": [
+    "@sections"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "landing.styles-viewer",
+   "surface": "landing",
+   "selectors": [
+    ".tl-viewer",
+    ".quote-viewer"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "landing.styles-document",
+   "surface": "landing",
+   "selectors": [
+    ".tl-viewer .tl-doc",
+    ".quote-viewer .quote-doc"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-LANDING-ILLUSTRATION-OPEN"
+   ]
+  },
+  {
+   "id": "landing.mgmt-preview",
+   "surface": "landing",
+   "selectors": [
+    ".tl-mg",
+    ".business-grid .management"
+   ],
+   "rule": "light",
+   "why": "authority ledger L15 (cloud-fix4): the management preview was removed from the landing; normally ABSENT, light if it returns"
+  },
+  {
+   "id": "landing.mgmt-preview-sidebar",
+   "surface": "landing",
+   "selectors": [
+    ".tl-mg-side",
+    ".business-grid .mg-side"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-BLACK-SCOPE-2026-10-05"
+   ],
+   "why": "LIGHT rule, no dark allowance (cloud-fix4 A14): the former dark-unresolved allowance (refined reference .mg-side only, absent in base c65f742) is removed - Owner 2026-10-05: black on screen only in the greeting card and the document issuer/metadata band; a reference is not an approval. The landing management preview itself was removed by authority ledger L15 (rollback to the base five capability cards), so the region is normally ABSENT; if it ever returns, any dark reading FAILS."
+  },
+  {
+   "id": "landing.closing",
+   "surface": "landing",
+   "selectors": [
+    ".tl-closing",
+    "section.closing"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-BLACK-SCOPE-2026-10-05",
+    "OWNER-NO-AUTO-BLACKEN"
+   ],
+   "why": "made LIGHT in the product (cloud-fix4 A14, landing.css .tl-closing background var(--tl-accent-soft) #dfe9ec, ink heading 13.2:1, body 7.1:1, teal CTA 7.0:1): the former dark-unresolved allowance (refined reference .closing only) is removed. A dark reading FAILS."
+  },
+  {
+   "id": "landing.footer",
+   "surface": "landing",
+   "selectors": [
+    ".tl-footer",
+    "footer.land-footer",
+    "footer"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-FOOTER-LIGHT-4B",
+    "OWNER-BLACK-SCOPE-2026-10-05"
+   ],
+   "why": "LIGHT rule, no dark allowance and no mask (cloud-fix4b A18): the former dark-allowed (REF-FOOTER-DARK + BASE-FOOTER-DARK) is removed - the Owner's later instruction (black on screen only in the greeting card and the issuer/metadata band) is not overridden by base or reference. A dark or mixed footer FAILS."
+  },
+  {
+   "id": "landing.drawer",
+   "surface": "landing-drawer",
+   "selectors": [
+    ".tl-drawer",
+    "#tabletMenuDrawer aside"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "app.canvas",
+   "surface": "app",
+   "selectors": [
+    ".dash-app-shell"
+   ],
+   "rule": "light",
+   "why": "dashboard canvas outside the sidebar / greeting card"
+  },
+  {
+   "id": "app.sidebar",
+   "surface": "app",
+   "selectors": [
+    ".dash-sidebar"
+   ],
+   "rule": "dark-allowed",
+   "provenance": [
+    "BASE-SIDEBAR-DARK",
+    "OWNER-NO-AUTO-BLACKEN",
+    "REF-NAV-TONE"
+   ],
+   "requireBaseDark": true
+  },
+  {
+   "id": "app.greeting-card",
+   "surface": "app",
+   "selectors": [
+    ".dash-upper-section"
+   ],
+   "rule": "dark-required",
+   "provenance": [
+    "OWNER-HEADER-BLACK",
+    "BASE-GREETING-DARK"
+   ],
+   "requireBaseDark": true
+  },
+  {
+   "id": "app.topbar",
+   "surface": "app",
+   "selectors": [
+    ".dash-topbar",
+    ".dash-mobile-header",
+    ".dash-mobile-topbar"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "app.quote-history",
+   "surface": "app",
+   "selectors": [
+    ".pf-work-screen"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "app.quote-history-list",
+   "surface": "app",
+   "selectors": [
+    ".pf-work-screen .pf-screen-body"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "app.bottom-nav",
+   "surface": "app",
+   "selectors": [
+    ".mobile-bottom-nav"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "app.footer",
+   "surface": "app",
+   "selectors": [
+    ".dash-footer"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "creator.canvas",
+   "surface": "creator",
+   "selectors": [
+    ".dash-app-shell"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "creator.sidebar",
+   "surface": "creator",
+   "selectors": [
+    ".dash-sidebar"
+   ],
+   "rule": "dark-allowed",
+   "provenance": [
+    "BASE-SIDEBAR-DARK",
+    "OWNER-NO-AUTO-BLACKEN",
+    "REF-NAV-TONE"
+   ],
+   "requireBaseDark": true
+  },
+  {
+   "id": "creator.greeting-card",
+   "surface": "creator",
+   "selectors": [
+    ".dash-upper-section"
+   ],
+   "rule": "dark-required",
+   "provenance": [
+    "OWNER-HEADER-BLACK",
+    "BASE-GREETING-DARK"
+   ],
+   "requireBaseDark": true
+  },
+  {
+   "id": "creator.bottom-nav",
+   "surface": "creator",
+   "selectors": [
+    ".mobile-bottom-nav"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-NO-AUTO-BLACKEN"
+   ]
+  },
+  {
+   "id": "creator.form",
+   "surface": "creator",
+   "selectors": [
+    ".qp-creator-form",
+    ".dash-content-container > .pf-screen"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "creator.preview",
+   "surface": "creator",
+   "selectors": [
+    ".qp-preview"
+   ],
+   "rule": "light",
+   "why": "preview canvas (grey-green tray) around the document"
+  },
+  {
+   "id": "creator.preview-document",
+   "surface": "creator",
+   "selectors": [
+    ".qp-preview .pq-card"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "creator.preview-band",
+   "surface": "creator",
+   "selectors": [
+    ".qp-preview .pq-lh-band"
+   ],
+   "rule": "dark-required",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ]
+  },
+  {
+   "id": "creator-sheet.preview",
+   "surface": "creator-sheet",
+   "selectors": [
+    ".qp-preview-col.is-open .qp-preview"
+   ],
+   "rule": "light",
+   "why": "stack layout (<1024 / narrow): the preview opened as a sheet via 'Open preview'"
+  },
+  {
+   "id": "creator-sheet.preview-document",
+   "surface": "creator-sheet",
+   "selectors": [
+    ".qp-preview-col.is-open .pq-card"
+   ],
+   "rule": "light"
+  },
+  {
+   "id": "creator-sheet.preview-band",
+   "surface": "creator-sheet",
+   "selectors": [
+    ".qp-preview-col.is-open .pq-lh-band"
+   ],
+   "rule": "dark-required",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ]
+  },
+  {
+   "id": "doc.page",
+   "surface": "doc",
+   "selectors": [
+    "@page"
+   ],
+   "rule": "light",
+   "visibleOnly": true,
+   "provenance": [
+    "BASE-BODY-BG-M10"
+   ]
+  },
+  {
+   "id": "doc.card",
+   "surface": "doc",
+   "selectors": [
+    ".pq-card"
+   ],
+   "rule": "light",
+   "why": "document body outside the issuer/metadata band"
+  },
+  {
+   "id": "doc.band",
+   "surface": "doc",
+   "selectors": [
+    ".pq-lh-band",
+    ".pq-header-box"
+   ],
+   "rule": "dark-required",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ]
+  },
+  {
+   "id": "doc.tiles",
+   "surface": "doc",
+   "selectors": [
+    "@each .pq-action-tile"
+   ],
+   "rule": "dark-allowed",
+   "provenance": [
+    "BASE-ACTION-TILES"
+   ],
+   "requireBaseDark": true,
+   "why": "a tile may be dark/filled only where the same tile was dark/filled in base c65f742 (base parity, re-verified at runtime); no tile may newly darken"
+  },
+  {
+   "id": "print.page",
+   "surface": "print",
+   "selectors": [
+    "@page"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ]
+  },
+  {
+   "id": "print.card",
+   "surface": "print",
+   "selectors": [
+    ".pq-card"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ]
+  },
+  {
+   "id": "print.band",
+   "surface": "print",
+   "selectors": [
+    ".pq-lh-band",
+    ".pq-header-box"
+   ],
+   "rule": "light",
+   "provenance": [
+    "OWNER-HEADER-BLACK"
+   ],
+   "why": "native Print stays white"
+  }
+ ]
+}

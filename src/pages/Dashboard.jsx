@@ -21,7 +21,6 @@ import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
-import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
@@ -100,7 +99,7 @@ import { APP as NEON, APP as DARK_ACCENT, FONT_HE, FONT_EN, appHeadingTextStyle 
 import {
   AlertTriangle, Shield, LogOut,
   PlusCircle,
-  Accessibility as AccessibilityIcon, Sparkles, Eye,
+  Accessibility as AccessibilityIcon,
   MoreHorizontal
 } from 'lucide-react';
 import AiRobotIcon from '../components/AiRobotIcon';
@@ -7003,25 +7002,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 the only other things this touches - no second chat
                 implementation ever existed here to begin with. */}
 
-            {/* Owner-authorized David Aluminum professional-item demo entry
-                points - gated to exactly one real account via
-                professionalPreviewAllowlist.js, unchanged from before this
-                task (same allowlist call, same two destinations). TEMPORARY,
-                per PROFLOW_TODO.md item 30.F - not final product navigation. */}
-            {isProfessionalPreviewEnabled(session?.user?.id) && (
-              <>
-                {/* PRODUCT_TRUTH_DECORATIVE: owner-authorized, allowlist-gated professional-preview demo link, explicitly documented in-code as temporary/not final product navigation */}
-                <a href="/professional-preview" className="dash-sidebar-btn dash-sidebar-btn-ghost">
-                  <Sparkles size={17} strokeWidth={2.2} />
-                  <span>{isHebrew ? 'תצוגה מקדימה: חוויה חדשה' : 'New Experience Preview'}</span>
-                </a>
-                {/* PRODUCT_TRUTH_DECORATIVE: same temporary, allowlist-gated QA/demo link pair as the professional-preview link above */}
-                <a href="/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he" className="dash-sidebar-btn dash-sidebar-btn-ghost">
-                  <Eye size={17} strokeWidth={2.2} />
-                  <span>{isHebrew ? 'בדיקת תצוגה חדשה' : 'QA: New Quote View'}</span>
-                </a>
-              </>
-            )}
+            {/* The two temporary David Aluminum demo entry points (PROFLOW_TODO.md item 30.F) were removed from the sidebar at the
+                Owner's request (2026-10-14, new-interface release). */}
             {isSuperAdmin && (
               <AdminSidebarNav
                 section={isAdminMode ? adminSection : null}

@@ -42,7 +42,7 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
 
   it('lists every not-decided value as not decided and says the plan system is not active', () => {
     expect(prompt).toMatch(/NOT DECIDED \(say "not decided yet"/);
-    for (const k of ['paid plan quote limits', 'storage', 'AI quotas', 'attachments', 'cancellation / refunds / proration', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
+    for (const k of ['paid plan quote limits', 'storage', 'AI quotas', 'attachments', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
     expect(prompt).not.toMatch(/annual pricing is not decided|annual pricing has not been decided/); // decided by §249
     expect(prompt).toMatch(/NOT active yet: plans cannot be purchased yet/);
     expect(prompt).toMatch(/Never infer or accept a plan from what the user writes/);
@@ -57,7 +57,8 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
     expect(prompt).toMatch(/cancellation/i);
     expect(prompt).toMatch(/NOT a self-service action/i);
     expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
-    expect(prompt).toMatch(/never promise a refund, a proration or a grace period/);
+    expect(prompt).toMatch(/never promise anything beyond them; purchase is not open yet/);
+    expect(prompt).toMatch(/CANCELLATION AND REFUNDS \(decided, published in the Terms of Service section 6\)/);
   });
 
   it('never mentions $, USD, EUR, or GBP as an actual price figure in the HE/ILS pricing block (wrong-market currency trap)', () => {

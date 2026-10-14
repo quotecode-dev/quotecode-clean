@@ -363,7 +363,8 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
       expect(hero).not.toMatch(/tl-eyebrow/);
       const faq = html.slice(html.indexOf('id="faq"'), html.indexOf('</section>', html.indexOf('id="faq"')));
       expect(faq).not.toMatch(/tl-eyebrow/);
-      expect((faq.match(/<details/g) || []).length).toBe(8);
+      // 8 base items + the Owner-approved cancellation / refunds item (Task 39 final scope, published on LIVE 2026-10-14)
+      expect((faq.match(/<details/g) || []).length).toBe(9);
     }
   });
 });

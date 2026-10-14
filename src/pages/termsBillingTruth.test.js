@@ -22,10 +22,14 @@ describe('Terms §4 billing truth', () => {
     expect(terms).not.toMatch(/non-refundable|end of your current billing cycle|cancel at any time|cancel anytime/i);
     expect(terms).not.toMatch(/לא יינתנו החזרים|בתום תקופת החיוב|ניתן לבטל בכל עת/);
   });
-  it('states the facts: paid plans and online payment are not available; terms not decided', () => {
-    expect(terms).toContain('מסלולים בתשלום ותשלום מקוון אינם זמינים כרגע, ולא נגבה תשלום כלשהו דרך השירות.');
-    expect(terms).toContain('Paid plans and online payment are not currently available, and no payment is collected through the service.');
-    expect(terms).toContain('Payment, billing and cancellation terms for paid plans have not been decided yet.');
+  // Task 39 (Owner-approved Terms, published on LIVE): the availability sentence states the true state (Free-10 stays prepared -
+  // Owner option A, 2026-10-14); cancellation / refunds are DECIDED (section 6) - never "not decided".
+  it('states the facts: the plan system, subscription purchase and online payment are not active; cancellation terms decided', () => {
+    expect(T.he).toContain('זמינות כיום: מערכת המסלולים החדשה, רכישת מנוי ותשלום מקוון עדיין אינם פעילים, ולא נגבה תשלום כלשהו דרך השירות.');
+    expect(T.en).toContain('Availability today: the new plan system, subscription purchase and online payment are not active yet, and no payment is collected through the Service.');
+    expect(T.he).toContain('6. ביטול מנוי והחזרים');
+    expect(T.en).toContain('You can ask to cancel a subscription at any time by email');
+    expect(terms).not.toMatch(/cancellation terms for paid plans have not been decided|ביטול, החזרים וחיוב יחסי/);
   });
 });
 
@@ -48,7 +52,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.he).not.toMatch(/\+\s*מע|לא כולל מע/);
   });
   it('EN: the one package with its USD prices ($184.00 annual), Free-10 rules, billing always USD, local currency only an estimate, zero ILS', () => {
-    expect(T.en).toContain('After the 10 free quotes, the subscription is one package with every capability available in the service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year.');
+    expect(T.en).toContain('After the 10 free quotes, the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year.');
     expect(T.en).toContain('Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically.'); // Task 37
     expect(T.en).toContain('The Free plan includes 10 quotes in total, with no expiry');
     expect(T.en).not.toMatch(/183\.60|28\.00 USD|38\.00 USD/);
@@ -56,11 +60,9 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.en).toContain('Billing is always in USD; a price shown in your local currency is only an estimate.');
     expect(T.en).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
   });
-  it('the plan system is stated as not active, and every legal-open branch is "not decided, published before activation"', () => {
-    expect(T.he).toContain('מערכת המסלולים החדשה עדיין אינה פעילה');
-    expect(T.en).toContain('The new plan system is not active yet');
-    expect(T.he).toMatch(/הנושאים הבאים טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; ביטול, החזרים וחיוב יחסי; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים/);
-    expect(T.en).toMatch(/have not been decided yet and will be published before the plans are activated: quote limits of the paid plans; attachments; storage; AI quotas; cancellation, refunds and proration; taxes; and data and document retention periods/);
+  it('every still-open legal branch is "not decided, published before activation" (cancellation / refunds are decided)', () => {
+    expect(T.he).toContain('הנושאים הבאים טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
+    expect(T.en).toContain('The following have not been decided yet and will be published before the plans are activated: quote limits of the paid plans; attachments; storage; AI quotas; taxes; and data and document retention periods.');
   });
   it('no value of a not-decided branch is stated (no paid quote limit, storage size, AI quota or refund window)', () => {
     expect(terms).not.toMatch(/\b50 (?:new )?quotes|\d+\s?(?:MB|GB)|\d+ AI|refund within|\d+ days? refund/i);
@@ -76,7 +78,7 @@ describe('Privacy - no payment processing claim; retention / attachments not dec
     expect(P.he).toContain('כרגע אין ספק סליקה מחובר לשירות');
   });
   it('retention, attachments and storage are marked not decided, published before activation (HE + EN)', () => {
-    expect(P.he).toMatch(/משך שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים/);
+    expect(P.he).toMatch(/משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים/);
     expect(P.en).toMatch(/Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published before the plans are activated/);
     expect(P.en).not.toMatch(/₪|\bILS\b/);
   });
