@@ -65,13 +65,13 @@ describe('approved 980px shell (source guards)', () => {
     expect(block).not.toMatch(/grid-template-columns:\s*1fr auto 1fr/);
   });
 
-  it('the header account cluster is [greeting, bell, plan medallion] in one DOM order (medallion outermost in both languages; Owner 2026-10-14: greeting instead of the business name, medallion instead of the avatar)', () => {
+  it('the header account cluster is [business name, bell, plan button] in one DOM order (plan button outermost in both languages; Owner 2026-10-14 replaced the avatar)', () => {
     const at = dashboard.indexOf('<div className="dash-header-account">');
     const cluster = dashboard.slice(at, at + 1400);
-    expect(cluster.indexOf('<HeaderGreeting isHebrew={isHebrew} />')).toBeGreaterThan(-1);
+    expect(cluster.indexOf('<strong dir="auto"')).toBeGreaterThan(-1);
     // Task 20: the bell is rendered by NotificationCenter (same 18px Bell icon, same slot) - the locked order is unchanged
-    expect(cluster.indexOf('<HeaderGreeting isHebrew={isHebrew} />')).toBeLessThan(cluster.indexOf('<NotificationCenter'));
-    expect(cluster.indexOf('<NotificationCenter')).toBeLessThan(cluster.indexOf('<HeaderPlanMedallion'));
+    expect(cluster.indexOf('<strong dir="auto"')).toBeLessThan(cluster.indexOf('<NotificationCenter'));
+    expect(cluster.indexOf('<NotificationCenter')).toBeLessThan(cluster.indexOf('dash-header-plan'));
     const center = readFileSync(join(cwd(), 'src', 'components', 'NotificationCenter.jsx'), 'utf8');
     expect(center).toContain('<Bell size={18} strokeWidth={1.6} aria-hidden="true" />');
     expect(center).toMatch(/width: 18, height: 18, padding: 0, margin: 0, border: 0/);
