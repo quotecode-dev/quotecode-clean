@@ -11,10 +11,10 @@ import { loadUsdRate, ESTIMATE_CURRENCIES } from '../domain/subscriptions/localP
 import BrandName from './BrandName';
 import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
-import { accountStatusModel } from '../domain/subscriptions/accountSummaryClient';
+import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false }) {
   const [rate, setRate] = useState(null);
   const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
   useEffect(() => {
@@ -30,6 +30,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const m = pricingModalModel({ isHebrew, market, accountCurrency: market === 'IL' ? null : currency, estimateRate: rate });
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
+  const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
 
   return (
     <div className="no-print" data-testid="plans-modal" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
@@ -42,6 +43,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         </h2>
         {/* Task 39 (Owner): where no account-summary service exists (no summary prop - LIVE) there is no plan line at all, never a
             permanent "Loading plan…"; with a summary (TEST) the line is unchanged */}
+        {/* Owner 2026-10-14: a lifetime account sees "Lifetime subscription - no charge" and no package, price or cancellation lines */}
+        {lifetime ? (
+          <p data-testid="plans-modal-lifetime" role="status" style={{ color: '#334155', textAlign: 'center', margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700 }}>
+            {lifetime.label}
+            <span style={{ display: 'block', color: '#64748b', fontSize: '0.85rem', fontWeight: 500, marginTop: '4px' }}>{lifetime.detail}</span>
+          </p>
+        ) : (<>
         {accountSummary !== undefined && (
           <p data-testid="plans-modal-current" style={{ color: '#334155', textAlign: 'center', margin: '0 0 4px', fontSize: '0.88rem', fontWeight: 600 }}>
             {status.tone === 'plan'
@@ -63,6 +71,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
           <a href={m.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6672' }}>{m.cancellation.termsLabel}</a>
         </p>
+        </>)}
         <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>
           {isHebrew ? 'יש לך שאלות? צור איתנו קשר דרך עוזר ה-AI או במייל.' : 'Have questions? Contact us via AI assistant or email.'}
         </div>
