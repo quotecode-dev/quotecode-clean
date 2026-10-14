@@ -52,16 +52,19 @@ describe('landing truth gate', () => {
     }
   }
 
-  it('Owner 2026-10-14: all three styles are available to every account (HE + EN); the landing labels all three available', () => {
-    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
-    expect(he).not.toMatch(/מוצגות בסגנון Classic|להמחשה בלבד, וכרגע אינם זמינים/);
+  it('KEEP: Classic is named as the presentation every account has; Modern / Visual are illustrations only (HE + EN)', () => {
+    // Owner 2026-10-11 natural-Hebrew rewrite: the same KEEP facts in natural wording.
+    expect(he).toMatch(/כרגע כל ההצעות, בכל החשבונות, מוצגות בסגנון Classic/);
+    expect(he).toMatch(/הסגנונות Modern ו-Visual מוצגים כאן להמחשה בלבד, וכרגע אינם זמינים באף מסלול\./);
     expect(he).toMatch(/availableBadge: 'זמין בכל החשבונות'/);
-    expect(en).toContain('Three quote styles, available to every account');
-    expect(en).not.toMatch(/presented in the Classic style|illustrations only and are not currently available/);
+    expect(he).toMatch(/previewBadge: 'דוגמה בלבד · לא זמין כרגע'/);
+    expect(en).toMatch(/Today every quote, on every account, is presented in the Classic style/);
+    expect(en).toMatch(/Modern and Visual are shown here as illustrations only and are not currently available on any plan\./);
     expect(en).toMatch(/availableBadge: 'Available to every account'/);
+    expect(en).toMatch(/previewBadge: 'Preview only · not currently available'/);
     expect(availability).toMatch(/DEFAULT_SHOWCASE_STYLE = 'classic'/);
-    expect(availability).toContain("AVAILABLE_SHOWCASE_STYLES = Object.freeze(['classic', 'modern', 'visual'])");
-    expect(showcase).toContain('isShowcaseStyleAvailable(id)');
+    expect(availability).toMatch(/AVAILABLE_SHOWCASE_STYLES = Object\.freeze\(\['classic'\]\)/);
+    expect(showcase).toMatch(/isShowcaseStyleAvailable\(id\)/);
   });
 
   it('KEEP: the base free business tools section (ledger L03) - base strings, public tools hub, no FREE-plan claim', () => {

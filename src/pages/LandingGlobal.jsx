@@ -126,14 +126,14 @@ export default function LandingGlobal({ onForgotPassword }) {
       eyebrow: 'One family, three presentation levels',
       title: 'A document that fits the way your business works',
       // L09: the capability every account has is Classic; Modern / Visual are illustrations only, never "included".
-      intro: 'Three quote styles, available to every account: Classic - a clean business document with the commercial facts and a clear item-and-price table; Modern - with product images; Visual - with a lead project image. Choose a style in your business settings or on each quote.',
+      intro: 'Today every quote, on every account, is presented in the Classic style: a clean business document with the commercial facts and a clear item-and-price table. Modern and Visual are shown here as illustrations only and are not currently available on any plan.',
       tablistLabel: 'Quote styles',
       // cloud-fix4b (Codex, truth): the phone layout with long amounts puts the description on its own full row, so the copy
       // may not promise "four columns on phones"; it states exactly what is kept (the four commercial fields).
       shared: 'In every style the item table keeps its four fields: Description, Qty, Unit Price and Total. On phones, when amounts are long, the description moves to its own full row and the three numeric values appear under their own headers. The detail level (compact or expanded) is chosen separately from the style.',
       availableBadge: 'Available to every account',
       previewBadge: 'Preview only · not currently available',
-      previewNote: 'Illustration only.',
+      previewNote: 'Illustration only: this style is not currently available on any plan; quotes are currently presented in the Classic style.',
       viewerLabel: 'Sample quotation in the selected style',
       // Task 27 (Owner-approved image): atmosphere photo beside the live style showcase (synthetic sample data, no identity numbers)
       photo: { src: '/assets/landing/quote-electrician-en.webp', width: 1280, height: 698, alt: 'An electrician holding a phone with a TEKANGO quote' },
@@ -191,7 +191,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       intro: 'Everything you need to know about the platform.',
       items: [
         // L09: Classic is the only presentation outside TEST; Modern / Visual are described as illustrations, not features.
-        { q: 'How do the three styles differ?', a: 'All three styles are available to every account: Classic - a clean business document with a complete, clear item-and-price table; Modern - with product images; Visual - with a lead project image. Set a default style in your business settings and change it on any quote.' },
+        { q: 'How do the three styles differ?', a: 'Today every quote, on every account, is presented in the Classic style - a clean business document with a complete, clear item-and-price table. Modern (with product images) and Visual (with a lead project image) are shown on this page as illustrations only and are not currently available on any plan.' },
         { q: 'Does previewing another style change my plan?', a: 'No. Viewing the examples on this page does not change your plan or your quotes.' },
         { q: 'What happens to a shared quote after a plan change?', a: 'A shared or signed quotation stays as the customer received it, including its presentation.' },
         // OD-08 / OPEN-11: prices are the USD catalog and are charged in USD; international tax treatment is not decided.

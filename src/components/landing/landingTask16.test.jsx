@@ -69,24 +69,25 @@ describe('refined landing - sample quotation model (same fixture and rules as /s
 });
 
 describe('refined landing - three styles section', () => {
-  // Owner 2026-10-14: every account resolves to the full visual tier (resolveTier), so all three styles are labelled available; the
-  // section still opens on Classic; no sample-quote link (L08).
+  // cloud-fix4 A14 (ledger L09, IRON-LANDING-001): outside TEST every account resolves to Classic (resolveTier), so the
+  // section opens on Classic labelled as available; Modern / Visual are labelled preview-only; no sample-quote link (L08).
   it('accessible tabs with STYLE_COPY titles + availability badge; switching swaps copy and document; no sample link', () => {
     render(<QuoteStyleShowcase locale="en" copy={showcaseCopy} />);
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((t) => t.firstChild.textContent)).toEqual(QUOTE_STYLE_IDS.map((id) => STYLE_COPY.en[id].title));
     expect(DEFAULT_SHOWCASE_STYLE).toBe('classic');
-    expect(AVAILABLE_SHOWCASE_STYLES).toEqual(['classic', 'modern', 'visual']);
+    expect(AVAILABLE_SHOWCASE_STYLES).toEqual(['classic']);
     expect(tabs.filter((t) => t.getAttribute('aria-selected') === 'true')[0].id).toBe(`tl-tab-${DEFAULT_SHOWCASE_STYLE}`);
     for (const t of tabs) {
-      expect(t.querySelector('.tl-tab-badge').textContent).toBe(showcaseCopy.availableBadge);
+      const isClassic = t.id === 'tl-tab-classic';
+      expect(t.querySelector('.tl-tab-badge').textContent).toBe(isClassic ? showcaseCopy.availableBadge : showcaseCopy.previewBadge);
     }
     for (const id of QUOTE_STYLE_IDS) {
       fireEvent.click(document.getElementById(`tl-tab-${id}`));
       const panel = screen.getByRole('tabpanel');
       expect(panel.textContent).toContain(STYLE_COPY.en[id].description);
-      expect(panel.getAttribute('data-style-availability')).toBe('available');
-      expect(panel.querySelector('.tl-style-status').textContent).toBe(showcaseCopy.availableBadge);
+      expect(panel.getAttribute('data-style-availability')).toBe(id === 'classic' ? 'available' : 'preview-only');
+      expect(panel.querySelector('.tl-style-status').textContent).toBe(id === 'classic' ? showcaseCopy.availableBadge : showcaseCopy.previewNote);
       expect(within(panel).queryAllByRole('link')).toHaveLength(0);
       expect(panel.innerHTML).not.toMatch(/sample-quote/);
       expect(panel.querySelector(`[data-landing-doc="${id}"]`)).not.toBeNull();
@@ -240,23 +241,24 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   const css = read('src/components/landing/landing.css');
   const rule = (sel) => { const m = css.match(new RegExp(`(^|\\n)${sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`)); return m ? m[2] : ''; };
 
-  it('styles: the server render opens on Classic; all three tabs are labelled available (Owner 2026-10-14)', () => {
+  it('styles: the server render opens on Classic labelled available; Modern / Visual are labelled preview-only', () => {
     for (const [html, ok, prev] of [[he, 'זמין בכל החשבונות', 'דוגמה בלבד · לא זמין כרגע'], [en, 'Available to every account', 'Preview only · not currently available']]) {
       expect(html).toMatch(/id="tl-tab-classic"[^>]*aria-selected="true"/);
       expect(html).toMatch(/data-style-availability="available"/);
       expect(html).toMatch(/data-landing-doc="classic"[\s\S]*data-landing-doc="classic"/); // hero + styles viewer
-      expect((text(html).match(new RegExp(ok, 'g')) || []).length).toBeGreaterThanOrEqual(4); // three tab badges + status line
-      expect(text(html)).not.toContain(prev);
+      expect((text(html).match(new RegExp(ok, 'g')) || []).length).toBeGreaterThanOrEqual(2); // Classic tab badge + status line
+      expect((text(html).split(prev).length - 1)).toBe(2); // Modern + Visual tab badges
     }
   });
 
-  it('styles are not tied to a plan, and the copy states all three are available to every account (HE + EN)', () => {
-    for (const s of ['הכלולים במסלול', 'להמחשה בלבד, וכרגע אינם זמינים']) expect(text(he)).not.toContain(s);
-    for (const s of ['included in your plan', 'illustrations only and are not currently available']) expect(text(en)).not.toContain(s);
-    expect(text(he)).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
-    expect(text(he)).toContain('שלושת הסגנונות זמינים בכל החשבונות');
-    expect(text(en)).toContain('Three quote styles, available to every account');
-    expect(text(en)).toContain('All three styles are available to every account');
+  it('no "included in your plan" / style-choice promise and no Modern-as-available FAQ (HE + EN)', () => {
+    for (const s of ['הכלולים במסלול', 'בוחרים את סגנון ההצגה', 'Modern מוסיף תמונות מוצר', 'הסגנון שנבחר להצעה', 'העיצוב והתמונות שלה']) expect(text(he)).not.toContain(s);
+    for (const s of ['included in your plan', 'choose the presentation style', 'Modern adds product images', 'the style selected for your quote', 'presentation and images']) expect(text(en)).not.toContain(s);
+    // Owner 2026-10-11 natural-Hebrew rewrite: same fact (illustration only, not available on any plan), natural wording.
+    expect(text(he)).toContain('הסגנונות Modern ו-Visual מוצגים כאן להמחשה בלבד, וכרגע אינם זמינים באף מסלול.');
+    expect(text(he)).toContain('מוצגים בדף הזה להמחשה בלבד, וכרגע אינם זמינים באף מסלול.');
+    expect(text(en)).toContain('Modern and Visual are shown here as illustrations only and are not currently available on any plan.');
+    expect(text(en)).toContain('are shown on this page as illustrations only and are not currently available on any plan.');
   });
 
   it('L03: the base free business tools section is back (base strings, /he|en/tools, no signup)', () => {
