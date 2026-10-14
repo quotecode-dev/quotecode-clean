@@ -22,7 +22,7 @@ describe('header plan button model (one source with Settings and the plans windo
   });
   it('Free-10: the balance ONLY while enforced; prepared / shadow -> "Plans"', () => {
     const s = { state: 'ready', planId: 'free', free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7 } };
-    expect(planBadgeModel({ ...s, phase: { output: 'enforced' } }, 'he')).toEqual({ label: 'נותרו 7/10', kind: 'free10', remaining: 7, total: 10 });
+    expect(planBadgeModel({ ...s, phase: { output: 'enforced' } }, 'he')).toEqual({ label: 'נותרו 7/10', kind: 'free10' });
     expect(planBadgeModel({ ...s, phase: { output: 'enforced' } }, 'en').label).toBe('7/10 left');
     expect(planBadgeModel({ ...s, phase: { output: 'prepared' } }, 'he').label).toBe('מסלולים');
     expect(planBadgeModel({ ...s, phase: { output: 'shadow' } }, 'en').label).toBe('Plans');
@@ -36,9 +36,9 @@ describe('header plan button model (one source with Settings and the plans windo
 
 describe('header wiring (source)', () => {
   const d = read('pages/Dashboard.jsx');
-  it('the avatar circle is gone; the round plan medallion opens the plans window and is hidden for the super admin', () => {
-    expect(d).not.toMatch(/dash-header-avatar|headerAvatarUrl|className="dash-header-plan"/);
-    expect(d).toMatch(/\{!isSuperAdmin && \(\n\s*<HeaderPlanMedallion model=\{headerPlanBadge\} isHebrew=\{isHebrew\} onOpen=\{\(\) => setShowPricingModal\(true\)\} \/>/);
+  it('the avatar circle is gone; the plan button opens the plans window and is hidden for the super admin', () => {
+    expect(d).not.toMatch(/dash-header-avatar|headerAvatarUrl/);
+    expect(d).toMatch(/\{!isSuperAdmin && \(\n\s*\/\/ PRODUCT_TRUTH_DECORATIVE[^\n]*\n\s*<button type="button" className="dash-header-plan" data-testid="header-plan-button" data-plan-kind=\{headerPlanBadge\.kind\} onClick=\{\(\) => setShowPricingModal\(true\)\} aria-haspopup="dialog">/);
     expect(d).toMatch(/const headerPlanBadge = planBadgeModel\(accountSummary, isHebrew \? 'he' : 'en', \{ isLifetime: isLifetimeAccount \}\);/);
     expect(d.indexOf('const { summary: accountSummary')).toBeLessThan(d.indexOf('const headerPlanBadge ='));
   });
