@@ -89,7 +89,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
 
   // Long Business Name / PDF fix: the name wraps (overflowWrap/wordBreak break-word) inside a minWidth:0 column.
   const issuer = (nameAsHeading) => (
-    <div className="pq-lh-issuer" style={{ minWidth: 0 }}>
+    <div className={`pq-lh-issuer${hasLogo ? ' pq-lh-issuer--logo' : ''}`} style={{ minWidth: 0 }}>
       {hasLogo ? (
         <div className={`pq-logo-chip${showNameWithLogo ? ' pq-logo-chip--named' : ''}`}>
           <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} />

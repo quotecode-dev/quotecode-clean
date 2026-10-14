@@ -72,6 +72,23 @@ export function lifetimeAccountModel(lang) {
   return { state: 'lifetime', tone: 'lifetime', planId: null, label: he ? 'מנוי לכל החיים' : 'Lifetime subscription', detail: he ? 'ללא חיוב — אין צורך לרכוש מנוי.' : 'No charge — no subscription purchase needed.', retry: false };
 }
 
+// Owner 2026-10-14: the plan button of the dashboard header (in place of the former avatar circle). ONE source with Settings and the
+// plans window: lifetime -> "Lifetime"; a ready summary with Free-10 ENFORCED -> the remaining balance; a ready paid plan -> its plan
+// name; anything else (not active / prepared / loading / unavailable) -> "Plans". The button always opens the plans window.
+export function planBadgeModel(summary, lang, { isLifetime = false } = {}) {
+  const he = lang === 'he';
+  const plans = { label: he ? 'מסלולים' : 'Plans', kind: 'plans' };
+  if (isLifetime === true) return { label: he ? 'לכל החיים' : 'Lifetime', kind: 'lifetime' };
+  if (summary?.state !== 'ready') return plans;
+  if (summary.free10) {
+    if (summary.phase?.output !== 'enforced') return plans;
+    const { remaining } = summary.free10;
+    return { label: he ? `נותרו ${remaining}/${FREE_QUOTES_TOTAL}` : `${remaining}/${FREE_QUOTES_TOTAL} left`, kind: 'free10' };
+  }
+  const name = planName(summary.planId, lang);
+  return name ? { label: name, kind: 'plan' } : plans;
+}
+
 // Task 30: the account-state line of Settings › "My subscription" (server summary only). While Free-10 is not ENFORCED on the server
 // (summary not_activated / not deployed, or a ready summary whose output phase is prepared / shadow) the ten free quotes do not limit
 // the account, so no balance is shown as a limit; the enforced Free-10 balance comes from accountStatusModel unchanged.

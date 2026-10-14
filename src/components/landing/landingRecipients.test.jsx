@@ -12,8 +12,8 @@ import { buildLandingQuoteModel } from './landingQuoteModel';
 const css = readFileSync(join(cwd(), 'src/components/landing/landing.css'), 'utf8');
 const STYLES = ['classic', 'modern', 'visual'];
 const EXPECT = {
-  he: { to: 'לכבוד', attn: 'לידי', client: 'מרחבי צפון בע״מ', address: 'דרך הנמל 18, חיפה', contact: 'נועה לוי', business: 'ויסטארו', businessLine: 'חלונות, דלתות ומעטפת בניין · חיפה' },
-  en: { to: 'To', attn: 'Attn', client: 'Northline Workspaces Ltd.', address: '18 Harbor Way, Portland', contact: 'Nora Lane', business: 'VISTARO', businessLine: 'Windows, doors & building envelope · Portland' },
+  he: { to: 'לכבוד', attn: 'לידי', client: 'מרחבי צפון בע״מ', address: 'דרך הנמל 18, חיפה', contact: 'נועה לוי', role: 'מנהלת לוגיסטיקה', business: 'ויסטארו', businessLine: 'חלונות, דלתות ומעטפת בניין · חיפה' },
+  en: { to: 'To', attn: 'Attn', client: 'Northline Workspaces Ltd.', address: '18 Harbor Way, Portland', contact: 'Nora Lane', role: 'Logistics Manager', business: 'VISTARO', businessLine: 'Windows, doors & building envelope · Portland' },
 };
 
 afterEach(() => cleanup());
@@ -23,7 +23,7 @@ describe('landing illustration - recipient model (client and contact separated)'
     it(`${lang}: client {name, details} and contact {name, role} replace the mixed customer line`, () => {
       const m = buildLandingQuoteModel(lang);
       expect(m.client).toEqual({ name: EXPECT[lang].client, details: [EXPECT[lang].address] });
-      expect(m.contact).toEqual({ name: EXPECT[lang].contact, role: null });
+      expect(m.contact).toEqual({ name: EXPECT[lang].contact, role: EXPECT[lang].role });
       expect(m).not.toHaveProperty('customerLine');
       expect(m).not.toHaveProperty('customer');
       expect(m.labels).not.toHaveProperty('from');
