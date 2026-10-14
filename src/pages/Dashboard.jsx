@@ -2162,7 +2162,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
           setAuthError(bundleIsHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
         } else {
-          setAuthSuccess(bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...');
+          // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly
+          setAuthSuccess(data?.session
+            ? (bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...')
+            : (bundleIsHebrew ? 'ההרשמה התקבלה. שלחנו אליכם מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון.' : 'Sign-up received. We sent you a verification email - open the link in it to activate your account.'));
         }
       }
     } else {
@@ -4591,9 +4594,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         /* weekday + separator exist for the one-line desktop header only (shown in the min-width:769px block) */
         .dash-header-datetime .dash-header-weekday,
         .dash-header-datetime .dash-header-sep { display: none; }
-        /* Owner 2026-10-14: phones show the greeting on the top line in place of the date (the time stays below) */
-        .dash-header-datetime .dash-header-date { display: none; }
-        .dash-header-datetime .dash-header-mgreet { font-size: 0.86rem; font-weight: 800; white-space: nowrap; }
+        /* Owner 2026-10-14: phones show the greeting on the top line, then the date, then the time (three compact lines, same slot) */
+        .dash-header-datetime .dash-header-mgreet { font-size: 0.8rem; font-weight: 800; white-space: nowrap; line-height: 1.15; }
+        .dash-header-datetime .dash-header-date { font-size: 0.7rem; font-weight: 700; line-height: 1.15; }
+        .dash-header-datetime .dash-header-time { line-height: 1.15; }
         /* the narrowest phones: the longest greeting (EN "Good afternoon") must clear the centred AI Chat button */
         @media (max-width: 360px) { .dash-header-datetime .dash-header-mgreet { font-size: 0.7rem; letter-spacing: -0.01em; } }
         @media (max-width: 340px) { .dash-header-datetime .dash-header-mgreet { font-size: 0.64rem; } }

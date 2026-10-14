@@ -21,10 +21,13 @@ describe('time-of-day greeting (Owner 2026-10-14: greeting only, no business nam
 
 describe('phones (Owner 2026-10-14): the greeting tops the stacked header block in place of the date; the medallion sits next to the bell', () => {
   const d = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../pages/Dashboard.jsx'), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
-  it('the clock renders the greeting; base (phone) css shows it and hides the date; desktop restores the date', () => {
-    expect(d).toMatch(/<span className="dash-header-mgreet">\{timeGreeting\(now\.getHours\(\), isHebrew\)\}<\/span>/);
-    expect(d).toMatch(/\.dash-header-datetime \.dash-header-date \{ display: none; \}\n\s*\.dash-header-datetime \.dash-header-mgreet \{ font-size: 0\.86rem; font-weight: 800; white-space: nowrap; \}/);
-    expect(d).toMatch(/\.dash-header-datetime \.dash-header-mgreet \{ display: none; \}\n\s*\.dash-header-datetime \.dash-header-date \{ display: inline; \}/);
+  it('phones: the stacked block is greeting, date, time (Owner 2026-10-14: the date stays visible); desktop keeps the date and hides the greeting line', () => {
+    expect(d).toContain('<span className="dash-header-mgreet">{timeGreeting(now.getHours(), isHebrew)}</span>');
+    expect(d).not.toContain('.dash-header-datetime .dash-header-date { display: none; }');
+    expect(d).toContain('.dash-header-datetime .dash-header-mgreet { font-size: 0.8rem; font-weight: 800; white-space: nowrap; line-height: 1.15; }');
+    expect(d).toContain('.dash-header-datetime .dash-header-date { font-size: 0.7rem; font-weight: 700; line-height: 1.15; }');
+    expect(d).toContain('.dash-header-datetime .dash-header-mgreet { display: none; }');
+    expect(d).toContain('.dash-header-datetime .dash-header-date { display: inline; }');
   });
   it('the mobile badge holds the bell then the medallion (not for the super admin)', () => {
     const at = d.indexOf('<div className="dash-header-badge-mobile"');

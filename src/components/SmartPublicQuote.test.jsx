@@ -91,6 +91,9 @@ describe('SmartPublicQuote - Task 16 presentation wiring', () => {
     invokeMock.mockResolvedValue({ data: null, error: { context: { status: 404 } } });
     fetchPresentationMock.mockResolvedValue({ ok: false, code: 'not_found' });
     renderAt();
-    await waitFor(() => expect(screen.getByText('Quote not found or expired.')).toBeInTheDocument());
+    // Owner package A 2026-10-14: one language (the page's own) - Hebrew unless <html lang="en">
+    await waitFor(() => expect(screen.getByTestId('public-quote-not-found')).toBeInTheDocument());
+    expect(screen.getByText('הצעת המחיר לא נמצאה או שפג תוקפה')).toBeInTheDocument();
+    expect(screen.queryByText(/Quote not found/)).toBeNull();
   });
 });
