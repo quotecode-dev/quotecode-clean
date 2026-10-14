@@ -163,6 +163,8 @@ function HeaderClock({ country, isHebrew }) {
   const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   return (
     <>
+      {/* Owner 2026-10-14: on phones the stacked block opens with the time-of-day greeting (in place of the date); desktop keeps the date */}
+      <span className="dash-header-mgreet">{timeGreeting(now.getHours(), isHebrew)}</span>
       <span className="dash-header-weekday">{weekday}{', '}</span>
       {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
       <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
@@ -4589,6 +4591,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         /* weekday + separator exist for the one-line desktop header only (shown in the min-width:769px block) */
         .dash-header-datetime .dash-header-weekday,
         .dash-header-datetime .dash-header-sep { display: none; }
+        /* Owner 2026-10-14: phones show the greeting on the top line in place of the date (the time stays below) */
+        .dash-header-datetime .dash-header-date { display: none; }
+        .dash-header-datetime .dash-header-mgreet { font-size: 0.86rem; font-weight: 800; white-space: nowrap; }
+        /* the narrowest phones: the longest greeting (EN "Good afternoon") must clear the centred AI Chat button */
+        @media (max-width: 360px) { .dash-header-datetime .dash-header-mgreet { font-size: 0.7rem; letter-spacing: -0.01em; } }
+        @media (max-width: 340px) { .dash-header-datetime .dash-header-mgreet { font-size: 0.64rem; } }
         .dash-header-datetime .dash-header-time {
           font-size: 0.75rem;
           font-weight: 700;
@@ -5886,6 +5894,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             white-space: nowrap;
           }
           .dash-header-datetime .dash-header-weekday { display: inline; }
+          .dash-header-datetime .dash-header-mgreet { display: none; }
+          .dash-header-datetime .dash-header-date { display: inline; }
           .dash-header-datetime .dash-header-sep { display: inline-block; margin-inline: 0.45em; }
           .dash-header-datetime .dash-header-date,
           .dash-header-datetime .dash-header-time { font-size: 13.5px; font-weight: 400; opacity: 1; }
@@ -7493,6 +7503,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
                     <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} variant="mobile" />
+                    {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
+                    {!isSuperAdmin && (
+                      <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
+                    )}
                   </div>
                 </div>
 
