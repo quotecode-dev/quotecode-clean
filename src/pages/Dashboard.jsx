@@ -27,6 +27,8 @@ import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
 import { planBadgeModel } from '../domain/subscriptions/accountSummaryClient';
+import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
+import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -168,6 +170,16 @@ function HeaderClock({ country, isHebrew }) {
       <bdi dir="ltr" className="dash-header-time pf-num">{time}</bdi>
     </>
   );
+}
+
+// Owner 2026-10-14: the header greets by the time of day INSTEAD of showing the business name (refreshed every minute).
+function HeaderGreeting({ isHebrew }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  return <strong className="dash-header-greeting">{timeGreeting(now.getHours(), isHebrew)}</strong>;
 }
 
 // PRODUCT_TRUTH_CAPABILITY: dashboard_overview
@@ -5901,24 +5913,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             unicode-bidi: isolate;
           }
           .dash-header-account svg { flex: none; }
-          .dash-header-plan {
-            flex: none;
-            min-block-size: 33px;
-            padding: 0 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.45);
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            font: inherit;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1;
-            white-space: nowrap;
-            cursor: pointer;
-            unicode-bidi: isolate;
-          }
-          .dash-header-plan:hover { background: rgba(255, 255, 255, 0.22); }
-          .dash-header-plan:focus-visible { outline: 3px solid #ffffff; outline-offset: 2px; }
           .dash-header-stats { display: none !important; }
 
           .quote-workspace.pf-work-screen {
@@ -7480,16 +7474,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-desktop">
                     {/* One DOM order [business name, bell, avatar] mirrored by dir: the avatar is the outermost item in HE and EN. */}
                     <div className="dash-header-account">
-                      <strong dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</strong>
+                      <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
                       <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} />
-                      {/* Owner 2026-10-14: the plan button replaces the avatar circle (no sign-in provider ever set a picture) - the
-                          account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
+                      {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
+                          the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
-                        // PRODUCT_TRUTH_DECORATIVE: opens the in-app plans window (PricingModal); changes no data
-                        <button type="button" className="dash-header-plan" data-testid="header-plan-button" data-plan-kind={headerPlanBadge.kind} onClick={() => setShowPricingModal(true)} aria-haspopup="dialog">
-                          {headerPlanBadge.label}
-                        </button>
+                        <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
                       )}
                     </div>
                   </div>
