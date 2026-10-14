@@ -1085,7 +1085,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // בפועל (plan/trialEndsAt/role זהים) - לא סתירה, לא שתי נוסחאות עצמאיות,
   // רק שהשנייה חושפת מידע נוסף שכבר קיים בפונקציה המשותפת.
   const resolvedIdentity = resolveAccountEntitlement({ plan: bizPlan, trialEndsAt, role: bizRole, isLifetime: bizIsLifetime, now });
-  const { entitlement, isLifetime: isLifetimeAccount } = resolvedIdentity;
+  const { isLifetime: isLifetimeAccount } = resolvedIdentity;
 
   // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אמיתי): isPro (למטה)
   // ו-isTrialExpired/trialDaysLeft (rawIsTrialExpired/rawTrialDaysLeft,
@@ -1108,13 +1108,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // not active -> the legacy entitlement exactly as before.
   const { summary: accountSummary, refresh: refreshAccountSummary } = useAccountSummary(supabase, session?.user?.id);
   const headerPlanBadge = planBadgeModel(accountSummary, isHebrew ? 'he' : 'en', { isLifetime: isLifetimeAccount });
+  // Owner console 2026-10-14 ("open every quote capability - area, length, AI, templates - to all users now"): while the new plan
+  // system is NOT active (no account has a server plan yet, nothing is billed), every quote capability is open to every account, as it
+  // will be within the 10 free quotes. Once the system is active, decideCapability ignores these values and the server capabilities rule.
+  // The legacy record (entitlement) is no longer a reason to lock a new customer out of the core product.
   const legacyCapabilities = {
-    'quote.edit_duplicate': entitlement.editDuplicate === true,
-    'quote.whatsapp_delete': entitlement.whatsappDelete === true,
-    'quote_attachment.upload': entitlement.attachments === true,
-    'professional_quote.use': entitlement.professionalQuotes === true,
-    'professional_quote.reuse': entitlement.professionalQuoteReuse === true,
-    // catalog product images had no plan gate before the new system: kept unchanged until the server enforces
+    'quote.edit_duplicate': true,
+    'quote.whatsapp_delete': true,
+    'quote_attachment.upload': true,
+    'professional_quote.use': true,
+    'professional_quote.reuse': true,
     'catalog_product_image.upload': true,
   };
   const canUseCapability = (capabilityId) => decideCapability(accountSummary, capabilityId, legacyCapabilities[capabilityId]).allowed;
