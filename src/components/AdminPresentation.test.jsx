@@ -52,14 +52,15 @@ afterEach(cleanup);
 
 describe('Owner locked Admin presentation', () => {
   const accounts = [{ id:'local', business_name:'Local test', email:'local@example.test', country:'Local', plan:'free', trial_ends_at:'2026-09-02T10:00:00+00:00', is_lifetime:false }, { id:'intl', business_name:'Intl test', email:'intl@example.test', country:'International', plan:'basic', trial_ends_at:null, is_lifetime:true }];
-  for (const isHebrew of [true,false]) it('directory: markets stay icon-only, Region heading, plan column from the server only, legacy record column raw '+isHebrew, async () => {
+  for (const isHebrew of [true,false]) it('directory: markets stay icon-only, Region heading, plan column from the server only, indicators column (Owner A7 / A8) '+isHebrew, async () => {
     render(<AdminUsersView accounts={accounts} search="" onSearch={vi.fn()} isHebrew={isHebrew} onDetails={vi.fn()} />);
     // Static column-header table + scrolling body table share one colgroup.
     const [headTable, table] = screen.getAllByRole('table');
     expect(within(headTable).getByText(isHebrew ? 'אזור' : 'Region')).toBeTruthy();
     expect(within(headTable).getAllByRole('columnheader')[0].textContent).toContain(isHebrew ? 'עסק' : 'Business');
     expect(within(headTable).getAllByRole('columnheader')[1].textContent).toBe(isHebrew ? 'מסלול' : 'Plan');
-    expect(within(headTable).getAllByRole('columnheader')[2].textContent).toContain(isHebrew ? 'רשומת מורשת (היסטוריה)' : 'Legacy record (history)');
+    // Owner 2026-10-14 (Codex spec A7 / A8, approved): human indicator tags replace the raw legacy record in the list.
+    expect(within(headTable).getAllByRole('columnheader')[2].textContent).toContain(isHebrew ? 'חיוויים' : 'Indicators');
     expect(within(headTable).queryByText(/^(Role|תפקיד)$/)).toBeNull();
     await screen.findByText(isHebrew ? 'מערך המסלולים החדש: טרם הופעל' : 'New plan system: not active yet');
     for (const row of within(table).getAllByRole('row')) {
@@ -69,16 +70,23 @@ describe('Owner locked Admin presentation', () => {
       expect(cells[4].textContent).toBe('');
       expect(within(cells[4]).getByRole('img').getAttribute('aria-label')).toBeTruthy();
     }
-    const codes = [...table.querySelectorAll('tbody tr:first-child td:nth-child(3) code')].map((c) => c.textContent);
-    expect(codes).toEqual(['plan=free', 'trial_ends_at=2026-09-02T10:00:00+00:00', 'is_lifetime=false']);
-    expect([...table.querySelectorAll('tbody tr:last-child td:nth-child(3) code')].map((c) => c.textContent)).toEqual(['plan=basic', 'trial_ends_at=null', 'is_lifetime=true']);
+    const tagsOf = (sel) => [...table.querySelectorAll(sel + ' td:nth-child(3) [data-indicator]')].map((c) => c.getAttribute('data-indicator'));
+    expect(tagsOf('tbody tr:first-child')).toEqual(['legacy_trial_ended']);
+    expect(tagsOf('tbody tr:last-child')).toEqual(['lifetime']);
+    expect(table.querySelector('tbody tr:first-child td:nth-child(3)').textContent).toBe(isHebrew ? 'ניסיון ישן הסתיים' : 'Legacy trial ended');
+    expect(table.querySelector('tbody tr:last-child td:nth-child(3)').textContent).toBe(isHebrew ? 'לכל החיים' : 'Lifetime');
+    expect(table.querySelector('tbody td:nth-child(3) code')).toBeNull();
     expect(table.querySelector('tbody tr:first-child td:nth-child(5) svg')).toBeTruthy();
     expect(table.querySelector('tbody tr:last-child td:nth-child(5) .lucide-globe')).toBeTruthy();
-    expect(visibleTextOutsideCode(document.body)).not.toMatch(LEGACY_LABELS);
+    // "Lifetime" is allowed only as the A7 indicator tag and the A8 filter option; every other legacy label stays banned.
+    const clone = document.body.cloneNode(true);
+    clone.querySelectorAll('[data-indicator="lifetime"], option[value="lifetime"]').forEach((n) => n.remove());
+    expect(visibleTextOutsideCode(clone)).not.toMatch(LEGACY_LABELS);
     // not-active is global: ONE probe call, no per-row fan-out
     expect(rpcState.calls.filter(([fn]) => fn === 'get_account_summary_for_admin')).toHaveLength(1);
-    // no legacy plan/trial filters any more
+    // no legacy plan/trial filters any more; the only status filter is the A8 indicator filter
     expect(screen.queryByRole('combobox', { name: /plan|trial|חבילה|ניסיון/i })).toBeNull();
+    expect(screen.getByRole('combobox', { name: isHebrew ? 'סינון לפי חיווי' : 'Filter by indicator' })).toBeTruthy();
   });
 
   it('directory: ready summaries show canonical names and the Free-10 balance (HE and EN), parsed from the RPC with legacy stripped', async () => {
@@ -259,7 +267,9 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
     it(`${f}: no Basic/Pro/FREE/LIFETIME/trial-days/unlimited user-visible literal, no legacy entitlement resolver`, () => {
       const code = strip(readFileSync(join(dir, f), 'utf8'));
       const literals = [...code.matchAll(/'([^'\n]*)'|"([^"\n]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2] ?? m[3]);
-      const offenders = literals.filter((l) => /\b(Basic|BASIC|Pro|PRO|FREE_TRIAL|LIFETIME|Lifetime)\b|14[- ]?(day|days|יום)|unlimited|ללא הגבלה|5-20/.test(l));
+      // Owner A7 / A8 (2026-10-14): the single literal 'Lifetime' is allowed in the users list as the indicator filter option.
+      const allowed = f === 'AdminUsersView.jsx' ? ['Lifetime'] : [];
+      const offenders = literals.filter((l) => !allowed.includes(l) && /\b(Basic|BASIC|Pro|PRO|FREE_TRIAL|LIFETIME|Lifetime)\b|14[- ]?(day|days|יום)|unlimited|ללא הגבלה|5-20/.test(l));
       expect(offenders, f).toEqual([]);
       expect(code, f).not.toMatch(/resolveAccountEntitlement|getDisplayIdentityLabel|AdminPackageIcon/);
     });
