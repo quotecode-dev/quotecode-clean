@@ -34,7 +34,7 @@ for (const [lang, path, dir] of [['he', '/he?lang=he', 'rtl'], ['en', '/en?lang=
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           text: document.body.innerText.replace(/\s+/g, ' '),
           video: !!(q('video') || q('iframe[src*="youtube"]') || q('img[alt*="video" i]') || q('[class*="video" i]')),
-          ctaTargets: [...document.querySelectorAll('button, a')].filter((b) => /התחל ניסיון חינם|נסה חינם|Start Free Trial|Free Trial/.test(b.innerText)).length,
+          ctaTargets: [...document.querySelectorAll('button, a')].filter((b) => /התחילו ניסיון חינם|נסו חינם|Start Free Trial|Free Trial/.test(b.innerText)).length,
         };
       });
       check('html lang/dir', m.htmlLang === lang && m.htmlDir === dir, `${m.htmlLang}/${m.htmlDir}`);
@@ -51,7 +51,7 @@ for (const [lang, path, dir] of [['he', '/he?lang=he', 'rtl'], ['en', '/en?lang=
       check('no forbidden claim in the rendered page', !FORBIDDEN.test(m.text), (m.text.match(FORBIDDEN) || [])[0]);
       // the trial CTA route (click the hero CTA, observe the signup route without submitting anything)
       if (width === 390 || width === 1440) {
-        await page.getByRole('button', { name: /^(התחל ניסיון חינם|Start Free Trial)/ }).first().click();
+        await page.getByRole('button', { name: /^(התחילו ניסיון חינם|Start Free Trial)/ }).first().click();
         await page.waitForURL(/signup=true/, { timeout: 15000 });
         check('hero CTA opens the free-trial signup route', /\/dashboard\?signup=true&lang=(he|en)/.test(page.url()), page.url());
       }

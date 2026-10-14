@@ -214,3 +214,117 @@ export const SHELL = {
   sidebarTextMuted: 'rgba(255,255,255,0.42)',
   sidebarLogoBg: 'rgba(255,255,255,0.08)',
 };
+
+// Task 16 (Quote Experience V2) - restrained authenticated-interface tokens. Same key names as LIGHT so a
+// management screen switches by aliasing at import (`import { APP as NEON } from '../theme/neonTheme'`).
+// Palette = the approved refined design's own `:root` (revision-r2-refined/styles.css, the authority over earlier
+// master-plan hexes): ink #172129, muted #65727a, line #d9e0e3, soft #f3f5f4, paper #fff, accent #0f6672, ok #287553,
+// warn #8b621e, danger #9a4040, nav #152229, canvas #edf1f0, focus 3px #efb75d. One restrained accent; semantic status
+// colors are always paired with a text label/icon. Contrast (WCAG, on #fff): ink 16.3, muted 4.9, textMuted 5.4 (4.9 on
+// soft), accent 6.6 (white on accent 6.6), ok 5.6, warn 5.0 on its tint, danger 5.6 on its tint, draft 6.2 - every text/CTA pair >= 4.5:1.
+// LIGHT (public quote/print) and NEON (landing/marketing) are intentionally left unchanged.
+export const APP = {
+  ...LIGHT,
+  bg: '#EDF1F0',
+  bgCard: '#FFFFFF',
+  bgCardAlt: '#F3F5F4',
+  bgElevated: '#FFFFFF',
+  bgInput: '#FFFFFF',
+
+  border: '#D9E0E3',
+  borderStrong: '#C3CED2',
+  borderHover: '#0F6672',
+  divider: '#E1E6E7',
+
+  textPrimary: '#172129',
+  textSecondary: '#65727A',
+  textMuted: '#606D75',
+  textOnAccent: '#FFFFFF',
+
+  violet: '#0F6672',
+  violetLight: '#0B5761',
+  violetLighter: '#DCEAEB',
+  pink: '#0F6672',
+  amber: '#8B621E',
+  sky: '#0F6672',
+  emerald: '#287553',
+  emeraldDark: '#1F5E42',
+  red: '#9A4040',
+  redDark: '#833535',
+
+  gradient: '#0F6672',
+  glow: '0 1px 2px rgba(19,33,41,0.05)',
+  glowSoft: '0 1px 2px rgba(19,33,41,0.04)',
+  cardHoverShadow: '0 4px 14px -6px rgba(19,33,41,0.14)',
+};
+
+export const appHeadingTextStyle = {
+  ...lightHeadingTextStyle,
+  color: '#172129',
+};
+
+// Dark nav shell (sidebar + header card) for the authenticated app = refined `--nav` #152229 / `.mg-side`. Same keys
+// as SHELL (alias at import: `import { APP_SHELL as SHELL }`) plus Task 16 extras: active item = the reference
+// `.mg-nav .active` (#2a4048 fill + 3px #7fb2ba inline-start edge), nav text #afbdc1 (9.6:1 on #152229), and the one
+// focus ring (#efb75d, visible on both the dark shell and light surfaces).
+export const APP_SHELL = {
+  ...SHELL,
+  sidebarBg: '#152229',
+  sidebarBorder: 'rgba(255,255,255,0.08)',
+  sidebarItemHoverBg: 'rgba(255,255,255,0.06)',
+  sidebarItemActiveBg: '#2A4048',
+  sidebarItemActiveEdge: '#7FB2BA',
+  sidebarText: '#AFBDC1',
+  sidebarTextActive: '#FFFFFF',
+  sidebarTextMuted: 'rgba(255,255,255,0.55)',
+  focusRing: '#EFB75D',
+};
+
+// Business header = the Dashboard greeting card (`.dash-upper-section`: greeting/date, stats, plan badge, hot-quote
+// strip). Owner 2026-10-05: the interface header is BLACK on screen - the white header card is withdrawn (the earlier
+// "white header approved" attribution was rejected by the Owner). Pre-Task-16 the card used the sidebar tone; it does so
+// again with the current sidebar tone (#152229). SAME KEY NAMES as SHELL on purpose: Dashboard.jsx aliases it at import
+// (`APP_HEADER as SHELL`) and PlanIdentityBadge reads it for `onDark`; nothing else consumes it, so the sidebar, the
+// bottom navigation and the landing are NOT changed by this token. Contrast on #152229: white 15.9:1, sidebarText
+// #AFBDC1 9.6:1, sidebarTextMuted rgba(255,255,255,.62) >= 6.5:1; focus ring = APP_FOCUS.onDark (Dashboard style block).
+export const APP_HEADER = {
+  ...SHELL,
+  sidebarBg: '#152229',
+  sidebarBorder: 'rgba(255,255,255,0.10)',
+  sidebarItemHoverBg: 'rgba(255,255,255,0.06)',
+  sidebarItemActiveBg: '#2A4048',
+  sidebarItemActiveEdge: '#7FB2BA',
+  sidebarText: '#AFBDC1',
+  sidebarTextActive: '#FFFFFF',
+  sidebarTextMuted: 'rgba(255,255,255,0.62)',
+  sidebarLogoBg: 'rgba(255,255,255,0.08)',
+  focusRing: '#EFB75D',
+};
+
+// Focus ring (refined geometry: 3px solid, 2px offset). WCAG 1.4.11 needs >= 3:1 against the ADJACENT surface, and the
+// refined amber #efb75d is only ~1.8:1 on white - so the ring colour follows the surface: `ring` (accent #0f6672:
+// 6.6:1 on #fff, 5.9:1 on canvas #edf1f0, 5.9:1 on soft #f3f5f4) on every LIGHT surface, `onDark` (the refined amber
+// #efb75d: 9.0:1 on nav #152229, 3.6:1 on the accent CTA) on the dark side navigation only (= APP_SHELL.focusRing).
+export const APP_FOCUS = {
+  ring: '#0F6672',
+  onDark: '#EFB75D',
+  width: '3px',
+  offset: '2px',
+};
+
+// Semantic status roles for management lists. Color is never the only signal: consumers render `label` (and an icon).
+// `fg` doubles as the status dot color. List chips follow the refined reference `.status`: an OUTLINED pill (white
+// fill, colored hairline + text; approved = #2b6c51/#bcd2c7, draft = #7a5c1e/#d8c699 exactly as the reference).
+// `signed` mirrors approved (customer signature = approval); `paid` keeps a faint fill so it reads apart from approved;
+// `unfinished` (a saved draft with nothing to charge) uses the danger tone; `expired` stays neutral-muted.
+export const APP_STATUS = {
+  draft: { fg: '#7A5C1E', bg: '#FFFFFF', border: '#D8C699' },
+  sent: { fg: '#0F6672', bg: '#FFFFFF', border: '#B3CFD2' },
+  approved: { fg: '#2B6C51', bg: '#FFFFFF', border: '#BCD2C7' },
+  signed: { fg: '#2B6C51', bg: '#FFFFFF', border: '#BCD2C7' },
+  paid: { fg: '#1F5E42', bg: '#EEF5F1', border: '#A9CBB8' },
+  unfinished: { fg: '#9A4040', bg: '#FFFFFF', border: '#E2BEBE' },
+  expired: { fg: '#65727A', bg: '#FFFFFF', border: '#D9E0E3' },
+  warning: { fg: '#8B621E', bg: '#FBF4E6', border: '#E6CF9F' },
+  error: { fg: '#9A4040', bg: '#F7EAEA', border: '#E5C3C3' },
+};

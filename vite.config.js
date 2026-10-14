@@ -7,6 +7,7 @@ import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { existsSync } from 'node:fs'
 import process from 'node:process'
 import { sourceIdentity } from './scripts/build-identity.js'
+import { createDevIdentityService, createVersionJsonMiddleware } from './scripts/dev-identity-cache.js'
 import { prerenderPublicRoutesPlugin } from './scripts/prerender-public-routes.mjs'
 
 // Frontend Version Awareness (Gate F, systemic remediation continuation
@@ -19,7 +20,7 @@ import { prerenderPublicRoutesPlugin } from './scripts/prerender-public-routes.m
 // latter and compares - see that file for the polling/UI logic.
 function getBuildSha() {
   try {
-    return execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+    return execSync('git rev-parse HEAD', { encoding: 'utf-8', windowsHide: true }).trim();
   } catch {
     return 'unknown';
   }
@@ -31,7 +32,9 @@ function getBuildSha() {
 //   - build: dist/version.json carries the full source identity (SHA, branch, worktree, build-input dirtiness, mode, NORMALIZED
 //     build-input digest identical to the release tooling) and the same identity is baked into the bundle (__PROFLOW_BUILD_IDENTITY__
 //     -> window.__TEKANGO_BUILD__), so the LOADED tab can be compared with the SERVED files and the candidate's git objects;
-//   - dev: /version.json is recomputed on EVERY request from the working tree (never a start-time snapshot) and says servesWorkingTree.
+//   - dev: /version.json serves the working-tree identity and says servesWorkingTree. It is computed once at server start and
+//     recomputed (single-flight, once per change batch) only after a build-input or Git HEAD/index/active-ref change - see
+//     scripts/dev-identity-cache.js (2026-10-09 TEST 5186 CPU/focus-loop incident: never run Git per request).
 //
 // BROWSER-OBSERVABLE BUILD IDENTITY (TEKANGO_AI_ARCHITECTURE.md §51.17, 2026-09-22): a reviewer's browser tooling may run in an ISOLATED
 // world (page JS globals such as window.__TEKANGO_BUILD__ are invisible there) and may block /version.json (ERR_BLOCKED_BY_CLIENT). So every
@@ -76,11 +79,16 @@ function versionManifestPlugin(identity, { exposeInDom, testProjectRef }) {
       writeFileSync(`${outDir}/version.json`, JSON.stringify({ ...identity, buildTime, servesWorkingTree: false, ...(domIdentity ? { assetsFingerprint: domIdentity.assetsFingerprint, testProjectRef } : {}) }, null, 2));
     },
     configureServer(server) {
-      server.middlewares.use('/version.json', (_req, res) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Cache-Control', 'no-store');
-        res.end(JSON.stringify({ ...sourceIdentity(process.cwd(), server.config.mode), buildTime, bundleBuildSha: identity.buildSha, servesWorkingTree: true }, null, 2));
+      const root = process.cwd();
+      const devIdentity = createDevIdentityService({
+        root,
+        initial: identity,
+        compute: () => sourceIdentity(root, server.config.mode),
+        watcher: server.watcher,
       });
+      server.httpServer?.once('close', () => devIdentity.close());
+      server.middlewares.use('/version.json', createVersionJsonMiddleware(devIdentity,
+        (liveIdentity) => ({ ...liveIdentity, buildTime, bundleBuildSha: identity.buildSha, servesWorkingTree: true })));
     },
   };
 }
@@ -106,7 +114,9 @@ export default defineConfig(({ mode }) => {
     // e2e/ holds Playwright specs (a separate test runner, `npx playwright
     // test`) - they import from '@playwright/test', not vitest, and must
     // never be picked up by vitest's own default file globbing.
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    // `npm test` / `npm run test:product` = the PRODUCT scope. The preserved supplement tooling tests under docs/ belong to
+    // the separate TOOLING scope (`npm run test:tooling`, vitest.tooling.config.mjs) and are reported there, not hidden.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**', 'docs/**'],
   },
   };
 })

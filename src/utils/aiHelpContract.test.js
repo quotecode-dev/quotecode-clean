@@ -68,11 +68,12 @@ describe('sanitizeHelpContext - strict, adversarial', () => {
   });
   it('raw text in facts, ids and fingerprints never survives (PII / SQL / URLs / emails)', () => {
     const ctx = sanitizeHelpContext(base({
-      facts: { clientName: 'Acme Ltd', clientEmail: 'a@b.co', itemCount: 'three', filterStatus: 'DROP', hasClient: 'yes', monthlyQuoteLimit: 'unlimited', pricedItemCount: 2 },
+      facts: { clientName: 'Acme Ltd', clientEmail: 'a@b.co', itemCount: 'three', filterStatus: 'DROP', hasClient: 'yes', monthlyQuoteLimit: 'unlimited', monthlyQuotesUsed: 3, pricedItemCount: 2 },
       object: { kind: 'quote', id: 'a@b.co', provenance: 'SAVED_IN_CLOUD', serverFingerprint: '{"items":[["x","Door 90x210"]]}' },
       draft: { mode: 'create', localDraftId: '../../etc/passwd', localWriteStatus: 'saved_to_server', dirty: true },
     }), NOW);
-    expect(ctx.facts).toEqual({ monthlyQuoteLimit: 'unlimited', pricedItemCount: 2 });
+    // the retired monthly counter facts are not part of the contract any more (OD-20) - dropped like any unknown key
+    expect(ctx.facts).toEqual({ pricedItemCount: 2 });
     expect(ctx.object.id).toBeNull();
     expect(ctx.object.provenance).toBe('NONE');
     expect(ctx.object.serverFingerprint).toBeNull();
@@ -162,5 +163,39 @@ describe('boundTranscript (help never becomes unavailable because a chat is long
     expect(r.messages.reduce((n, x) => n + x.content.length, 0)).toBeLessThanOrEqual(TRANSCRIPT_LIMITS.maxTotalLength);
     expect(r.messages[0].role).toBe('user');
     expect(r.messages.at(-1)).toEqual(m.at(-1));
+  });
+});
+
+// Subscriptions cutover (OD-01/16/20): account plan facts come only from the server account summary projection; the retired
+// plan-model blockers are never accepted and the legacy aliases resolve to neutral codes whose text names no legacy plan.
+describe('subscriptions cutover - help contract', () => {
+  it('account plan facts: a plan id / Free balance only with a ready summary, a balance only for Free, never above 10', async () => {
+    const { sanitizeHelpContext: sanitize } = await import('./aiHelpContract');
+    const at = (facts) => sanitize({ screen: 'plans', facts }, Date.now()).facts;
+    expect(at({ accountSummaryState: 'ready', accountPlanId: 'free', free10Remaining: 4, outputPhase: 'enforced' })).toEqual({ accountSummaryState: 'ready', accountPlanId: 'free', free10Remaining: 4, outputPhase: 'enforced' });
+    expect(at({ accountSummaryState: 'not_activated', accountPlanId: 'visual', free10Remaining: 4, outputPhase: 'off' })).toEqual({ accountSummaryState: 'not_activated', outputPhase: 'off' });
+    expect(at({ accountSummaryState: 'ready', accountPlanId: 'modern', free10Remaining: 4 })).toEqual({ accountSummaryState: 'ready', accountPlanId: 'modern' });
+    expect(at({ accountSummaryState: 'ready', accountPlanId: 'pro' })).toEqual({ accountSummaryState: 'ready' });
+    expect(at({ accountSummaryState: 'ready', accountPlanId: 'free', free10Remaining: 11 })).toEqual({ accountSummaryState: 'ready', accountPlanId: 'free' });
+  });
+  it('retired codes are rejected; legacy aliases normalise to the neutral canonical codes', async () => {
+    const m = await import('./aiHelpContract');
+    expect(m.BLOCKER_CODES).not.toContain('MONTHLY_QUOTE_LIMIT_REACHED');
+    expect(m.BLOCKER_CODES).not.toContain('TRIAL_EXPIRED');
+    expect(m.BLOCKER_CODES).not.toContain('WHATSAPP_REQUIRES_PRO');
+    expect(m.BLOCKER_CODES).not.toContain('ATTACHMENTS_REQUIRE_PRO');
+    expect(m.normalizeBlockerCode('MONTHLY_QUOTE_LIMIT_REACHED')).toBeNull();
+    expect(m.normalizeBlockerCode('TRIAL_EXPIRED')).toBeNull();
+    expect(m.normalizeBlockerCode('ATTACHMENTS_REQUIRE_PRO')).toBe('ATTACHMENTS_NOT_INCLUDED');
+    expect(m.normalizeBlockerCode('WHATSAPP_REQUIRES_PRO')).toBe('PLAN_FEATURE_LOCKED');
+    const ctx = m.sanitizeHelpContext({ screen: 'dashboard', blockers: [{ code: 'MONTHLY_QUOTE_LIMIT_REACHED' }, { code: 'WHATSAPP_REQUIRES_PRO' }, { code: 'TRIAL_EXPIRED' }] }, Date.now());
+    expect(ctx.blockers.map((b) => b.code)).toEqual(['PLAN_FEATURE_LOCKED']);
+  });
+  it('no blocker text in either language names a legacy plan, a monthly limit or a trial', async () => {
+    const m = await import('./aiHelpContract');
+    for (const code of m.BLOCKER_CODES) for (const lang of ['he', 'en']) {
+      const text = m.explainBlocker({ ...m.BLOCKER_CATALOG[code], code, fieldCodes: [...m.BLOCKER_CATALOG[code].fields], resolution: [...m.BLOCKER_CATALOG[code].resolution] }, lang);
+      expect(text, `${code}/${lang}`).not.toMatch(/\bPRO\b|\bBASIC\b|\bPro\b|monthly quote|this month|החודשית|trial|ניסיון|unlimited|ללא הגבלה/);
+    }
   });
 });

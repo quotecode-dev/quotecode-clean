@@ -1,0 +1,339 @@
+/* Task 16 - Quote Experience V2: quote media (QuoteMedia.jsx). Every rule is scoped under .pq-media so nothing
+   leaks into the dashboard, the creator preview chrome or the rest of the quote card. Restrained palette: neutral
+   #F5F6F7 frames, #DFE4E8 hairlines, text #18212B / #66717D; no gradients, no shadows. Layout responds to the
+   width of the media block itself (container query), so the creator preview panel behaves like a phone when narrow. */
+
+.pq-media {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 16px 0;
+  color: #18212B;
+  font-family: inherit;
+  container-type: inline-size;
+  container-name: pq-media;
+}
+
+.pq-media *,
+.pq-media *::before,
+.pq-media *::after {
+  box-sizing: border-box;
+}
+
+.pq-media .pq-media-figure {
+  margin: 0;
+  min-width: 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Fixed-ratio frame: reserves the box before the image arrives (no layout shift). */
+.pq-media .pq-media-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: #F5F6F7;
+  border: 1px solid #DFE4E8;
+  border-radius: 4px;
+}
+
+.pq-media .pq-media-ratio {
+  aspect-ratio: 4 / 3;
+}
+
+.pq-media .pq-media-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.pq-media .pq-media-ratio .pq-media-img {
+  position: absolute;
+  inset: 0;
+}
+
+/* Missing / unreadable image: a calm neutral tile, never a broken-image icon. */
+.pq-media .pq-media-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+}
+
+.pq-media .pq-media-missing-label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #66717D;
+}
+
+.pq-media .pq-media-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pq-media .pq-media-caption {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #66717D;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+/* MODERN rail: 3 per row; 2 per row when narrow. */
+.pq-media.pq-media-rail .pq-media-rail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* VISUAL hero: primary image + supporting column. */
+.pq-media.pq-media-hero .pq-media-hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.pq-media.pq-media-hero.pq-media-hero--solo .pq-media-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pq-media.pq-media-hero .pq-media-hero-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-content: start;
+}
+
+.pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-side {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pq-media.pq-media-hero .pq-media-hero-caption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #18212B;
+}
+
+/* ROW thumbnail (inside the description cell). */
+.pq-media.pq-media-thumb {
+  display: inline-block;
+  width: 48px;
+  min-width: 48px;
+  margin: 0;
+  vertical-align: top;
+  line-height: 0;
+  container-type: normal;
+}
+
+.pq-media.pq-media-thumb .pq-media-thumb-frame {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+}
+
+.pq-media.pq-media-thumb .pq-media-missing {
+  padding: 0;
+}
+
+@container pq-media (max-width: 640px) {
+  .pq-media.pq-media-rail .pq-media-rail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pq-media.pq-media-hero .pq-media-hero-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .pq-media.pq-media-hero .pq-media-hero-side,
+  .pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Browsers without container queries fall back to the viewport. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .pq-media.pq-media-rail .pq-media-rail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pq-media.pq-media-hero .pq-media-hero-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .pq-media.pq-media-hero .pq-media-hero-side,
+    .pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-side {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+  }
+}
+
+@media print {
+  .pq-media .pq-media-frame {
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .pq-media .pq-media-figure,
+  .pq-media.pq-media-thumb {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* Height caps (Task 16 document polish): a single image never dominates the quotation. The frame keeps its 4:3 box
+   until the cap, then the image is cropped (object-fit: cover) instead of growing the page. Desktop hero <= 420px;
+   the supporting column shares the same height budget; the rail keeps 4:3 but never exceeds 220px per frame. */
+.pq-media.pq-media-hero .pq-media-hero-main .pq-media-frame {
+  max-height: 420px;
+}
+
+.pq-media.pq-media-hero.pq-media-hero--stack .pq-media-hero-support .pq-media-frame {
+  max-height: 180px;
+}
+
+.pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-support .pq-media-frame {
+  max-height: 140px;
+}
+
+.pq-media.pq-media-rail .pq-media-frame {
+  max-height: 220px;
+}
+
+@container pq-media (max-width: 640px) {
+  .pq-media.pq-media-hero .pq-media-hero-main .pq-media-frame {
+    max-height: 260px;
+  }
+
+  .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame,
+  .pq-media.pq-media-hero.pq-media-hero--stack .pq-media-hero-support .pq-media-frame,
+  .pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-support .pq-media-frame {
+    max-height: 150px;
+  }
+
+  .pq-media.pq-media-rail .pq-media-frame {
+    max-height: 160px;
+  }
+}
+
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .pq-media.pq-media-hero .pq-media-hero-main .pq-media-frame {
+      max-height: 260px;
+    }
+
+    .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame {
+      max-height: 150px;
+    }
+
+    .pq-media.pq-media-rail .pq-media-frame {
+      max-height: 160px;
+    }
+  }
+}
+
+/* VISUAL hero - refined reference proportions (Task 16 correction 2026-10-05): primary column 1.65fr / supporting column
+   .85fr; the primary image has ONE fixed height and two stacked supporting images share it exactly (reference: hero 190px,
+   sides 91px at A4 print scale); captions sit on the image in a light band, as in the reference. Screen uses a larger
+   height of the same proportion; print / PDF set --pq-hero-h to 190px (quoteDocument.css). */
+.pq-media.pq-media-hero {
+  --pq-hero-h: 300px;
+  --pq-hero-gap: 8px;
+}
+
+.pq-media.pq-media-hero .pq-media-hero-layout {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.85fr);
+  gap: var(--pq-hero-gap);
+}
+
+.pq-media.pq-media-hero.pq-media-hero--solo .pq-media-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pq-media.pq-media-hero .pq-media-hero-side,
+.pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-side {
+  gap: var(--pq-hero-gap);
+}
+
+.pq-media.pq-media-hero .pq-media-figure {
+  position: relative;
+}
+
+.pq-media.pq-media-hero .pq-media-hero-main .pq-media-frame {
+  aspect-ratio: auto;
+  height: var(--pq-hero-h);
+  max-height: none;
+}
+
+.pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame,
+.pq-media.pq-media-hero.pq-media-hero--stack .pq-media-hero-support .pq-media-frame,
+.pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-support .pq-media-frame {
+  aspect-ratio: auto;
+  height: calc((var(--pq-hero-h) - var(--pq-hero-gap)) / 2);
+  max-height: none;
+}
+
+.pq-media.pq-media-hero .pq-media-caption,
+.pq-media.pq-media-hero .pq-media-hero-caption {
+  position: absolute;
+  inset-inline: 7px;
+  bottom: 7px;
+  margin: 0;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #18212B;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@container pq-media (max-width: 640px) {
+  .pq-media.pq-media-hero {
+    --pq-hero-h: 200px;
+  }
+
+  .pq-media.pq-media-hero .pq-media-hero-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame,
+  .pq-media.pq-media-hero.pq-media-hero--stack .pq-media-hero-support .pq-media-frame,
+  .pq-media.pq-media-hero.pq-media-hero--grid .pq-media-hero-support .pq-media-frame {
+    height: 110px;
+  }
+}
+
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .pq-media.pq-media-hero {
+      --pq-hero-h: 200px;
+    }
+
+    .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame {
+      height: 110px;
+    }
+  }
+}

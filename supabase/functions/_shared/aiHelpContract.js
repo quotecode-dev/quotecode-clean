@@ -22,7 +22,7 @@ export const HELP_WORKFLOWS = Object.freeze([
 export const HELP_SECTIONS = Object.freeze([
   'none', 'summary', 'list', 'search_filter', 'detail', 'client_details', 'items', 'totals', 'attachments', 'share_email',
   'share_whatsapp', 'print_pdf', 'wizard_what', 'wizard_pricing', 'wizard_details', 'wizard_review', 'business_details',
-  'business_phone', 'business_tax_id', 'business_address', 'business_logo', 'region', 'plan_limits', 'trial', 'admin_users',
+  'business_phone', 'business_tax_id', 'business_address', 'business_logo', 'region', 'plan_information', 'admin_users',
   'admin_overview', 'admin_protected_action', 'draft_conflict', 'draft_recovered', 'alert', 'transcript',
 ]);
 // Modal / overlay the help was opened over (AI help stays available inside these).
@@ -77,8 +77,7 @@ export const BLOCKER_CATALOG = Object.freeze({
   ITEM_MISSING_QUANTITY: B('VALIDATION_BLOCKER', 'add_item', 'quote', false, ['complete_required_fields'], 'not_attempted', ['item_quantity']),
   ITEM_MISSING_PRICE: B('VALIDATION_BLOCKER', 'add_item', 'quote', false, ['complete_required_fields'], 'not_attempted', ['item_price']),
   ITEM_MISSING_MEASUREMENTS: B('VALIDATION_BLOCKER', 'add_item', 'quote', false, ['complete_required_fields'], 'not_attempted', ['item_measurements']),
-  MONTHLY_QUOTE_LIMIT_REACHED: B('ENTITLEMENT_BLOCKER', 'create_quote', 'plan', false, ['open_plan_information', 'upgrade_plan_info'], 'not_persisted'),
-  ATTACHMENTS_REQUIRE_PRO: B('ENTITLEMENT_BLOCKER', 'attach_file', 'plan', false, ['open_plan_information', 'upgrade_plan_info'], 'not_attempted', ['attachments']),
+  ATTACHMENTS_NOT_INCLUDED: B('ENTITLEMENT_BLOCKER', 'attach_file', 'plan', false, ['open_plan_information', 'upgrade_plan_info'], 'not_attempted', ['attachments']),
   ATTACHMENT_FILE_TOO_LARGE: B('VALIDATION_BLOCKER', 'attach_file', 'quote', false, ['reselect_attachment'], 'not_attempted', ['attachments']),
   ATTACHMENT_TOTAL_EXCEEDED: B('ENTITLEMENT_BLOCKER', 'attach_file', 'quote', false, ['remove_attachment', 'free_storage'], 'not_attempted', ['attachments']),
   ATTACHMENT_UPLOAD_FAILED_PRE_SAVE: B('NETWORK_ERROR', 'save_quote', 'quote', true, ['retry_save', 'check_connection', 'reselect_attachment'], 'not_persisted', ['attachments']),
@@ -98,7 +97,6 @@ export const BLOCKER_CATALOG = Object.freeze({
   EMAIL_SEND_NETWORK: B('NETWORK_ERROR', 'send_email', 'quote', true, ['check_connection', 'retry_later'], 'unknown'),
   EMAIL_BOUNCED: B('VALIDATION_BLOCKER', 'send_email', 'quote', false, ['open_clients', 'complete_required_fields'], 'persisted', ['client_email']),
   PDF_GENERATION_FAILED: B('SERVER_ERROR', 'print_pdf', 'quote', true, ['retry_later'], 'not_attempted'),
-  WHATSAPP_REQUIRES_PRO: B('ENTITLEMENT_BLOCKER', 'share_whatsapp', 'plan', false, ['open_plan_information'], 'not_attempted'),
   PLAN_FEATURE_LOCKED: B('ENTITLEMENT_BLOCKER', 'use_plan_feature', 'plan', false, ['open_plan_information', 'upgrade_plan_info'], 'not_attempted'),
   DRAFT_STORAGE_FAILED: B('DATA_INTEGRITY_BLOCKER', 'local_draft', 'quote', true, ['retry_save', 'free_storage'], 'local_write_failed'),
   DRAFT_RECOVERED_UNSAVED: B('OWNER_ACTION_REQUIRED', 'local_draft', 'quote', false, ['review_recovered_draft', 'retry_save'], 'local_only'),
@@ -111,7 +109,8 @@ export const BLOCKER_CATALOG = Object.freeze({
   CATALOG_INVALID_SERVICE: B('VALIDATION_BLOCKER', 'save_service', 'service', false, ['complete_required_fields'], 'not_attempted', ['service_name', 'service_price']),
   EXPENSE_SAVE_FAILED: B('SERVER_ERROR', 'save_expense', 'none', true, ['retry_save', 'retry_later'], 'not_persisted', ['expense_amount']),
   DATA_LOAD_FAILED: B('NETWORK_ERROR', 'load_data', 'none', true, ['check_connection', 'retry_later'], 'not_attempted'),
-  TRIAL_EXPIRED: B('ACCOUNT_STATE_BLOCKER', 'use_pro_feature', 'plan', false, ['open_plan_information'], 'not_attempted'),
+  // Subscriptions cutover (decideCapability: an unprovisioned account fails closed once the system is enforced).
+  ACCOUNT_NOT_PROVISIONED: B('ACCOUNT_STATE_BLOCKER', 'use_plan_feature', 'plan', false, ['open_plan_information', 'contact_support'], 'not_attempted'),
   CHECKOUT_UNAVAILABLE: B('UNAVAILABLE_CAPABILITY', 'checkout', 'plan', false, ['contact_support'], 'not_attempted'),
   INVOICING_UNAVAILABLE: B('UNAVAILABLE_CAPABILITY', 'issue_invoice', 'none', false, ['contact_support'], 'not_attempted'),
   PUBLIC_SIGNING_ISSUER_BLOCKED: B('AUTHORIZATION_BLOCKER', 'sign_quote', 'quote', false, ['open_selected_quote'], 'not_attempted'),
@@ -123,13 +122,35 @@ export const BLOCKER_CATALOG = Object.freeze({
 });
 export const BLOCKER_CODES = Object.freeze(Object.keys(BLOCKER_CATALOG));
 
+// Subscriptions cutover (OD-01/16/20): blocker codes of the retired plan model.
+//  - LEGACY_BLOCKER_ALIASES: a code an older client may still publish, mapped to its neutral canonical code (kept parseable so
+//    a not-yet-updated publisher still gets truthful help - the help text never names a legacy plan).
+//  - RETIRED_BLOCKER_CODES: conditions that no longer exist in the product truth (no monthly quote counter, no trial). They are
+//    never accepted: the publisher gets false, the sanitizer drops them.
+export const LEGACY_BLOCKER_ALIASES = Object.freeze({ ATTACHMENTS_REQUIRE_PRO: 'ATTACHMENTS_NOT_INCLUDED', WHATSAPP_REQUIRES_PRO: 'PLAN_FEATURE_LOCKED' });
+export const RETIRED_BLOCKER_CODES = Object.freeze(['MONTHLY_QUOTE_LIMIT_REACHED', 'TRIAL_EXPIRED']);
+/** The canonical blocker code for a raw code (alias -> canonical), or null for a retired / unknown code. */
+export function normalizeBlockerCode(code) {
+  if (typeof code !== 'string') return null;
+  const c = LEGACY_BLOCKER_ALIASES[code] || code;
+  return BLOCKER_CODES.includes(c) ? c : null;
+}
+
+// Account-summary projection the Dashboard publishes as help-context facts (built ONLY from the server account summary,
+// account-summary/v1). Client-reported (Layer 2): the server re-reads the summary itself and its own copy always wins.
+export const ACCOUNT_SUMMARY_STATES = Object.freeze(['loading', 'ready', 'not_activated', 'not_deployed', 'unprovisioned', 'unavailable', 'invalid']);
+export const ACCOUNT_PLAN_IDS = Object.freeze(['free', 'all_inclusive', 'classic', 'modern', 'visual']);
+export const ACCOUNT_OUTPUT_PHASES = Object.freeze(['off', 'prepared', 'shadow', 'enforced']);
+
 // Bounded, typed facts a surface may publish (keys closed; values booleans / small non-negative integers / closed enum strings).
 export const FACT_SPECS = Object.freeze({
   hasClient: 'bool', hasProject: 'bool', hasClientType: 'bool', itemCount: 'count', pricedItemCount: 'count', unpricedItemCount: 'count',
   sectionCount: 'count', attachmentCount: 'count', pendingAttachmentCount: 'count', pendingRemovalCount: 'count', unsavedChanges: 'bool',
   searchActive: 'bool', filterStatus: ['All', 'draft', 'sent', 'approved', 'paid'], visibleQuoteCount: 'count', totalQuoteCount: 'count',
   selectedQuoteOwned: 'bool', selectedQuoteExpired: 'bool', selectedQuoteImmutable: 'bool', clientCount: 'count', serviceCount: 'count',
-  financeRange: ['monthly', 'yearly', 'custom', 'all'], expenseCount: 'count', monthlyQuotesUsed: 'count', monthlyQuoteLimit: 'limit',
+  financeRange: ['monthly', 'yearly', 'custom', 'all'], expenseCount: 'count',
+  accountSummaryState: ['loading', 'ready', 'not_activated', 'not_deployed', 'unprovisioned', 'unavailable', 'invalid'],
+  accountPlanId: ['free', 'classic', 'modern', 'visual'], free10Remaining: 'count', outputPhase: ['off', 'prepared', 'shadow', 'enforced'],
   wizardAction: ['add', 'edit'], wizardStep: ['what', 'pricing', 'details', 'review'], pricingMethod: ['fixed', 'units', 'area', 'linear'],
   measurementCount: 'count', hasQuantity: 'bool', hasUnitPrice: 'bool', hasSpecification: 'bool', structureMode: ['regular', 'divided'],
   emailSendState: ['idle', 'sending', 'sent', 'failed'], pdfState: ['idle', 'generating', 'ready', 'failed'], saveStage: ['idle', 'validating', 'verifying', 'uploading', 'persisting', 'done', 'failed'],
@@ -154,22 +175,25 @@ function sanitizeFacts(raw) {
   for (const [k, spec] of Object.entries(FACT_SPECS)) {
     if (!(k in raw) || n >= HELP_LIMITS.maxFacts) continue;
     const v = raw[k];
-    if (spec === 'bool') { if (typeof v === 'boolean') { out[k] = v; n++; } } else if (spec === 'count') { const c = cleanCount(v); if (c !== null) { out[k] = c; n++; } } else if (spec === 'limit') {
-      if (v === 'unlimited') { out[k] = 'unlimited'; n++; } else { const c = cleanCount(v); if (c !== null) { out[k] = c; n++; } }
-    } else if (Array.isArray(spec) && inList(spec, v)) { out[k] = v; n++; }
+    if (spec === 'bool') { if (typeof v === 'boolean') { out[k] = v; n++; } } else if (spec === 'count') { const c = cleanCount(v); if (c !== null) { out[k] = c; n++; } } else if (Array.isArray(spec) && inList(spec, v)) { out[k] = v; n++; }
   }
+  // Account plan facts are only coherent together: a plan id / Free balance only with a 'ready' summary, a balance only for Free.
+  if (out.accountSummaryState !== 'ready') { delete out.accountPlanId; delete out.free10Remaining; }
+  if (out.accountPlanId !== 'free') delete out.free10Remaining;
+  if (typeof out.free10Remaining === 'number' && out.free10Remaining > 10) delete out.free10Remaining;
   return out;
 }
 
 function sanitizeBlocker(raw, now) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  if (!inList(BLOCKER_CODES, raw.code)) return null;
-  const cat = BLOCKER_CATALOG[raw.code];
+  const code = normalizeBlockerCode(raw.code);
+  if (!code) return null;
+  const cat = BLOCKER_CATALOG[code];
   const fields = Array.isArray(raw.fieldCodes) ? raw.fieldCodes.filter((f) => inList(FIELD_CODES, f)).slice(0, 12) : [];
   const occurredAt = cleanTime(raw.occurredAt);
   return {
-    id: isStr(raw.id) && OPAQUE_ID.test(raw.id) ? raw.id : raw.code,
-    code: raw.code,
+    id: isStr(raw.id) && OPAQUE_ID.test(raw.id) && raw.id !== raw.code ? raw.id : code,
+    code,
     // type / operation / subject / retryability / resolution are CATALOG-owned - the browser cannot redefine them
     type: cat.type, operation: cat.operation, subjectKind: cat.subjectKind, retryable: cat.retryable,
     stage: inList(FACT_SPECS.saveStage, raw.stage) ? raw.stage : null,
@@ -268,8 +292,7 @@ const WHY = Object.freeze({
   ITEM_MISSING_QUANTITY: { he: 'לפריט חסרה כמות.', en: 'The item is missing a quantity.' },
   ITEM_MISSING_PRICE: { he: 'לפריט חסר מחיר.', en: 'The item is missing a price.' },
   ITEM_MISSING_MEASUREMENTS: { he: 'לפריט חסרות מידות.', en: 'The item is missing measurements.' },
-  MONTHLY_QUOTE_LIMIT_REACHED: { he: 'הגעת למכסת ההצעות החודשית של המסלול שלך, ולכן אי אפשר ליצור הצעה חדשה החודש.', en: "You have reached your plan's monthly quote limit, so a new quote cannot be created this month." },
-  ATTACHMENTS_REQUIRE_PRO: { he: 'צירוף קבצים זמין רק במסלול PRO.', en: 'File attachments are available on the PRO plan only.' },
+  ATTACHMENTS_NOT_INCLUDED: { he: 'צירוף קבצים אינו כלול כרגע בגישה של החשבון שלך. אילו מסלולים יכללו קבצים מצורפים - טרם הוחלט.', en: "Attaching files is not included in your account's current access. Which plans will include attachments has not been decided yet." },
   ATTACHMENT_FILE_TOO_LARGE: { he: 'הקובץ גדול מהמגבלה לקובץ בודד.', en: 'The file is larger than the per-file limit.' },
   ATTACHMENT_TOTAL_EXCEEDED: { he: 'הגעת למגבלת נפח הקבצים הכוללת.', en: 'You have reached the total attachment storage limit.' },
   ATTACHMENT_UPLOAD_FAILED_PRE_SAVE: { he: 'העלאת קובץ נכשלה, ולכן ההצעה לא נשמרה.', en: 'A file upload failed, so the quote was not saved.' },
@@ -289,8 +312,7 @@ const WHY = Object.freeze({
   EMAIL_SEND_NETWORK: { he: 'בעיית רשת בזמן שליחת האימייל - לא ידוע אם נשלח.', en: 'A network problem interrupted the email - it is not certain it was sent.' },
   EMAIL_BOUNCED: { he: 'כתובת האימייל של הלקוח החזירה שגיאה (לא קיימת).', en: "The client's email address bounced (does not exist)." },
   PDF_GENERATION_FAILED: { he: 'יצירת ה-PDF נכשלה.', en: 'Creating the PDF failed.' },
-  WHATSAPP_REQUIRES_PRO: { he: 'שליחה ב-WhatsApp זמינה רק במסלול PRO.', en: 'Sending via WhatsApp is available on the PRO plan only.' },
-  PLAN_FEATURE_LOCKED: { he: 'הפעולה הזו (עריכה / שכפול / מחיקה) אינה כלולה במסלול הנוכחי שלך.', en: 'This action (edit / duplicate / delete) is not included in your current plan.' },
+  PLAN_FEATURE_LOCKED: { he: 'הפעולה הזו אינה כלולה כרגע בגישה של החשבון שלך. אילו מסלולים יכללו אותה - טרם הוחלט.', en: "This action is not included in your account's current access. Which plans will include it has not been decided yet." },
   DRAFT_STORAGE_FAILED: { he: 'שמירת הטיוטה המקומית במכשיר נכשלה - שינויים שלא נשמרו עלולים ללכת לאיבוד ברענון.', en: 'Saving the local draft on this device failed - unsaved changes could be lost on a refresh.' },
   DRAFT_RECOVERED_UNSAVED: { he: 'שוחזרה טיוטה מקומית שלא נשמרה - היא קיימת רק במכשיר הזה עד שתשמרו.', en: 'A local unsaved draft was recovered - it exists only on this device until you save it.' },
   DRAFT_CONFLICT_SERVER_CHANGED: { he: 'ההצעה השמורה השתנתה מאז שהטיוטה המקומית נוצרה.', en: 'The saved quote changed after your local draft was created.' },
@@ -302,7 +324,7 @@ const WHY = Object.freeze({
   CATALOG_INVALID_SERVICE: { he: 'לפריט הקטלוג חסר שם או מחיר תקין.', en: 'The catalog item is missing a name or a valid price.' },
   EXPENSE_SAVE_FAILED: { he: 'שמירת ההוצאה נכשלה.', en: 'Saving the expense failed.' },
   DATA_LOAD_FAILED: { he: 'טעינת הנתונים נכשלה.', en: 'Loading the data failed.' },
-  TRIAL_EXPIRED: { he: 'תקופת הניסיון הסתיימה, ולכן יכולות PRO אינן פעילות.', en: 'Your trial has ended, so PRO features are not active.' },
+  ACCOUNT_NOT_PROVISIONED: { he: 'החשבון שלך עדיין לא הוגדר במערכת המסלולים החדשה, ולכן הפעולה הזו לא זמינה כרגע.', en: 'Your account has not been set up in the new plan system yet, so this action is not available right now.' },
   CHECKOUT_UNAVAILABLE: { he: 'ל-TEKANGO אין כרגע סליקה או תשלום אונליין.', en: 'TEKANGO has no online checkout or payment processing right now.' },
   INVOICING_UNAVAILABLE: { he: 'הפקת חשבוניות אינה זמינה כרגע ב-TEKANGO.', en: 'Invoice issuing is not available in TEKANGO right now.' },
   PUBLIC_SIGNING_ISSUER_BLOCKED: { he: 'העסק המנפיק אינו יכול לחתום על ההצעה שלו עצמו - רק הלקוח חותם.', en: 'The issuing business cannot sign its own quote - only the client signs.' },

@@ -1,99 +1,75 @@
+// OD-16 / OD-20: the plan badge renders only the server account summary. No legacy FREE/BASIC/PRO/LIFETIME/trial label,
+// no monthly counter, no balance that the server did not return.
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import PlanIdentityBadge from './PlanIdentityBadge';
+import { parseAccountSummary } from '../../supabase/functions/_shared/subscriptionContract.ts';
 
-// חוק ברזל (Final Dashboard/Sidebar Polish task, §D): בדיקות ממוקדות
-// ל-variant="compact" החדש - הבאדג' שהחליף את .dash-sidebar-plan-card
-// שהוסר. הרכיב הזה עצמו נבדק כאן במבודד (בניגוד ל-Dashboard.jsx, שאין לו
-// תשתית-בדיקה קיימת בפרויקט הזה כלל - PlanIdentityBadge, לעומתו, הוא
-// רכיב-תצוגה טהור ללא תלות ב-supabase/session, בדיוק סוג-הרכיב שכבר יש לו
-// תשתית-בדיקה מוכחת בפרויקט). מגן על: (1) התווית הקנונית עדיין מגיעה אך
-// ורק מ-getDisplayIdentityLabel, (2) daysLeft מוצג רק כשהוא ערך אמיתי-חיובי
-// (לא ממציא/לא מציג אפס-כאילו-רלוונטי), (3) אינדיקטור-השדרוג (Crown) מופיע
-// רק כש-upgradeAvailable=true, (4) שתי השפות.
-describe('PlanIdentityBadge variant="compact"', () => {
-  it('renders the canonical label for a plain FREE identity, HE and EN', () => {
-    const { rerender } = render(<PlanIdentityBadge displayIdentity="FREE" isHebrew={false} variant="compact" />);
-    expect(screen.getByText('FREE')).toBeInTheDocument();
+const ready = (planId, over = {}) => parseAccountSummary({
+  ok: true, schema: 'account-summary/v1', version: 1, phase: { output: 'enforced', catalog: 'prepared', billing: 'off' },
+  market: 'IL', plan: { id: planId }, subscriptionStatus: planId === 'free' ? 'none' : 'active', capabilities: ['quote_style.classic'],
+  eligiblePlans: {}, free10: planId === 'free' ? { limit: 10, consumed: 4, reserved: 0, remaining: 6 } : null,
+  catalog: planId === 'free' ? { active: 0, countDefinition: 'unset', limit: null, blocks: 0, limitDecided: false } : { active: 0, countDefinition: 'unset', limit: 100, blocks: 0, limitDecided: true },
+  priceCatalogVersion: '2026-10-07.1', ...over,
+});
 
-    rerender(<PlanIdentityBadge displayIdentity="FREE" isHebrew={true} variant="compact" />);
-    expect(screen.getByText('FREE')).toBeInTheDocument();
+const LEGACY = /\b(FREE|BASIC|PRO|LIFETIME|Basic|Pro|TRIAL|trial)\b|ניסיון|\d+\s*\/\s*\d+/;
+
+describe('PlanIdentityBadge (server summary only)', () => {
+  it.each([
+    ['free', 'חינם', 'Free'], ['classic', 'קלאסיק', 'Classic'], ['modern', 'מודרן', 'Modern'], ['visual', 'ויזואל', 'Visual'],
+  ])('canonical %s name in HE and EN', (planId, he, en) => {
+    const { rerender, container } = render(<PlanIdentityBadge summary={ready(planId)} isHebrew variant="compact" />);
+    expect(screen.getByText(he)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(LEGACY);
+    rerender(<PlanIdentityBadge summary={ready(planId)} isHebrew={false} variant="compact" />);
+    expect(screen.getByText(en)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(LEGACY);
   });
 
-  it('renders the canonical combined label for FREE_TRIAL (status already encoded in the label itself)', () => {
-    render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" />);
-    expect(screen.getByText('FREE (TRIAL)')).toBeInTheDocument();
+  it('Free shows the server balance, never a 0/5 counter', () => {
+    const { rerender } = render(<PlanIdentityBadge summary={ready('free')} isHebrew variant="compact" />);
+    expect(screen.getByTestId('plan-identity-detail').textContent).toBe('נותרו 6 מתוך 10 הצעות');
+    rerender(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" />);
+    expect(screen.getByTestId('plan-identity-detail').textContent).toBe('6 of 10 free quotes left');
+    rerender(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" singleLine />);
+    expect(screen.getByText('6 left')).toBeInTheDocument();
   });
 
-  it('shows a real daysLeft value for an active trial, in both languages', () => {
-    const { rerender } = render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" daysLeft={5} />);
-    expect(screen.getByText('5 days left')).toBeInTheDocument();
-
-    rerender(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" daysLeft={1} />);
-    expect(screen.getByText('1 day left')).toBeInTheDocument();
-
-    rerender(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={true} variant="compact" daysLeft={5} />);
-    expect(screen.getByText('5 ימים נותרו')).toBeInTheDocument();
+  it.each([
+    [{ state: 'loading' }, 'טוען מסלול…', 'Loading plan…'],
+    [{ state: 'not_activated' }, 'מסלולים: טרם הופעלו', 'Plans: not active yet'],
+    [{ state: 'not_deployed' }, 'מסלולים: טרם הופעלו', 'Plans: not active yet'],
+    [{ state: 'unprovisioned' }, 'החשבון טרם שויך למסלול', 'Account not assigned to a plan'],
+    [{ state: 'unavailable' }, 'פרטי המסלול אינם זמינים', 'Plan details unavailable'],
+    [{ state: 'invalid' }, 'פרטי המסלול אינם זמינים', 'Plan details unavailable'],
+    [undefined, 'טוען מסלול…', 'Loading plan…'],
+  ])('neutral / fail-closed state %#', (summary, he, en) => {
+    const { rerender, container } = render(<PlanIdentityBadge summary={summary} isHebrew variant="compact" />);
+    expect(screen.getByText(he)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/חינם|קלאסיק|מודרן|ויזואל/);
+    expect(screen.queryByTestId('plan-identity-detail')).toBeNull();
+    rerender(<PlanIdentityBadge summary={summary} isHebrew={false} variant="compact" />);
+    expect(screen.getByText(en)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(LEGACY);
   });
 
-  it('never fabricates a days-remaining line when daysLeft is null or non-positive', () => {
-    const { rerender, container } = render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" daysLeft={null} />);
-    expect(container.textContent).not.toMatch(/left/i);
-
-    rerender(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" daysLeft={0} />);
-    expect(container.textContent).not.toMatch(/left/i);
-  });
-
-  it('does not render a days-remaining line for non-trial identities even if daysLeft is passed', () => {
-    render(<PlanIdentityBadge displayIdentity="LIFETIME" isHebrew={false} variant="compact" daysLeft={5} />);
-    // LIFETIME never has a meaningful "days left" concept - this guards
-    // against a future caller accidentally passing a stale trial value
-    // through for a non-trial identity; the component itself has no
-    // identity-specific guard, so this documents the expected caller
-    // contract (Dashboard.jsx only passes daysLeft when displayIdentity
-    // is actually FREE_TRIAL) rather than asserting internal behavior
-    // that doesn't exist - kept as a caller-contract regression check.
-    expect(screen.getByText('LIFETIME')).toBeInTheDocument();
+  it('a forged summary (legacy plan id) renders the fail-closed state', () => {
+    const forged = parseAccountSummary({ ok: true, schema: 'account-summary/v1', plan: { id: 'pro' } });
+    render(<PlanIdentityBadge summary={forged} isHebrew={false} variant="compact" />);
+    expect(screen.getByText('Plan details unavailable')).toBeInTheDocument();
   });
 
   it('shows the upgrade indicator only when upgradeAvailable is true', () => {
-    const { container: withUpgrade } = render(<PlanIdentityBadge displayIdentity="FREE" isHebrew={false} variant="compact" upgradeAvailable />);
-    expect(withUpgrade.querySelectorAll('svg').length).toBeGreaterThan(1); // plan icon + crown
-
-    const { container: withoutUpgrade } = render(<PlanIdentityBadge displayIdentity="FREE" isHebrew={false} variant="compact" />);
-    expect(withoutUpgrade.querySelectorAll('svg').length).toBe(1); // plan icon only
+    const { container: a } = render(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" upgradeAvailable />);
+    const { container: b } = render(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" />);
+    expect(a.querySelectorAll('svg').length).toBe(b.querySelectorAll('svg').length + 1);
   });
 
-  // חוק ברזל (Authenticated UI Coherence task, Mobile Dashboard Header
-  // Recomposition): singleLine - וריאנט-תצוגה נוסף בתוך אותו variant=
-  // "compact" קנוני (לא רכיב-באדג' מקביל), ל"PLAN · Nימים" בשורה אחת
-  // במקום תווית+שורת-ימים נפרדת - "Use a short mobile plan label such
-  // as 'FREE · 10 days'" (הבהרת-בעלים). מגן על: (1) התווית הקנונית עדיין
-  // מגיעה, (2) daysLeft מוצג מקוצר ("10d"/"10 ימים") באותה שורה, לא
-  // בשורה נפרדת, (3) בלי daysLeft מוצגת רק התווית לבדה, ללא "·" יתום.
-  describe('variant="compact" singleLine', () => {
-    it('renders the canonical label alone when no daysLeft is given', () => {
-      render(<PlanIdentityBadge displayIdentity="LIFETIME" isHebrew={false} variant="compact" singleLine />);
-      expect(screen.getByText('LIFETIME')).toBeInTheDocument();
-      expect(screen.queryByText('·')).not.toBeInTheDocument();
-    });
-
-    it('renders "LABEL · Nd" on one line in English', () => {
-      render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" singleLine daysLeft={10} />);
-      expect(screen.getByText('FREE (TRIAL)')).toBeInTheDocument();
-      expect(screen.getByText('10d')).toBeInTheDocument();
-    });
-
-    it('renders "תוכנית · Nימים" on one line in Hebrew', () => {
-      render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={true} variant="compact" singleLine daysLeft={10} />);
-      expect(screen.getByText('10 ימים')).toBeInTheDocument();
-    });
-
-    it('never fabricates a days fragment when daysLeft is null or non-positive', () => {
-      const { rerender, container } = render(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" singleLine daysLeft={null} />);
-      expect(container.textContent).not.toMatch(/\d+d\b/);
-      rerender(<PlanIdentityBadge displayIdentity="FREE_TRIAL" isHebrew={false} variant="compact" singleLine daysLeft={0} />);
-      expect(container.textContent).not.toMatch(/\d+d\b/);
-    });
+  it('header and panel variants render the same model', () => {
+    const { rerender } = render(<PlanIdentityBadge summary={ready('visual')} isHebrew variant="header" />);
+    expect(screen.getByText('ויזואל')).toBeInTheDocument();
+    rerender(<PlanIdentityBadge summary={{ state: 'not_deployed' }} isHebrew={false} variant="panel" />);
+    expect(screen.getByText('Plans: not active yet')).toBeInTheDocument();
   });
 });

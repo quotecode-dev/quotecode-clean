@@ -5,7 +5,7 @@
 // helpers (formatNum / formatMoney / formatNumberLocal / toLocaleString / toFixed) next to a currency
 // symbol is a BYPASS and fails this gate. Quantity formatting via formatNum stays allowed (it is not money).
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
 
@@ -17,6 +17,10 @@ export const PROTECTED_LOCAL_MONEY_FILES = [
   'src/components/ServicesCatalog.jsx', 'src/components/AddItemWizard.jsx', 'src/pages/PublicQuote.jsx',
   'src/pages/ProfessionalPublicPreview.jsx', 'src/components/CustomerQuoteItemRow.jsx',
   'src/components/ProfessionalItemComparisonCard.jsx', 'src/pages/Dashboard.jsx',
+  // Task 17: the Statistics screen renders quote amounts and per-currency value totals
+  'src/components/StatisticsTab.jsx',
+  // Task 16 - Quote Experience V2 document surfaces (the sample route renders the real ILS document).
+  'src/pages/SampleQuote.jsx', 'src/components/PublicQuoteHeader.jsx', 'src/quoteDocument/sampleQuotes.js',
 ];
 
 // A money expression = currency symbol token immediately followed by a full-precision formatter call.
@@ -79,6 +83,59 @@ describe('IRON-ILS-001 static gate: protected Local money surfaces have no forma
   it('QuotesTab keys row money on the quote\'s OWN currency (historical currency preserved)', () => {
     const q = read('src/components/QuotesTab.jsx');
     expect(q).toMatch(/formatMoneyDisplay\(quote\.total, quote\.currency\)/);
+  });
+
+  // 2026-10-09 independent review: an injected exact-cent formatter (Dashboard formatExactMoney -> QuotesTab listMoney) rendered
+  // non-zero agorot on the HE/Local quote rows + overview, and the rules above missed it (`text={listMoney(...)}` matched none).
+  it('Dashboard/QuotesTab carry no exact-cent bypass (formatExactMoney, listMoney, injected list formatter)', () => {
+    for (const file of ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx']) {
+      const src = read(file);
+      expect(src, file).not.toMatch(/formatExactMoney|listMoney/);
+      expect(src, file).not.toMatch(/formatMoney\(\s*(quote|q|r|row)\.(total|subtotal)/);
+      expect(src, file).not.toMatch(/\.(total|subtotal)\)?\.toFixed\(2\)/);
+    }
+    // QuotesTab receives exactly ONE money formatter prop: the canonical formatMoneyDisplay
+    const q = read('src/components/QuotesTab.jsx');
+    const params = q.slice(q.indexOf('export default function QuotesTab({'), q.indexOf('}) {', q.indexOf('export default function QuotesTab({')));
+    expect(params.match(/\b\w*(?:Money|money)\w*\b/g)).toEqual(['formatMoneyDisplay']);
+    // ...and Dashboard hands it nothing else
+    const d = read('src/pages/Dashboard.jsx');
+    const call = d.slice(d.indexOf('<QuotesTab'), d.indexOf('/>', d.indexOf('<QuotesTab')));
+    expect(call.match(/\b\w*(?:Money|money)\w*=/g)).toEqual(['formatMoneyDisplay=']);
+  });
+
+  it('every QuotesTab amount (rows, overview, cards, Quote History) goes through formatMoneyDisplay / formatMoneyForCurrency', () => {
+    const q = read('src/components/QuotesTab.jsx');
+    const texts = [...q.matchAll(/<MoneyValue[\s\S]*?text=\{([^}]*)\}/g)].map((m) => m[1].trim());
+    // EXACT surface set (stricter than a minimum count): rows, Quote History table, Quote History cards; the 4th surface - the
+    // overview total - renders through CurrencyTotals (asserted below), one canonical token per persisted currency
+    expect(texts).toEqual(['amountText', 'formatMoneyDisplay(quote.total, quote.currency)', 'formatMoneyDisplay(quote.total, quote.currency)']);
+    const canonicalIdentifiers = [...q.matchAll(/const (\w+) = formatMoneyDisplay\(/g)].map((m) => m[1]);
+    for (const t of texts) expect(t.startsWith('formatMoneyDisplay(') || canonicalIdentifiers.includes(t), t).toBe(true);
+    // overview total: per persisted currency (IRON-MARKET-004), each token through formatMoneyDisplay(total, ITS currency)
+    expect(q).toMatch(/<CurrencyTotals className="quote-overview-value"[^>]*formatMoneyDisplay=\{formatMoneyDisplay\}/);
+    expect(read('src/components/NumericValue.jsx')).toMatch(/text=\{formatMoneyDisplay\(g\.total, g\.currency\)\}/);
+    expect(q).toMatch(/const amountText = formatMoneyDisplay\(quote\.total, quote\.currency\);/);
+    expect(q).toMatch(/text=\{amountText\}/);
+    // the is-long geometry decision uses the same canonical text, never a second formatter
+    expect(q).toMatch(/\(quoteSym \+ amountText\)\.length >= 13/);
+  });
+
+  it('no test expects non-zero agorot for a ₪ amount (a test may never legitimize an IRON-ILS-001 violation)', () => {
+    const files = [];
+    const walk = (dir) => {
+      for (const e of readdirSync(join(cwd(), dir), { withFileTypes: true })) {
+        const p = `${dir}/${e.name}`;
+        if (e.isDirectory()) walk(p); else if (/\.test\.[jt]sx?$/.test(e.name)) files.push(p);
+      }
+    };
+    walk('src');
+    const EXPECT_AGOROT = /\.(?:toBe|toEqual|toContain|toHaveTextContent|toStrictEqual)\(\s*['"`]₪\s?-?[\d,]+\.(?!00)\d\d/;
+    const offenders = files.flatMap((f) => read(f).split('\n').map((l, i) => [f, i + 1, l])
+      .filter(([, , l]) => EXPECT_AGOROT.test(l) && !l.includes('EXPECT_AGOROT.test('))); // the rule's own self-check below
+    expect(offenders.map(([f, n]) => `${f}:${n}`)).toEqual([]);
+    expect(EXPECT_AGOROT.test("expect(x).toBe('₪1,227.20');")).toBe(true); // the rule catches the removed legitimizing test
+    expect(EXPECT_AGOROT.test("expect(x).toBe('₪1,227.00');")).toBe(false);
   });
 
   it('PublicQuoteEn (International) never uses the whole-shekel formatter', () => {

@@ -61,13 +61,18 @@ function validateAvailabilityState(capabilityId: string, rawState: unknown): Ava
   return rawState as AvailabilityState;
 }
 
-// Codex 4.4: an account's plan tier / role must be validated against the real, known values before
-// being trusted for entitlement math - an unrecognized tier/role must fail closed (never resolve to
-// "has the entitlement"), not merely be passed through as an opaque string.
-const KNOWN_PLAN_TIERS: ReadonlySet<string> = new Set(['free', 'basic', 'pro']);
+// Codex 4.4: an account's plan / role must be validated against the real, known values before
+// being trusted for entitlement math - an unrecognized plan/role must fail closed (never resolve to
+// "has the entitlement"), not merely be passed through as an opaque string. Subscriptions cutover: the plan is a canonical
+// plan id from the SERVER account summary (OD-16/OD-20); the retired legacy tiers are not known values.
+const KNOWN_PLAN_IDS: ReadonlySet<string> = new Set(['free', 'all_inclusive', 'classic', 'modern', 'visual']);
 const KNOWN_ROLES: ReadonlySet<string> = new Set(['user', 'super_admin']);
 
+// PlanRestriction needs an APPROVED minimum plan; none is approved (OPEN-02), so it is null for every capability today.
 export type PlanRestriction = { readonly minimumPlan: string; readonly accountHasIt: boolean | null } | null;
+// The capability is gated by the subscription system (subscriptionContract.ts capability id) but which plans include it is not
+// decided (OPEN-02 / OPEN-13): the answer says it exists and that plan inclusion is not decided - never a minimum plan.
+export type SubscriptionGate = { readonly subscriptionCapabilityId: string; readonly planEligibility: 'not_decided' } | null;
 export type RoleRestriction = { readonly requiredRole: string; readonly accountHasRole: boolean | null } | null;
 export type MarketRestriction = { readonly markets: readonly string[] } | null;
 export type RateSourceState = 'live_feed' | 'fallback_not_live' | 'indicative_estimate' | 'not_applicable';
@@ -98,6 +103,7 @@ export type CapabilityAnswerState = {
   readonly metalsRateState: MetalsRateState;
   readonly providerExposureAllowed: boolean;
   readonly planRestriction: PlanRestriction;
+  readonly subscriptionGate: SubscriptionGate;
   readonly marketRestriction: MarketRestriction;
   readonly navigationAllowed: boolean;
   readonly roleRestriction: RoleRestriction;
@@ -121,7 +127,7 @@ function isCurrentFact(fact: CapabilityFact | NonCurrentCapabilityFact | undefin
 export function resolveCapabilityAnswerState(
   id: string,
   facts: CapabilityFacts,
-  accountTier: string | null = null,
+  accountPlan: string | null = null,
   isAdmin: boolean | null = null,
 ): CapabilityAnswerState | null {
   // The router-only sentinel (not one of the 38 ids): account lifecycle is not self-service today.
@@ -142,6 +148,7 @@ export function resolveCapabilityAnswerState(
       metalsRateState: 'not_applicable',
       providerExposureAllowed: false,
       planRestriction: null,
+      subscriptionGate: null,
       marketRestriction: null,
       navigationAllowed: false,
       roleRestriction: null,
@@ -166,6 +173,7 @@ export function resolveCapabilityAnswerState(
       metalsRateState: 'not_applicable',
       providerExposureAllowed: false,
       planRestriction: null,
+      subscriptionGate: null,
       marketRestriction: null,
       navigationAllowed: false,
       roleRestriction: null,
@@ -174,18 +182,21 @@ export function resolveCapabilityAnswerState(
 
   const current = isCurrentFact(fact) ? fact : undefined;
 
-  // Codex 4.4: an unrecognized accountTier value must fail closed to "unknown" (null), never be
+  // Codex 4.4: an unrecognized accountPlan value must fail closed to "unknown" (null), never be
   // coerced into a truthy/falsy entitlement lookup - an invalid tier string indexing
-  // planAvailability would otherwise silently read `undefined` (falsy, i.e. "does not have it"),
+  // an eligibility list would otherwise silently read `undefined` (falsy, i.e. "does not have it"),
   // which is the WRONG failure direction for a value that is actually just malformed/unrecognized
   // input rather than a genuine, verified "no entitlement" fact.
-  const validatedAccountTier = accountTier !== null && KNOWN_PLAN_TIERS.has(accountTier) ? accountTier : null;
+  const validatedAccountPlan = accountPlan !== null && KNOWN_PLAN_IDS.has(accountPlan) ? accountPlan : null;
   let planRestriction: PlanRestriction = null;
-  if (current?.minimumPlan && current.minimumPlan !== 'free') {
-    const accountHasIt = validatedAccountTier && current.planAvailability
-      ? current.planAvailability[validatedAccountTier as 'free' | 'basic' | 'pro'] === true
-      : null;
-    planRestriction = { minimumPlan: current.minimumPlan, accountHasIt };
+  let subscriptionGate: SubscriptionGate = null;
+  if (current?.subscriptionCapabilityId) {
+    if (current.planEligibility === 'decided' && Array.isArray(current.eligiblePlans) && current.minimumPlan) {
+      // Only reachable once the Owner approves an eligibility matrix (OPEN-02) and the generator projects it.
+      planRestriction = { minimumPlan: current.minimumPlan, accountHasIt: validatedAccountPlan ? current.eligiblePlans.includes(validatedAccountPlan) : null };
+    } else {
+      subscriptionGate = { subscriptionCapabilityId: current.subscriptionCapabilityId, planEligibility: 'not_decided' };
+    }
   }
 
   let roleRestriction: RoleRestriction = null;
@@ -237,6 +248,7 @@ export function resolveCapabilityAnswerState(
     // checkoutAvailable is false (mirrors the PayPlus forbidden-claim pattern structurally).
     providerExposureAllowed: AI_FACTS.billing.liveCheckoutAvailable,
     planRestriction,
+    subscriptionGate,
     marketRestriction,
     navigationAllowed: !!current?.aiMayNavigate,
     roleRestriction,

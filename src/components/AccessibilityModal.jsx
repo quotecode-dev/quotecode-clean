@@ -3,16 +3,24 @@
 // ==============================================================================
 
 
+import { useEffect } from 'react';
 import BrandName from './BrandName';
 
 // PRODUCT_TRUTH_CAPABILITY: accessibility_tools
+// Task 36 (§ד keyboard / labels): the statement is announced as a modal dialog named by its heading, and Escape closes it.
 export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   return (
     <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
-      <div style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '600px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', textAlign: isHebrew ? 'right' : 'left' }}>
-        <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '1.4rem', marginBottom: '15px' }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="a11y-statement-title" style={{ background: 'white', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '600px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', textAlign: isHebrew ? 'right' : 'left' }}>
+        <h3 id="a11y-statement-title" style={{ marginTop: 0, color: '#1e293b', fontSize: '1.4rem', marginBottom: '15px' }}>
           {isHebrew ? '♿ הצהרת נגישות' : '♿ Accessibility Statement'}
         </h3>
         

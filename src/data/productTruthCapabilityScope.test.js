@@ -7,7 +7,7 @@
 // external claims never prove it and TEKANGO-scoped denials outrank generic positives. These tests are GROUPED by scope construction (not one string per Codex example) and finish with the FULL GATE.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { TRUTH_KINDS, analyzeCapabilityProse, checkCapabilityPolarity, deriveExpectedCapabilityTruth } from './productTruthCapabilityPolarity.js';
+import { TRUTH_KINDS, analyzeCapabilityProse, checkCapabilityPolarity, deriveExpectedCapabilityTruth, LEGACY_RULESET_ID } from './productTruthCapabilityPolarity.js';
 import { validateFinalMatrix } from './productTruthEvidenceSchema.js';
 
 const truth = (id, plan = 'pro', role = 'user') => deriveExpectedCapabilityTruth({ expectedResult: id, serverPlan: plan, serverRole: role, market: 'Local' });
@@ -145,11 +145,18 @@ describe('FINDING 3 scope - the same scope model under the OTHER truth kinds', (
     expect(passes(t, 'שינוי נתונים על ידי AI זמין גם במוצרים אחרים וגם ב-TEKANGO.', 'he')).toBe(false);
   });
   it('PLAN_LOCKED truth: availability elsewhere never substitutes for the in-TEKANGO existence + plan-gate + account-lacks claims', () => {
-    const t = truth('attachments', 'free');
+    // the plan-gate (legacy_v39) truth - the historical evidence is still judged with it
+    const t = deriveExpectedCapabilityTruth({ expectedResult: 'attachments', serverPlan: 'free', serverRole: 'user', market: 'Local', ruleset: LEGACY_RULESET_ID });
     expect(t.kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
     expect(passes(t, 'File attachments are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
     expect(passes(t, 'File attachments are available in other products.', 'en')).toBe(false);
     expect(passes(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it. Other products offer it too.', 'en')).toBe(true);
+  });
+  it('PLAN_NOT_DECIDED truth (current): availability elsewhere never substitutes for the in-TEKANGO existence + undecided plan inclusion', () => {
+    const t = truth('attachments', 'free');
+    expect(t.kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
+    expect(passes(t, 'File attachments are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
+    expect(passes(t, 'Yes - File attachments exists in TEKANGO. Plan inclusion for it is still undecided. Other products offer it too.', 'en')).toBe(true);
   });
   it('PAYMENT_NOT_LIVE truth: payments live in other products are not a false claim about TEKANGO; a TEKANGO claim still fails', () => {
     const t = truth('payment_truth_sentinel');

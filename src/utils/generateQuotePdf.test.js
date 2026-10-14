@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildQuotePdfFilename, computePageBoundaries, waitForImagesReady, getA4ContentBoxPt } from './generateQuotePdf';
+import { buildQuotePdfFilename, computePageBoundaries, waitForImagesReady, getA4ContentBoxPt, NO_SPLIT_SELECTOR, PDF_CAPTURE_WINDOW_WIDTH, PDF_DOCUMENT_WIDTH_PX, coverFramedImagesForCapture } from './generateQuotePdf';
 
 // ONE SHARED A4 DOCUMENT CONTRACT ("FINAL SMART QUOTE PDF/PRINT/A4 CLOSURE
 // PASS" task, Owner-mandated: "PDF and Print must share the same A4 content
@@ -372,5 +372,32 @@ describe('waitForImagesReady', () => {
   it('resolves with no images present (nothing to wait for)', async () => {
     const root = document.createElement('div');
     await expect(waitForImagesReady(root, 500)).resolves.toBeUndefined();
+  });
+});
+
+describe('Task 16 - quote media is an atomic pagination block', () => {
+  it('NO_SPLIT_SELECTOR keeps the existing hooks and adds .pq-media-figure (an image never separates from its caption)', () => {
+    for (const sel of ['tr', '.pq-unit-item', '.pq-recipient', '.pq-header-box', '.pq-media-figure']) {
+      expect(NO_SPLIT_SELECTOR.split(',').map((x) => x.trim())).toContain(sel);
+    }
+  });
+});
+
+describe('Task 16 correction F - device-independent Direct PDF capture', () => {
+  it('captures at one fixed document window width (a phone no longer scales its narrow layout up to A4)', () => {
+    expect(PDF_CAPTURE_WINDOW_WIDTH).toBeGreaterThanOrEqual(1024);
+    // the document is laid out at the A4 content width (190mm at 96dpi), so 1 CSS px prints as 0.75pt like native Print
+    expect(PDF_DOCUMENT_WIDTH_PX).toBe(Math.round((190 / 25.4) * 96));
+  });
+
+  it('replaces framed quote images by a cover background in the capture clone (html2canvas ignores object-fit)', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<span class="pq-media-frame"><img src="https://example.com/a.png" alt=""></span><img src="https://example.com/logo.png" alt="logo">';
+    expect(coverFramedImagesForCapture(root)).toBe(1);
+    const frame = root.querySelector('.pq-media-frame');
+    expect(frame.style.backgroundImage).toContain('https://example.com/a.png');
+    expect(frame.style.backgroundSize).toBe('cover');
+    expect(frame.querySelector('img').style.visibility).toBe('hidden');
+    expect(root.querySelector('img[alt="logo"]').style.visibility).toBe('');
   });
 });

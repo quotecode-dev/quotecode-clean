@@ -19,6 +19,11 @@ export const GUIDED_INTENT_IDS = [
   'suggestion', 'general_question', 'other',
 ];
 
+// Task 34 (Owner, Codex review finding 2): editor-only ACTIONS that are not part of the Owner-approved 11-topic canonical list above (that
+// list is unchanged). 'quote_improvement' = an explicit review of the open quote's items. The Edge Function accepts these ids too
+// (chat-ai/validation.ts EDITOR_ACTION_INTENT_IDS, kept equal by guidedChatIntents.test.js).
+export const EDITOR_ACTION_INTENT_IDS = ['quote_improvement'];
+
 // `heDesc`/`enDesc` (Descriptive Guided AI Cards + Context Header task,
 // Owner correction, 2026-09-18): one short, concrete line explaining what
 // the user can actually do by picking this intent - never a restatement of
@@ -36,10 +41,17 @@ export const GUIDED_INTENTS = [
   { id: 'billing_payment', he: 'תשלום / חיוב', en: 'Payment / billing', heDesc: 'חיובים, קבלות ואמצעי תשלום', enDesc: 'Charges, receipts and payment methods' },
   { id: 'clients', he: 'לקוחות', en: 'Clients', heDesc: 'חיפוש לקוח, פרטים ופעולות קשורות', enDesc: 'Find a client, view details, and related actions' },
   { id: 'business_settings', he: 'הגדרות העסק', en: 'Business settings', heDesc: 'פרטי העסק, לוגו והעדפות', enDesc: 'Business details, logo and preferences' },
-  { id: 'suggestion', he: 'הצעה לשיפור', en: 'Suggestion for improvement', heDesc: 'הצעה לשיפור או לתכונה חדשה', enDesc: 'Suggest an improvement or a new feature' },
+  // Task 34 (Codex review, finding 2): two clearly different meanings - SYSTEM FEEDBACK (a product idea) vs IMPROVE THIS QUOTE (an explicit
+  // review of the open quote's items; editor menus only, see CONTEXTUAL_MENUS).
+  { id: 'suggestion', he: 'משוב על המערכת', en: 'System feedback', heDesc: 'רעיון לשיפור המערכת או תכונה חדשה', enDesc: 'An idea to improve the system, or a new feature' },
   { id: 'general_question', he: 'שאלה כללית', en: 'General question', heDesc: 'כל שאלה אחרת על המערכת', enDesc: 'Any other question about the system' },
   { id: 'other', he: 'משהו אחר', en: 'Something else', heDesc: 'משהו שלא מופיע ברשימה', enDesc: 'Something not listed here' },
 ];
+
+export const EDITOR_ACTIONS = [
+  { id: 'quote_improvement', he: 'שיפור הצעת המחיר', en: 'Improve this quote', heDesc: 'בדיקה של הפריטים בהצעה שפתוחה לפניכם', enDesc: 'A review of the items in the quote open in front of you' },
+];
+const ALL_LEAVES = [...GUIDED_INTENTS, ...EDITOR_ACTIONS];
 
 // Optional, at-most-one, skippable second step (§4.3). Only `quotes` has
 // one - it exists to drive the explicit quote-selector step (Gate 2 §6),
@@ -98,13 +110,13 @@ export const GUIDED_TOPIC_GROUPS = [
 ];
 
 export function getGuidedIntentLabel(intentId, isHebrew) {
-  const intent = GUIDED_INTENTS.find((i) => i.id === intentId);
+  const intent = ALL_LEAVES.find((i) => i.id === intentId);
   if (!intent) return '';
   return isHebrew ? intent.he : intent.en;
 }
 
 export function getGuidedIntentDescription(intentId, isHebrew) {
-  const intent = GUIDED_INTENTS.find((i) => i.id === intentId);
+  const intent = ALL_LEAVES.find((i) => i.id === intentId);
   if (!intent) return '';
   return isHebrew ? intent.heDesc : intent.enDesc;
 }
@@ -184,8 +196,8 @@ export function getTopicGroupsForSurface(isDashboard) {
 // picker to offer by default.
 export const CONTEXTUAL_MENUS = {
   item_wizard: ['current_process_help', 'software_help', 'technical_problem'],
-  quote_editor_new: ['current_process_help', 'clients', 'suggestion'],
-  quote_editor_edit: ['current_process_help', 'clients', 'general_question'],
+  quote_editor_new: ['quote_improvement', 'current_process_help', 'clients', 'suggestion'],
+  quote_editor_edit: ['quote_improvement', 'current_process_help', 'clients', 'general_question'],
   clients: ['clients', 'current_process_help', 'general_question'],
   settings: ['business_settings', 'current_process_help', 'general_question'],
   finances: ['current_process_help', 'suggestion', 'general_question'],
@@ -214,7 +226,7 @@ export function getContextualTopicGroups(screenId) {
   const ids = getContextualMenuIntentIds(screenId);
   if (!ids) return null;
   return ids.map((id) => {
-    const intent = GUIDED_INTENTS.find((i) => i.id === id);
+    const intent = ALL_LEAVES.find((i) => i.id === id);
     return { id, he: intent.he, en: intent.en, directIntent: id, heDesc: intent.heDesc, enDesc: intent.enDesc };
   });
 }
@@ -240,6 +252,7 @@ export const TERMINAL_OUTCOMES = {
   clients: 'model_answer',
   business_settings: 'model_answer',
   suggestion: 'model_answer',
+  quote_improvement: 'model_answer', // Task 34: answers at once; the review itself is a model answer sent only on the user's explicit click
   general_question: 'model_answer',
   other: 'free_text',
 };

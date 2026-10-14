@@ -37,6 +37,11 @@ export const FORBIDDEN_CODE_TO_SEMANTIC_FAMILY: Readonly<Record<string, keyof ty
   NO_OWNER_PUBLIC_WHATSAPP_CONFLATION: 'whatsappConflation',
   NO_LOCAL_DRAFT_AS_CLOUD_SAVED: 'draftProvenance',
   NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE: 'adminInference',
+  // Task 20: reminders & automation (non-current automatic sending).
+  NO_AUTOMATIC_CUSTOMER_SEND_CLAIM: 'automaticSending',
+  NO_AUTOMATIC_WHATSAPP_CLAIM: 'automaticSending',
+  // Task 21: non-current Google Calendar connection (the digital business card became a current capability in Task 23).
+  NO_EXTERNAL_CALENDAR_SYNC_CLAIM: 'externalCalendarSync',
   // Structured-state-only invariant (capabilityAnswerState.ts) - no registry capability declares
   // it today (nothing self-service exists to conflate), given a real family so the structured
   // invariant check's own violation codes are never themselves "unknown".

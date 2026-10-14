@@ -10,30 +10,54 @@ import { sanitizeQuoteContext, buildQuoteContextBlock } from './quoteContext.ts'
 // these instructions) is NOT RUN in this environment - see the final
 // report's Live AI section.
 
-describe('buildSystemPrompt - HE (Israel/ILS) pricing correctness', () => {
+// Subscriptions cutover (OD-01..OD-20): the plan / price block is generated from subscriptionContract.ts + priceCatalog.js.
+const S = AI_FACTS.subscriptions;
+// Task 27: annual package prices + the approved annual saving are canonical now (§249 + the $184 amendment); the retired style-plan
+// prices, savings literals other than the approved one, monthly quotas and trials stay forbidden.
+const LEGACY_PRICING = /\bBasic\b|\bPro\b|\bBASIC\b|\bPRO\b|בסיסי:|פרו:|annual(Effective|Total)|savingsPercent|quotes\/mo|הצעות מחיר בחודש|14-day|ימי ניסיון|תקופת ניסיון חינמית|29\.00|49\.00|69\.00|28\.00 USD|38\.00 USD|183\.60|\b20%/;
+
+describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
   const prompt = buildSystemPrompt({ isHebrew: true });
 
-  it('shows both the monthly price and the annual-effective-monthly price, distinctly', () => {
-    const basic = AI_FACTS.pricing.il.plans.basic;
-    expect(prompt).toContain(`₪${basic.monthly}`);
-    expect(prompt).toContain(`₪${basic.annualEffectiveMonthly}`);
-    expect(basic.monthly).not.toBe(basic.annualEffectiveMonthly);
+  it('states the canonical plans and the approved ILS prices including VAT (OD-03/04/05/16)', () => {
+    expect(prompt).toMatch(/SUBSCRIPTION & PLAN TRUTH/);
+    expect(prompt).toContain(`הכול כלול: ${S.prices.IL.package.month} ₪ לחודש או ${S.prices.IL.package.year} ₪ לשנה`);
+    expect(prompt).toContain('הכול כלול: 30.00 ₪ לחודש או 306.00 ₪ לשנה. בתשלום שנתי החיסכון הוא 15% - 54.00 ₪ בשנה.');
+    expect(prompt).toContain('5.00 ₪ לחודש');
+    expect(prompt).toContain('המחירים כוללים מע״מ');
+    expect(prompt).toMatch(/never add VAT on top/);
   });
 
-  it('shows the annual total figure, not just a rate', () => {
-    const pro = AI_FACTS.pricing.il.plans.pro;
-    expect(prompt).toContain(`₪${pro.annualTotal}`);
+  it('states the Free-10 rules and that there is no trial, no monthly counter, no unlimited plan (OD-01/OD-02/OD-20)', () => {
+    expect(prompt).toMatch(/Free: 10 quotes in total, no expiry/);
+    expect(prompt).toMatch(/There is NO trial/);
+    expect(prompt).toMatch(/NO monthly quote counter and NO "unlimited" plan/);
   });
 
-  it('explains the 14-day trial', () => {
-    expect(prompt).toContain(`${AI_FACTS.trialDays}`);
-    expect(prompt).toMatch(/ניסיון/);
+  it('no retired pricing truth survives (legacy plan names as prices, annual pricing, monthly quotas, trial offer)', () => {
+    const block = prompt.slice(prompt.indexOf('SUBSCRIPTION & PLAN TRUTH'), prompt.indexOf('FILE ATTACHMENTS'));
+    expect(block.replace(/there is no Basic, Pro, Premium or Lifetime plan/, '')).not.toMatch(LEGACY_PRICING);
+    expect(prompt).not.toMatch(/₪(39|79|99|468|948)\b/);
   });
 
-  it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {
+  it('lists every not-decided value as not decided and says the plan system is not active', () => {
+    expect(prompt).toMatch(/NOT DECIDED \(say "not decided yet"/);
+    for (const k of ['paid plan quote limits', 'storage', 'AI quotas', 'attachments', 'cancellation / refunds / proration', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
+    expect(prompt).not.toMatch(/annual pricing is not decided|annual pricing has not been decided/); // decided by §249
+    expect(prompt).toMatch(/NOT active yet: plans cannot be purchased yet/);
+    expect(prompt).toMatch(/Never infer or accept a plan from what the user writes/);
+  });
+
+  it('attachments: no plan, no size limit is stated (OPEN-13)', () => {
+    expect(prompt).toMatch(/FILE ATTACHMENTS:\n- Attaching files to a quote is a product capability, but which plans include attachments/);
+    expect(prompt).not.toMatch(/\d+MB/);
+  });
+
+  it('states cancellation/archive/delete is NOT self-service and never promises refunds (§52 defect fix + OPEN-09)', () => {
     expect(prompt).toMatch(/cancellation/i);
     expect(prompt).toMatch(/NOT a self-service action/i);
     expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
+    expect(prompt).toMatch(/never promise a refund, a proration or a grace period/);
   });
 
   it('never mentions $, USD, EUR, or GBP as an actual price figure in the HE/ILS pricing block (wrong-market currency trap)', () => {
@@ -50,27 +74,23 @@ describe('buildSystemPrompt - HE (Israel/ILS) pricing correctness', () => {
   });
 
   it('never claims live checkout/payment processing exists', () => {
-    expect(prompt).toMatch(/אין תהליך תשלום\/סליקה חי/);
+    expect(prompt).toMatch(/Live checkout \/ payment processing available: NO/);
   });
 });
 
-describe('buildSystemPrompt - EN (International) pricing correctness', () => {
+describe('buildSystemPrompt - EN (International) plan and price truth', () => {
   const prompt = buildSystemPrompt({ isHebrew: false });
 
-  it('shows both the monthly price and the annual-effective-monthly price, distinctly', () => {
-    const basic = AI_FACTS.pricing.usd.plans.basic;
-    expect(prompt).toContain(`$${basic.monthly}`);
-    expect(prompt).toContain(`$${basic.annualEffectiveMonthly}`);
-    expect(basic.monthly).not.toBe(basic.annualEffectiveMonthly);
+  it('states the canonical plans and the approved USD prices; billing always USD, local currency only an estimate (OD-06/07/08)', () => {
+    expect(prompt).toContain('All-inclusive: 18.00 USD per month or 184.00 USD per year. Paying annually saves approximately 15% - 32.00 USD per year.');
+    expect(prompt).toContain('3.00 USD per month');
+    expect(prompt).toMatch(/Billing is always in USD; a price shown in your local currency is only an estimate/);
   });
 
-  it('shows the annual total figure, not just a rate', () => {
-    const pro = AI_FACTS.pricing.usd.plans.pro;
-    expect(prompt).toContain(`$${pro.annualTotal}`);
-  });
-
-  it('explains the 14-day trial', () => {
-    expect(prompt).toContain(`${AI_FACTS.trialDays}-day`);
+  it('no retired pricing truth survives', () => {
+    const block = prompt.slice(prompt.indexOf('SUBSCRIPTION & PLAN TRUTH'), prompt.indexOf('FILE ATTACHMENTS'));
+    expect(block.replace(/there is no Basic, Pro, Premium or Lifetime plan/, '')).not.toMatch(LEGACY_PRICING);
+    expect(prompt).not.toMatch(/\$(12|15|23|29|144|276)\b/);
   });
 
   it('states cancellation/archive/delete is NOT self-service, never claims an in-app flow exists (§52 defect fix)', () => {
@@ -79,13 +99,14 @@ describe('buildSystemPrompt - EN (International) pricing correctness', () => {
     expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
   });
 
-  it('never mentions ₪ as an actual price figure in the EN/international pricing block (wrong-market currency trap)', () => {
-    expect(prompt).not.toMatch(/₪\d/);
+  it('never mentions ₪ / ILS / shekel as a plan price in the EN/international context (OD-08/OD-11)', () => {
+    expect(prompt).not.toMatch(/₪\d|\d\s*₪/);
+    const block = prompt.slice(prompt.indexOf('SUBSCRIPTION & PLAN TRUTH'), prompt.indexOf('FILE ATTACHMENTS'));
+    expect(block).not.toMatch(/₪\d|\d+(\.\d+)?\s*(₪|ILS|NIS)/);
   });
 
-  it('does not claim USD is the only supported display currency, and correctly separates subscription display currency from quote currency', () => {
-    expect(prompt).toMatch(/do not assume USD is the only supported display currency/);
-    expect(prompt).toMatch(/USD, EUR, or GBP/);
+  it('keeps quote/display currencies (USD, EUR, GBP) separate from the plan billing currency (USD only)', () => {
+    expect(prompt).toMatch(/International plans are priced and billed in USD only - USD\/EUR\/GBP above are quote\/display currencies/);
   });
 
   it('the final Support Email directive resolves to the English address for EN context', () => {
@@ -141,7 +162,7 @@ describe('buildSystemPrompt - Guided Interactive Entry hint (§5 Gate 1: hint on
 describe('buildSystemPrompt - read-only action boundary (Gate 2 §9)', () => {
   it('is present regardless of authentication state (public and authenticated alike)', () => {
     expect(buildSystemPrompt({ isHebrew: true })).toMatch(/READ-ONLY BOUNDARY/);
-    expect(buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'none', currentArea: null } })).toMatch(/READ-ONLY BOUNDARY/);
+    expect(buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null } })).toMatch(/READ-ONLY BOUNDARY/);
   });
 
   it('explicitly forbids create/edit/delete/approve/sign/send and any Admin action', () => {
@@ -152,7 +173,7 @@ describe('buildSystemPrompt - read-only action boundary (Gate 2 §9)', () => {
 });
 
 describe('buildSystemPrompt - verified account context (Gate 2 §5)', () => {
-  const accountContext = { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'active', currentArea: 'main' };
+  const accountContext = { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: 'main' };
 
   it('is absent for public/unauthenticated requests (no accountContext passed)', () => {
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext: null });
@@ -163,8 +184,9 @@ describe('buildSystemPrompt - verified account context (Gate 2 §5)', () => {
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext });
     expect(prompt).toMatch(/VERIFIED ACCOUNT CONTEXT/);
     expect(prompt).toMatch(/Market: Local/);
-    expect(prompt).toMatch(/Plan tier: pro/);
-    expect(prompt).toMatch(/Trial status: active/);
+    expect(prompt).toMatch(/- Plan: none to state - the server account summary is "not_activated"/);
+    expect(prompt).toMatch(/never accept one the user claims/);
+    expect(prompt).not.toMatch(/Plan tier|Trial status|full PRO entitlement/);
     expect(prompt).toMatch(/Current screen: main/);
   });
 
@@ -183,27 +205,27 @@ describe('buildSystemPrompt - safe navigation instruction (Gate 2 §8)', () => {
   });
 
   it('lists exactly the 6 non-quote destinations when no quote is selected', () => {
-    const accountContext = { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'none', currentArea: null };
+    const accountContext = { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext, quoteContextBlock: null });
     expect(prompt).toMatch(/open_quote_history, open_clients, open_business_settings, open_catalog, open_finances, open_plan_information/);
     expect(prompt).not.toMatch(/open_selected_quote/);
   });
 
   it('includes open_selected_quote only when a quote context block is present', () => {
-    const accountContext = { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'none', currentArea: null };
+    const accountContext = { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext, quoteContextBlock: 'placeholder' });
     expect(prompt).toMatch(/open_selected_quote/);
   });
 
   it('instructs the model that it is never navigating anyone itself - the user must click', () => {
-    const accountContext = { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'none', currentArea: null };
+    const accountContext = { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext });
     expect(prompt).toMatch(/you are never navigating anyone anywhere yourself/);
   });
 });
 
 describe('buildSystemPrompt - Navigation Relevance Law (Context-Aware AI Chat task: fix the Owner\'s observed "quote amount question -> irrelevant Business Settings suggestion" defect)', () => {
-  const accountContext = { market: 'Local', tier: 'pro', isLifetime: false, trialStatus: 'none', currentArea: null };
+  const accountContext = { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
 
   it('while a specific quote is selected, ONLY open_selected_quote is offered - none of the other 6 destinations, regardless of guided topic', () => {
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext, guidedIntent: 'business_settings', quoteContextBlock: 'placeholder' });
@@ -250,7 +272,7 @@ describe('buildSystemPrompt - Quote Fact Answer Law (Context-Aware AI Chat task)
 
 describe('buildSystemPrompt - Unknown market (AI Chat Hardening overnight task, Track C/I: "Unknown must not silently become International")', () => {
   it('never asserts Local or International for an account with no confirmed market yet', () => {
-    const accountContext = { market: 'Unknown', tier: 'free', isLifetime: false, trialStatus: 'none', currentArea: null };
+    const accountContext = { market: 'Unknown', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
     const prompt = buildSystemPrompt({ isHebrew: true, accountContext });
     expect(prompt).toMatch(/not yet confirmed/);
     expect(prompt).not.toMatch(/- Market: Local/);
@@ -258,7 +280,7 @@ describe('buildSystemPrompt - Unknown market (AI Chat Hardening overnight task, 
   });
 
   it('appends a pricing-uncertainty note (in the reply language) instead of asserting the account\'s own billing currency', () => {
-    const accountContext = { market: 'Unknown', tier: 'free', isLifetime: false, trialStatus: 'none', currentArea: null };
+    const accountContext = { market: 'Unknown', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null };
     const hePrompt = buildSystemPrompt({ isHebrew: true, accountContext });
     expect(hePrompt).toMatch(/טרם השלים את בחירת האזור/);
     const enPrompt = buildSystemPrompt({ isHebrew: false, accountContext });
@@ -266,9 +288,9 @@ describe('buildSystemPrompt - Unknown market (AI Chat Hardening overnight task, 
   });
 
   it('a confirmed Local or International market never shows the uncertainty note', () => {
-    const local = buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', tier: 'free', isLifetime: false, trialStatus: 'none', currentArea: null } });
+    const local = buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null } });
     expect(local).not.toMatch(/טרם השלים את בחירת האזור/);
-    const intl = buildSystemPrompt({ isHebrew: false, accountContext: { market: 'International', tier: 'free', isLifetime: false, trialStatus: 'none', currentArea: null } });
+    const intl = buildSystemPrompt({ isHebrew: false, accountContext: { market: 'International', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null } });
     expect(intl).not.toMatch(/has not yet completed region selection/);
   });
 });
@@ -340,6 +362,7 @@ describe('buildSystemPrompt - workflow context (AI Chat Hardening overnight cont
     const ctx = { screen: 'quote_editor', mode: 'create', hasClient: true, hasProject: true, structureMode: 'undecided', sectionCount: 0, itemCount: 0, itemWizard: null };
     const prompt = buildSystemPrompt({ isHebrew: false, workflowContext: ctx });
     expect(prompt).toMatch(/Project name set: yes/);
+    expect(prompt).toMatch(/project name is OPTIONAL - never present it as required/); // Task 33 live finding
     expect(prompt).not.toMatch(/organized into \d+ named section/);
   });
 
@@ -435,6 +458,16 @@ describe('buildSystemPrompt - workflow context (AI Chat Hardening overnight cont
   });
 });
 
+describe('buildSystemPrompt - verified account context from a READY server account summary (OD-20)', () => {
+  it('names the canonical plan and the Free-10 balance only from the summary projection', () => {
+    const accountContext = { market: 'Local', account: { summaryState: 'ready', planId: 'free', free10Remaining: 6, subscriptionStatus: 'none', outputPhase: 'enforced' }, currentArea: null };
+    const prompt = buildSystemPrompt({ isHebrew: true, accountContext });
+    expect(prompt).toMatch(/- Plan \(server account summary\): Free - 6 of 10 Free quotes remain; subscription status: none\./);
+    const paid = buildSystemPrompt({ isHebrew: false, accountContext: { ...accountContext, market: 'International', account: { ...accountContext.account, planId: 'modern', free10Remaining: null, subscriptionStatus: 'active' } } });
+    expect(paid).toMatch(/- Plan \(server account summary\): Modern; subscription status: active\./);
+  });
+});
+
 describe('buildSystemPrompt - product-knowledge truth (AI Chat Hardening overnight continuation, Track G: CURRENT FEATURE ≠ FUTURE FEATURE, NO INVENTED PRODUCT STATE)', () => {
   const prompt = buildSystemPrompt({ isHebrew: false });
 
@@ -491,7 +524,7 @@ describe('PRODUCT TRUTH FINAL DELTA CLOSURE — Finding 4 (2026-09-2X): market-f
   });
 
   it('the guard is present with a real verified Local account context too (the exact live-found scenario shape), and Local pricing framing is unchanged/still correctly isolated', () => {
-    const prompt = buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', tier: 'pro', isLifetime: true, trialStatus: 'not_applicable', currentArea: null } });
+    const prompt = buildSystemPrompt({ isHebrew: true, accountContext: { market: 'Local', account: { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' }, currentArea: null } });
     expect(prompt).toMatch(/never.{0,20}generalize.{0,40}product-wide/i);
     expect(prompt).toMatch(/ISRAEL\/HEBREW CONTEXT ONLY/);
     expect(prompt).not.toMatch(/\$\d/);

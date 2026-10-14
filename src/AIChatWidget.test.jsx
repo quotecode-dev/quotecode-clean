@@ -306,7 +306,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
       expect(btn).toHaveAttribute('title', groupTooltip(groupId, true));
     }
     expect(screen.queryByText('בעיה טכנית')).not.toBeInTheDocument();
-    expect(screen.queryByText('הצעה לשיפור')).not.toBeInTheDocument();
+    expect(screen.queryByText('משוב על המערכת')).not.toBeInTheDocument(); // Task 34 label of 'suggestion'
     expect(screen.getByPlaceholderText('שאל משהו...')).toBeEnabled();
   });
 
@@ -386,7 +386,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
 
     expect(screen.getByRole('button', { name: groupCardName('quotes', true) })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: groupCardName('feedback_questions', true) })).toBeInTheDocument();
-    expect(screen.queryByText('הצעה לשיפור')).not.toBeInTheDocument();
+    expect(screen.queryByText('משוב על המערכת')).not.toBeInTheDocument(); // Task 34 label of 'suggestion'
   });
 
   it('every reachable subtopic, in every multi-child group, renders its own title and one-line description (Descriptive Guided AI Cards task, full sweep)', async () => {
@@ -461,7 +461,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     expect(screen.queryByText('שאלה כללית או הצעה מסוימת?')).not.toBeInTheDocument();
     expect(screen.queryByText('שאלה כללית')).not.toBeInTheDocument(); // sibling subtopic hidden
     expect(screen.queryByText('הצעות מחיר')).not.toBeInTheDocument(); // top-level list hidden
-    expect(screen.getByText('משוב ושאלות → הצעה לשיפור')).toBeInTheDocument(); // breadcrumb: group -> leaf
+    expect(screen.getByText('משוב ושאלות → משוב על המערכת')).toBeInTheDocument(); // breadcrumb: group -> leaf (Task 34 label)
     expect(screen.getByPlaceholderText('שאל משהו...')).toBeEnabled();
   });
 

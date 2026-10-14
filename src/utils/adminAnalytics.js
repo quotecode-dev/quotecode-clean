@@ -1,12 +1,11 @@
 // Pure, presentation-free data-shaping functions for the Admin overview/
 // header KPIs. Every function here reads ONLY real, already-loaded
-// `accounts` rows (business_settings) and the ONE canonical entitlement
-// resolver (`resolveAccountEntitlement`) - never a second/independent
-// entitlement model, never fabricated categories or counts. Kept pure (no
+// `accounts` rows (business_settings) - never an entitlement model of its own,
+// never fabricated categories or counts. The new-model plan state is NOT computed
+// here (OD-20: it comes only from the admin summary RPC). Kept pure (no
 // React, no DOM) so each is directly unit-testable without mounting any
 // component. Ported from the reference Admin implementation (tkrc2) as part
 // of TEKANGO Admin V1 - Task 1/2 (shared dark shell + truthful dashboard).
-import { resolveAccountEntitlement } from './accountEntitlement';
 import { resolveAdminMarket } from './adminMarket';
 
 function realAccounts(accounts) {
@@ -15,17 +14,29 @@ function realAccounts(accounts) {
   );
 }
 
-// Plan distribution (FREE/FREE_TRIAL/BASIC/PRO/LIFETIME) - the same
-// canonical `displayIdentity` the Users directory/details view already use.
-export function getPlanDistribution(accounts) {
+// LEGACY RECORD (HISTORY) breakdown - OD-16/OD-20. The legacy business_settings fields (plan / trial_ends_at /
+// is_lifetime) are audit history only: this counts their RAW technical values (lowercase keys, as stored) and is always
+// presented under the "Legacy record (history)" label. It never maps them to a plan name (no Basic/Pro/trial/LIFETIME
+// identity) and never derives a new-model plan - the new plan state comes only from the admin summary RPC.
+export const LEGACY_HISTORY_LABEL = Object.freeze({ he: 'רשומת מורשת (היסטוריה)', en: 'Legacy record (history)' });
+
+const rawPlan = (value) => (typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : 'null');
+
+export function getLegacyRecordBreakdown(accounts, now = new Date()) {
   const users = realAccounts(accounts);
-  const order = ['FREE', 'FREE_TRIAL', 'BASIC', 'PRO', 'LIFETIME'];
-  const counts = Object.fromEntries(order.map((id) => [id, 0]));
+  const nowMs = now.getTime();
+  const counts = new Map();
+  const bump = (key) => counts.set(key, (counts.get(key) || 0) + 1);
   for (const account of users) {
-    const { displayIdentity } = resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime });
-    counts[displayIdentity] = (counts[displayIdentity] || 0) + 1;
+    bump(`plan=${rawPlan(account.plan)}`);
+    bump(`is_lifetime=${account.is_lifetime === true ? 'true' : account.is_lifetime === false ? 'false' : 'null'}`);
+    const t = account.trial_ends_at ? new Date(account.trial_ends_at).getTime() : NaN;
+    bump(!account.trial_ends_at ? 'trial_ends_at=null' : !Number.isFinite(t) ? 'trial_ends_at=invalid' : t > nowMs ? 'trial_ends_at>now' : 'trial_ends_at<=now');
   }
-  return order.map((id) => ({ id, count: counts[id] })).filter((row) => row.count > 0);
+  const order = (key) => (key.startsWith('plan=') ? 0 : key.startsWith('is_lifetime=') ? 1 : 2);
+  return [...counts.entries()]
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => order(a.key) - order(b.key) || a.key.localeCompare(b.key));
 }
 
 // Registrations over the last N real days - honest zero-count days
@@ -64,43 +75,17 @@ export function getMarketDistribution(accounts) {
   ].filter((row) => row.count > 0);
 }
 
-// Trial/account-state distribution - the canonical resolver's own 4-value
-// `trialStatus` vocabulary (active/expiringSoon/expired/none) exactly.
-export function getTrialStateDistribution(accounts) {
-  const users = realAccounts(accounts);
-  const order = ['active', 'expiringSoon', 'expired', 'none'];
-  const counts = Object.fromEntries(order.map((id) => [id, 0]));
-  for (const account of users) {
-    const { trialStatus } = resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime });
-    counts[trialStatus] = (counts[trialStatus] || 0) + 1;
-  }
-  return order.map((id) => ({ id, count: counts[id] })).filter((row) => row.count > 0);
-}
-
-// Canonical plan sort rank: FREE < FREE_TRIAL < BASIC < PRO < LIFETIME.
-export const PLAN_SORT_RANK = { FREE: 0, FREE_TRIAL: 1, BASIC: 2, PRO: 3, LIFETIME: 4 };
-
-export function getPlanSortRank(account) {
-  const { displayIdentity } = resolveAccountEntitlement({ plan: account?.plan, trialEndsAt: account?.trial_ends_at, role: account?.role, isLifetime: account?.isLifetime ?? account?.is_lifetime });
-  return PLAN_SORT_RANK[displayIdentity] ?? -1;
-}
-
 // Admin V1 (Task 2) KPI summary for the shared Header's Admin context slot
 // and AdminOverview. No "active now"/online inference anywhere here - the
 // Owner's binding V1 rule explicitly forbids last-sign-in-recency signals;
-// this only ever counts real, structural facts (row existence, created_at,
-// trialStatus from the one canonical resolver).
+// this only ever counts real, structural facts (row existence, created_at).
+// OD-16/OD-20: no trial/plan KPI is derived from the legacy fields any more.
 export function getAdminKpiSummary(accounts, now = new Date()) {
   const users = realAccounts(accounts);
   const nowMs = now.getTime();
   const dayMs = 86400000;
-  let activeTrials = 0;
-  let expiringSoon = 0;
   let registrationsLast24h = 0;
   for (const account of users) {
-    const { trialStatus } = resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime });
-    if (trialStatus === 'active' || trialStatus === 'expiringSoon') activeTrials += 1;
-    if (trialStatus === 'expiringSoon') expiringSoon += 1;
     if (account.created_at) {
       const age = nowMs - new Date(account.created_at).getTime();
       if (age >= 0 && age < dayMs) registrationsLast24h += 1;
@@ -108,8 +93,6 @@ export function getAdminKpiSummary(accounts, now = new Date()) {
   }
   return {
     managedBusinesses: users.length,
-    activeTrials,
-    expiringSoon,
     registrationsLast24h,
   };
 }

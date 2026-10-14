@@ -5,10 +5,18 @@
 // non-current capability states already tracked elsewhere in the canonical doc. This is the
 // HYBRID GENERATED REGISTRY's curated half (§52.7) — labels, descriptions, state, surfaces,
 // forbidden-claim codes and evidence pointers are hand-maintained here; plan/entitlement and
-// market facts are DERIVED at generation time (scripts/generate-ai-chat-facts.js) from
-// src/utils/planCatalog.js / src/utils/accountEntitlement.js / src/utils/regionConfig.js —
-// never re-typed here. Do not hand-duplicate a plan boolean in this file (L6 "PRODUCT TRUTH:
-// ONE SOURCE", TEKANGO_AI_ARCHITECTURE.md §5).
+// subscription facts are DERIVED at generation time (scripts/generate-ai-chat-facts.js) from the
+// canonical subscription sources (supabase/functions/_shared/subscriptionContract.ts and
+// src/domain/subscriptions/priceCatalog.js) — never re-typed here. Do not hand-duplicate a plan
+// boolean in this file (L6 "PRODUCT TRUTH: ONE SOURCE", TEKANGO_AI_ARCHITECTURE.md §5).
+//
+// SUBSCRIPTIONS CUTOVER (OD-01..OD-20, 2026-10-07): the legacy plan gates, the trial and the monthly
+// quote limits are NOT current product truth any more. A capability that the subscription system
+// gates now names its canonical capability id (`subscriptionCapabilityId`, subscriptionContract.ts
+// CAPABILITIES); which plans include it is not decided (OPEN-02 / OPEN-13), so `minimumPlan` is null
+// on every entry and `planEligibility` is 'not_decided'. The pre-cutover plan gates survive ONLY as
+// labelled audit history in productTruthLegacyPlanRules.js, used to validate historical (chat-ai v39)
+// evidence captures — never to answer a user.
 //
 // LOCKED: the 38 IDs below are frozen from §52.2. Do not silently add/remove/split/merge an ID —
 // any such change requires a fresh canonical-doc update first (§52 change-control, mirroring §41).
@@ -19,8 +27,8 @@
 // unqualified capability's "delete" action; the CANONICAL Product Truth Registry review the
 // Codex Register was based on records these as two separate ORIGIN- and OTHER-facing findings
 // under the OWNER_WHATSAPP_SHARE capability id only — quote deletion itself has no dedicated id
-// among the 38. This registry therefore attaches the whatsappDelete-derived "quote deletion is
-// PRO" fact to `owner_whatsapp_share.deterministicFactKeys` (not a new id) and records the
+// among the 38. This registry therefore attaches the shared-gate fact (canonical capability
+// `quote.whatsapp_delete`) to `owner_whatsapp_share.deterministicFactKeys` (not a new id) and records the
 // discrepancy again in this file's own test suite instead of expanding the frozen inventory.
 
 /** @typedef {'LIVE_CURRENT'|'FIRST_LIVE_CANDIDATE'|'TEST_ONLY'|'IMPLEMENTED_NOT_RELEASED'|'ROADMAP_POST_LIVE'|'UNAVAILABLE'|'DEPRECATED'} CapabilityState */
@@ -46,10 +54,14 @@ export const CANONICAL_38_IDS = Object.freeze([
   'quote_expiry', 'draft_recovery', 'accessibility_tools', 'ai_chat', 'admin_console',
 ]);
 
-// The 4 non-current entries (§52.2), outside the 38. Their state/facts are derived at generation
+// The non-current entries (§52.2 + Task 20/21 additions), outside the 38. Their state/facts are derived at generation
 // time from AI_FACTS.billing / AI_FACTS.invoicing (payment/invoicing) — never duplicated here as
 // a second boolean; this record only carries the curated label/description/forbidden-claim shape.
-export const NON_CURRENT_IDS = Object.freeze(['payment_processing', 'invoicing', 'autonomous_email', 'ai_mutation']);
+export const NON_CURRENT_IDS = Object.freeze(['payment_processing', 'invoicing', 'autonomous_email', 'ai_mutation', 'automatic_customer_messages', 'automatic_whatsapp', 'google_calendar_sync']);
+
+// Task 20 (Owner instruction 2026-10-09, AI-chat product knowledge): the capabilities added after the frozen 38 - Tasks 17-20 product
+// screens the assistant must explain from THIS registry (never a parallel facts source). Pinned explicitly, in this order, after the 38.
+export const PHASE_CAPABILITY_IDS = Object.freeze(['quote_statistics', 'manual_tasks', 'calendar', 'quote_link_view', 'reminders_automation', 'digital_business_card']); // Task 23: Phase 5 card
 
 const REV = '2c584f6d910b130bd446183b41e94bda35a5900f'; // candidate this registry was authored/verified against (tekango-rc-ironlaw-2026-09-22)
 
@@ -70,16 +82,21 @@ function capability(id, heLabel, enLabel, heDescription, enDescription, opts = {
     markets: Object.freeze(opts.markets || ['local', 'international']),
     // currencies: null (no currency role) or { role: 'quote'|'payment'|'display'|'conversion_only', values: [...] }
     currencies: opts.currencies || null,
-    entitlementKey: opts.entitlementKey ?? null, // a real src/utils/planCatalog.js entitlements field name, or null
-    minimumPlan: opts.minimumPlan ?? null, // 'free'|'basic'|'pro'|null — cross-checked at generation time against entitlementKey
-    // Codex defect 6 (2026-09-22): a capability's restriction axis is either a PLAN entitlement
-    // (minimumPlan/entitlementKey above) or a server-verified ROLE (independent of plan/Lifetime —
-    // never inferred from tier). 'none' = no restriction beyond being signed in. Exactly one of
-    // {minimumPlan, requiredRole} may be set on a given entry; both null means unrestricted.
-    authorityType: opts.authorityType ?? (opts.minimumPlan ? 'plan' : opts.requiredRole ? 'role' : 'none'),
+    // Legacy plan-gate fields, kept as keys for contract stability and always null after the subscriptions cutover:
+    // no approved plan grants any gated capability yet (OPEN-02). Never re-populate them with legacy plan values.
+    entitlementKey: null,
+    minimumPlan: null,
+    // The canonical subscription capability id (subscriptionContract.ts CAPABILITIES) that gates this capability when the
+    // subscription system is active, or null. Which plans include it is NOT decided (OPEN-02 / OPEN-13).
+    subscriptionCapabilityId: opts.subscriptionCapabilityId ?? null,
+    planEligibility: opts.subscriptionCapabilityId ? 'not_decided' : null,
+    // Codex defect 6 (2026-09-22): a capability's restriction axis is either a SUBSCRIPTION capability
+    // (subscriptionCapabilityId above; plan eligibility not decided) or a server-verified ROLE (independent
+    // of plan - never inferred from a plan). 'none' = no restriction beyond being signed in. Exactly one of
+    // {subscriptionCapabilityId, requiredRole} may be set on a given entry; both null means unrestricted.
+    authorityType: opts.authorityType ?? (opts.subscriptionCapabilityId ? 'subscription' : opts.requiredRole ? 'role' : 'none'),
     requiredRole: opts.requiredRole ?? null, // a real verified `business_settings.role` value (e.g. 'super_admin'), or null
     authoritySource: opts.authoritySource ?? null, // where the role is verified server-side (file path), for role-gated entries only
-    trialAvailable: opts.trialAvailable ?? true, // whether the 14-day trial grants this (trial = temporary PRO entitlement, §5 L-none/AI_FACTS.trialDays)
     operationType: opts.operationType || 'read', // 'read'|'mutate'
     userActionAvailable: opts.userActionAvailable ?? true,
     aiMayExplain: opts.aiMayExplain ?? true,
@@ -99,7 +116,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('dashboard_overview', 'לוח בקרה', 'Dashboard overview',
     'מסך הבית לאחר התחברות - סיכום הצעות מחיר, פעולות מהירות וניווט לשאר המערכת.',
     'The signed-in home screen - a summary of quotes, quick actions, and navigation to the rest of the app.',
-    { surfaces: ['dashboard'], aiMayNavigate: true, safeNavigationId: 'open_dashboard', canonicalSources: ['src/pages/Dashboard.jsx'] }),
+    { surfaces: ['dashboard'], aiMayNavigate: true, safeNavigationId: 'open_dashboard', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/StatisticsTab.jsx', 'src/components/TasksTab.jsx', 'src/components/CalendarTab.jsx'] }), // Task 17: Statistics is part of the dashboard quote summary; Task 18: the manual task list is a dashboard workspace screen (no new capability id - the 38 are frozen); Task 19: the calendar likewise
 
   capability('quote_history', 'היסטוריית הצעות מחיר', 'Quote history',
     'רשימת כל הצעות המחיר שנוצרו, עם חיפוש, סינון וסטטוס.',
@@ -107,49 +124,56 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_history_screen'], aiMayNavigate: true, safeNavigationId: 'open_quote_history', canonicalSources: ['src/components/QuotesTab.jsx'] }),
 
   capability('quote_create', 'יצירת הצעת מחיר חדשה', 'Create a new quote',
-    'יצירת הצעת מחיר חדשה, כפופה למגבלת ההצעות החודשית של התוכנית.',
-    'Create a new quote, subject to the plan\'s monthly quote limit.',
+    'יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם.',
+    'Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan.',
     {
       surfaces: ['dashboard', 'quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_new_quote',
-      entitlementKey: 'monthlyQuoteLimit', deterministicFactKeys: ['monthlyQuoteLimit'],
+      deterministicFactKeys: ['subscriptions.free.quotesTotal'],
       // Codex finding 3 (2026-09-24): the real UI trigger (`isCreatingQuote`) lives in
       // Dashboard.jsx, not QuoteForm.jsx (the form component it then renders) - added so this
       // capability's own source-owned marker actually joins to a listed canonical source.
-      canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuoteForm.jsx', 'src/utils/planCatalog.js'],
+      canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuoteForm.jsx', 'src/domain/subscriptions/priceCatalog.js',
+        // Task 16 - Quote Experience V2: the quote's own presentation (style + images) is part of creating the quote.
+        'src/components/quotePresentation/QuotePresentationPanel.jsx', 'src/components/quotePresentation/QuoteMediaManager.jsx',
+        'src/components/quotePresentation/QuoteStylePicker.jsx',
+        // Task 27 (spec §6): starting a new quote from a saved whole-quote template (the template dialogs)
+        'src/components/QuoteTemplateDialogs.jsx'],
     }),
 
   capability('quote_edit', 'עריכת הצעה שמורה', 'Edit a saved quote',
     'עריכת הצעת מחיר שכבר נשמרה.',
     'Edit a quote that has already been saved.',
     {
-      surfaces: ['quote_editor'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'editDuplicate',
+      surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'quote.edit_duplicate',
       aiMayNavigate: true, safeNavigationId: 'open_selected_quote', canonicalSources: ['src/components/QuoteForm.jsx', 'src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'],
     }),
 
   capability('quote_duplicate', 'שכפול הצעת מחיר', 'Duplicate a quote',
     'שכפול הצעת מחיר קיימת ליצירת הצעה חדשה מבוססת עליה.',
     'Duplicate an existing quote to start a new one from it.',
-    { surfaces: ['quote_history_screen'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'editDuplicate', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'] }),
+    { surfaces: ['quote_history_screen'], operationType: 'mutate', subscriptionCapabilityId: 'quote.edit_duplicate', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'] }),
 
   capability('quote_status', 'סטטוס הצעת מחיר', 'Quote status',
     'סימון/צפייה בסטטוס הצעה (טיוטה/נשלח/אושר/שולם) - תווית ידנית, אינה גובה תשלום.',
     'Viewing/setting a quote\'s status (Draft/Sent/Approved/Paid) - a manual label, it does not collect payment.',
-    { surfaces: ['quote_editor', 'quote_history_screen'], operationType: 'mutate', forbiddenClaimCodes: ['NO_PAID_STATUS_AS_PAYMENT_COLLECTION'], canonicalSources: ['src/components/QuotesTab.jsx'] }),
+    { surfaces: ['quote_editor', 'quote_history_screen'], operationType: 'mutate', forbiddenClaimCodes: ['NO_PAID_STATUS_AS_PAYMENT_COLLECTION'], canonicalSources: ['src/components/QuotesTab.jsx',
+      // Task 16: issuing (freezing) the quote presentation is a quote lifecycle step.
+      'src/components/quotePresentation/QuotePresentationPanel.jsx', 'src/components/quotePresentation/IssueQuoteDialog.jsx'] }),
 
   capability('smart_quote', 'הצעת מחיר חכמה', 'Smart Quote flow',
     'תהליך יצירת הצעה מודרך בארבעה שלבים (למי / מה / מחיר / סקירה ושמירה), ללא חובת מבנה-חדרים.',
     'A four-step guided quote-creation flow (who / what / price / review & save), with no compulsory room/area structure.',
-    { surfaces: ['quote_editor'], operationType: 'mutate', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx'] }),
+    { surfaces: ['quote_editor'], operationType: 'mutate', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx'] }), // Task 21: the AI-draft dialog of the AI smart-quote entry (its server function is local source only - not described as available)
 
   capability('measured_quote', 'הצעת מחיר מקצועית/מדודה', 'Measured professional quote',
     'הצעות מחיר מקצועיות עם מבנה מדוד (חדרים/אזורים/יחידות).',
     'Professional quotes with a measured structure (rooms/areas/units).',
-    { surfaces: ['quote_editor'], operationType: 'mutate', minimumPlan: 'basic', entitlementKey: 'professionalQuotes', canonicalSources: ['src/components/QuoteForm.jsx'] }),
+    { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.use', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('professional_reuse', 'שימוש חוזר מקצועי בפריטים', 'Advanced professional item reuse',
     'שימוש חוזר מתקדם בפריטים מקצועיים בין הצעות מחיר.',
     'Advanced reuse of professional items across quotes.',
-    { surfaces: ['quote_editor'], operationType: 'mutate', minimumPlan: 'pro', entitlementKey: 'professionalQuoteReuse', canonicalSources: ['src/components/QuoteForm.jsx'] }),
+    { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.reuse', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('clients', 'ניהול לקוחות', 'Client management',
     'הוספה, עריכה וצפייה בלקוחות.',
@@ -159,7 +183,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('catalog', 'קטלוג שירותים', 'Services catalog',
     'ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר.',
     'Managing a catalog of items/services for reuse across quotes.',
-    { surfaces: ['catalog_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_catalog', canonicalSources: ['src/components/ServicesCatalog.jsx'] }),
+    { surfaces: ['catalog_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_catalog', canonicalSources: ['src/components/ServicesCatalog.jsx', 'src/components/quotePresentation/CatalogMediaControl.jsx'] }),
 
   capability('finance_views', 'תצוגות פיננסיות', 'Finance views',
     'צפייה בסיכומי הכנסות/הוצאות ומדדים פיננסיים.',
@@ -230,7 +254,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('business_settings', 'הגדרות עסק', 'Business settings',
     'עריכת פרטי העסק (שם, טלפון, ח.פ./עוסק, לוגו והגדרות נוספות).',
     'Editing business details (name, phone, tax/business ID, logo, and other settings).',
-    { surfaces: ['settings_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/SettingsTab.jsx'] }),
+    { surfaces: ['settings_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/SettingsTab.jsx', 'src/components/quotePresentation/QuoteStylePicker.jsx',
+      'src/components/ShareDefaultsSettings.jsx'] }), // Task 27: manual sharing defaults / thank-you settings screen
 
   capability('profile_prerequisites', 'דרישות פרופיל עסקי', 'Business profile prerequisites',
     'טלפון עסקי (וב-שוק המקומי גם ח.פ./עוסק) נדרשים לפני יצירת הצעה ראשונה.',
@@ -240,17 +265,23 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
       canonicalSources: ['src/components/SettingsTab.jsx', 'src/utils/regionConfig.js'],
     }),
 
-  capability('plan_trial', 'ניסיון חינם', '14-day free trial',
-    'ניסיון חינם של 14 יום המעניק זכאות PRO זמנית - אינו תוכנית נמכרת בפני עצמה.',
-    'A 14-day free trial granting temporary PRO entitlement - not a sellable plan in its own right.',
-    { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['trialDays'], canonicalSources: ['src/utils/accountEntitlement.js', 'src/components/PricingModal.jsx', 'src/components/SettingsTab.jsx', 'src/pages/Dashboard.jsx'] }),
+  // Stable technical id kept from the frozen 38 (§52 change-control); the CONTENT is the post-cutover plan truth (OD-01/16):
+  // there is no trial - Free is 10 quotes in total with no expiry, and the new plan system is not active yet.
+  capability('plan_trial', 'מסלולים ו-10 הצעות חינם', 'Plans and Free quotes',
+    'מסלול חינם כולל 10 הצעות בסך הכול, ללא תפוגה. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.',
+    'The Free plan includes 10 quotes in total, valid without an expiry date. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.',
+    { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['subscriptions.free.quotesTotal', 'subscriptions.planSystemActive'], canonicalSources: ['src/domain/subscriptions/packageCatalog.js', 'src/domain/subscriptions/priceCatalog.js', 'supabase/functions/_shared/subscriptionContract.ts', 'src/components/PricingModal.jsx', 'src/components/SettingsTab.jsx', 'src/pages/Dashboard.jsx',
+      // still carries this id's PRODUCT_TRUTH_CAPABILITY marker (legacy resolver, owned by the core stream): drop this path when
+      // the core stream removes that marker or the file.
+      'src/utils/accountEntitlement.js'] }),
 
   capability('attachments', 'צירוף קבצים', 'File attachments',
     'צירוף קבצים/שרטוטים להצעת מחיר.',
     'Attaching files/drawings to a quote.',
     {
-      surfaces: ['quote_editor'], operationType: 'mutate', minimumPlan: 'pro', entitlementKey: 'attachments',
-      deterministicFactKeys: ['attachments.maxFileMb', 'attachments.maxTotalMb'], canonicalSources: ['src/components/QuoteForm.jsx', 'src/utils/planCatalog.js'],
+      surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'quote_attachment.upload',
+      // OPEN-13: which plans include attachments, and their file types / count / size limits, are not decided.
+      deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'supabase/functions/_shared/subscriptionContract.ts'],
     }),
 
   capability('quote_pdf', 'PDF של הצעת מחיר', 'Quote PDF export',
@@ -266,18 +297,18 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('quote_email', 'שליחת הצעה במייל', 'Emailing a quote',
     'שליחת הצעת מחיר ללקוח במייל - שולחת את ההצעה, אינה מבצעת חיוב.',
     'Sending a quote to a client by email - sends the quote, does not bill or invoice.',
-    { surfaces: ['quote_editor'], operationType: 'mutate', forbiddenClaimCodes: ['NO_INVOICE_CONFLATION', 'NO_PAYMENT_COLLECTION_CLAIM'], canonicalSources: ['supabase/functions/send-quote-email/index.ts', 'src/components/EmailConfirmModal.jsx', 'src/components/QuotesTab.jsx'] }),
+    { surfaces: ['quote_editor'], operationType: 'mutate', forbiddenClaimCodes: ['NO_INVOICE_CONFLATION', 'NO_PAYMENT_COLLECTION_CLAIM'], canonicalSources: ['supabase/functions/send-quote-email/index.ts', 'src/components/EmailConfirmModal.jsx', 'src/components/QuotesTab.jsx', 'src/components/StatisticsTab.jsx'] }),
 
   capability('owner_whatsapp_share', 'שיתוף הצעה ב-WhatsApp (בעל העסק)', 'Owner WhatsApp share',
     'שיתוף הצעת מחיר ב-WhatsApp על ידי בעל העסק - שונה מפעולת יצירת הקשר של הצד המקבל בהצעה הציבורית.',
     'The business owner sharing a quote via WhatsApp - a different capability from the recipient\'s WhatsApp contact action on the public quote.',
     {
-      surfaces: ['quote_editor', 'quote_history_screen'], minimumPlan: 'pro', entitlementKey: 'whatsappDelete',
+      surfaces: ['quote_editor', 'quote_history_screen'], subscriptionCapabilityId: 'quote.whatsapp_delete',
       forbiddenClaimCodes: ['NO_OWNER_PUBLIC_WHATSAPP_CONFLATION'],
       // Known discrepancy (see file header): the same entitlementKey also gates quote deletion in real
       // source (src/pages/Dashboard.jsx handleProtectedAction), which has no dedicated id among the 38.
       deterministicFactKeys: ['quoteDeletionSharesThisEntitlement'],
-      canonicalSources: ['src/pages/Dashboard.jsx', 'src/utils/planCatalog.js', 'src/components/QuotesTab.jsx'],
+      canonicalSources: ['src/pages/Dashboard.jsx', 'supabase/functions/_shared/subscriptionContract.ts', 'src/components/QuotesTab.jsx', 'src/components/StatisticsTab.jsx'],
     }),
 
   capability('public_whatsapp_contact', 'יצירת קשר ב-WhatsApp (צד מקבל)', 'Public quote WhatsApp contact',
@@ -300,7 +331,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('public_quote_view', 'צפייה בהצעה ציבורית', 'Public quote viewing',
     'צפייה בהצעת מחיר על ידי הלקוח, ללא צורך בהתחברות, דרך קישור ייחודי.',
     'Viewing a quote as the client, no login required, via a unique link.',
-    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'src/components/QuotesTab.jsx', 'src/pages/Dashboard.jsx'] }),
+    { surfaces: ['public_quote_page'], canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'src/components/QuotesTab.jsx', 'src/pages/Dashboard.jsx', 'src/components/StatisticsTab.jsx'] }),
 
   capability('public_quote_sign', 'חתימה על הצעה ציבורית', 'Public quote signing',
     'אישור/חתימה על הצעת מחיר על ידי הלקוח, בכפוף לתוקף ההצעה ולזהות המאשר.',
@@ -334,13 +365,12 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts', 'src/components/AiHelpButton.jsx', 'src/pages/Dashboard.jsx'] }),
 
   capability('admin_console', 'מסך ניהול', 'Admin console',
-    'מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי בתוכנית/Lifetime ואינו חלק ממרחב העבודה של משתמש רגיל.',
-    'An internal admin screen restricted to a server-verified Super Admin role - independent of plan/Lifetime entitlement, not part of an ordinary user\'s workspace.',
+    'מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי במסלול ואינו חלק ממרחב העבודה של משתמש רגיל.',
+    'An internal admin screen restricted to a server-verified Super Admin role - independent of plan entitlement, not part of an ordinary user\'s workspace.',
     {
       // Codex defect 6 (2026-09-22): Admin is a ROLE restriction (`business_settings.role ===
-      // 'super_admin'`, verified server-side), never a plan/Lifetime restriction - a PRO or
-      // Lifetime account with an ordinary role has no Admin access, and a super_admin's `tier` is
-      // forced to 'pro' as a side effect of admin status, never the other way around (accountContext.ts).
+      // 'super_admin'`, verified server-side), never a plan restriction - an account on any plan with an
+      // ordinary role has no Admin access, and admin status is never inferred from a plan (accountContext.ts).
       surfaces: ['admin_screen'], authorityType: 'role', requiredRole: 'super_admin',
       authoritySource: 'supabase/functions/chat-ai/accountContext.ts',
       forbiddenClaimCodes: ['NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE'],
@@ -354,6 +384,39 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
         'src/components/AdminSidebarNav.jsx', 'src/components/AdminUsersView.jsx', 'src/pages/Dashboard.jsx',
       ],
     }),
+
+  // ---- Task 20: capabilities after the frozen 38 (PHASE_CAPABILITY_IDS). Descriptions state what is active and what is not. ----
+  capability('quote_statistics', 'סטטיסטיקת הצעות והצעות חמות', 'Quote statistics and hot quotes',
+    "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: פתיחה, WhatsApp, העתקת קישור ושליחה חוזרת. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
+    "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: open, WhatsApp, copy link and resend. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
+    { surfaces: ['dashboard'], canonicalSources: ['src/components/StatisticsTab.jsx', 'src/utils/quoteStatistics.js'] }),
+
+  capability('manual_tasks', 'משימות ידניות', 'Manual tasks',
+    "מסך משימות: יוצרים משימה ידנית עם כותרת, הערות, תאריך ושעה, עדיפות וקישור להצעה או ללקוח שלכם, ומסמנים אותה כהושלמה. אפשר ליצור משימת מעקב ישירות מהצעה חמה. המשימות שמורות בחשבון שלכם ומוצגות רק לכם.",
+    "A Tasks screen: you create a manual task with a title, notes, date and time, priority and a link to one of your quotes or clients, and mark it completed. A follow-up task can be created directly from a hot quote. Tasks are saved in your account and shown only to you.",
+    { surfaces: ['dashboard'], operationType: 'mutate', canonicalSources: ['src/components/TasksTab.jsx', 'src/utils/tasksClient.js', 'src/utils/manualTasks.js'] }),
+
+  capability('calendar', 'יומן', 'Calendar',
+    "יומן בתצוגת יום, שבוע וחודש: משימות לפי התאריך והשעה שלהן, והצעות שממתינות לחתימה לפי תאריך „בתוקף עד”. בחשבון ישראלי היומן מציג גם שבתות, חגים וימי מנוחה רשמיים בישראל ברקע נפרד שאפשר להסתיר. השבוע מתחיל ביום ראשון, והחגים הם שכבת מידע בלבד. זה יומן פנימי של TEKANGO לתכנון העבודה; פותחים אותו מהתפריט „יומן” (בנייד: „עוד” ← „יומן”). הוא אינו מסונכרן ל-Google Calendar או ליומן חיצוני אחר.",
+    "A calendar with day, week and month views: tasks on their date and time, and quotes awaiting signature on their valid-until date. Israeli accounts also see Saturdays and Israeli official holidays and rest days in a separate background that can be hidden. Weeks start on Sunday, and holidays are an information layer only. It is TEKANGO’s internal calendar for planning your work; open it from the “Calendar” menu item (on mobile: “More” → “Calendar”). It is not synced with Google Calendar or any other external calendar.",
+    { surfaces: ['dashboard'], canonicalSources: ['src/components/CalendarTab.jsx', 'src/utils/calendarModel.js'] }),
+
+  capability('quote_link_view', 'צפייה בקישור ההצעה', 'Quote link viewed',
+    "הצעה „נשלחה” כשסימנתם אותה כנשלחה. „צפייה בקישור ההצעה” נשמרת בזמן השרת, פעם אחת, כשקישור ההצעה נפתח והמסמך הוצג לפחות 5 שניות בדפדפן שאינו החשבון שלכם וסורקים מוכרים מסוננים. זו אינדיקציה לפתיחת הקישור בלבד - גם פתיחה שלכם מדפדפן מנותק או סורק חדש עשויים להיספר, ולכן היא מוצגת כצפייה בקישור. הנקודה הירוקה ליד מייל מאשרת רק שספק המייל קיבל את בקשת השליחה. הרישום מתחיל אחרי עדכון השרת.",
+    "A quote is “sent” when you marked it as sent. “Quote link viewed” is stored in server time, once, when the quote link was opened and the document shown for at least 5 seconds in a browser other than your account, with known scanners filtered out. It indicates that the link was opened - your own opening from a signed-out browser or a new scanner can also count, so it is shown as a link view. The green dot next to an email confirms only that the email provider accepted the send request. Recording starts after the server update.",
+    { surfaces: ['public_quote_page', 'dashboard'], canonicalSources: ['src/utils/firstView.js', 'src/components/SmartPublicQuote.jsx'] }),
+
+  capability('reminders_automation', 'תזכורות ואוטומציות', 'Reminders & automation',
+    "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים - „בממשק בלבד” (ברירת המחדל: התזכורות מופיעות אצלכם בפעמון), „כבוי”, או „מלא, כולל שליחה ללקוח”, שנדלק רק בבחירה מפורשת שלכם. מסמנים בתיבות סימון אילו התנהגויות יפעלו. כלל ללקוח פועל אחרי שמסמנים אותו ומגדירים ימים, תוכן, שעות שליחה ואזור זמן, ויש לו תצוגה מקדימה והשהיה. WhatsApp נשלח ידנית מתוך ההצעה.",
+    "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. A customer rule runs once you tick it and set days, content, sending hours and a time zone, and it has a preview and a pause. WhatsApp is sent manually from the quote.",
+    { surfaces: ['business_settings', 'dashboard'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/RemindersSettings.jsx', 'src/components/SettingsTab.jsx', 'src/components/NotificationCenter.jsx', 'supabase/functions/_shared/reminderRules.js', 'src/utils/reminders.js'] }),
+
+  // Task 23 (Phase 5, Owner approval 2026-10-10) + Task 24 (editor, opt-in channels; Task 26: no card style - those are quote styles): saving needs the business_cards migration
+  // and the public page its server function (get-business-card) - both local source only until separately authorized; the description says so.
+  capability('digital_business_card', 'יצירת כרטיס ביקור דיגיטלי', 'Digital business card',
+    'הגדרות עסק ← „כרטיס ביקור דיגיטלי”: יוצרים ועורכים דף ציבורי לעסק - שם, תפקיד, סלוגן, אודות ותמונה או לוגו - ובוחרים אילו דרכי תקשורת יוצגו (טלפון, WhatsApp, אימייל וכתובת מהגדרות העסק). יש קישור לשיתוף וקוד QR. מספר עוסק ופרטים פנימיים לא מוצגים. שמירת הכרטיס והדף הציבורי פועלים ללקוחות רק אחרי עדכון השרת.',
+    'Business settings → “Digital business card”: create and edit a public page for your business - name, job title, slogan, about and a photo or logo - and choose which contact options appear (phone, WhatsApp, email and address from Business settings). It has a share link and a QR code. Your tax ID and internal details are never shown. Saving the card and the public page work for customers only after the server update.',
+    { surfaces: ['business_settings'], aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/BusinessCardSettings.jsx', 'src/components/BusinessCard.jsx', 'src/pages/PublicBusinessCard.jsx', 'src/components/SettingsTab.jsx', 'src/hooks/useBusinessCardProfile.js', 'supabase/functions/_shared/businessCard.js'] }),
 ]);
 
 // Non-current entries (§52.2) — curated shape only; their `state`/facts are computed at
@@ -379,6 +442,25 @@ export const NON_CURRENT_REGISTRY = Object.freeze([
     id: 'ai_mutation', heLabel: 'שינוי נתונים על ידי AI', enLabel: 'AI-executed data mutation',
     heDescription: 'ה-AI מבצע בעצמו שינוי/מחיקה/שליחה במקום המשתמש.', enDescription: 'The AI itself performing a change/deletion/send instead of the user.',
     state: CAPABILITY_STATES.ROADMAP_POST_LIVE, forbiddenClaimCodes: ['NO_AI_EXECUTION_CLAIM'], canonicalSources: ['TEKANGO_AI_ARCHITECTURE.md'],
+  }),  // Task 20: what the reminders feature does NOT do today (an assistant must answer these deterministically, never promise them).
+  Object.freeze({
+    id: 'automatic_customer_messages', heLabel: 'שליחה אוטומטית ללקוחות', enLabel: 'Automatic customer messages',
+    heDescription: 'מיילים שנשלחים ללקוחות אוטומטית לפי כללי מצב „מלא” בתזכורות ואוטומציות.', enDescription: 'Emails sent to customers automatically by Full-mode rules in Reminders & automation.',
+    state: CAPABILITY_STATES.IMPLEMENTED_NOT_RELEASED, forbiddenClaimCodes: ['NO_AUTOMATIC_CUSTOMER_SEND_CLAIM'], canonicalSources: ['supabase/functions/_shared/reminderRules.js', 'src/utils/reminders.js'],
+  }),
+  Object.freeze({
+    id: 'automatic_whatsapp', heLabel: 'WhatsApp אוטומטי', enLabel: 'Automatic WhatsApp',
+    heDescription: 'שליחת הודעות WhatsApp ללקוחות אוטומטית, בלי לחיצה של בעל העסק.', enDescription: 'Sending WhatsApp messages to customers automatically, without the business owner pressing send.',
+    state: CAPABILITY_STATES.ROADMAP_POST_LIVE, forbiddenClaimCodes: ['NO_AUTOMATIC_WHATSAPP_CLAIM'], canonicalSources: ['TEKANGO_AI_ARCHITECTURE.md'],
+  }),
+  // Task 21 (Owner report 2026-10-10, PROFLOW_PROJECT_CONTEXT.md §250): direct questions the assistant must answer plainly, never with a
+  // generic clarification. answerNote = the one extra sentence the deterministic NOT_AVAILABLE answer adds (the internal Calendar exists).
+  Object.freeze({
+    id: 'google_calendar_sync', heLabel: 'אינטגרציה עם Google Calendar', enLabel: 'Google Calendar integration',
+    heDescription: 'חיבור אופציונלי של יומן TEKANGO ליומן Google של המשתמש.', enDescription: 'An optional connection of the TEKANGO calendar to the user’s Google Calendar.',
+    heAnswerNote: 'ב-TEKANGO יש יומן פנימי לתכנון העבודה - פותחים אותו מהתפריט „יומן” (בנייד: „עוד” ← „יומן”). הוא אינו מסונכרן ל-Google Calendar או ליומן חיצוני אחר.',
+    enAnswerNote: 'TEKANGO has an internal calendar for planning your work - open it from the “Calendar” menu item (on mobile: “More” → “Calendar”). It is not synced with Google Calendar or any other external calendar.',
+    state: CAPABILITY_STATES.ROADMAP_POST_LIVE, forbiddenClaimCodes: ['NO_EXTERNAL_CALENDAR_SYNC_CLAIM'], canonicalSources: ['PROFLOW_TODO.md'],
   }),
 ]);
 

@@ -5,6 +5,8 @@ import Dashboard from '../pages/Dashboard';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
+import PublicBusinessCard from '../pages/PublicBusinessCard';
+import SampleQuote from '../pages/SampleQuote';
 import PublicTools from '../components/PublicTools';
 import ProfessionalQuotePreview from '../pages/ProfessionalQuotePreview';
 import ProfessionalPublicPreview from '../pages/ProfessionalPublicPreview';
@@ -111,7 +113,13 @@ export default function AppLocal() {
         <Route path="/he/tools/metals" element={<PublicTools />} />
         <Route path="/he/tools/crypto" element={<PublicTools />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
+        {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}
+        <Route path="/card/:id" element={<PublicBusinessCard bundleIsHebrew={true} />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
+        <Route path="/public-quote/c/:token" element={<SmartPublicQuote />} />
+        <Route path="/en/public-quote/c/:token" element={<SmartPublicQuote />} />
+        {/* Task 16: synthetic sample quote (no auth, noindex) - the real PublicQuote in previewMode. */}
+        <Route path="/he/sample-quote" element={<SampleQuote locale="he" />} />
         {/* David Aluminum professional-item demo, Owner-authorized, David-only -
             see src/config/professionalPreviewAllowlist.js. Deliberately not
             mirrored into AppGlobal.jsx - International accounts never see it. */}

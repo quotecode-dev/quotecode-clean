@@ -133,7 +133,11 @@ describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', ()
 
   it('project_name is shown on the customer-facing header when set (HE + EN)', () => {
     render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { project_name: 'מגדל סינתטי' } })} /></MemoryRouter>);
-    expect(screen.getAllByText(/פרויקט:\s*מגדל סינתטי/).length).toBeGreaterThan(0);
+    // Task 16 correction (2026-10-05): project is a centred metadata cell - its own label and its own value.
+    const projectCell = screen.getAllByText('מגדל סינתטי').map((el) => el.closest('.pq-meta-cell')).find(Boolean);
+    expect(projectCell).toBeTruthy();
+    expect(projectCell.querySelector('.pq-meta-label').textContent).toBe('פרויקט');
+    expect(projectCell.style.textAlign).toBe('center');
   });
 });
 

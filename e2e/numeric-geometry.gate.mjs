@@ -71,10 +71,17 @@ for (const lang of ['he', 'en']) {
     if (dev !== 'desktop') {
       const g = await page.evaluate(() => {
         const els = [...document.querySelectorAll('#totals-grid [data-testid^="tg-"]')];
-        return els.map(e => { const r = document.createRange(); r.selectNodeContents(e); return { id: e.dataset.testid, right: r.getBoundingClientRect().right, fs: getComputedStyle(e).fontSize }; });
+        // local fix 6 (R2): GLYPH-level axis - the centre x of the decimal point, the ones digit and the tens digit of every
+        // row (incl. the Grand Total) must coincide; a shared right edge alone is not the Owner axis
+        const glyph = (e) => { const ch = []; const walk = (n) => { if (n.nodeType === 3) for (let i = 0; i < n.textContent.length; i += 1) ch.push({ n, i, c: n.textContent[i] }); else n.childNodes.forEach(walk); }; walk(e);
+          const at = (k) => { if (k < 0 || !ch[k]) return null; const r = document.createRange(); r.setStart(ch[k].n, ch[k].i); r.setEnd(ch[k].n, ch[k].i + 1); const b = r.getBoundingClientRect(); return b.left + b.width / 2; };
+          const t = ch.map((x) => x.c).join(''); const dot = t.lastIndexOf('.'); const d = []; for (let k = dot - 1; k >= 0 && d.length < 2; k -= 1) if (/\d/.test(ch[k].c)) d.push(k);
+          return { decimal: at(dot), ones: at(d[0]), tens: at(d[1]) }; };
+        return els.map(e => { const r = document.createRange(); r.selectNodeContents(e); return { id: e.dataset.testid, right: r.getBoundingClientRect().right, fs: getComputedStyle(e).fontSize, fw: getComputedStyle(e).fontWeight, ...glyph(e) }; });
       });
       const gr = g.map(x => x.right); const gs = Math.max(...gr) - Math.min(...gr);
-      check(`${tag} totals grid incl. Grand Total share right axis (hero size differs)`, gs <= TOL && new Set(g.map(x => x.fs)).size > 1, `spread=${gs.toFixed(2)} sizes=${g.map(x => x.fs).join(',')}`);
+      const sp = (k) => { const a = g.map((x) => x[k]).filter((x) => x !== null); return a.length === g.length ? Math.max(...a) - Math.min(...a) : Infinity; };
+      check(`${tag} totals grid incl. Grand Total share the GLYPH axis (decimal / ones / tens) and identical digit metrics`, gs <= TOL && sp('decimal') <= 0.5 && sp('ones') <= 0.5 && sp('tens') <= 0.5 && new Set(g.map(x => x.fs + '|' + x.fw)).size === 1, `right=${gs.toFixed(2)} decimal=${sp('decimal').toFixed(2)} ones=${sp('ones').toFixed(2)} tens=${sp('tens').toFixed(2)} metrics=${[...new Set(g.map(x => x.fs + '/' + x.fw))].join(',')}`);
     }
     // controls stable: the expand chevron + status badge are inside the viewport on every card
     if (dev !== 'desktop') {

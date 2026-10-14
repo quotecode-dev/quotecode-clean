@@ -20,4 +20,10 @@ describe('authenticated workspace footer (mobile compaction)', () => {
     expect(src).toMatch(/\.dash-footer \{\s*padding: 4px 12px 12px !important;/);
     expect(src).not.toMatch(/\.dash-footer \{\s*padding-bottom: 100px/);
   });
+  // Task 33 (Owner: compact footer, not the removal of the branding): under the quotes table the brand line is shown again, on ONE row
+  // with the accessibility link (real geometry is measured in the browser matrix).
+  it('the quotes-table layout keeps the brand line, on one row with the accessibility link', () => {
+    expect(src).not.toMatch(/data-qh-layout="table"\]\) \.dash-footer-brand \{ display: none/);
+    expect(src).toMatch(/data-qh-layout="table"\]\) \.dash-footer \{\s*display: flex;\s*flex-wrap: wrap;\s*align-items: center;/);
+  });
 });

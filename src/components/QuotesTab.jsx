@@ -3,13 +3,19 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
-import { useState, useEffect, useRef, Fragment } from 'react';
-import { MoneyValue } from './NumericValue';
+import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
+import { MoneyValue, CurrencyTotals } from './NumericValue';
+import { totalsByQuoteCurrency } from '../utils/money';
+import { isHotQuote } from '../utils/quoteStatistics';
+import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
-import { History, Download, Building2, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, X } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
+import { relativeQuoteDay, pickCompactRows, pickLeadHotRow, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
+import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
+import NewQuoteMenu from './NewQuoteMenu';
+import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search } from 'lucide-react';
+import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
@@ -58,6 +64,11 @@ const MOBILE_SORT_FIELDS = [
 ];
 
 const CLIENT_TYPE_BADGE_SIZE = 24;
+// Task 16: every status chip carries its text label plus a small leading dot - color is never the only signal. The
+// dot is a CSS ::before glyph (`.pf-status-chip`, index.css) in the chip's own font: useQuoteHistoryGeometry measures
+// `${STATUS_DOT} ${label}` (exactly what paints, IRON-QH-LAYOUT-001), while the chip's DOM text / innerText stays the
+// bare label (generated content is not part of innerText; its alt text is empty for assistive technology).
+const STATUS_DOT = '•';
 function ClientTypeBadge({ clientType, isHebrew }) {
   if (clientType !== 'business' && clientType !== 'private') return null;
   const isBusiness = clientType === 'business';
@@ -88,9 +99,16 @@ function ClientTypeBadge({ clientType, isHebrew }) {
   );
 }
 
+// Owner R4: quote numbers are displayed WITHOUT a literal '#' - displayQuoteNumber / getQuoteViewLink live in utils/quoteListRows
+// (shared with the Task 17 Statistics screen).
+
+// Minimum work-screen width (CSS px) for the Owner R3 eight-column desktop table; measured at the 980px shell = 758px.
+const R3_TABLE_MIN_WIDTH = 740;
+
 // PRODUCT_TRUTH_CAPABILITY: quote_history
 export default function QuotesTab({
   quotes,
+  allQuotes,
   searchTerm,
   setSearchTerm,
   statusFilter,
@@ -102,6 +120,7 @@ export default function QuotesTab({
   handleEditClick,
   handleDuplicateQuote,
   sendWhatsApp,
+  copyQuoteMessage = null,
   handleDeleteQuote,
   handleProtectedAction,
   activeTooltip,
@@ -112,11 +131,16 @@ export default function QuotesTab({
   t,
   setPendingEmailQuote,
   emailStatuses,
-  currency
+  currency,
+  onCreateQuote,
+  onCreateStructuredQuote,
+  onCreateFromTemplate = null,
+  onCreateAiQuote
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
-  // IRON-DATE-001: isHebrew here IS the account market (isHebrewEnv(stored country)); currency never orders dates.
-  const dateMarket = isHebrew ? 'Local' : 'International';
+  // IRON-DATE-001 (Codex Task 17 review follow-up, fixed in Task 18): the AUTHENTICATED ACCOUNT MARKET orders and zones every date -
+  // never the UI language toggle and never currency.
+  const dateMarket = isLocalIsraeliBusiness ? 'Local' : 'International';
 
   // חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08,
   // "Quote History — Stable Scroll Contract"): כותרת+חיפוש+סינון+ייצוא
@@ -236,15 +260,16 @@ export default function QuotesTab({
   // הסטטוס גלוי ישירות ליד החיפוש כמו קודם - שום שינוי שם). state מקומי
   // טהור (לא נתון עסקי) לפתיחה/סגירה של ה-sheet הקומפקטי.
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  // השפה/מע"מ של קישור ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate)
-  // ולא מהגדרת השפה הנוכחית של המשתמש המחובר - כך שקישור להצעה בינלאומית
-  // תמיד יפתח כאנגלית/ללא מע"מ, גם אם נוצר ע"י בעל עסק ישראלי, ולהיפך.
-  const getQuoteViewLink = (quote) => {
-    const isLocalQuote = Number(quote?.tax_rate) > 0 || (quote?.currency || '').toUpperCase() === 'ILS';
-    return isLocalQuote
-      ? `${window.location.origin}/public-quote/${quote.id}`
-      : `${window.location.origin}/en/public-quote/${quote.id}?lang=en`;
+  const [showAllDesktopQuotes, setShowAllDesktopQuotes] = useState(false);
+  // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
+  const openTrackingFor = (quoteId) => {
+    setExpandedQuoteId(quoteId);
+    if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+      window.setTimeout(() => {
+        const panel = document.getElementById(`quote-modern-detail-${quoteId}`);
+        if (panel && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ block: 'nearest' });
+      }, 0);
+    }
   };
 
   // הסמל נגזר אך ורק מקוד המטבע השמור על ההצעה - לעולם לא משפת התצוגה
@@ -268,16 +293,19 @@ export default function QuotesTab({
   // PRODUCT_TRUTH_CAPABILITY: quote_status
   const getStatusBadge = (st) => {
     switch(st) {
-      case 'approved': return { bg: 'rgba(5, 150, 105, 0.12)', color: NEON.emerald, text: isHebrew ? 'אושר' : 'Approved' };
-      case 'paid': return { bg: 'rgba(2, 132, 199, 0.12)', color: NEON.sky, text: isHebrew ? 'שולם' : 'Paid' };
-      case 'sent': return { bg: 'rgba(180, 83, 9, 0.12)', color: NEON.amber, text: isHebrew ? 'נשלח' : 'Sent' };
-      default: return { bg: 'rgba(107, 101, 128, 0.10)', color: NEON.textSecondary, text: isHebrew ? 'טיוטה' : 'Draft' };
+      case 'approved': return { role: 'approved', bg: APP_STATUS.approved.bg, color: APP_STATUS.approved.fg, border: APP_STATUS.approved.border, text: isHebrew ? 'אושר' : 'Approved' };
+      case 'paid': return { role: 'paid', bg: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: APP_STATUS.paid.border, text: isHebrew ? 'שולם' : 'Paid' };
+      case 'sent': return { role: 'sent', bg: APP_STATUS.sent.bg, color: APP_STATUS.sent.fg, border: APP_STATUS.sent.border, text: isHebrew ? 'נשלח' : 'Sent' };
+      default: return { role: 'draft', bg: APP_STATUS.draft.bg, color: APP_STATUS.draft.fg, border: APP_STATUS.draft.border, text: isHebrew ? 'טיוטה' : 'Draft' };
     }
   };
 
   // מחושב פעם אחת פר-הצעה ומשמש הן את שורת הטבלה (Desktop) והן את הכרטיס
   // הנייד (Mobile) - כדי שלא לשכפל את אותו חישוב/תפריט הפעולות פעמיים.
-  const rowsMeta = quotes.map((quote) => {
+  // The visible order is owned here: the typed-key stable sort (utils/quoteListSort.js) of the already filtered quotes, driven by
+  // the header buttons, the toolbar Sort button and the mobile select (all call handleQuoteSort).
+  const sortedQuotes = sortQuotes(quotes, quoteSortField, quoteSortDirection, isHebrew ? 'he' : 'en');
+  const rowsMeta = sortedQuotes.map((quote) => {
     const currentStatus = quote.status ? quote.status.toLowerCase() : 'draft';
     const isDropdownOpen = openDropdownId === quote.id;
     const isLocked = isQuoteImmutable(quote);
@@ -294,24 +322,91 @@ export default function QuotesTab({
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
     const baseBadge = getStatusBadge(currentStatus);
     const badge = currentStatus === 'draft' && isUnfinishedSavedQuote(quote)
-      ? { ...baseBadge, bg: 'rgba(234, 88, 12, 0.10)', color: '#c2410c', text: UNFINISHED_LABEL }
+      ? { ...baseBadge, role: 'unfinished', bg: APP_STATUS.unfinished.bg, color: APP_STATUS.unfinished.fg, border: APP_STATUS.unfinished.border, text: UNFINISHED_LABEL }
       : baseBadge;
+    const isHot = isHotQuote({ ...quote, status: currentStatus }); // the ONE hot rule, shared with Statistics (Task 17)
 
-    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge };
+    // Desktop list state (plain coloured text): derived from the real status, never a new persisted status. A complete draft is
+    // "Needs sending"; only an unfinished one is a plain "Draft".
+    const isFinal = badge.role === 'approved' || badge.role === 'paid';
+    const tone = isHot ? 'hot' : isFinal ? 'approved' : badge.role === 'sent' ? 'sent' : badge.role === 'unfinished' ? 'draft' : 'needs-sending';
+    const statusLabel = isHot ? (isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting')
+      : badge.role === 'approved' ? (isHebrew ? 'אושרה' : 'Approved')
+        : badge.role === 'paid' ? badge.text
+          : badge.role === 'sent' ? (isHebrew ? 'נשלחה' : 'Sent')
+            : badge.role === 'unfinished' ? (isHebrew ? 'טיוטה' : 'Draft')
+              : (isHebrew ? 'צריך לשלוח' : 'Needs sending');
+    // Action precedence: a hot quote is always "Open & track" (before any draft branch); then unfinished draft -> continue editing.
+    const actionKind = isHot ? 'track' : (badge.role === 'unfinished' && !isLocked) ? 'edit' : isFinal ? 'view' : 'open';
+    const actionLabel = actionKind === 'track' ? (isHebrew ? 'פתיחה ומעקב' : 'Open & track')
+      : actionKind === 'edit' ? (isHebrew ? 'המשך עריכה' : 'Continue editing')
+        : actionKind === 'view' ? (isHebrew ? 'צפייה' : 'View')
+          : (isHebrew ? 'פתיחה' : 'Open');
+
+    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge, isHot, tone, statusLabel, actionKind, actionLabel };
   });
+
+  // Owner-approved quote-list-first direction (2026-10-08): derive the
+  // overview from the complete collection so search/filter never changes
+  // business totals. "In progress" is only the complement of the two
+  // canonical final statuses; no persisted status is invented here.
+  const overviewQuotes = Array.isArray(allQuotes) ? allQuotes : quotes;
+  // "Awaiting" = sent to the customer and not yet approved/paid (never a draft).
+  const overviewAwaiting = overviewQuotes.filter((quote) => (quote.status || '').toLowerCase() === 'sent').length;
+  const overviewApproved = overviewQuotes.filter((quote) => {
+    const status = (quote.status || '').toLowerCase();
+    return status === 'approved' || status === 'paid';
+  }).length;
+  // IRON-MARKET-004: the same quote population, totalled per persisted quote currency - never one mixed sum.
+  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency });
+  const overviewMultiCurrency = overviewTotals.groups.length > 1;
+  const overviewMulti = overviewMultiCurrency || overviewTotals.unknownCount > 0;
 
   // IRON-QH-LAYOUT-001: ONE semantic slot geometry for the desktop header + body tables (see useQuoteHistoryGeometry). When the
   // protected slots cannot leave the client its minimum, the list deliberately switches to the card layout.
   const moneyTexts = rowsMeta.map((r) => `${r.quoteSym}${formatMoneyDisplay(r.quote.total, r.quote.currency)}`);
   const { compact: qhCompact } = useQuoteHistoryGeometry(screenRef, {
     enabled: !isMobileView,
-    numbers: rowsMeta.map((r) => formatQuoteFallback(r.quote)),
+    numbers: rowsMeta.map((r) => displayQuoteNumber(r.quote)),
     amounts: moneyTexts,
-    statuses: [...['draft', 'sent', 'approved', 'paid'].map((st) => getStatusBadge(st).text), UNFINISHED_LABEL],
+    statuses: [...['draft', 'sent', 'approved', 'paid'].map((st) => getStatusBadge(st).text), UNFINISHED_LABEL].map((label) => `${STATUS_DOT} ${label}`),
     dates: rowsMeta.map((r) => formatShortDate(r.quote.created_at, dateMarket)),
     headers: { number: isHebrew ? 'מס׳ הצעה' : 'Quote #', amount: isHebrew ? 'הסכום' : 'Amount', status: isHebrew ? 'סטטוס' : 'Status', date: isHebrew ? 'תאריך' : 'Date' },
   });
-  const useCards = isMobileView || qhCompact;
+  // Owner R3 + IRON-QH-LAYOUT-001: the eight-column table needs R3_TABLE_MIN_WIDTH of real work-screen width for its protected
+  // numeric/action tracks plus readable client/title tracks; below that (e.g. 820px tablet portrait beside the sidebar) the list
+  // deliberately switches to cards instead of squeezing/truncating columns. Unmeasured (jsdom, width 0) never forces cards.
+  const [r3TooNarrow, setR3TooNarrow] = useState(false);
+  useLayoutEffect(() => {
+    const host = screenRef.current;
+    if (isMobileView || !host || typeof ResizeObserver === 'undefined') { setR3TooNarrow(false); return undefined; }
+    const check = () => { const w = host.clientWidth; setR3TooNarrow(w > 0 && w < R3_TABLE_MIN_WIDTH); };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [isMobileView]);
+  const useCards = isMobileView || qhCompact || r3TooNarrow;
+  const hotLead = pickLeadHotRow(rowsMeta);
+  // Sortable column headers of the desktop list. They share the row grid; each button sorts ITS OWN key (first click ascending,
+  // next click descending - handleQuoteSort); the active one carries the direction chevron and aria-sort.
+  const activeSortKey = normalizeSortField(quoteSortField);
+  const sortHeader = (key, he, en) => {
+    const active = activeSortKey === key;
+    const ariaSort = active ? (quoteSortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
+    const label = isHebrew ? he : en;
+    return (
+      <div role="columnheader" aria-sort={ariaSort} className={`quote-modern-head-cell quote-modern-head-${key}`} data-sort-active={active ? 'true' : undefined}>
+        {/* PRODUCT_TRUTH_DECORATIVE: sortable column header; sorts the quote list by its own column (a list-order UI affordance) */}
+        <button type="button" className="quote-modern-head-btn" data-sort-key={key} onClick={() => handleQuoteSort(key)}>
+          <span className="quote-modern-head-label">{label}</span>
+          {active && (quoteSortDirection === 'asc'
+            ? <ChevronUp size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="asc" />
+            : <ChevronDown size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="desc" />)}
+        </button>
+      </div>
+    );
+  };
   // IRON-MOBILE-WIDTH-001: the card amount slot is exactly as wide as the widest rendered amount (shared physical axis, no dead gap).
   useMoneySlotSize(cardListRef, moneyTexts, { enabled: useCards });
 
@@ -321,12 +416,12 @@ export default function QuotesTab({
       // לא ע"י תוצאת השליחה המיידית) - נשארת אדומה עד שליחה מחדש מוצלחת
       <span
         title={isHebrew ? 'כתובת המייל ששלחת אינה קיימת' : 'The email address you sent does not exist'}
-        style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: NEON.redDark, boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.12)' }}
+        style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: NEON.redDark, boxShadow: `0 0 0 3px ${APP_STATUS.error.bg}` }}
       />
     ) : emailStatus ? (
       <span
         title={emailStatus === 'success' ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully') : (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')}
-        style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: emailStatus === 'success' ? NEON.emeraldDark : NEON.redDark, boxShadow: emailStatus === 'success' ? '0 0 0 3px rgba(4, 120, 87, 0.12)' : '0 0 0 3px rgba(220, 38, 38, 0.12)' }}
+        style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: emailStatus === 'success' ? NEON.emeraldDark : NEON.redDark, boxShadow: emailStatus === 'success' ? `0 0 0 3px ${APP_STATUS.paid.bg}` : `0 0 0 3px ${APP_STATUS.error.bg}` }}
       />
     ) : null
   );
@@ -362,7 +457,7 @@ export default function QuotesTab({
         {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
         <button
           onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
-          style={{ ...chipBase, background: 'rgba(124,58,237,0.10)', color: NEON.violet }}
+          style={{ ...chipBase, background: NEON.violetLighter, color: NEON.violet }}
         >
           <Eye size={14} color={NEON.violet} strokeWidth={2.2} />
           <span>{isHebrew ? 'צפה' : 'View'}</span>
@@ -380,8 +475,8 @@ export default function QuotesTab({
             <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-              {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
+              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
             </div>
           )}
         </span>
@@ -396,8 +491,8 @@ export default function QuotesTab({
             <span>{isHebrew ? 'שכפל' : 'Duplicate'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-              {isHebrew ? '🚀 בשביל פונקציה זו יש לדרג את המנוי למסלול Basic או Pro' : '🚀 Please upgrade your subscription to Basic or Pro to use this feature'}
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
+              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
             </div>
           )}
         </span>
@@ -412,11 +507,23 @@ export default function QuotesTab({
             <span>{isHebrew ? 'וואטסאפ' : 'WhatsApp'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-              {isHebrew ? '🚀 פונקציה זו (שליחה בוואטסאפ וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (WhatsApp sending & file attachments) is for Pro plan only'}
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
+              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
             </div>
           )}
         </span>
+
+        {typeof copyQuoteMessage === 'function' && (
+          // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
+          <button
+            data-testid="quote-copy-message"
+            onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => copyQuoteMessage(quote))}
+            style={{ ...chipBase, ...neutralChip }}
+          >
+            <ClipboardCopy size={14} color={neutralIconColor} strokeWidth={2.2} />
+            <span>{isHebrew ? 'העתקת הודעה' : 'Copy message'}</span>
+          </button>
+        )}
 
         {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
         <button
@@ -433,14 +540,14 @@ export default function QuotesTab({
             disabled={isLocked}
             title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
             onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }}
-            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : 'rgba(220,38,38,0.10)', color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
             <Trash2 size={14} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
             <span>{isHebrew ? 'מחק' : 'Delete'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: '0 4px 12px rgba(31,27,46,0.3)' }}>
-              {isHebrew ? '🚀 פונקציה זו (מחיקה וצירוף קבצים) היא למנוי Pro בלבד' : '🚀 This function (Deletion & file attachments) is for Pro plan only'}
+            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
+              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
             </div>
           )}
         </span>
@@ -456,8 +563,18 @@ export default function QuotesTab({
   // (לא חתוך יותר - היה כבר גלוי, רק חתוך; שום מידע לא הוסר, רק אורגן
   // מחדש), סוג לקוח (עכשיו עם תווית טקסט גלויה, לא רק אייקון+טולטיפ),
   // צפיות, מצב שליחת מייל, ואז שורת הפעולות (renderInlineActions).
-  const renderDetailPanel = (row) => {
-    const { quote, firstItemDesc, emailStatus, isLocked } = row;
+  const renderDetailPanel = (row, detailId) => {
+    const { quote, firstItemDesc, emailStatus, isLocked, actionKind, actionLabel } = row;
+    // Owner R4: the status-aware primary row action (Open & track / Continue editing / Open / View - same precedence, same
+    // handlers) lives inside the row's dropdown instead of a standalone Action column. Open / Open & track keep the tracking
+    // details open (never toggle them shut from inside).
+    const runAction = () => {
+      if (actionKind === 'edit') handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+      else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
+      else openTrackingFor(quote.id);
+    };
+    const expands = actionKind === 'open' || actionKind === 'track';
+    const isExpanded = true;
     const clientType = quote.clients?.client_type;
     const clientTypeLabel = clientType === 'business'
       ? (isHebrew ? 'לקוח עסקי' : 'Business Client')
@@ -473,6 +590,21 @@ export default function QuotesTab({
           : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {actionLabel && (
+          <div className="quote-modern-primary-row">
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_history */}
+            <button
+              type="button"
+              className="quote-modern-action"
+              data-action={actionKind}
+              onClick={runAction}
+              aria-expanded={expands ? isExpanded : undefined}
+              aria-controls={expands ? detailId : undefined}
+            >
+              <span>{actionLabel}</span>
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
           {clientTypeLabel && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -509,7 +641,7 @@ export default function QuotesTab({
     // כבר קיים בקומפוננטה הזו בדיוק לצורך הזה (טבלה מול כרטיסים) - נעשה שימוש
     // חוזר בו כאן, לא נוסף מנגנון-CSS/media-query מקביל. דסקטופ (14px) לא נגע
     // בכלל - התנאי חל רק כש-isMobileView אמיתי.
-    <div ref={screenRef} className="pf-screen pf-work-screen" data-qh-layout={useCards ? 'cards' : 'table'} style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
+    <div ref={screenRef} className="pf-screen pf-work-screen quote-workspace" data-qh-layout={useCards ? 'cards' : 'table'} style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm, marginBottom: '16px' }}>
       {/* חוק ברזל (תיקון בעלים מאושר): הוסר flexDirection: row-reverse עבור
           עברית - היה זה הבאג עצמו. במיכל עם dir="rtl" (יורש מה-Dashboard),
           'row' הרגיל כבר ממקם את הילד הראשון ב-DOM (כותרת+ייצוא) ב-"התחלה"
@@ -517,67 +649,147 @@ export default function QuotesTab({
           מה שהבעלים ביקש. 'row-reverse' הקודם היפך את זה בטעות. באנגלית
           (dir="ltr"), אותו 'row' הרגיל כבר ממקם כותרת+ייצוא משמאל וחיפוש+
           סטטוס מימין - השיקוף הנכון מתקבל אוטומטית מכיוון הדף, בלי תנאי. */}
+      {/* Owner update (2026-10-09, all devices): no flame and no "hot quote" title. The orange alert frame keeps ONE illustrated
+          eye (its eyelid blinks, reduced-motion safe) as the FIRST child, so it sits at the inline-start edge (right in HE, left in
+          EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
+      {hotLead && (
+        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id}>
+          <button
+            type="button"
+            className="quote-hot-banner-action"
+            onClick={() => openTrackingFor(hotLead.quote.id)}
+            title={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
+            aria-label={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
+          >
+            <TekangoEyeIcon size={24} className="quote-hot-banner-eye" />
+          </button>
+          <span className="quote-hot-banner-text">
+            <mark className="quote-hot-banner-name">{quotePartyLabel(hotLead.quote).text}</mark>
+            {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
+            <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
+            {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
+          </span>
+        </div>
+      )}
       <div
         ref={headerRowRef}
-        style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px',
-        }}
+        data-testid="quote-list-header"
+        className="quote-workspace-header"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '800', letterSpacing: 'normal', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-            <History size={18} color={NEON.violetLight} strokeWidth={2.2} />
-            {t.recentHistory}
-          </h2>
-          {/* חוק ברזל (החלטת בעלים מאושרת): כפתור "צור הצעת מחיר חדשה" הכפול
-              הוסר מכאן - נשאר רק הכפתור הראשי העצמאי בשורת הניווט העליונה
-              (handleCreateNewQuoteClick ב-Dashboard.jsx). כפתור ייצוא ה-CSV
-              נשאר, שכן הוא שייך לטבלה עצמה. */}
-          {/* PRODUCT_TRUTH_CAPABILITY: quote_csv */}
-          <button
-            onClick={handleExportQuotes}
-            style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 14px', borderRadius: RADIUS.pill, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = NEON.violetLighter; e.currentTarget.style.color = NEON.violet; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = NEON.bgCardAlt; e.currentTarget.style.color = NEON.textSecondary; }}
-          >
-            <Download size={15} strokeWidth={2.5} />
-            <span>{isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}</span>
-          </button>
+        <div className="quote-workspace-heading">
+          {/* Approved 980px dashboard: plain title + one-line subtitle, no icon. */}
+          <div>
+            <h2 className="quote-workspace-title" style={{ ...neonGlowTextStyle }}>
+              {t.quotesNav || (isHebrew ? 'הצעות מחיר' : 'Quotes')}
+            </h2>
+            <p className="quote-workspace-subtitle">
+              {isHebrew ? 'כל ההצעות והפעולות במקום אחד' : 'All quotes and activity in one place'}
+            </p>
+          </div>
+          {useCards && (
+            /* PRODUCT_TRUTH_CAPABILITY: quote_csv */
+            <button
+              type="button"
+              className="quote-export-cards"
+              onClick={handleExportQuotes}
+              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              style={{ background: NEON.bgCard, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 12px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Download size={15} strokeWidth={2.5} aria-hidden="true" />
+              <span className="quote-export-cards-label">{isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}</span>
+            </button>
+          )}
         </div>
 
-        {/* V2 Visual Completion Pass: row-reverse residual bug fixed - this
-            was the exact same "row-reverse for Hebrew is itself the bug"
-            pattern already diagnosed and fixed one container up (see the
-            comment above), left behind here. Plain 'row' lets the inherited
-            dir="rtl"/dir="ltr" mirror correctly with no isHebrew branch.
-            Authenticated UI Coherence task, Mobile Lists and Controls:
-            desktop keeps this exact search+status arrangement, unchanged
-            (there is room for both side by side). Mobile gets its own
-            deliberate composition below instead - not this same row
-            merely shrunk. */}
+        {/* Desktop toolbar. ONE DOM order - Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
+            override, no row-reverse): HE renders New, Search, Filter, Sort from the left; EN renders Sort ... New from the left.
+            Visible labels are short; the long wording lives in aria-label. */}
         {!useCards && (
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%', maxWidth: '350px' }}>
-            <input
-              type="text"
-              placeholder={t.searchQuote}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ flex: '1 1 130px', padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ flex: '1 1 90px', padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
+          <div className="quote-workspace-controls">
+            <button
+              type="button"
+              className="quote-sort-direction"
+              onClick={() => handleQuoteSort(quoteSortField)}
+              title={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
+              aria-label={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
             >
-              <option value="All">{t.filterStatus}</option>
-              <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-              <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-              <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-              <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
-            </select>
+              <ArrowUpDown size={18} strokeWidth={1.6} aria-hidden="true" />
+              <span>{isHebrew ? 'מיון' : 'Sort'}</span>
+            </button>
+            <label className="quote-filter-control" data-active={statusFilter !== 'All' ? 'true' : undefined}>
+              <Filter size={18} strokeWidth={1.6} aria-hidden="true" />
+              <span className="quote-filter-label">{isHebrew ? 'סינון' : 'Filter'}</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label={isHebrew ? 'סינון לפי סטטוס' : 'Filter by status'}
+              >
+                <option value="All">{t.filterStatus}</option>
+                <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
+                <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
+                <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
+                <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+              </select>
+            </label>
+            <label className="quote-search-control">
+              <Search size={18} strokeWidth={1.6} aria-hidden="true" />
+              <input
+                type="text"
+                placeholder={isHebrew ? 'חיפוש' : 'Search'}
+                aria-label={t.searchQuote}
+                title={t.searchQuote}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </label>
+            {onCreateQuote && (
+              <NewQuoteMenu
+                isHebrew={isHebrew}
+                variant="toolbar"
+                onStandard={onCreateQuote}
+                onAi={onCreateAiQuote}
+                onStructured={onCreateStructuredQuote}
+                onTemplate={onCreateFromTemplate}
+              />
+            )}
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Kept as a compact icon in
+                the approved desktop toolbar so export remains available
+                without displacing search/filter/sort. */}
+            <button
+              type="button"
+              className="quote-export-compact"
+              onClick={handleExportQuotes}
+              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+            >
+              <Download size={15} strokeWidth={2.2} />
+            </button>
           </div>
         )}
+
       </div>
 
+      {/* Owner approval 2026-10-08 supersedes the earlier sketch-only R25
+          rollback. This compact overview uses real quote data and the
+          canonical money formatter, and wraps rather than creating another
+          horizontal scroll owner. */}
+      <div data-testid="quote-overview" className={`quote-overview${overviewMulti ? ' quote-overview--multi' : ''}`}>
+        {[
+          { key: 'all', label: isHebrew ? 'הצעות' : 'Quotes', value: overviewQuotes.length },
+          { key: 'awaiting', label: isHebrew ? 'ממתינות' : 'Awaiting', value: overviewAwaiting },
+          { key: 'approved', label: isHebrew ? 'אושרו' : 'Approved', value: overviewApproved }, // Task 23: plural count label ("9 אושרו"); the per-quote badge stays „אושרה”
+        ].map((item) => (
+          <div key={item.key} data-qh-overview={item.key} className="quote-overview-cell">
+            <strong className="quote-overview-value pf-num">{item.value}</strong>
+            <span className="quote-overview-label">{item.label}</span>
+          </div>
+        ))}
+        <div data-qh-overview="total" className={`quote-overview-cell quote-overview-cell--total${overviewMulti ? ' quote-overview-cell--multi' : ''}`}>
+          <CurrencyTotals className="quote-overview-value" symbolGap totals={overviewTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={currency} isHebrew={isHebrew} />
+          <span className="quote-overview-label">{overviewMultiCurrency ? (isHebrew ? 'סה״כ לפי מטבע' : 'Total by currency') : (isHebrew ? 'סה״כ' : 'Total value')}</span>
+        </div>
+      </div>
       {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
           Controls): מובייל בלבד - החיפוש מקבל שורה מלאה-רוחב עצמאית
           משלו ("Search receives a full-width usable row," הדרישה המפורשת
@@ -604,7 +816,7 @@ export default function QuotesTab({
               aria-haspopup="true"
               aria-expanded={showMobileFilters}
               aria-label={isHebrew ? 'סינון ומיון' : 'Filters'}
-              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: `1px solid ${statusFilter !== 'All' || showMobileFilters ? NEON.violet : NEON.borderStrong}`, borderRadius: RADIUS.sm, background: statusFilter !== 'All' ? 'rgba(124,58,237,0.10)' : NEON.bgInput, color: statusFilter !== 'All' ? NEON.violet : NEON.textSecondary, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: `1px solid ${statusFilter !== 'All' || showMobileFilters ? NEON.violet : NEON.borderStrong}`, borderRadius: RADIUS.sm, background: statusFilter !== 'All' ? NEON.violetLighter : NEON.bgInput, color: statusFilter !== 'All' ? NEON.violet : NEON.textSecondary, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
             >
               <Filter size={14} strokeWidth={2.2} />
               {isHebrew ? 'סינון' : 'Filters'}
@@ -613,7 +825,7 @@ export default function QuotesTab({
           {showMobileFilters && (
             <div style={{ marginTop: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.filterStatus}</span>
+                <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.filterStatus}</span>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -627,7 +839,7 @@ export default function QuotesTab({
                 </select>
               </div>
               <div>
-                <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'מיון' : 'Sort'}</span>
+                <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'מיון' : 'Sort'}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <select
                     value={quoteSortField}
@@ -654,13 +866,117 @@ export default function QuotesTab({
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(false)}
-                style={{ alignSelf: isHebrew ? 'flex-start' : 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
+                style={{ alignSelf: isHebrew ? 'flex-start' : 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
               >
                 <X size={12} strokeWidth={2.5} />
                 {isHebrew ? 'סגור' : 'Close'}
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {!useCards && (
+        <div className="quote-modern-list pf-screen-body" data-testid="quote-modern-list" dir={tableDir}>
+          {rowsMeta.length > 0 && (
+            <div className="quote-modern-head" role="table" aria-label={isHebrew ? 'מיון הצעות לפי עמודה' : 'Sort quotes by column'} data-testid="quote-modern-head">
+              <div role="rowgroup">
+                {/* Owner R3 (2026-10-08 18:55): eight separate column headers on the SAME grid as the rows - quote number,
+                    client, quote title, status, views, date, amount, action. No grouped/stacked header cells. */}
+                <div role="row" className="quote-modern-head-row">
+                  {sortHeader('id', 'מס׳ הצעה', 'Quote #')}
+                  {sortHeader('client', 'לקוח', 'Client')}
+                  {sortHeader('subject', 'כותרת ההצעה', 'Quote title')}
+                  {sortHeader('status', 'סטטוס', 'Status')}
+                  {sortHeader('views', 'צפיות', 'Views')}
+                  {sortHeader('created_at', 'תאריך', 'Date')}
+                  {sortHeader('total', 'סכום', 'Amount')}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Owner R3: the quote list owns the vertical scroll. The scroll body begins directly below the column-header
+              row above (which therefore never scrolls); page/header/hot-quote/title/toolbar/KPI stay fixed. */}
+          <div className="quote-modern-body" data-testid="quote-modern-body">
+          {rowsMeta.length === 0 ? (
+            <div className="quote-modern-empty">
+              {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
+            </div>
+          ) : (showAllDesktopQuotes ? rowsMeta : pickCompactRows(rowsMeta)).map((row) => {
+            const { quote, quoteSym, isHot, tone, statusLabel } = row;
+            const isExpanded = expandedQuoteId === quote.id;
+            const detailId = `quote-modern-detail-${quote.id}`;
+            const clientName = quote.clients?.company_name || 'N/A';
+            const subject = quote.subject || quote.quote_subject || row.firstItemDesc || (isHebrew ? 'ללא נושא' : 'No subject');
+            const day = relativeQuoteDay(quote.created_at, dateMarket);
+            // IRON-ILS-001: ONE canonical amount text per row - displayed AND used for the is-long geometry decision.
+            const amountText = formatMoneyDisplay(quote.total, quote.currency);
+            return (
+              <div key={quote.id} className={`quote-modern-item${isHot ? ' is-hot' : ''}`} data-hot-quote={isHot ? 'true' : undefined}>
+                {/* Owner R3: one value per column, each directly under its own header. Client and title are separate
+                    cells; status and views are separate cells; the view count appears only in the Views column. */}
+                <div className="quote-modern-row">
+                  {/* Owner R5: the dropdown trigger is the row's outermost control at its structural leading edge (right in HE,
+                      left in EN), outside the quote-number content. It is positioned in the row's leading padding, so it takes
+                      no grid track (no Action column) and never shifts the quote number. It opens the dropdown that owns every
+                      row action (Owner R4). */}
+                  <button
+                    type="button"
+                    className="quote-modern-toggle"
+                    onClick={() => toggleExpanded(quote.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={detailId}
+                    aria-label={`${clientName}, ${isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}`}
+                  >
+                    <ChevronDown className="quote-modern-chevron" size={14} strokeWidth={2.4} aria-hidden="true" data-expanded={isExpanded ? 'true' : undefined} />
+                  </button>
+                  <span className="quote-modern-number pf-num" dir="ltr">{displayQuoteNumber(quote)}</span>
+                  <span className="quote-modern-client">
+                    <span className="quote-modern-client-name" title={clientName}>{clientName}</span>
+                  </span>
+                  <span className="quote-modern-title" title={subject}>{subject}</span>
+                  <span className="quote-modern-status" data-status={row.badge.role} data-tone={tone} title={statusLabel}>{statusLabel}</span>
+                  <span className="quote-modern-views pf-num" dir="ltr" title={`${Number(quote.view_count || 0)} ${isHebrew ? 'צפיות' : 'views'}`}>
+                    {Number(quote.view_count || 0)}
+                  </span>
+                  <div className="quote-modern-date">
+                    <span className="quote-modern-time">
+                      {day.kind ? (
+                        <>
+                          {day.kind === 'today' ? (isHebrew ? 'היום' : 'Today') : (isHebrew ? 'אתמול' : 'Yesterday')}
+                          {', '}
+                          <bdi className="pf-num" dir="ltr">{day.time}</bdi>
+                        </>
+                      ) : (
+                        <bdi className="pf-num" dir="ltr">{formatShortDate(quote.created_at, dateMarket)}</bdi>
+                      )}
+                    </span>
+                  </div>
+                  <MoneyValue
+                    className={`pf-num quote-modern-amount${(quoteSym + amountText).length >= 13 ? ' is-long' : ''}`}
+                    slot
+                    symbolGap
+                    symbol={quoteSym}
+                    text={amountText}
+                    title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
+                  />
+                </div>
+                {isExpanded && <div id={detailId} className="quote-modern-detail">{renderDetailPanel(row, detailId)}</div>}
+              </div>
+            );
+          })}
+          {rowsMeta.length > 4 && (
+            <button
+              type="button"
+              className="quote-modern-show-all"
+              onClick={() => setShowAllDesktopQuotes((current) => !current)}
+            >
+              {showAllDesktopQuotes
+                ? (isHebrew ? 'הצג פחות' : 'Show less')
+                : (isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes')}
+            </button>
+          )}
+          </div>
         </div>
       )}
 
@@ -696,7 +1012,7 @@ export default function QuotesTab({
           להידחף ל-footer בעמודים קצרים - הוסר מהכרטיס, maxHeight כאן
           נשאר המנגנון היחיד. overflow-x:'auto' (הגנה-אמיתית קיימת, ר'
           ההערה למעלה על 620-625px מתוך תקציב-980px) נשאר זהה. */}
-      {!useCards && (
+      {!useCards && screenRef.current?.dataset.legacyQuoteTable === 'true' && (
       <>
       <div className="pf-head-gutter">
         {/* חוק ברזל (Owner Visual Correction task - Frame B Corners): הבעלים
@@ -749,7 +1065,11 @@ export default function QuotesTab({
                 נשמר): אותו טוקן-סגול/עובי-גבול/radius כמו Frame A. Client
                 Name (ראשון ב-DOM עכשיו) בקצה הימני ב-HE/השמאלי ב-EN;
                 Expand-control (אחרון ב-DOM) בקצה הנגדי. */}
-            <tr style={{ color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {/* Ledger Q03: base c65f742 header style (secondary colour, uppercase, 0.05em tracking, UA bold th); size = the 12px
+                floor (H02b) instead of base 0.7rem. Ledger Q05 (cloud-fix4): the base rounded header cells (top + bottom
+                #ece9f5 rule) are back; lineHeight '16.8px' = the base c65f742 line box (0.7rem x 1.5) so the 12px floor plus the
+                restored top rule keep the base 38.8px header (measured: 40px without it = 1px less list room than base). */}
+            <tr style={{ color: NEON.textSecondary, fontSize: '0.75rem', lineHeight: '16.8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {/* OWNER CORRECTION (RTL/LTR Sidebar Position + Quote-Row Expand
                   Control task): the expand-control column moved from LAST to
                   FIRST in DOM order - it must render "at the beginning of the
@@ -765,7 +1085,7 @@ export default function QuotesTab({
               {/* חוק ברזל (§5 Expandable Row): בקרת-הרחבה - ללא כותרת מילולית
                   (אייקון-בלבד, כמו Views/Email הישנים), aria-label על הכפתור
                   עצמו בכל שורה נותן את המשמעות הנגישה. */}
-              <th style={{ padding: '10px 3px', textAlign: 'center', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' } : { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }) }} />
+              <th style={{ padding: '10px 3px', textAlign: 'center', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} />
               {/* חוק ברזל (Authenticated App Consolidation task): שם הלקוח -
                   עדיין ראשון בין העמודות ה"תוכניות" (מיד אחרי בקרת ההרחבה),
                   לפי "PRIMARY ROW CONTENT" ברשימת המשימה עצמה. minWidth
@@ -779,25 +1099,25 @@ export default function QuotesTab({
                   by reordering columns since no width value changed here,
                   only DOM order. */}
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by client name; a column sort toggle */}
-              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('client')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('client')}>
                 {isHebrew ? 'שם לקוח' : 'Client Name'} {quoteSortField === 'client' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by quote number */}
-              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('id')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('id')}>
                 {isHebrew ? 'מס׳ הצעה' : 'Quote #'} {quoteSortField === 'id' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by amount */}
-              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('total')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('total')}>
                 {isHebrew ? 'הסכום' : 'Amount'} {quoteSortField === 'total' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by status */}
-              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5' }} onClick={() => handleQuoteSort('status')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('status')}>
                 {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* Date is now the last/outer column (was the expand control) -
                   it gains the outer-edge border/corner-radius treatment. */}
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by date */}
-              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderTop: '1px solid #ece9f5', borderBottom: '1px solid #ece9f5', ...(isHebrew ? { borderLeft: '1px solid #ece9f5', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : { borderRight: '1px solid #ece9f5', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }) }} onClick={() => handleQuoteSort('date')}>
+              <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('date')}>
                 {isHebrew ? 'תאריך' : 'Date'} {quoteSortField === 'date' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
             </tr>
@@ -816,12 +1136,12 @@ export default function QuotesTab({
               </tr>
             ) : (
               rowsMeta.map((row) => {
-                const { quote, quoteSym, badge } = row;
+                const { quote, quoteSym, badge, isHot } = row;
                 const isExpanded = expandedQuoteId === quote.id;
                 const detailId = `quote-detail-${quote.id}`;
                 return (
                 <Fragment key={quote.id}>
-                <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${NEON.divider}`, fontSize: '0.82rem', lineHeight: '1.2' }}>
+                <tr data-hot-quote={isHot ? 'true' : undefined} style={{ borderBottom: isExpanded ? 'none' : `1px solid ${NEON.divider}`, fontSize: '0.82rem', lineHeight: '1.2', background: isHot ? APP_STATUS.warning.bg : NEON.bgCard }}>
                   {/* OWNER CORRECTION: expand-control cell moved to be the
                       first <td>, matching the reordered <th> above - see the
                       comment on the header row for the full rationale. */}
@@ -869,7 +1189,7 @@ export default function QuotesTab({
                       background paints slightly larger than the icon, which
                       is a harmless, arguably-helpful larger "active" cue,
                       not a visual regression. */}
-                  <td style={{ padding: '10px 3px', verticalAlign: 'middle', textAlign: 'center' }}>
+                  <td style={{ padding: '10px 3px', verticalAlign: 'middle', textAlign: 'center', borderInlineStart: isHot ? `3px solid ${NEON.amber}` : '3px solid transparent' }}>
                     {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a desktop quote-history row's detail panel */}
                     <button
                       onClick={() => toggleExpanded(quote.id)}
@@ -877,7 +1197,7 @@ export default function QuotesTab({
                       aria-controls={detailId}
                       aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
                       data-qh="action"
-                      style={{ background: isExpanded ? 'rgba(124,58,237,0.1)' : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
+                      style={{ background: isExpanded ? NEON.violetLighter : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
                     >
                       <ChevronDown size={16} strokeWidth={2.4} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                     </button>
@@ -895,10 +1215,12 @@ export default function QuotesTab({
                       browser/font's default "normal" line-height. */}
                   <td className="pf-font-variable" style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: isHebrew ? 'right' : 'left', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary }} title={quote.clients?.company_name || ''}>
                     {/* the client is the one slot that intentionally ellipsizes (IRON-QH-LAYOUT-001) */}
-                    <span data-qh="client" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quote.clients?.company_name || 'N/A'}</span>
+                    <span data-qh="client" style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{quote.clients?.company_name || 'N/A'}</span>
+                    </span>
                   </td>
-                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.violet, direction: 'ltr', whiteSpace: 'nowrap' }}>
-                    <span data-qh="number" style={QH_CELL_STYLE.number}>{formatQuoteFallback(quote)}</span>
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.textPrimary, direction: 'ltr', whiteSpace: 'nowrap' }}>
+                    <span data-qh="number" style={QH_CELL_STYLE.number}>{displayQuoteNumber(quote)}</span>
                   </td>
                   {/* חוק ברזל (Final Quote-History Polish task - HE-Only Before-VAT
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
@@ -908,7 +1230,9 @@ export default function QuotesTab({
                     <MoneyValue slot data-qh="amount" symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
-                    <span data-qh="status" style={{ ...QH_CELL_STYLE.status, background: badge.bg, color: badge.color }}>
+                    {/* lineHeight '13.44px' = the base c65f742 chip line box (0.7rem x 1.2): the 12px text floor keeps its size but no
+                        longer grows the row (40.4 -> 39.4px, base row height; 1024x768 visible rows back to base). */}
+                    <span data-qh="status" data-status={badge.role} className="pf-status-chip" style={{ ...QH_CELL_STYLE.status, lineHeight: '13.44px', background: badge.bg, color: badge.color, boxShadow: `inset 0 0 0 1px ${badge.border}` }}>
                       {badge.text}
                     </span>
                   </td>
@@ -961,7 +1285,7 @@ export default function QuotesTab({
           </div>
         ) : (
           rowsMeta.map((row) => {
-            const { quote, quoteSym, badge } = row;
+            const { quote, quoteSym, badge, isHot } = row;
             const isExpanded = expandedQuoteId === quote.id;
             const detailId = `quote-detail-mobile-${quote.id}`;
             // חוק ברזל (Authenticated App Consolidation task, §6 Mobile
@@ -975,7 +1299,7 @@ export default function QuotesTab({
             // ומקבל aria-expanded/aria-controls + הפעלת-מקלדת חינם (כפתור
             // אמיתי, לא div עם onClick).
             return (
-            <div key={quote.id} className="quote-card" style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', overflow: 'hidden' }} dir={tableDir}>
+            <div key={quote.id} className="quote-card" data-hot-quote={isHot ? 'true' : undefined} style={{ background: isHot ? APP_STATUS.warning.bg : NEON.bgCard, border: `1px solid ${isHot ? APP_STATUS.warning.border : NEON.border}`, borderInlineStart: isHot ? `3px solid ${NEON.amber}` : undefined, borderRadius: RADIUS.sm, overflow: 'hidden' }} dir={tableDir}>
               {/* OWNER CORRECTION (RTL/LTR Sidebar Position + Quote-Row Expand
                   Control task): the chevron moved from the end of the card's
                   own content to a dedicated leading element, first in DOM,
@@ -1001,7 +1325,7 @@ export default function QuotesTab({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                     <span
                       className="pf-font-variable"
-                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.9rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
+                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                       title={quote.clients?.company_name || 'N/A'}
                       data-qh="client"
                     >
@@ -1017,17 +1341,19 @@ export default function QuotesTab({
                       text={formatMoneyDisplay(quote.total, quote.currency)}
                       data-testid="quote-card-amount"
                       data-qh="amount"
-                      style={{ fontWeight: '400', color: NEON.textPrimary, fontSize: '0.95rem' }}
+                      style={{ fontWeight: '500', color: NEON.textPrimary, fontSize: '0.875rem' }}
                       title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.7rem', color: NEON.textMuted }}>
-                      <span data-qh="number" style={{ fontWeight: '600', color: NEON.violet, direction: 'ltr', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatQuoteFallback(quote)}</span>
+                    {/* Card meta line + status chip keep the 12px text floor on the base c65f742 line boxes (meta 16.8px, chip 15.6px
+                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count. */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted }}>
+                      <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>{displayQuoteNumber(quote)}</span>
                       <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
                       <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
                     </div>
-                    <span data-qh="status" style={{ background: badge.bg, color: badge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span data-qh="status" data-status={badge.role} className="pf-status-chip" style={{ background: badge.bg, color: badge.color, boxShadow: `inset 0 0 0 1px ${badge.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {badge.text}
                     </span>
                   </div>
@@ -1035,7 +1361,7 @@ export default function QuotesTab({
               </button>
               {isExpanded && (
                 <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
-                  {renderDetailPanel(row)}
+                  {renderDetailPanel(row, detailId)}
                 </div>
               )}
             </div>

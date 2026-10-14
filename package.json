@@ -8,8 +8,13 @@
     "dev:localtest": "vite --mode localtest --host --port 5186 --strictPort",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:preserved": "eslint --no-ignore docs/task16-quote-experience-v2/cloud-handoff/reference docs/task16-quote-experience-v2/cloud-handoff/supplement",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:product": "vitest run",
+    "test:tooling": "vitest run --config vitest.tooling.config.mjs",
+    "verify:iron-laws:working": "node C:/tkrtool-iron/scripts/iron-laws/law-gates.js working --candidate-root .",
+    "verify:manifests": "node scripts/task16/verify-manifests.mjs",
     "check:source-identity": "node scripts/check-release-source-identity.js origin/main \"C:/Users/sales/Documents/YoutubeChanel/WebSite/quotecode-saas\"",
     "check:assets": "node scripts/check-asset-completeness.js",
     "check:divergence": "node scripts/check-component-divergence.js",
@@ -53,5 +58,9 @@
     "tailwindcss": "^4.0.0",
     "vite": "^5.3.1",
     "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0",
+    "npm": ">=10.8"
   }
 }

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Users, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
+import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_FOCUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
 
@@ -38,11 +38,11 @@ function ClientTypeTextBadge({ clientType, isHebrew }) {
         alignItems: 'center',
         padding: '1px 7px',
         borderRadius: '999px',
-        fontSize: '0.66rem',
+        fontSize: '0.75rem',
         lineHeight: 1,
         fontWeight: '700',
-        background: isBusiness ? 'rgba(56, 189, 248, 0.15)' : 'rgba(139, 92, 246, 0.12)',
-        color: isBusiness ? NEON.sky : NEON.violetLight,
+        background: isBusiness ? NEON.violetLighter : NEON.bgCardAlt,
+        color: isBusiness ? NEON.violet : NEON.textSecondary,
         whiteSpace: 'nowrap'
       }}
     >
@@ -55,12 +55,13 @@ function ClientTypeTextBadge({ clientType, isHebrew }) {
 // סולם-צבעים/פורמט בדיוק כמו getStatusBadge הקיים ב-QuotesTab.jsx
 // (משוכפל מקומית, לא משותף - אותו עיקרון קיים), כדי שסטטוס "הצעה אחרונה"
 // כאן ייראה עקבי עם אותו סטטוס בהיסטוריית ההצעות עצמה.
+// Task 16: semantic status roles (APP_STATUS) - always rendered with the text label plus a small aria-hidden dot.
 const getStatusBadge = (st, isHebrew) => {
   switch (st) {
-    case 'approved': return { bg: 'rgba(5, 150, 105, 0.12)', color: NEON.emerald, text: isHebrew ? 'אושר' : 'Approved' };
-    case 'paid': return { bg: 'rgba(2, 132, 199, 0.12)', color: NEON.sky, text: isHebrew ? 'שולם' : 'Paid' };
-    case 'sent': return { bg: 'rgba(180, 83, 9, 0.12)', color: NEON.amber, text: isHebrew ? 'נשלח' : 'Sent' };
-    default: return { bg: 'rgba(107, 101, 128, 0.10)', color: NEON.textSecondary, text: isHebrew ? 'טיוטה' : 'Draft' };
+    case 'approved': return { role: 'approved', bg: APP_STATUS.approved.bg, color: APP_STATUS.approved.fg, border: APP_STATUS.approved.border, text: isHebrew ? 'אושר' : 'Approved' };
+    case 'paid': return { role: 'paid', bg: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: APP_STATUS.paid.border, text: isHebrew ? 'שולם' : 'Paid' };
+    case 'sent': return { role: 'sent', bg: APP_STATUS.sent.bg, color: APP_STATUS.sent.fg, border: APP_STATUS.sent.border, text: isHebrew ? 'נשלח' : 'Sent' };
+    default: return { role: 'draft', bg: APP_STATUS.draft.bg, color: APP_STATUS.draft.fg, border: APP_STATUS.draft.border, text: isHebrew ? 'טיוטה' : 'Draft' };
   }
 };
 
@@ -226,8 +227,9 @@ export default function ClientsTab({
                 {isHebrew ? 'הצעה אחרונה:' : 'Latest quote:'} {formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International'))}
               </span>
               {latestBadge && (
-                <span style={{ background: latestBadge.bg, color: latestBadge.color, padding: '2px 7px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                  {latestBadge.text}
+                <span data-status={latestBadge.role} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: latestBadge.bg, color: latestBadge.color, boxShadow: `inset 0 0 0 1px ${latestBadge.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                  <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+                  <span>{latestBadge.text}</span>
                 </span>
               )}
             </span>
@@ -237,7 +239,7 @@ export default function ClientsTab({
           {/* PRODUCT_TRUTH_CAPABILITY: clients */}
           <button
             onClick={() => setEditingClient(client)}
-            style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: 'rgba(124,58,237,0.10)', color: NEON.violet }}
+            style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: NEON.violetLighter, color: NEON.violet }}
           >
             <Pencil size={14} color={NEON.violet} strokeWidth={2.2} />
             <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
@@ -251,7 +253,7 @@ export default function ClientsTab({
               borderRadius: RADIUS.sm, padding: '6px 10px',
               cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600',
               display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
-              background: row.hasSignedOrApproved ? NEON.bgCardAlt : 'rgba(220,38,38,0.10)',
+              background: row.hasSignedOrApproved ? NEON.bgCardAlt : APP_STATUS.error.bg,
               color: row.hasSignedOrApproved ? NEON.textMuted : NEON.red,
               opacity: row.hasSignedOrApproved ? 0.55 : 1
             }}
@@ -268,7 +270,7 @@ export default function ClientsTab({
           </button>
         </div>
         {clientErrorMsg.clientId === client.id && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: RADIUS.sm, padding: '8px 12px', color: NEON.red, fontSize: '0.78rem', fontWeight: '600' }}>
+          <div style={{ background: APP_STATUS.error.bg, border: `1px solid ${APP_STATUS.error.border}`, borderRadius: RADIUS.sm, padding: '8px 12px', color: NEON.red, fontSize: '0.78rem', fontWeight: '600' }}>
             {clientErrorMsg.text}
           </div>
         )}
@@ -282,8 +284,8 @@ export default function ClientsTab({
           .pf-screen-body would defeat the shared body-adjacent margin rule. */}
       <style>{`
         .cli-row-btn { outline: none; }
-        .cli-row-btn:focus-visible { outline: 2px solid #c4b5fd; outline-offset: -2px; }
-        .cli-row-expanded { background: rgba(139,92,246,0.06) !important; border-inline-start: 2px solid #c4b5fd; }
+        .cli-row-btn:focus-visible { outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring}; outline-offset: -2px; }
+        .cli-row-expanded { background: ${NEON.bgCardAlt} !important; border-inline-start: 2px solid ${NEON.violet}; }
       `}</style>
       {/* חוק ברזל (Consolidated Open UI Corrections task, §G1 - Clients
           page header): כותרת קצרה+ישירה (לקוחות/Clients, לא עוד "ניהול
@@ -296,7 +298,7 @@ export default function ClientsTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-            <Users size={18} color={NEON.violetLight} strokeWidth={2.2} />
+            <Users size={18} color={NEON.textSecondary} strokeWidth={2} />
             {isHebrew ? 'לקוחות' : 'Clients'}
           </h2>
           <span style={{ fontSize: '0.78rem', fontWeight: '600', color: NEON.textSecondary }}>
@@ -307,7 +309,7 @@ export default function ClientsTab({
         <button
           type="button"
           onClick={onCreateClient}
-          style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', background: NEON.gradient, color: 'white', border: 'none', padding: '8px 14px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', boxShadow: NEON.glowSoft }}
+          style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', background: NEON.gradient, color: 'white', border: 'none', padding: '9px 14px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem', boxShadow: 'none' }}
         >
           <UserPlus size={15} strokeWidth={2.4} />
           {isHebrew ? 'לקוח חדש' : 'New Client'}
@@ -398,7 +400,7 @@ export default function ClientsTab({
               שמוצג *רק* כשהוא השדה הפעיל כרגע (לא "חץ אחד שנראה כאילו שולט
               בשני השדות"). רוחב-עמודת-הסוג (62px) זהה בדיוק לרוחב תא-הסוג
               בכל שורה למטה, כדי שהעמודות יתיישרו אנכית. */}
-          <div className="pf-head-gutter" dir={dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: NEON.textSecondary, fontWeight: '700', borderBottom: `2px solid ${NEON.border}` }}>
+          <div className="pf-head-gutter" dir={dir} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: NEON.textSecondary, fontWeight: '700', borderBottom: `2px solid ${NEON.border}` }}>
             <span style={{ width: '20px', flexShrink: 0 }} />
             {/* PRODUCT_TRUTH_DECORATIVE: desktop header sorts the client list by client type */}
             <button
@@ -433,7 +435,7 @@ export default function ClientsTab({
               const isExpanded = expandedClientId === client.id;
               const detailId = `client-detail-${client.id}`;
               return (
-                <div key={client.id} style={{ borderBottom: `1px solid ${NEON.border}` }}>
+                <div key={client.id} style={{ borderBottom: `1px solid ${NEON.divider}` }}>
                   {/* חוק ברזל (Clients Table Completion task, §5 - target row
                       height 38-40px): padding אנכי צומצם מ-13px - נמדד חי
                       פעמיים: ניסיון ראשון (6px) יצא צר מדי (28.5px, מתחת
@@ -482,7 +484,7 @@ export default function ClientsTab({
                     <span style={{ width: '70px', flexShrink: 0, fontSize: '0.78rem', lineHeight: 1.2, color: NEON.textSecondary, textAlign: isHebrew ? 'right' : 'left' }}>
                       {quoteCount}
                     </span>
-                    <span style={{ width: '90px', flexShrink: 0, fontSize: '0.72rem', lineHeight: 1.2, color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left', direction: 'ltr', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ width: '90px', flexShrink: 0, fontSize: '0.75rem', lineHeight: 1.2, color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left', direction: 'ltr', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {latestQuote ? formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International')) : ''}
                     </span>
                   </button>
@@ -520,7 +522,7 @@ export default function ClientsTab({
               const isExpanded = expandedClientId === client.id;
               const detailId = `client-detail-mobile-${client.id}`;
               return (
-                <div key={client.id} className="client-card" style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', overflow: 'hidden' }} dir={dir}>
+                <div key={client.id} className="client-card" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', overflow: 'hidden' }} dir={dir}>
                   {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a mobile client card's detail panel */}
                   <button
                     type="button"
@@ -546,12 +548,12 @@ export default function ClientsTab({
                         >
                           {client.company_name}
                         </span>
-                        <span style={{ fontWeight: '600', color: NEON.textSecondary, fontSize: '0.72rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        <span style={{ fontWeight: '600', color: NEON.textSecondary, fontSize: '0.75rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           {isHebrew ? `${quoteCount} הצעות` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
                         </span>
                       </div>
                       {(client.phone || client.email || latestQuote) && (
-                        <div style={{ marginTop: '3px', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', color: NEON.textMuted }}>
+                        <div style={{ marginTop: '3px', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.75rem', color: NEON.textMuted }}>
                           {(client.phone || client.email) && (
                             <span style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {client.phone || client.email}

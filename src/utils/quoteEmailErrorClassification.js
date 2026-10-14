@@ -42,6 +42,24 @@ const PATTERNS = [
       en: '❌ This client has no email address on file.',
     },
   },
+  // Task 38 (Owner D1 = block, server side): send-quote-email refuses a quote with a missing price (stable code prefix,
+  // supabase/functions/send-quote-email/priceGate.ts) - the same guidance as the D1 notice, never "the email service rejected it".
+  {
+    category: 'price_missing',
+    test: (msg) => /^QUOTE_PRICE_MISSING:/.test(msg),
+    userMessage: {
+      he: '❌ המייל לא נשלח: בהצעה יש פריטים ללא מחיר. פתחו את ההצעה לעריכה ולחצו „ערוך מחיר” בכל פריט שמסומן „יש להזין מחיר”. מחיר 0 מכוון מותר.',
+      en: '❌ The email was not sent: this quote has items without a price. Open the quote for editing and use "Edit price" on every item marked "Enter a price". An intentional 0 is allowed.',
+    },
+  },
+  {
+    category: 'price_unverified',
+    test: (msg) => /^QUOTE_PRICE_UNVERIFIED:/.test(msg),
+    userMessage: {
+      he: '❌ המייל לא נשלח: לא ניתן היה לאמת את מחירי ההצעה כרגע. נסו שוב בעוד רגע.',
+      en: '❌ The email was not sent: the quote prices could not be verified right now. Please try again in a moment.',
+    },
+  },
   {
     category: 'sender_configuration',
     test: (msg) => /RESEND_API_KEY|cannot verify quote region|cannot establish a trustworthy business region/i.test(msg),
