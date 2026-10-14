@@ -47,6 +47,8 @@ export default function SettingsTab({
   // OD-16 / OD-20: the account plan state comes ONLY from the server account summary
   accountSummary,
   onRetryAccountSummary,
+  // Owner 2026-10-14: a lifetime account sees "Lifetime subscription - no charge" and no package
+  isLifetime = false,
   // Subscriptions (continuation A): while the plan system is active (server phase shadow/enforced), issued documents take the
   // logo ONLY from an immutable imported asset. A logo change must therefore be imported (bytes, server read-back) first.
   logoImportRequired = false,
@@ -81,7 +83,8 @@ export default function SettingsTab({
   const [logoError, setLogoError] = useState('');
   // Task 24: ONE business card profile state for the card editor (Task 26: the card has no style choice; quote styles live in the quote design section).
   const cardProfile = useBusinessCardProfile(businessCardClient, businessCardUserId);
-  const accountState = subscriptionSectionState(accountSummary, isHebrew ? 'he' : 'en');
+  const lifetimeAccount = isLifetime === true && !isSuperAdmin;
+  const accountState = subscriptionSectionState(accountSummary, isHebrew ? 'he' : 'en', { isLifetime: lifetimeAccount });
   // Task 30: market = the server summary market, else the account's recorded business market (never the UI language) - as PricingModal.
   const subscriptionMarket = (accountSummary?.state === 'ready' ? accountSummary.market : null) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL');
   const subscriptionOffer = pricingModalModel({ isHebrew, market: subscriptionMarket });
@@ -506,7 +509,7 @@ export default function SettingsTab({
                </button>
              )}
            </div>
-           {!isSuperAdmin && (
+           {!isSuperAdmin && !lifetimeAccount && (
              <>
                <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} testIdPrefix="settings-subscription" />
                <p data-testid="settings-subscription-price-note" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>{subscriptionOffer.priceNote}</p>

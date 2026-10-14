@@ -1069,7 +1069,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // בפועל (plan/trialEndsAt/role זהים) - לא סתירה, לא שתי נוסחאות עצמאיות,
   // רק שהשנייה חושפת מידע נוסף שכבר קיים בפונקציה המשותפת.
   const resolvedIdentity = resolveAccountEntitlement({ plan: bizPlan, trialEndsAt, role: bizRole, isLifetime: bizIsLifetime, now });
-  const { entitlement } = resolvedIdentity;
+  const { entitlement, isLifetime: isLifetimeAccount } = resolvedIdentity;
 
   // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אמיתי): isPro (למטה)
   // ו-isTrialExpired/trialDaysLeft (rawIsTrialExpired/rawTrialDaysLeft,
@@ -6849,6 +6849,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew} 
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         accountSummary={accountSummary}
+        isLifetime={isLifetimeAccount}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
@@ -7737,6 +7738,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               setBizLogoUrl={setBizLogoUrl}
               accountSummary={accountSummary}
               onRetryAccountSummary={refreshAccountSummary}
+              isLifetime={isLifetimeAccount}
               logoImportRequired={outputPhase === 'shadow' || outputPhase === 'enforced'}
               onImportLogo={async (dataBase64) => {
                 try {
