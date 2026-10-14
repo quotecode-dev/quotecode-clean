@@ -26,7 +26,6 @@ import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, miss
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
-import { planBadgeModel } from '../domain/subscriptions/accountSummaryClient';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -472,6 +471,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // The seconds clock lives in its own component (HeaderClock) so its 1s tick
   // re-renders only the date/time block, not the whole Dashboard.
   const headerDateTimeText = <HeaderClock country={bizCountry} isHebrew={isHebrew} />;
+  const headerAvatarUrl = session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture || '';
   const [editingClient, setEditingClient] = useState(null);
   // חוק ברזל (Consolidated Open UI Corrections task, §G1): state נפרד
   // (לא "editingClient עם client.id ריק") כדי לשמור על ההבחנה המפורשת בין
@@ -1093,7 +1093,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // through decideCapability (shared contract): enforced -> server capabilities, unprovisioned/invalid -> fail closed,
   // not active -> the legacy entitlement exactly as before.
   const { summary: accountSummary, refresh: refreshAccountSummary } = useAccountSummary(supabase, session?.user?.id);
-  const headerPlanBadge = planBadgeModel(accountSummary, isHebrew ? 'he' : 'en', { isLifetime: isLifetimeAccount });
   const legacyCapabilities = {
     'quote.edit_duplicate': entitlement.editDuplicate === true,
     'quote.whatsapp_delete': entitlement.whatsappDelete === true,
@@ -5733,12 +5732,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             width: auto;
             height: auto;
             max-width: calc(100% - 16px);
-            max-height: 78px;
+            max-height: 48px;
             object-fit: contain;
           }
-          /* Owner 2026-10-14: a business logo gets a taller card (90px, logo up to 78px); the TEKANGO wordmark card keeps 58px */
-          .dash-sidebar-brand.dash-sidebar-brand--logo { height: 100px; padding: 5px 10px; }
-          .dash-sidebar-brand--logo .dash-sidebar-brand-card { height: 90px; }
           .dash-sidebar-wordmark {
             color: #0b2a55;
             font-size: 27px;
@@ -5901,24 +5897,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             unicode-bidi: isolate;
           }
           .dash-header-account svg { flex: none; }
-          .dash-header-plan {
+          .dash-header-avatar {
             flex: none;
-            min-block-size: 33px;
-            padding: 0 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.45);
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            font: inherit;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1;
-            white-space: nowrap;
-            cursor: pointer;
-            unicode-bidi: isolate;
+            inline-size: 33px;
+            block-size: 33px;
+            border-radius: 50%;
+            background: #e7ebf3;
+            overflow: hidden;
+            display: inline-flex;
           }
-          .dash-header-plan:hover { background: rgba(255, 255, 255, 0.22); }
-          .dash-header-plan:focus-visible { outline: 3px solid #ffffff; outline-offset: 2px; }
+          .dash-header-avatar img { inline-size: 100%; block-size: 100%; object-fit: cover; }
           .dash-header-stats { display: none !important; }
 
           .quote-workspace.pf-work-screen {
@@ -6974,7 +6962,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               lockup. Both real-data-driven, no placeholder content. */}
           {/* Approved 980px dashboard: the top of the sidebar is the TEKANGO platform logo card (static wordmark), in the same
               flat band as the header - not the business avatar/name (the business identity lives at the sidebar bottom). */}
-          <div className={bizLogoUrl && !sidebarLogoFailed ? 'dash-sidebar-brand dash-sidebar-brand--logo' : 'dash-sidebar-brand'}>
+          <div className="dash-sidebar-brand">
             {bizLogoUrl && !sidebarLogoFailed ? (
               <div className="dash-sidebar-brand-card" data-testid="sidebar-business-logo">
                 <img key={bizLogoUrl} src={bizLogoUrl} alt={bizName || (isHebrew ? 'לוגו העסק' : 'Business logo')} className="dash-sidebar-business-logo" onError={() => setSidebarLogoFailed(true)} />
@@ -7483,14 +7471,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       <strong dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</strong>
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
                       <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} />
-                      {/* Owner 2026-10-14: the plan button replaces the avatar circle (no sign-in provider ever set a picture) - the
-                          account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
-                      {!isSuperAdmin && (
-                        // PRODUCT_TRUTH_DECORATIVE: opens the in-app plans window (PricingModal); changes no data
-                        <button type="button" className="dash-header-plan" data-testid="header-plan-button" data-plan-kind={headerPlanBadge.kind} onClick={() => setShowPricingModal(true)} aria-haspopup="dialog">
-                          {headerPlanBadge.label}
-                        </button>
-                      )}
+                      <span className="dash-header-avatar" aria-hidden="true">
+                        {headerAvatarUrl ? (
+                          <img src={headerAvatarUrl} alt="" />
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="33" height="33" focusable="false"><circle cx="12" cy="9.2" r="4.2" fill="#a4acbc" /><path d="M3.6 21c.5-4.6 3.9-7.1 8.4-7.1s7.9 2.5 8.4 7.1z" fill="#a4acbc" /></svg>
+                        )}
+                      </span>
                     </div>
                   </div>
                   {/* Task 20 Continuation 2 (Owner 2026-10-10): the ONE AI chat launcher sits in the horizontal center of the header row at every
