@@ -511,7 +511,8 @@
   .tl-meta { gap: 6px; }
   .tl-meta-cell b { font-size: 13px; }
   .tl-party--client .tl-party-name { font-size: 16px; }
-  .tl-parties, .tl-doc--modern .tl-parties { grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 14px 0; }
+  /* Owner 2026-10-14: "לכבוד" and "לידי" stay side by side on a phone too (HE: Attn to the left of To; EN mirrored) */
+  .tl-parties, .tl-doc--modern .tl-parties { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 10px; margin: 14px 0; }
   .tl-doc--modern .tl-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .tl-notes { grid-template-columns: minmax(0, 1fr); }
   .tl-items { font-size: 12.5px; }
@@ -560,9 +561,13 @@
    while mounted; :has() covers the prerendered first paint before JS. Other routes keep the app background. */
 html.tl-landing-active, html.tl-landing-active body, html:has(.tl-landing), html:has(.tl-landing) body { background: #f7f8f6 !important; }
 
-/* The floating AI launcher steps aside while it would cover a sample quotation (LandingPage toggles the class). */
-.tl-landing .ai-support-btn { transition: opacity .18s ease, transform .18s ease !important; }
-.tl-landing.tl-launcher-aside .ai-support-btn { opacity: 0 !important; transform: translateY(16px) !important; pointer-events: none !important; visibility: hidden; }
+/* The floating AI launcher steps aside while it would cover an action (LandingPage toggles the class). Owner 2026-10-14: the motion must
+   be felt - it leaves quickly and comes back with a short spring (overshoot), still 16px of travel (useLauncherStepAside measures it). */
+.tl-landing .ai-support-btn { transition: opacity .28s ease, transform .5s cubic-bezier(.34, 1.8, .64, 1) !important; }
+.tl-landing.tl-launcher-aside .ai-support-btn { opacity: 0 !important; transform: translateY(16px) !important; pointer-events: none !important; visibility: hidden; transition: opacity .18s ease, transform .18s ease !important; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-landing .ai-support-btn, .tl-landing.tl-launcher-aside .ai-support-btn { transition: opacity .18s ease !important; }
+}
 
 /* Page-end clearance (2026-10-05): on tablet/phone the floating AI launcher sits 85-132px above the viewport bottom; the
    footer is the last content, so without this reserve its links could never scroll out from under the launcher

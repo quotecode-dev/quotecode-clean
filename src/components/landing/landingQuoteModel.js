@@ -28,7 +28,7 @@ const DOC_COPY = {
     // Recipient data, separated (the public renderer's base contract): the CLIENT (company + its details) and the
     // independent attention CONTACT (name + optional role). The business is never a recipient party.
     client: { name: 'מרחבי צפון בע״מ', details: ['דרך הנמל 18, חיפה'] },
-    contact: { name: 'נועה לוי', role: null },
+    contact: { name: 'נועה לוי', role: 'מנהלת לוגיסטיקה' },
     title: 'עבודות אלומיניום למשרד',
     subtitle: 'ייצור והתקנת חלונות, מחיצת זכוכית ודלת אלומיניום',
     number: 'Q-1048',
@@ -52,7 +52,7 @@ const DOC_COPY = {
     businessEmail: 'office@vistaro.example',
     businessAddress: '4 Industry Way, Portland',
     client: { name: 'Northline Workspaces Ltd.', details: ['18 Harbor Way, Portland'] },
-    contact: { name: 'Nora Lane', role: null },
+    contact: { name: 'Nora Lane', role: 'Logistics Manager' },
     title: 'Office aluminum works',
     subtitle: 'Fabrication and installation of windows, a glass partition and an aluminum door',
     number: 'Q-1048',
