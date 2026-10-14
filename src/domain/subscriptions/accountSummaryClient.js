@@ -83,7 +83,7 @@ export function planBadgeModel(summary, lang, { isLifetime = false } = {}) {
   if (summary.free10) {
     if (summary.phase?.output !== 'enforced') return plans;
     const { remaining } = summary.free10;
-    return { label: he ? `נותרו ${remaining}/${FREE_QUOTES_TOTAL}` : `${remaining}/${FREE_QUOTES_TOTAL} left`, kind: 'free10' };
+    return { label: he ? `נותרו ${remaining}/${FREE_QUOTES_TOTAL}` : `${remaining}/${FREE_QUOTES_TOTAL} left`, kind: 'free10', remaining, total: FREE_QUOTES_TOTAL };
   }
   const name = planName(summary.planId, lang);
   return name ? { label: name, kind: 'plan' } : plans;
