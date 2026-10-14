@@ -1,3 +1,10 @@
 # Pinned/reviewed migration + release-ledger bytes must be identical on every checkout (Windows autocrlf would otherwise change their SHA-256).
 supabase/migrations/*.sql text eol=lf
 supabase/functions/**/*.ts text eol=lf
+# Closed PREP contract and its raw-CSS contract probe must remain byte-stable in clean Windows checkouts.
+subscriptions-prep/server/authorizeQuoteOutput.ts text eol=lf
+src/quoteDocument/quoteDocument.css text eol=lf
+# Task 16 cloud evidence and manifests (2026-10-05): the manifests hash the committed bytes. Store and check out these files
+# byte-for-byte (no CRLF conversion on Windows, whatever core.autocrlf is), so sha256 verification compares real bytes.
+docs/task16-quote-experience-v2/** -text
+evidence/product-truth/** -text

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
-import { LIGHT as NEON, FONT_HE, FONT_EN } from '../theme/neonTheme';
+import { APP as NEON, APP_STATUS, SHADOW, FONT_HE, FONT_EN } from '../theme/neonTheme';
 
 // רכיב מחיקה-מאשרת יחיד ומשותף לכל זרימות המחיקה באפליקציה - מחליף את כל
 // window.confirm() המובנים של הדפדפן כדי לשמור על עיצוב אחיד (NEON כהה)
@@ -23,16 +23,16 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
     <div
       className="no-print"
       onClick={() => { if (!isDeleting) onCancel(); }}
-      style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}
+      style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}
       dir={isHebrew ? 'rtl' : 'ltr'}
     >
       {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the modal panel preventing the backdrop cancel from firing on inner clicks */}
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '14px', padding: '20px', width: '100%', maxWidth: '340px', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.55)', fontFamily: isHebrew ? FONT_HE : FONT_EN, boxSizing: 'border-box' }}
+        style={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '14px', padding: '20px', width: '100%', maxWidth: '340px', boxShadow: SHADOW.lg, fontFamily: isHebrew ? FONT_HE : FONT_EN, boxSizing: 'border-box' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(248,113,113,0.12)', color: NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: APP_STATUS.error.bg, color: NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Trash2 size={14} strokeWidth={2.4} />
           </div>
           <h3 style={{ margin: 0, color: NEON.textPrimary, fontSize: '1rem', fontWeight: '800' }}>
@@ -57,7 +57,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            style={{ flex: 1, background: NEON.redDark, color: '#fff', border: 'none', padding: '9px', borderRadius: '8px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.85rem', opacity: isDeleting ? 0.7 : 1, boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}
+            style={{ flex: 1, background: NEON.redDark, color: '#fff', border: 'none', padding: '9px', borderRadius: '8px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.85rem', opacity: isDeleting ? 0.7 : 1, boxShadow: 'none' }}
           >
             {isDeleting ? (isHebrew ? 'מוחק…' : 'Deleting…') : confirmLabel}
           </button>

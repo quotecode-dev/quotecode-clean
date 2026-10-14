@@ -22,6 +22,11 @@
 import { getCapabilityById } from './productTruthRegistry.js';
 import { checkAgainstRequiredSlotAuthority } from './productTruthRequiredSlotAuthority.js';
 import { deriveRegistryEntitlement } from './productTruthCapabilityPolarity.js';
+import { getHistoricalCapabilityById, LEGACY_RULESET_ID } from './productTruthLegacyPlanRules.js';
+// Every evidence row this schema validates is a HISTORICAL capture (chat-ai v39 and older, taken before the subscriptions
+// cutover of 2026-10-07). It is judged against the rules in force when it was captured (ruleset 'legacy_v39',
+// productTruthLegacyPlanRules.js) - never re-labelled to the post-cutover truth, and never used as current product truth.
+const EVIDENCE_RULESET = LEGACY_RULESET_ID;
 import { checkFactPayloadAgainstCanonical, checkProseAgainstPayload, deriveExpectedFactPayload, isKnownOutcome } from './productTruthFactPayload.js';
 import { checkRawCaptureIntegrity, checkRowAgainstRawCapture, checkSupportLiveReadback } from './productTruthRawCaptureBinding.js';
 import {
@@ -345,7 +350,7 @@ export function checkFinalMatrixDefinitionIntegrity(key, definition = FINAL_MATR
     }
   } else if (key === 'planRole') {
     for (const s of slots) {
-      const capability = getCapabilityById(s.expectedResult);
+      const capability = getHistoricalCapabilityById(s.expectedResult);
       if (!capability || !['plan', 'role'].includes(capability.authorityType)) problems.push(`slot_${s.slot}_expected_not_a_plan_or_role_gated_registry_capability`);
       if (!ENTITLEMENT_VALUES.includes(s.fixtureExpectedEntitlement)) problems.push(`slot_${s.slot}_fixture_entitlement_invalid`);
       if (s.expectationAuthority !== 'static_fixture') problems.push(`slot_${s.slot}_planrole_authority_must_be_static_fixture`);
@@ -441,12 +446,12 @@ function checkFinalRowAgainstSlot(row, slot, key) {
   // wrong payload fails the cell whatever the prose says, and the prose can never rescue it.
   {
     const outcome = structuredOutcomeOf(key, slot);
-    const structured = checkFactPayloadAgainstCanonical(row.factPayload, outcome, row.serverVerified);
+    const structured = checkFactPayloadAgainstCanonical(row.factPayload, outcome, row.serverVerified, EVIDENCE_RULESET);
     semantic.push(...structured);
-    const expectedPayload = deriveExpectedFactPayload({ outcome, serverVerified: row.serverVerified });
+    const expectedPayload = deriveExpectedFactPayload({ outcome, serverVerified: row.serverVerified, ruleset: EVIDENCE_RULESET });
     if (expectedPayload && !('problem' in expectedPayload)) {
       if (row.answerSource !== 'deterministic') semantic.push(`structured:answer_not_deterministic_but_a_structured_truth_is_required:${row.answerSource ?? 'missing'}`);
-      if (structured.length === 0) semantic.push(...checkProseAgainstPayload(row.factPayload, response, slot.language));
+      if (structured.length === 0) semantic.push(...checkProseAgainstPayload(row.factPayload, response, slot.language, EVIDENCE_RULESET));
     }
   }
   if (key === 'security') {
@@ -465,7 +470,7 @@ function checkFinalRowAgainstSlot(row, slot, key) {
       semantic.push('server_verified_plan_role_market_facts_required');
     } else {
       if (key === 'planRole') {
-        const derived = deriveRegistryEntitlement(slot.expectedResult, sv.serverPlan, sv.serverRole);
+        const derived = deriveRegistryEntitlement(slot.expectedResult, sv.serverPlan, sv.serverRole, EVIDENCE_RULESET);
         if (!ENTITLEMENT_VALUES.includes(derived)) semantic.push(`registry_entitlement_underivable:${derived}`);
         if (derived !== slot.fixtureExpectedEntitlement) semantic.push(`fixture_entitlement_disagrees_with_registry_derivation: fixture "${slot.fixtureExpectedEntitlement}", registry+server facts "${derived}"`);
         if (row.expectedEntitlement !== derived) semantic.push(`row_expected_entitlement_differs_from_registry_derivation: row "${row.expectedEntitlement ?? 'missing'}", derived "${derived}"`);

@@ -1,0 +1,149 @@
+/* OD-19 - compact catalog presentation (ServicesCatalog.jsx ONLY; no global reskin).
+   Layout contract (deterministic, measurable):
+   - ONE CSS grid shared by the static column header and every row; explicit column tracks, min-width:0 everywhere.
+   - container >= 560px : [description minmax(0,1fr)] [price 9.5rem] [actions 3x44px + 2x6px gaps = 144px]
+   - container <  560px : [description minmax(0,1fr)] [price 8.5rem]  /  actions on a second line, end-aligned
+   - price: tabular numerals, no wrapping, end-aligned on the price column's end edge (one numeric axis per screen).
+   - actions: ONE consolidated area; every target is 44x44px with a visible :focus-visible ring.
+   Direction comes from the component (dir = rtl for HE, ltr for EN); grid tracks mirror automatically.
+   Colours come from the component's theme tokens (--svc-*). */
+
+.svc-cat-cq {
+  container-type: inline-size;
+  container-name: svccat;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.svc-cat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.svc-cat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9.5rem 144px;
+  grid-template-areas: "desc price actions";
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.svc-cat-desc { grid-area: desc; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.svc-cat-price { grid-area: price; min-width: 0; text-align: end; }
+.svc-cat-actions { grid-area: actions; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+
+.svc-cat-head {
+  padding: 6px 8px;
+  border-bottom: 2px solid var(--svc-border);
+  color: var(--svc-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.svc-cat-head > span { min-width: 0; overflow-wrap: anywhere; }
+
+.svc-cat-item { border-bottom: 1px solid var(--svc-border); min-width: 0; }
+.svc-cat-row { padding: 6px 8px; min-height: 56px; }
+
+.svc-cat-name {
+  color: var(--svc-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.svc-cat-note {
+  color: var(--svc-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.svc-cat-money {
+  color: var(--svc-price);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  white-space: nowrap;
+  unicode-bidi: isolate;
+}
+
+.svc-cat-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--svc-border-strong);
+  border-radius: 8px;
+  background: var(--svc-input-bg);
+  color: var(--svc-text);
+  font-size: 0.85rem;
+}
+.svc-cat-input--price { text-align: end; font-variant-numeric: tabular-nums; direction: ltr; }
+.svc-cat-input:focus-visible { outline: 3px solid var(--svc-focus); outline-offset: 1px; }
+
+.svc-cat-btn {
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--svc-border-strong);
+  border-radius: 10px;
+  background: var(--svc-btn-bg);
+  color: var(--svc-accent);
+  cursor: pointer;
+}
+.svc-cat-btn:focus-visible { outline: 3px solid var(--svc-focus); outline-offset: 2px; }
+.svc-cat-btn--danger { color: var(--svc-danger); }
+.svc-cat-btn--save { background: var(--svc-save); border-color: transparent; color: #ffffff; }
+.svc-cat-btn.is-active { background: var(--svc-accent-bg); }
+.svc-cat-btn.is-locked { color: var(--svc-muted); border-style: dashed; }
+.svc-cat-lock { position: absolute; inset-block-start: 5px; inset-inline-end: 5px; }
+
+.svc-cat-panel { padding: 0 8px 8px; min-width: 0; }
+.svc-cat-locked-msg {
+  margin: 0 8px 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--svc-border-strong);
+  border-radius: 8px;
+  color: var(--svc-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* Narrow catalog (phones, narrow panes): description + price on one line, the single actions area on its own line. */
+@container svccat (max-width: 559.98px) {
+  .svc-cat-grid {
+    grid-template-columns: minmax(0, 1fr) 8.5rem;
+    grid-template-areas: "desc price" "actions actions";
+  }
+  .svc-cat-head { grid-template-areas: "desc price"; }
+  .svc-cat-head .svc-cat-actions { display: none; }
+}
+
+/* Fallback for engines without container queries: the same narrow layout by viewport width. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .svc-cat-grid {
+      grid-template-columns: minmax(0, 1fr) 8.5rem;
+      grid-template-areas: "desc price" "actions actions";
+    }
+    .svc-cat-head { grid-template-areas: "desc price"; }
+    .svc-cat-head .svc-cat-actions { display: none; }
+  }
+}

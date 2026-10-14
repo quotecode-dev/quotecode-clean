@@ -97,7 +97,7 @@ describe('PAYMENT & CHECKOUT TRUTH prompt block', () => {
     for (const he of [true, false]) {
       const prompt = buildSystemPrompt({ isHebrew: he });
       const iTruth = prompt.indexOf('PAYMENT & CHECKOUT TRUTH (authoritative');
-      const iPricing = prompt.indexOf('Pricing (');
+      const iPricing = prompt.indexOf('SUBSCRIPTION & PLAN TRUTH');
       expect(iTruth).toBeGreaterThan(-1);
       expect(iTruth).toBeLessThan(iPricing);
       expect(prompt).not.toMatch(/payment\/currency option/);

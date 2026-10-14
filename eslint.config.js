@@ -5,7 +5,11 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Product lint scope. Preserved copies are NOT product code and must stay byte-identical (their manifests are evidence):
+  // the approved design reference package and the sources supplement (canonical docs, tooling and evidence copies from the
+  // Owner's local checkouts). They are linted separately and visibly by `npm run lint:preserved` (expected to report their
+  // own known findings) - never hidden from the report.
+  globalIgnores(['dist', 'docs/task16-quote-experience-v2/cloud-handoff/reference/**', 'docs/task16-quote-experience-v2/cloud-handoff/supplement/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

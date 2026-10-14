@@ -53,13 +53,17 @@ describe('Dashboard navigation - Desktop and Mobile consume one shared capabilit
 
 describe('Dashboard navigation - New Quote is available to Super Admin (SUPER ADMIN = FULL BUSINESS USER + ADDITIVE ADMIN)', () => {
   it('the Desktop New Quote CTA is NOT gated by !isSuperAdmin', () => {
-    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{handleCreateNewQuoteClick\} className="dash-sidebar-cta">/);
-    expect(dashboardSource).toMatch(/<button onClick=\{handleCreateNewQuoteClick\} className="dash-sidebar-cta">/);
+    // Approved 980px dashboard: the sidebar row is the New-quote menu (three choices); "standard" is still the existing
+    // handleCreateNewQuoteClick, and the row stays ungated.
+    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<NewQuoteMenu/);
+    expect(dashboardSource).toMatch(/<NewQuoteMenu\s+isHebrew=\{isHebrew\}\s+variant="sidebar"\s+onStandard=\{handleCreateNewQuoteClick\}\s+onAi=\{handleCreateAiQuoteClick\}\s+onStructured=\{handleCreateStructuredQuoteClick\}/);
   });
 
   it('the Mobile "New" button is NOT gated by !isSuperAdmin', () => {
-    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); handleCreateNewQuoteClick\(\); \}\}/);
-    expect(dashboardSource).toMatch(/<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); handleCreateNewQuoteClick\(\); \}\}/);
+    // Task 21: the Mobile "New" button now opens the three-choice sheet (standard / AI / measured) - still never gated by !isSuperAdmin.
+    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \(\s*<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); setShowMobileNewQuoteMenu/);
+    expect(dashboardSource).toMatch(/<button onClick=\{\(\) => \{ setShowMobileMoreMenu\(false\); setShowMobileNewQuoteMenu\(\(prev\) => !prev\); \}\}/);
+    expect(dashboardSource).not.toMatch(/\{!isSuperAdmin && \([\s\S]{0,60}dash-mobile-newquote-menu/);
   });
 });
 

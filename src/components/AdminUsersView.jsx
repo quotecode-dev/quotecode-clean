@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { resolveAccountEntitlement } from '../utils/accountEntitlement';
-import { getDisplayIdentityLabel } from '../utils/planCatalog';
-import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
+import { AdminMarketIcon } from './AdminIdentityIcons';
+import { AdminPlanState, AdminPlanSystemNotice, AdminLegacyRecord } from './AdminSubscriptionState';
+import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
@@ -13,7 +13,10 @@ import { formatShortDateTime } from '../utils/shortDate';
 // - No generic "USER" role column/badge.
 // - No online/last-sign-in-recency status - that was removed entirely
 //   (see Dashboard.jsx's filteredAdminAccounts comment for why).
-// - Owner-locked package/market presentation is icon-only.
+// - Owner-locked market presentation is icon-only.
+// - Plan column (OD-16/OD-20): the canonical new-model state from the admin summary RPC only (AdminSubscriptionState), never
+//   a Basic/Pro/trial/LIFETIME label derived from the legacy fields. The legacy fields are shown only in the clearly
+//   labelled "Legacy record (history)" column as raw technical values.
 // - Default sort (newest registration first) is owned by the caller
 //   (Dashboard.jsx's sortField/sortDirection default), not this component.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
@@ -25,14 +28,12 @@ const PAGE_SIZE_OPTIONS = [25, 50];
 // buttons, no technical "backend on hold" copy. Their backend is deferred.
 
 export default function AdminUsersView({ accounts, orderedAccounts = accounts, search, onSearch, onSort, sortField, sortDirection, isHebrew, onDetails, bodyExtra }) {
-  const [plan, setPlan] = useState('all');
-  const [trialState, setTrialState] = useState('all');
   const [market, setMarket] = useState('all');
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [page, setPage] = useState(0);
 
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
-  const rows = users.map(account => ({ account, entitlement: resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime }) }));
+  const rows = users.map(account => ({ account }));
   const order = new Map(orderedAccounts.map((a, index) => [a.id, index]));
 
   // Market comes from the account's own stored `country` field - never
@@ -43,21 +44,19 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // "Unknown", never silently mapped to Local (Owner-binding rule, §2.5).
   const accountMarket = account => resolveAdminMarket(account).market;
 
-  const visible = rows.filter(({ account, entitlement }) => {
+  const visible = rows.filter(({ account }) => {
     const term = search.trim().toLowerCase();
     const matchesSearch = `${account.business_name || ''} ${account.email || ''}`.toLowerCase().includes(term);
-    const matchesPlan = plan === 'all' || entitlement.displayIdentity === plan;
-    const matchesTrial = trialState === 'all'
-      || (trialState === 'active' && ['active', 'expiringSoon'].includes(entitlement.trialStatus))
-      || (trialState === 'expired' && entitlement.trialStatus === 'expired')
-      || (trialState === 'lifetime' && entitlement.isLifetime);
     const matchesMarket = market === 'all' || market === accountMarket(account);
-    return matchesSearch && matchesPlan && matchesTrial && matchesMarket;
+    return matchesSearch && matchesMarket;
   }).sort((a, b) => (order.get(a.account.id) ?? Infinity) - (order.get(b.account.id) ?? Infinity));
 
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const pageRows = visible.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  // Read-only admin summary RPC for the visible page only; a "not active" answer is global and stops further calls.
+  const { system, byId } = useAdminAccountSummaries(pageRows.map(({ account }) => adminTargetUserId(account)));
+  const summaryOf = a => (system === 'not_active' ? { state: 'not_activated' } : (byId[adminTargetUserId(a)] || { state: 'loading' }));
 
   const identity = a => (
     <div className="admin-identity">
@@ -66,21 +65,16 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     </div>
   );
   const marketBadge = a => <AdminMarketIcon account={a} isHebrew={isHebrew} />;
-  const packageBadge = e => <AdminPackageIcon entitlement={e} isHebrew={isHebrew} />;
-  const expiry = (a, e) => (
-    <div className="admin-expiry">
-      <span>{e.isLifetime ? (isHebrew ? 'ללא תפוגה' : 'No expiry') : e.trialStatus === 'expired' ? (isHebrew ? 'פג תוקף' : 'Expired') : ['active', 'expiringSoon'].includes(e.trialStatus) ? (isHebrew ? 'ניסיון פעיל' : 'Active trial') : (isHebrew ? 'אין ניסיון פעיל' : 'No active trial')}</span>
-      {!e.isLifetime && a.trial_ends_at && <small>{dateLabel(a.trial_ends_at, isHebrew)}</small>}
-    </div>
-  );
+  const planState = a => <AdminPlanState summary={summaryOf(a)} isHebrew={isHebrew} compact />;
+  const legacyRecord = a => <AdminLegacyRecord account={a} isHebrew={isHebrew} compact />;
   const registered = a => <span className="admin-date">{dateLabel(a.created_at, isHebrew)}</span>;
   // PRODUCT_TRUTH_CAPABILITY: admin_console
   const actions = a => <button className="admin-icon-button" aria-label={isHebrew ? `פרטי משתמש: ${a.business_name || a.email}` : `User details: ${a.business_name || a.email}`} onClick={() => onDetails(a)}>{isHebrew ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</button>;
 
   const columns = [
     [isHebrew ? 'עסק' : 'Business', 'business_name'],
-    [isHebrew ? 'חבילה' : 'Plan', 'plan'],
-    [isHebrew ? 'ניסיון / תפוגה' : 'Trial / expiry', 'trial_ends_at'],
+    [isHebrew ? 'מסלול' : 'Plan', null],
+    [isHebrew ? 'רשומת מורשת (היסטוריה)' : 'Legacy record (history)', 'plan'],
     [isHebrew ? 'נרשם' : 'Registered', 'created_at'],
     [isHebrew ? 'אזור' : 'Region', 'country'],
     [isHebrew ? 'פעולות' : 'Actions', null],
@@ -88,7 +82,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
 
   const colgroup = (
     <colgroup>
-      {[30, 13, 18, 20, 12, 7].map((w, index) => <col key={index} style={{ width: `${w}%` }} />)}
+      {[27, 14, 24, 16, 11, 8].map((w, index) => <col key={index} style={{ width: `${w}%` }} />)}
     </colgroup>
   );
 
@@ -98,21 +92,13 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
       subtitle={isHebrew ? `${visible.length} משתמשים` : `${visible.length} users`}
       label={isHebrew ? 'רשימת משתמשים' : 'Users list'}
       controls={
+        <>
+        {system !== 'active' && <AdminPlanSystemNotice system={system} isHebrew={isHebrew} />}
         <div className="admin-filters">
           <label className="admin-search">
             <Search size={16} />
             <input aria-label={isHebrew ? 'חיפוש שם עסק או אימייל' : 'Search business name or email'} placeholder={isHebrew ? 'חיפוש שם עסק או אימייל...' : 'Search business or email...'} value={search} onChange={e => { onSearch(e.target.value); setPage(0); }} />
           </label>
-          <select aria-label={isHebrew ? 'סינון חבילה' : 'Filter by plan'} value={plan} onChange={e => { setPlan(e.target.value); setPage(0); }}>
-            <option value="all">{isHebrew ? 'כל החבילות' : 'All plans'}</option>
-            {['FREE', 'FREE_TRIAL', 'BASIC', 'PRO', 'LIFETIME'].map(p => <option key={p} value={p}>{getDisplayIdentityLabel(p, isHebrew)}</option>)}
-          </select>
-          <select aria-label={isHebrew ? 'סינון ניסיון' : 'Filter by trial state'} value={trialState} onChange={e => { setTrialState(e.target.value); setPage(0); }}>
-            <option value="all">{isHebrew ? 'כל המצבים' : 'All trial states'}</option>
-            <option value="active">{isHebrew ? 'בניסיון' : 'On trial'}</option>
-            <option value="expired">{isHebrew ? 'ניסיון פג' : 'Trial expired'}</option>
-            <option value="lifetime">{isHebrew ? 'Lifetime' : 'Lifetime'}</option>
-          </select>
           <select aria-label={isHebrew ? 'סינון שוק' : 'Filter by market'} value={market} onChange={e => { setMarket(e.target.value); setPage(0); }}>
             <option value="all">{isHebrew ? 'כל השווקים' : 'All markets'}</option>
             <option value="Local">{isHebrew ? 'ישראל' : 'Local'}</option>
@@ -120,6 +106,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
             <option value="Unknown">{isHebrew ? 'לא ידוע' : 'Unknown'}</option>
           </select>
         </div>
+        </>
       }
       head={
         <div className="pf-head-gutter admin-table-wrap admin-head-wrap">
@@ -143,11 +130,11 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
         <table>
           {colgroup}
           <tbody>
-            {pageRows.map(({ account: a, entitlement: e }) => (
+            {pageRows.map(({ account: a }) => (
               <tr key={a.id}>
                 <td>{identity(a)}</td>
-                <td>{packageBadge(e)}</td>
-                <td>{expiry(a, e)}</td>
+                <td>{planState(a)}</td>
+                <td>{legacyRecord(a)}</td>
                 <td>{registered(a)}</td>
                 <td>{marketBadge(a)}</td>
                 <td>{actions(a)}</td>
@@ -158,11 +145,11 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
       </div>
 
       <div className="admin-user-cards">
-        {pageRows.map(({ account: a, entitlement: e }) => (
+        {pageRows.map(({ account: a }) => (
           <article className="admin-user-card" key={a.id}>
             <div className="admin-card-heading">{identity(a)}{actions(a)}</div>
-            <div className="admin-card-badges">{packageBadge(e)}{marketBadge(a)}</div>
-            <div className="admin-card-dates">{expiry(a, e)}{registered(a)}</div>
+            <div className="admin-card-badges">{planState(a)}{marketBadge(a)}</div>
+            <div className="admin-card-dates">{legacyRecord(a)}{registered(a)}</div>
           </article>
         ))}
       </div>

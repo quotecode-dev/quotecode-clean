@@ -1,371 +1,360 @@
-// IRON-PUBLIC-001 / IRON-MARKET-001/003/004 / IRON-ILS-001 / IRON-DATE-001 - what the customer sees on the public quote link,
-// rendered from the REAL pages (PublicQuote = HE/Local/ILS, PublicQuoteEn = EN/International) and the real route component
-// (SmartPublicQuote). Only the network edge (supabase.functions.invoke / rpc) is isolated. Section disclosure, the table
-// column contract, the owner-only signing gate and expiry already have their own suites and are not repeated here.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import PublicQuote from './PublicQuote';
 import PublicQuoteEn from './PublicQuoteEn';
-import SmartPublicQuote from '../components/SmartPublicQuote';
 import { supabase } from '../shared/supabase';
+import { buildSampleQuote } from '../quoteDocument/sampleQuotes';
 
-vi.mock('../shared/supabase', () => ({ supabase: { rpc: vi.fn(), functions: { invoke: vi.fn() } } }));
+// Task 16 - Quote Experience V2 (CONTRACT §4): document/action separation, the three compositions selected by
+// presentation.style (absent => legacy Classic), issued-branding override and previewMode isolation.
+vi.mock('../shared/supabase', () => ({
+  supabase: { rpc: vi.fn().mockResolvedValue({ error: null }), functions: { invoke: vi.fn() } },
+}));
 
-const QID = 'a29b1fbb-f2ca-427d-88b2-6198d138eb89';
-const build = (over = {}) => ({
-  quote: { id: QID, quote_number: 100701, status: 'sent', signature: null, tax_rate: 0.18, client_type: 'business', is_owner_viewing: false,
-    subtotal: 1000, total: 1180, discount: 0, created_at: '2026-01-15T10:00:00.000Z', currency: 'ILS', ...over.quote },
-  business: { business_name: 'Issuer Co', tax_id: '515151515', phone: '03-5551234', email: 'office@issuer.test', address: 'Tel Aviv', ...over.business },
-  client: over.client === null ? null : { company_name: 'Client Ltd', email: 'buyer@client.test', phone: '+972501234567', address: 'Haifa', ...over.client },
-  items: over.items ?? [{ description: 'Synthetic item', quantity: 1, price: 1000, total_price: 1000 }],
-  sections: over.sections ?? [],
-  attachments: over.attachments ?? [],
-});
-const he = (over) => render(<MemoryRouter><PublicQuote quoteData={build(over)} /></MemoryRouter>);
-const en = (over = {}) => render(<MemoryRouter><PublicQuoteEn quoteData={build({ ...over, quote: { currency: 'USD', tax_rate: 0, total: 1000, ...over.quote } })} /></MemoryRouter>);
-const strip = (x) => (x || '').replace(/[\s‎‏‪-‮⁦-⁩]+/g, '');
-const money = (c) => [...c.querySelectorAll('.pf-money')].map((e) => strip(e.textContent));
-const totalsText = (c) => strip(c.querySelector('.pq-totals-box')?.textContent || c.querySelector('.pq-total-final-amount').closest('.pq-section, div').textContent);
-const finalTotal = (c) => strip(c.querySelector('.pq-total-final-amount').textContent);
+const NOW = new Date('2026-10-04T09:00:00Z');
+
+function heData(overrides = {}) {
+  const { quoteData } = buildSampleQuote({ locale: 'he', now: NOW });
+  return {
+    ...quoteData,
+    business: { ...quoteData.business, phone: '0501234567', ...overrides.business },
+    quote: { ...quoteData.quote, ...overrides.quote },
+  };
+}
+function enData(overrides = {}) {
+  const { quoteData } = buildSampleQuote({ locale: 'en', now: NOW });
+  return {
+    ...quoteData,
+    business: { ...quoteData.business, phone: '+15035550100', ...overrides.business },
+    quote: { ...quoteData.quote, ...overrides.quote },
+  };
+}
+const renderHe = (props) => render(<MemoryRouter><PublicQuote {...props} /></MemoryRouter>);
+// PublicQuoteEn is rendered WITHOUT a Router on purpose (it must never navigate).
+const renderEn = (props) => render(<PublicQuoteEn {...props} />);
+
+const PAGES = [
+  ['HE', renderHe, heData, { print: 'הדפס מסמך', sign: 'חתימת לקוח לאישור ההצעה:', approve: /אשר וחתום/ }],
+  ['EN', renderEn, enData, { print: 'Print Document', sign: 'Client Signature to Approve This Quote:', approve: /Approve & Sign/ }],
+];
 
 beforeEach(() => {
-  supabase.rpc.mockReset(); supabase.rpc.mockResolvedValue({ error: null });
-  supabase.functions.invoke.mockReset();
-  document.head.querySelectorAll('meta[name="robots"]').forEach((m) => m.remove());
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-});
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
-
-describe('page identity: a private, non-indexed document in the quote market language', () => {
-  it('HE page: lang=he, dir=rtl, Hebrew title, robots noindex/nofollow, and the page root is RTL', () => {
-    const { container } = he();
-    expect([document.documentElement.lang, document.documentElement.dir]).toEqual(['he', 'rtl']);
-    expect(document.title).toBe('TEKANGO - הצעת מחיר דיגיטלית');
-    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
-    expect(container.querySelector('.pq-page')).toHaveAttribute('dir', 'rtl');
-  });
-  it('EN page: lang=en, dir=ltr, English title, robots noindex/nofollow, and the page root is LTR', () => {
-    const { container } = en();
-    expect([document.documentElement.lang, document.documentElement.dir]).toEqual(['en', 'ltr']);
-    expect(document.title).toBe('TEKANGO - Digital Price Quote');
-    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
-    expect(container.querySelector('.pq-page')).toHaveAttribute('dir', 'ltr');
-  });
-  it('re-rendering never duplicates the robots tag and an existing permissive tag is overwritten to noindex', () => {
-    const tag = document.createElement('meta'); tag.name = 'robots'; tag.content = 'index, follow'; document.head.appendChild(tag);
-    he(); cleanup(); en();
-    const tags = document.head.querySelectorAll('meta[name="robots"]');
-    expect(tags).toHaveLength(1);
-    expect(tags[0]).toHaveAttribute('content', 'noindex, nofollow');
-  });
+  supabase.rpc.mockClear();
+  document.documentElement.dir = '';
+  document.documentElement.lang = '';
 });
 
-describe('header meta follows the quote market (number, issue date, validity)', () => {
-  it('HE: quote number A100701 and the issue date in Local DD/MM/YYYY', () => {
-    const { container } = he();
-    expect(container.querySelector('.pq-header-number')).toHaveTextContent('A100701');
-    expect(container.textContent).toMatch(/תאריך:\s*15\/01\/2026/);
-  });
-  it('EN: quote number A100701 and the issue date in International MM/DD/YYYY', () => {
-    const { container } = en();
-    expect(container.querySelector('.pq-header-number')).toHaveTextContent('A100701');
-    expect(container.textContent).toMatch(/Date:\s*01\/15\/2026/);
-  });
-  it('the valid-until line uses the same market date order, and is absent when no validity date is stored', () => {
-    const a = he({ quote: { valid_until: '2099-03-04' } }).container;
-    expect(a.textContent).toMatch(/בתוקף עד:\s*04\/03\/2099/);
-    cleanup();
-    const b = en({ quote: { valid_until: '2099-03-04' } }).container;
-    expect(b.textContent).toMatch(/Valid( until)?:\s*03\/04\/2099/);
-    cleanup();
-    expect(he().container.querySelector('.pq-header-valid')).toBeNull();
-  });
-  it('a quote without a persisted number shows the short id fallback, never an empty number', () => {
-    const { container } = he({ quote: { quote_number: null } });
-    expect(container.querySelector('.pq-header-number')).toHaveTextContent('#a29b1fbb');
-  });
-  it('the issuer letterhead shows the business details on both pages', () => {
-    for (const mount of [he, en]) {
-      const { container } = mount();
-      for (const v of ['Issuer Co', '515151515', 'office@issuer.test']) expect(container.textContent).toContain(v);
-      cleanup();
+describe.each(PAGES)('%s public quote - document / action separation', (name, renderPage, data, t) => {
+  const locale = name === 'HE' ? 'he' : 'en';
+  it('ledger D21a (cloud-fix4, A17 G4b): the action tiles are back INSIDE the card at the base position (after the approval record, above the footer) and never reach an output (no-print + data-html2canvas-ignore); the signing pad and approve button stay outside', () => {
+    const { container } = renderPage({ quoteData: data() });
+    const card = container.querySelector('.pq-card');
+    expect(container.querySelectorAll('.pq-card').length).toBe(1);
+    const tiles = card.querySelector('.pq-action-tiles');
+    expect(tiles).not.toBeNull();
+    expect(tiles.className).toMatch(/no-print/);
+    expect(tiles.getAttribute('data-html2canvas-ignore')).toBe('true');
+    expect(tiles.querySelectorAll('.pq-action-tile').length).toBe(4);
+    const end = card.querySelector('.pq-doc-end');
+    expect(tiles.parentElement).toBe(end);
+    const approval = card.querySelector('.pq-approval');
+    expect(approval.compareDocumentPosition(tiles) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const foot = card.querySelector('.pq-doc-foot');
+    if (foot) expect(tiles.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    else expect(end.lastElementChild).toBe(tiles);
+    expect(card.querySelector('canvas')).toBeNull();
+    // every tel: link inside the card is screen-only app UI (header Call CTA, Call tile)
+    const tels = [...card.querySelectorAll('a[href^="tel:"]')];
+    expect(tels.length).toBe(2);
+    tels.forEach((a) => expect(a.closest('.no-print[data-html2canvas-ignore="true"]')).not.toBeNull());
+    const call = card.querySelector('.pq-lh-call');
+    expect(call.className).toMatch(/no-print/);
+    expect(call.getAttribute('data-html2canvas-ignore')).toBe('true');
+    expect(call.closest('.pq-lh-band')).not.toBeNull();
+    expect(card.querySelector('input')).toBeNull();
+    expect(card.textContent).not.toContain(t.sign);
+    // the signing pad stays OUTSIDE the card (D22, approved), as a .no-print sibling
+    const actions = container.querySelector('.pq-actions');
+    expect(actions.className).toMatch(/no-print/);
+    expect(card.contains(actions)).toBe(false);
+    expect(actions.querySelector('canvas')).not.toBeNull();
+    expect(actions.querySelector('.pq-action-tiles')).toBeNull();
+    expect(screen.getByText(t.print)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t.approve })).toBeInTheDocument();
+    // The document itself ends with a typographic approval line and a footer.
+    expect(card.querySelector('.pq-approval .pq-sigline')).not.toBeNull();
+    // ledger D23 (cloud-fix4): base footer - HE credit line only; EN has no footer (as base c65f742)
+    if (name === 'HE') {
+      expect(card.querySelector('.pq-doc-foot').textContent).toMatch(/^מסמך זה נערך ע"י/);
+      expect(card.querySelector('.pq-doc-foot').textContent).not.toContain(data().business.business_name);
+    } else {
+      expect(card.querySelector('.pq-doc-foot')).toBeNull();
     }
+    // The page shell keeps the print/PDF hooks.
+    const page = container.querySelector('.pq-page');
+    expect(page.getAttribute('data-print-mode')).toBe('compact');
+    expect(page.getAttribute('dir')).toBeTruthy();
   });
-});
 
-describe('recipient block', () => {
-  it('HE: "לכבוד:" with the client company, greeting, LTR email, phone shown as a local Israeli number, address', () => {
-    const { container } = he();
-    const box = container.querySelector('.pq-recipient');
-    expect(box).toHaveTextContent('לכבוד:');
-    expect(box.querySelector('.pq-recipient-name')).toHaveTextContent('Client Ltd');
-    expect(box).toHaveTextContent('שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:');
-    const details = [...box.querySelectorAll('.pq-recipient-detail')];
-    expect(details[0]).toHaveTextContent('buyer@client.test');
-    expect(details[0]).toHaveStyle({ direction: 'ltr' });
-    expect(details[1]).toHaveTextContent('050-1234567');
-    expect(box).toHaveTextContent('Haifa');
+  it('a signed quote keeps its read-only approval record + signature image INSIDE the document', () => {
+    const { container } = renderPage({ quoteData: data({ quote: { status: 'approved', signature: 'data:image/png;base64,iVBORw0KGgo=' } }) });
+    const card = container.querySelector('.pq-card');
+    expect(card.querySelector('img[alt="Client Signature"]')).not.toBeNull();
+    expect(card.querySelector('.pq-approval-signed')).not.toBeNull();
+    expect(container.querySelector('canvas')).toBeNull();
   });
-  it('EN: "To:" with the company, the English greeting, and the phone exactly as stored (no Israeli rewriting)', () => {
-    const { container } = en({ client: { phone: '+1 415 555 0100' } });
-    const box = container.querySelector('.pq-recipient');
-    expect(box).toHaveTextContent('To:');
-    expect(box).toHaveTextContent('Hello, please find the price quote prepared for you below:');
-    expect(box).toHaveTextContent('+1 415 555 0100');
-  });
-  it('a quote with no client record still addresses the reader (HE "לקוח נכבד", EN "Valued Client")', () => {
-    expect(he({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('לקוח נכבד');
-    cleanup();
-    expect(en({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('Valued Client');
-  });
-  it('the attention block appears only when a contact person is stored, with the role under the name', () => {
-    expect(he().container.querySelectorAll('.pq-recipient')).toHaveLength(1);
-    cleanup();
-    const { container } = he({ quote: { attn_name: 'Dana Levi', attn_role: 'Procurement' } });
-    const attn = container.querySelectorAll('.pq-recipient')[1];
-    expect(attn).toHaveTextContent('לידי:');
-    expect(attn.querySelector('.pq-recipient-name')).toHaveTextContent('Dana Levi');
-    expect(attn).toHaveTextContent('Procurement');
-    cleanup();
-    expect(en({ quote: { attn_name: 'Dana Levi' } }).container.querySelectorAll('.pq-recipient')[1]).toHaveTextContent('Attn:');
-  });
-  it('the quote subject is presented as the subject line on both pages', () => {
-    expect(he({ quote: { subject: 'חלונות לבית' } }).container.textContent).toMatch(/נושא ההצעה:\s*חלונות לבית/);
-    cleanup();
-    expect(en({ quote: { subject: 'Windows' } }).container.textContent).toMatch(/Subject:\s*Windows/);
-  });
-});
 
-describe('HE / Local / ILS totals: whole shekels ".00", VAT by client type', () => {
-  it('business client: subtotal, VAT added on top, and the total - all whole shekels', () => {
-    const { container } = he();
-    expect(totalsText(container)).toContain('סיכוםביניים:₪1,000.00');
-    expect(totalsText(container)).toContain('מע"מ(18%):₪180.00');
-    expect(finalTotal(container)).toBe('₪1,180.00');
+  it('presentation absent => legacy Classic (white letterhead, no media even if a payload carried some)', () => {
+    const { container } = renderPage({ quoteData: data() });
+    expect(container.querySelector('.pq-card').className).toMatch(/pq-style-classic/);
+    expect(container.querySelector('.pq-letterhead-classic .pq-lh-rule')).not.toBeNull();
+    expect(container.querySelector('.pq-media')).toBeNull();
+    const { container: c2 } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'classic', media: buildSampleQuote({ style: 'modern' }).presentation.media } });
+    expect(c2.querySelector('.pq-media')).toBeNull();
   });
-  it('awkward stored values still display whole shekels with ".00", and net + VAT equals the shown total exactly', () => {
-    const { container } = he({ quote: { subtotal: 1040.4, total: 1227.67, client_type: 'private' } });
-    for (const m of money(container)) expect(m).toMatch(/^₪-?[\d,]+\.00$/);
-    const nums = [...container.querySelectorAll('.pq-totals-box .pf-money')].map((e) => Number(strip(e.textContent).replace(/[₪,]/g, '')));
-    const [net, vat, total] = nums.slice(-3);
-    expect(net + vat).toBe(total);
-    expect(total).toBe(1228);
-  });
-  it('private client: no subtotal row; the VAT is extracted from the price (amount before VAT + VAT)', () => {
-    const { container } = he({ quote: { client_type: 'private', subtotal: 1180, total: 1180 } });
-    const t = totalsText(container);
-    expect(t).not.toContain('סיכוםביניים');
-    expect(t).toContain('סכוםלפנימע"מ:₪1,000.00');
-    expect(t).toContain('מע"מ(18%):₪180.00');
-    expect(finalTotal(container)).toBe('₪1,180.00');
-  });
-  it('a stored discount shows its percent and the discount amount in whole shekels, marked as a deduction', () => {
-    const { container } = he({ quote: { discount: 10, subtotal: 1000, total: 1062 } });
-    const row = container.querySelector('.pf-money.pq-discount-negative');
-    expect(container.textContent).toContain('הנחה (10%):');
-    expect(strip(row.textContent)).toBe('₪100.00');
-  });
-  it('an ambiguous client type never invents a VAT line', () => {
-    const { container } = he({ quote: { client_type: null } });
-    expect(totalsText(container)).not.toContain('מע"מ');
-    expect(finalTotal(container)).toBe('₪1,180.00');
-  });
-  it('when no total is stored, the page computes it from the stored subtotal with the persisted VAT rate', () => {
-    const { container } = he({ quote: { total: null, subtotal: 1000 } });
-    expect(finalTotal(container)).toBe('₪1,180.00');
-  });
-  it('every amount on the HE page carries ₪ and no International symbol', () => {
-    const { container } = he();
-    for (const m of money(container)) expect(m.startsWith('₪')).toBe(true);
-    expect(container.textContent).not.toMatch(/[$€£]\d/);
-  });
-});
 
-describe('EN / International totals: cents kept, persisted currency, no VAT line', () => {
-  it('USD keeps cents: $1,227.20 total and subtotal, and no VAT row', () => {
-    const { container } = en({ quote: { subtotal: 1227.2, total: 1227.2 } });
-    expect(finalTotal(container)).toBe('$1,227.20');
-    expect(container.textContent).toContain('Subtotal:');
-    expect(container.textContent).not.toMatch(/VAT/);
-    expect(container.textContent).not.toContain('₪');
+  it('an unknown style or malformed presentation falls back to Classic', () => {
+    const { container } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'neon', media: 'x' } });
+    expect(container.querySelector('.pq-card').className).toMatch(/pq-style-classic/);
   });
-  it.each([['EUR', '€'], ['GBP', '£']])('a historical %s quote keeps its own symbol on every amount', (cur, sym) => {
-    const { container } = en({ quote: { currency: cur, subtotal: 50.5, total: 50.5 } });
-    for (const m of money(container)) expect(m.startsWith(sym)).toBe(true);
-    expect(finalTotal(container)).toBe(`${sym}50.50`);
-  });
-  it('a quote without a stored currency uses the issuer currency; anything outside USD/EUR/GBP never shows as ₪ here', () => {
-    expect(finalTotal(en({ quote: { currency: null }, business: { currency: 'GBP' } }).container)).toBe('£1,000.00');
-    cleanup();
-    expect(finalTotal(en({ quote: { currency: 'JPY' } }).container)).toBe('$1,000.00');
-  });
-  it('the discount row shows the percent and the stored subtotal-to-total difference', () => {
-    const { container } = en({ quote: { discount: 10, subtotal: 200, total: 180 } });
-    expect(container.textContent).toContain('Discount (10%):');
-    expect(strip(container.querySelector('.pq-discount-negative .pf-money').textContent)).toBe('$20.00');
-  });
-  it('when no total is stored the subtotal is the total (never 0)', () => {
-    expect(finalTotal(en({ quote: { total: 0, subtotal: 75.25 } }).container)).toBe('$75.25');
-  });
-});
 
-describe('terms, warranty, notes and attachments', () => {
-  it('HE: terms / warranty / notes appear with their labels and keep the author\'s line breaks; absent when empty', () => {
-    const { container } = he({ quote: { terms: 'שורה 1\nשורה 2', warranty: '12 חודשים', notes: 'הערה' } });
-    for (const label of ['תקנון ותנאים:', 'אחריות:', 'הערות נוספות:']) expect(container.textContent).toContain(label);
-    const terms = [...container.querySelectorAll('div')].find((d) => d.textContent === 'שורה 1\nשורה 2');
-    expect(terms).toHaveStyle({ whiteSpace: 'pre-wrap' });
-    cleanup();
-    const bare = he().container.textContent;
-    for (const label of ['תקנון ותנאים:', 'אחריות:', 'הערות נוספות:']) expect(bare).not.toContain(label);
+  it('Modern: editorial header, product rail, row thumbnails INSIDE the description cell, still exactly four columns', () => {
+    const media = buildSampleQuote({ locale, style: 'modern' }).presentation.media;
+    const { container } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'modern', media } });
+    expect(container.querySelector('.pq-card').className).toMatch(/pq-style-modern/);
+    expect(container.querySelector('.pq-letterhead-modern')).not.toBeNull();
+    expect(container.querySelector('.pq-card .pq-media-rail')).not.toBeNull();
+    expect(container.querySelector('.pq-body-grid .pq-body-aside .pq-totals-box')).not.toBeNull();
+    const table = container.querySelector('table.pq-commercial-table');
+    expect(table.querySelectorAll('colgroup col').length).toBe(4);
+    const thumbs = table.querySelectorAll('.pq-media-thumb');
+    expect(thumbs.length).toBeGreaterThan(0);
+    thumbs.forEach((th) => expect(th.closest('td').classList.contains('pq-td-desc')).toBe(true));
+    table.querySelectorAll('tbody tr').forEach((tr) => expect(tr.querySelectorAll('td').length).toBe(4));
   });
-  it('EN: Terms & Conditions / Warranty / Additional Notes', () => {
-    const { container } = en({ quote: { terms: 'Net 30', warranty: '1 year', notes: 'Thanks' } });
-    for (const label of ['Terms & Conditions:', 'Warranty:', 'Additional Notes:']) expect(container.textContent).toContain(label);
-  });
-  it('HE attachments open in a new tab without opener access; an unnamed file gets a numbered label', () => {
-    he({ attachments: [{ file_name: 'plan.pdf', url: 'https://signed.test/a' }, { file_name: '', url: 'https://signed.test/b' }] });
-    const a = screen.getByText(/plan\.pdf/).closest('a');
-    expect(a).toHaveAttribute('href', 'https://signed.test/a');
-    expect(a).toHaveAttribute('target', '_blank');
-    expect(a).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(screen.getByText(/קובץ מצורף #2/)).toBeInTheDocument();
-  });
-  it('no attachments is stated explicitly on both pages (never an empty box)', () => {
-    expect(he().container.textContent).toContain('אין קובץ מצורף להצעה זו');
-    cleanup();
-    expect(en().container.textContent).toContain('No attachment included with this quote.');
-  });
-  it('EN attachments use the English fallback label', () => {
-    en({ attachments: [{ file_name: null, url: 'https://signed.test/x' }] });
-    expect(screen.getByText(/Attachment #1/).closest('a')).toHaveAttribute('rel', 'noopener noreferrer');
-  });
-});
 
-describe('contact tiles (the reader contacts the ISSUER)', () => {
-  it('HE: every call control (header CTA + action tile) dials the same issuer number, and the CTA label never carries the number', () => {
-    he({ business: { phone: '050-7654321' } });
-    const calls = screen.getAllByText('חייג/י אליי').map((e) => e.closest('a'));
-    expect(calls.length).toBeGreaterThanOrEqual(2);
-    for (const a of calls) {
-      expect(a).toHaveAttribute('href', 'tel:0507654321');
-      expect(a.textContent).not.toMatch(/\d/);
-    }
+  it('Visual: hero media + the same complete four-column table and totals', () => {
+    const media = buildSampleQuote({ locale, style: 'visual' }).presentation.media;
+    const { container } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'visual', media } });
+    expect(container.querySelector('.pq-letterhead-visual')).not.toBeNull();
+    expect(container.querySelector('.pq-card .pq-media-hero')).not.toBeNull();
+    expect(container.querySelectorAll('table.pq-commercial-table tbody tr').length).toBe(3);
+    expect(container.querySelector('.pq-totals-box')).not.toBeNull();
   });
-  it('HE: the WhatsApp tile opens wa.me in international format with a message naming the quote number', () => {
-    he({ business: { phone: '050-7654321' } });
-    const wa = screen.getByText('וואטסאפ').closest('a');
-    const url = new URL(wa.getAttribute('href'));
-    expect(url.host + url.pathname).toBe('wa.me/972507654321');
-    expect(url.searchParams.get('text')).toBe('שלום, יש לי שאלה לגבי הצעת המחיר מספר A100701.');
-    expect(wa).toHaveAttribute('rel', 'noopener noreferrer');
-  });
-  it('HE: a stored +972 / 00972 number reaches the same WhatsApp number', () => {
-    he({ business: { phone: '+972-50-765-4321' } });
-    expect(new URL(screen.getByText('וואטסאפ').closest('a').getAttribute('href')).pathname).toBe('/972507654321');
-    cleanup();
-    he({ business: { phone: '00972507654321' } });
-    expect(new URL(screen.getByText('וואטסאפ').closest('a').getAttribute('href')).pathname).toBe('/972507654321');
-  });
-  it('without an issuer phone there is no call / WhatsApp tile; PDF and print remain', () => {
-    const { container } = he({ business: { phone: '' } });
-    expect(screen.queryByText('חייג/י אליי')).toBeNull();
-    expect(screen.queryByText('וואטסאפ')).toBeNull();
-    expect(container.querySelector('.pq-action-tiles')).toHaveClass('pq-action-tiles-two');
-    expect(screen.getByText('הורד כ-PDF')).toBeInTheDocument();
-    expect(screen.getByText('הדפס מסמך')).toBeInTheDocument();
-  });
-  it('EN: international numbers are used as stored (no +972 rewriting) and the English message names the quote', () => {
-    en({ business: { phone: '+1 (415) 555-0100' } });
-    for (const label of ['Call Me', 'Call me']) for (const e of screen.getAllByText(label)) expect(e.closest('a')).toHaveAttribute('href', 'tel:+14155550100');
-    const url = new URL(screen.getByText('WhatsApp').closest('a').getAttribute('href'));
-    expect(url.pathname).toBe('/14155550100');
-    expect(url.searchParams.get('text')).toBe('Hi, I have a question about quote number A100701.');
-  });
-  it('HE: the TEKANGO credit in the footer is an LTR-isolated brand that leads to the Hebrew site', () => {
-    const { container } = he();
-    const brand = [...container.querySelectorAll('span')].find((s) => s.textContent.trim() === 'TEKANGO');
-    expect(brand).toHaveAttribute('dir', 'ltr');
-    expect(brand).toHaveStyle({ unicodeBidi: 'isolate' });
-  });
-});
 
-describe('historical signature record', () => {
-  it('a signed quote whose stored signature is not an image shows the textual confirmation (never a broken image)', () => {
-    he({ quote: { status: 'approved', signature: 'signed-legacy-token' } });
-    expect(screen.getByText('חתימה דיגיטלית התקבלה בהצלחה')).toBeInTheDocument();
-    expect(screen.queryByAltText('Client Signature')).toBeNull();
+  it('no images => the media area is omitted entirely (no empty boxes, no "no images" copy)', () => {
+    const { container } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'visual', media: [] } });
+    expect(container.querySelector('.pq-media')).toBeNull();
+    expect(container.querySelector('.pq-card').className).toMatch(/pq-style-visual/);
   });
-  it('a signed quote loaded later shows the stored image under "חתימה דיגיטלית:" / "Digital Signature:"', () => {
-    const png = 'data:image/png;base64,AAAA';
-    he({ quote: { status: 'approved', signature: png } });
-    expect(screen.getByText('חתימה דיגיטלית:')).toBeInTheDocument();
-    expect(screen.getByAltText('Client Signature')).toHaveAttribute('src', png);
-    cleanup();
-    en({ quote: { status: 'approved', signature: png } });
-    expect(screen.getByText('Digital Signature:')).toBeInTheDocument();
-  });
-});
 
-describe('SmartPublicQuote: the public route picks the page from the quote\'s OWN persisted market data', () => {
-  const route = (id = QID) => render(<MemoryRouter initialEntries={[`/q/${id}`]}><Routes><Route path="/q/:id" element={<SmartPublicQuote />} /></Routes></MemoryRouter>);
-  it('shows a loading state, then asks get-public-quote for exactly the link id', async () => {
-    let resolve; supabase.functions.invoke.mockReturnValue(new Promise((r) => { resolve = r; }));
-    route();
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('get-public-quote', { body: { quote_id: QID } });
-    resolve({ data: build(), error: null });
-    await screen.findByText('לכבוד:');
+  it('an ISSUED snapshot\'s frozen branding overrides the live business fields; a draft does not', () => {
+    const branding = { business_name: 'Frozen Name Ltd', logo_url: null, tax_id: '999', email: 'frozen@example.com', phone: null, address: null };
+    const { container } = renderPage({ quoteData: data(), presentation: { mode: 'issued', style: 'classic', branding, media: [] } });
+    expect(container.querySelector('.pq-letterhead').textContent).toContain('Frozen Name Ltd');
+    expect(container.querySelector('.pq-letterhead').textContent).toContain('frozen@example.com');
+    // the frozen snapshot has no phone -> no call tile, no header Call CTA
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    const { container: c2 } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'classic', branding, media: [] } });
+    expect(c2.querySelector('.pq-letterhead').textContent).not.toContain('Frozen Name Ltd');
   });
-  it('404 and any other failure show the same bilingual not-found page, with no technical detail', async () => {
-    supabase.functions.invoke.mockResolvedValue({ data: null, error: { context: { status: 404 }, message: 'Quote not found' } });
-    route();
-    expect(await screen.findByText('Quote not found or expired.')).toBeInTheDocument();
-    expect(screen.getByText('הצעת המחיר אינה נמצאת או שפג תוקפה.')).toHaveAttribute('dir', 'rtl');
-    cleanup();
-    supabase.functions.invoke.mockResolvedValue({ data: null, error: { context: { status: 400 }, message: 'Unable to load quote' } });
-    route();
-    expect(await screen.findByText('Quote not found or expired.')).toBeInTheDocument();
-    expect(document.body.textContent).not.toContain('Unable to load quote');
+
+  // Subscriptions continuation (C) - found by the real local stack journey: on a capability document (the immutable issued
+  // snapshot) the snapshot business block, incl. the read-back verified logo, is authoritative over presentation branding.
+  it('a capability snapshot document shows its verified issued logo even when presentation branding has no logo URL', () => {
+    const logo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12NgYGAAAAAEAAEnNCcKAAAAAElFTkSuQmCC';
+    const branding = { business_name: 'Issued Name', logo_url: null, tax_id: null, email: null, phone: null, address: null };
+    const base = data();
+    const { container } = renderPage({ quoteData: { ...base, capability: true, business: { ...base.business, logo_url: logo } }, presentation: { mode: 'issued', style: 'classic', branding, media: [] } });
+    expect([...container.querySelectorAll('img')].some((i) => i.getAttribute('src') === logo)).toBe(true);
   });
-  it('a response without a quote is treated as unavailable (never a half-rendered page)', async () => {
-    supabase.functions.invoke.mockResolvedValue({ data: { business: {} }, error: null });
-    route();
-    expect(await screen.findByText('Quote not found or expired.')).toBeInTheDocument();
+
+  it('previewMode: no signing pad / approve / tiles / print chooser, a neutral preview notice, no print CSS, no host-document side effects', () => {
+    const { container } = renderPage({ quoteData: data({ quote: { is_owner_viewing: true } }), previewMode: true });
+    expect(container.querySelector('canvas')).toBeNull();
+    expect(screen.queryByRole('button', { name: t.approve })).toBeNull();
+    expect(container.querySelector('.pq-action-tiles')).toBeNull();
+    expect(screen.queryByText(t.print)).toBeNull();
+    expect(screen.getByTestId('pq-preview-notice')).toBeInTheDocument();
+    const css = container.querySelector('style').textContent;
+    expect(css).not.toMatch(/@media print/);
+    expect(css).not.toMatch(/@page/);
+    expect(container.querySelector('.pq-page').className).toMatch(/pq-preview/);
+    expect(container.querySelector('.pq-page').style.minHeight).not.toBe('100vh');
+    expect(document.documentElement.dir).toBe('');
+    expect(document.documentElement.lang).toBe('');
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
-  it('an ILS quote opens the Hebrew page and a 0%-tax USD quote the English page', async () => {
-    supabase.functions.invoke.mockResolvedValue({ data: build(), error: null });
-    route();
-    expect(await screen.findByText('לכבוד:')).toBeInTheDocument();
+
+  it('attachments: always in the document (base c65f742, retro audit R-5) - empty-state line when there are none, links when there are', () => {
+    const { container } = renderPage({ quoteData: data() });
+    const empty = container.querySelector('.pq-card .pq-attachments');
+    expect(empty).not.toBeNull();
+    expect(empty.querySelector('.pq-attachments-title').textContent).toContain(name === 'HE' ? 'קבצים ושרטוטים מצורפים להצעה:' : 'Attached Files & Documents:');
+    // base container (ledger D17, cloud-fix3) - not the fine-ruled document note
+    expect(empty.classList.contains('pq-doc-note')).toBe(false);
+    expect(empty.querySelector('.pq-attachments-empty').textContent).toBe(name === 'HE' ? 'אין קובץ מצורף להצעה זו' : 'No attachment included with this quote.');
+    expect(empty.querySelector('a')).toBeNull();
+    const withFiles = { ...data(), attachments: [{ url: 'https://example.com/plan.pdf', file_name: 'plan.pdf' }] };
+    const { container: c2 } = renderPage({ quoteData: withFiles });
+    const block = c2.querySelector('.pq-card .pq-attachments');
+    expect(block).not.toBeNull();
+    expect(block.querySelector('a[href="https://example.com/plan.pdf"]').textContent).toContain('plan.pdf');
+    expect(block.querySelector('.pq-attachments-empty')).toBeNull();
+  });
+
+  it('Expanded on a FLAT quote shows NO detail lines under the rows (base c65f742 / master plan decision 4, ledger D26) and never changes an amount', () => {
+    const base = data();
+    const items = base.items.map((it, i) => (i === 1 ? { ...it, measurements: [{ width: 2, height: 1.7, unit: 'm', calculated_area: 3.4 }], specification: [{ label: 'Finish', value: 'Oil' }] } : it));
+    const flat = { ...base, items };
+    const compact = renderPage({ quoteData: flat, detail: 'compact' }).container;
+    const moneyOf = (c) => [...c.querySelectorAll('.pq-card .pf-money')].map((e) => e.textContent);
+    const compactMoney = moneyOf(compact);
+    expect(compact.textContent).not.toContain('Finish: Oil');
+    const expanded = renderPage({ quoteData: flat, detail: 'expanded' }).container;
+    expect(expanded.querySelector('.pq-page').getAttribute('data-print-mode')).toBe('expanded');
+    expect(expanded.textContent).not.toContain('Finish: Oil');
+    expect(expanded.querySelector('.pq-td-desc .pq-item-detail')).toBeNull();
+    expect(expanded.textContent).not.toMatch(/2.00 × 1.70/);
+    expect(moneyOf(expanded)).toEqual(compactMoney);
+    // still four cells per row, no extra column
+    expanded.querySelectorAll('table.pq-commercial-table tbody tr').forEach((tr) => expect(tr.querySelectorAll('td').length).toBe(4));
+  });
+
+  it('outside previewMode the page still emits its print CSS', () => {
+    const { container } = renderPage({ quoteData: data() });
+    expect(container.querySelector('style').textContent).toMatch(/@media print/);
+  });
+
+  it('detail="expanded" (or presentation.detail in previewMode) opens the Expanded document detail (flat rows stay description-only)', () => {
+    const { container } = renderPage({ quoteData: data(), previewMode: true, presentation: { mode: 'draft', style: 'classic', media: [], detail: 'expanded' } });
+    expect(container.querySelector('.pq-page').getAttribute('data-print-mode')).toBe('expanded');
+    // ledger D26: Expanded is professional-detail visibility of SECTION rows; a flat quote shows no detail lines
+    expect(container.querySelectorAll('.pq-item-detail').length).toBe(0);
+    const { container: c2 } = renderPage({ quoteData: data(), detail: 'compact' });
+    expect(c2.querySelectorAll('.pq-item-detail').length).toBe(0);
+  });
+});
+
+describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, screen only)', () => {
+  const STYLES3 = ['classic', 'modern', 'visual'];
+  it.each(STYLES3)('HE %s: "חייג/י אליי" precedes metadata in the upper outer corner, tel: link without the number as text', (style) => {
+    const { container } = renderHe({ quoteData: heData(), presentation: { mode: 'draft', style, media: [] } });
+    const header = container.querySelector('.pq-letterhead');
+    const call = header.querySelector('.pq-lh-call');
+    expect(call).not.toBeNull();
+    const a = call.querySelector('a[href^="tel:"]');
+    expect(a.getAttribute('href')).toBe('tel:0501234567');
+    expect(a.textContent).toBe('חייג/י אליי');
+    // It is structurally before metadata: Classic/Visual place it in the brandline corner; Modern starts the aside with it.
+    const meta = header.querySelector('.pq-meta');
+    expect(call.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(call.className).toMatch(/no-print/);
+    expect(call.getAttribute('data-html2canvas-ignore')).toBe('true');
+    // the business phone also stays in the issuer details as plain text
+    const details = header.querySelector('.pq-lh-details');
+    expect(details.getAttribute('dir')).toBe('rtl');
+    const phone = details.querySelector('.pq-lh-phone');
+    expect(phone.textContent).toMatch(/^050-?1234567$/);
+    expect(phone.querySelector('bdi[dir="ltr"]')).not.toBeNull();
+  });
+  it('EN: "Call me"; no business phone => no CTA (base)', () => {
+    const { container } = renderEn({ quoteData: enData() });
+    expect(container.querySelector('.pq-lh-call a').textContent).toBe('Call me');
+    const { container: c2 } = renderEn({ quoteData: enData({ business: { phone: null } }) });
+    expect(c2.querySelector('.pq-lh-call')).toBeNull();
+    expect(c2.querySelector('a[href^="tel:"]')).toBeNull();
+  });
+  it('ink #0369a1 (>= 4.5:1 on the white pill; base LIGHT.sky was 3.68:1) and >= 12px in every branch (screen floor)', () => {
+    window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: true, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const { container } = renderHe({ quoteData: heData() });
+    const a = container.querySelector('.pq-letterhead.pq-lh-mobile .pq-lh-call a');
+    expect(a).not.toBeNull();
+    expect(a.style.color).toBe('rgb(3, 105, 161)');
+    expect(parseFloat(a.style.fontSize) * 16).toBeGreaterThanOrEqual(12);
     cleanup();
-    supabase.functions.invoke.mockResolvedValue({ data: build({ quote: { currency: 'USD', tax_rate: 0 } }), error: null });
-    route();
-    expect(await screen.findByText('To:')).toBeInTheDocument();
+    window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: false, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const { container: c2 } = renderEn({ quoteData: enData() });
+    expect(parseFloat(c2.querySelector('.pq-lh-call a').style.fontSize) * 16).toBeGreaterThanOrEqual(12);
   });
-  it('a historical ILS quote of an issuer that is now International still opens in ₪ (the quote\'s own currency wins)', async () => {
-    supabase.functions.invoke.mockResolvedValue({ data: build({ business: { currency: 'USD' } }), error: null });
-    const { container } = route();
-    await screen.findByText('לכבוד:');
-    expect(finalTotal(container)).toBe('₪1,180.00');
+});
+
+describe('Owner 2026-10-06: phone shell keeps the landing paper frame without reducing the commercial table', () => {
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: <= 640px uses the compact landing frame and preserves section/table insets', (_n, renderPage, data) => {
+    const { container } = renderPage({ quoteData: data() });
+    const css = container.querySelector('style').textContent;
+    const phone = css.slice(css.indexOf('@media (max-width: 640px)'));
+    expect(phone).toMatch(/\.pq-page \{\s*padding: 4px !important;\s*\}/);
+    expect(phone).toMatch(/\.pq-card \{\s*padding: 16px 12px 12px !important;\s*background: #ffffff !important;\s*box-shadow: 0 4px 16px rgba\(16,29,35,0\.08\) !important;\s*border: 5px solid #dfe8e5 !important;\s*border-radius: 13px !important;\s*\}/);
+    expect(phone).toMatch(/\.pq-section \{\s*padding: 10px 12px !important;\s*\}/);
+    expect(phone).toMatch(/\.pq-recipient \{\s*padding: 6px 10px !important;\s*margin-bottom: 10px !important;\s*\}/);
+    expect(phone).not.toMatch(/padding: 18px 14px/);
+    // the totals panel is a .pq-section (so it receives the base phone inset)
+    expect(container.querySelector('.pq-totals-box').classList.contains('pq-section')).toBe(true);
   });
-  it('a successful load records one view for that quote; a failing view counter never breaks the page', async () => {
-    supabase.rpc.mockRejectedValue(new Error('counter down'));
-    supabase.functions.invoke.mockResolvedValue({ data: build(), error: null });
-    route();
-    await screen.findByText('לכבוד:');
-    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith('public_increment_quote_view', { p_quote_id: QID }));
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('לכבוד:')).toBeInTheDocument();
+});
+
+describe('Owner 2026-10-06: real quote uses the landing sample paper frame', () => {
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: pale frame and landing paper shadow', (_n, renderPage, data) => {
+    const card = renderPage({ quoteData: data() }).container.querySelector('.pq-card');
+    expect(card.style.border).toMatch(/18px solid (?:#dfe8e5|rgb\(223, 232, 229\))/);
+    expect(card.style.boxShadow).toMatch(/0px 9px 28px rgba\(16, 29, 35, 0\.11\)|0 9px 28px rgba\(16,\s*29,\s*35,\s*0\.11\)/);
+    expect(card.parentElement.style.maxWidth).toBe('830px');
+    expect(830 - (2 * 18)).toBe(794); // A4 CSS width at 96dpi, excluding the decorative screen-only frame.
   });
-  it('the owner opening their own link sees the same document with the advisory admin note instead of the signing form', async () => {
-    supabase.functions.invoke.mockResolvedValue({ data: build({ quote: { is_owner_viewing: true } }), error: null });
-    const { container } = route();
-    await screen.findByText(/תצוגת מנהל/);
-    expect(finalTotal(container)).toBe('₪1,180.00');
-    expect(container.querySelector('.pq-commercial-table')).not.toBeNull();
-    fireEvent.click(screen.getByText('הדפס מסמך'));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+describe('ledgers D08 / D25b (cloud-fix4)', () => {
+  it('EN: "Valid:" on phones (compact branch), "Valid until" at document widths', () => {
+    window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: true, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const { container } = renderEn({ quoteData: enData() });
+    expect(container.querySelector('.pq-meta-valid .pq-meta-label').textContent).toBe('Valid:');
+    cleanup();
+    window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: false, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const { container: c2 } = renderEn({ quoteData: enData() });
+    expect(c2.querySelector('.pq-meta-valid .pq-meta-label').textContent).toBe('Valid until');
+  });
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: base page tone #f8fafc and landing frame radius 22px', (_n, renderPage, data) => {
+    const { container } = renderPage({ quoteData: data() });
+    expect(container.querySelector('.pq-page').style.background).toBe('rgb(248, 250, 252)');
+    expect(container.querySelector('.pq-card').style.borderRadius).toBe('22px');
+  });
+});
+
+describe('Owner 2026-10-06: screen title/subtitle follow the approved landing document', () => {
+  it.each(['classic', 'modern', 'visual'])('HE %s: h1 includes the subject below the band; the preserved output subject remains in the client record', (style) => {
+    const { container } = renderHe({ quoteData: heData(), presentation: { mode: 'draft', style, media: [] } });
+    const subject = heData().quote.subject;
+    expect(subject).toBeTruthy();
+    expect(container.querySelector('h1.pq-doc-title').textContent).toBe(`הצעת מחיר · ${subject}`);
+    expect(container.querySelector('.pq-screen-doc-subtitle').textContent).toBe(heData().quote.project_name);
+    const s = container.querySelector('[data-role="client"] .pq-recipient-subject');
+    expect(s.querySelector('.pq-recipient-subject-label').textContent).toBe('נושא ההצעה: ');
+    expect(s.querySelector('.pq-recipient-subject-value').textContent).toBe(subject);
+  });
+  it('EN: h1 includes the subject and the project is the screen subtitle', () => {
+    const { container } = renderEn({ quoteData: enData() });
+    expect(container.querySelector('h1.pq-doc-title').textContent).toBe(`Price Quote · ${enData().quote.subject}`);
+    expect(container.querySelector('.pq-screen-doc-subtitle').textContent).toBe(enData().quote.project_name);
+    const s = container.querySelector('[data-role="client"] .pq-recipient-subject');
+    expect(s.textContent).toBe(`Subject: ${enData().quote.subject}`);
+  });
+});
+
+describe('ledger D27 (cloud-fix4): expired / unfinished states are base orange panels INSIDE the document', () => {
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: expired record and the not-signable unfinished notice are in .pq-card', (_n, renderPage, data) => {
+    const { container } = renderPage({ quoteData: data({ quote: { valid_until: '2020-01-01' } }) });
+    const card = container.querySelector('.pq-card');
+    expect(card.querySelector('[data-testid="pq-expired"]').className).toMatch(/pq-doc-status/);
+    cleanup();
+    const unfinished = data({ quote: { total: 0, subtotal: 0 } });
+    unfinished.items = [];
+    const { container: c2 } = renderPage({ quoteData: unfinished });
+    const notice = c2.querySelector('[data-testid="pq-unfinished-nosign"]');
+    expect(notice).not.toBeNull();
+    expect(c2.querySelector('.pq-card').contains(notice)).toBe(true);
+    expect(notice.className).toMatch(/pq-doc-status-unfinished/);
+    expect(c2.querySelector('.pq-actions')?.contains(notice) ?? false).toBe(false);
   });
 });

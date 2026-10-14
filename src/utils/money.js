@@ -85,9 +85,9 @@ export const formatMoneyForCurrency = (value, currency, locale = 'en-US') => (
 );
 
 // IRON-MARKET-004: a historical quote keeps its own persisted currency on every surface. Every aggregate over several quotes
-// (revenue in the header / Finances KPI, the annual income chart) is therefore grouped by each quote's OWN persisted `currency`:
-// amounts in different currencies are never added together, never converted and never relabelled with the account's current
-// currency. The account currency only decides which group is shown first.
+// (Quotes overview, revenue in the header / Finances KPI, the annual income chart) is therefore grouped by each quote's OWN
+// persisted `currency`: amounts in different currencies are never added together, never converted and never relabelled with the
+// account's current currency. The account currency only decides which group is shown first.
 // A quote whose currency is missing or not one of ILS/USD/EUR/GBP is NOT assigned to any group (and never to the account
 // currency): it is counted in `unknownCount` so the surface can show a missing-data state. Pure - quotes are never mutated.
 

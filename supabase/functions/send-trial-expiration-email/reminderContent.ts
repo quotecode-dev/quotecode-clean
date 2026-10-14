@@ -1,3 +1,7 @@
+// Subscriptions cutover (OD-16, 2026-10-07): the only wording change is that the retired legacy plan name was removed from
+// the 3-day body ("all PRO features" -> "all features"); subjects, stages, recipients, schedule and sending are unchanged.
+// The job stays operational until the retirement plan (ops/subscriptions/TRIAL_CRON_RETIREMENT_PLAN.md) is executed.
+//
 // Trial reminder email content (subject / HTML / text / sender), moved out of index.ts unchanged in wording so it can be
 // tested under vitest (Codex Post-LIVE Wave 1 blocker 5, 2026-09-27). The only input that selects language, direction,
 // date locale, CTA URL and sender is the EXACT canonical market ('Local' | 'International') resolved by eligibility.ts;
@@ -71,8 +75,8 @@ export function buildTrialReminderEmail({ stage, businessName, trialEndsAt, mark
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `תקופת הניסיון החינמית שלך במערכת <strong>TEKANGO</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל יכולות ה-PRO ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
-            : `Your free TEKANGO trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all PRO features without interruption, upgrade to a paid plan.`}
+            ? `תקופת הניסיון החינמית שלך במערכת <strong>TEKANGO</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל היכולות ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
+            : `Your free TEKANGO trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all features without interruption, upgrade to a paid plan.`}
         </p>
         ${ctaButton(isHebrew)}
       </div>

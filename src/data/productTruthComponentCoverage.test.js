@@ -23,9 +23,9 @@ const fileExists = (rel) => existsSync(join(ROOT, rel));
 const readFile = (rel) => readFileSync(join(ROOT, rel), 'utf-8');
 
 describe('DEFECT-7 INDEPENDENT COMPONENT SURFACE COVERAGE (real data)', () => {
-  it('sanity: the anchor map actually covers all 38 capabilities (not a subset re-hiding the original gap)', () => {
+  it('sanity: the anchor map actually covers all 44 capabilities (the frozen 38 + the 5 pinned Task 20 ids + the Task 23 card; not a subset re-hiding the original gap)', () => {
     const ids = Object.keys(CAPABILITY_ANCHORS);
-    expect(ids.length).toBe(38);
+    expect(ids.length).toBe(44);
     for (const c of PRODUCT_TRUTH_REGISTRY) {
       expect(CAPABILITY_ANCHORS[c.id], `capability "${c.id}" has no component-level anchor entry`).toBeTruthy();
     }

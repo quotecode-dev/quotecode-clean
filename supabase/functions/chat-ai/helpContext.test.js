@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { deriveTrustedFacts, reconcileBlockers, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, sanitizeHelpContext } from './helpContext.ts';
+import { deriveTrustedFacts, reconcileBlockers, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, sanitizeHelpContext, describeAccountPlan } from './helpContext.ts';
+import { NO_ACCOUNT_PLAN } from './accountContext.ts';
 import { extractNavigationAction } from './navigation.ts';
 import { buildSystemPrompt } from './validation.ts';
 
@@ -8,7 +9,10 @@ import { buildSystemPrompt } from './validation.ts';
 // navigation per turn. Browser context never overrides a server fact.
 
 const NOW = Date.now();
-const acct = (over = {}) => ({ market: 'Local', tier: 'free', isLifetime: false, trialStatus: 'none', currentArea: null, ...over });
+// Subscriptions cutover: the account's plan facts are only the server account summary projection (default: phase off -> not_activated).
+const NOT_ACTIVATED = { ...NO_ACCOUNT_PLAN, summaryState: 'not_activated' };
+const READY_FREE_ENFORCED = { summaryState: 'ready', planId: 'free', free10Remaining: 4, subscriptionStatus: 'none', outputPhase: 'enforced' };
+const acct = (over = {}) => ({ market: 'Local', account: NOT_ACTIVATED, currentArea: null, ...over });
 const ctx = (over = {}) => sanitizeHelpContext({ version: 4, revision: 1, screen: 'quote_editor_new', section: 'client_details', workflowId: 'create_quote', object: { kind: 'quote', provenance: 'UNSAVED_LOCAL_DRAFT' }, draft: { mode: 'create', dirty: true, localWriteStatus: 'written' }, facts: {}, blockers: [], capturedAt: NOW, ...over }, NOW);
 const blk = (code, extra = {}) => ({ code, occurredAt: NOW, ...extra });
 
@@ -22,13 +26,24 @@ describe('deriveTrustedFacts (Layer 3)', () => {
   it('a dial code alone is not a phone (same rule as the browser gate)', () => {
     expect(deriveTrustedFacts(acct(), { phone: '+972 ', tax_id: '1' }, 0).profile.phoneComplete).toBe(false);
   });
-  it('limits: free 5, basic 20, pro/lifetime/admin unlimited; attachments PRO only', () => {
-    expect(deriveTrustedFacts(acct(), null, 0).monthlyQuotes.limit).toBe(5);
-    expect(deriveTrustedFacts(acct({ tier: 'basic' }), null, 0).monthlyQuotes.limit).toBe(20);
-    expect(deriveTrustedFacts(acct({ tier: 'pro' }), null, 0).monthlyQuotes.limit).toBe('unlimited');
-    expect(deriveTrustedFacts(acct({ isLifetime: true }), null, 0).monthlyQuotes.limit).toBe('unlimited');
-    expect(deriveTrustedFacts(acct(), { role: 'super_admin' }, 0)).toMatchObject({ isAdmin: true, attachmentsEntitled: true });
-    expect(deriveTrustedFacts(acct({ tier: 'basic' }), null, 0).attachmentsEntitled).toBe(false);
+  it('no monthly counter, no legacy tier, no trial: the plan facts are only the server summary projection', () => {
+    const f = deriveTrustedFacts(acct(), { role: 'super_admin' }, null);
+    expect(f).toMatchObject({ isAdmin: true, account: NOT_ACTIVATED, enforcedCapabilities: null });
+    expect(f).not.toHaveProperty('monthlyQuotes');
+    expect(f).not.toHaveProperty('tier');
+    expect(f).not.toHaveProperty('trialStatus');
+    expect(f).not.toHaveProperty('attachmentsEntitled');
+  });
+  it('server capabilities count only for a READY summary whose output phase is ENFORCED', () => {
+    expect(deriveTrustedFacts(acct({ account: READY_FREE_ENFORCED }), null, ['quote_style.classic']).enforcedCapabilities).toEqual(['quote_style.classic']);
+    expect(deriveTrustedFacts(acct({ account: { ...READY_FREE_ENFORCED, outputPhase: 'prepared' } }), null, ['quote_style.classic']).enforcedCapabilities).toBeNull();
+    expect(deriveTrustedFacts(acct(), null, ['quote_attachment.upload']).enforcedCapabilities).toBeNull();
+  });
+  it('describeAccountPlan: a ready summary names the canonical plan + Free balance; otherwise it forbids guessing', () => {
+    expect(describeAccountPlan(READY_FREE_ENFORCED)).toMatch(/Plan \(server account summary\): free; Free quotes remaining: 4 of 10/);
+    const off = describeAccountPlan(NOT_ACTIVATED);
+    expect(off).toMatch(/no active plan/); expect(off).toMatch(/not_activated/); expect(off).toMatch(/Do not state or guess a plan, a balance or a trial/);
+    expect(off).not.toMatch(/\bpro\b|\bbasic\b|unlimited|monthly/i);
   });
   it('unknown market (region not chosen) is a missing prerequisite', () => {
     expect(deriveTrustedFacts(acct({ market: 'Unknown' }), null, null).profile.missingFields).toContain('business_region');
@@ -50,9 +65,21 @@ describe('reconcileBlockers (browser claims vs server truth)', () => {
     const f = deriveTrustedFacts(acct(), { phone: '', tax_id: '515' }, 1);
     expect(reconcileBlockers(ctx({ blockers: [blk('PROFILE_MISSING_PHONE')] }), f).active[0].confirmation).toBe('confirmed');
   });
-  it('limit: contradicted for unlimited plans, confirmed when the server count reaches the limit', () => {
-    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), deriveTrustedFacts(acct({ tier: 'pro' }), null, 99)).active).toHaveLength(0);
-    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), deriveTrustedFacts(acct(), null, 5)).active[0].confirmation).toBe('confirmed');
+  it('retired plan-model blockers (monthly limit, trial) never reach the assistant, with or without server facts', () => {
+    for (const code of ['MONTHLY_QUOTE_LIMIT_REACHED', 'TRIAL_EXPIRED']) {
+      expect(reconcileBlockers(ctx({ blockers: [blk(code)] }), deriveTrustedFacts(acct(), null, null)).active).toHaveLength(0);
+      expect(reconcileBlockers(ctx({ blockers: [blk(code)] }), null).active).toHaveLength(0);
+    }
+  });
+  it('legacy alias codes are normalised to the neutral canonical codes', () => {
+    const c = ctx({ blockers: [blk('ATTACHMENTS_REQUIRE_PRO'), blk('WHATSAPP_REQUIRES_PRO')] });
+    expect(c.blockers.map((b) => b.code)).toEqual(['ATTACHMENTS_NOT_INCLUDED', 'PLAN_FEATURE_LOCKED']);
+  });
+  it('an attachments lock is confirmed / contradicted ONLY by an enforced server summary; otherwise it stays a client report', () => {
+    const c = ctx({ blockers: [blk('ATTACHMENTS_NOT_INCLUDED')] });
+    expect(reconcileBlockers(c, deriveTrustedFacts(acct(), null, null)).active[0].confirmation).toBe('client_reported');
+    expect(reconcileBlockers(c, deriveTrustedFacts(acct({ account: READY_FREE_ENFORCED }), null, ['quote_style.classic'])).active[0].confirmation).toBe('confirmed');
+    expect(reconcileBlockers(c, deriveTrustedFacts(acct({ account: READY_FREE_ENFORCED }), null, ['quote_attachment.upload'])).active).toHaveLength(0);
   });
   it('an Admin blocker from a non-admin is dropped (no admin help leakage)', () => {
     const { active } = reconcileBlockers(ctx({ blockers: [blk('ADMIN_PROTECTED_ACTION')] }), deriveTrustedFacts(acct(), null, 0));
@@ -68,7 +95,7 @@ describe('classifyHelpIntent', () => {
   it.each(['Why can\'t I save this quote?', 'What is missing?', 'Save is blocked, what do I need?', 'למה אני לא מצליח לשמור?', 'מה חסר?', 'למה ההצעה לא נשמרת?'])('why_blocked: %s', (m) => expect(classifyHelpIntent(m)).toBe('why_blocked'));
   it.each(['Is my draft saved?', 'Is it saved in the cloud?', 'Will I lose my work?', 'Is this quote saved?', 'Have my changes been saved?', 'Did my quote save?', 'האם הטיוטה שמורה?', 'זה נשמר בענן?', 'האם ההצעה נשמרה?', 'ההצעה נשמרה?', 'אני אאבד את השינויים?', 'האם ההצעה הזו שמורה?', 'ההצעה שלי שמורה?', 'האם הטיוטה שלי שמורה?'])('save_status: %s', (m) => expect(classifyHelpIntent(m)).toBe('save_status'));
   it('a Hebrew "why was it not saved" stays a why-blocked question', () => expect(classifyHelpIntent('למה ההצעה לא נשמרה?')).toBe('why_blocked'));
-  it.each(['How do I add a client?', 'What does the PRO plan include?', 'איך מוסיפים לקוח?'])('neither: %s', (m) => expect(classifyHelpIntent(m)).toBeNull());
+  it.each(['How do I add a client?', 'What does the Visual plan include?', 'איך מוסיפים לקוח?'])('neither: %s', (m) => expect(classifyHelpIntent(m)).toBeNull());
 });
 
 describe('deterministicHelpAnswer', () => {
@@ -104,45 +131,6 @@ describe('deterministicHelpAnswer', () => {
     const f = deriveTrustedFacts(acct(), { phone: '+972 501', tax_id: '1' }, 0);
     expect(deterministicHelpAnswer('why_blocked', ctx(), [], f, false, false)).toBeNull();
   });
-  it('without verified server facts (account read failed) no browser claim is ever "confirmed" and no prerequisite is invented', () => {
-    const c = ctx({ blockers: [blk('PROFILE_MISSING_PHONE'), blk('ADMIN_NOT_AUTHORIZED'), blk('TRIAL_EXPIRED')] });
-    const { active, dropped } = reconcileBlockers(c, null);
-    expect(active.map((b) => b.confirmation)).toEqual(['client_reported', 'client_reported', 'client_reported']);
-    expect(dropped).toEqual([]);
-    expect(deterministicHelpAnswer('why_blocked', ctx(), [], null, false, false)).toBeNull();
-  });
-});
-
-describe('reconcileBlockers - remaining server-truth branches', () => {
-  it('payment / invoicing unavailability is a server truth: always confirmed (never a client claim the model may doubt)', () => {
-    const f = deriveTrustedFacts(acct({ tier: 'pro' }), { phone: '+972 501', tax_id: '1' }, 0);
-    const { active } = reconcileBlockers(ctx({ blockers: [blk('CHECKOUT_UNAVAILABLE'), blk('INVOICING_UNAVAILABLE')] }), f);
-    expect(active.map((b) => [b.code, b.confirmation])).toEqual([['CHECKOUT_UNAVAILABLE', 'confirmed'], ['INVOICING_UNAVAILABLE', 'confirmed']]);
-  });
-  it('monthly limit: an unknown server count is never "confirmed"; a Lifetime or admin account contradicts the claim', () => {
-    const unknownCount = deriveTrustedFacts(acct({ tier: 'basic' }), { phone: '+972 501', tax_id: '1' }, null);
-    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), unknownCount).active[0].confirmation).toBe('client_reported');
-    const lifetime = deriveTrustedFacts(acct({ tier: 'free', isLifetime: true }), { phone: '+972 501', tax_id: '1' }, 999);
-    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), lifetime).dropped[0].confirmation).toBe('contradicted');
-    const admin = deriveTrustedFacts(acct({ tier: 'free' }), { phone: '+972 501', tax_id: '1', role: 'super_admin' }, 999);
-    expect(reconcileBlockers(ctx({ blockers: [blk('MONTHLY_QUOTE_LIMIT_REACHED')] }), admin).dropped).toHaveLength(1);
-  });
-});
-
-describe('prerequisites + staleness labelling', () => {
-  it('server prerequisites only on creation screens; the region prerequisite is never turned into a deterministic profile answer', () => {
-    const missingAll = deriveTrustedFacts(acct({ market: 'Unknown' }), { phone: '', tax_id: '' }, 0);
-    expect(missingAll.profile.missingFields).toEqual(['business_phone', 'business_region']); // Unknown market: no Local tax ID required
-    const onClients = sanitizeHelpContext({ version: 4, screen: 'clients', capturedAt: NOW }, NOW);
-    expect(deterministicHelpAnswer('why_blocked', onClients, [], missingAll, false, false)).toBeNull();
-    const regionOnly = deriveTrustedFacts(acct({ market: 'Unknown' }), { phone: '+1 555', tax_id: '' }, 0);
-    expect(deterministicHelpAnswer('why_blocked', ctx(), [], regionOnly, false, false)).toBeNull();
-  });
-  it('a context captured more than 10 minutes ago is labelled stale in Layer 2 (the model must ask before relying on it)', () => {
-    const old = ctx({ capturedAt: NOW - 11 * 60 * 1000 });
-    expect(buildHelpContextBlocks(old, [], [], null, false)).toMatch(/MORE THAN 10 MINUTES AGO \(stale - ask before relying on it\)/);
-    expect(buildHelpContextBlocks(ctx(), [], [], null, false)).toMatch(/captured just now/);
-  });
 });
 
 describe('prompt layering + per-turn navigation filter', () => {
@@ -155,6 +143,16 @@ describe('prompt layering + per-turn navigation filter', () => {
     expect(txt).toMatch(/BLOCKED_WORKFLOW_HELP/); expect(txt).toMatch(/Ignored blocker claims.*PROFILE_MISSING_PHONE/);
     expect(txt).not.toMatch(/SECRET|999999999/);
     expect(txt).toMatch(/A local draft is NOT saved on the server/);
+    expect(txt).toMatch(/Plan: no active plan/);
+    expect(txt).not.toMatch(/Monthly quotes|plan tier|trial:|PRO only/);
+  });
+  it('the help text of the plan blockers never names a legacy plan, a monthly limit or a trial (HE + EN)', () => {
+    const c = ctx({ blockers: [blk('ATTACHMENTS_NOT_INCLUDED'), blk('PLAN_FEATURE_LOCKED')] });
+    for (const he of [true, false]) {
+      const txt = buildHelpContextBlocks(c, reconcileBlockers(c, null).active, [], null, he);
+      expect(txt).not.toMatch(/\bPRO\b|\bBASIC\b|monthly|trial|חודשי|ניסיון/i);
+      expect(txt).toMatch(he ? /טרם הוחלט/ : /has not been decided yet/);
+    }
   });
   it('a model NAVIGATE marker outside this turn\'s allowed set is stripped and ignored', () => {
     const r = extractNavigationAction('Go there.\nNAVIGATE: open_admin', false, ['open_business_phone']);

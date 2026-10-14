@@ -1,0 +1,2278 @@
+{
+ "kind": "task16-fidelity-app-palette-base",
+ "version": 2,
+ "scope": "App surface (management + creator, mocked session) assertions noLegacyPurple and tealAccentPresent of fidelity-compare.mjs. These two are calibrated on the static teal reference prototype. In round 4 the app palette was returned pointwise to the approved base c65f742 (violet; A16, ledger M-rows, Owner rule S-B8 'when no explicit authority is found, return each such attribute pointwise to base'), and the full reference is not authority (round-4 item 7). So for every cell listed here the candidate is judged against the MEASURED base value of the same cell, not against the reference: noLegacyPurple PASSES only if (cloud-fix4b) every violet-painted element and every solid violet area of the candidate has a base counterpart in the same cell AND candidate purpleFrac <= base + min(purple.relTolerance x base, purple.absCap) (the candidate may not add a violet control or violet area that base did not have); tealAccentPresent is NOT TESTED (the reference teal accent has no authority over the base palette). Reference values stay in the cell for context. A cell not listed here keeps the reference-calibrated verdict.",
+ "base": {
+  "commit": "c65f7422cbf16ad5895d1b458431d23a5601fad1",
+  "build": "mocked (VITE_SUPABASE_URL=http://127.0.0.1:54399), vite preview",
+  "measuredWith": "node scripts/task16/qa/fidelity-compare.mjs --base-url <base build> --surfaces app --app-mode mock (scripts of c9562f3)",
+  "generatedAt": "2026-10-06T02:39:43.372Z",
+  "rawMatrix": "docs/task16-quote-experience-v2/cloud-fix4-2026-10-05/main/final5/fidelity-base-c65f742/fidelity-matrix.json",
+  "inventory": {
+   "measuredWith": "node scripts/task16/qa/fidelity-compare.mjs --base-url <base c65f742 build> --surfaces app --app-mode mock --record-palette-base <file> (scripts of cloud-fix4b A18)",
+   "buildSha": "c65f7422cbf16ad5895d1b458431d23a5601fad1",
+   "generatedAt": "2026-10-06T08:37:07.807Z",
+   "note": "violetEls / violetComps per cell from the base build (mocked, synthetic session); purpleFrac re-measured in the same run and identical to the cloud-fix4 values in all 28 cells",
+   "rawInventory": "docs/task16-quote-experience-v2/cloud-fix4b-2026-10-06/a18/runs/00-base-palette-inventory/palette-inventory.json"
+  }
+ },
+ "provenance": [
+  "S-B8 (Owner, round 3): pointwise rollback to base 24e6a3c = c65f742 where no explicit authority exists",
+  "Round-4 item 7: a full-width reference is not authority; return to base",
+  "Ledger AUTHORITY_LEDGER_FINAL.md §4.3 (A16 app palette rows), BASE / UA-FIXED"
+ ],
+ "purple": {
+  "relTolerance": 0.25,
+  "absCap": 0.005,
+  "why": "Backstop only (the element/component rules below are the precise check). Replaces the cloud-fix4 '+0.01 absolute' (A17 H3: up to +106% on low-violet cells, ~13,000px at 1440x900 = one 220x58 button). relTolerance 0.25: base-parity variation measured on 5117916 vs c65f742 in all 28 cells is -3%..+15% (flat fills where base had violet gradients, ledger M05/M15 'base without the gradient'), so +25% separates that from re-violeting; absCap 0.005 (= half the former tolerance; 6,480px at 1440x900, 1,650px at 390x844) keeps violet-heavy cells (creator 0.045-0.067) from getting a large absolute allowance.",
+  "supersedes": "purpleTolerance 0.01 (cloud-fix4)"
+ },
+ "components": {
+  "windowPx": 16,
+  "positionTolerancePx": 24,
+  "why": "windowPx 16: violet text (labels, links, the violet amounts; <= 20.8px, stems <= ~0.2 em = 4px) cannot hold a 16x16 solid square, filled controls/pills/bars do - same opening as the dark-pocket rule (dark-scope-policy.json pockets). positionTolerancePx 24 = half a 48px touch target: an element whose centre stays within half a target of the base box is the same control in the same place (base-parity layout); anything farther, or with a label base never painted violet, is NEW. Elements match one-to-one (a second violet copy of a base control is new).",
+  "provenance": [
+   "A17 VERIFICATION_FINAL_5117916.md H3",
+   "Codex review of 5117916 (cloud-fix4b task 4)",
+   "S-B8 / A16 app palette = base c65f742 (provenance above)"
+  ]
+ },
+ "cells": {
+  "app/he/management/1440x900": {
+   "purpleFrac": 0.0171,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 1201,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 1056,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 1227,
+     "y": 810,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 230,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 1056,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7808
+    },
+    {
+     "x": 1200,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2224
+    },
+    {
+     "x": 288,
+     "y": 36,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 192,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 1244,
+     "y": 124,
+     "w": 16,
+     "h": 32,
+     "area": 448
+    },
+    {
+     "x": 248,
+     "y": 52,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    },
+    {
+     "x": 1240,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/he/management/1180x820": {
+   "purpleFrac": 0.022,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 1071,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 926,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 1097,
+     "y": 730,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 100,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 928,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7760
+    },
+    {
+     "x": 1072,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2224
+    },
+    {
+     "x": 196,
+     "y": 36,
+     "w": 36,
+     "h": 32,
+     "area": 928
+    },
+    {
+     "x": 160,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 64,
+     "y": 56,
+     "w": 36,
+     "h": 16,
+     "area": 576
+    },
+    {
+     "x": 116,
+     "y": 52,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    },
+    {
+     "x": 1112,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/he/management/1024x768": {
+   "purpleFrac": 0.0263,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 924,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 779,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 950,
+     "y": 678,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 91,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 780,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7744
+    },
+    {
+     "x": 924,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2272
+    },
+    {
+     "x": 148,
+     "y": 36,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 52,
+     "y": 56,
+     "w": 40,
+     "h": 16,
+     "area": 640
+    },
+    {
+     "x": 108,
+     "y": 48,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 964,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/he/management/820x1180": {
+   "purpleFrac": 0.0217,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 724,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 579,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 750,
+     "y": 1090,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 87,
+     "y": 38,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 580,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7744
+    },
+    {
+     "x": 724,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2272
+    },
+    {
+     "x": 144,
+     "y": 32,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 48,
+     "y": 52,
+     "w": 40,
+     "h": 16,
+     "area": 640
+    },
+    {
+     "x": 104,
+     "y": 44,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 764,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/he/management/768x1024": {
+   "purpleFrac": 0.0094,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 57,
+     "y": 979,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/he/management/390x844": {
+   "purpleFrac": 0.0207,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 20,
+     "y": 799,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/he/management/320x640": {
+   "purpleFrac": 0.03,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 13,
+     "y": 595,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/he/creator/1440x900": {
+   "purpleFrac": 0.0451,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 1201,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 1056,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 1227,
+     "y": 810,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 230,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 1001,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 1001,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "הוספת מוצר או עבודה",
+     "x": 184,
+     "y": 566,
+     "w": 841,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 1001,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 184,
+     "y": 568,
+     "w": 840,
+     "h": 44,
+     "area": 35648
+    },
+    {
+     "x": 1056,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7808
+    },
+    {
+     "x": 1200,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2224
+    },
+    {
+     "x": 288,
+     "y": 36,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 192,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 1244,
+     "y": 124,
+     "w": 16,
+     "h": 32,
+     "area": 448
+    },
+    {
+     "x": 248,
+     "y": 52,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    },
+    {
+     "x": 1240,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/he/creator/1180x820": {
+   "purpleFrac": 0.0606,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 1071,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 926,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 1097,
+     "y": 730,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 100,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 871,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 871,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "הוספת מוצר או עבודה",
+     "x": 54,
+     "y": 566,
+     "w": 841,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 871,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 56,
+     "y": 568,
+     "w": 840,
+     "h": 44,
+     "area": 35680
+    },
+    {
+     "x": 928,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7760
+    },
+    {
+     "x": 1072,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2224
+    },
+    {
+     "x": 196,
+     "y": 36,
+     "w": 36,
+     "h": 32,
+     "area": 928
+    },
+    {
+     "x": 160,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 64,
+     "y": 56,
+     "w": 36,
+     "h": 16,
+     "area": 576
+    },
+    {
+     "x": 116,
+     "y": 52,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    },
+    {
+     "x": 1112,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/he/creator/1024x768": {
+   "purpleFrac": 0.0662,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 924,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 779,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 950,
+     "y": 678,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 91,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 724,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 724,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "הוספת מוצר או עבודה",
+     "x": 44,
+     "y": 566,
+     "w": 704,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 724,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 44,
+     "y": 568,
+     "w": 704,
+     "h": 44,
+     "area": 29664
+    },
+    {
+     "x": 780,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7744
+    },
+    {
+     "x": 924,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2272
+    },
+    {
+     "x": 148,
+     "y": 36,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 52,
+     "y": 56,
+     "w": 40,
+     "h": 16,
+     "area": 640
+    },
+    {
+     "x": 108,
+     "y": 48,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 964,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/he/creator/820x1180": {
+   "purpleFrac": 0.045,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "ס",
+     "x": 724,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "הצעת מחיר חדשה",
+     "x": 579,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 750,
+     "y": 1090,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 87,
+     "y": 38,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 524,
+     "y": 281,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 524,
+     "y": 695,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "הוספת מוצר או עבודה",
+     "x": 40,
+     "y": 747,
+     "w": 508,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 524,
+     "y": 950,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "4",
+     "x": 524,
+     "y": 1145,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 40,
+     "y": 748,
+     "w": 508,
+     "h": 48,
+     "area": 23136
+    },
+    {
+     "x": 580,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7744
+    },
+    {
+     "x": 724,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2272
+    },
+    {
+     "x": 144,
+     "y": 32,
+     "w": 72,
+     "h": 36,
+     "area": 1696
+    },
+    {
+     "x": 48,
+     "y": 52,
+     "w": 40,
+     "h": 16,
+     "area": 640
+    },
+    {
+     "x": 104,
+     "y": 44,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 764,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/he/creator/768x1024": {
+   "purpleFrac": 0.0509,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 723,
+     "y": 263,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 723,
+     "y": 526,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "הוספת מוצר או עבודה",
+     "x": 21,
+     "y": 579,
+     "w": 726,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 723,
+     "y": 764,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "4",
+     "x": 723,
+     "y": 959,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 57,
+     "y": 979,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 20,
+     "y": 580,
+     "w": 728,
+     "h": 48,
+     "area": 33440
+    },
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/he/creator/390x844": {
+   "purpleFrac": 0.0157,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 345,
+     "y": 310,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 20,
+     "y": 799,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/he/creator/320x640": {
+   "purpleFrac": 0.0249,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 45,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 275,
+     "y": 353,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "חדש",
+     "x": 13,
+     "y": 595,
+     "w": 32,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 120,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 92,
+     "y": 32,
+     "w": 24,
+     "h": 16,
+     "area": 384
+    }
+   ]
+  },
+  "app/en/management/1440x900": {
+   "purpleFrac": 0.0173,
+   "tealFrac": 0.0004,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 173,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 167,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 167,
+     "y": 810,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 1173,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 172,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 172,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 1076,
+     "y": 52,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 1188,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 1064,
+     "y": 36,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 168,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/management/1180x820": {
+   "purpleFrac": 0.0227,
+   "tealFrac": 0.0005,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 43,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 37,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 37,
+     "y": 730,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 1043,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 44,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 8000
+    },
+    {
+     "x": 44,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 932,
+     "y": 36,
+     "w": 76,
+     "h": 36,
+     "area": 1760
+    },
+    {
+     "x": 1056,
+     "y": 56,
+     "w": 48,
+     "h": 16,
+     "area": 768
+    },
+    {
+     "x": 36,
+     "y": 124,
+     "w": 16,
+     "h": 32,
+     "area": 448
+    },
+    {
+     "x": 40,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/management/1024x768": {
+   "purpleFrac": 0.0274,
+   "tealFrac": 0.0004,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 33,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 27,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 27,
+     "y": 678,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 896,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 32,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 32,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 800,
+     "y": 52,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 912,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 788,
+     "y": 36,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 28,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/management/820x1180": {
+   "purpleFrac": 0.0224,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 29,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 23,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 23,
+     "y": 1090,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 696,
+     "y": 38,
+     "w": 22,
+     "h": 22
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 28,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 28,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2240
+    },
+    {
+     "x": 600,
+     "y": 48,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 712,
+     "y": 52,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 588,
+     "y": 32,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 24,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/management/768x1024": {
+   "purpleFrac": 0.0102,
+   "tealFrac": 0.0004,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 690,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 663,
+     "y": 979,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 600,
+     "y": 16,
+     "w": 28,
+     "h": 32,
+     "area": 816
+    }
+   ]
+  },
+  "app/en/management/390x844": {
+   "purpleFrac": 0.0229,
+   "tealFrac": 0.0006,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 312,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 323,
+     "y": 799,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 220,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 256,
+     "y": 32,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/en/management/320x640": {
+   "purpleFrac": 0.0337,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 242,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 260,
+     "y": 595,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 152,
+     "y": 16,
+     "w": 28,
+     "h": 32,
+     "area": 816
+    }
+   ]
+  },
+  "app/en/creator/1440x900": {
+   "purpleFrac": 0.0455,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 173,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 167,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 167,
+     "y": 810,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 1173,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 401,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 401,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "Add product or work",
+     "x": 401,
+     "y": 566,
+     "w": 841,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 401,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 400,
+     "y": 568,
+     "w": 840,
+     "h": 44,
+     "area": 35328
+    },
+    {
+     "x": 172,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 172,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 1076,
+     "y": 52,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 1188,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 1064,
+     "y": 36,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 404,
+     "y": 252,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 168,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/creator/1180x820": {
+   "purpleFrac": 0.0609,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 43,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 37,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 37,
+     "y": 730,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 1043,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 271,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 271,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "Add product or work",
+     "x": 271,
+     "y": 566,
+     "w": 841,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 271,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 272,
+     "y": 568,
+     "w": 840,
+     "h": 44,
+     "area": 35344
+    },
+    {
+     "x": 44,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 8000
+    },
+    {
+     "x": 44,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 932,
+     "y": 36,
+     "w": 76,
+     "h": 36,
+     "area": 1760
+    },
+    {
+     "x": 1056,
+     "y": 56,
+     "w": 48,
+     "h": 16,
+     "area": 768
+    },
+    {
+     "x": 36,
+     "y": 124,
+     "w": 16,
+     "h": 32,
+     "area": 448
+    },
+    {
+     "x": 276,
+     "y": 252,
+     "w": 16,
+     "h": 20,
+     "area": 320
+    },
+    {
+     "x": 40,
+     "y": 144,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/creator/1024x768": {
+   "purpleFrac": 0.0666,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 33,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 27,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 27,
+     "y": 678,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 896,
+     "y": 42,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 261,
+     "y": 250,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 261,
+     "y": 513,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "Add product or work",
+     "x": 261,
+     "y": 566,
+     "w": 704,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 261,
+     "y": 751,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 260,
+     "y": 568,
+     "w": 704,
+     "h": 44,
+     "area": 29344
+    },
+    {
+     "x": 32,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 32,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2192
+    },
+    {
+     "x": 800,
+     "y": 52,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 912,
+     "y": 56,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 788,
+     "y": 36,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 28,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/creator/820x1180": {
+   "purpleFrac": 0.0453,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "div",
+     "label": "A",
+     "x": 29,
+     "y": 38,
+     "w": 52,
+     "h": 52
+    },
+    {
+     "tag": "button",
+     "label": "New Quote",
+     "x": 23,
+     "y": 117,
+     "w": 203,
+     "h": 43
+    },
+    {
+     "tag": "div",
+     "label": "G",
+     "x": 23,
+     "y": 1090,
+     "w": 32,
+     "h": 32
+    },
+    {
+     "tag": "span",
+     "label": "",
+     "x": 696,
+     "y": 38,
+     "w": 22,
+     "h": 22
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 257,
+     "y": 281,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 257,
+     "y": 695,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "Add product or work",
+     "x": 257,
+     "y": 747,
+     "w": 508,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 257,
+     "y": 950,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "4",
+     "x": 257,
+     "y": 1126,
+     "w": 24,
+     "h": 24
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 256,
+     "y": 748,
+     "w": 508,
+     "h": 48,
+     "area": 22704
+    },
+    {
+     "x": 28,
+     "y": 116,
+     "w": 196,
+     "h": 48,
+     "area": 7984
+    },
+    {
+     "x": 28,
+     "y": 40,
+     "w": 52,
+     "h": 48,
+     "area": 2240
+    },
+    {
+     "x": 600,
+     "y": 48,
+     "w": 60,
+     "h": 20,
+     "area": 992
+    },
+    {
+     "x": 712,
+     "y": 52,
+     "w": 44,
+     "h": 16,
+     "area": 704
+    },
+    {
+     "x": 588,
+     "y": 32,
+     "w": 20,
+     "h": 20,
+     "area": 384
+    },
+    {
+     "x": 24,
+     "y": 120,
+     "w": 16,
+     "h": 16,
+     "area": 112
+    }
+   ]
+  },
+  "app/en/creator/768x1024": {
+   "purpleFrac": 0.0512,
+   "tealFrac": 0.0001,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 690,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 6,
+     "y": 263,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "2",
+     "x": 6,
+     "y": 526,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "Add product or work",
+     "x": 6,
+     "y": 579,
+     "w": 726,
+     "h": 48
+    },
+    {
+     "tag": "span",
+     "label": "3",
+     "x": 6,
+     "y": 764,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "span",
+     "label": "4",
+     "x": 6,
+     "y": 940,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 663,
+     "y": 979,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 8,
+     "y": 580,
+     "w": 724,
+     "h": 48,
+     "area": 33072
+    },
+    {
+     "x": 600,
+     "y": 16,
+     "w": 28,
+     "h": 32,
+     "area": 816
+    }
+   ]
+  },
+  "app/en/creator/390x844": {
+   "purpleFrac": 0.0167,
+   "tealFrac": 0.0003,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 312,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 6,
+     "y": 310,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 323,
+     "y": 799,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 220,
+     "y": 16,
+     "w": 32,
+     "h": 32,
+     "area": 896
+    },
+    {
+     "x": 256,
+     "y": 32,
+     "w": 16,
+     "h": 16,
+     "area": 256
+    }
+   ]
+  },
+  "app/en/creator/320x640": {
+   "purpleFrac": 0.027,
+   "tealFrac": 0.0002,
+   "violetEls": [
+    {
+     "tag": "span",
+     "label": "",
+     "x": 242,
+     "y": 23,
+     "w": 18,
+     "h": 18
+    },
+    {
+     "tag": "span",
+     "label": "1",
+     "x": 6,
+     "y": 353,
+     "w": 24,
+     "h": 24
+    },
+    {
+     "tag": "button",
+     "label": "New",
+     "x": 260,
+     "y": 595,
+     "w": 33,
+     "h": 40
+    }
+   ],
+   "violetComps": [
+    {
+     "x": 152,
+     "y": 16,
+     "w": 28,
+     "h": 32,
+     "area": 816
+    }
+   ]
+  }
+ }
+}

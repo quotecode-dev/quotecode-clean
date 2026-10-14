@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, ArrowUpCircle, Ruler } from 'lucide-react';
-import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
-import { getDisplayIdentityLabel, shouldShowUpgradeCta } from '../utils/planCatalog';
+import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, Ruler, LayoutTemplate, BellRing, IdCard, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
+import BusinessQuoteStyleSection from './quotePresentation/BusinessQuoteStyleSection';
+import { presentationCopy } from './quotePresentation/presentationCopy';
+import { subscriptionSectionState } from '../domain/subscriptions/accountSummaryClient';
+import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
+import PackageOfferCards from './PackageOfferCards';
 import { PROFESSIONAL_DOMAINS } from '../utils/professionalQuoteItem';
+import RemindersSettings from './RemindersSettings';
+import BusinessCardSettings from './BusinessCardSettings';
+import ShareDefaultsSettings from './ShareDefaultsSettings';
+import { BUSINESS_CARD_SETTINGS_COPY } from './businessCardSettingsCopy';
+import { useBusinessCardProfile } from '../hooks/useBusinessCardProfile';
+import { REMINDERS_COPY } from '../utils/reminders';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -34,9 +44,13 @@ export default function SettingsTab({
   setBizAddress,
   bizLogoUrl,
   setBizLogoUrl,
-  effectivePlan,
-  isLifetime,
-  displayIdentity,
+  // OD-16 / OD-20: the account plan state comes ONLY from the server account summary
+  accountSummary,
+  onRetryAccountSummary,
+  // Subscriptions (continuation A): while the plan system is active (server phase shadow/enforced), issued documents take the
+  // logo ONLY from an immutable imported asset. A logo change must therefore be imported (bytes, server read-back) first.
+  logoImportRequired = false,
+  onImportLogo,
   isSuperAdmin,
   canUseAttachments,
   defaultTerms,
@@ -46,15 +60,31 @@ export default function SettingsTab({
   professionalDomain,
   setProfessionalDomain,
   canUseProfessionalQuotes,
-  isTrialExpired,
-  trialDaysLeft,
-  setShowPricingModal
+  // Task 16: presentation controller (business default quote style). Absent => no section.
+  presentationController = null,
+  // Task 20: the ONE entry to Reminders & automation (Owner clarification 2026-10-09). Absent client/userId => no entry button.
+  remindersClient = null,
+  remindersUserId = null,
+  // Task 23 (Phase 5): the digital business card entry (separate button next to Reminders & automation). Absent => no entry button.
+  businessCardClient = null,
+  businessCardUserId = null,
+  // Task 27 (spec §6): manual sharing defaults + the thank-you after signing - its own entry and screen. Absent => no entry button.
+  shareDefaultsClient = null,
+  shareDefaultsUserId = null,
+  onShareDefaultsSaved = null,
 }) {
+  const [view, setView] = useState('business');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [logoError, setLogoError] = useState('');
+  // Task 24: ONE business card profile state for the card editor (Task 26: the card has no style choice; quote styles live in the quote design section).
+  const cardProfile = useBusinessCardProfile(businessCardClient, businessCardUserId);
+  const accountState = subscriptionSectionState(accountSummary, isHebrew ? 'he' : 'en');
+  // Task 30: market = the server summary market, else the account's recorded business market (never the UI language) - as PricingModal.
+  const subscriptionMarket = (accountSummary?.state === 'ready' ? accountSummary.market : null) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL');
+  const subscriptionOffer = pricingModalModel({ isHebrew, market: subscriptionMarket });
 
   // אכיפה מוחלטת: אם העסק מקומי בישראל, המטבע חייב להיות תמיד ILS ברזל
   useEffect(() => {
@@ -134,15 +164,63 @@ export default function SettingsTab({
       return;
     }
 
+    if (logoImportRequired && !['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      setLogoError(isHebrew ? 'במסמכים מונפקים ניתן להשתמש רק בלוגו PNG או JPG. הלוגו הנוכחי נשאר ללא שינוי.' : 'Issued documents accept only a PNG or JPG logo. The current logo is unchanged.');
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      setBizLogoUrl(uploadEvent.target.result);
+    reader.onload = async (uploadEvent) => {
+      const dataUrl = uploadEvent.target.result;
+      if (logoImportRequired) {
+        // import first: only a logo the server stored immutably (and read back) may appear on issued documents; on any
+        // failure the current logo and all data stay unchanged
+        const res = onImportLogo ? await onImportLogo(String(dataUrl).split(',')[1] || '') : { ok: false };
+        if (!res || res.ok !== true) {
+          setLogoError(isHebrew ? 'לא ניתן לשמור את הלוגו כרגע. הלוגו הנוכחי נשאר ללא שינוי.' : 'The logo could not be saved right now. The current logo is unchanged.');
+          return;
+        }
+      }
+      setBizLogoUrl(dataUrl);
     };
     reader.readAsDataURL(file);
   };
 
+  const remindersCopy = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
+  if (view === 'reminders' && remindersClient && remindersUserId) {
+    return (
+      <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
+        <div className="pf-screen-body">
+          <RemindersSettings isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} client={remindersClient} userId={remindersUserId} bizName={bizName} onBack={() => setView('business')} />
+        </div>
+      </div>
+    );
+  }
+  if (view === 'shareDefaults' && shareDefaultsClient && shareDefaultsUserId) {
+    return (
+      <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
+        <div className="pf-screen-body">
+          <ShareDefaultsSettings isHebrew={isHebrew} client={shareDefaultsClient} userId={shareDefaultsUserId} onBack={() => setView('business')} onSaved={onShareDefaultsSaved} />
+        </div>
+      </div>
+    );
+  }
+  if (view === 'businessCard' && businessCardClient && businessCardUserId) {
+    return (
+      <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
+        <div className="pf-screen-body">
+          <BusinessCardSettings isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} client={businessCardClient} userId={businessCardUserId}
+            bizName={bizName} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} bizLogoUrl={bizLogoUrl} onBack={() => setView('business')} profile={cardProfile} />
+        </div>
+      </div>
+    );
+  }
+  const cardCopy = BUSINESS_CARD_SETTINGS_COPY[isHebrew ? 'he' : 'en'];
+  const entryStyle = { flex: '1 1 260px', minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'start', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '48px', cursor: 'pointer', color: NEON.textPrimary, fontFamily: 'inherit' };
+  const EntryChevron = isHebrew ? ChevronLeft : ChevronRight;
+
   return (
-    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen pf-work-screen pf-settings-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Cross-Surface Visual Consolidation (§10): shadow-card pattern,
           matches Quote History/Dashboard - see ClientsTab.jsx for the full
           rationale comment. Container-level only. */}
@@ -151,6 +229,59 @@ export default function SettingsTab({
         {isHebrew ? 'הגדרות עסק' : 'Business Settings'}
       </h2>
       <div className="pf-screen-body">
+        {/* Task 30 (Owner addendum, business-settings layout): the action cards are the FIRST content of the ONE scroll body (they scroll
+            with the quote design, the preview and the fields) instead of a static block above it that squeezed a low window. */}
+        {/* Task 23: one row of separate entry buttons - Reminders & automation first (inline-start), the digital business card next to it
+            (inline-end = visually LEFT of it in Hebrew/RTL, mirrored in English/LTR); they wrap onto two lines on narrow screens. */}
+        {((remindersClient && remindersUserId) || (businessCardClient && businessCardUserId) || (shareDefaultsClient && shareDefaultsUserId)) && (
+          <div className="pf-settings-entries" data-testid="settings-entries" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+          {remindersClient && remindersUserId && (
+            // PRODUCT_TRUTH_CAPABILITY: reminders_automation
+            <button type="button" onClick={() => setView('reminders')} data-testid="settings-open-reminders"
+              style={entryStyle}>
+              <span style={{ background: '#E3F1F2', color: '#0F6672', borderRadius: '8px', padding: '6px', display: 'inline-flex', flex: 'none' }}><BellRing size={16} strokeWidth={2.2} /></span>
+              <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem' }}>{remindersCopy.entry}</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', color: NEON.textSecondary }}>{remindersCopy.entrySub}</span>
+              </span>
+              <EntryChevron size={18} color={NEON.textMuted} aria-hidden="true" style={{ flex: 'none' }} />
+            </button>
+          )}
+          {businessCardClient && businessCardUserId && (
+            // PRODUCT_TRUTH_CAPABILITY: digital_business_card
+            <button type="button" onClick={() => setView('businessCard')} data-testid="settings-open-business-card" style={entryStyle}>
+              <span style={{ background: '#E3F1F2', color: '#0F6672', borderRadius: '8px', padding: '6px', display: 'inline-flex', flex: 'none' }}><IdCard size={16} strokeWidth={2.2} /></span>
+              <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem' }}>{cardCopy.entry}</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', color: NEON.textSecondary }}>{cardCopy.entrySub}</span>
+              </span>
+              <EntryChevron size={18} color={NEON.textMuted} aria-hidden="true" style={{ flex: 'none' }} />
+            </button>
+          )}
+          {shareDefaultsClient && shareDefaultsUserId && (
+            // PRODUCT_TRUTH_CAPABILITY: business_settings
+            <button type="button" onClick={() => setView('shareDefaults')} data-testid="settings-open-share-defaults" style={entryStyle}>
+              <span style={{ background: '#E3F1F2', color: '#0F6672', borderRadius: '8px', padding: '6px', display: 'inline-flex', flex: 'none' }}><Share2 size={16} strokeWidth={2.2} /></span>
+              <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: '0.88rem' }}>{isHebrew ? 'שיתוף ותודה ללקוח' : 'Sharing & thank-you'}</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', color: NEON.textSecondary }}>{isHebrew ? 'הודעת וואטסאפ קבועה ותודה אחרי חתימה' : 'A default WhatsApp message and a thank-you after signing'}</span>
+              </span>
+              <EntryChevron size={18} color={NEON.textMuted} aria-hidden="true" style={{ flex: 'none' }} />
+            </button>
+          )}
+          </div>
+        )}
+        {/* Task 27 (spec §6 settings): quote design directly below the two separate action cards (reminders / digital card) - its own
+            section, separate from both; the business details form follows. */}
+        {presentationController && (
+          <section data-testid="settings-quote-design" style={{ marginBottom: '20px', paddingBottom: '18px', borderBottom: `1px solid ${NEON.border}` }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: '800', marginTop: 0, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', ...neonGlowTextStyle }}>
+              <LayoutTemplate size={16} color={NEON.violetLight} strokeWidth={2} />
+              {presentationCopy(isHebrew ? 'he' : 'en').settingsSectionTitle}
+            </h3>
+            <BusinessQuoteStyleSection ctl={presentationController} />
+          </section>
+        )}
       <form onSubmit={handleSaveSettings}>
         {/* חוק ברזל (UI Composition Correction — Professional Business Type
             Placement, Owner-required, 2026-09-03): הועבר מסוף הטופס (אחרי
@@ -163,7 +294,7 @@ export default function SettingsTab({
             לא כמו שדה שהוצמד בחיפזון לראש המסך. בקרה יחידה-אחת קיימת - לא
             שכפול (הבקרה הישנה הוסרה במלואה מהמיקום הקודם). */}
         {canUseProfessionalQuotes && (
-          <div className="pf-m-surface" style={{ background: 'rgba(139, 92, 246, 0.06)', padding: '14px', borderRadius: '10px', border: `1px solid rgba(139, 92, 246, 0.25)`, marginBottom: '18px' }}>
+          <div className="pf-m-surface" style={{ background: NEON.bgCardAlt, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.85rem', color: NEON.violetLight, fontWeight: '700', marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Ruler size={14} color={NEON.violetLight} />{isHebrew ? 'מה סוג העיסוק המקצועי של העסק?' : 'What kind of professional work does your business do?'}
             </h3>
@@ -279,7 +410,7 @@ export default function SettingsTab({
               כבר כוללת isSuperAdmin/isLifetime באופן מובנה, ר'
               accountEntitlement.js) - לא עוד נוסחה כפולה. */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}>
-            <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {!canUseAttachments && <span style={{ color: NEON.amber, fontSize: '0.7rem' }}>(Requires Pro plan)</span>}
+            <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {!canUseAttachments && <span style={{ color: NEON.amber, fontSize: '0.75rem' }}>{isHebrew ? '(העלאת לוגו אינה זמינה בחשבון זה כרגע)' : '(Logo upload is not available on this account right now)'}</span>}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
@@ -287,7 +418,9 @@ export default function SettingsTab({
               value={bizLogoUrl}
               onChange={(e) => setBizLogoUrl(e.target.value)}
               placeholder="https://example.com/logo.svg"
-              disabled={!canUseAttachments}
+              // active plan system: an external URL cannot be bound to issued documents (no URL fetch); upload a file instead
+              disabled={!canUseAttachments || logoImportRequired}
+              title={logoImportRequired ? (isHebrew ? 'להחלפת הלוגו העלו קובץ PNG או JPG' : 'Upload a PNG or JPG file to change the logo') : undefined}
               style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: !canUseAttachments ? 'rgba(255,255,255,0.03)' : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
             />
             <label style={{ background: !canUseAttachments ? 'rgba(255,255,255,0.08)' : NEON.gradient, color: !canUseAttachments ? NEON.textMuted : 'white', padding: '7px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: !canUseAttachments ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', boxShadow: !canUseAttachments ? 'none' : NEON.glowSoft }}>
@@ -341,48 +474,47 @@ export default function SettingsTab({
         </button>
       </form>
 
-      <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: `1px solid ${NEON.border}` }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', ...neonGlowTextStyle }}>
+      {/* Task 30: Settings › "My subscription" - the server account state, then the ONE all-inclusive package directly here (monthly /
+          annual choice, one price = the price that would be billed, the annual saving) and the real purchase availability. No separate
+          plans button and no wording that implies several paid packages. */}
+      <section data-testid="settings-subscription" aria-labelledby="settings-subscription-title" style={{ marginTop: '24px', paddingTop: '20px', borderTop: `1px solid ${NEON.border}` }}>
+        <h3 id="settings-subscription-title" style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', ...neonGlowTextStyle }}>
           <Shield size={16} color={NEON.violetLight} strokeWidth={2} />
-          {isHebrew ? 'ניהול מנוי וחבילת שירות' : 'Subscription Management'}
+          {isHebrew ? 'המנוי שלי' : 'My subscription'}
         </h3>
-        <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-             <div style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, padding: '8px', borderRadius: '8px', display: 'flex' }}>
-               <Users size={20} strokeWidth={2} />
-             </div>
-             <div>
-               {/* חוק ברזל (Stage 1 - Plan Identity / Trial / Lifetime
-                   Centralization, PROFLOW_PROJECT_CONTEXT.md §148): התווית
-                   הייתה {effectivePlan} PLAN גולמי - מציגה "PRO PLAN" גם
-                   עבור חשבון Lifetime, ללא שום הבחנה (הפער הקונקרטי שנמצא
-                   בביקורת §147.1). עכשיו קוראת ל-getDisplayIdentityLabel
-                   הקנוני (planCatalog.js) - אותה נקודת-אמת יחידה כמו
-                   Dashboard.jsx/Admin - ומציגה את אחת מחמש הזהויות הנכונות:
-                   FREE / FREE (TRIAL) / BASIC / PRO / LIFETIME. */}
-               <div style={{ fontSize: '0.9rem', fontWeight: '400', color: NEON.textPrimary, textTransform: 'uppercase' }}>{getDisplayIdentityLabel(displayIdentity, isHebrew)} PLAN</div>
-               <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>
-                 {isTrialExpired ? (isHebrew ? 'תקופת הניסיון הסתיימה' : 'Trial Expired') : (trialDaysLeft ? (isHebrew ? `נותרו ${trialDaysLeft} ימי ניסיון` : `Trial ends in ${trialDaysLeft} days`) : (isHebrew ? 'מנוי פעיל' : 'Active Subscription'))}
+        <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+               <div style={{ background: NEON.violetLighter, color: NEON.violetLight, padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                 <Users size={20} strokeWidth={2} />
+               </div>
+               <div data-testid="settings-account-plan" data-account-state={accountState.state} style={{ minWidth: 0 }}>
+                 {/* OD-16 / OD-20: plan name and Free-10 balance from the server account summary only (the balance only while Free-10 is
+                     enforced); a fail-closed line with a retry when the summary cannot be trusted. */}
+                 <div style={{ fontSize: '0.9rem', fontWeight: '600', color: NEON.textPrimary }}>
+                   {accountState.tone === 'plan' ? `${isHebrew ? 'המסלול שלך' : 'Your plan'}: ${accountState.label}` : accountState.label}
+                 </div>
+                 {accountState.detail && (
+                   <div data-testid="settings-account-detail" style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{accountState.detail}</div>
+                 )}
                </div>
              </div>
-           </div>
-           <div style={{ display: 'flex', gap: '8px' }}>
-             {/* חוק ברזל (אותה משימה): הכפתור היה מוצג ללא תנאי בכלל, כולל
-                 ל-Lifetime/PRO - הפער הקונקרטי השני שנמצא (§147.1/§148),
-                 שונה לחלוטין מ-Dashboard.jsx (שכבר היה מסתיר נכון). עכשיו
-                 אותו כלל-ראייה קנוני בדיוק כמו Dashboard.jsx -
-                 shouldShowUpgradeCta (planCatalog.js), לא עוד שני כללים
-                 סותרים לאותו מושג. */}
-             {/* PRODUCT_TRUTH_CAPABILITY: plan_trial */}
-             {shouldShowUpgradeCta({ tier: effectivePlan, isLifetime, isSuperAdmin }) && (
-               <button type="button" onClick={() => setShowPricingModal(true)} style={{ background: NEON.gradient, color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: NEON.glowSoft }}>
-                 <ArrowUpCircle size={14} strokeWidth={2} />
-                 {isHebrew ? 'שדרוג / שינוי מסלול' : 'Upgrade / Change Plan'}
+             {accountState.retry && onRetryAccountSummary && (
+               // PRODUCT_TRUTH_DECORATIVE: re-requests the server account summary; changes no data
+               <button type="button" onClick={() => onRetryAccountSummary()} data-testid="settings-account-retry" style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, padding: '8px 14px', minHeight: '44px', borderRadius: '8px', fontSize: '0.8rem', border: `1px solid ${NEON.borderStrong}`, cursor: 'pointer', fontWeight: '600' }}>
+                 {isHebrew ? 'טעינה מחדש' : 'Reload'}
                </button>
              )}
            </div>
+           {!isSuperAdmin && (
+             <>
+               <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} testIdPrefix="settings-subscription" />
+               <p data-testid="settings-subscription-price-note" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>{subscriptionOffer.priceNote}</p>
+               <p data-testid="settings-subscription-availability" role="status" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>{subscriptionOffer.availability}</p>
+             </>
+           )}
         </div>
-      </div>
+      </section>
       </div>
     </div>
   );

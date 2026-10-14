@@ -15,6 +15,8 @@ import { getActiveBlockers, publishBlocker, resolveBlockers } from './utils/aiHe
 import { boundTranscript } from './utils/aiHelpContract';
 import { formatMessageTime, formatDaySeparatorLabel, computeDaySeparatorFlags } from './utils/aiChatHistoryFormat';
 import { resolveAIChatContext, allowsExistingQuoteReference } from './utils/aiChatContext';
+import { buildGuidedIntentReply } from './utils/guidedIntentReplies';
+import { draftSnapshotDigest } from '../supabase/functions/_shared/quoteDraftSnapshot.js';
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
@@ -141,8 +143,12 @@ function loadPublicMessages(isHebrew) {
   return [withCreatedAt({ role: 'assistant', content: computeDefaultWelcome(isHebrew, false) })];
 }
 
-export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null, helpSources = null }) {
+export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null, helpSources = null, getQuoteDraftSnapshot = null }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Task 34: the OPEN quote form's snapshot getter ({ identity, snapshot }) - read only at the explicit review click and again when its
+  // answer arrives (always the latest render's getter, so a changed / different draft is detected).
+  const draftGetterRef = useRef(null);
+  draftGetterRef.current = isDashboard ? getQuoteDraftSnapshot : null;
 
   // Context-Driven AI Chat V3, §5: the ONE canonical context resolver - a
   // pure derivation from this render's own props, never a second store.
@@ -362,6 +368,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   // guidedIntent immediately without ever touching guidedGroup at all.
   const [guidedGroup, setGuidedGroup] = useState(null);
   const hasSentUserMessage = messages.some((m) => m.role === 'user');
+  const guidedReply = guidedIntent && guidedIntent !== 'quotes' && guidedIntent !== 'other'
+    ? buildGuidedIntentReply(guidedIntent, { isHebrew, isDashboard, helpSources })
+    : null;
 
   // Context-Aware AI Chat task (root architectural defect fix): the
   // public landing surface and the authenticated Dashboard surface must
@@ -673,10 +682,18 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
-
     const userMsg = input.trim();
     setInput('');
+    await sendText(userMsg);
+  };
 
+  // Task 33: ONE send path for the typed message, a guided follow-up click and "try again" - so every one of them shows the same
+  // loading -> answer / error states. A failed turn's error bubble is never sent back to the model (filtered as isError below).
+  // opts (Task 34): extraBody = one-shot request fields (the review snapshot); draftRef = { identity, digest } of the reviewed draft;
+  // retryKind = how "try again" re-runs a failed turn (a review re-reads the CURRENT form).
+  const sendText = async (userMsg, opts = {}) => {
+    if (!userMsg || loading) return;
+    const draftRef = opts.draftRef || null;
     const newMessages = [...messages, withCreatedAt({ role: 'user', content: userMsg })];
     setMessages(newMessages);
     setLoading(true);
@@ -701,7 +718,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       // - any local-only note messages (e.g. "selected quote unavailable")
       // are never sent back as fake conversation history.
       const fullTranscript = newMessages
-        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .filter(m => (m.role === 'user' || m.role === 'assistant') && !m.isError)
         .map(m => ({ role: m.role, content: m.content }));
       // AI HELP V4 (AI-HELP-AVAILABILITY-001): a long chat never makes help unavailable - the oldest turns stop being sent
       // (same shared limits the server enforces) and the user is told once.
@@ -750,6 +767,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
           // ref's own header comment for exactly which boundaries bump it.
           contextRevision: contextRevisionRef.current,
           helpContext,
+          ...(opts.extraBody || {}),
         }
       });
 
@@ -791,6 +809,15 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 : 'The selected quote is no longer available. Quote context was cleared.',
             }));
           }
+          // Task 34: a review answer belongs to the draft it reviewed - another draft now open => not shown; the same draft edited
+          // meanwhile => shown with a visible "refers to the earlier version" note (nothing is ever applied to the form either way).
+          const draftNow = draftRef ? draftGetterRef.current?.() : null;
+          const draftGone = !!draftRef && (!draftNow || draftNow.identity !== draftRef.identity);
+          const draftChanged = !!draftRef && !draftGone && draftSnapshotDigest(draftNow.snapshot) !== draftRef.digest;
+          if (draftGone) {
+            next.push(withCreatedAt({ role: 'system-note', content: isHebrew ? 'ההצעה שנבדקה כבר לא פתוחה, ולכן התשובה לא הוצגה.' : 'The reviewed quote is no longer open, so the answer was not shown.' }));
+            return next;
+          }
           if (bounded.trimmed) {
             next.push(withCreatedAt({
               role: 'system-note',
@@ -805,7 +832,11 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             navigationAction,
             navigationFocus,
             navigationQuoteId: navigationAction === 'open_selected_quote' ? requestSelectedQuoteId : null,
+            reviewedDraft: !!draftRef,
           }));
+          if (draftChanged) {
+            next.push(withCreatedAt({ role: 'system-note', content: isHebrew ? 'ההצעה השתנתה בזמן הבדיקה — התשובה מתייחסת לגרסה הקודמת. אפשר לבקש בדיקה שוב.' : 'The quote changed during the review — the answer refers to the earlier version. You can ask for a new review.' }));
+          }
           return next;
         });
         // A quote the server just said is unavailable can never still be
@@ -824,12 +855,31 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       if (isDashboard) publishBlocker('AI_PROVIDER_FAILED', { scope: 'session' });
       applyIfCurrent(() => setMessages(prev => [...prev, withCreatedAt({
         role: 'assistant',
+        isError: true,
+        retryText: userMsg,
+        retryKind: opts.retryKind || null,
         content: isHebrew
           ? 'מצטער, חלה שגיאה זמנית בחיבור לשרת ה-AI. אנא נסה שוב בעוד מספר שניות.'
           : 'Sorry, there was a temporary error connecting to the AI server. Please try again in a few seconds.'
       })]));
     } finally {
       applyIfCurrent(() => setLoading(false));
+    }
+  };
+
+  // Task 34: "Improve this quote" - runs ONLY on this explicit click; reads the CURRENT open form (unsaved edits included) and sends its
+  // bounded snapshot for this one request (never in later turns, never in helpContext). Nothing is saved, sent or changed.
+  const analyzeDraft = (message) => {
+    const current = draftGetterRef.current?.() || null;
+    const snapshot = current?.snapshot || null;
+    if (!snapshot) {
+      setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: isHebrew ? 'אין בהצעה הפתוחה פריטים לבדיקה.' : 'The open quote has no items to review.' })]);
+      return;
+    }
+    sendText(message, { extraBody: { draftSnapshot: snapshot }, draftRef: { identity: current.identity, digest: draftSnapshotDigest(snapshot) }, retryKind: 'analyze_draft' });
+    // Task 35: a quote longer than the review bound is reviewed only in part - the user is told (after the request, so the note never enters the history sent)
+    if (snapshot.totalItems > snapshot.items.length) {
+      setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: isHebrew ? `ההצעה ארוכה: נבדקים רק ${snapshot.items.length} הפריטים הראשונים מתוך ${snapshot.totalItems}.` : `This quote is long: only the first ${snapshot.items.length} of ${snapshot.totalItems} items are reviewed.` })]);
     }
   };
 
@@ -1026,6 +1076,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               [isHebrew ? 'right' : 'left']: '0',
               width: '360px',
               height: '520px',
+              // Task 34 (low-wide 1280x480 finding): never taller than the viewport - the header (Close / New chat / Previous chats) stayed
+              // above the top edge. At normal heights this changes nothing (520px fits); the mobile full-screen rule still overrides it.
+              maxHeight: 'calc(100vh - 120px)',
               background: NEON.bgElevated,
               borderRadius: '16px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
@@ -1238,6 +1291,18 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               {getNavigationLabel(msg.navigationAction, isHebrew)}
                             </button>
                           )}
+                          {/* PRODUCT_TRUTH_DECORATIVE: resends the user's last message after a failed AI answer (Task 33: a click never vanishes without an explanation) */}
+                          {msg.isError && msg.retryText && idx === messages.length - 1 && (
+                            <button
+                              type="button"
+                              data-testid="ai-chat-retry"
+                              disabled={loading}
+                              onClick={() => (msg.retryKind === 'analyze_draft' ? analyzeDraft(msg.retryText) : sendText(msg.retryText))}
+                              style={{ minHeight: '38px', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.violetLighter, fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer', alignSelf: isHebrew ? 'flex-end' : 'flex-start' }}
+                            >
+                              {isHebrew ? 'נסו שוב' : 'Try again'}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1423,11 +1488,31 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                       );
                     })()}
 
-                    <div style={{ fontSize: '0.72rem', color: NEON.textSecondary, opacity: 0.85, textAlign: isHebrew ? 'right' : 'left' }}>
-                      {guidedIntent === 'other'
-                        ? (isHebrew ? 'בשמחה, כתוב לי מה תרצה לשאול.' : "Sure — tell me what you'd like to ask.")
-                        : (isHebrew ? 'אפשר גם לכתוב כאן ישירות' : 'You can also type directly')}
-                    </div>
+                    {/* Task 33: a chosen guided topic answers at once (what the assistant can do for it here, from the bounded facts it
+                        already holds) and may offer one-click follow-ups that go through the normal send path - never a silent chip. */}
+                    {guidedReply ? (
+                      <div data-testid="ai-guided-reply" data-intent={guidedIntent} style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: isHebrew ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
+                        <div role="status" style={{ background: NEON.bgCard, color: NEON.textPrimary, padding: '10px 14px', borderRadius: '12px', fontSize: '0.85rem', border: `1px solid ${NEON.border}`, lineHeight: '1.4', textAlign: isHebrew ? 'right' : 'left' }}>
+                          {guidedReply.text}
+                        </div>
+                        {guidedReply.actions.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: isHebrew ? 'flex-end' : 'flex-start' }}>
+                            {/* PRODUCT_TRUTH_DECORATIVE: sends one guided follow-up question to the assistant through the normal chat send path */}
+                            {guidedReply.actions.map((a) => (
+                              <button key={a.id} type="button" data-testid="ai-guided-followup" data-action={a.kind || 'message'} disabled={loading} onClick={() => (a.kind === 'analyze_draft' ? analyzeDraft(a.message) : sendText(a.message))} style={guidedButtonStyle(false)}>
+                                {a.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.72rem', color: NEON.textSecondary, opacity: 0.85, textAlign: isHebrew ? 'right' : 'left' }}>
+                        {guidedIntent === 'other'
+                          ? (isHebrew ? 'בשמחה, כתוב לי מה תרצה לשאול.' : "Sure — tell me what you'd like to ask.")
+                          : (isHebrew ? 'אפשר גם לכתוב כאן ישירות' : 'You can also type directly')}
+                      </div>
+                    )}
                   </div>
                 )}
 

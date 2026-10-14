@@ -1,0 +1,40 @@
+[
+  {
+    "name": "a1_only",
+    "expect": {
+      "exists": true,
+      "relkind": "r",
+      "rls": true,
+      "force_rls": true,
+      "columns": "id uuid not null, user_id uuid not null, title text not null, notes text, status text not null, priority text not null, due_date date, due_time time without time zone, quote_id uuid, client_id uuid, created_at timestamp with time zone not null, updated_at timestamp with time zone not null, completed_at timestamp with time zone",
+      "kind_default": null,
+      "constraints": "5c8f6d6ad0d47ed4ae350e74edb4906d",
+      "constraint_names": "tasks_client_id_fkey,tasks_completed_consistency,tasks_due_time_requires_date,tasks_notes_check,tasks_pkey,tasks_priority_check,tasks_quote_id_fkey,tasks_status_check,tasks_title_check,tasks_user_id_fkey",
+      "policies": "482a078a2e501a612488d9ba2d79add3",
+      "triggers": "tasks_guard_row:O:tasks_guard_row",
+      "guard_fn": "392107b25013236fd79bd56e15aac87b",
+      "guard_fn_secdef": false,
+      "indexes": "d38f87b2b87ed49d9ecc95f3ad68eca1",
+      "grants": "authenticated:DELETE,authenticated:INSERT,authenticated:SELECT,authenticated:UPDATE,service_role:DELETE,service_role:INSERT,service_role:REFERENCES,service_role:SELECT,service_role:TRIGGER,service_role:TRUNCATE,service_role:UPDATE"
+    }
+  },
+  {
+    "name": "a1_extended_by_a5",
+    "expect": {
+      "exists": true,
+      "relkind": "r",
+      "rls": true,
+      "force_rls": true,
+      "columns": "id uuid not null, user_id uuid not null, title text not null, notes text, status text not null, priority text not null, due_date date, due_time time without time zone, quote_id uuid, client_id uuid, created_at timestamp with time zone not null, updated_at timestamp with time zone not null, completed_at timestamp with time zone, kind text not null",
+      "kind_default": "'task'::text",
+      "constraints": "f3e8c5ea5c59fef6b21adc5870290abc",
+      "constraint_names": "tasks_client_id_fkey,tasks_completed_consistency,tasks_due_time_requires_date,tasks_kind_check,tasks_notes_check,tasks_pkey,tasks_priority_check,tasks_quote_id_fkey,tasks_status_check,tasks_title_check,tasks_user_id_fkey",
+      "policies": "482a078a2e501a612488d9ba2d79add3",
+      "triggers": "tasks_follow_up_guard:O:tasks_follow_up_guard,tasks_guard_row:O:tasks_guard_row",
+      "guard_fn": "392107b25013236fd79bd56e15aac87b",
+      "guard_fn_secdef": false,
+      "indexes": "91248f82170765100c7a78eca956aa51",
+      "grants": "authenticated:DELETE,authenticated:INSERT,authenticated:SELECT,authenticated:UPDATE,service_role:DELETE,service_role:INSERT,service_role:REFERENCES,service_role:SELECT,service_role:TRIGGER,service_role:TRUNCATE,service_role:UPDATE"
+    }
+  }
+]
