@@ -17,12 +17,13 @@ import LandingPlans from './LandingPlans';
 import { LANDING_CSS } from './landingStyles';
 import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
 
-// Surfaces the floating AI launcher may never cover (it steps aside while it would). Owner 2026-10-14 ("the chat button is almost
-// never shown - the animation is nice but it must be felt"; measured on LIVE: visible on 10-12% of the phone scroll, 34% on desktop):
-// ONLY what a visitor clicks - the plan cards and their Free-10 button and every link / button / FAQ question / footer link. Body text,
-// headings and the sample quotations are no longer protected (visible on 72-77% of the phone scroll, 71-75% on desktop).
-const PROTECTED_FROM_LAUNCHER = '#plans .tl-plan, #plans .tl-plans-cta, '
-  + '.tl-hero a, .tl-hero button, .tl-section a, .tl-section button, .tl-section summary, .tl-closing a, .tl-closing button, .tl-footer a';
+// Surfaces the floating AI launcher may never cover (it steps aside while it would): documents, plan cards and - Task 36 (L6) - the hero
+// heading / text / status line and every action of the page.
+const PROTECTED_FROM_LAUNCHER = '.tl-doc, .tl-hero-sequence, #plans .tl-plan, #plans .tl-plans-cta, #tl-hero-title, .tl-hero-text, .tl-trial, '
+  + '.tl-hero a, .tl-section a, .tl-section button, .tl-section summary, .tl-closing a, .tl-footer, '
+  + '.tl-section h2, .tl-section h3, .tl-closing h2, '
+  // Task 38: body text too - paragraphs, list items and every open FAQ answer, by their drawn lines (useLauncherStepAside)
+  + '.tl-hero p, .tl-section p, .tl-section li, .tl-section dd, .tl-faq-a, .tl-closing p';
 
 function go(navigate, href) {
   return (e) => {
