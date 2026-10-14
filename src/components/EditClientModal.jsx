@@ -19,6 +19,18 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const [clientType, setClientType] = useState('business');
   const [taxId, setTaxId] = useState('');
   const [address, setAddress] = useState('');
+  // Owner bug 2026-10-14 (no city for a client): the address is edited as street / city / state / zip and stored in the ONE canonical
+  // format "street|city|state|zip" (utils/addressFormat.js, the same as the quote form and the business). A legacy single-field address
+  // stays as the street line - never split or rewritten silently.
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [stateProv, setStateProv] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const setAddressParts = (nextStreet, nextCity, nextState, nextZip) => {
+    setStreet(nextStreet); setCity(nextCity); setStateProv(nextState); setZipCode(nextZip);
+    const any = [nextStreet, nextCity, nextState, nextZip].some((v) => String(v || '').trim() !== '');
+    setAddress(any ? `${nextStreet}|${nextCity}|${nextState}|${nextZip}` : '');
+  };
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -37,7 +49,14 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       setEmail(client.email || '');
       setClientType(client.client_type || 'business');
       setTaxId(client.tax_id || '');
-      setAddress(client.address || '');
+      const rawAddress = client.address || '';
+      setAddress(rawAddress);
+      if (rawAddress.includes('|')) {
+        const parts = rawAddress.split('|');
+        setStreet(parts[0] || ''); setCity(parts[1] || ''); setStateProv(parts[2] || ''); setZipCode(parts[3] || '');
+      } else {
+        setStreet(rawAddress); setCity(''); setStateProv(''); setZipCode('');
+      }
       setNotes(client.notes || '');
       setErrorMsg('');
 
@@ -136,7 +155,12 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'כתובת' : 'Address'}</label>
-              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }}>
+                <input type="text" data-testid="client-address-street" aria-label={isHebrew ? 'רחוב ומספר' : 'Street address'} placeholder={isHebrew ? 'רחוב ומספר' : 'Street address'} value={street} onChange={(e) => setAddressParts(e.target.value, city, stateProv, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+                <input type="text" data-testid="client-address-city" aria-label={isHebrew ? 'עיר' : 'City'} placeholder={isHebrew ? 'עיר' : 'City'} value={city} onChange={(e) => setAddressParts(street, e.target.value, stateProv, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+                <input type="text" data-testid="client-address-state" aria-label={isHebrew ? 'מדינה / מחוז' : 'State / Province'} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} value={stateProv} onChange={(e) => setAddressParts(street, city, e.target.value, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+                <input type="text" data-testid="client-address-zip" aria-label={isHebrew ? 'מיקוד' : 'ZIP / Postal'} placeholder={isHebrew ? 'מיקוד' : 'ZIP / Postal'} value={zipCode} onChange={(e) => setAddressParts(street, city, stateProv, e.target.value)} dir="ltr" style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות / הנחיות' : 'Notes'}</label>
