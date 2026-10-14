@@ -114,7 +114,9 @@ export default defineConfig(({ mode }) => {
     // e2e/ holds Playwright specs (a separate test runner, `npx playwright
     // test`) - they import from '@playwright/test', not vitest, and must
     // never be picked up by vitest's own default file globbing.
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    // `npm test` / `npm run test:product` = the PRODUCT scope. The preserved supplement tooling tests under docs/ belong to
+    // the separate TOOLING scope (`npm run test:tooling`, vitest.tooling.config.mjs) and are reported there, not hidden.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**', 'docs/**'],
   },
   };
 })

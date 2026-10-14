@@ -23,6 +23,8 @@ export const PAYLOAD_FIELDS = [
   'clientName', 'clientEmail', 'clientPhone', 'clientType', 'clientTaxId', 'clientAddress',
   'quoteSubject', 'attnName', 'attnRole', 'currency', 'quoteStatus', 'validUntil', 'discount',
   'terms', 'warranty', 'notes', 'items', 'sections', 'quoteStructureMode', 'projectName',
+  // Task 16: presentation draft { style|null, media: MediaRef[], detail|null } (style override, image refs, detail preference)
+  'quotePresentation',
 ];
 
 export function getDraftProjectId(url) {
@@ -91,6 +93,8 @@ export function hasMaterialContent(payload, { defaultTerms = '', defaultWarranty
   if (fields.some((f) => txt(payload[f]) !== '')) return true;
   if (txt(payload.terms) !== txt(defaultTerms) || txt(payload.warranty) !== txt(defaultWarranty)) return true;
   if ((payload.sections || []).some((s) => txt(s?.name) !== '')) return true;
+  const pres = payload.quotePresentation;
+  if (pres && typeof pres === 'object' && (!!pres.style || (Array.isArray(pres.media) && pres.media.length > 0) || !!pres.detail)) return true;
   return (payload.items || []).some((it) => txt(it?.description) !== '' || txt(it?.unit_price) !== '' || (txt(it?.quantity) !== '' && txt(it?.quantity) !== '1')
     || (it?.measurements || []).length > 0 || (it?.specification || []).length > 0 || !!it?.isFromCatalog);
 }

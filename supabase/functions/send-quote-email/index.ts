@@ -1,6 +1,14 @@
+import { buildQuoteEmail, safeLogoUrl, safeQuoteLink } from './emailTemplate.ts'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
+import { decideEmailLink, loggableBody } from "./capabilityLink.ts"
+import { classifyPhaseRead } from "../_shared/activationPhase.ts"
+import { decidePriceGate } from "./priceGate.ts"
+
+// Task 29: a deliberate refusal of this function. Its message is part of the API (classified by src/utils/quoteEmailErrorClassification.js)
+// and is returned as before; any OTHER error is logged on the server and answered with a generic message (no internal details).
+class EmailRefusal extends Error {}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +83,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    console.log("Incoming request body:", JSON.stringify(body))
+    console.log("Incoming request body:", JSON.stringify(loggableBody(body)))
 
     const { quoteId } = body
 
@@ -83,13 +91,12 @@ serve(async (req) => {
     // (ליד adminClient) על הסיבה שהוא לא הועבר למקור סמכותי יחד עם שאר השדות.
     const rawLogo = body.logoUrl || body.businessLogo || body.logo || body.bizLogo || body.imageUrl || body.image;
 
-    // בדיקה מדויקת האם מדובר ב-SVG אמיתי לפי הסיומת או הנתונים, ולא לפי מילה כללית בשם הקובץ
-    const isSvg = rawLogo && (rawLogo.startsWith('data:image/svg+xml') || rawLogo.toLowerCase().endsWith('.svg'));
-    const validLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.startsWith('http') && !isSvg ? rawLogo : null;
+    // Task 29: an absolute http(s) URL that is not an SVG, parsed as a URL (validation only; HTML escaping happens once in the template)
+    const validLogo = safeLogoUrl(rawLogo);
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) {
-      throw new Error('Missing RESEND_API_KEY environment variable')
+      throw new EmailRefusal('Missing RESEND_API_KEY environment variable')
     }
 
     // אכיפה בצד השרת: השפה והמטבע נגזרים אך ורק ממסד הנתונים, לא מהלקוח.
@@ -102,7 +109,7 @@ serve(async (req) => {
     const SECRET_KEY = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default']
     const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
     if (!quoteId || !SUPABASE_URL || !SECRET_KEY) {
-      throw new Error('Cannot verify quote region/currency against the database - refusing to send email.')
+      throw new EmailRefusal('Cannot verify quote region/currency against the database - refusing to send email.')
     }
 
     // אימות: הקורא חייב להיות משתמש מחובר אמיתי - הזהות נקבעת אך ורק מה-JWT
@@ -142,7 +149,7 @@ serve(async (req) => {
       .maybeSingle()
 
     if (!quoteRow) {
-      throw new Error('Quote not found - refusing to send without a verified region/currency.')
+      throw new EmailRefusal('Quote not found - refusing to send without a verified region/currency.')
     }
 
     // בעלות: משתמש רשאי לשלוח רק הצעת מחיר שהוא עצמו הבעלים שלה - אין
@@ -152,6 +159,25 @@ serve(async (req) => {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Task 38 (Owner D1 = block, server side): a quote with a line whose price was never entered is never emailed to a customer; an
+    // intentional 0 is a price. Decided right after ownership (a foreign caller learns nothing about the prices) and before anything
+    // else is read for the email or the provider is called; an unverifiable price state refuses too (fail closed, priceGate.ts).
+    const { data: missingRows, error: missingErr } = await supabaseAdmin.from('quote_items').select('id').eq('quote_id', quoteId).eq('price_missing', true).limit(1)
+    const priceGate = decidePriceGate(missingRows, missingErr)
+    if (!priceGate.ok) throw new EmailRefusal(priceGate.message)
+
+    // Task 28: the owner's default share text, for the VERIFIED owner only (explicit column). A missing table / read error = the
+    // built-in email text (sending is never blocked by this optional setting).
+    let ownerShareText: string | null = null
+    {
+      const { data: shareRow, error: shareErr } = await supabaseAdmin
+        .from('business_share_defaults')
+        .select('share_text')
+        .eq('user_id', quoteRow.user_id)
+        .maybeSingle()
+      if (!shareErr && typeof shareRow?.share_text === 'string') ownerShareText = shareRow.share_text
     }
 
     let bizCountry: string | null = null
@@ -183,12 +209,12 @@ serve(async (req) => {
       clientCompanyName = clientRow?.company_name ?? null
     }
     if (!clientEmail) {
-      throw new Error('No client email on file for this quote - refusing to send.')
+      throw new EmailRefusal('No client email on file for this quote - refusing to send.')
     }
 
     const resolved = resolveEmailRegion(bizCountry, bizCurrency, quoteRow.currency, Number(quoteRow.tax_rate))
     if (!resolved) {
-      throw new Error('Cannot establish a trustworthy business region/currency for this quote - refusing to send email.')
+      throw new EmailRefusal('Cannot establish a trustworthy business region/currency for this quote - refusing to send email.')
     }
     const effectiveHebrew = resolved.hebrew
     const resolvedSym = resolved.symbol
@@ -207,6 +233,9 @@ serve(async (req) => {
     // צעד עתידי נפרד, לא בוצעה בסבב הזה.
     // IRON-ILS-001: ILS (₪) => nearest whole shekel, half-up away from zero, always ".00"; other currencies keep full precision.
     const displayTotal = formatEmailTotal(quoteRow.total, resolvedSym) // unit-tested in emailMoney.test.js
+    // Task 36 partial-total line: under D1 = block a quote with a missing price never reaches this point (the price gate above), so the
+    // total here is never partial; the template keeps the line for the documented 'confirm' policy.
+    const partialTotal = false
 
     // קישור ההצעה נבנה אך ורק בצד השרת, מדומיין הייצור הקבוע ומה-quoteId
     // המאומת - לעולם לא מכתובת שהבקשה שולחת, אחרת אפשר היה להטמיע קישור
@@ -222,9 +251,26 @@ serve(async (req) => {
     // keep working regardless: www.quotecodepro.com still resolves (no DNS
     // change made), only NEW emails from this point use the new domain.
     const PROD_ORIGIN = 'https://www.tekango.com';
-    const canonicalQuoteLink = effectiveHebrew
-      ? `${PROD_ORIGIN}/public-quote/${quoteId}`
-      : `${PROD_ORIGIN}/en/public-quote/${quoteId}?lang=en`;
+    // Subscriptions (OD-02, CROSSCUT §3): while free_issue is not enforced the link is exactly the id link above (unchanged).
+    // Enforced: the link carries the capability token minted by subscription-authority authorize_output (channel 'send'),
+    // verified here against the quote AND the verified caller; a mismatch sends nothing. Decision: capabilityLink.ts (tested).
+    const phase = classifyPhaseRead(await supabaseAdmin.from('subscription_activation').select('phase').eq('component', 'free_issue').maybeSingle())
+    const linkDecision = await decideEmailLink({
+      phase, origin: PROD_ORIGIN, quoteId: String(quoteId), callerUserId: callerUser.id, hebrew: effectiveHebrew,
+      capabilityToken: body.capabilityToken,
+      resolve: async (hash) => {
+        const { data, error } = await supabaseAdmin.rpc('resolve_public_capability', { p_token_hash: hash, p_op: 'view' })
+        if (error) throw new Error('resolve_public_capability failed')
+        return data
+      },
+    })
+    if (!linkDecision.ok) {
+      return new Response(JSON.stringify(linkDecision.body), {
+        status: linkDecision.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const canonicalQuoteLink = linkDecision.link;
 
     // חוק ברזל (item 17 + Quote Number Mobile/Surface Consistency, סבב זה):
     // נופל בבטחה למספר ה-UUID המקוצר הקיים כל עוד quoteRow.quote_number לא
@@ -240,45 +286,12 @@ serve(async (req) => {
     const quoteNumberDisplay = typeof quoteRow.quote_number === 'number'
       ? `A${quoteRow.quote_number}`
       : (quoteId ? `#${quoteId.slice(0, 8)}` : 'GENERAL');
-    const subject = effectiveHebrew
-      ? `הצעת מחיר ${quoteNumberDisplay} מ-${bizTitle}`
-      : `Quote ${quoteNumberDisplay} from ${bizTitle}`;
-
-    const headerHtml = validLogo
-      ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${validLogo}" alt="${bizTitle}" style="max-height: 55px; object-fit: contain;" /></div>`
-      : `<div style="text-align: center; margin-bottom: 20px; font-size: 1.5rem; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">${bizTitle}</div>`;
-
-    const html = effectiveHebrew ? `
-      <div dir="rtl" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-        ${headerHtml}
-        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">שלום ${clientDisplayName},</h2>
-        <p style="font-size: 1rem; line-height: 1.5;">מצורפת הצעת המחיר שלך ממערכת <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${displayTotal}</span></p>
-        <br/>
-        <p>לצפייה בהצעה המלאה, אישור או חתימה דיגיטלית לחץ על הכפתור הבא:</p>
-        <div style="text-align: center; margin: 25px 0;">
-          <a href="${canonicalQuoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפה בהצעת המחיר</a>
-        </div>
-        <br/>
-        <p style="color: #64748b; font-size: 0.9rem;">נשמח לעמוד לשירותך לכל שאלה!</p>
-        <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px;">צוות ${bizTitle}</p>
-      </div>
-    ` : `
-      <div dir="ltr" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-        ${headerHtml}
-        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Hello ${clientDisplayName},</h2>
-        <p style="font-size: 1rem; line-height: 1.5;">Please find your quote attached from <strong>${bizTitle}</strong>.</p>
-        <p style="font-size: 1.1rem;"><strong>Total Amount:</strong> <span style="color: #4f46e5; font-weight: bold;">${resolvedSym}${displayTotal}</span></p>
-        <br/>
-        <p>To view, approve or digitally sign your quote, click the button below:</p>
-        <div style="text-align: center; margin: 25px 0;">
-          <a href="${canonicalQuoteLink}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">View Quote</a>
-        </div>
-        <br/>
-        <p style="color: #64748b; font-size: 0.9rem;">Feel free to contact us with any questions!</p>
-        <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px;">${bizTitle} Team</p>
-      </div>
-    `;
+    const safeLink = safeQuoteLink(canonicalQuoteLink, PROD_ORIGIN)
+    if (!safeLink) throw new EmailRefusal('Cannot build a verified quote link - refusing to send email.')
+    const { subject, html } = buildQuoteEmail({
+      hebrew: effectiveHebrew, bizTitle, clientDisplayName, quoteNumberDisplay, symbol: resolvedSym, displayTotal,
+      quoteLink: safeLink, logoUrl: validLogo, shareText: ownerShareText, partialTotal,
+    })
 
     // תג quote_id מצורף לכל שליחה כך שאם המייל ייכשל/יוחזר, ה-Webhook
     // (resend-email-webhook) יוכל לזהות איזו הצעת מחיר לסמן כ"נכשלה"
@@ -304,16 +317,17 @@ serve(async (req) => {
     console.log("Resend API response:", JSON.stringify(data))
 
     if (!res.ok) {
-      throw new Error(data.message || 'Failed to send email via Resend')
+      throw new EmailRefusal(typeof data?.message === 'string' && data.message ? data.message.slice(0, 300) : 'Failed to send email via Resend')
     }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (error) {
-    console.error("Error sending email:", error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof EmailRefusal ? error.message : 'Email sending failed'
+    console.error("Error sending email:", error instanceof Error ? error.message : String(error))
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })

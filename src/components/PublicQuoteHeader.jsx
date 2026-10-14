@@ -1,36 +1,44 @@
 import { useState, useEffect } from 'react';
 import { Phone } from 'lucide-react';
-import { LIGHT } from '../theme/neonTheme';
 import { formatQuoteNumber, formatQuoteFallback } from '../utils/quoteNumber';
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
+import '../quoteDocument/quoteDocument.css';
 
-// חוק ברזל: "חייג/י אליי" הוא CTA טקסטואלי בלבד - המספר עצמו לעולם לא
-// מוצג *על גבי הכפתור* (מוצג כטקסט מידע נפרד למעלה, בדיוק כמו קודם) -
-// קישור ה-tel: מכיל אותו רק כפעולה טכנית, לא כתוכן גלוי.
-export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote, isExpired = false }) {
+// Task 16 - Quote Experience V2: the customer document letterhead, shared by PublicQuote.jsx (HE/Local) and
+// PublicQuoteEn.jsx (EN/International) - and used standalone by ProfessionalPublicPreview.jsx. No money is rendered here.
+//
+// variant:
+//   'classic' (default, and the legacy fallback): WHITE letterhead - issuer identity (logo when present, else the
+//              business name), ONE thin accent rule, the typographic title, then the centred metadata row.
+//              Replaces the former dark gradient banner (which needed print/PDF colour inversions to stay legible).
+//   'modern':   editorial split header - issuer | metadata column in the band, the large title below it.
+//   'visual':   brandline (issuer + quote number), title, then a metadata row.
+//
+// Header Call CTA (Owner 2026-10-07): the "חייג/י אליי" / "Call me" pill sits in the upper outer corner of the
+// screen letterhead (physical left in Hebrew, physical right in English), instead of consuming a row below metadata.
+// It is rendered only when the business has a phone, as in base. It is a tel:
+// action, so it stays OUT of the printed document and the Direct PDF capture (`no-print` + `data-html2canvas-ignore`,
+// hidden under .pq-pdf-capturing): the approved no-UI-in-output contract (CONTRACT.md §4, IRON-PRINT-001 gate
+// print/no-ui-text, which lists 'חייג/י אליי') - base printed it; that difference is recorded in the A13 report.
+// The business phone also stays in the issuer details as plain text (printed).
+//
+// Title / subject (cloud-fix4, ledger D09): the title is the base text "הצעת מחיר" / "Price Quote" in every style (the
+// subject is back in the recipient card as base "נושא ההצעה: X" / "Subject: X", rendered by the pages). The base
+// position (centred inside the quote-info box) is NOT restored: CORRECTION C "Do NOT center the quotation title" and the
+// locked band composition keep the start-aligned h1 below the band. The Visual band kicker labels the number
+// ("מס׳ הצעה" / "Quote #") so the title is not printed twice; the Modern "<quote> <number>" kicker is gone for the same
+// reason (the number is in the metadata column).
+//
+// Kept contracts (PublicQuoteHeader.test.jsx): .pq-header-box / .pq-header-glass / .pq-logo-chip hooks, the logo <img>
+// with crossOrigin="anonymous" + plain-loading fallback, a long business name that wraps (never truncates), the
+// 'מס׳ הצעה' / 'Quote #' label, the JS matchMedia mobile branch with a centred metadata stack, and the expired marker
+// (data-testid="pq-header-expired").
+export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId, bizPhone, bizEmail, bizAddress, quote, isExpired = false, variant = 'classic', approved = false, compact, showNameWithLogo = false }) {
   const hasLogo = bizLogo && bizLogo.length > 5;
 
-  // חוק ברזל (Faded PDF Logo Correction task - היפותזה שנבדקה ונשללה
-  // בפועל, לתיעוד כדי שאף אחד לא ינסה שוב): ההשערה הראשונית הייתה ש-
-  // crossOrigin חסר על ה-<img> גורם ל-canvas "מוכתם" (tainted) שה-
-  // html2canvas מטפל בו ע"י fallback חיוור. נבדק חי בדפדפן אמיתי מול
-  // URL חיצוני אמיתי (dummyimage.com, עם Access-Control-Allow-Origin: *
-  // אמיתי) - זו לא הייתה הסיבה: גם עם crossOrigin="anonymous" מוגדר
-  // וה-canvas מוכח כ"נקי" (לא-מוכתם, drawImage+toDataURL הצליחו), הלוגו
-  // עדיין יצא חיוור זהה לחלוטין (השוואת פיקסלים בייטים-לבייט). הסיבה
-  // האמיתית שהוכחה: תיבת ה"צ'יפ" הלבן-שקוף (rgba(255,255,255,0.92))
-  // שעוטפת את התמונה - html2canvas מצייר את background-color של האלמנט
-  // ההורה *מעל* התמונה-הבת שלו, לא מתחתיה (נבדק חי: עם רקע שקוף לגמרי
-  // הלוגו יצא בצבע האמיתי המדויק #1e5ad2; עם רקע לבן מלא-אטימות הלוגו
-  // נעלם כליל מאחורי לבן טהור; עם 92% אטימות - בדיוק התערובת המתמטית של
-  // 92% לבן על גבי הכחול האמיתי - נמדד 237,242,251 מול חיזוי מדויק). זו
-  // בעיית סדר-ציור (paint order) אמיתית ב-html2canvas עם ההרכב הספציפי
-  // הזה (הורה עם רקע-שקוף, ילד <img>), לא בעיית CORS/תזמון בכלל - ר'
-  // .pq-logo-chip ב-.pq-pdf-capturing (PublicQuote.jsx/PublicQuoteEn.jsx)
-  // לתיקון בפועל. crossOrigin="anonymous" נשאר כאן כהיגיינת-canvas
-  // תקינה ונדרשת (מונע הכתמה אמיתית במקרים אחרים, לא מזיק, ותומך בבקשת
-  // המשימה) - אך אינו הפתרון לתקלה שהבעלים דיווח עליה.
+  // Faded PDF Logo Correction task: crossOrigin="anonymous" keeps the html2canvas canvas untainted; on a CORS failure
+  // the image falls back to plain loading so on-screen display never breaks.
   const [logoCrossOriginFailed, setLogoCrossOriginFailed] = useState(false);
   useEffect(() => {
     setLogoCrossOriginFailed(false);
@@ -38,13 +46,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   const logoCrossOrigin = logoCrossOriginFailed ? undefined : 'anonymous';
   const handleLogoError = () => setLogoCrossOriginFailed(true);
 
-  // חוק ברזל (תיקון בעלים מאושר - כותרת מובייל קומפקטית): לפני התיקון,
-  // ה-flex-wrap הרגיל של הדסקטופ גרם לתיבת "הצעת מחיר #.../תאריך" (עמודה
-  // שנייה) לגלוש למובייל כבלוק לבן גדול ונפרד *מתחת* לפרטי העסק - נמדד
-  // בפועל כ-261px גובה כותרת כולל. רינדור מותנה אמיתי (JS, לא רק CSS) בין
-  // דסקטופ למובייל - בדיוק התבנית שכבר הוכיחה את עצמה ב-QuotesTab.jsx -
-  // מאפשר קומפוזיציה שונה לגמרי במובייל (מספר/תאריך משולבים כשורת מטא-דאטה
-  // קטנה בתוך הכותרת, לא כרטיס עצמאי) בלי לגעת כלל בעץ ה-JSX של הדסקטופ.
+  // Owner-approved compact mobile header (a real JS branch, not CSS only) - kept for the Classic letterhead.
   const [isMobileView, setIsMobileView] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -65,240 +67,180 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   // project_name (IRON-QUOTE-002): the issuer's project identity is part of the customer-facing quote when set.
   const projectName = String(quote.project_name || '').trim();
   const validUntilStr = quote.valid_until ? formatShortDate(quote.valid_until, dateMarket) : null;
-  // עדכון 2026-08-28 (Quote Number Transition audit): quote כאן מגיע מ-
-  // get-public-quote, וה-Edge Function הזו (בניגוד למקור הקודם שחשב
-  // שהעמודה עצמה לא קיימת) פשוט לא נפרסה מחדש עם quote_number ב-select
-  // שלה - ר' PROFLOW_TODO.md item 17. לכן quote.quote_number עדיין undefined
-  // כאן בפועל, וformattedNumber נשאר null, עד לפריסה מתואמת עתידית - לא
-  // עד ל-migration הזה של המאגר (שכלל לא נדרש כדי שהעמודה עצמה תתקיים).
-  // כל מקום קריאה נופל חזרה בבטחה לתצוגת ה-UUID המקוצר הקיימת, בלי צורך
-  // בשינוי נוסף כשה-Edge Function בסופו של דבר תיפרס.
-  const formattedNumber = formatQuoteNumber(quote.quote_number);
+  // Quote Number Transition: formatQuoteNumber is null until quote_number exists - every surface falls back to the
+  // short-id display (formatQuoteFallback) under the SAME label, so the composition never changes shape.
+  const numberDisplay = formatQuoteNumber(quote.quote_number) || formatQuoteFallback(quote);
 
-  // חוק ברזל (Public Quote Redesign, Section A/B - dark elegant header):
-  // מחליף את הגרדיאנט הסגול-ורוד הקודם (LIGHT.gradient) בכותרת כהה-אלגנטית
-  // אחת, משותפת לענפי Desktop ו-Mobile - "dark elegant header replacing
-  // the old purple-gradient hero" (Owner spec, no reference image supplied
-  // this round - עיצוב לפי המפרט הטקסטואלי בלבד, מוצהר כאן, לא כמדידה מול
-  // תמונת-ייחוס בפועל, אותה שקיפות שכבר ננקטה ב-.pq-page-card-desktop-width
-  // history). תג המידע ("הצעת מחיר"/מספר/תאריך) הופך מקופסה לבנה אטומה
-  // לפאנל "זכוכית חלבית" (glass) על גבי הרקע הכהה - עדיין נבדל חזותית כ"תג"
-  // בלי לשבור את שפת-העיצוב הכהה.
-  const headerBg = 'linear-gradient(135deg, #14111f 0%, #1e1930 55%, #241c38 100%)';
-  const headerBorder = '1px solid rgba(255,255,255,0.09)';
-  const glassPanel = { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)' };
+  // ledger D08 (cloud-fix4): base c65f742 EN phone label "Valid:" (the compact branch: a phone viewport <= 768px, or the
+  // compact preview frame); "Valid until" at document widths, Print and the Direct PDF capture (compact={false}).
+  const phoneLabels = typeof compact === 'boolean' ? compact : isMobileView;
+  const L = isHebrew
+    ? { quote: 'הצעת מחיר', number: 'מס׳ הצעה', date: 'תאריך', valid: 'בתוקף עד', project: 'פרויקט', expired: 'פג תוקף', signed: 'נחתמה', taxId: 'ח.פ / עוסק:', phone: 'טלפון:' }
+    : { quote: 'Price Quote', number: 'Quote #', date: 'Date', valid: phoneLabels ? 'Valid:' : 'Valid until', project: 'Project', expired: 'Expired', signed: 'Signed', taxId: 'Tax ID:', phone: 'Phone:' };
 
-  if (isMobileView) {
-    // חוק ברזל (תיקון בעלים - קומפוזיציית כותרת מובייל, העברה נוספת):
-    // קודם, מספר/תאריך ההצעה ישבו בשורה נפרדת ברוחב מלא מתחת לפרטי העסק
-    // (עם border-top משלה) - זה בזבז גובה שהאזור השמאלי/משני (מתחת ל-CTA)
-    // כבר היה יכול להכיל. הועברו לעמודה השנייה (יחד עם ה-CTA), מתחתיו
-    // ממש - אין עוד שורה שלישית נפרדת בכלל. סדר ה-DOM כאן [עמודת עסק,
-    // עמודת CTA+מטא-דאטה] מכוון בכוונה - תחת dir="rtl"/"ltr" שכבר מגיע
-    // מהעמוד המארח, הפריט הראשון תמיד ממוקם בצד ה"התחלה" (ימין בעברית,
-    // שמאל באנגלית) - אותה טכניקת מיפוי-דרך-סדר-DOM שכבר הוכיחה את עצמה
-    // בכל שאר הקומפוננטות בפרויקט, בלי צורך בתנאי isHebrew על סדר העמודות
-    // עצמו (רק על יישור הטקסט הפנימי של העמודה המשנית).
+  const details = (
+    <div className="pq-lh-details" dir={isHebrew ? 'rtl' : 'ltr'}>
+      {bizTaxId && <div>{L.taxId} <bdi dir="ltr">{bizTaxId}</bdi></div>}
+      {bizPhone && <div className="pq-lh-phone"><bdi dir="ltr">{bizPhone}</bdi></div>}
+      {bizEmail && <div><bdi dir="ltr">{bizEmail}</bdi></div>}
+      {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
+    </div>
+  );
+
+  // Long Business Name / PDF fix: the name wraps (overflowWrap/wordBreak break-word) inside a minWidth:0 column.
+  const issuer = (nameAsHeading) => (
+    <div className="pq-lh-issuer" style={{ minWidth: 0 }}>
+      {hasLogo ? (
+        <div className={`pq-logo-chip${showNameWithLogo ? ' pq-logo-chip--named' : ''}`}>
+          <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} />
+          {showNameWithLogo
+            ? <span className="pq-logo-visible-name">{bizName}</span>
+            : <span className="pq-logo-name-sr">{bizName}</span>}
+        </div>
+      ) : nameAsHeading ? (
+        <h2 className="pq-lh-name" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{bizName}</h2>
+      ) : (
+        <div className="pq-lh-name" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0 }}>{bizName}</div>
+      )}
+      {details}
+    </div>
+  );
+
+  // Metadata cells (Owner correction 2026-10-05): each label and ITS OWN value are centred inside their own cell with
+  // the same spacing in every style, HE and EN, screen + print + PDF; no decorative rule above the metadata. The title is
+  // not centred and the other document separators (accent rule, table/totals/approval rules) stay.
+  const cell = (key, label, value, { valueClass = '', valueDir, after = null } = {}) => (
+    <div key={key} className={`pq-meta-cell pq-meta-${key}`} style={{ textAlign: 'center' }}>
+      <div className="pq-meta-label">{label}</div>
+      <div className={`pq-meta-value ${valueClass}`.trim()} dir={valueDir}>
+        {value}
+        {after}
+      </div>
+    </div>
+  );
+  const numberCell = cell('number', L.number, numberDisplay, { valueClass: 'pq-header-number', valueDir: 'ltr' });
+  const dateCell = cell('date', L.date, dateStr);
+  // Screen parity: a missing validity date must not collapse the approved three-cell header into two oversized cells.
+  // The reserved cell says "—" (no invented date) and is excluded from native print and Direct PDF capture.
+  const validCell = validUntilStr
+    ? cell('valid', L.valid, validUntilStr, {
+      valueClass: `pq-header-valid${isExpired ? ' pq-is-expired' : ''}`,
+      after: isExpired ? <span data-testid="pq-header-expired"> · {L.expired}</span> : null,
+    })
+    : (
+      <div key="valid" className="pq-meta-cell pq-meta-valid pq-meta-placeholder no-print" data-html2canvas-ignore="true" aria-label={`${L.valid}: —`}>
+        <div className="pq-meta-label">{L.valid}</div>
+        <div className="pq-meta-value pq-header-valid" aria-hidden="true">—</div>
+      </div>
+    );
+  // project_name (IRON-QUOTE-002) is a metadata field like the others.
+  const projectCell = projectName ? cell('project', L.project, projectName, { valueClass: 'pq-header-project' }) : null;
+  const metaGrid = (cells, extraClass = '') => (
+    <div className={`pq-header-glass pq-meta ${extraClass}`.trim()} style={{ textAlign: 'center', minWidth: 0 }} data-pq-meta-count={cells.filter(Boolean).length}>
+      {cells}
+    </div>
+  );
+  // base: the number never shows on the button itself (tel: href only); white pill, sky text, 0.8rem/700. The compact
+  // branch was 0.7rem (11.2px) in base; it is 0.75rem = 12px, the later 12px screen floor (IRON-MOBILE-WIDTH-001).
+  // CTA ink: base LIGHT.sky (#0284c7, src/theme/neonTheme.js) is 3.68:1 on the white pill over the band - the darker sky #0369a1 (same hue) is
+  // 5.33:1 (cloud-fix4, Owner round 4: a base colour is no accessibility waiver).
+  const CTA_INK = '#0369a1';
+  const callCta = (compactCta) => (bizPhone ? (
+    <div className="pq-lh-call no-print" data-html2canvas-ignore="true">
+      {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
+      <a
+        className="pq-lh-call-cta"
+        href={`tel:${String(bizPhone).replace(/[^\d+]/g, '')}`}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: compactCta ? '4px' : '6px', background: 'rgba(255,255,255,0.94)', color: CTA_INK, textDecoration: 'none', fontWeight: '700', fontSize: compactCta ? '0.75rem' : '0.8rem', padding: compactCta ? '4px 10px' : '5px 12px', borderRadius: '999px', whiteSpace: 'nowrap' }}
+      >
+        <Phone size={compactCta ? 11 : 13} strokeWidth={compactCta ? 2.6 : 2.4} />
+        {isHebrew ? 'חייג/י אליי' : 'Call me'}
+      </a>
+    </div>
+  ) : null);
+  const stateChip = approved ? <span className="pq-state-chip" data-testid="pq-header-signed">{L.signed}</span> : null;
+  const documentTitle = (
+    <>
+      <span>{L.quote}</span>
+      {quote.subject && <span className="pq-screen-title-subject"> · {quote.subject}</span>}
+    </>
+  );
+  const documentSubtitle = projectName ? <p className="pq-screen-doc-subtitle">{projectName}</p> : null;
+
+  if (variant === 'modern') {
     return (
-      <div className="pq-header-box" style={{ background: headerBg, border: headerBorder, borderRadius: '12px', padding: '10px 14px', marginBottom: '10px', boxShadow: '0 8px 24px -10px rgba(0,0,0,0.45)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-            {hasLogo ? (
-              <div className="pq-logo-chip" style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '3px 8px', borderRadius: '6px', minWidth: 0 }}>
-                <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '26px', maxWidth: '120px', objectFit: 'contain', display: 'block' }} />
-              </div>
-            ) : (
-              // חוק ברזל (Long Business Name / PDF/Print Header Fix): לפני התיקון,
-              // whiteSpace:'nowrap' + textOverflow:'ellipsis' חתכו שם עסק ארוך
-              // ל"..." - מקובל לרכיב מסך רגיל, אבל לא קביל במסמך הצעת-מחיר
-              // הרשמי שיוצא כ-PDF/הדפסה (שם העסק חייב להופיע במלואו). הוחלף
-              // ל-whiteSpace:'normal' + overflowWrap/wordBreak:'break-word' -
-              // שם ארוך עכשיו נגלש לשורה שנייה במקום להיחתך; שמות קצרים
-              // (המקרה הרגיל) נראים זהים לחלוטין לפני התיקון.
-              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#ffffff', whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0 }}>
-                {bizName}
-              </div>
-            )}
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.68)', lineHeight: '1.35', marginTop: '4px' }}>
-              {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
-              {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
-              {bizEmail && <div>{bizEmail}</div>}
-              {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
-            </div>
+      <header className="pq-header-box pq-letterhead pq-letterhead-modern" data-pq-variant="modern">
+        <div className="pq-lh-band pq-modern-head" data-pq-band="modern">
+          <div className="pq-modern-main" style={{ minWidth: 0 }}>
+            {issuer(false)}
           </div>
-
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-            {/* חוק ברזל (AUDIT-005 השלמה - יישור CTA למרכז-X משותף): לפני
-                התיקון, alignItems כאן היה isHebrew?'flex-start':'flex-end' -
-                זה מצמיד את שני הילדים (תיבת המידע והכפתור) לאותה קצה
-                פיזית, אך מכיוון שלכל אחד רוחב-תוכן עצמאי משלו (auto-width,
-                לא stretch), הצמדה לאותה קצה אינה מבטיחה מרכז-X משותף - נמדד
-                חי אחרי תיקון המרכוז הפנימי של תיבת המידע (§129): מרכז-X של
-                השורות = 71.08px, מרכז-X של הכפתור = 81.85px, פער ~10.8px.
-                תוקן ל-alignItems:'center' קבוע (לא isHebrew-מותנה, אותו
-                עיקרון בדיוק כמו textAlign למטה) - תואם בדיוק את הענף Desktop
-                של אותו רכיב עצמו (שורה 167 למטה, שכבר משתמש ב-
-                alignItems:'center' לאותו יחס בדיוק, נמדד חי כזהה - ר'
-                PROFLOW_PROJECT_CONTEXT.md §131). */}
-            {/* חוק ברזל (Wave 4 Recovery - Item C, תיקון סדר CTA/מובייל):
-                לפני התיקון, ה-CTA "חייג/י אליי" ישב *לפני* תיבת מספר-הצעה/
-                תאריך בענף Mobile - בניגוד לענף Desktop (למטה), שכבר תוקן
-                בעבר לסדר ההפוך (תיבה קודם, CTA אחריה) לפי בקשת הבעלים.
-                הוחלף סדר שני הילדים כאן כדי שהמובייל יתאים לדסקטופ - שינוי
-                DOM בלבד, בלי שינוי style/תוכן/טקסט/מספרים. */}
-            {/* חוק ברזל (AUDIT-005 - תיקון יישור אופטי, Public Quote Mobile
-                Header Alignment Fix): לפני התיקון, ה-textAlign כאן היה
-                isHebrew?'left':'right' - התוריש ליישור-קצה את שורות
-                "תאריך:"/"בתוקף עד:", בעוד תת-הבלוק של מספר-ההצעה (למטה)
-                דרס למרכוז עצמאי - שתי אסטרטגיות יישור שונות בתוך אותו מחסנית
-                מידע חזותית אחת, ללא ציר משותף עם כפתור ה-CTA שמתחתיה (נמדד
-                חי: מרכז-X של מספר ההצעה=75.25px מול מרכז-X של שורת
-                התאריך=62.98px - פער ~12px, ר' PROFLOW_PROJECT_CONTEXT.md
-                §129). תוקן ל-textAlign:'center' קבוע (לא isHebrew-מותנה,
-                באותה עקרון בדיוק של Money Numeric Alignment - מרכוז טקסט
-                אינו תכונת-locale) - תואם בדיוק את הענף Desktop של אותו
-                רכיב עצמו (שורה 169 למטה, שכבר משתמש ב-textAlign:'center'
-                אחיד לאותו תוכן בדיוק, בלי יישור מעורב). */}
-            <div className="pq-header-glass" style={{ ...glassPanel, borderRadius: '8px', padding: '5px 10px', color: 'rgba(255,255,255,0.92)', lineHeight: '1.3', textAlign: 'center', whiteSpace: 'nowrap' }}>
-              {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
-                  לפני התיקון, ענף ה-fallback (formattedNumber falsy - המצב
-                  היחיד הקיים בפועל היום, לפני הפעלת ה-migration) הציג רק
-                  hash גולמי בלי תווית "מספר הצעה" מעליו ובלי מרכוז - בניגוד
-                  לענף formattedNumber (שם התווית והמספר כן מוצגים ומורכזים
-                  יחד). עכשיו שני המצבים חולקים בדיוק את אותו מבנה - תווית
-                  "מס׳ הצעה"/"Quote #" תמיד מוצגת, עם הערך (מספר אמיתי
-                  אחרי migration, או fallback עד אז) ממורכז מתחתיה - כך
-                  שברגע שה-migration יופעל, אותה קומפוזיציה בדיוק תתחיל
-                  להציג את המספר האמיתי בלי שינוי מבני נוסף.
-                  Public Quote Redesign (Section A): התווית עצמה שונתה מ-
-                  "מספר הצעה" ל-"מס׳ הצעה" - הניסוח המדויק שהבעלים דרש
-                  במפרט. */}
-              <div style={{ textAlign: 'center', marginBottom: '1px' }}>
-                <div style={{ fontSize: '0.58rem', opacity: 0.75, fontWeight: '500' }}>{isHebrew ? 'מס׳ הצעה' : 'Quote #'}</div>
-                <div className="pq-header-number" style={{ fontWeight: '800', fontSize: '0.78rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
-              </div>
-              <div>{isHebrew ? 'תאריך:' : 'Date:'} {dateStr}</div>
-              {validUntilStr && (
-                <div className="pq-header-valid" style={{ color: '#fca5a5', fontWeight: '700' }}>{isHebrew ? 'בתוקף עד:' : 'Valid:'} {validUntilStr}{isExpired && <span data-testid="pq-header-expired"> · {isHebrew ? 'פג תוקף' : 'Expired'}</span>}</div>
-              )}
-              {projectName && <div className="pq-header-project" style={{ fontWeight: '600' }}>{isHebrew ? 'פרויקט:' : 'Project:'} {projectName}</div>}
-            </div>
-            {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
-            {bizPhone && (
-              <a
-                href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.94)', color: LIGHT.sky, textDecoration: 'none', fontWeight: '700', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap' }}
-              >
-                <Phone size={11} strokeWidth={2.6} />
-                {isHebrew ? 'חייג/י אליי' : 'Call me'}
-              </a>
-            )}
+          <div className="pq-modern-aside" style={{ minWidth: 0 }}>
+            {callCta(false)}
+            {metaGrid([numberCell, dateCell, validCell, projectCell])}
+            {stateChip}
           </div>
         </div>
-      </div>
+        <div className="pq-modern-titleblock">
+          <h1 className="pq-doc-title">{documentTitle}</h1>
+          {documentSubtitle}
+        </div>
+      </header>
     );
   }
 
+  if (variant === 'visual') {
+    return (
+      <header className="pq-header-box pq-letterhead pq-letterhead-visual" data-pq-variant="visual">
+        <div className="pq-lh-band" data-pq-band="visual">
+          <div className="pq-lh-brandline">
+            {issuer(false)}
+            <div className="pq-lh-corner">
+              {callCta(false)}
+              <div className="pq-visual-number">
+                <div className="pq-doc-kicker">{L.number}</div>
+                <b className="pq-header-number" dir="ltr">{numberDisplay}</b>
+                {stateChip && <div style={{ marginTop: '8px' }}>{stateChip}</div>}
+              </div>
+            </div>
+          </div>
+          {metaGrid([dateCell, validCell, projectCell])}
+        </div>
+        <h1 className="pq-doc-title">{documentTitle}</h1>
+        {documentSubtitle}
+      </header>
+    );
+  }
+
+  // HEADER BAND (Owner 2026-10-05): on SCREEN every style opens with ONE dark band holding the business/issuer block and
+  // the quote metadata (number / date / valid-until / project, each label + value centred in its own cell, no rule above
+  // them); the document title sits BELOW the band on white - the boundary of the original Task 16 design package
+  // (`.doc-head`: issuer + metadata, title underneath). Native Print renders the band white with dark text, and the
+  // Direct PDF capture (.pq-pdf-capturing) keeps its existing white letterhead - an explicit, separate output mode while
+  // the Owner's Direct PDF decision is pending (quoteDocument.css). The earlier "white letterhead approved" attribution
+  // was rejected by the Owner.
+  // CLASSIC: band (issuer + centred metadata row), ONE accent rule under the band, then the title. The compact branch
+  // (viewport <= 768px via matchMedia, or the preview container via `compact`) differs only in
+  // the business-name element and the denser grid; the metadata stays centred identically in HE and EN (AUDIT-005).
+  // `compact` (boolean) overrides the viewport branch - the pages pass it in previewMode, where the creator preview
+  // frame (a container, not the viewport) decides whether the compact letterhead applies.
+  const useCompactBranch = typeof compact === 'boolean' ? compact : isMobileView;
   return (
-    // חוק ברזל (החלטת בעלים מאושרת - קומפקטיזציה): padding/margin/gap
-    // הוקטנו בכ-35-40% לעומת הגרסה הקודמת (רכיב משותף Local+International -
-    // התיקון חל בו-זמנית על שתי השפות מעצם היותו רכיב יחיד משותף). כל
-    // המידע הקיים נשמר במלואו - רק ריווח/גדלים הוקטנו.
-    <div className="pq-header-box" style={{ background: headerBg, border: headerBorder, borderRadius: '14px', padding: '14px 20px', marginBottom: '14px', boxShadow: '0 10px 30px -12px rgba(0,0,0,0.5)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
-
-        {/* צד לוגו/שם העסק */}
-        <div style={{ flex: '1 1 220px', minWidth: 0, textAlign: isHebrew ? 'right' : 'left' }}>
-          {hasLogo ? (
-            <div className="pq-logo-chip" style={{ background: 'rgba(255,255,255,0.92)', display: 'inline-block', padding: '5px 10px', borderRadius: '8px', marginBottom: '6px' }}>
-              <img src={bizLogo} alt={bizName} crossOrigin={logoCrossOrigin} onError={handleLogoError} style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }} />
+    <header className={`pq-header-box pq-letterhead pq-letterhead-classic${useCompactBranch ? ' pq-lh-mobile' : ''}`} data-pq-variant="classic">
+      <div className="pq-lh-band" data-pq-band="classic">
+        <div className="pq-lh-brandline">
+          {issuer(!useCompactBranch)}
+          {(bizPhone || stateChip) && (
+            <div className="pq-lh-corner">
+              {callCta(useCompactBranch)}
+              {stateChip}
             </div>
-          ) : (
-            // חוק ברזל (Long Business Name / PDF/Print Header Fix): לפני התיקון,
-            // ה-h2 הזה היה ללא כל הגנת overflow - ולעמודת ההורה שלו (למעלה)
-            // חסר min-width:0. עבור flex item, ברירת המחדל min-width:auto
-            // מחושבת לפי מילה ארוכה ביותר ללא רווח (מונח min-content) - שם
-            // עסק ארוך במילה אחת רציפה (נפוץ בשמות עברית ללא רווחים) יכול
-            // "לדחוף" את העמודה רחב מהתקציב שלה ולהיחתך בעת captura ל-PDF
-            // (html2canvas תופס רוחב DOM קבוע, לא reflow הדפסה אמיתי). תוקן
-            // ב-min-width:0 על ההורה + overflowWrap/wordBreak:'break-word'
-            // כאן - עכשיו אפילו מילה אחת ארוכה נשברת לשורה הבאה במקום לחרוג.
-            <h2 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: '800', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{bizName}</h2>
-          )}
-
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.68)', lineHeight: '1.4' }}>
-            {bizTaxId && <div>{isHebrew ? 'ח.פ / עוסק:' : 'Tax ID:'} {bizTaxId}</div>}
-            {bizPhone && <div>{isHebrew ? 'טלפון:' : 'Phone:'} {bizPhone}</div>}
-            {bizEmail && <div>{bizEmail}</div>}
-            {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
-          </div>
-        </div>
-
-        {/* חוק ברזל (Global Surface Audit Part 10/12 - תיקון בעלים, סבב קודם):
-            ה-CTA "חייג/י אליי"/"Call me" ישב קודם בתוך עמודת פרטי-העסק
-            (הצד הראשי) - כלומר באותו צד כמו פרטי העסק, לא בצד הנגדי כפי
-            שנדרש. הענף Mobile למעלה כבר בנוי נכון (CTA בעמודה השנייה,
-            הנפרדת) - זהו אותו תיקון בדיוק לענף Desktop, שיושם ע"י הזזת
-            ה-<a> לעמודה השנייה (יחד עם תיבת פרטי ההצעה) במקום נטיעתו
-            בתוך עמודת פרטי-העסק. סדר ה-DOM [עמודת עסק, עמודת CTA+פרטים]
-            נשאר זהה לחלוטין ל-Mobile ולשאר הרכיב - תחת dir שמגיע מהעמוד
-            המארח, העמודה הראשונה (עסק) נופלת ל"התחלה" (ימין בעברית, שמאל
-            באנגלית) והשנייה (CTA+פרטים) ל"סוף" (שמאל בעברית - בדיוק מה
-            שהבעלים ביקש; ימין באנגלית - שיקוף טבעי עקבי, לא הפוך-מכני, זהה
-            ליחס שכבר קיים במובייל ולשאר הרכיב). רכיב משותף Local+
-            International - התיקון חל בו-זמנית על שתי השפות.
-            תיקון בעלים נוסף (הביקורת חזרה, סבב זה): בתוך העמודה השנייה
-            הזו, ה-CTA היה *לפני* תיבת מספר-ההצעה/תאריך (נמדד חי: CTA
-            top=75/bottom=104.19, תיבה top=112.19/bottom=204.19 - ה-CTA
-            מעל התיבה) - הבעלים רוצה את הסדר ההפוך: תיבת מספר-הצעה/תאריך
-            למעלה, ה-CTA מתחתיה. תוקן ע"י החלפת סדר שני הילדים בעמודה -
-            שינוי DOM בלבד, בלי שינוי style. המרכוז האופקי בין השניים כבר
-            נכון (alignItems:'center' על עמודת ה-flex ההורה - נמדד חי:
-            שניהם centerX=608.5 זהה) ולא נגע. */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          {/* תיבת פרטי הצעת המחיר - פאנל "זכוכית חלבית" על הכותרת הכהה
-              (Public Quote Redesign, Section A) במקום קופסה לבנה אטומה. */}
-          <div className="pq-header-glass" style={{ ...glassPanel, textAlign: 'center', padding: '10px 14px', borderRadius: '10px', minWidth: '170px' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#ffffff', marginBottom: '3px' }}>{isHebrew ? 'הצעת מחיר' : 'Price Quote'}</div>
-            {/* חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
-                אותו תיקון כמו בענף Mobile למעלה - התווית "מס׳ הצעה"/
-                "Quote #" תמיד מוצגת, גם במצב ה-fallback (המצב היחיד
-                הקיים היום, לפני migration), במקום להעלם רק בגלל שאין עדיין
-                מספר אמיתי.
-                Public Quote Redesign (Section A): התווית שונתה מ-"מספר
-                הצעה" ל-"מס׳ הצעה" - הניסוח המדויק שהבעלים דרש במפרט. */}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.65)', fontWeight: '600' }}>{isHebrew ? 'מס׳ הצעה' : 'Quote #'}</div>
-              <div className="pq-header-number" style={{ color: '#c4b5fd', fontWeight: '800', fontFamily: 'monospace', fontSize: '1.05rem' }}>{formattedNumber || formatQuoteFallback(quote)}</div>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '3px' }}>
-              {isHebrew ? 'תאריך:' : 'Date:'} {dateStr}
-            </div>
-            {quote.valid_until && (
-              <div className="pq-header-valid" style={{ fontSize: '0.75rem', color: '#fca5a5', fontWeight: 'bold' }}>
-                {isHebrew ? 'בתוקף עד:' : 'Valid until:'} {validUntilStr}
-                {isExpired && <span data-testid="pq-header-expired"> · {isHebrew ? 'פג תוקף' : 'Expired'}</span>}
-              </div>
-            )}
-            {projectName && (
-              <div className="pq-header-project" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: '2px' }}>
-                {isHebrew ? 'פרויקט:' : 'Project:'} {projectName}
-              </div>
-            )}
-          </div>
-
-          {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
-          {bizPhone && (
-            <a
-              href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.94)', color: LIGHT.sky, textDecoration: 'none', fontWeight: '700', fontSize: '0.8rem', padding: '5px 12px', borderRadius: '999px' }}
-            >
-              <Phone size={13} strokeWidth={2.4} />
-              {isHebrew ? 'חייג/י אליי' : 'Call me'}
-            </a>
           )}
         </div>
+        {metaGrid([numberCell, dateCell, validCell, projectCell])}
       </div>
-    </div>
+      <div className="pq-lh-rule" aria-hidden="true" />
+      <h1 className="pq-doc-title">{documentTitle}</h1>
+      {documentSubtitle}
+    </header>
   );
 }

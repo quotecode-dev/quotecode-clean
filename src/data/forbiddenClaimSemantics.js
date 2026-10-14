@@ -151,4 +151,29 @@ export const FORBIDDEN_CLAIM_FAMILIES = {
       /(פרו|לייפטיים|תוכנית)[^.]{0,20}(מעניק|נותן|נותנת)[^.]{0,15}(גישת )?ניהול/,
     ],
   },
+  // Task 20 (2026-10-09): reminders & automation. Automatic customer messages are not active on any server yet and automatic WhatsApp
+  // is a separate future phase - an answer may never present either as working today.
+  automaticSending: {
+    en: [
+      /\b(tekango|it|the system|the app)\b[^.]{0,30}\b(automatically|auto-)\s*(sends?|emails?|messages?|whatsapps?)\b[^.]{0,30}\b(customers?|clients?)\b/i,
+      /\bwhatsapp\b[^.]{0,30}\b(is|are|gets?|will be)\s+sent\s+automatically\b/i,
+      /\bautomatic (customer )?(emails?|messages?|whatsapp)\b[^.]{0,30}\b(are|is) (active|live|running|on|being sent)\b/i,
+    ],
+    he: [
+      /(וואטסאפ|ווטסאפ|WhatsApp)[^.]{0,30}(נשלח|נשלחת|נשלחות|יישלח|יישלחו)[^.]{0,10}אוטומטית/,
+      /(TEKANGO|המערכת)[^.]{0,30}(שולח|שולחת)[^.]{0,20}אוטומטית[^.]{0,30}(ללקוח|ללקוחות)/,
+      /(שליחה|הודעות|מיילים)[^.]{0,5}אוטומטי(ת|ות|ים)?[^.]{0,20}ללקוחות[^.]{0,20}(פעיל|פעילה|פועלת|פועלות)/,
+    ],
+  },
+  // Task 21 (2026-10-10): TEKANGO's Calendar is internal; a Google Calendar / external calendar connection is a future item (TODO 81).
+  externalCalendarSync: {
+    en: [
+      /\b(tekango|it|the calendar|your calendar|the app)\b[^.]{0,30}\b(syncs?|is synced|is synchroni[sz]ed|is connected|connects)\b[^.]{0,20}\b(with|to)\b[^.]{0,10}\b(google calendar|outlook|external calendar)\b/i,
+      /\bgoogle calendar\b[^.]{0,30}\b(sync|integration|connection)\b[^.]{0,15}\b(is|are)\s+(active|available|live|on|supported)\b/i,
+    ],
+    he: [
+      /(היומן|TEKANGO|המערכת)[^.]{0,30}(מסונכרן|מסונכרנת|מתסנכרן|מתסנכרנת|מחובר|מחוברת|מתחבר|מתחברת)[^.]{0,15}(ל-?|עם )?(Google Calendar|גוגל|יומן חיצוני|אאוטלוק)/,
+      /(סנכרון|חיבור|אינטגרציה)[^.]{0,10}(ל-?|עם )?(Google Calendar|גוגל)[^.]{0,20}(פעיל|פעילה|זמין|זמינה|קיים|קיימת)/,
+    ],
+  },
 };

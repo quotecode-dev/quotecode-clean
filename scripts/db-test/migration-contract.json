@@ -1,0 +1,260 @@
+{
+  "schema": "tekango-db-test-migration-contract/1",
+  "note": "Pinned execution contract for the disposable-DB harness (scripts/db-test/run-db-tests.mjs). Unclassified or changed migrations fail closed. Changing an entry is a reviewed harness change, never a way to pass the gate; migrations themselves are never edited for the gate.",
+  "migrations": {
+    "20260827000000_add_quote_number_sequence.sql": {
+      "sha256": "308b0439d8318555b45e9269275c931cfc07d62ef46986a5945f52aa05397591",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "202608270000015_attach_quote_number_unique_constraint.sql": {
+      "sha256": "bbc5f331f7c9a9a000c4a4c033173b43fe8cba468cfd2f9bd5519159c7c5c91a",
+      "mode": "autocommit",
+      "replay": "required",
+      "basis": "header: 'makes the file itself safely re-runnable'"
+    },
+    "20260827000001_add_quote_number_unique_index.sql": {
+      "sha256": "1c78034e1de15d509bb5d8941348584f214fcb3ebe5f63ed68023dfe6aa3014a",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "contains CREATE UNIQUE INDEX CONCURRENTLY, which cannot run inside a transaction block (file header)"
+    },
+    "20260827000002_protect_quote_number_immutability.sql": {
+      "sha256": "eb4b5cdc5cd311604233e39fc9e2fbd7994a1189ce2628f50333e94ffa2b0015",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260827000003_drop_quote_number_default.sql": {
+      "sha256": "77d215885f700201118b47165ae750c04c10efbd338c6856e962437b3b1f9881",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260828000000_add_quote_attn_contact.sql": {
+      "sha256": "9e446b835f4734d15022d7bfe18adc7089931c0003bd56a892427971d3d6a259",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260830000000_capture_base_schema_tables.sql": {
+      "sha256": "bae65e5862c37b5325f46a22c9e2c12d8d161e5e36ecf190d32930eb103216a8",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260830000001_capture_base_functions_triggers.sql": {
+      "sha256": "5bf68f231c26333678b0c0eb4ae663641f110f254b9dc4d90787b037b806ecbb",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260830000002_capture_base_rls_grants.sql": {
+      "sha256": "566c0437352346eaa78e2d386843b705029f0b7f9639672f1858494cfb406abb",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260830000003_capture_base_storage.sql": {
+      "sha256": "6f4589935a059ad75ed58d49d75fc312c2a535c0696e8edf3098cf86245b7177",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260830000004_add_warranty_fields.sql": {
+      "sha256": "be76c67fd1fd7c7e799ae2f0373816bdf97706e6a12c3d2315ef176f578f5876",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260831000000_fix_public_approve_quote_business_check.sql": {
+      "sha256": "78b3ec76f21db2385379b1824d0bcb5e7d2cc45e15d8fff26f816135c1ebde20",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260908000000_add_explicit_lifetime_state.sql": {
+      "sha256": "58b9a898be36c20f654413e98bba2fcfc63f4aaebc9e57d6810cae195965d76f",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260909000000_narrow_public_approve_quote_to_owner_only.sql": {
+      "sha256": "59e1b888c69dc12b0af414137e48b7a0072690e9dd1138c378a80bd9bf545d73",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260916010000_admin_reauth_proofs_and_audit_log.sql": {
+      "sha256": "325785a5d3c67e09c974c4d912f963754d325c04e8dbf451370db921d1af9bf4",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260917000000_prod_forward_professional_quote_items_stage_a.sql": {
+      "sha256": "f59279ba858c026cd99e3f5ccbc6b13efa33453c2a36fd4d61521f585824462f",
+      "mode": "autocommit",
+      "replay": "required",
+      "basis": "header: 'Every statement is additive/idempotent'"
+    },
+    "20260917000001_prod_forward_business_professional_domain.sql": {
+      "sha256": "eddfa64b9b3f3592fad4a5cdacb4472d4a523740d0f5d654842e80d9ff7998b1",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260917000002_prod_forward_professional_quote_hierarchy.sql": {
+      "sha256": "ef3e1ac26256005a9ec9431e190f2ab31132fbe7f43168de08d079ca267d20e4",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260917000003_prod_forward_save_quote_structured_atomic_function.sql": {
+      "sha256": "5185f19b75dcde35eddbb4a4a4746139aef2f03939ee14965762ed904dc439af",
+      "mode": "autocommit",
+      "replay": "not-declared",
+      "basis": "no executor requirement declared in the file: legacy statement-by-statement mode; no replay contract declared"
+    },
+    "20260922000000_first_live_closure_signing_validity_attachments_atomic_save.sql": {
+      "sha256": "7db24c7f07ad478f48fe7c6e8f176442ed87d26a72c8bfedda9ddf7241de187f",
+      "mode": "autocommit",
+      "replay": "required",
+      "basis": "header: objects 'created/replaced idempotently'"
+    },
+    "20260927000000_trial_reminder_delivery_claims.sql": {
+      "sha256": "97d2017ed55ce06ca4683973adc69e48372d87a74e9c60e5a26d8b3a60a1d729",
+      "mode": "autocommit",
+      "replay": "required",
+      "basis": "header: 'Additive and re-runnable'"
+    },
+    "20260929000000_drop_legacy_approve_quote_public.sql": {
+      "sha256": "7c9c1fb54e7ce99896b9ba49f17b0608c686c340faa65ecefbb78ef949929ef4",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "top-level SET LOCAL; header: the executor holds the transaction; 'A replay after success is a no-op as well'"
+    },
+    "20260930000000_converge_mirror_runtime_contract.sql": {
+      "sha256": "54a9680340d3d0581976e6214c75bdcb4da1af9403057d850277df4bda43dd1f",
+      "mode": "transaction",
+      "replay": "required",
+      "preFixture": "fixtures/supabase-platform-pre-20260930.sql",
+      "preFixtureSha256": "762a18ffd5e5ccf6f734d1f982612ff5e27ec4121b289d63fe7d8c609798ab19",
+      "basis": "top-level SET LOCAL (TKM00 requires the executor transaction); header: 'A replay on a converged database changes nothing'; platform source state from the pinned fixture"
+    },
+    "20261007150000_subscriptions_free10_issue_ledger.sql": {
+      "sha256": "eed012e04c32c03a93914b4532785a0877a0cc209b04bee7a92024cb91456079",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150100_subscriptions_billing_assets.sql": {
+      "sha256": "409dd705e50b9a7e997cfebc6a47abd4ce5912fc71d60b97b823730801cb3b74",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150200_subscriptions_account_summary.sql": {
+      "sha256": "6974a4506565c1c11ec2a9adfca77c0693cca276ee51eaf0ee17f910978968f3",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150300_subscriptions_public_capabilities.sql": {
+      "sha256": "59bb9599a5508d0479ab4601e191da99a59988bb759fb57c7260a591a59cbee4",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150400_subscriptions_provisioning_cohort.sql": {
+      "sha256": "2d54b880b97e9db358938a1f8575e8be875c270f96b9c341b97924fdc7ff38b5",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150500_subscriptions_retire_pro_trial_signup.sql": {
+      "sha256": "1132defe409f0ebb542185b0236bb3dea7af9aea3f7980abeacca2c2b515bdcf",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150600_subscriptions_capability_approval.sql": {
+      "sha256": "609f9b604d06ee4fbf0c2d2f4b65f7ae3fa920bfcca158f03d6ac7cc5f7bb41b",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150700_subscriptions_output_notice.sql": {
+      "sha256": "29aa31ddf410de86dc106d28ce6c40057bb1bd0ce97a473f1932642a892f1d06",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150800_subscriptions_issuer_logo_binding.sql": {
+      "sha256": "a1296009ab40f2e8b4163fde138fa4cd68370b7fa69ace48cff43b00342965de",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007150900_subscriptions_capability_defaults_reconciliation.sql": {
+      "sha256": "781cf8b28129904003dd979781507e02e4d5e6f91874b9ad1a3c47f8cc25b5bc",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261007151000_subscriptions_capability_scoped_rollback_safety.sql": {
+      "sha256": "5f259d41734accc7c8659b3aea3250bbe12c64bf0fc046b5bbe9b13fccc359d2",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS / ON CONFLICT DO NOTHING)"
+    },
+    "20261009180000_task18_durable_manual_tasks.sql": {
+      "sha256": "08804f323e6469e210c1935ef6b5b2aa1afbbb9dc48ce2aeb82c07937b14ebb5",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: compatible-shape guard / CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS)"
+    },
+    "20261009200000_task20_reminders_automation.sql": {
+      "sha256": "e241d4d82fe74d97d9b20903c12ca495ba46e5cb36fe282ba61e668dc472e280",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS)"
+    },
+    "20261011000000_task24_business_cards.sql": {
+      "sha256": "cec15f6f29c0a74ec4cd0692da47b8d13c489bd0b4d5c87ffaf3dcebc7041c74",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: compatible-shape guard / CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS)"
+    },
+    "20261011100000_task27_all_inclusive_package_and_free10_create_guard.sql": {
+      "sha256": "4530f7f23667823d93b59aa16ba4706a85eb62aabdd42618cf45a2323f605bc1",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: ADD COLUMN IF NOT EXISTS / DROP CONSTRAINT IF EXISTS + ADD / INSERT ON CONFLICT DO NOTHING / CREATE OR REPLACE / DROP TRIGGER IF EXISTS)"
+    },
+    "20261011110000_task27_p2_schedule_templates_sharing.sql": {
+      "sha256": "b810df2332c1d0a0618c38847ba54583595d8d7c4ac941120e19cfe7bac80778",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS)"
+    },
+    "20261011120000_task28_follow_up_task_uniqueness.sql": {
+      "sha256": "41cdeafc20a2659358c33e0403113da92194143de3110e6dc5a9ed2754d05a3c",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: ADD COLUMN IF NOT EXISTS / DROP CONSTRAINT IF EXISTS + ADD / CREATE UNIQUE INDEX IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS)"
+    },
+    "20261011130000_task30_free10_version_recipient_count.sql": {
+      "sha256": "8cc569a5973ba0fdaf5ca42841f517f037a99ac01c9c100433304e6e45724481",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: DROP INDEX IF EXISTS / CREATE UNIQUE INDEX IF NOT EXISTS / DROP CONSTRAINT IF EXISTS + guarded ADD / CREATE OR REPLACE)"
+    },
+    "20261012120000_task35_quote_items_price_missing.sql": {
+      "sha256": "8cc04ce7cf0005af7b96a5dbce9d9e7d3d71b48a4862ba2043c12d31500ef198",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: ADD COLUMN IF NOT EXISTS / guarded ADD CONSTRAINT / CREATE OR REPLACE; forward-only, no backfill)"
+    }
+  }
+}

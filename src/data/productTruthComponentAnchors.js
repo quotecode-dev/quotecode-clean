@@ -41,7 +41,7 @@ export const CAPABILITY_ANCHORS = {
     { file: 'src/components/PublicTools.jsx', anchor: 'convertLength(unitIn.value' },
     { file: 'src/components/PublicToolsEn.jsx', anchor: 'convertLength(unitIn.value' },
   ],
-  // Note: the two files use different variable names (metalPricesILS vs metalPricesUSD) - a real,
+  // Task 36: both tools pages share src/utils/publicToolsCore.js (anchors = the calls each page makes). Earlier note: the two files used different variable names (metalPricesILS vs metalPricesUSD) - a real,
   // deliberate difference (the Hebrew tool denominates in ILS, the English one in USD), not an
   // inconsistency to normalize away.
   public_metals_calculator: [
@@ -53,8 +53,18 @@ export const CAPABILITY_ANCHORS = {
     { file: 'src/components/PublicToolsEn.jsx', anchor: 'coinPrice.usd' },
   ],
   business_settings: [{ file: 'src/components/SettingsTab.jsx', anchor: 'export default function SettingsTab' }],
+  // Task 20: the capabilities after the frozen 38 (PHASE_CAPABILITY_IDS in productTruthRegistry.js)
+  quote_statistics: [{ file: 'src/components/StatisticsTab.jsx', anchor: 'export default function StatisticsTab' }],
+  manual_tasks: [{ file: 'src/components/TasksTab.jsx', anchor: 'export default function TasksTab' }],
+  calendar: [{ file: 'src/components/CalendarTab.jsx', anchor: 'export default function CalendarTab' }],
+  quote_link_view: [{ file: 'src/utils/firstView.js', anchor: 'export function scheduleFirstViewRecord' }],
+  reminders_automation: [{ file: 'src/components/RemindersSettings.jsx', anchor: 'export default function RemindersSettings' }],
+  // Task 23 (Phase 5): the owner screen and the public page of the digital business card
+  digital_business_card: [{ file: 'src/components/BusinessCardSettings.jsx', anchor: 'export default function BusinessCardSettings' }, { file: 'src/pages/PublicBusinessCard.jsx', anchor: 'export default function PublicBusinessCard' }],
   profile_prerequisites: [{ file: 'src/components/SettingsTab.jsx', anchor: 'pf-settings-business_tax_id' }],
-  plan_trial: [{ file: 'src/utils/accountEntitlement.js', anchor: 'TRIAL_EXPIRING_SOON_DAYS' }],
+  // Subscriptions cutover: plan_trial now states the Free-10 / canonical plan truth; its anchor is the canonical Free-10 constant
+  // (OD-01), not the retired trial machinery (src/utils/accountEntitlement.js TRIAL_EXPIRING_SOON_DAYS).
+  plan_trial: [{ file: 'src/domain/subscriptions/priceCatalog.js', anchor: 'FREE_QUOTES_TOTAL' }],
   attachments: [{ file: 'src/components/QuoteForm.jsx', anchor: 'handleAttachmentClick' }],
   quote_pdf: [{ file: 'src/utils/generateQuotePdf.js', anchor: 'buildQuotePdfFilename' }],
   quote_print: [

@@ -1,79 +1,72 @@
-import { resolveAccountEntitlement } from '../utils/accountEntitlement';
-import { getDisplayIdentityLabel } from '../utils/planCatalog';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 import { formatShortDate } from '../utils/shortDate';
+import { getLegacyRecordBreakdown, LEGACY_HISTORY_LABEL } from '../utils/adminAnalytics';
+import { AdminPlanSystemNotice, AdminLegacyRecord } from './AdminSubscriptionState';
+import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
 
-// TEKANGO Admin V1 (Task 2): Plans/Subscriptions operational view - users
-// by package, trials ending soon, expired trials, Lifetime accounts. All
-// derived from the same real business_settings rows already loaded
-// elsewhere in Admin - no revenue values invented (no real billing/payment
-// integration exists yet), no fake plan-change UI where the capability
-// does not exist server-side.
+// TEKANGO Admin V1 (Task 2) Plans/Subscriptions view, reworked for OD-16/OD-20 (subscriptions cross-cut, stream D):
+// - the new plan system's state comes ONLY from the read-only admin summary RPC (probed once; per-account state is on the
+//   User Details page). Nothing here computes a plan from the legacy fields;
+// - the legacy business_settings fields (plan / trial_ends_at / is_lifetime) appear only as the labelled
+//   "Legacy record (history)" breakdown of their raw technical values - no Basic/Pro/FREE/trial/LIFETIME labels;
+// - no revenue values invented, no plan-change UI (admin never edits entitlement/ledger).
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
   ? formatShortDate(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 export default function AdminPlans({ accounts, isHebrew, onOpenUser }) {
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
-  const rows = users.map(account => ({ account, entitlement: resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime }) }));
-
-  const planOrder = ['FREE', 'FREE_TRIAL', 'BASIC', 'PRO', 'LIFETIME'];
-  const byPlan = planOrder.map(plan => ({
-    plan,
-    label: getDisplayIdentityLabel(plan, isHebrew),
-    rows: rows.filter(r => r.entitlement.displayIdentity === plan),
-  }));
-
-  const expiringTrials = rows
-    .filter(r => r.entitlement.trialStatus === 'expiringSoon')
-    .sort((a, b) => new Date(a.account.trial_ends_at) - new Date(b.account.trial_ends_at));
-
-  const expiredTrials = rows
-    .filter(r => r.entitlement.trialStatus === 'expired')
-    .sort((a, b) => new Date(b.account.trial_ends_at || 0) - new Date(a.account.trial_ends_at || 0));
-
-  const group = (title, groupRows, dateField, emptyText) => (
-    <article className="admin-plans-group">
-      <h3>{title}<span className="admin-plans-count">{groupRows.length}</span></h3>
-      {groupRows.length === 0 ? (
-        <p className="admin-overview-empty">{emptyText}</p>
-      ) : (
-        <ul className="admin-overview-list">
-          {groupRows.map(r => (
-            <li key={r.account.id}>
-              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-              <button className="admin-overview-row" onClick={() => onOpenUser(r.account)}>
-                <span className="admin-overview-row-name" dir="auto">{r.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
-                <span className="admin-overview-row-meta" dir="ltr">{r.account.email}</span>
-                {dateField && <span className="admin-overview-row-date">{dateLabel(r.account[dateField], isHebrew)}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </article>
-  );
+  const breakdown = getLegacyRecordBreakdown(users);
+  const { system } = useAdminAccountSummaries(users.length ? [adminTargetUserId(users[0])] : []);
+  const legacyTitle = isHebrew ? LEGACY_HISTORY_LABEL.he : LEGACY_HISTORY_LABEL.en;
+  const sorted = [...users].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   return (
     <AdminScreenFrame
-      title={isHebrew ? 'חבילות ומנויים' : 'Plans / Subscriptions'}
-      subtitle={isHebrew ? 'זהות חבילה לפי מקור האמת הקנוני · ללא נתוני הכנסות' : 'Package identity from the canonical entitlement source · no revenue data'}
-      label={isHebrew ? 'חבילות ומנויים' : 'Plans and subscriptions'}
+      title={isHebrew ? 'מסלולים ומנויים' : 'Plans / Subscriptions'}
+      subtitle={isHebrew ? 'מצב המסלולים מהשרת בלבד · ללא נתוני הכנסות' : 'Plan state from the server only · no revenue data'}
+      label={isHebrew ? 'מסלולים ומנויים' : 'Plans and subscriptions'}
       controls={(
-      <div className="admin-plans-summary">
-          {byPlan.map(({ plan, label, rows: r }) => (
-            <div className="admin-stat" key={plan}>
-              <div className="admin-stat-label"><span>{label}</span></div>
-              <strong>{r.length}</strong>
-            </div>
-          ))}
-        </div>
+        <>
+          <AdminPlanSystemNotice system={system} isHebrew={isHebrew} />
+          <p className="admin-overview-hint">{isHebrew ? 'מצב המסלול של כל חשבון מוצג בעמוד פרטי המשתמש.' : "Each account's plan state is shown on its User Details page."}</p>
+        </>
       )}
     >
       <div className="admin-plans-grid">
-        {group(isHebrew ? 'ניסיון מסתיים בקרוב' : 'Trials ending soon', expiringTrials, 'trial_ends_at', isHebrew ? 'אין ניסיונות שמסתיימים בקרוב.' : 'No trials ending soon.')}
-        {group(isHebrew ? 'ניסיון פג תוקף' : 'Expired trials', expiredTrials, 'trial_ends_at', isHebrew ? 'אין ניסיונות שפגו.' : 'No expired trials.')}
-        {group(isHebrew ? 'חשבונות Lifetime' : 'Lifetime accounts', byPlan.find(p => p.plan === 'LIFETIME')?.rows || [], 'created_at', isHebrew ? 'אין חשבונות Lifetime.' : 'No Lifetime accounts.')}
+        <article className="admin-plans-group admin-legacy-breakdown" aria-label={legacyTitle}>
+          <h3>{legacyTitle}</h3>
+          <p className="admin-overview-hint">{isHebrew ? 'ספירת ערכים טכניים גולמיים לביקורת בלבד. אינה מסלול ואינה זכאות.' : 'Counts of raw technical values, for audit only. Not a plan and not an entitlement.'}</p>
+          {breakdown.length === 0 ? (
+            <p className="admin-overview-empty">{isHebrew ? 'אין חשבונות.' : 'No accounts.'}</p>
+          ) : (
+            <ul className="admin-legacy-values" dir="ltr">
+              {breakdown.map(({ key, count }) => (
+                <li key={key}><code>{key}</code><span className="admin-plans-count">{count}</span></li>
+              ))}
+            </ul>
+          )}
+        </article>
+        <article className="admin-plans-group">
+          <h3>{isHebrew ? 'חשבונות' : 'Accounts'}<span className="admin-plans-count">{sorted.length}</span></h3>
+          {sorted.length === 0 ? (
+            <p className="admin-overview-empty">{isHebrew ? 'אין חשבונות.' : 'No accounts.'}</p>
+          ) : (
+            <ul className="admin-overview-list">
+              {sorted.map(account => (
+                <li key={account.id}>
+                  {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+                  <button className="admin-overview-row" onClick={() => onOpenUser(account)}>
+                    <span className="admin-overview-row-name" dir="auto">{account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
+                    <span className="admin-overview-row-meta" dir="ltr">{account.email}</span>
+                    <span className="admin-overview-row-meta"><AdminLegacyRecord account={account} isHebrew={isHebrew} compact /></span>
+                    <span className="admin-overview-row-date">{dateLabel(account.created_at, isHebrew)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
       </div>
     </AdminScreenFrame>
   );

@@ -105,29 +105,34 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
     expect(answer.startsWith('כן')).toBe(true);
   });
 
-  it('plan-gated capability without a known account tier: says it exists, names the minimum plan (never denies existence)', () => {
+  // Subscriptions cutover (OPEN-02 / OPEN-13): a subscription-gated capability exists; which plans include it is NOT decided.
+  it('subscription-gated capability without a known account plan: says it exists and that plan inclusion is undecided (never a minimum plan)', () => {
     const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, null);
     expect(answer).toMatch(/^Yes/);
-    expect(answer).toContain('PRO');
+    expect(answer).toMatch(/still undecided/);
+    expect(answer).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|unlimited/);
     expect(answer).not.toMatch(/does not have|not available/i);
   });
 
-  it('plan-gated capability, account plan too low: explains the restriction, does not deny the capability exists', () => {
-    const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, 'free');
-    expect(answer).toMatch(/^Yes/);
-    expect(answer).toMatch(/PRO/);
-    expect(answer).not.toMatch(/TEKANGO does not have/i);
+  it('subscription-gated capability, whatever the account plan: the same undecided answer - no plan includes or lacks it yet', () => {
+    for (const plan of ['free', 'classic', 'modern', 'visual']) {
+      const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, plan);
+      expect(answer).toMatch(/^Yes/);
+      expect(answer).toMatch(/still undecided/);
+      expect(answer).not.toMatch(/your current plan|does not include it|includes it/i);
+    }
+    expect(formatCapabilityTruthAnswer('attachments', FACTS, true, 'free')).toMatch(/טרם הוחלט/);
   });
 
-  it('plan-gated capability, account plan sufficient: still a plain yes with the description', () => {
-    const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, 'pro');
-    expect(answer).toMatch(/^Yes/);
+  it('a legacy plan value from the caller is not a known plan and changes nothing', () => {
+    expect(formatCapabilityTruthAnswer('attachments', FACTS, false, 'pro')).toBe(formatCapabilityTruthAnswer('attachments', FACTS, false, null));
   });
 
-  it('adversarial: a fake accountTier value never flips a real gate the wrong way (unknown tier treated as no-info, still says yes+plan)', () => {
+  it('adversarial: a fake account plan value never flips anything (unknown plan treated as no-info, still yes + undecided)', () => {
     const answer = formatCapabilityTruthAnswer('professional_reuse', FACTS, false, 'not-a-real-plan');
     expect(answer).toMatch(/^Yes/);
-    expect(answer).toContain('PRO');
+    expect(answer).toMatch(/still undecided/);
+    expect(answer).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|unlimited/);
   });
 
   it('ROADMAP_POST_LIVE (autonomous_email): says not currently available, never "yes"', () => {
@@ -407,15 +412,24 @@ describe('OWNER SAMPLE TRUE ADVERSARIAL MATRIX (task section 6/12: every phrase,
     }
   });
 
-  it('BASIC measured quote: account tier BASIC gets a plain yes (no restriction wording, since BASIC already has it)', () => {
-    const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, 'basic');
-    expect(answer).toMatch(/^Yes/);
-    expect(answer).not.toMatch(/does not include it/i);
+  it('measured quote: any account plan gets a yes with plan inclusion undecided (no restriction wording, no legacy plan)', () => {
+    for (const plan of ['free', 'classic', 'basic', null]) {
+      const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, plan);
+      expect(answer).toMatch(/^Yes/);
+      expect(answer).not.toMatch(/does not include it/i);
+      expect(answer).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|unlimited/);
+    }
   });
+});
 
-  it('BASIC measured quote: account tier FREE gets the restriction explained, never a denial', () => {
-    const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, 'free');
-    expect(answer).toMatch(/^Yes/);
-    expect(answer).toMatch(/BASIC/);
+// Task 33 (live TEST finding: the HE logo question reached the model, which once sent the user to the quote / catalog)
+describe('business logo questions take the deterministic Business settings route', () => {
+  it.each([
+    ['איך מוסיפים לוגו של העסק להצעה?', 'business_settings'],
+    ['How do I add my business logo to the quote?', 'business_settings'],
+    ['where do I upload a logo', 'business_settings'],
+    ['כרטיס ביקור עם לוגו', 'digital_business_card'],
+  ])('%s -> %s', (q, id) => {
+    expect(classifyCapabilityIntent(q)).toBe(id);
   });
 });

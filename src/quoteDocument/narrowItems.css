@@ -1,0 +1,165 @@
+/* Task 16 round 4 (2026-10-05): narrow-screen geometry of the item table rows (screen only). Loaded after
+   quoteDocument.css by PublicQuote.jsx / PublicQuoteEn.jsx. Base Owner contract (Public Quote Mobile 4-Column Geometry
+   Correction): the SAME real four-column table / colgroup / row markup at every breakpoint, fixed by geometry only - no
+   stacked cards, no data-label/::before captions. Print and Direct PDF keep the A4 four-column table. */
+
+/* ---------- long amounts on a phone: two-line item rows (cloud-fix4, A12) ----------
+   Problem (Codex P1): with 7/8-digit amounts the cloud-fix3 content-aware four-column layout squeezes the description
+   column of a <=420px document to 29-46px, so words break mid-word ("מערכ/ת", "Alumi/nium") and one description takes
+   ~20-30 lines.
+   Geometry (same DOM, same four header labels, same cells): only for a table marked pq-amounts-wide (an item money string
+   of >= 10 characters) in a phone-width document (the existing <=420px phone breakpoint: viewport for the page,
+   the pq-preview container for the creator preview). The table becomes ONE grid shared by every row (thead / tbody / tr
+   are display:contents, so the header cells and every body cell sit in the same three column tracks):
+     line 1  the description header / the description cell, across the full row width;
+     line 2  Quantity | Unit price | Amount - three columns under their own header labels.
+   The three tracks keep the phone colgroup proportions of the numeric columns (14 / 24 / 28) and are never narrower
+   than their widest value (fr tracks with the automatic min-content minimum), so no amount is clipped, wrapped or
+   scrolled. A collapsed section summary row follows the same two lines (toggle / item count, "—", subtotal); an expanded
+   section heading (colspan 4) takes a full line; a section subtotal row puts its label under Quantity + Unit price and
+   its amount in the Amount column, right-aligned as on every other width (outside the centring exception).
+   Values never move between columns, the description and the header keep their language direction, the numeric header
+   and value cells stay text-align:center (inline + quoteDocument.css). A table whose values fit (no pq-amounts-wide)
+   keeps exactly the approved four-column geometry; wider documents keep the cloud-fix3 rules in quoteDocument.css. */
+
+@media screen and (max-width: 420px) {
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide {
+    display: grid;
+    grid-template-columns: 14fr 24fr 28fr;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide > colgroup {
+    display: none;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide > thead,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide > tbody,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide > thead > tr,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide > tbody > tr {
+    display: contents;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide th,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td {
+    display: block;
+    min-width: 0;
+  }
+
+  /* line 1: the description (header and body) and every full-width cell */
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide th.pq-th-desc,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-desc,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td[colspan="4"] {
+    grid-column: 1 / -1;
+  }
+
+  /* line 2: the three value columns */
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-qty,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-qty {
+    grid-column: 1;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-price,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-price {
+    grid-column: 2;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-total,
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-total {
+    grid-column: 3;
+  }
+
+  /* section subtotal: label under Quantity + Unit price, amount in the Amount column */
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide .pq-section-subtotal-row > td[colspan="3"] {
+    grid-column: 1 / 3;
+  }
+
+  /* one item = one ruled band: no rule between a description and its own values, one rule under the values; the
+     header is one band (rule above the description label, rule under the value labels) */
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide th.pq-th-desc {
+    border-bottom: none;
+    padding-bottom: 2px !important;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide th:not(.pq-th-desc) {
+    border-top: none;
+    padding-top: 2px !important;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide tr:not(.pq-section-subtotal-row) > td.pq-td-desc {
+    border-bottom: none;
+    padding-bottom: 2px !important;
+  }
+
+  .pq-page:not(.pq-preview):not(.pq-pdf-capturing) .pq-card .pq-commercial-table.pq-amounts-wide tr:not(.pq-section-subtotal-row) > td:not(.pq-td-desc):not([colspan]) {
+    padding-top: 2px !important;
+  }
+}
+
+/* the same geometry inside the creator preview frame (container pq-preview, e.g. the 390px "mobile" device) */
+@container pq-preview (max-width: 420px) {
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide {
+    display: grid;
+    grid-template-columns: 14fr 24fr 28fr;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide > colgroup {
+    display: none;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide > thead,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide > tbody,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide > thead > tr,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide > tbody > tr {
+    display: contents;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide th,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td {
+    display: block;
+    min-width: 0;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide th.pq-th-desc,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-desc,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td[colspan="4"] {
+    grid-column: 1 / -1;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-qty,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-qty {
+    grid-column: 1;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-price,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-price {
+    grid-column: 2;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide .pq-th-total,
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide td.pq-td-total {
+    grid-column: 3;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide .pq-section-subtotal-row > td[colspan="3"] {
+    grid-column: 1 / 3;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide th.pq-th-desc {
+    border-bottom: none;
+    padding-bottom: 2px !important;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide th:not(.pq-th-desc) {
+    border-top: none;
+    padding-top: 2px !important;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide tr:not(.pq-section-subtotal-row) > td.pq-td-desc {
+    border-bottom: none;
+    padding-bottom: 2px !important;
+  }
+
+  .pq-page.pq-preview .pq-card .pq-commercial-table.pq-amounts-wide tr:not(.pq-section-subtotal-row) > td:not(.pq-td-desc):not([colspan]) {
+    padding-top: 2px !important;
+  }
+}

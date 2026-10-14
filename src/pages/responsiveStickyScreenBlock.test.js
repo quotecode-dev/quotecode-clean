@@ -81,8 +81,8 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
   for (const [name, file] of Object.entries(screens)) {
     it(`${name}: pf-screen + pf-screen-body`, () => {
       const src = read('src', 'components', file);
-      expect(src).toMatch(/className="pf-screen( pf-work-screen)?"/);
-      expect(src).toMatch(/className="pf-screen-body/);
+      expect(src).toMatch(/className="pf-screen( pf-work-screen)?( quote-workspace)?"/);
+      expect(src).toMatch(/className="pf-screen-body|className="quote-modern-list pf-screen-body/);
     });
   }
   it('Quote History mobile cards are the inner scroll body (not a body-less list that lets the page scroll)', () => {
@@ -111,8 +111,12 @@ describe('Header + AI Chat stay reachable while the body scrolls', () => {
     expect(dashboard.indexOf('className="dash-upper-section"')).toBeLessThan(dashboard.indexOf('{activeTab === \'main\' && !showQuoteForm && ('));
     expect(css).not.toMatch(/\.dash-upper-section\s*\{[^}]*position:\s*fixed/);
   });
-  it('AI Chat launcher lives in the canonical Header (renderHeaderAIChatButton), never in a scrolling region', () => {
-    expect((dashboard.match(/renderHeaderAIChatButton\(\)/g) || []).length).toBeGreaterThanOrEqual(2);
+  it('AI Chat launcher is never inside a scrolling region: ONE header button centered in the header row at every viewport (Task 20 Continuation 2), the docked tab hidden', () => {
+    expect((dashboard.match(/renderHeaderAIChatButton\(\)/g) || []).length).toBe(1);
+    expect(dashboard).toMatch(/<div className="dash-header-ai-center">\s*\{renderHeaderAIChatButton\(\)\}/);
+    expect(css).toMatch(/\.dash-header-ai-center\s*\{[^}]*position:\s*absolute;[^}]*left:\s*50%;[^}]*transform:\s*translateX\(-50%\)/);
+    expect(css).toMatch(/\.dash-ai-chat-mount \.ai-chat-container \.ai-support-btn\s*\{[^}]*display:\s*none !important/);
+    expect(css).toMatch(/\.dash-ai-chat-mount \.ai-chat-container\s*\{\s*bottom:\s*0 !important/);
   });
   it('outerscroll helper sanity: media-query parser found the shell blocks it guards', () => {
     expect(mediaBlocks(css).length).toBeGreaterThan(3);

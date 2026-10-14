@@ -135,8 +135,8 @@ export default function AuthScreen({
           {isSignUp ? (
             <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(167, 139, 250, 0.3)', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: NEON.violetLighter, fontSize: '0.85rem', fontWeight: 'normal', textAlign: isHebrew ? 'right' : 'left', width: '100%', boxSizing: 'border-box', lineHeight: '1.5' }}>
               {isHebrew
-                ? 'כדי להירשם ולקבל את תקופת הניסיון החינמית למשך 14 יום במסלול PRO, אנא הזן את האימייל והסיסמה שלך.'
-                : 'To sign up and get your 14-day free trial on the PRO plan, please enter your email and password.'}
+                ? 'כדי להירשם, הזינו אימייל וסיסמה. מערך המסלולים החדש (כולל 10 הצעות חינם בסך הכול) עדיין לא הופעל, והחשבון נפתח ללא תקופת ניסיון.'
+                : 'To sign up, enter your email and password. The new plan system (including 10 free quotes in total) is not active yet, and the account opens without a trial period.'}
             </div>
           ) : (
             <p style={{ color: NEON.textSecondary, fontSize: '0.9rem', marginTop: '10px', fontWeight: 'normal' }}>

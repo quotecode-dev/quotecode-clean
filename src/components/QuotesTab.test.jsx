@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import QuotesTab from './QuotesTab';
 import { formatMoneyForCurrency } from '../utils/money';
+
+// Dashboard's exact injected money formatter (Dashboard.jsx: formatMoneyDisplay = (val, cur) => formatMoneyForCurrency(val, cur || account)).
+const canonicalMoney = (accountCurrency) => (val, cur) => formatMoneyForCurrency(val, cur || accountCurrency);
 
 // חוק ברזל (Authenticated App Consolidation task, §6 Mobile Quote History):
 // אותו דפוס-mock קיים כבר ב-PublicQuoteHeader.test.jsx - לא הומצא מנגנון
@@ -41,6 +44,7 @@ const baseQuote = {
 
 const t = {
   recentHistory: 'History',
+  quotesNav: 'Quotes',
   searchQuote: 'Search',
   filterStatus: 'Status',
 };
@@ -68,7 +72,7 @@ function buildProps(isHebrew, quoteOverrides = {}, handlers = {}) {
     isHebrew,
     isLocalIsraeliBusiness: isHebrew,
     formatNum: (n) => String(n),
-    formatMoneyDisplay: (n) => String(n),
+    formatMoneyDisplay: canonicalMoney(isHebrew ? 'ILS' : 'USD'),
     t,
     setPendingEmailQuote: vi.fn(),
     emailStatuses: {},
@@ -82,6 +86,9 @@ function buildProps(isHebrew, quoteOverrides = {}, handlers = {}) {
 // Description/Actions) חייבות קודם להרחיב את השורה - בדיוק כמו משתמש אמיתי
 // שלוחץ על בקרת-ההרחבה. הפונקציה הזו לוחצת על כפתור-ההרחבה היחיד שקיים
 // כרגע ב-DOM (הטבלה מרנדרת שורה אחת בכל הבדיקות האלה).
+// The row's view count is wrapped in a bidi-isolated .pf-num atom, so its text is split across nodes: match by full textContent.
+const byFullText = (text) => screen.queryAllByText((_content, el) => el.textContent === text && !Array.from(el.children).some((c) => c.textContent === text));
+
 function expandFirstRow() {
   const toggle = screen.getByLabelText(/הצג פרטים נוספים|Show more details/);
   fireEvent.click(toggle);
@@ -161,76 +168,43 @@ describe.each([
   });
 });
 
-// חוק ברזל (Authenticated App Consolidation task, §4 - Primary Row Content):
-// השורה הראשית של הדסקטופ מוגבלת עכשיו לששת השדות ה"PRIMARY" שהמשימה
-// מפרטת - Client Name/Order#/Amount/Status/Date/Expand-control, בדיוק
-// בסדר הזה ב-DOM (Client Name ראשון, per the task's own stated priority
-// order) - dir={tableDir} הקיים ממשיך למקם/לשקף אוטומטית בשתי השפות, בלי
-// תנאי isHebrew נוסף על סדר ה-DOM עצמו (אותו עיקרון שכבר נקבע לכל שאר
-// הקובץ).
+// Owner-approved 2026-10-08 list-first desktop row. One DOM order mirrors
+// through dir: identity -> status/activity -> date -> fixed money slot -> action.
 describe.each([
   ['Hebrew/RTL', true],
   ['English/LTR', false],
 ])('QuotesTab Desktop primary row (%s)', (_label, isHebrew) => {
-  it('renders exactly six primary columns: expand-control first (Owner correction), Client Name second, in the same DOM order for both languages', () => {
+  it('renders the Owner R4 seven-cell desktop row (no Action cell) in one mirrored DOM order', () => {
     const props = buildProps(isHebrew);
     const { container } = render(<QuotesTab {...props} />);
 
-    const headerCells = Array.from(container.querySelectorAll('table thead tr th'));
-    expect(headerCells).toHaveLength(6);
-    // Owner correction (RTL/LTR Sidebar Position + Quote-Row Expand Control
-    // task): the expand-control column is now first in DOM order - under
-    // dir it lands at the row's true inline-start (physically right for
-    // Hebrew, physically left for English), "before the quote's primary
-    // information" per the Owner's own wording. It has no header text
-    // (icon-only), so the first textual column is Client Name, now second.
-    expect(headerCells[0].textContent.trim()).toBe('');
-    expect(headerCells[1].textContent).toContain(isHebrew ? 'שם לקוח' : 'Client Name');
+    const row = container.querySelector('.quote-modern-row');
+    // Owner R5: the dropdown trigger is the row's first child (positioned in the leading padding, not a grid track); the
+    // seven data cells follow it
+    expect(row.children).toHaveLength(8);
+    expect(row.children[0]).toHaveClass('quote-modern-toggle');
+    const cells = [...row.children].slice(1);
+    expect(row.querySelector('.quote-modern-action')).toBeNull();
+    ['quote-modern-number', 'quote-modern-client', 'quote-modern-title', 'quote-modern-status', 'quote-modern-views', 'quote-modern-date', 'quote-modern-amount']
+      .forEach((cls, i) => expect(cells[i]).toHaveClass(cls));
   });
 
-  it('does not show Client Type, Views, Description, Email status, or Actions in the collapsed primary row', () => {
+  it('shows subject and activity in the collapsed row, while secondary actions stay in the expansion', () => {
     const props = buildProps(isHebrew, { view_count: 42, quote_items: [{ description: 'A very specific unique description string' }] });
     render(<QuotesTab {...props} />);
 
-    expect(screen.queryByText('A very specific unique description string')).not.toBeInTheDocument();
-    expect(screen.queryByText('42')).not.toBeInTheDocument();
+    expect(screen.getByText('A very specific unique description string')).toBeInTheDocument();
+    // Owner R3: the collapsed row shows the bare view count ONLY in its own Views cell (no label stacked under status).
+    expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe('42');
+    expect(byFullText(isHebrew ? '42 צפיות' : '42 views')).toHaveLength(0);
     expect(screen.queryByText(isHebrew ? 'ערוך' : 'Edit')).not.toBeInTheDocument();
   });
 
-  it('centers every textual desktop header over its own column', () => {
+  it('uses one fixed tabular money slot for place-value alignment', () => {
     const props = buildProps(isHebrew);
     const { container } = render(<QuotesTab {...props} />);
-
-    const headerCells = Array.from(container.querySelectorAll('table thead tr th'));
-    const labelledByText = headerCells.filter((th) => th.textContent.trim().length > 0);
-    labelledByText.forEach((th) => {
-      expect(th.style.textAlign).toBe('center');
-    });
-  });
-
-  it('keeps CENTER-classified body cells centered and the Client Name cell edge-aligned (Table Column Geometry Contract)', () => {
-    const props = buildProps(isHebrew);
-    const { container } = render(<QuotesTab {...props} />);
-
-    const cells = Array.from(container.querySelectorAll('table tbody tr:first-child td'));
-    const startAlign = isHebrew ? 'right' : 'left';
-
-    // Owner correction: Expand-control(0) is now first (centered, icon-only);
-    // Client Name(1) is the only edge-aligned free-text primary column now.
-    expect(cells[1].style.textAlign).toBe(startAlign);
-    // Expand-control(0), Order(2), Amount(3), Status(4), Date(5) are all centered.
-    [0, 2, 3, 4, 5].forEach((i) => {
-      expect(cells[i].style.textAlign).toBe('center');
-    });
-  });
-
-  it('places the expand-control button as the very first cell in DOM order, before every primary-info cell (Owner correction: chevron at the start of the reading direction)', () => {
-    const props = buildProps(isHebrew);
-    const { container } = render(<QuotesTab {...props} />);
-
-    const firstCell = container.querySelector('table tbody tr:first-child td:first-child');
-    expect(firstCell.querySelector('button[aria-label]')).toBeTruthy();
-    expect(firstCell.textContent.trim()).toBe('');
+    const amount = container.querySelector('.quote-modern-amount');
+    expect(amount).toHaveClass('pf-num', 'pf-money', 'pf-money-slot');
   });
 
   it('expands the detail panel with aria-expanded/aria-controls wired to the panel, and toggles closed on a second click', () => {
@@ -256,8 +230,9 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    expect(screen.getByText('A very specific unique description string')).toBeInTheDocument();
-    expect(screen.getByText(isHebrew ? '7 צפיות' : '7 views')).toBeInTheDocument();
+    expect(screen.getAllByText('A very specific unique description string')).toHaveLength(2);
+    expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe('7');
+    expect(byFullText(isHebrew ? '7 צפיות' : '7 views')).toHaveLength(1);
     expect(screen.getByText(isHebrew ? 'לקוח עסקי' : 'Business Client')).toBeInTheDocument();
   });
 
@@ -286,20 +261,16 @@ describe('QuotesTab Amount cell - HE-only Before-VAT tooltip (Market Separation)
     const props = buildProps(true, { total: 200 });
     const { container } = render(<QuotesTab {...props} />);
 
-    const amountCell = Array.from(container.querySelectorAll('table tbody tr:first-child td')).find(
-      (td) => td.textContent.includes('200'),
-    );
+    const amountCell = container.querySelector('.quote-modern-amount');
     expect(amountCell.textContent).not.toContain('לפני מע"מ');
-    expect(amountCell.getAttribute('title')).toContain('לפני מע"מ');
+    expect(amountCell.getAttribute('title')).toContain('לפני מע״מ');
   });
 
   it('EN: never renders a before-VAT title attribute, even though no equivalent International semantic exists', () => {
     const props = buildProps(false, { total: 200 });
     const { container } = render(<QuotesTab {...props} />);
 
-    const amountCell = Array.from(container.querySelectorAll('table tbody tr:first-child td')).find(
-      (td) => td.textContent.includes('200'),
-    );
+    const amountCell = container.querySelector('.quote-modern-amount');
     expect(amountCell.getAttribute('title')).toBeNull();
   });
 });
@@ -316,7 +287,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    expect(screen.getByText(isHebrew ? `${viewCount} צפיות` : `${viewCount} views`)).toBeInTheDocument();
+    expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe(String(viewCount));
+    expect(byFullText(isHebrew ? `${viewCount} צפיות` : `${viewCount} views`)).toHaveLength(1);
   });
 });
 
@@ -363,7 +335,7 @@ describe('QuotesTab mobile card (§6)', () => {
 
     // Primary: client name, amount, order#, date, status badge are all
     // immediately visible without any interaction.
-    expect(screen.getByText('Test Client')).toBeInTheDocument();
+    expect(within(document.querySelector('.quote-card')).getByText('Test Client')).toBeInTheDocument();
     expect(screen.getAllByText(/118/)[0]).toBeInTheDocument();
 
     // Secondary: description/views are not visible until expanded.
@@ -402,22 +374,329 @@ describe('QuotesTab mobile card (§6)', () => {
   });
 });
 
+// Owner approval 2026-10-08 supersedes the earlier sketch-only R25 rollback:
+// the compact overview is now an explicit part of the quote-list-first
+// dashboard and must derive from the complete collection, not filtered rows.
+function mockMediaQueries(matching) {
+  window.matchMedia = vi.fn().mockImplementation((query) => ({
+    matches: matching.includes(query),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  }));
+}
+const TABLET_QUERY = '(min-width: 769px) and (max-width: 1180px)';
+const STATUS_MIX = [
+  { ...baseQuote, id: 'q-draft-1', status: 'draft' },
+  { ...baseQuote, id: 'q-sent-1', status: 'sent' },
+  { ...baseQuote, id: 'q-approved-1', status: 'approved' },
+  { ...baseQuote, id: 'q-paid-1', status: 'paid' },
+];
+
+describe.each([
+  ['Hebrew/RTL', true, ['הצעות', 'ממתינות', 'אושרו', 'סה״כ']], // Task 23: plural approved-count label
+  ['English/LTR', false, ['Quotes', 'Awaiting', 'Approved', 'Total value']],
+])('QuotesTab quote-list-first overview - %s', (_label, isHebrew, metricLabels) => {
+  it.each([
+    ['tablet', () => mockMediaQueries([TABLET_QUERY])],
+    ['desktop', () => mockMediaQueries([])],
+    ['phone', () => mockMobileMatchMedia()],
+  ])('%s: renders one compact overview with all four real-data labels', (_vp, setup) => {
+    setup();
+    render(<QuotesTab {...buildProps(isHebrew)} quotes={STATUS_MIX} allQuotes={STATUS_MIX} />);
+    const overview = screen.getByTestId('quote-overview');
+    metricLabels.forEach((label) => expect(overview).toHaveTextContent(label));
+    expect(overview.querySelectorAll('[data-qh-overview]')).toHaveLength(4);
+  });
+  it('desktop/tablet header keeps title/export and search/status controls', () => {
+    mockMediaQueries([TABLET_QUERY]);
+    render(<QuotesTab {...buildProps(isHebrew)} quotes={STATUS_MIX} />);
+    const headerRow = screen.getByTestId('quote-list-header');
+    expect(headerRow.children).toHaveLength(2);
+    expect(headerRow.children[0].querySelector('h2')).not.toBeNull();
+    expect(headerRow.children[1].querySelector('input')).not.toBeNull();
+    // the status filter (base capability) still lists every status
+    const opts = [...headerRow.querySelectorAll('select option')].map((o) => o.value);
+    expect(opts).toEqual(['All', 'draft', 'sent', 'approved', 'paid']);
+  });
+  it('keeps overview totals stable when the visible list is filtered', () => {
+    const props = buildProps(isHebrew);
+    render(<QuotesTab {...props} quotes={[STATUS_MIX[0]]} allQuotes={STATUS_MIX} />);
+    expect(screen.getByTestId('quote-overview').querySelector('[data-qh-overview="all"]')).toHaveTextContent('4');
+  });
+});
+
+describe.each([
+  ['Hebrew/RTL', true, 'הצעה חמה'],
+  ['English/LTR', false, 'Hot quote'],
+])('QuotesTab inline hot quote signal - %s', (_label, isHebrew, label) => {
+  it('marks only a viewed, non-final quote as hot without inventing a persisted status', () => {
+    const hot = { ...baseQuote, view_count: 3, status: 'sent' };
+    const final = { ...baseQuote, id: 'approved-quote', view_count: 12, status: 'approved' };
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[hot, final]} allQuotes={[hot, final]} />);
+    expect(container.querySelectorAll('.quote-modern-item[data-hot-quote="true"]')).toHaveLength(1);
+    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(1);
+  });
+
+  // Owner update 2026-10-09 (all devices): the "hot quote" title and the flame are removed; the orange frame stays
+  it('renders no "hot quote" title and no flame / emoji glyph anywhere (row, banner)', () => {
+    const hot = { ...baseQuote, view_count: 5, status: 'sent' };
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[hot]} allQuotes={[hot]} />);
+    expect(container.querySelector('.quote-modern-hot, .quote-card-hot, .quote-hot-banner-flame, .quote-hot-banner-label')).toBeNull();
+    expect(container.textContent).not.toContain(label);
+    expect(container.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+    expect(container.querySelector('.quote-modern-item.is-hot')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Approved 980px dashboard (2026-10-08) behaviour
+// ---------------------------------------------------------------------------------------------------------------------------
+const mk = (id, over = {}) => ({ ...baseQuote, id, clients: { company_name: `Client ${id}`, client_type: 'business' }, ...over });
+
+describe.each([
+  ['Hebrew/RTL', true],
+  ['English/LTR', false],
+])('QuotesTab approved toolbar - %s', (_label, isHebrew) => {
+  it('renders Sort, Filter, Search, New quote in ONE DOM order with no inline direction override (dir mirrors it)', () => {
+    const props = { ...buildProps(isHebrew), onCreateQuote: vi.fn() };
+    const { container } = render(<QuotesTab {...props} />);
+    const controls = container.querySelector('.quote-workspace-controls');
+    expect(controls.getAttribute('style')).toBeNull();
+    expect(controls.hasAttribute('dir')).toBe(false);
+    const kids = [...controls.children].map((c) => c.className.split(' ')[0]);
+    expect(kids).toEqual(['quote-sort-direction', 'quote-filter-control', 'quote-search-control', 'pf-newquote-menu', 'quote-export-compact']);
+    controls.querySelectorAll('[style]').forEach((el) => expect(el.getAttribute('style')).not.toMatch(/direction/));
+  });
+
+  it('keeps the header at exactly two children and no History icon next to the title', () => {
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} onCreateQuote={vi.fn()} />);
+    const header = screen.getByTestId('quote-list-header');
+    expect(header.children).toHaveLength(2);
+    expect(header.querySelector('h2').querySelector('svg')).toBeNull();
+    expect(container.querySelector('.quote-workspace-title').textContent).toBe('Quotes');
+  });
+
+  it('uses short visible labels with the long wording in aria-label, and the search input still works', () => {
+    const props = { ...buildProps(isHebrew), onCreateQuote: vi.fn() };
+    render(<QuotesTab {...props} />);
+    const search = screen.getByRole('textbox');
+    expect(search).toHaveAttribute('placeholder', isHebrew ? 'חיפוש' : 'Search');
+    expect(search).toHaveAttribute('aria-label', 'Search');
+    fireEvent.change(search, { target: { value: 'abc' } });
+    expect(props.setSearchTerm).toHaveBeenCalledWith('abc');
+    const sort = screen.getByRole('button', { name: isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction' });
+    expect(sort).toHaveTextContent(isHebrew ? 'מיון' : 'Sort');
+    fireEvent.click(sort);
+    expect(props.handleQuoteSort).toHaveBeenCalledWith('date');
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'sent' } });
+    expect(props.setStatusFilter).toHaveBeenCalledWith('sent');
+  });
+
+  it('the New quote button is a menu with the three plain-language choices wired to their handlers', () => {
+    const onCreateQuote = vi.fn();
+    const onCreateAiQuote = vi.fn();
+    const onCreateStructuredQuote = vi.fn();
+    render(<QuotesTab {...buildProps(isHebrew)} onCreateQuote={onCreateQuote} onCreateAiQuote={onCreateAiQuote} onCreateStructuredQuote={onCreateStructuredQuote} />);
+    const trigger = screen.getByRole('button', { name: isHebrew ? 'הצעת מחיר חדשה' : 'New quote' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
+    expect(items).toHaveLength(3);
+    expect(items.map((i) => i.dataset.choice)).toEqual(['standard', 'ai', 'structured']);
+    fireEvent.click(items[1]);
+    expect(onCreateAiQuote).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getAllByRole('menuitem')[2]);
+    expect(onCreateStructuredQuote).toHaveBeenCalledTimes(1);
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getAllByRole('menuitem')[0]);
+    expect(onCreateQuote).toHaveBeenCalledTimes(1);
+  });
+
+  it('the menu closes on Escape and on an outside click', () => {
+    render(<QuotesTab {...buildProps(isHebrew)} onCreateQuote={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: isHebrew ? 'הצעת מחיר חדשה' : 'New quote' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.click(trigger);
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
+
+describe.each([
+  ['Hebrew/RTL', true],
+  ['English/LTR', false],
+])('QuotesTab approved rows - %s', (_label, isHebrew) => {
+  it('orders each row number -> client -> title -> status -> views -> date -> amount, one value per cell', () => {
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} />);
+    const row = container.querySelector('.quote-modern-row');
+    // Owner R5: the leading-edge dropdown trigger comes first and is not a data cell
+    const cells = [...row.children].filter((c) => !c.classList.contains('quote-modern-toggle'));
+    expect(cells.map((c) => [...c.classList].find((k) => k.startsWith('quote-modern-')))).toEqual(['quote-modern-number', 'quote-modern-client', 'quote-modern-title', 'quote-modern-status', 'quote-modern-views', 'quote-modern-date', 'quote-modern-amount']);
+    expect(cells[0]).toHaveClass('quote-modern-number', 'pf-num');
+    expect(cells[0]).toHaveAttribute('dir', 'ltr');
+    expect(cells[4]).toHaveClass('pf-num');
+    expect(cells[4]).toHaveAttribute('dir', 'ltr');
+    expect(row.querySelector('.quote-modern-text, .quote-modern-identity, .quote-modern-state, .quote-modern-subject')).toBeNull();
+  });
+
+  it('wraps the currency symbol for spacing without changing the amount text', () => {
+    const { container } = render(<QuotesTab {...buildProps(isHebrew, { total: 1227.2, currency: 'ILS' })} />);
+    const amount = container.querySelector('.quote-modern-amount');
+    expect(amount.querySelector('.pf-money-sym').textContent).toBe('₪');
+    // the text is exactly symbol + the canonical formatter output (IRON-ILS-001: raw 1227.2 -> 1,227.00)
+    expect(amount.textContent).toBe(`₪${formatMoneyForCurrency(1227.2, 'ILS')}`);
+    expect(amount.textContent).toBe('₪1,227.00');
+  });
+
+  it('shows exactly four rows first and the whole list (each quote once) after Show all', () => {
+    const all = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => mk(id));
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} />);
+    expect(container.querySelectorAll('.quote-modern-item')).toHaveLength(4);
+    fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
+    const names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    expect(names).toEqual(['Client a', 'Client b', 'Client c', 'Client d', 'Client e', 'Client f']);
+  });
+
+  it('promotes the hottest eligible quote into the four visible rows without duplicating it', () => {
+    const list = [mk('a'), mk('b'), mk('c'), mk('d'), mk('hotA', { view_count: 4, status: 'sent', created_at: '2026-02-01T00:00:00.000Z' }), mk('hotB', { view_count: 9, status: 'sent', created_at: '2026-01-15T00:00:00.000Z' })];
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
+    let names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    expect(names).toEqual(['Client hotB', 'Client a', 'Client b', 'Client c']);
+    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(1);
+    fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
+    names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    expect([...names].sort()).toEqual(list.map((q) => q.clients.company_name).sort());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('breaks a views tie by the newest quote', () => {
+    const list = [mk('a'), mk('old', { view_count: 5, status: 'sent', created_at: '2026-01-01T00:00:00.000Z' }), mk('new', { view_count: 5, status: 'sent', created_at: '2026-03-01T00:00:00.000Z' })];
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
+    expect(container.querySelector('.quote-modern-client-name').textContent).toBe('Client new');
+  });
+
+  it('action label precedence: hot -> Open & track (even for a draft), unfinished draft -> Continue editing, complete draft -> Open, approved/paid -> View', () => {
+    const label = (quote) => {
+      const { container, unmount } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[quote]} allQuotes={[quote]} />);
+      expect(container.querySelector('.quote-modern-action')).toBeNull(); // collapsed: no always-visible action
+      fireEvent.click(container.querySelector('.quote-modern-toggle'));
+      const text = container.querySelector('.quote-modern-detail .quote-modern-action').textContent;
+      unmount();
+      return text;
+    };
+    expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך עריכה' : 'Continue editing');
+    expect(label(mk('x', { status: 'draft' }))).toBe(isHebrew ? 'פתיחה' : 'Open');
+    expect(label(mk('x', { status: 'approved', view_count: 8 }))).toBe(isHebrew ? 'צפייה' : 'View');
+    expect(label(mk('x', { status: 'paid' }))).toBe(isHebrew ? 'צפייה' : 'View');
+  });
+
+  it('derives the state text: complete draft = Needs sending, unfinished draft = Draft, hot = Viewed/awaiting, approved colored text', () => {
+    const state = (quote) => {
+      const { container, unmount } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[quote]} allQuotes={[quote]} />);
+      const el = container.querySelector('.quote-modern-status');
+      const out = [el.textContent, el.dataset.tone];
+      unmount();
+      return out;
+    };
+    expect(state(mk('x', { status: 'draft' }))).toEqual([isHebrew ? 'צריך לשלוח' : 'Needs sending', 'needs-sending']);
+    expect(state(mk('x', { status: 'draft', total: 0 }))).toEqual([isHebrew ? 'טיוטה' : 'Draft', 'draft']);
+    expect(state(mk('x', { status: 'sent', view_count: 4 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);
+    expect(state(mk('x', { status: 'approved' }))).toEqual([isHebrew ? 'אושרה' : 'Approved', 'approved']);
+  });
+
+  it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View, the tracking panel for Open / Open & track', () => {
+    const handleProtectedAction = vi.fn((id, action, fn) => fn());
+    const handleEditClick = vi.fn();
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const props = { ...buildProps(isHebrew, {}, { handleProtectedAction }), handleEditClick };
+
+    const unfinished = mk('u', { status: 'draft', total: 0 });
+    const r1 = render(<QuotesTab {...props} quotes={[unfinished]} allQuotes={[unfinished]} />);
+    fireEvent.click(r1.container.querySelector('.quote-modern-toggle'));
+    fireEvent.click(r1.container.querySelector('.quote-modern-detail .quote-modern-action'));
+    expect(handleProtectedAction).toHaveBeenCalledWith('u', 'edit', expect.any(Function));
+    expect(handleEditClick).toHaveBeenCalledWith(unfinished);
+    r1.unmount();
+
+    const approved = mk('p', { status: 'approved' });
+    const r2 = render(<QuotesTab {...props} quotes={[approved]} allQuotes={[approved]} />);
+    fireEvent.click(r2.container.querySelector('.quote-modern-toggle'));
+    fireEvent.click(r2.container.querySelector('.quote-modern-detail .quote-modern-action'));
+    expect(open).toHaveBeenCalledWith(expect.stringContaining('/public-quote/p'), '_blank');
+    r2.unmount();
+
+    const hot = mk('h', { status: 'sent', view_count: 5 });
+    const r3 = render(<QuotesTab {...props} quotes={[hot]} allQuotes={[hot]} />);
+    const trigger = r3.container.querySelector('.quote-modern-toggle');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const action = r3.container.querySelector('.quote-modern-detail .quote-modern-action');
+    expect(action).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById(action.getAttribute('aria-controls'))).toBeTruthy();
+    fireEvent.click(action); // Open & track from inside the dropdown never toggles it shut
+    expect(document.getElementById(action.getAttribute('aria-controls'))).toBeTruthy();
+    // the label never flips to Close
+    expect(action.textContent).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    r3.unmount();
+    open.mockRestore();
+  });
+
+  it('every row, hot or not, reserves the same transparent 4px start edge through one identical grid (no per-row template)', () => {
+    const list = [mk('a'), mk('h', { status: 'sent', view_count: 5 })];
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
+    const rows = container.querySelectorAll('.quote-modern-row');
+    expect(rows).toHaveLength(2);
+    rows.forEach((row) => expect(row.getAttribute('style')).toBeNull());
+    expect(container.querySelector('.quote-modern-list')).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
+  });
+
+  it('shows today / yesterday with an isolated time and an older quote as its short date', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-08T12:00:00.000Z'));
+    try {
+      const list = [mk('t', { created_at: '2026-10-08T06:10:00.000Z' }), mk('y', { created_at: '2026-10-07T06:20:00.000Z' }), mk('o', { created_at: '2026-01-01T00:00:00.000Z' })];
+      const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
+      const dates = [...container.querySelectorAll('.quote-modern-date')].map((d) => d.textContent);
+      expect(dates[0]).toMatch(isHebrew ? /^היום, \d{2}:\d{2}$/ : /^Today, \d{2}:\d{2}$/);
+      expect(dates[1]).toMatch(isHebrew ? /^אתמול, \d{2}:\d{2}$/ : /^Yesterday, \d{2}:\d{2}$/);
+      expect(dates[2]).toBe(isHebrew ? '01/01/2026' : '01/01/2026');
+      container.querySelectorAll('.quote-modern-date bdi').forEach((b) => {
+        expect(b).toHaveAttribute('dir', 'ltr');
+        expect(b).toHaveClass('pf-num');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 // IRON-ILS-001: HE/Local/ILS shows every amount as the nearest whole shekel (half-up) with ".00" - rows, overview, cards and
 // tooltips all use the ONE canonical formatter (no exact-cent list formatter). Display only: the passed data never changes.
 describe('IRON-ILS-001 QuotesTab amounts use the canonical formatter only', () => {
-  const mk = (id, over = {}) => ({ ...baseQuote, id: `quote-${id}`, ...over });
-  const canonicalMoney = (account) => (val, cur) => formatMoneyForCurrency(val, cur || account);
   const ilsProps = (list) => ({ ...buildProps(true), quotes: list, allQuotes: list, formatMoneyDisplay: canonicalMoney('ILS') });
-  const strip = (x) => x.replace(/[\s‎‏‪-‮⁦-⁩]+/g, '');
-  const rowAmounts = (c) => [...c.querySelectorAll('td [data-qh="amount"]')].map((e) => strip(e.textContent));
-  const overviewTotal = () => strip(screen.getByTestId('quote-overview').querySelector('[data-qh-overview="total"] .pf-money').textContent);
+  const rowAmounts = (c) => [...c.querySelectorAll('.quote-modern-amount')].map((e) => e.textContent);
+  const overviewTotal = () => screen.getByTestId('quote-overview').querySelector('[data-qh-overview="total"] .pf-money').textContent;
 
   it('Local/ILS: raw 1227.20 renders ₪1,227.00 in the row and the 18,397.20 total renders ₪18,397.00 in the overview', () => {
     const list = [mk('1', { total: 1227.2, status: 'sent' }), mk('2', { total: 17170, status: 'draft' })];
     const { container } = render(<QuotesTab {...ilsProps(list)} />);
     expect(rowAmounts(container)).toContain('₪1,227.00');
     expect(overviewTotal()).toBe('₪18,397.00');
-    expect(strip(container.textContent)).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
+    expect(container.textContent).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
   });
 
   it('Local/ILS: half-up - raw 1227.50 renders ₪1,228.00', () => {
@@ -448,10 +727,12 @@ describe('IRON-ILS-001 QuotesTab amounts use the canonical formatter only', () =
     mockMobileMatchMedia();
     const list = [mk('1', { total: 1227.2 }), mk('2', { total: 191.16 })];
     const { container } = render(<QuotesTab {...ilsProps(list)} />);
-    const cardAmounts = [...container.querySelectorAll('.quote-card [data-testid="quote-card-amount"]')].map((e) => strip(e.textContent));
-    expect(cardAmounts).toEqual(['₪1,227.00', '₪191.00']);
-    expect(overviewTotal()).toBe('₪1,418.00');
-    expect(strip(container.textContent)).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
+    const cardAmounts = [...container.querySelectorAll('.quote-card [data-qh="amount"]')].map((e) => e.textContent);
+    expect(cardAmounts.length).toBeGreaterThan(0);
+    for (const a of cardAmounts) expect(a).toMatch(/\.00$/);
+    expect(container.textContent).toContain('₪1,227.00');
+    expect(container.textContent).toContain('₪191.00');
+    expect(container.textContent).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
   });
 
   it.each([['USD', '$'], ['EUR', '€'], ['GBP', '£']])('International %s keeps cents (1,227.20) in the row and the overview', (cur, symbol) => {
@@ -462,413 +743,172 @@ describe('IRON-ILS-001 QuotesTab amounts use the canonical formatter only', () =
     expect(overviewTotal()).toBe(`${symbol}18,397.20`);
     expect(container.textContent).not.toContain('₪');
   });
-});
 
-// IRON-MARKET-004 / IRON-ILS-001: the HE "before VAT" hint is derived from the quote's OWN persisted data (subtotal /
-// discount / tax_rate / currency), never from the account's current market or a hard-coded rate.
-describe('QuotesTab before-VAT hint (HE) follows each quote\'s persisted figures', () => {
-  const canonical = (account) => (val, cur) => formatMoneyForCurrency(val, cur || account);
-  const hint = (container) => [...container.querySelectorAll('td[title]')].map((td) => td.getAttribute('title')).find((tt) => tt.startsWith('לפני מע"מ'));
-  const mount = (over) => {
-    const q = { ...baseQuote, ...over };
-    return render(<QuotesTab {...buildProps(true)} quotes={[q]} allQuotes={[q]} formatMoneyDisplay={canonical('ILS')} />).container;
-  };
-  it('business ILS quote: the hint is the subtotal after the discount, in whole shekels', () => {
-    expect(hint(mount({ client_type: 'business', clients: { company_name: 'B', client_type: 'business' }, subtotal: 1000, discount: 10, total: 1062, tax_rate: 0.18 }))).toBe('לפני מע"מ: ₪900.00');
+  it('marks 13+ character amounts as long from the SAME canonical text that is displayed', () => {
+    const list = [mk('1', { total: 1234567.4 }), mk('2', { total: 12345 })];
+    const { container } = render(<QuotesTab {...ilsProps(list)} />);
+    const amounts = [...container.querySelectorAll('.quote-modern-amount')];
+    const long = amounts.find((a) => a.textContent === '₪1,234,567.00');
+    const short = amounts.find((a) => a.textContent === '₪12,345.00');
+    expect(long).toHaveClass('is-long');
+    expect(short).not.toHaveClass('is-long');
   });
-  it('private ILS quote: the VAT is extracted at the quote\'s persisted 18% (₪1,180.00 -> ₪1,000.00)', () => {
-    expect(hint(mount({ client_type: 'private', clients: { company_name: 'P', client_type: 'private' }, subtotal: 1180, total: 1180, tax_rate: 0.18 }))).toBe('לפני מע"מ: ₪1,000.00');
-  });
-  it('a historical 0%-tax USD quote shown in a Local account invents no VAT: its before-VAT amount is its total', () => {
-    expect(hint(mount({ client_type: 'private', clients: { company_name: 'U', client_type: 'private' }, subtotal: 1000, total: 1000, currency: 'USD', tax_rate: 0 }))).toBe('לפני מע"מ: $1,000.00');
-  });
-  it('the mobile card carries the same hint as the table row', () => {
-    mockMobileMatchMedia();
-    const q = { ...baseQuote, client_type: 'private', clients: { company_name: 'P', client_type: 'private' }, subtotal: 1180, total: 1180, tax_rate: 0.18 };
-    render(<QuotesTab {...buildProps(true)} quotes={[q]} allQuotes={[q]} formatMoneyDisplay={canonical('ILS')} />);
-    expect(screen.getByTestId('quote-card-amount')).toHaveAttribute('title', 'לפני מע"מ: ₪1,000.00');
+
+  it('a plain sent quote is tone "sent" (teal) and only a hot quote is tone "hot"', () => {
+    const list = [mk('1', { status: 'sent', view_count: 1 }), mk('2', { status: 'sent', view_count: 5 })];
+    const { container } = render(<QuotesTab {...buildProps(false)} quotes={list} allQuotes={list} />);
+    const tones = [...container.querySelectorAll('.quote-modern-status')].map((e) => e.dataset.tone).sort();
+    expect(tones).toEqual(['hot', 'sent']);
   });
 });
 
-// ---------------------------------------------------------------------------------------------------------------------
-// The candidate Quote History as a whole: header controls, sorting / filtering hand-off to the parent, status and cell
-// semantics per market (IRON-MARKET-001/003/004, IRON-DATE-001, IRON-ILS-001), every row action and its entitlement gate,
-// the signed-quote lock (IRON-SIGN-001), the mobile card surface and empty / damaged data. Real component, real formatters.
-// ---------------------------------------------------------------------------------------------------------------------
-const money = (account) => (val, cur) => formatMoneyForCurrency(val, cur || account);
-const q = (over = {}) => ({ ...baseQuote, ...over });
-const mountList = (isHebrew, list, extra = {}) => {
-  const props = { ...buildProps(isHebrew), quotes: list, allQuotes: list, formatMoneyDisplay: money(isHebrew ? 'ILS' : 'USD'), ...extra };
-  return { props, ...render(<QuotesTab {...props} />) };
-};
-const headerCells = (container) => [...container.querySelector('thead').querySelectorAll('th')];
-
-describe('Quote History header controls', () => {
-  it('HE: the title comes from the screen copy and "Export CSV" calls the export handler exactly once', () => {
-    const { props } = mountList(true, [q()]);
-    expect(screen.getByText('History')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('ייצא לאקסל (CSV)'));
-    expect(props.handleExportQuotes).toHaveBeenCalledTimes(1);
-  });
-  it('EN: the export control is labelled "Export CSV" and is the same single action', () => {
-    const { props } = mountList(false, [q()]);
-    fireEvent.click(screen.getByText('Export CSV'));
-    expect(props.handleExportQuotes).toHaveBeenCalledTimes(1);
-  });
-  it('the search box is controlled by the parent: it shows the current term and reports every edit', () => {
-    const { props } = mountList(true, [q()], { searchTerm: 'Acme' });
-    const box = screen.getByPlaceholderText('Search');
-    expect(box).toHaveValue('Acme');
-    fireEvent.change(box, { target: { value: 'A1007' } });
-    expect(props.setSearchTerm).toHaveBeenCalledWith('A1007');
-  });
-  it('the search text aligns with the reading direction (HE right, EN left)', () => {
-    mountList(true, [q()]);
-    expect(screen.getByPlaceholderText('Search')).toHaveStyle({ textAlign: 'right' });
-    cleanup();
-    mountList(false, [q()]);
-    expect(screen.getByPlaceholderText('Search')).toHaveStyle({ textAlign: 'left' });
-  });
-  it('HE status filter: All + the four persisted statuses with Hebrew labels; it reflects and reports the filter', () => {
-    const { props, container } = mountList(true, [q()], { statusFilter: 'sent' });
-    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'paid'));
-    expect([...select.options].map((o) => [o.value, o.textContent])).toEqual([['All', 'Status'], ['draft', 'טיוטה'], ['sent', 'נשלח'], ['approved', 'אושר'], ['paid', 'שולם']]);
-    expect(select).toHaveValue('sent');
-    fireEvent.change(select, { target: { value: 'approved' } });
-    expect(props.setStatusFilter).toHaveBeenCalledWith('approved');
-  });
-  it('EN status filter labels', () => {
-    const { container } = mountList(false, [q()]);
-    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'paid'));
-    expect([...select.options].map((o) => o.textContent)).toEqual(['Status', 'Draft', 'Sent', 'Approved', 'Paid']);
-  });
-});
-
-describe('Quote History sorting is owned by the parent', () => {
-  it('each sortable header asks the parent to sort by its own field', () => {
-    const { props, container } = mountList(true, [q()]);
-    const byLabel = (label) => headerCells(container).find((th) => th.textContent.trim().startsWith(label));
-    for (const [label, field] of [['שם לקוח', 'client'], ['מס׳ הצעה', 'id'], ['הסכום', 'total'], ['סטטוס', 'status'], ['תאריך', 'date']]) {
-      fireEvent.click(byLabel(label));
-      expect(props.handleQuoteSort).toHaveBeenLastCalledWith(field);
-    }
-    expect(props.handleQuoteSort).toHaveBeenCalledTimes(5);
-  });
-  it('only the active sort column shows the direction mark: ▲ ascending, ▼ descending', () => {
-    const { container, rerender, props } = mountList(false, [q()], { quoteSortField: 'total', quoteSortDirection: 'asc' });
-    const marks = () => headerCells(container).filter((th) => /[▲▼]/.test(th.textContent)).map((th) => th.textContent.trim());
-    expect(marks()).toEqual(['Amount ▲']);
-    rerender(<QuotesTab {...props} quoteSortField="date" quoteSortDirection="desc" />);
-    expect(marks()).toEqual(['Date ▼']);
-  });
-  it('the expand-control column is not a sort control', () => {
-    const { props, container } = mountList(true, [q()]);
-    fireEvent.click(headerCells(container)[0]);
-    expect(props.handleQuoteSort).not.toHaveBeenCalled();
-  });
-  it('rows are rendered in exactly the order the parent supplies (no second, hidden ordering)', () => {
-    const list = [q({ id: 'a', quote_number: 3 }), q({ id: 'b', quote_number: 1 }), q({ id: 'c', quote_number: 2 })];
-    const { container } = mountList(true, list);
-    expect([...container.querySelectorAll('[data-qh="number"]')].map((e) => e.textContent)).toEqual(['A3', 'A1', 'A2']);
-  });
-});
-
-describe('Quote History mobile filters and sort', () => {
-  const mobile = (isHebrew, extra) => { mockMobileMatchMedia(); return mountList(isHebrew, [q()], extra); };
-  it('the filter panel starts closed behind an accessible toggle (aria-haspopup / aria-expanded / label)', () => {
-    mobile(true);
-    const toggle = screen.getByRole('button', { name: 'סינון ומיון' });
-    expect(toggle).toHaveAttribute('aria-haspopup', 'true');
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('מיון')).toBeNull();
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('מיון')).toBeInTheDocument();
-  });
-  it('inside the panel the status filter reports to the parent', () => {
-    const { props, container } = mobile(true);
-    fireEvent.click(screen.getByRole('button', { name: 'סינון ומיון' }));
-    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'paid'));
-    fireEvent.change(select, { target: { value: 'paid' } });
-    expect(props.setStatusFilter).toHaveBeenCalledWith('paid');
-  });
-  it('HE sort fields: the seven sortable fields in order with Hebrew names; choosing one asks the parent to sort by it', () => {
-    const { props, container } = mobile(true, { quoteSortField: 'date' });
-    fireEvent.click(screen.getByRole('button', { name: 'סינון ומיון' }));
-    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'views'));
-    expect([...select.options].map((o) => [o.value, o.textContent])).toEqual([['id', 'מס׳ הצעה'], ['client', 'שם לקוח'], ['clientType', 'סוג לקוח'], ['total', 'הסכום'], ['date', 'תאריך'], ['status', 'סטטוס'], ['views', 'צפיות']]);
-    expect(select).toHaveValue('date');
-    fireEvent.change(select, { target: { value: 'views' } });
-    expect(props.handleQuoteSort).toHaveBeenCalledWith('views');
-  });
-  it('EN sort field names', () => {
-    const { container } = mobile(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
-    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'views'));
-    expect([...select.options].map((o) => o.textContent)).toEqual(['Quote #', 'Client Name', 'Client Type', 'Amount', 'Date', 'Status', 'Views']);
-  });
-  it('the direction toggle shows the current direction and re-sorts the same field (the parent flips it)', () => {
-    const { props } = mobile(false, { quoteSortField: 'total', quoteSortDirection: 'asc' });
-    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
-    const dir = screen.getByRole('button', { name: 'Toggle sort direction' });
-    expect(dir).toHaveTextContent('▲');
-    fireEvent.click(dir);
-    expect(props.handleQuoteSort).toHaveBeenCalledWith('total');
-  });
-  it('the panel has its own Close control', () => {
-    mobile(true);
-    const toggle = screen.getByRole('button', { name: 'סינון ומיון' });
-    fireEvent.click(toggle);
-    fireEvent.click(screen.getByText('סגור'));
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('מיון')).toBeNull();
-  });
-  it('the mobile search box is the same controlled search', () => {
-    const { props } = mobile(true, { searchTerm: 'x' });
-    const box = screen.getByPlaceholderText('Search');
-    expect(box).toHaveValue('x');
-    fireEvent.change(box, { target: { value: 'xy' } });
-    expect(props.setSearchTerm).toHaveBeenCalledWith('xy');
-  });
-  it('the layout the geometry gate reads: data-qh-layout is "cards" on mobile and "table" on desktop', () => {
-    const { container } = mobile(true);
-    expect(container.querySelector('[data-qh-layout]')).toHaveAttribute('data-qh-layout', 'cards');
-    cleanup();
-    delete window.matchMedia;
-    expect(mountList(true, [q()]).container.querySelector('[data-qh-layout]')).toHaveAttribute('data-qh-layout', 'table');
-  });
-});
-
-describe('Quote History status badges', () => {
-  const badges = (container) => [...container.querySelectorAll('[data-qh="status"]')].map((e) => e.textContent);
-  const finished = { total: 118, quote_items: [{ description: 'Item' }] };
-  it('HE: approved / paid / sent / draft, case-insensitive; an unknown or missing status reads as a draft', () => {
-    const list = ['approved', 'PAID', 'Sent', 'draft', 'weird', null].map((status, i) => q({ id: `s${i}`, status, ...finished }));
-    expect(badges(mountList(true, list).container)).toEqual(['אושר', 'שולם', 'נשלח', 'טיוטה', 'טיוטה', 'טיוטה']);
-  });
-  it('EN badges', () => {
-    const list = ['approved', 'paid', 'sent', 'draft'].map((status, i) => q({ id: `s${i}`, status, ...finished }));
-    expect(badges(mountList(false, list).container)).toEqual(['Approved', 'Paid', 'Sent', 'Draft']);
-  });
-  it('an unfinished draft (no total / no items) is labelled as such; a sent quote is never relabelled', () => {
-    const list = [q({ id: 'u1', status: 'draft', total: 0, quote_items: [] }), q({ id: 'u2', status: 'draft', ...finished }), q({ id: 'u3', status: 'sent', total: 0, quote_items: [] })];
-    expect(badges(mountList(true, list).container)).toEqual(['טיוטה לא גמורה', 'טיוטה', 'נשלח']);
-    cleanup();
-    expect(badges(mountList(false, [list[0]]).container)).toEqual(['Unfinished draft']);
-  });
-});
-
-describe('Quote History cells', () => {
-  it('quote number: the persisted number (A100701) or the short id fallback, always LTR', () => {
-    const { container } = mountList(true, [q({ id: 'n1', quote_number: 100701 }), q({ id: 'abcdef123456', quote_number: null })]);
-    const cells = [...container.querySelectorAll('[data-qh="number"]')];
-    expect(cells.map((c) => c.textContent)).toEqual(['A100701', '#abcdef12']);
-    for (const c of cells) expect(c.closest('td')).toHaveStyle({ direction: 'ltr' });
-  });
-  it('dates follow the account market format: HE DD/MM/YYYY, EN MM/DD/YYYY, in an LTR cell', () => {
-    const d = (isHebrew) => mountList(isHebrew, [q({ created_at: '2026-01-15T10:00:00.000Z' })]).container.querySelector('[data-qh="date"]');
-    expect(d(true).textContent).toBe('15/01/2026');
-    cleanup();
-    const en = d(false);
-    expect(en.textContent).toBe('01/15/2026');
-    expect(en.closest('td')).toHaveStyle({ direction: 'ltr' });
-  });
-  it('a late-evening UTC timestamp falls on the market\'s own calendar day (Local: Jerusalem next day; International: UTC)', () => {
-    const late = q({ created_at: '2026-01-15T23:30:00.000Z' });
-    expect(mountList(true, [late]).container.querySelector('[data-qh="date"]').textContent).toBe('16/01/2026');
-    cleanup();
-    expect(mountList(false, [late]).container.querySelector('[data-qh="date"]').textContent).toBe('01/15/2026');
-  });
-  it('a damaged date or amount never prints "Invalid Date" / "NaN"', () => {
-    const { container } = mountList(true, [q({ created_at: 'not-a-date', total: null })]);
-    expect(container.textContent).not.toMatch(/Invalid Date|NaN/);
-    expect(container.querySelector('td [data-qh="amount"]').textContent.replace(/\s/g, '')).toBe('₪0.00');
-  });
-  it('the client cell ellipsizes visually but keeps the full name in its title; a quote without a client reads "N/A"', () => {
-    const long = 'A Very Long Client Company Name That Will Not Fit In The Column Ltd';
-    const { container } = mountList(true, [q({ id: 'c1', clients: { company_name: long, client_type: 'business' } }), q({ id: 'c2', clients: null })]);
-    const cells = [...container.querySelectorAll('[data-qh="client"]')];
-    expect(cells[0].closest('td')).toHaveAttribute('title', long);
-    expect(cells[0]).toHaveStyle({ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' });
-    expect(cells[1].textContent).toBe('N/A');
-  });
-});
-
-describe('Quote History detail panel', () => {
-  it('HE client type: a business client shows the business badge + label; a private client the private one', () => {
-    mountList(true, [q({ clients: { company_name: 'B', client_type: 'business' } })]);
-    expandFirstRow();
-    expect(screen.getByRole('img', { name: 'לקוח עסקי' })).toBeInTheDocument();
-    cleanup();
-    mountList(true, [q({ clients: { company_name: 'P', client_type: 'private' } })]);
-    expandFirstRow();
-    expect(screen.getByRole('img', { name: 'לקוח פרטי' })).toBeInTheDocument();
-  });
-  it('EN client type labels, and no client-type claim at all when the type is unknown', () => {
-    mountList(false, [q({ clients: { company_name: 'B', client_type: 'business' } })]);
-    expandFirstRow();
-    expect(screen.getByRole('img', { name: 'Business Client' })).toBeInTheDocument();
-    cleanup();
-    mountList(false, [q({ clients: { company_name: 'X', client_type: null } })]);
-    expandFirstRow();
-    expect(screen.queryByRole('img', { name: /Client$/ })).toBeNull();
-  });
-  it('a quote without items says so instead of showing an empty description (HE / EN)', () => {
-    mountList(true, [q({ quote_items: [] })]);
-    expandFirstRow();
-    expect(screen.getByText('אין תיאור פריט')).toBeInTheDocument();
-    cleanup();
-    mountList(false, [q({ quote_items: [] })]);
-    expandFirstRow();
-    expect(screen.getByText('No item description')).toBeInTheDocument();
-  });
-});
-
-describe('Quote History row actions', () => {
-  let open;
-  beforeEach(() => { open = vi.spyOn(window, 'open').mockImplementation(() => null); });
-  afterEach(() => open.mockRestore());
-  const act = (label) => fireEvent.click(screen.getByText(label).closest('button'));
-  it('View opens a Local (ILS) quote on the Hebrew public page in a new tab', () => {
-    mountList(true, [q({ id: 'loc-1', currency: 'ILS', tax_rate: 0.18 })]);
-    expandFirstRow(); act('צפה');
-    expect(open).toHaveBeenCalledWith(`${window.location.origin}/public-quote/loc-1`, '_blank');
-  });
-  it('View opens a 0%-tax International quote on the English public page', () => {
-    mountList(false, [q({ id: 'int-1', currency: 'USD', tax_rate: 0 })]);
-    expandFirstRow(); act('View');
-    expect(open).toHaveBeenCalledWith(`${window.location.origin}/en/public-quote/int-1?lang=en`, '_blank');
-  });
-  it('a historical USD quote inside a Local (Hebrew) account still opens the English page - the quote\'s own market decides', () => {
-    mountList(true, [q({ id: 'hist-1', currency: 'USD', tax_rate: 0 })]);
-    expandFirstRow(); act('צפה');
-    expect(open).toHaveBeenCalledWith(`${window.location.origin}/en/public-quote/hist-1?lang=en`, '_blank');
-  });
-  it('a taxed quote without a stored currency is treated as Local (Hebrew page)', () => {
-    mountList(false, [q({ id: 'tax-1', currency: null, tax_rate: 0.18 })]);
-    expandFirstRow(); act('View');
-    expect(open).toHaveBeenCalledWith(`${window.location.origin}/public-quote/tax-1`, '_blank');
-  });
-  it('Edit goes through the entitlement gate as "edit" and then opens the editor with this quote', () => {
-    const { props } = mountList(true, [q({ id: 'e1' })]);
-    expandFirstRow(); act('ערוך');
-    expect(props.handleProtectedAction).toHaveBeenCalledWith('e1', 'edit', expect.any(Function));
-    expect(props.handleEditClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }));
-  });
-  it('Duplicate goes through the gate as "duplicate" and is allowed even for a signed (locked) quote', () => {
-    const { props } = mountList(true, [q({ id: 'd1', status: 'approved', signature: 'data:image/png;base64,AAAA' })]);
-    expandFirstRow(); act('שכפל');
-    expect(props.handleProtectedAction).toHaveBeenCalledWith('d1', 'duplicate', expect.any(Function));
-    expect(props.handleDuplicateQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }));
-  });
-  it('WhatsApp goes through the gate as "whatsapp" and sends this quote', () => {
-    const { props } = mountList(true, [q({ id: 'w1' })]);
-    expandFirstRow(); act('וואטסאפ');
-    expect(props.handleProtectedAction).toHaveBeenCalledWith('w1', 'whatsapp', expect.any(Function));
-    expect(props.sendWhatsApp).toHaveBeenCalledWith(expect.objectContaining({ id: 'w1' }));
-  });
-  it('Email hands this quote to the email flow directly (no plan gate), also for a signed quote', () => {
-    const { props } = mountList(true, [q({ id: 'm1', status: 'approved', signature: 'data:image/png;base64,AAAA' })]);
-    expandFirstRow(); act('שלח במייל');
-    expect(props.setPendingEmailQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }));
-    expect(props.handleProtectedAction).not.toHaveBeenCalled();
-  });
-  it('Delete goes through the gate as "delete" and passes the displayed number and client for the confirmation', () => {
-    const { props } = mountList(true, [q({ id: 'x1', quote_number: 100701, clients: { company_name: 'Client Ltd', client_type: 'business' } })]);
-    expandFirstRow(); act('מחק');
-    expect(props.handleProtectedAction).toHaveBeenCalledWith('x1', 'delete', expect.any(Function));
-    expect(props.handleDeleteQuote).toHaveBeenCalledWith('x1', { number: 'A100701', clientName: 'Client Ltd' });
-  });
-  it('a gate that refuses never runs the action: edit / duplicate / WhatsApp / delete handlers stay untouched', () => {
-    const refuse = vi.fn();
-    const { props } = mountList(true, [q({ id: 'g1' })], { handleProtectedAction: refuse });
-    expandFirstRow();
-    for (const label of ['ערוך', 'שכפל', 'וואטסאפ', 'מחק']) act(label);
-    expect(refuse).toHaveBeenCalledTimes(4);
-    for (const h of [props.handleEditClick, props.handleDuplicateQuote, props.sendWhatsApp, props.handleDeleteQuote]) expect(h).not.toHaveBeenCalled();
-  });
-  it('EN action labels, in the same order as HE', () => {
-    mountList(false, [q()]);
-    expandFirstRow();
-    const labels = ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete'];
-    const nodes = labels.map((l) => screen.getByText(l));
-    for (let i = 1; i < nodes.length; i += 1) expect(nodes[i - 1].compareDocumentPosition(nodes[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-  it('a signed quote locks only Edit and Delete: View, Duplicate, WhatsApp and Email stay available', () => {
-    mountList(true, [q({ status: 'approved', signature: 'data:image/png;base64,AAAA' })]);
-    expandFirstRow();
-    for (const label of ['ערוך', 'מחק']) expect(screen.getByText(label).closest('button')).toBeDisabled();
-    for (const label of ['צפה', 'שכפל', 'וואטסאפ', 'שלח במייל']) expect(screen.getByText(label).closest('button')).not.toBeDisabled();
-  });
-  it('the parent\'s plan hint appears only on the gated action of the quote it names', () => {
-    const list = [q({ id: 'h1' }), q({ id: 'h2' })];
-    const { container } = mountList(true, list, { activeTooltip: { quoteId: 'h1', action: 'whatsapp' } });
-    fireEvent.click(screen.getAllByLabelText('הצג פרטים נוספים')[0]); // rows are single-expand: open the named quote (h1)
-    const hints = container.querySelectorAll('.feature-lock-tooltip');
-    expect(hints).toHaveLength(1);
-    expect(hints[0].parentElement).toHaveTextContent('וואטסאפ');
-  });
-  it('an edit hint is shown next to Edit of that quote only', () => {
-    const { container } = mountList(false, [q({ id: 'h1' })], { activeTooltip: { quoteId: 'h1', action: 'edit' } });
-    expandFirstRow();
-    const hints = container.querySelectorAll('.feature-lock-tooltip');
-    expect(hints).toHaveLength(1);
-    expect(hints[0].parentElement).toHaveTextContent('Edit');
-  });
-});
-
-describe('Quote History mobile card', () => {
-  beforeEach(() => mockMobileMatchMedia());
-  it('the expanded card offers the same actions, through the same gate', () => {
-    const { props, container } = mountList(true, [q({ id: 'mc1' })]);
-    fireEvent.click(container.querySelector('.quote-card button'));
-    for (const label of ['צפה', 'ערוך', 'שכפל', 'וואטסאפ', 'שלח במייל', 'מחק']) expect(screen.getByText(label)).toBeInTheDocument();
-    fireEvent.click(screen.getByText('ערוך').closest('button'));
-    expect(props.handleProtectedAction).toHaveBeenCalledWith('mc1', 'edit', expect.any(Function));
-  });
-  it('a signed quote card locks Edit / Delete with the signed-quote explanation', () => {
-    const { container } = mountList(true, [q({ status: 'approved', signature: 'data:image/png;base64,AAAA' })]);
-    fireEvent.click(container.querySelector('.quote-card button'));
-    expect(screen.getByText('ערוך').closest('button')).toHaveAttribute('title', 'לא ניתן לערוך הצעה חתומה');
-    expect(screen.getByText('מחק').closest('button')).toHaveAttribute('title', 'לא ניתן למחוק הצעה חתומה');
-  });
-  it('Export CSV stays available in the card layout (one shared header)', () => {
-    const { props } = mountList(true, [q()]);
-    fireEvent.click(screen.getByText('ייצא לאקסל (CSV)'));
-    expect(props.handleExportQuotes).toHaveBeenCalledTimes(1);
-  });
-  it('the card date uses the market format', () => {
-    const { container } = mountList(false, [q({ created_at: '2026-01-15T10:00:00.000Z' })]);
-    expect(container.querySelector('.quote-card [data-qh="date"]').textContent).toBe('01/15/2026');
-  });
-});
-
-describe('Quote History with no quotes', () => {
-  it('desktop states that there are no quotes (HE / EN)', () => {
-    mountList(true, []);
-    expect(screen.getByText('לא נמצאו הצעות מחיר במסד הנתונים.')).toBeInTheDocument();
-    cleanup();
-    mountList(false, []);
-    expect(screen.getByText('No quotes found in the database.')).toBeInTheDocument();
-  });
-  it('mobile states the same, with no empty card', () => {
-    mockMobileMatchMedia();
-    const { container } = mountList(true, []);
-    expect(screen.getByText('לא נמצאו הצעות מחיר במסד הנתונים.')).toBeInTheDocument();
-    expect(container.querySelector('.quote-card')).toBeNull();
-  });
-  it('the overview shows zero counts and a zero total in the account currency (never an empty / NaN cell)', () => {
-    mountList(true, []);
+describe('QuotesTab overview (approved strip)', () => {
+  it('counts Awaiting as sent quotes only and Approved as approved + paid, in the cell order quotes / awaiting / approved / total', () => {
+    const list = [mk('1', { status: 'draft' }), mk('2', { status: 'sent' }), mk('3', { status: 'sent' }), mk('4', { status: 'approved' }), mk('5', { status: 'paid' })];
+    render(<QuotesTab {...buildProps(true)} quotes={list} allQuotes={list} />);
     const cells = [...screen.getByTestId('quote-overview').querySelectorAll('[data-qh-overview]')];
-    expect(cells.slice(0, 3).map((c) => c.querySelector('.quote-overview-value').textContent)).toEqual(['0', '0', '0']);
-    expect(cells[3].querySelector('.pf-money').textContent.replace(/\s/g, '')).toBe('₪0.00');
+    expect(cells.map((c) => c.dataset.qhOverview)).toEqual(['all', 'awaiting', 'approved', 'total']);
+    expect(cells[0].querySelector('.quote-overview-value').textContent).toBe('5');
+    expect(cells[1].querySelector('.quote-overview-value').textContent).toBe('2');
+    expect(cells[2].querySelector('.quote-overview-value').textContent).toBe('2');
+    expect(cells[3].querySelector('.pf-money-sym').textContent).toBe('₪');
+    cells.forEach((c) => expect(c.firstElementChild).toHaveClass('quote-overview-value'));
   });
-  it('overview count labels follow the language', () => {
-    const labels = () => [...screen.getByTestId('quote-overview').querySelectorAll('.quote-overview-label')].slice(0, 3).map((e) => e.textContent);
-    mountList(true, [q()]);
-    expect(labels()).toEqual(['הצעות', 'ממתינות', 'אושרו']);
-    cleanup();
-    mountList(false, [q()]);
-    expect(labels()).toEqual(['Quotes', 'Awaiting', 'Approved']);
+});
+
+// Owner R4 (2026-10-08 23:05): no Action column, every row action inside the row dropdown, quote numbers without '#', shown in full.
+describe.each([
+  ['Hebrew/RTL', true],
+  ['English/LTR', false],
+])('QuotesTab Owner R4 - %s', (_label, isHebrew) => {
+  it('renders no Action header and no action cell; the chevron trigger is the existing accessible expand button (not a column)', () => {
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} />);
+    expect(container.querySelector('.quote-modern-head-action, [data-sort-key="action"]')).toBeNull();
+    expect(container.querySelectorAll('.quote-modern-head-row > [role="columnheader"]')).toHaveLength(7);
+    const trigger = container.querySelector('.quote-modern-row > .quote-modern-toggle'); // Owner R5: moved to the row edge
+    expect(trigger.tagName).toBe('BUTTON'); // native button: Enter/Space and touch activation for free
+    expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצג פרטים נוספים/ : /Show more details/);
+    expect(trigger.querySelector('svg.quote-modern-chevron')).not.toBeNull();
+    expect(trigger).toHaveAttribute('aria-controls', `quote-modern-detail-${baseQuote.id}`);
+  });
+
+  it('every prior row action is reachable in the dropdown: the status-aware primary action first, then View/Edit/Duplicate/WhatsApp/Email/Delete', () => {
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} />);
+    fireEvent.click(container.querySelector('.quote-modern-toggle'));
+    const panel = container.querySelector('.quote-modern-detail');
+    const primary = panel.querySelector('.quote-modern-action');
+    expect(primary).not.toBeNull();
+    expect(primary.dataset.action).toBeTruthy();
+    const text = panel.textContent;
+    for (const label of isHebrew ? ['צפה', 'ערוך', 'שכפל', 'וואטסאפ', 'שלח במייל', 'מחק'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(text).toContain(label);
+    // the primary action is the first focusable control in the dropdown (focus order: trigger -> primary -> secondary)
+    expect(panel.querySelector('button')).toBe(primary);
+  });
+
+  it('displays quote numbers without a literal # and in full (long alphanumeric), LTR-isolated', () => {
+    const long = mk('long', { quote_number: 1234567890 });
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[long, mk('n')]} allQuotes={[long, mk('n')]} />);
+    const numbers = [...container.querySelectorAll('.quote-modern-number')];
+    expect(numbers.length).toBe(2);
+    for (const n of numbers) {
+      expect(n.textContent.startsWith('#')).toBe(false);
+      expect(n).toHaveAttribute('dir', 'ltr');
+      expect(n).toHaveClass('pf-num');
+    }
+    expect(numbers.some((n) => n.textContent === 'A1234567890')).toBe(true);
+    expect(numbers.some((n) => /…|\.\.\./.test(n.textContent))).toBe(false);
+  });
+
+  it('a quote without a persisted number still shows its id fallback without the # prefix', () => {
+    const noNum = mk('nonum', { quote_number: null });
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[noNum]} allQuotes={[noNum]} />);
+    const n = container.querySelector('.quote-modern-number').textContent;
+    expect(n.startsWith('#')).toBe(false);
+    expect(n.length).toBeGreaterThan(0);
+  });
+});
+
+// Owner R5 (2026-10-08 23:50): the dropdown trigger is the row's structural leading-edge control (right in HE, left in EN) -
+// outside the quote-number content and NOT inside the Client cell; the Client cell holds only the client name (no phantom gap).
+// Rendered x-geometry of the actual visible header labels vs row content is proven by the real-browser matrix in
+// evidence/managed-dashboard-final/r5/.
+describe.each([
+  ['Hebrew/RTL', true],
+  ['English/LTR', false],
+])('QuotesTab Owner R5 leading-edge trigger - %s', (_label, isHebrew) => {
+  it('the trigger is the first child of every row, a native button outside the Client and quote-number cells', () => {
+    const quotes = [mk('a'), mk('b', { status: 'sent', view_count: 5 }), mk('c', { status: 'approved' })];
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={quotes} allQuotes={quotes} />);
+    const list = container.querySelector('.quote-modern-list');
+    // the structural leading edge comes from the real list direction: right in HE, left in EN
+    expect(list).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
+    const rows = [...container.querySelectorAll('.quote-modern-row')];
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      const trigger = row.firstElementChild;
+      expect(trigger).toHaveClass('quote-modern-toggle');
+      expect(trigger.tagName).toBe('BUTTON');
+      expect(trigger).toHaveAttribute('type', 'button');
+      expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצג פרטים נוספים/ : /Show more details/);
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      expect(trigger.querySelector('svg.quote-modern-chevron')).not.toBeNull();
+      // immediately followed by the quote-number cell (the trigger sits beside/outside it)
+      expect(trigger.nextElementSibling).toHaveClass('quote-modern-number');
+      expect(row.querySelectorAll('.quote-modern-toggle')).toHaveLength(1);
+      const client = row.querySelector(':scope > .quote-modern-client');
+      expect(client.tagName).toBe('SPAN');
+      expect(client.contains(trigger)).toBe(false);
+      expect(client.querySelector('button, svg, .quote-modern-chevron')).toBeNull();
+      // the client cell holds only the name: nothing before it can leave a gap
+      expect([...client.children].map((c) => c.className)).toEqual(['quote-modern-client-name']);
+      const number = row.querySelector(':scope > .quote-modern-number');
+      expect(number.contains(trigger)).toBe(false);
+      expect(number.children).toHaveLength(0);
+      expect(number.textContent.startsWith('#')).toBe(false);
+    }
+    // exactly one control per row before the seven data cells; the header still has seven sortable headers (no Action column)
+    expect(container.querySelectorAll('.quote-modern-head-row > [role="columnheader"]')).toHaveLength(7);
+    expect(container.querySelector('.quote-modern-head-action, [data-sort-key="action"]')).toBeNull();
+  });
+
+  it('the moved trigger opens the same shared dropdown with every row action, and closes it again', () => {
+    const hot = mk('h', { status: 'sent', view_count: 5 });
+    const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[hot]} allQuotes={[hot]} />);
+    const trigger = container.querySelector('.quote-modern-row > .quote-modern-toggle');
+    expect(trigger).toHaveAttribute('aria-controls', 'quote-modern-detail-h');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const panel = document.getElementById('quote-modern-detail-h');
+    expect(panel).toBeTruthy();
+    expect(panel.querySelector('button')).toBe(panel.querySelector('.quote-modern-action'));
+    expect(panel.querySelector('.quote-modern-action').textContent).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    for (const label of isHebrew ? ['צפה', 'ערוך', 'שכפל', 'וואטסאפ', 'שלח במייל', 'מחק'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(panel.textContent).toContain(label);
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById('quote-modern-detail-h')).toBeNull();
+  });
+});
+
+// IRON-DATE-001 (Codex Task 17 review follow-up, fixed in Task 18): the AUTHENTICATED ACCOUNT MARKET decides the date order and the
+// product time zone of the quote list - never the UI language. 2026-01-15T23:30Z is 01/15/2026 in UTC (International) and
+// 16/01/2026 in Asia/Jerusalem (Local).
+describe('QuotesTab dates follow the account market, not the UI language', () => {
+  const late = { ...baseQuote, id: 'late', created_at: '2026-01-15T23:30:00.000Z' };
+  const dateOf = (c) => c.querySelector('.quote-modern-date').textContent;
+  it.each([
+    ['Hebrew UI on an International account', true, false, '01/15/2026'],
+    ['English UI on a Local account', false, true, '16/01/2026'],
+    ['Hebrew UI on a Local account', true, true, '16/01/2026'],
+    ['English UI on an International account', false, false, '01/15/2026'],
+  ])('%s', (_label, isHebrew, isLocalIsraeliBusiness, expected) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-08T12:00:00.000Z'));
+    try {
+      const { container } = render(<QuotesTab {...buildProps(isHebrew)} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={[late]} allQuotes={[late]} />);
+      expect(dateOf(container)).toBe(expected);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

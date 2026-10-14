@@ -67,7 +67,10 @@ import html2canvas from 'html2canvas';
 // they get their own, much stricter, soft treatment (UNIT_SOFT_SPLIT_*
 // below) instead. Every OTHER `.pq-section` user (totals, terms, recipient
 // boxes, messages) is untouched - still hard-protected, same as before.
-const NO_SPLIT_SELECTOR = 'tr, .pq-section:not(.pq-unit-card), .pq-unit-item, .pq-recipient, .pq-header-box';
+// Task 16 - Quote Experience V2: `.pq-media-figure` (one Modern rail / Visual hero image + its caption, from
+// src/quoteDocument/QuoteMedia.jsx) is an atomic block too - a page boundary never cuts an image away from its caption.
+// The letterhead keeps `.pq-header-box`; the fine-ruled notes, totals and approval record keep `.pq-section`.
+export const NO_SPLIT_SELECTOR = 'tr, .pq-section:not(.pq-unit-card), .pq-unit-item, .pq-recipient, .pq-header-box, .pq-media-figure';
 
 // חוק ברזל (CORRECTIVE PAGINATION EFFICIENCY PASS task): a whole divided-
 // quote unit (or the Unassigned bucket) is a "soft" atomic block - moving
@@ -330,21 +333,119 @@ export async function waitForImagesReady(rootEl, timeoutMs = 2500) {
   }));
 }
 
-export async function generateQuotePdf({ captureEl, filename, scale = 2.5 }) {
+// Task 16 correction F (2026-10-05, Codex pagination finding): the Direct PDF used to be a photograph of the document
+// at whatever width the CUSTOMER'S device happened to have - on a 390px phone the narrow mobile layout was scaled UP to
+// the 190mm A4 content width, so a short quote became 2-3 pages and a long one 3-4 (measured on real TEST quotes),
+// while the same quote from a desktop was 1 page. The capture is now rendered in html2canvas's clone at ONE fixed
+// document window width, so every device produces the same A4 document (the desktop document composition).
+// Review follow-up (readability): the document itself is laid out at the A4 content width in CSS pixels
+// (190mm = 718px at 96dpi), so 1 CSS px lands as 0.75pt on paper - exactly the scale of native Print. Body text
+// (12-12.5px in the A4 density rules) therefore prints at 9-9.4pt instead of ~7pt from a 1,062px-wide capture; long
+// quotes take more pages rather than shrinking. The window stays desktop-wide so no mobile/tablet media rule applies.
+// Pagination blocks are measured on that clone (the geometry actually captured), with the live element as a fallback
+// when no clone is available.
+export const PDF_CAPTURE_WINDOW_WIDTH = 1100;
+export const PDF_DOCUMENT_WIDTH_PX = 718;
+
+// html2canvas ignores CSS object-fit, so a cropped (object-fit: cover) quote image would be STRETCHED into its fixed frame
+// in the PDF. In the capture clone only, each framed <img> is replaced by the frame's own cover background (which
+// html2canvas does render) - the on-screen page is never touched.
+export function coverFramedImagesForCapture(rootEl) {
+  if (!rootEl || typeof rootEl.querySelectorAll !== 'function') return 0;
+  let n = 0;
+  rootEl.querySelectorAll('.pq-media-frame > img').forEach((img) => {
+    const src = img.currentSrc || img.src;
+    if (!src) return;
+    const frame = img.parentElement;
+    frame.style.backgroundImage = `url("${String(src).replace(/"/g, '%22')}")`;
+    frame.style.backgroundSize = 'cover';
+    frame.style.backgroundPosition = 'center';
+    frame.style.backgroundRepeat = 'no-repeat';
+    img.style.visibility = 'hidden';
+    n += 1;
+  });
+  return n;
+}
+
+// End of the document (cloud-fix3): the approval / status record + footer, and the last body block before them (Modern:
+// the deepest last block of its body wrappers). Coordinates relative to rootEl, like computeBlockRanges.
+const DOC_END_SELECTOR = '.pq-approval, .pq-doc-status, .pq-doc-foot';
+const BODY_WRAPPER_RE = /(^|\s)pq-body-(grid|main|aside)(\s|$)/;
+export function measureDocumentEnd(rootEl) {
+  if (!rootEl || typeof rootEl.querySelector !== 'function') return null;
+  const first = rootEl.querySelector(DOC_END_SELECTOR);
+  if (!first) return null;
+  let prev = first.previousElementSibling;
+  while (prev && BODY_WRAPPER_RE.test(String(prev.className || '')) && prev.lastElementChild) prev = prev.lastElementChild;
+  if (!prev) return null;
+  const rootTop = rootEl.getBoundingClientRect().top;
+  const ends = Array.from(rootEl.querySelectorAll(DOC_END_SELECTOR)).map((el) => el.getBoundingClientRect());
+  const p = prev.getBoundingClientRect();
+  return {
+    top: p.top - rootTop,
+    bodyBottom: p.bottom - rootTop,
+    bottom: Math.max(...ends.map((r) => r.bottom)) - rootTop,
+  };
+}
+
+// True when a page slice of `boundaries` would show only the end of the document (approval / footer) and no body block,
+// i.e. the last slice starts at or below the bottom of the last body block.
+export function endIsOrphaned(boundaries, end) {
+  if (!end || !Array.isArray(boundaries) || boundaries.length < 3) return false;
+  return boundaries[boundaries.length - 2] >= end.bodyBottom - 1;
+}
+
+// Page boundaries that never leave the approval / footer alone on the last page (cloud-fix3, the Direct PDF twin of the
+// native-Print keep-together rule). The plain boundaries are kept whenever they do not orphan the end - including the
+// existing negligible-trailing-slice merge, so a document that was one page stays one page; only when the last page would
+// hold nothing but the approval / footer is the last body block + approval + footer protected as one block and the
+// boundaries recomputed (the group then moves to the last page together).
+export function computeDocumentBoundaries(canvasHeightPx, pageHeightPxIdeal, blocksPx, endPx) {
+  const plain = computePageBoundaries(canvasHeightPx, pageHeightPxIdeal, blocksPx);
+  if (!endIsOrphaned(plain, endPx)) return plain;
+  // a group taller than the push-back ceiling cannot move as one piece - keep the plain slicing
+  if ((endPx.bottom - endPx.top) / pageHeightPxIdeal > DEFAULT_MAX_WASTE_RATIO) return plain;
+  // the group replaces the protected blocks inside it (otherwise the approval block alone would be pushed again)
+  const outside = blocksPx.filter((b) => b.bottom <= endPx.top + 0.5 || b.top >= endPx.bottom - 0.5);
+  const grouped = [...outside, { top: endPx.top, bottom: endPx.bottom }].sort((a, b) => a.top - b.top);
+  const result = computePageBoundaries(canvasHeightPx, pageHeightPxIdeal, grouped);
+  return endIsOrphaned(result, endPx) ? plain : result;
+}
+
+export function measurePaginationBlocks(rootEl) {
+  return {
+    blocks: computeBlockRanges(rootEl, NO_SPLIT_SELECTOR),
+    totals: computeBlockRanges(rootEl, TOTALS_SAFE_MARGIN_SELECTOR),
+    units: computeBlockRanges(rootEl, UNIT_SOFT_SPLIT_SELECTOR),
+    end: measureDocumentEnd(rootEl),
+  };
+}
+
+export async function generateQuotePdf({ captureEl, filename, scale = 2.5, windowWidth = PDF_CAPTURE_WINDOW_WIDTH, documentWidth = PDF_DOCUMENT_WIDTH_PX }) {
   if (!captureEl) throw new Error('generateQuotePdf: captureEl is required');
 
   await waitForImagesReady(captureEl);
 
-  const domBlocks = computeBlockRanges(captureEl, NO_SPLIT_SELECTOR);
-  const domTotalsBlocks = computeBlockRanges(captureEl, TOTALS_SAFE_MARGIN_SELECTOR);
-  const domUnitBlocks = computeBlockRanges(captureEl, UNIT_SOFT_SPLIT_SELECTOR);
-
+  let clonedMeasurement = null;
   const canvas = await html2canvas(captureEl, {
     scale,
     useCORS: true,
     backgroundColor: '#ffffff',
     logging: false,
+    windowWidth,
+    onclone: (_clonedDocument, clonedEl) => {
+      if (clonedEl && typeof clonedEl.getBoundingClientRect === 'function') {
+        if (documentWidth) {
+          clonedEl.style.width = `${documentWidth}px`;
+          clonedEl.style.maxWidth = 'none';
+          clonedEl.style.boxSizing = 'border-box';
+        }
+        coverFramedImagesForCapture(clonedEl);
+        clonedMeasurement = measurePaginationBlocks(clonedEl);
+      }
+    },
   });
+  const { blocks: domBlocks, totals: domTotalsBlocks, units: domUnitBlocks, end: domEnd } = clonedMeasurement || measurePaginationBlocks(captureEl);
 
   if (!canvas || !canvas.width || !canvas.height) {
     throw new Error('generateQuotePdf: capture produced an empty canvas');
@@ -399,7 +500,8 @@ export async function generateQuotePdf({ captureEl, filename, scale = 2.5 }) {
   const unitBlocksPx = domUnitBlocks.map((b) => ({ top: b.top * scale, bottom: b.bottom * scale, maxWasteRatio: UNIT_SOFT_SPLIT_MAX_WASTE_RATIO }));
   const allProtectedBlocksPx = [...blocksPx, ...totalsBlocksPx, ...unitBlocksPx].sort((a, b) => a.top - b.top);
 
-  const boundaries = computePageBoundaries(canvas.height, pageHeightPxIdeal, allProtectedBlocksPx);
+  const endPx = domEnd ? { top: domEnd.top * scale, bodyBottom: domEnd.bodyBottom * scale, bottom: domEnd.bottom * scale } : null;
+  const boundaries = computeDocumentBoundaries(canvas.height, pageHeightPxIdeal, allProtectedBlocksPx, endPx);
 
   let pageIndex = 0;
   for (let i = 0; i < boundaries.length - 1; i += 1) {

@@ -4,7 +4,7 @@
 // the active set. A blocker is cleared ONLY by confirmed resolution (e.g. the profile saved complete, the quote saved) or by a context
 // transition of its scope (e.g. the editor closed) - dismissing an alert does NOT clear it.
 import { useSyncExternalStore } from 'react';
-import { BLOCKER_CATALOG, FIELD_CODES } from './aiHelpContract';
+import { BLOCKER_CATALOG, FIELD_CODES, normalizeBlockerCode } from './aiHelpContract';
 
 // scope: 'editor' (cleared when the quote editor closes / a new quote starts / a save succeeds), 'profile' (cleared when the business
 // profile is confirmed complete), 'surface' (cleared when the user leaves the surface it was raised on), 'session' (explicit clear only).
@@ -13,8 +13,11 @@ const listeners = new Set();
 let snapshot = [];
 const emit = () => { snapshot = [...blockers.values()]; listeners.forEach((l) => l()); };
 
-export function publishBlocker(code, { scope = 'editor', surface = null, stage = null, fieldCodes = null, persistence = null, now = Date.now() } = {}) {
-  if (!BLOCKER_CATALOG[code]) return false; // closed catalog - an unknown code is never published
+export function publishBlocker(rawCode, { scope = 'editor', surface = null, stage = null, fieldCodes = null, persistence = null, now = Date.now() } = {}) {
+  // closed catalog - an unknown or RETIRED code (monthly quote limit, trial) is never published; a legacy alias
+  // (ATTACHMENTS_REQUIRE_PRO / WHATSAPP_REQUIRES_PRO) is published under its neutral canonical code.
+  const code = normalizeBlockerCode(rawCode);
+  if (!code || !BLOCKER_CATALOG[code]) return false;
   const fields = Array.isArray(fieldCodes) ? fieldCodes.filter((f) => FIELD_CODES.includes(f)) : null;
   const prev = blockers.get(code);
   // idempotent: re-publishing the same blocker (e.g. from a state-derived effect) keeps its first occurrence and emits nothing
@@ -26,7 +29,7 @@ export function publishBlocker(code, { scope = 'editor', surface = null, stage =
 
 export function resolveBlockers(codes) {
   let changed = false;
-  for (const c of codes) changed = blockers.delete(c) || changed;
+  for (const c of codes) changed = blockers.delete(normalizeBlockerCode(c) || c) || changed;
   if (changed) emit();
 }
 

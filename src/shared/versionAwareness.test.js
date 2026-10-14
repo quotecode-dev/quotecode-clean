@@ -86,3 +86,53 @@ describe('startVersionPolling', () => {
     expect(reload).not.toHaveBeenCalled();
   });
 });
+
+// TEST 5186 focus-loop incident (2026-10-09): focus bursts while a /version.json check is pending must not open more requests.
+const flushMicrotasks = async () => { for (let i = 0; i < 20; i += 1) await Promise.resolve(); };
+
+describe('startVersionPolling single-flight', () => {
+  let release;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => { release = () => resolve({ ok: true, json: async () => ({ buildSha: 'unknown' }) }); })));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('a burst of focus events during an active fetch creates no extra fetch; checks resume after it settles', async () => {
+    const stop = startVersionPolling(vi.fn());
+    expect(fetch).toHaveBeenCalledTimes(1); // the immediate start-up check, still pending
+    for (let i = 0; i < 50; i += 1) window.dispatchEvent(new Event('focus'));
+    vi.advanceTimersByTime(5 * 60 * 1000); // the interval tick also joins the pending check
+    expect(fetch).toHaveBeenCalledTimes(1);
+    release();
+    await flushMicrotasks();
+    window.dispatchEvent(new Event('focus'));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    release();
+    stop();
+  });
+
+  it('keeps the 5-minute interval check', async () => {
+    const stop = startVersionPolling(vi.fn());
+    release();
+    await flushMicrotasks();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    release();
+    stop();
+  });
+
+  it('still reports a newer version to the callback exactly once per check', async () => {
+    const onNewVersion = vi.fn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ buildSha: 'unknown' }) }));
+    const stop = startVersionPolling(onNewVersion);
+    for (let i = 0; i < 10; i += 1) window.dispatchEvent(new Event('focus'));
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(onNewVersion).not.toHaveBeenCalled(); // CURRENT_BUILD_SHA is 'unknown' under test: never a false positive
+    stop();
+  });
+});

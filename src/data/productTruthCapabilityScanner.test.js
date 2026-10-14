@@ -89,7 +89,7 @@ describe('SOURCE-OWNED CAPABILITY DISCOVERY — real repository scan reconciled 
     expect(fromScannerFile).toEqual([]);
   });
 
-  it('the real scan discovers exactly the 38 real, LIVE_CURRENT capability ids - no more, no fewer', () => {
+  it('the real scan discovers exactly the real LIVE_CURRENT capability ids (the frozen 38 + the 5 pinned Task 20 ids) - no more, no fewer', () => {
     const ids = Object.keys(discovered).sort();
     const expectedLiveCurrentIds = PRODUCT_TRUTH_REGISTRY.filter((c) => c.state === 'LIVE_CURRENT').map((c) => c.id).sort();
     expect(ids).toEqual(expectedLiveCurrentIds);

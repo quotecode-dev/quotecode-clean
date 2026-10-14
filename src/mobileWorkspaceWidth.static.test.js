@@ -40,7 +40,7 @@ describe('IRON-MOBILE-WIDTH-001 static gate', () => {
   for (const [name, file] of Object.entries(WORK_SCREENS)) {
     it(`${name}: the screen root is a .pf-work-screen with no screen-owned mobile padding branch`, () => {
       const src = read(file);
-      expect(src).toMatch(/className="pf-screen pf-work-screen( admin-screen)?"/);
+      expect(src).toMatch(/className="pf-screen pf-work-screen( admin-screen| quote-workspace)?"/);
       const root = src.slice(src.search(/className="pf-screen pf-work-screen/)).split('\n')[0];
       expect(root, file).not.toMatch(/padding: isMobileView \?/);
     });

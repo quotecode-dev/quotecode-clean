@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import QuoteForm from './QuoteForm';
+import { APP } from '../theme/neonTheme';
 
 // Owner Visual Review - Correction 4 ("compact saved-item card"): focused
 // regression coverage for the NEW compact/expanded item card and its
@@ -213,7 +214,15 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('a finished quote shows the normal save label and no unfinished notice', () => {
     render(<QuoteForm {...baseProps()} />);
     expect(screen.queryByTestId('sq-unfinished-notice')).toBeNull();
+    // Retro ledger C03 (2026-10-05): a new quote keeps the base label t.generateSave; the unapproved hint line is gone
     expect(screen.getByTestId('sq-save')).toHaveTextContent('Generate & Save');
+    expect(screen.queryByTestId('sq-save-draft-hint')).toBeNull();
+  });
+
+  it('Task 16: an edit whose status is no longer Draft keeps the update label and no draft hint', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q1', quoteStatus: 'Sent' })} />);
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Update Quote');
+    expect(screen.queryByTestId('sq-save-draft-hint')).toBeNull();
   });
 
   it('SMART-QUOTE-04: a name with no matching client discloses that a NEW client record will be created on save', () => {
@@ -265,6 +274,27 @@ describe('QuoteForm - Regular quote flow (Locked Decision 2)', () => {
     expect(screen.getByText('Add product or work')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/No items added yet/)).toBeNull();
+  });
+});
+
+describe('QuoteForm - Task 21: the untouched placeholder is never a divided-mode item card', () => {
+  it('a fresh measured quote shows no "(unnamed) 1 x 0.00" card and no "1 item" count, but keeps the add-item path without a unit', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem()] })} />);
+    expect(screen.queryByText('(unnamed)')).toBeNull();
+    expect(screen.queryByText('1 item')).toBeNull();
+    expect(screen.getByText('Add product or work to Unassigned')).toBeTruthy();
+    expect(screen.getByText('Add the first unit')).toBeTruthy();
+  });
+  it('once a real item exists it is counted and shown next to the hidden placeholder', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem(), makeItem({ description: 'Aluminium window', unit_price: '600' })] })} />);
+    expect(screen.queryByText('(unnamed)')).toBeNull();
+    expect(screen.getByText('1 item')).toBeTruthy();
+    expect(screen.getByText('Aluminium window')).toBeTruthy();
+  });
+  it('with units and only the placeholder unassigned, no empty "Unassigned" card is shown', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], items: [makeItem()] })} />);
+    expect(screen.queryByText('Add product or work to Unassigned')).toBeNull();
+    expect(screen.getByText('Add product or work to Apartment 33')).toBeTruthy();
   });
 });
 
@@ -439,14 +469,17 @@ describe('QuoteForm - consolidated actions menu', () => {
     const colors = items.map((el) => ({ label: el.textContent, color: el.style.color }));
     const nonDelete = colors.filter((c) => !c.label.includes('Delete'));
     const del = colors.find((c) => c.label.includes('Delete'));
-    expect(del.color).toBe('rgb(220, 38, 38)');
-    nonDelete.forEach((c) => expect(c.color).not.toBe('rgb(220, 38, 38)'));
+    // Task 16: QuoteForm uses the APP token set - APP.red is the destructive color (read from the token, never pinned).
+    const hex = APP.red.replace('#', '');
+    const red = `rgb(${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)})`;
+    expect(del.color).toBe(red);
+    nonDelete.forEach((c) => expect(c.color).not.toBe(red));
   });
 
   it('Edit opens the same guided AddItemWizard edit mode as the chevron button', () => {
     render(<QuoteForm {...baseProps()} />);
     fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Edit/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^Edit$/ }));
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByText('Edit product or work')).toBeTruthy();
   });
@@ -481,7 +514,7 @@ describe('QuoteForm - consolidated actions menu', () => {
     expect(handleItemChange).toHaveBeenCalledWith(0, 'section_key', 'sec1');
   });
 
-  it('Duplicate is locked (shows the existing upgrade-confirmation modal) for a professional item without reuse entitlement', () => {
+  it('Duplicate is locked (shows the one capability upgrade notice) for a professional item without reuse entitlement', () => {
     const duplicateItem = vi.fn();
     render(<QuoteForm {...baseProps({
       items: [makeItem({ description: 'Measured item', unit_price: '10', pricing_unit: 'm2', quantity_source: 'calculated', calculated_quantity: 5 })],
@@ -493,7 +526,13 @@ describe('QuoteForm - consolidated actions menu', () => {
     // Locked duplication must show the existing upgrade-confirmation UI and
     // must NOT call the real duplicateItem function - not a silent no-op,
     // not a silent bypass of the entitlement gate.
-    expect(screen.getByText('This option is for PRO plan users only. Would you like to upgrade your account now?')).toBeTruthy();
+    const notice = screen.getByRole('dialog');
+    expect(notice).toHaveAttribute('data-capability', 'professional_quote.reuse');
+    expect(notice.textContent).not.toMatch(/PRO|Basic|BASIC|trial/);
+    expect(duplicateItem).not.toHaveBeenCalled();
+    // close is a no-op: still no duplication
+    fireEvent.click(screen.getByTestId('qf-upgrade-close'));
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(duplicateItem).not.toHaveBeenCalled();
   });
 

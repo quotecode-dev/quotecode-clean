@@ -3,88 +3,119 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-// Owner requirement (Hot Quote Fixed Geometry / No Layout Shift task): the
-// Hot Quote alert's rotating message must never drive the Dashboard header's
-// height. Mounting the full Dashboard component here would require heavy
-// Supabase/auth/routing mocks disproportionate to what this invariant needs
-// (see PROFLOW_PROJECT_CONTEXT.md for the full-browser geometry verification
-// this test complements, not replaces).
-//
-// חוק ברזל (UI Stability + Hot Quote Forensic Check task, 2026-09-08):
-// המבנה עבר מ-`hotQuotesList.length > 0 && currentHotQuote && (...)` (מדלג
-// על כל הבלוק - אפס-תוכן, לא רק אפס-נראות - כשאין הצעה חמה זכאית, בדיוק
-// שורש-הבעיה שנחקר במשימה הזו) ל-ternary אמיתי: `... ? (real alert) : (
-// empty state)` - התיבה עצמה תמיד קיימת בעץ ה-DOM, כך שגיאומטריית הדשבורד
-// לעולם לא "קופצת" כשההצעה החמה היחידה עוברת ל-approved/paid (המעבר-סטטוס
-// התקין שגרם להיעלמות שדווחה). העוגן לחיפוש הבלוק עודכן בהתאם.
-const dashboardSource = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), 'Dashboard.jsx'),
-  'utf-8',
-);
+// Hot-quote banner contract (owner correction 2026-10-08): the banner is NOT part of the dark header band. It is the first child of
+// the quotes workspace, directly under the band and above the toolbar/title block, localized, compact (40px) and tinted in the
+// existing hot-orange family. Mounting the full Dashboard needs heavy Supabase/auth mocks, so (like the other Dashboard source
+// guards) the structure is pinned at source level; the behaviour (pick, hidden-when-none, handler, copy HE/EN) is rendered in
+// QuotesTab.test.jsx and the rendered geometry is verified in a real browser.
+const here = dirname(fileURLToPath(import.meta.url));
+const norm = (text) => text.split(String.fromCharCode(13)).join('');
+const dashboardSource = norm(readFileSync(join(here, 'Dashboard.jsx'), 'utf-8'));
+const quotesTabSource = norm(readFileSync(join(here, '..', 'components', 'QuotesTab.jsx'), 'utf-8'));
+const css = dashboardSource.replace(/\/\*[\s\S]*?\*\//g, '');
 
-function extractHotQuoteBlock(source) {
-  const start = source.indexOf('{hotQuotesList.length > 0 && currentHotQuote ? (');
-  const blockEnd = source.indexOf('</span>\n              )}', start);
-  // חוק ברזל (Header UI Dark-Panel Correction task, 2026-09-09): the true
-  // closing marker above has never actually matched this block's real
-  // nesting (</div> sits between the last </span> and )}) - this extractor
-  // has always silently relied on the fallback window, not the indexOf
-  // match. 4500 (was 3500) gives real headroom so a content-only edit
-  // (e.g. longer color-token names/values, no structural change) doesn't
-  // silently truncate the captured block before its own closing tags.
-  return source.slice(start, blockEnd > start ? blockEnd + '</span>'.length : start + 4500);
-}
+const rule = (selector) => {
+  const idx = css.indexOf(`${selector} {`);
+  expect(idx, selector).toBeGreaterThan(-1);
+  return css.slice(idx, css.indexOf('}', idx));
+};
 
-describe('Hot Quote fixed geometry (source-level regression guard)', () => {
-  const block = extractHotQuoteBlock(dashboardSource);
-
-  it('the Hot Quote container is unconditionally present (ternary, not `&&`-gated) - never skips rendering entirely when no quote qualifies', () => {
-    expect(block).toMatch(/hotQuotesList\.length > 0 && currentHotQuote \? \(/);
-    // The old all-or-nothing `&& (` gate (which made the whole block vanish,
-    // the exact root cause investigated in this task) must be gone.
-    expect(dashboardSource).not.toMatch(/hotQuotesList\.length > 0 && currentHotQuote && \(/);
+describe('Hot quote banner (source-level regression guard)', () => {
+  it('the dark header band holds no banner and the old rotation/eligibility copy in Dashboard is gone', () => {
+    expect(dashboardSource).not.toContain('dash-hot-quote-alert');
+    expect(dashboardSource).not.toMatch(/hotQuotesList|currentHotQuote|hotQuoteIndex/);
   });
 
-  it('renders the rotating client/quote message as a single truncated line, never a variable-height multi-line block', () => {
-    expect(block).toMatch(/t\.hotQuoteAlert\(currentHotClientName, currentHotViewCount\)/);
-    expect(block).toMatch(/textOverflow:\s*['"]ellipsis['"],\s*whiteSpace:\s*['"]nowrap['"]/);
-    // Pre-live Header height law: no expand state - full text lives in title.
-    expect(block).not.toMatch(/hotQuoteExpanded/);
-    expect(block).toMatch(/title=\{t\.hotQuoteAlert\(currentHotClientName, currentHotViewCount\)\}/);
+  it('the banner is the first child of the quotes workspace (above the toolbar/title block) and renders only for a real lead quote', () => {
+    const banner = quotesTabSource.indexOf('className="quote-hot-banner"');
+    const toolbar = quotesTabSource.indexOf('data-testid="quote-list-header"');
+    expect(banner).toBeGreaterThan(-1);
+    expect(banner).toBeLessThan(toolbar);
+    expect(quotesTabSource).toMatch(/\{hotLead && \(\s*<div className="quote-hot-banner"/);
   });
 
-  it('reserves a fixed minHeight on the alert row (real-quote branch) so a short vs. long client name never shifts surrounding layout', () => {
-    expect(block).toMatch(/minHeight:\s*['"]28px['"]/);
+  it('the banner picks the SAME hottest quote as the row promotion (shared pickLeadHotRow) and reuses the tracking-details handler', () => {
+    expect(quotesTabSource).toMatch(/const hotLead = pickLeadHotRow\(rowsMeta\);/);
+    expect(quotesTabSource).toMatch(/onClick=\{\(\) => openTrackingFor\(hotLead\.quote\.id\)\}/);
+    expect(quotesTabSource).toMatch(/quote-modern-detail-\$\{quoteId\}/);
   });
 
-  it('both alert branches use the SAME fixed 42px height (Header height is constant regardless of alert state or text length)', () => {
-    const fixed = block.match(/height:\s*['"]42px['"],\s*boxSizing:\s*['"]border-box['"]/g) || [];
-    expect(fixed.length).toBe(2);
+  // Owner updates 2026-10-09 (all devices): no flame and no "hot quote" title; ONE illustrated eye at the inline-start edge, then
+  // "{clientName} viewed this quote {viewCount} times and still hasn't signed." with the REAL client name (no generic "the client").
+  it('keeps ONE eye icon only (no Flame, no title), first at inline-start, then the real client name and the exact HE/EN sentence', () => {
+    const block = quotesTabSource.slice(quotesTabSource.indexOf('className="quote-hot-banner"'), quotesTabSource.indexOf('data-testid="quote-list-header"'));
+    expect(block).not.toMatch(/Flame|quote-hot-banner-label/);
+    expect(block).not.toMatch(/הצעה חמה|Hot quote|הלקוח צפה|The client viewed/i);
+    // ONE icon: the original illustrated TEKANGO eye (Owner: no Lucide / generic / pixel icon) at a legible 24px
+    expect(block).not.toMatch(/<Eye /);
+    expect(block.match(/<TekangoEyeIcon /g)).toHaveLength(1);
+    expect(block).toMatch(/<TekangoEyeIcon size=\{24\} className="quote-hot-banner-eye" \/>/);
+    // the eye button is the banner's FIRST child -> inline-start (right in HE, left in EN) before the text, via dir only
+    expect(block.indexOf('className="quote-hot-banner-action"')).toBeLessThan(block.indexOf('className="quote-hot-banner-text"'));
+    expect(block).not.toMatch(/row-reverse|isHebrew \? 'right'|isHebrew \? 'left'/);
+    // the real client name, else the quote title, else its full number - ONE shared rule (quotePartyLabel, also the Statistics list)
+    expect(block).toMatch(/<mark className="quote-hot-banner-name">\{quotePartyLabel\(hotLead\.quote\)\.text\}<\/mark>/);
+    expect(block.indexOf('quote-hot-banner-name')).toBeLessThan(block.indexOf("' צפה בהצעה '"));
+    expect(block).toContain("' צפה בהצעה '");
+    expect(block).toContain("' פעמים ועדיין לא חתם.'");
+    expect(block).toContain("' viewed this quote '");
+    expect(block).toContain("' times and still hasn’t signed.'");
+    expect(block).toMatch(/<bdi className="pf-num" dir="ltr">/);
+    expect(block).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
+    // the flame and the hot title are gone from every quote-list surface (rows, legacy table, mobile cards)
+    expect(quotesTabSource).not.toMatch(/\bFlame\b|🔥|'הצעה חמה'|'Hot quote'|quote-modern-hot|quote-card-hot/);
   });
 
-  it('reserves the same fixed minHeight on the empty-state branch, so appearing/disappearing hot quotes never change Dashboard geometry', () => {
-    const matches = block.match(/minHeight:\s*['"]28px['"]/g) || [];
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+  it('ONLY the eyelid blinks (CSS inside the SVG), once every 6-8s, briefly, never scaling/moving the icon; off for reduced motion', () => {
+    const iconSource = norm(readFileSync(join(here, '..', 'components', 'TekangoEyeIcon.jsx'), 'utf-8'));
+    expect(iconSource).toMatch(/<svg[\s\S]*?<style>\{TK_EYE_BLINK_CSS\}<\/style>/);
+    const cssStart = iconSource.indexOf('const TK_EYE_BLINK_CSS = `');
+    expect(cssStart).toBeGreaterThan(-1);
+    const globalCss = iconSource.slice(cssStart, iconSource.indexOf('`;', cssStart));
+    const lidAt = globalCss.indexOf('.tk-eye-lid {');
+    expect(lidAt).toBeGreaterThan(-1);
+    const lidRule = globalCss.slice(lidAt, globalCss.indexOf('}', lidAt));
+    const m = lidRule.match(/animation: tk-eye-blink (\d+(?:\.\d+)?)s ease-in-out infinite;/);
+    expect(m).not.toBeNull();
+    expect(Number(m[1])).toBeGreaterThanOrEqual(6);
+    expect(Number(m[1])).toBeLessThanOrEqual(8);
+    const kfStart = globalCss.indexOf('@keyframes tk-eye-blink');
+    const kf = globalCss.slice(kfStart, globalCss.indexOf('@media (prefers-reduced-motion: reduce)', kfStart));
+    // the lid slides (translateY) inside the clipped eye opening; no scale and no size/spacing/position property
+    expect(kf).toMatch(/transform: translateY\(0\)/);
+    expect(kf).toMatch(/transform: translateY\(\d+(\.\d+)?px\)/);
+    expect(kf).not.toMatch(/scale|width|height|inline-size|block-size|margin|padding|font-size|inset|\btop\b|\bleft\b/);
+    // short and natural: closed and reopened within the last 7% of the cycle
+    const stops = [...kf.matchAll(/(\d+(?:\.\d+)?)%/g)].map((x) => Number(x[1]));
+    expect(100 - Math.max(...stops.filter((s) => s < 100 && s > 0 && s < 95))).toBeLessThanOrEqual(7);
+    expect(globalCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.tk-eye-lid \{ animation: none; \}/);
+    // the whole icon / the banner eye carries no animation of its own
+    expect(globalCss).not.toMatch(/\.tk-eye \{[^}]*animation/);
+    expect(css).not.toMatch(/\.quote-hot-banner-eye \{[^}]*animation/);
   });
 
-  it('the empty state shows the exact Owner-specified Hebrew and English copy, never fabricated client/view-count data', () => {
-    expect(block).toMatch(/אין כרגע הצעה חמה/);
-    expect(block).toMatch(/No hot quote right now/);
-    expect(block).toMatch(/כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן\./);
-    expect(block).toMatch(/A quote will appear here after 3 or more views while it is still awaiting approval\./);
+  it('is a compact 40px tinted bar in the hot-orange family, styled with logical properties only', () => {
+    const banner = rule('.quote-hot-banner');
+    expect(banner).toMatch(/min-height: 40px;/);
+    expect(banner).toMatch(/background: #fff4ed;/);
+    expect(banner).toMatch(/border: 1px solid #fdba74;/);
+    expect(banner).toMatch(/color: #9a3412;/);
+    // the eye button sits at inline-start (4px from the edge); the text gets the wider inline-end padding
+    expect(banner).toMatch(/padding-inline: 4px 12px;/);
+    expect(banner).not.toMatch(/\b(left|right)\b|margin-left|margin-right|padding-left|padding-right/);
+    expect(css).not.toMatch(/\.quote-hot-banner-(flame|label) \{/);
+    // Owner correction 2026-10-09: the real name and the count stay readable - the text wraps, never ellipsized or clamped away
+    const text = rule('.quote-hot-banner-text');
+    expect(text).not.toMatch(/white-space: nowrap|text-overflow: ellipsis|line-clamp|overflow: hidden/);
+    expect(text).toMatch(/white-space: normal;/);
+    expect(text).toMatch(/overflow-wrap: anywhere;/);
+    // the vertical padding sits on the text, so a single-line alert keeps the unchanged bar height
+    expect(banner).toMatch(/padding-block: 0;/);
+    expect(text).toMatch(/padding-block: 2px;/);
   });
 
-  it('the empty state never reuses the real-quote branch\'s client-name/view-count variables', () => {
-    const elseBranchStart = block.indexOf(') : (');
-    const elseBranch = block.slice(elseBranchStart);
-    expect(elseBranch).not.toMatch(/currentHotClientName/);
-    expect(elseBranch).not.toMatch(/currentHotViewCount/);
-    expect(elseBranch).not.toMatch(/t\.hotQuoteAlert/);
-  });
-
-  it('the underlying eligibility formula (view_count>=3, excludes approved/paid) is unchanged by this task', () => {
-    expect(dashboardSource).toMatch(
-      /const hotQuotesList = quotes\.filter\(q => \(q\.view_count \|\| 0\) >= 3 && q\.status !== 'approved' && q\.status !== 'paid'\);/,
-    );
+  it('the underlying eligibility rule (3+ views, not approved/paid) lives in ONE shared helper', () => {
+    const sortSource = norm(readFileSync(join(here, '..', 'utils', 'quoteListSort.js'), 'utf-8'));
+    expect(sortSource).toMatch(/Number\(quote\?\.view_count \|\| 0\) >= 3 && status !== 'approved' && status !== 'paid'/);
   });
 });

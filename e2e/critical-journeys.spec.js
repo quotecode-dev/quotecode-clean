@@ -102,6 +102,9 @@ async function logout(page) {
   // one is actually visible (CSS media query), so a plain selector can
   // resolve to the hidden one and hang waiting for it to become visible.
   // `:visible` filters down to whichever one the current viewport shows.
+  // Approved 980px dashboard: desktop Sign Out lives in the sidebar identity gear menu - open it first when it is shown.
+  const gear = page.locator('.dash-sidebar-gear:visible').first();
+  if (await gear.isVisible({ timeout: 500 }).catch(() => false)) await gear.click();
   const signOutBtn = page.locator('.dash-sidebar-signout:visible, .dash-mobile-signout-btn:visible').first();
   await signOutBtn.click();
   const confirmBtn = page.getByRole('button', { name: /^(Confirm|אישור)$/ });
